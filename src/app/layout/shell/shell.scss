@@ -1,0 +1,30 @@
+.shell {
+  display: grid;
+  grid-template-areas:
+    'header header'
+    'sidebar content'
+    'footer footer';
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: 64px 1fr 48px;
+  height: 100vh;
+
+  &__header {
+    grid-area: header;
+  }
+
+  &__sidebar {
+    grid-area: sidebar;
+    overflow-y: auto;
+  }
+
+  &__content {
+    grid-area: content;
+    overflow-y: auto;
+    padding: 24px;
+    background: var(--surface-muted, #faf9fc);
+  }
+
+  &__footer {
+    grid-area: footer;
+  }
+}

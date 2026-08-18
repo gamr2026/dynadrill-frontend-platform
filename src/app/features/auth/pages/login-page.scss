@@ -1,0 +1,23 @@
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: var(--surface-muted, #faf9fc);
+
+  &__card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 360px;
+    padding: 32px;
+    background: var(--surface, #fff);
+    border: var(--border-width, 1px) solid var(--border, #e5e4ea);
+    border-radius: var(--radius-md, 6px);
+  }
+
+  &__error {
+    color: var(--error, #ff4d4f);
+  }
+}

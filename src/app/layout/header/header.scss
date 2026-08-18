@@ -1,0 +1,9 @@
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0 24px;
+  background: var(--surface, #fff);
+  border-bottom: var(--border-width, 1px) solid var(--border, #e5e4ea);
+}

@@ -1,0 +1,8 @@
+.app-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: var(--surface, #fff);
+  border-top: var(--border-width, 1px) solid var(--border, #e5e4ea);
+}

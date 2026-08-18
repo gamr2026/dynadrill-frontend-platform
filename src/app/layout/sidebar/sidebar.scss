@@ -1,0 +1,28 @@
+.app-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100%;
+  padding: 16px 12px;
+  background: var(--dynadrill-navy, #131529);
+
+  &__link {
+    padding: 10px 12px;
+    border-radius: var(--radius-sm, 4px);
+    color: var(--dynadrill-white, #fff);
+    font-family: var(--font-body, sans-serif);
+    font-size: 13.5px;
+    text-decoration: none;
+    opacity: 0.85;
+
+    &:hover {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    &--active {
+      opacity: 1;
+      background: var(--dynadrill-purple, #662e9b);
+    }
+  }
+}

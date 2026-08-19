@@ -1,0 +1,101 @@
+<div class="user-form-page">
+  <dynadrill-text variant="h1">{{ isEditMode ? 'Editar usuario' : 'Nuevo usuario' }}</dynadrill-text>
+
+  @if (!loading()) {
+    <form class="user-form-page__form" [formGroup]="form" (ngSubmit)="submit()">
+      <div class="user-form-page__row">
+        <dynadrill-input
+          label="Nombre completo"
+          placeholder="Ana Torres"
+          [value]="form.controls.name.value"
+          (valueChange)="updateField('name', $event)"
+        />
+        @if (form.controls.name.invalid && form.controls.name.touched) {
+          <dynadrill-text variant="caption" class="user-form-page__error">El nombre es obligatorio.</dynadrill-text>
+        }
+      </div>
+
+      <div class="user-form-page__row">
+        <dynadrill-input
+          label="Usuario"
+          placeholder="atorres"
+          [value]="form.controls.username.value"
+          (valueChange)="updateField('username', $event)"
+        />
+        @if (form.controls.username.invalid && form.controls.username.touched) {
+          <dynadrill-text variant="caption" class="user-form-page__error">El usuario es obligatorio.</dynadrill-text>
+        }
+      </div>
+
+      <div class="user-form-page__row">
+        <dynadrill-input
+          label="Correo"
+          placeholder="nombre@dynadrill.com"
+          [value]="form.controls.email.value"
+          (valueChange)="updateField('email', $event)"
+        />
+        @if (form.controls.email.invalid && form.controls.email.touched) {
+          <dynadrill-text variant="caption" class="user-form-page__error">Ingresa un correo válido.</dynadrill-text>
+        }
+      </div>
+
+      <div class="user-form-page__row">
+        <dynadrill-input
+          [label]="isEditMode ? 'Nueva contraseña (opcional)' : 'Contraseña'"
+          type="password"
+          placeholder="••••••••"
+          [value]="form.controls.password.value"
+          (valueChange)="updateField('password', $event)"
+        />
+        @if (form.controls.password.invalid && form.controls.password.touched) {
+          <dynadrill-text variant="caption" class="user-form-page__error">Mínimo 8 caracteres.</dynadrill-text>
+        }
+      </div>
+
+      <div class="user-form-page__row-pair">
+        <div class="user-form-page__row">
+          <dynadrill-input
+            label="Código de empleado"
+            placeholder="EMP-004"
+            [value]="form.controls.code.value"
+            (valueChange)="updateField('code', $event)"
+          />
+        </div>
+        <div class="user-form-page__row">
+          <dynadrill-input
+            label="Teléfono"
+            placeholder="0991234567"
+            [value]="form.controls.phone.value"
+            (valueChange)="updateField('phone', $event)"
+          />
+        </div>
+      </div>
+
+      <div class="user-form-page__row">
+        <dynadrill-select
+          label="Rol"
+          placeholder="Selecciona un rol"
+          [options]="roleOptions()"
+          [value]="form.controls.roleId.value"
+          (valueChange)="updateRole($event)"
+        />
+        @if (form.controls.roleId.invalid && form.controls.roleId.touched) {
+          <dynadrill-text variant="caption" class="user-form-page__error">Selecciona un rol.</dynadrill-text>
+        }
+      </div>
+
+      <dynadrill-checkbox
+        label="Usuario activo"
+        [checked]="form.controls.status.value"
+        (checkedChange)="updateStatus($event)"
+      />
+
+      <div class="user-form-page__actions">
+        <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+        <dynadrill-button [disabled]="submitting()">
+          {{ submitting() ? 'Guardando…' : 'Guardar' }}
+        </dynadrill-button>
+      </div>
+    </form>
+  }
+</div>

@@ -1,0 +1,43 @@
+.user-form-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 640px;
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+    background: var(--surface, #fff);
+    border: var(--border-width, 1px) solid var(--border, #e5e4ea);
+    border-radius: var(--radius-md, 6px);
+  }
+
+  &__row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__row-pair {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+
+    .user-form-page__row {
+      flex: 1 1 200px;
+    }
+  }
+
+  &__error {
+    color: var(--error, #ff4d4f);
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+  }
+}

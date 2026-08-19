@@ -3,16 +3,27 @@ import { HttpInterceptorFn, provideHttpClient, withInterceptors } from '@angular
 import { provideRouter } from '@angular/router';
 import { provideNzI18n, es_ES } from 'ng-zorro-antd/i18n';
 import { provideNzWave } from 'ng-zorro-antd/core/wave';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { registerLocaleData } from '@angular/common';
+import localeEs from '@angular/common/locales/es';
+import { provideDynadrillDialog } from '@digitec-it-projects/dynadrill-ui';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { authMockInterceptor } from './core/mocks/auth-mock.interceptor';
+import { usersMockInterceptor } from './core/mocks/users-mock.interceptor';
+
+// provideNzI18n(es_ES) cambia el LOCALE_ID de Angular a 'es', pero Angular
+// no trae los datos de ese locale por defecto — sin este registro,
+// cualquier uso de DatePipe/formatDate (ej. dynadrill-datetime-picker)
+// revienta con NG0701 al abrir.
+registerLocaleData(localeEs);
 
 // El mock solo se agrega en dev, nunca en build de produccion. Quitar
 // junto con core/mocks/auth-mock.interceptor.ts cuando el backend NestJS
 // de auth exista de verdad.
 const interceptors: HttpInterceptorFn[] = isDevMode()
-  ? [authMockInterceptor, authInterceptor]
+  ? [authMockInterceptor, usersMockInterceptor, authInterceptor]
   : [authInterceptor];
 
 export const appConfig: ApplicationConfig = {
@@ -24,5 +35,13 @@ export const appConfig: ApplicationConfig = {
     // El manual de marca prohíbe el ripple/wave effect (sección 4) —
     // sin esto ng-zorro lo activa por defecto en botones/checkboxes.
     provideNzWave({ disabled: true }),
+    // Requisito de NzModalService (usado por DynadrillDialogService,
+    // que a su vez usa DynadrillNotificationService.confirm() en el
+    // flujo de "eliminar usuario"): sus transiciones dependen de
+    // AnimationBuilder.
+    provideAnimationsAsync(),
+    // Requisito de DynadrillDialogService — NzModalService no es
+    // providedIn:'root' en ng-zorro-antd.
+    provideDynadrillDialog(),
   ],
 };

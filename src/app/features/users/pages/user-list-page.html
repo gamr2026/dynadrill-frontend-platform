@@ -1,0 +1,20 @@
+<div class="user-list-page">
+  <div class="user-list-page__header">
+    <dynadrill-text variant="h1">Usuarios</dynadrill-text>
+    <div class="user-list-page__actions">
+      <dynadrill-button variant="secondary" [disabled]="!canEdit()" (clicked)="editSelected()">Editar</dynadrill-button>
+      <dynadrill-button variant="error" [disabled]="!canDelete()" (clicked)="deleteSelected()">Eliminar</dynadrill-button>
+      <dynadrill-button (clicked)="createUser()">Nuevo usuario</dynadrill-button>
+    </div>
+  </div>
+
+  <dynadrill-data-table
+    [columns]="columns"
+    [rows]="rows()"
+    [loading]="loading()"
+    [selectable]="true"
+    [selectedRows]="selectedRows()"
+    [rowKey]="rowKeyFn"
+    (selectedRowsChange)="onSelectedRowsChange($event)"
+  />
+</div>

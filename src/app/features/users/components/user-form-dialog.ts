@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import {
   DynadrillButtonComponent,
   DynadrillCheckboxComponent,
@@ -13,8 +13,19 @@ import type { DynadrillSelectOption } from '@digitec-it-projects/dynadrill-ui';
 import { Role } from '../models/user.model';
 import { RolesService, UsersService } from '../services/users.service';
 
+export interface UserFormDialogData {
+  userId?: number;
+}
+
+/**
+ * Contenido de DynadrillDialogService.open() — no es una pagina ruteada,
+ * vive dentro del modal. userId llega via NZ_MODAL_DATA en vez de
+ * ActivatedRoute; al guardar/cancelar se cierra a si mismo con
+ * NzModalRef.close(), el resultado 'saved' le dice a quien lo abrio que
+ * debe refrescar la lista.
+ */
 @Component({
-  selector: 'app-user-form-page',
+  selector: 'app-user-form-dialog',
   imports: [
     ReactiveFormsModule,
     DynadrillTextComponent,
@@ -24,19 +35,18 @@ import { RolesService, UsersService } from '../services/users.service';
     DynadrillButtonComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './user-form-page.html',
-  styleUrl: './user-form-page.scss',
+  templateUrl: './user-form-dialog.html',
+  styleUrl: './user-form-dialog.scss',
 })
-export class UserFormPage {
+export class UserFormDialog {
   private readonly fb = inject(FormBuilder);
   private readonly usersService = inject(UsersService);
   private readonly rolesService = inject(RolesService);
   private readonly notify = inject(DynadrillNotificationService);
-  private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
+  private readonly modalRef = inject(NzModalRef);
+  private readonly data = inject<UserFormDialogData>(NZ_MODAL_DATA);
 
-  private readonly userId = this.route.snapshot.paramMap.get('id');
-  protected readonly isEditMode = this.userId !== null;
+  protected readonly isEditMode = this.data.userId != null;
 
   protected readonly loading = signal(this.isEditMode);
   protected readonly submitting = signal(false);
@@ -64,7 +74,7 @@ export class UserFormPage {
     this.rolesService.list().subscribe(roles => this.roles.set(roles));
 
     if (this.isEditMode) {
-      this.usersService.get(Number(this.userId)).subscribe({
+      this.usersService.get(this.data.userId!).subscribe({
         next: user => {
           this.form.patchValue({
             name: user.name,
@@ -80,7 +90,7 @@ export class UserFormPage {
         error: () => {
           this.loading.set(false);
           this.notify.error('Error', 'No se pudo cargar el usuario.');
-          this.router.navigate(['/dashboard/usuarios']);
+          this.modalRef.close();
         },
       });
     }
@@ -109,7 +119,7 @@ export class UserFormPage {
     const roleId = rest.roleId as number;
 
     const request$ = this.isEditMode
-      ? this.usersService.update(Number(this.userId), {
+      ? this.usersService.update(this.data.userId!, {
           ...rest,
           roleId,
           ...(password ? { password } : {}),
@@ -119,7 +129,7 @@ export class UserFormPage {
     request$.subscribe({
       next: () => {
         this.notify.success('Guardado', this.isEditMode ? 'Usuario actualizado.' : 'Usuario creado.');
-        this.router.navigate(['/dashboard/usuarios']);
+        this.modalRef.close('saved');
       },
       error: () => {
         this.submitting.set(false);
@@ -129,6 +139,6 @@ export class UserFormPage {
   }
 
   cancel(): void {
-    this.router.navigate(['/dashboard/usuarios']);
+    this.modalRef.close();
   }
 }

@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
 import {
   DynadrillButtonComponent,
   DynadrillDataTableColumn,
@@ -9,6 +8,7 @@ import {
   DynadrillTextComponent,
 } from '@digitec-it-projects/dynadrill-ui';
 import { forkJoin } from 'rxjs';
+import { UserFormDialog, UserFormDialogData } from '../components/user-form-dialog';
 import { Role, User } from '../models/user.model';
 import { RolesService, UsersService } from '../services/users.service';
 
@@ -24,7 +24,6 @@ export class UserListPage {
   private readonly rolesService = inject(RolesService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
-  private readonly router = inject(Router);
 
   protected readonly loading = signal(true);
   protected readonly users = signal<User[]>([]);
@@ -35,7 +34,7 @@ export class UserListPage {
     { key: 'name', header: 'Nombre', sortable: true, searchable: true },
     { key: 'username', header: 'Usuario', searchable: true },
     { key: 'email', header: 'Correo', searchable: true },
-    { key: 'code', header: 'Código' },
+    { key: 'code', header: 'Código', sortable:true },
     { key: 'phone', header: 'Teléfono' },
     { key: 'role', header: 'Rol', type: 'badge' },
     { key: 'statusBadge', header: 'Estado', type: 'badge' },
@@ -87,14 +86,26 @@ export class UserListPage {
   }
 
   createUser(): void {
-    this.router.navigate(['/dashboard/usuarios/nuevo']);
+    this.openUserFormDialog();
   }
 
   editSelected(): void {
     const row = this.selectedRows()[0];
     if (row) {
-      this.router.navigate(['/dashboard/usuarios', row['id'], 'editar']);
+      this.openUserFormDialog(row['id'] as number);
     }
+  }
+
+  private openUserFormDialog(userId?: number): void {
+    const ref = this.dialog.open<UserFormDialog, UserFormDialogData>({
+      title: userId != null ? 'Editar usuario' : 'Nuevo usuario',
+      content: UserFormDialog,
+      data: { userId },
+      size: 'large',
+    });
+    ref.afterClose.subscribe((result: unknown) => {
+      if (result === 'saved') this.reload();
+    });
   }
 
   async deleteSelected(): Promise<void> {

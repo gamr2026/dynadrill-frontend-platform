@@ -6,4 +6,10 @@
   padding: 0 24px;
   background: var(--surface, #fff);
   border-bottom: var(--border-width, 1px) solid var(--border, #e5e4ea);
+
+  &__logout {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
 }

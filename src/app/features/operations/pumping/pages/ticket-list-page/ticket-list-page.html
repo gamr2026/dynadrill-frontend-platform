@@ -1,0 +1,16 @@
+<dynadrill-screen-header
+  eyebrow="PUM-01"
+  title="Tickets Pumping"
+  subtitle="Dashboard de propuestas y tickets activos"
+  roleTag="Jefe de Base"
+/>
+
+<dynadrill-kpi-row [items]="kpis()" />
+
+<dynadrill-data-table
+  [columns]="columns"
+  [rows]="rows()"
+  [loading]="loading()"
+  [rowKey]="rowKeyFn"
+  [pageSize]="10"
+/>

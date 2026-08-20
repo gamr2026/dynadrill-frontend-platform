@@ -1,0 +1,60 @@
+<dynadrill-screen-header
+  [eyebrow]="'PUM-02'"
+  [title]="ticket()?.code ?? 'Cargando...'"
+  [subtitle]="ticket()?.wellName ?? ''"
+  roleTag="Jefe de Base"
+/>
+
+<dynadrill-stepper [steps]="steps" [currentIndex]="currentStepIndex()" />
+
+@if (loading()) {
+  <dynadrill-text variant="body">Cargando ticket...</dynadrill-text>
+} @else {
+  <dynadrill-context-card [items]="contextItems()" />
+
+  <!-- Seccion: Herramientas -->
+  <section class="ticket-detail__section">
+    <dynadrill-text variant="h2">Herramientas</dynadrill-text>
+    <dynadrill-data-table
+      [columns]="toolColumns"
+      [rows]="toolRows()"
+      [loading]="false"
+    />
+  </section>
+
+  <!-- Seccion: Quimicos -->
+  <section class="ticket-detail__section">
+    <dynadrill-text variant="h2">Quimicos</dynadrill-text>
+    <dynadrill-data-table
+      [columns]="chemicalColumns"
+      [rows]="chemicalRows()"
+      [loading]="false"
+    />
+  </section>
+
+  <!-- Seccion: Checklist documental -->
+  <section class="ticket-detail__section">
+    <dynadrill-text variant="h2">Checklist documental</dynadrill-text>
+    <dynadrill-checklist
+      [items]="checklist()"
+      (itemToggle)="onChecklistToggle($event)"
+    />
+  </section>
+
+  <!-- Seccion: Aprobacion -->
+  <section class="ticket-detail__section">
+    <dynadrill-text variant="h2">Decision</dynadrill-text>
+    <dynadrill-approval-actions
+      [decision]="decision()"
+      consequenceApprove="El ticket avanzara al siguiente paso del flujo."
+      consequenceReject="El ticket sera devuelto al paso anterior para correccion."
+      (decisionChange)="onDecisionChange($event)"
+    />
+  </section>
+
+  <!-- Acciones -->
+  <footer class="ticket-detail__actions">
+    <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
+    <dynadrill-button variant="primary" [disabled]="decision() === null">Confirmar</dynadrill-button>
+  </footer>
+}

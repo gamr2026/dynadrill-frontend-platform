@@ -23,6 +23,10 @@ export const routes: Routes = [
         path: 'dashboard/mantenimiento',
         loadChildren: () => import('./features/maintenance/maintenance.routes').then(m => m.maintenanceRoutes),
       },
+      {
+        path: 'operaciones',
+        loadChildren: () => import('./features/operations/operations.routes').then(m => m.operationsRoutes),
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

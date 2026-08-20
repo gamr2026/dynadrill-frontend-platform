@@ -1,0 +1,13 @@
+<app-screen-header [eyebrow]="'PUM-02'" [title]="ticket()?.code ?? ''" [subtitle]="ticket()?.wellName ?? ''" />
+
+<app-stepper [steps]="stepLabels" [currentStep]="currentStepIndex()" />
+
+<app-context-card [items]="contextItems()" />
+
+@if (loading()) {
+  <p>Cargando...</p>
+} @else {
+  <section class="ticket-detail__content">
+    <!-- Detail content per step will be implemented -->
+  </section>
+}

@@ -1,0 +1,14 @@
+<app-screen-header eyebrow="PUM-01" title="Tickets Pumping" subtitle="Dashboard de propuestas y tickets activos" />
+
+<app-kpi-row [items]="kpis()" />
+
+<!-- TODO: integrate dynadrill-data-table when available -->
+@if (loading()) {
+  <p>Cargando...</p>
+} @else {
+  <ul>
+    @for (row of rows(); track row.id) {
+      <li (click)="viewDetail(row)">{{ row.code }} — {{ row.wellName }} — {{ row.status }}</li>
+    }
+  </ul>
+}

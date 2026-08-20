@@ -2,14 +2,6 @@
   <div class="user-list-page__header">
     <dynadrill-text variant="h1">Usuarios</dynadrill-text>
     <div class="user-list-page__actions">
-      <dynadrill-button variant="secondary" [disabled]="!canEdit()" (clicked)="editSelected()">
-        <dynadrill-icon name="edit" [size]="14" />
-        Editar
-      </dynadrill-button>
-      <dynadrill-button variant="error" [disabled]="!canDelete()" (clicked)="deleteSelected()">
-        <dynadrill-icon name="delete" [size]="14" />
-        Eliminar
-      </dynadrill-button>
       <dynadrill-button (clicked)="createUser()">
         <dynadrill-icon name="add" [size]="14" />
         Nuevo usuario
@@ -21,9 +13,21 @@
     [columns]="columns"
     [rows]="rows()"
     [loading]="loading()"
-    [selectable]="true"
-    [selectedRows]="selectedRows()"
     [rowKey]="rowKeyFn"
-    (selectedRowsChange)="onSelectedRowsChange($event)"
+    [actionsTemplate]="actions"
   />
+
+  <ng-template #actions let-row>
+    <button type="button" class="dynadrill-data-table__action-btn" title="Editar usuario" (click)="editRow(row)">
+      <dynadrill-icon name="edit" [size]="14" />
+    </button>
+    <button
+      type="button"
+      class="dynadrill-data-table__action-btn dynadrill-data-table__action-btn--danger"
+      title="Eliminar usuario"
+      (click)="deleteRow(row)"
+    >
+      <dynadrill-icon name="delete" [size]="14" />
+    </button>
+  </ng-template>
 </div>

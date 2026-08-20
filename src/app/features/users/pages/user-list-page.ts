@@ -29,7 +29,6 @@ export class UserListPage {
   protected readonly loading = signal(true);
   protected readonly users = signal<User[]>([]);
   protected readonly roles = signal<Role[]>([]);
-  protected readonly selectedRows = signal<Record<string, unknown>[]>([]);
 
   protected readonly columns: DynadrillDataTableColumn[] = [
     { key: 'name', header: 'Nombre', sortable: true, searchable: true },
@@ -57,9 +56,6 @@ export class UserListPage {
     }));
   });
 
-  protected readonly canEdit = computed(() => this.selectedRows().length === 1);
-  protected readonly canDelete = computed(() => this.selectedRows().length >= 1);
-
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   constructor() {
@@ -73,7 +69,6 @@ export class UserListPage {
         this.users.set(users);
         this.roles.set(roles);
         this.loading.set(false);
-        this.selectedRows.set([]);
       },
       error: () => {
         this.loading.set(false);
@@ -82,19 +77,12 @@ export class UserListPage {
     });
   }
 
-  onSelectedRowsChange(rows: Record<string, unknown>[]): void {
-    this.selectedRows.set(rows);
-  }
-
   createUser(): void {
     this.openUserFormDialog();
   }
 
-  editSelected(): void {
-    const row = this.selectedRows()[0];
-    if (row) {
-      this.openUserFormDialog(row['id'] as number);
-    }
+  editRow(row: Record<string, unknown>): void {
+    this.openUserFormDialog(row['id'] as number);
   }
 
   private openUserFormDialog(userId?: number): void {
@@ -109,25 +97,18 @@ export class UserListPage {
     });
   }
 
-  async deleteSelected(): Promise<void> {
-    const rows = this.selectedRows();
-    if (rows.length === 0) return;
-
+  async deleteRow(row: Record<string, unknown>): Promise<void> {
     const confirmed = await this.dialog.confirm({
-      title: rows.length === 1 ? '¿Eliminar este usuario?' : `¿Eliminar ${rows.length} usuarios?`,
+      title: `¿Eliminar a ${row['name']}?`,
       content: 'Esta acción no se puede deshacer.',
       okText: 'Eliminar',
       danger: true,
     });
     if (!confirmed) return;
 
-    this.performDelete(rows.map(r => r['id'] as number));
-  }
-
-  private performDelete(ids: number[]): void {
-    forkJoin(ids.map(id => this.usersService.delete(id))).subscribe({
+    this.usersService.delete(row['id'] as number).subscribe({
       next: () => {
-        this.notify.success('Eliminado', ids.length === 1 ? 'Usuario eliminado.' : 'Usuarios eliminados.');
+        this.notify.success('Eliminado', 'Usuario eliminado.');
         this.reload();
       },
       error: () => this.notify.error('Error', 'No se pudo completar la eliminación.'),

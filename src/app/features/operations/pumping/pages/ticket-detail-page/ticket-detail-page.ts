@@ -7,15 +7,12 @@ import {
   DynadrillContextCardComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
-  DynadrillDualListComponent,
   DynadrillScreenHeaderComponent,
   DynadrillStepperComponent,
   DynadrillTextComponent,
-  DynadrillUploadZoneComponent,
   type DynadrillApprovalDecision,
   type DynadrillChecklistItem,
   type DynadrillContextCardItem,
-  type DynadrillDualListOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import { PumpingTicket, PumpingStep } from '../../models/pumping.model';
 import { PumpingService } from '../../services/pumping.service';
@@ -32,8 +29,6 @@ import { PumpingService } from '../../services/pumping.service';
     DynadrillTextComponent,
     DynadrillApprovalActionsComponent,
     DynadrillChecklistComponent,
-    DynadrillUploadZoneComponent,
-    DynadrillDualListComponent,
   ],
   templateUrl: './ticket-detail-page.html',
   styleUrl: './ticket-detail-page.scss',

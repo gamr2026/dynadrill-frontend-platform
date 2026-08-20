@@ -62,6 +62,11 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "prebundle": {
+              "exclude": ["@digitec-it-projects/dynadrill-ui"]
+            }
+          },
           "configurations": {
             "production": {
               "buildTarget": "dynadrill-frontend:build:production"

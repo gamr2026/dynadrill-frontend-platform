@@ -1,4 +1,4 @@
-import { Ticket } from '../../../shared/models/ticket.model';
+import { Ticket } from '../../../../shared/models/ticket.model';
 
 export type PumpingServiceType = 'pumping' | 'fcr';
 

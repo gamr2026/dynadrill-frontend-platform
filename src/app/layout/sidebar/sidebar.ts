@@ -22,8 +22,8 @@ export class Sidebar {
         {
           label: 'Operativo',
           children: [
-            { label: 'Pumping', link: '/dashboard/operativo/pumping' },
-            { label: 'FCR', link: '/dashboard/operativo/fcr' },
+            { label: 'Pumping', link: '/operaciones/pumping' },
+            { label: 'FCR', link: '/operaciones/fcr' },
           ],
         },
         { label: 'Mantenimiento', link: '/dashboard/mantenimiento' },

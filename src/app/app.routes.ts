@@ -19,6 +19,10 @@ export const routes: Routes = [
         path: 'dashboard/usuarios',
         loadChildren: () => import('./features/users/users.routes').then(m => m.usersRoutes),
       },
+      {
+        path: 'dashboard/mantenimiento',
+        loadChildren: () => import('./features/maintenance/maintenance.routes').then(m => m.maintenanceRoutes),
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

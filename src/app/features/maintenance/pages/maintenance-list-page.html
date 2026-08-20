@@ -1,0 +1,51 @@
+<div class="maintenance-list-page">
+  <div class="maintenance-list-page__header">
+    <dynadrill-text variant="h1">Mantenimiento</dynadrill-text>
+  </div>
+
+  <dynadrill-data-table [columns]="columns" [rows]="rows()" [loading]="loading()" [rowKey]="rowKeyFn" [actionsTemplate]="actionsTpl" />
+
+  <ng-template #actionsTpl let-row>
+    <button *ngIf="isUnclassified(row)" type="button" class="dynadrill-data-table__action-btn" title="Clasificar" (click)="classify(reportFor(row))">
+      <dynadrill-icon name="edit" [size]="14" />
+    </button>
+    <button *ngIf="isDismissed(row)" type="button" class="dynadrill-data-table__action-btn" title="Ver motivo del descarte" (click)="showDismissReason(row)">
+      <dynadrill-icon name="alert" [size]="14" />
+    </button>
+
+    <ng-container *ngIf="isOrderRow(row)">
+      <button type="button" class="dynadrill-data-table__action-btn" title="Editar clasificación" (click)="editClassification(orderFor(row))">
+        <dynadrill-icon name="edit" [size]="14" />
+      </button>
+      <span class="maintenance-suborder-actions" *ngFor="let sub of subOrdersFor(row)">
+        <button
+          *ngIf="sub.status === 'Pendiente' || sub.status === 'Corrección Solicitada'"
+          type="button"
+          class="dynadrill-data-table__action-btn"
+          [title]="sub.code + ': Diagnosticar / Ejecutar (' + sub.type + ')'"
+          (click)="openExecution(sub)"
+        >
+          <dynadrill-icon name="edit" [size]="14" />
+        </button>
+        <button
+          *ngIf="sub.status === 'En Revisión de Cierre'"
+          type="button"
+          class="dynadrill-data-table__action-btn"
+          [title]="sub.code + ': Revisar cierre (' + sub.type + ')'"
+          (click)="openReview(sub)"
+        >
+          <dynadrill-icon name="success" [size]="14" />
+        </button>
+        <button
+          *ngIf="sub.status === 'En Revisión de Cierre' || sub.status === 'Cerrado'"
+          type="button"
+          class="dynadrill-data-table__action-btn"
+          [title]="sub.code + ': Editar diagnóstico / actividades (' + sub.type + ')'"
+          (click)="openExecution(sub)"
+        >
+          <dynadrill-icon name="edit" [size]="14" />
+        </button>
+      </span>
+    </ng-container>
+  </ng-template>
+</div>

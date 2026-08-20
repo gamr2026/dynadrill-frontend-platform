@@ -1,0 +1,34 @@
+<div class="suborder-execution-dialog">
+  <div class="suborder-execution-dialog__row">
+    <dynadrill-text variant="caption">Sub-orden</dynadrill-text>
+    <dynadrill-text variant="body">{{ data.subOrder.code }} · Tipo: {{ data.subOrder.type }}</dynadrill-text>
+  </div>
+
+  <app-novedad-readonly label="Novedad reportada por el operador (Reporte de Unidad)" [content]="data.novedadOriginal" />
+
+  @if (wasRejected) {
+    <dynadrill-text variant="caption" class="suborder-execution-dialog__rejected">
+      El Jefe de Mantenimiento solicitó correcciones — actualiza y vuelve a enviar a revisión.
+    </dynadrill-text>
+  } @else if (isClosed) {
+    <dynadrill-text variant="caption">Esta sub-orden ya está Cerrada — editar aquí solo corrige el texto, no la reabre.</dynadrill-text>
+  } @else if (isEdit) {
+    <dynadrill-text variant="caption">Editando lo ya enviado — se puede ajustar antes o mientras el Jefe la revisa.</dynadrill-text>
+  }
+
+  <dynadrill-textarea label="Diagnóstico técnico" placeholder="Hallazgos de la evaluación de la unidad" [value]="diagnostico()" (valueChange)="diagnostico.set($event)" [rows]="4" />
+  <dynadrill-textarea
+    label="Actividades correctivas determinadas"
+    placeholder="Detalle de lo que se va a ejecutar"
+    [value]="actividadesCorrectivas()"
+    (valueChange)="actividadesCorrectivas.set($event)"
+    [rows]="4"
+  />
+
+  <div class="suborder-execution-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="submitting()" (clicked)="submit()">
+      {{ submitting() ? 'Guardando…' : isClosed ? 'Guardar cambios' : 'Guardar y enviar a revisión' }}
+    </dynadrill-button>
+  </div>
+</div>

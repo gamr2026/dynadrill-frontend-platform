@@ -1,0 +1,11 @@
+.suborder-review-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+}

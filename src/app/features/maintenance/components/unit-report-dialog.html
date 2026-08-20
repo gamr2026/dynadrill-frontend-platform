@@ -1,0 +1,114 @@
+<div class="unit-report-dialog">
+  <dynadrill-stepper [steps]="steps" [currentIndex]="currentStep()" />
+
+  <div class="unit-report-dialog__body">
+    @if (currentStep() === 0) {
+      <div class="unit-report-dialog__grid">
+        <dynadrill-input label="Reporte N°" placeholder="3104" [value]="reportNo()" (valueChange)="reportNo.set($event)" />
+        <dynadrill-input label="Pozo" placeholder="Guanta 43" [value]="pozo()" (valueChange)="pozo.set($event)" />
+        <dynadrill-input label="Bloque" placeholder="56" [value]="bloque()" (valueChange)="bloque.set($event)" />
+        <dynadrill-input label="Cliente" placeholder="Petroecuador" [value]="cliente()" (valueChange)="cliente.set($event)" />
+        <dynadrill-input label="Base" placeholder="Coca" [value]="base()" (valueChange)="base.set($event)" />
+        <dynadrill-input label="Unidad" placeholder="4-CTV-03" [value]="unidad()" (valueChange)="unidad.set($event)" />
+        <dynadrill-datetime-picker label="Fecha Salida" [value]="fechaSalida()!" (valueChange)="fechaSalida.set($event)" />
+        <dynadrill-datetime-picker label="Fecha Llegada" [value]="fechaLlegada()!" (valueChange)="fechaLlegada.set($event)" />
+      </div>
+    }
+
+    @if (currentStep() === 1) {
+      <div class="unit-report-dialog__grid">
+        <dynadrill-input label="Horómetro Salida" type="number" [value]="horometroSalida()" (valueChange)="horometroSalida.set($event)" />
+        <dynadrill-input label="Horómetro Llegada" type="number" [value]="horometroLlegada()" (valueChange)="horometroLlegada.set($event)" />
+        <dynadrill-input label="Odómetro Salida" type="number" [value]="odometroSalida()" (valueChange)="odometroSalida.set($event)" />
+        <dynadrill-input label="Odómetro Llegada" type="number" [value]="odometroLlegada()" (valueChange)="odometroLlegada.set($event)" />
+        <dynadrill-input label="Origen" [value]="origen()" (valueChange)="origen.set($event)" />
+        <dynadrill-input label="Destino" [value]="destino()" (valueChange)="destino.set($event)" />
+      </div>
+    }
+
+    @if (currentStep() === 2) {
+      <ng-container [ngTemplateOutlet]="checklist" [ngTemplateOutletContext]="{ $implicit: inspeccionChasis, list: inspeccionChasis }" />
+    }
+    @if (currentStep() === 3) {
+      <ng-container [ngTemplateOutlet]="checklist" [ngTemplateOutletContext]="{ $implicit: inspeccionPlataforma, list: inspeccionPlataforma }" />
+    }
+    @if (currentStep() === 4) {
+      <ng-container [ngTemplateOutlet]="checklist" [ngTemplateOutletContext]="{ $implicit: inspeccionInstrumentacion, list: inspeccionInstrumentacion }" />
+    }
+
+    @if (currentStep() === 5) {
+      <div class="unit-report-dialog__stack">
+        <dynadrill-textarea label="Mecánica: problemas acontecidos" [value]="problemasMecanica()" (valueChange)="problemasMecanica.set($event)" [rows]="3" />
+        <dynadrill-textarea
+          label="Instrumentación: problemas acontecidos"
+          [value]="problemasInstrumentacion()"
+          (valueChange)="problemasInstrumentacion.set($event)"
+          [rows]="3"
+        />
+        <dynadrill-textarea label="Operaciones: problemas acontecidos" [value]="problemasOperaciones()" (valueChange)="problemasOperaciones.set($event)" [rows]="3" />
+
+        <dynadrill-checkbox label="¿Algún problema interrumpió/atrasó la operación?" [checked]="interrumpioOperacion()" (checkedChange)="interrumpioOperacion.set($event)" />
+        @if (interrumpioOperacion()) {
+          <dynadrill-input label="¿Cuál?" [value]="detalleInterrupcion()" (valueChange)="detalleInterrupcion.set($event)" />
+        }
+        <dynadrill-checkbox
+          label="La unidad está lista y operativa para la siguiente operación"
+          [checked]="listaParaSiguienteOperacion()"
+          (checkedChange)="listaParaSiguienteOperacion.set($event)"
+        />
+      </div>
+    }
+
+    @if (currentStep() === 6) {
+      <div class="unit-report-dialog__grid">
+        <dynadrill-input label="Operador (Salida)" [value]="operadorSalida()" (valueChange)="operadorSalida.set($event)" />
+        <dynadrill-input label="Supervisor de Servicio (Salida)" [value]="supervisorSalida()" (valueChange)="supervisorSalida.set($event)" />
+        <dynadrill-input label="Operador (Llegada)" [value]="operadorLlegada()" (valueChange)="operadorLlegada.set($event)" />
+        <dynadrill-input label="Supervisor de Servicio (Llegada)" [value]="supervisorLlegada()" (valueChange)="supervisorLlegada.set($event)" />
+      </div>
+    }
+  </div>
+
+  <div class="unit-report-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+    <div class="unit-report-dialog__actions-right">
+      @if (currentStep() > 0) {
+        <dynadrill-button variant="secondary" (clicked)="back()">Atrás</dynadrill-button>
+      }
+      @if (currentStep() < steps.length - 1) {
+        <dynadrill-button (clicked)="next()">Siguiente</dynadrill-button>
+      } @else {
+        <dynadrill-button [disabled]="submitting()" (clicked)="submit()">{{ submitting() ? 'Guardando…' : 'Guardar' }}</dynadrill-button>
+      }
+    </div>
+  </div>
+</div>
+
+<ng-template #checklist let-items let-list="list">
+  <div class="unit-checklist">
+    <div class="unit-checklist__header">
+      <span></span>
+      <span>Salida</span>
+      <span>Llegada</span>
+    </div>
+    @for (item of items(); track item.label; let i = $index) {
+      <div class="unit-checklist__row">
+        <span class="unit-checklist__label">{{ item.label }}</span>
+        <button type="button" class="unit-checklist__cell" (click)="toggleChecklist(list, i, 'salida')">
+          @if (item.salida === 'ok') {
+            <dynadrill-icon name="check" [size]="16" />
+          } @else if (item.salida === 'x') {
+            <dynadrill-icon name="close" [size]="16" />
+          }
+        </button>
+        <button type="button" class="unit-checklist__cell" (click)="toggleChecklist(list, i, 'llegada')">
+          @if (item.llegada === 'ok') {
+            <dynadrill-icon name="check" [size]="16" />
+          } @else if (item.llegada === 'x') {
+            <dynadrill-icon name="close" [size]="16" />
+          }
+        </button>
+      </div>
+    }
+  </div>
+</ng-template>

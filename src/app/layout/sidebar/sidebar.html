@@ -1,15 +1,3 @@
 <nav class="app-sidebar">
-  <a
-    routerLink="/dashboard"
-    routerLinkActive="app-sidebar__link--active"
-    [routerLinkActiveOptions]="{ exact: true }"
-    class="app-sidebar__link"
-  >
-    <dynadrill-icon name="home" [size]="16" />
-    Dashboard
-  </a>
-  <a routerLink="/dashboard/usuarios" routerLinkActive="app-sidebar__link--active" class="app-sidebar__link">
-    <dynadrill-icon name="users" [size]="16" />
-    Usuarios
-  </a>
+  <dynadrill-menu [items]="items" />
 </nav>

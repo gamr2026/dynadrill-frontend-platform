@@ -135,6 +135,7 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
       unitReportId: input.unitReportId,
       origin: input.origin,
       createdAt: new Date().toISOString(),
+      returnedToOperation: false,
       subOrders,
     };
     orders = [...orders, created];
@@ -168,10 +169,21 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
 
   const closeOrderId = req.url.match(/\/api\/maintenance-orders\/(\d+)\/close$/);
   if (closeOrderId && req.method === 'POST') {
-    // El estado final se maneja en el frontend (computeOrderStatus); acá solo
-    // se registra la devolución a Operaciones.
-    void (req.body as CloseOrderInput);
-    return of(new HttpResponse({ status: 200 })).pipe(delay(400));
+    const id = Number(closeOrderId[1]);
+    const input = req.body as CloseOrderInput;
+    let updated: MaintenanceOrderWithSubOrders | undefined;
+    orders = orders.map(order => {
+      if (order.id !== id) return order;
+      updated = {
+        ...order,
+        returnedToOperation: true,
+        finalUnitState: input.estadoFinal,
+        finalObservaciones: input.observaciones,
+        finalResponsable: input.responsable,
+      };
+      return updated;
+    });
+    return of(new HttpResponse({ status: updated ? 200 : 404, body: updated ?? null })).pipe(delay(400));
   }
 
   const subOrderId = matchId(req.url, '/api/maintenance-suborders');

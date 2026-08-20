@@ -17,12 +17,14 @@ import { UnitReportsService } from '../services/unit-reports.service';
 import { OrderClassificationDialog, OrderClassificationDialogData } from '../components/order-classification-dialog';
 import { SuborderExecutionDialog, SuborderExecutionDialogData } from '../components/suborder-execution-dialog';
 import { SuborderReviewDialog, SuborderReviewDialogData } from '../components/suborder-review-dialog';
+import { ReturnToOperationDialog, ReturnToOperationDialogData } from '../components/return-to-operation-dialog';
 
 const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
   Pendiente: 'warning',
   'Requiere cambios': 'info',
   Aceptado: 'success',
   Rechazado: 'error',
+  Cerrado: 'neutral',
 };
 
 @Component({
@@ -72,15 +74,18 @@ export class MaintenanceListPage {
           : { text: 'Pendiente de clasificar', tone: 'warning' as DynadrillTagVariant },
       }));
 
-    const orderRows = this.orders().map(order => ({
-      kind: 'order' as const,
-      id: `order-${order.id}`,
-      orderId: order.id,
-      code: order.code,
-      unidad: order.unidad,
-      origin: order.origin,
-      statusBadge: { text: computeOrderStatus(order.subOrders), tone: ORDER_STATUS_TONE[computeOrderStatus(order.subOrders)] },
-    }));
+    const orderRows = this.orders().map(order => {
+      const status = computeOrderStatus(order, order.subOrders);
+      return {
+        kind: 'order' as const,
+        id: `order-${order.id}`,
+        orderId: order.id,
+        code: order.code,
+        unidad: order.unidad,
+        origin: order.origin,
+        statusBadge: { text: status, tone: ORDER_STATUS_TONE[status] },
+      };
+    });
 
     return [...reportRows, ...orderRows];
   });
@@ -116,6 +121,13 @@ export class MaintenanceListPage {
 
   orderFor(row: Record<string, unknown>): MaintenanceOrderWithSubOrders {
     return this.orders().find(o => o.id === row['orderId'])!;
+  }
+
+  /** La orden ya está Aceptada (todas sus sub-órdenes Cerradas) y aún no se devolvió a Operaciones. */
+  isReadyToReturn(row: Record<string, unknown>): boolean {
+    if (row['kind'] !== 'order') return false;
+    const order = this.orderFor(row);
+    return computeOrderStatus(order, order.subOrders) === 'Aceptado';
   }
 
   isUnclassified(row: Record<string, unknown>): boolean {
@@ -192,6 +204,18 @@ export class MaintenanceListPage {
       title: 'MAN-001-C — Revisión de Cierre',
       content: SuborderReviewDialog,
       data: { subOrder, novedadOriginal: this.novedadFor(subOrder) },
+      footer: false,
+    });
+    ref.afterClose.subscribe(changed => {
+      if (changed) this.reload();
+    });
+  }
+
+  returnToOperation(order: MaintenanceOrderWithSubOrders): void {
+    const ref = this.dialog.open<ReturnToOperationDialog, ReturnToOperationDialogData>({
+      title: 'Fin Correctivo — Retorno a Operación',
+      content: ReturnToOperationDialog,
+      data: { order },
       footer: false,
     });
     ref.afterClose.subscribe(changed => {

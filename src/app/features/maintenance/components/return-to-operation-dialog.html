@@ -1,0 +1,35 @@
+<div class="return-to-operation-dialog">
+  <div class="return-to-operation-dialog__row">
+    <dynadrill-text variant="caption">Orden</dynadrill-text>
+    <dynadrill-text variant="body">{{ data.order.code }} · Unidad: {{ data.order.unidad }}</dynadrill-text>
+  </div>
+
+  <div class="return-to-operation-dialog__row">
+    <dynadrill-text variant="caption">Estado final de la unidad</dynadrill-text>
+    <div class="return-to-operation-dialog__state-options">
+      <dynadrill-button [variant]="estadoFinal() === 'Disponible' ? 'success' : 'secondary'" (clicked)="chooseEstado('Disponible')">
+        Disponible
+      </dynadrill-button>
+      <dynadrill-button [variant]="estadoFinal() === 'Con restricciones' ? 'warning' : 'secondary'" (clicked)="chooseEstado('Con restricciones')">
+        Con restricciones
+      </dynadrill-button>
+    </div>
+  </div>
+
+  <dynadrill-textarea
+    label="Observaciones para Operaciones"
+    placeholder="Notas relevantes sobre la intervención realizada"
+    [value]="observaciones()"
+    (valueChange)="observaciones.set($event)"
+    [rows]="3"
+  />
+
+  <dynadrill-input label="Responsable de entrega" placeholder="Nombre del responsable" [value]="responsable()" (valueChange)="responsable.set($event)" />
+
+  <div class="return-to-operation-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!canConfirm() || submitting()" (clicked)="confirm()">
+      {{ submitting() ? 'Entregando…' : 'Entregar reporte a Pumping' }}
+    </dynadrill-button>
+  </div>
+</div>

@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { MaintenanceOrderWithSubOrders, MaintenanceType, SubOrder } from '../models/maintenance-order.model';
+import { MaintenanceOrderWithSubOrders, MaintenanceType, SubOrder, UnitFinalState } from '../models/maintenance-order.model';
 
 export interface ClassifyOrderInput {
   unitReportId: number;
@@ -11,7 +11,7 @@ export interface ClassifyOrderInput {
 }
 
 export interface CloseOrderInput {
-  estadoFinal: 'Disponible' | 'Con restricciones';
+  estadoFinal: UnitFinalState;
   observaciones: string;
   responsable: string;
 }
@@ -54,7 +54,7 @@ export class MaintenanceOrdersService {
   }
 
   /** Fin Correctivo: cierra la orden padre y la devuelve a Operaciones. */
-  closeOrder(orderId: number, input: CloseOrderInput): Observable<void> {
-    return this.http.post<void>(`/api/maintenance-orders/${orderId}/close`, input);
+  closeOrder(orderId: number, input: CloseOrderInput): Observable<MaintenanceOrderWithSubOrders> {
+    return this.http.post<MaintenanceOrderWithSubOrders>(`/api/maintenance-orders/${orderId}/close`, input);
   }
 }

@@ -6,10 +6,36 @@ import {
   DynadrillDataTableComponent,
   DynadrillKpiRowComponent,
   DynadrillScreenHeaderComponent,
+  DynadrillTabsComponent,
   type DynadrillKpiRowItem,
+  type DynadrillTab,
 } from '@digitec-it-projects/dynadrill-ui';
-import { PumpingTicket } from '../../models/pumping.model';
+import {
+  PumpingTicket,
+  PUMPING_SERVICE_TYPE_LABELS,
+  PUMPING_STEP_LABELS,
+  type PumpingStep,
+} from '../../models/pumping.model';
 import { PumpingService } from '../../services/pumping.service';
+
+type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
+
+/** Mapea cada paso/estado del ticket a su badge visual */
+const STEP_BADGES: Record<PumpingStep, { text: string; tone: BadgeTone }> = {
+  revision_propuesta: { text: 'Revisión de propuesta', tone: 'warning' },
+  asignacion: { text: 'Asignación', tone: 'info' },
+  en_ejecucion: { text: 'En ejecución (Salida)', tone: 'brand' },
+  en_ejecucion_llegada: { text: 'En ejecución (Llegada)', tone: 'brand' },
+  en_revision: { text: 'En revisión', tone: 'warning' },
+};
+
+const SERVICE_TYPE_FILTERS = Object.entries(PUMPING_SERVICE_TYPE_LABELS).map(
+  ([value, text]) => ({ text, value }),
+);
+
+const STEP_FILTERS = Object.entries(PUMPING_STEP_LABELS).map(
+  ([value, text]) => ({ text, value }),
+);
 
 @Component({
   selector: 'app-ticket-list-page',
@@ -18,6 +44,7 @@ import { PumpingService } from '../../services/pumping.service';
     DynadrillScreenHeaderComponent,
     DynadrillKpiRowComponent,
     DynadrillDataTableComponent,
+    DynadrillTabsComponent,
     DynadrillButtonComponent,
   ],
   templateUrl: './ticket-list-page.html',
@@ -30,34 +57,80 @@ export class TicketListPage {
   protected readonly loading = signal(true);
   protected readonly tickets = signal<PumpingTicket[]>([]);
 
+  // ── Pestañas ──
+
+  protected readonly tabs = computed<DynadrillTab[]>(() => [
+    { label: 'Tickets en Proceso', badge: this.inProcessTickets().length },
+    { label: 'Tickets Aprobados', badge: this.approvedTickets().length },
+  ]);
+  protected readonly activeTabIndex = signal(0);
+  protected readonly isInProcessTab = computed(() => this.activeTabIndex() === 0);
+
+  // ── Tickets filtrados por pestaña ──
+
+  protected readonly inProcessTickets = computed(() =>
+    this.tickets().filter(t => t.status !== 'aprobado'),
+  );
+
+  protected readonly approvedTickets = computed(() =>
+    this.tickets().filter(t => t.status === 'aprobado'),
+  );
+
+  // ── KPIs ──
+
   protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
     const all = this.tickets();
+    const inProcess = this.inProcessTickets();
     return [
       { label: 'Total tickets', value: all.length },
-      { label: 'En ejecucion', value: all.filter(t => t.status === 'en_ejecucion').length },
-      { label: 'En revision', value: all.filter(t => t.status === 'en_revision').length },
-      { label: 'Aprobados', value: all.filter(t => t.status === 'aprobado').length },
+      { label: 'Revisión de propuesta', value: inProcess.filter(t => t.currentStep === 'revision_propuesta').length },
+      { label: 'En ejecución', value: inProcess.filter(t => t.currentStep === 'en_ejecucion').length },
+      { label: 'En revisión', value: inProcess.filter(t => t.currentStep === 'en_revision').length },
+      { label: 'Aprobados', value: this.approvedTickets().length },
     ];
   });
 
-  protected readonly columns: DynadrillDataTableColumn[] = [
-    { key: 'code', header: 'Codigo', sortable: true, searchable: true },
+  // ── Columnas "En Proceso" ──
+
+  protected readonly inProcessColumns: DynadrillDataTableColumn[] = [
+    { key: 'code', header: 'Código', sortable: true, searchable: true },
     { key: 'wellName', header: 'Pozo', sortable: true, searchable: true },
     { key: 'clientName', header: 'Cliente', searchable: true },
-    { key: 'serviceType', header: 'Tipo', type: 'badge' },
-    { key: 'currentStepLabel', header: 'Paso actual' },
+    { key: 'serviceType', header: 'Tipo', type: 'badge', filters: SERVICE_TYPE_FILTERS },
+    { key: 'statusBadge', header: 'Estado', type: 'badge', filters: STEP_FILTERS },
+  ];
+
+  // ── Columnas "Aprobados" ──
+
+  protected readonly approvedColumns: DynadrillDataTableColumn[] = [
+    { key: 'code', header: 'Código', sortable: true, searchable: true },
+    { key: 'wellName', header: 'Pozo', sortable: true, searchable: true },
+    { key: 'clientName', header: 'Cliente', searchable: true },
+    { key: 'serviceType', header: 'Tipo', type: 'badge', filters: SERVICE_TYPE_FILTERS },
     { key: 'statusBadge', header: 'Estado', type: 'badge' },
   ];
 
-  protected readonly rows = computed(() =>
-    this.tickets().map(t => ({
+  // ── Filas ──
+
+  protected readonly inProcessRows = computed(() =>
+    this.inProcessTickets().map(t => ({
       id: t.id,
       code: t.code,
       wellName: t.wellName,
       clientName: t.clientName,
-      serviceType: { text: t.serviceType.toUpperCase(), tone: 'brand' as const },
-      currentStepLabel: this.stepLabel(t.currentStep),
-      statusBadge: this.statusBadge(t.status),
+      serviceType: { text: PUMPING_SERVICE_TYPE_LABELS[t.serviceType], tone: 'brand' as const },
+      statusBadge: STEP_BADGES[t.currentStep] ?? { text: t.currentStep, tone: 'neutral' as const },
+    })),
+  );
+
+  protected readonly approvedRows = computed(() =>
+    this.approvedTickets().map(t => ({
+      id: t.id,
+      code: t.code,
+      wellName: t.wellName,
+      clientName: t.clientName,
+      serviceType: { text: PUMPING_SERVICE_TYPE_LABELS[t.serviceType], tone: 'brand' as const },
+      statusBadge: { text: 'Finalizado', tone: 'success' as const },
     })),
   );
 
@@ -73,32 +146,11 @@ export class TicketListPage {
     });
   }
 
+  protected onTabChange(index: number): void {
+    this.activeTabIndex.set(index);
+  }
+
   protected viewDetail(row: Record<string, unknown>): void {
-    this.router.navigate(['/operaciones/pumping', row['id']]);
-  }
-
-  private stepLabel(step: string): string {
-    const map: Record<string, string> = {
-      revision_propuesta: 'Revision propuesta',
-      asignar_supervisor: 'Asignar supervisor',
-      asignar_operador_unidad: 'Asignar operador/unidad',
-      preparacion_documental: 'Preparacion documental',
-      ejecucion: 'Ejecucion',
-      cierre_documental: 'Cierre documental',
-      validacion_final: 'Validacion final',
-    };
-    return map[step] ?? step;
-  }
-
-  private statusBadge(status: string): { text: string; tone: 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info' } {
-    const map: Record<string, { text: string; tone: 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info' }> = {
-      borrador: { text: 'Borrador', tone: 'neutral' },
-      en_revision: { text: 'En revision', tone: 'warning' },
-      aprobado: { text: 'Aprobado', tone: 'success' },
-      en_ejecucion: { text: 'En ejecucion', tone: 'info' },
-      cerrado: { text: 'Cerrado', tone: 'neutral' },
-      rechazado: { text: 'Rechazado', tone: 'error' },
-    };
-    return map[status] ?? { text: status, tone: 'neutral' };
+    this.router.navigate(['/modulos/operativo/pumping', row['id']]);
   }
 }

@@ -22,12 +22,12 @@ export class Sidebar {
         {
           label: 'Operativo',
           children: [
-            { label: 'Pumping', link: '/dashboard/operativo/pumping' },
-            { label: 'FCR', link: '/dashboard/operativo/fcr' },
+            { label: 'Pumping', link: '/modulos/operativo/pumping' },
+            { label: 'FCR', link: '/modulos/operativo/fcr' },
           ],
         },
-        { label: 'Mantenimiento', link: '/dashboard/mantenimiento' },
-        { label: 'QHSE', link: '/dashboard/qhse' },
+        { label: 'Mantenimiento', link: '/modulos/mantenimiento' },
+        { label: 'QHSE', link: '/modulos/qhse' },
       ],
     },
   ];

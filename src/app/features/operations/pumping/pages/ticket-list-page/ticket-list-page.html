@@ -7,10 +7,37 @@
 
 <dynadrill-kpi-row [items]="kpis()" />
 
-<dynadrill-data-table
-  [columns]="columns"
-  [rows]="rows()"
-  [loading]="loading()"
-  [rowKey]="rowKeyFn"
-  [pageSize]="10"
+<dynadrill-tabs
+  [tabs]="tabs()"
+  [activeIndex]="activeTabIndex()"
+  (activeIndexChange)="onTabChange($event)"
 />
+
+<!-- Template de acciones reutilizable -->
+<ng-template #actionsTpl let-row>
+  <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(row)">
+    Ver detalle
+  </dynadrill-button>
+</ng-template>
+
+@if (isInProcessTab()) {
+  <dynadrill-data-table
+    [columns]="inProcessColumns"
+    [rows]="inProcessRows()"
+    [loading]="loading()"
+    [rowKey]="rowKeyFn"
+    [pageSize]="10"
+    actionsHeader="Acciones"
+    [actionsTemplate]="actionsTpl"
+  />
+} @else {
+  <dynadrill-data-table
+    [columns]="approvedColumns"
+    [rows]="approvedRows()"
+    [loading]="loading()"
+    [rowKey]="rowKeyFn"
+    [pageSize]="10"
+    actionsHeader="Acciones"
+    [actionsTemplate]="actionsTpl"
+  />
+}

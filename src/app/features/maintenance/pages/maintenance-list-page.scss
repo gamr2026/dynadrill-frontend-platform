@@ -11,14 +11,3 @@
     gap: 12px;
   }
 }
-
-/* Cada <span> agrupa los botones de una sub-orden dentro de la misma
-   celda de Acciones — el separador vertical marca dónde termina una
-   sub-orden y empieza la siguiente cuando una orden tiene varias. */
-.maintenance-suborder-actions {
-  display: inline-flex;
-  align-items: center;
-  padding-left: 6px;
-  margin-left: 4px;
-  border-left: 1px solid var(--border, #e5e4ea);
-}

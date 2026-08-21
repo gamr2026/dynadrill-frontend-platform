@@ -54,7 +54,7 @@
     <div class="order-classification-dialog__actions">
       <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
       <dynadrill-button [disabled]="!canConfirm() || submitting()" (clicked)="confirm()">
-        {{ submitting() ? 'Guardando…' : isEditMode ? 'Guardar cambios' : 'Confirmar clasificación y asignar' }}
+        {{ submitting() ? 'Guardando…' : isEditMode ? 'Guardar cambios' : 'Confirmar clasificación' }}
       </dynadrill-button>
     </div>
   } @else {

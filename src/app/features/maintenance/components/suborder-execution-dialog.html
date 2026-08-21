@@ -4,12 +4,22 @@
     <dynadrill-text variant="body">{{ data.subOrder.code }} · Tipo: {{ data.subOrder.type }}</dynadrill-text>
   </div>
 
+  @if (data.subOrder.assignedByName) {
+    <div class="suborder-execution-dialog__row">
+      <dynadrill-text variant="caption">Asignado por</dynadrill-text>
+      <dynadrill-text variant="body">{{ data.subOrder.assignedByName }}</dynadrill-text>
+    </div>
+  }
+
   <app-novedad-readonly label="Novedad reportada por el operador (Reporte de Unidad)" [content]="data.novedadOriginal" />
 
   @if (wasRejected) {
     <dynadrill-text variant="caption" class="suborder-execution-dialog__rejected">
       El Jefe de Mantenimiento solicitó correcciones — actualiza y vuelve a enviar a revisión.
     </dynadrill-text>
+    @if (data.subOrder.correctionNote) {
+      <app-novedad-readonly label="Motivo de la corrección solicitada" [content]="data.subOrder.correctionNote" />
+    }
   } @else if (isClosed) {
     <dynadrill-text variant="caption">Esta sub-orden ya está Cerrada — editar aquí solo corrige el texto, no la reabre.</dynadrill-text>
   } @else if (isEdit) {

@@ -204,16 +204,52 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
     return of(new HttpResponse({ status: updated ? 200 : 404, body: updated ?? null })).pipe(delay(400));
   }
 
-  const reviewSubOrderId = req.url.match(/\/api\/maintenance-suborders\/(\d+)\/review$/);
-  if (reviewSubOrderId && req.method === 'POST') {
-    const id = Number(reviewSubOrderId[1]);
-    const { decision } = req.body as { decision: 'approved' | 'rejected' };
+  const assignSubOrderId = req.url.match(/\/api\/maintenance-suborders\/(\d+)\/assign$/);
+  if (assignSubOrderId && req.method === 'POST') {
+    const id = Number(assignSubOrderId[1]);
+    const { userId, userName, assignedByName } = req.body as { userId: number; userName: string; assignedByName: string };
     let updated: SubOrder | undefined;
     orders = orders.map(order => ({
       ...order,
       subOrders: order.subOrders.map(sub => {
         if (sub.id !== id) return sub;
-        updated = { ...sub, status: decision === 'approved' ? 'Cerrado' : 'Corrección Solicitada' };
+        updated = { ...sub, assignedUserId: userId, assignedUserName: userName, assignedByName };
+        return updated;
+      }),
+    }));
+    return of(new HttpResponse({ status: updated ? 200 : 404, body: updated ?? null })).pipe(delay(400));
+  }
+
+  const deriveSubOrderId = req.url.match(/\/api\/maintenance-suborders\/(\d+)\/derive$/);
+  if (deriveSubOrderId && req.method === 'POST') {
+    const id = Number(deriveSubOrderId[1]);
+    const { note } = req.body as { note: string };
+    let updated: SubOrder | undefined;
+    orders = orders.map(order => ({
+      ...order,
+      subOrders: order.subOrders.map(sub => {
+        if (sub.id !== id) return sub;
+        updated = { ...sub, status: 'Derivado a Pumping', deriveNote: note };
+        return updated;
+      }),
+    }));
+    return of(new HttpResponse({ status: updated ? 200 : 404, body: updated ?? null })).pipe(delay(400));
+  }
+
+  const reviewSubOrderId = req.url.match(/\/api\/maintenance-suborders\/(\d+)\/review$/);
+  if (reviewSubOrderId && req.method === 'POST') {
+    const id = Number(reviewSubOrderId[1]);
+    const { decision, correctionNote } = req.body as { decision: 'approved' | 'rejected'; correctionNote?: string };
+    let updated: SubOrder | undefined;
+    orders = orders.map(order => ({
+      ...order,
+      subOrders: order.subOrders.map(sub => {
+        if (sub.id !== id) return sub;
+        updated = {
+          ...sub,
+          status: decision === 'approved' ? 'Cerrado' : 'Corrección Solicitada',
+          correctionNote: decision === 'rejected' ? correctionNote : undefined,
+        };
         return updated;
       }),
     }));

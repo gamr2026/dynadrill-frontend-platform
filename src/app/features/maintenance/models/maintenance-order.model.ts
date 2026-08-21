@@ -1,6 +1,12 @@
 export type MaintenanceType = 'Mecánico' | 'Instrumental' | 'Operativo';
 
-export type SubOrderStatus = 'Pendiente' | 'En Diagnóstico' | 'En Revisión de Cierre' | 'Cerrado' | 'Corrección Solicitada';
+export type SubOrderStatus =
+  | 'Pendiente'
+  | 'En Diagnóstico'
+  | 'En Revisión de Cierre'
+  | 'Cerrado'
+  | 'Corrección Solicitada'
+  | 'Derivado a Pumping';
 
 export type OrderStatus = 'Pendiente' | 'Requiere cambios' | 'Aceptado' | 'Rechazado' | 'Cerrado';
 
@@ -11,10 +17,18 @@ export interface SubOrder {
   orderId: number;
   code: string;
   type: MaintenanceType;
-  operatorName?: string;
+  /** Solo aplica a tipos Mecánico/Instrumental — Operativo se deriva a Pumping, nunca se asigna. */
+  assignedUserId?: number;
+  assignedUserName?: string;
+  /** Nombre del Jefe de Mantenimiento que hizo la asignación — para que el operador sepa quién se la mandó. */
+  assignedByName?: string;
   status: SubOrderStatus;
   diagnostico?: string;
   actividadesCorrectivas?: string;
+  /** Motivo que escribió el Jefe al rechazar el cierre — solo tiene sentido mientras está en Corrección Solicitada. */
+  correctionNote?: string;
+  /** Motivo de la derivación a Pumping — solo aplica a tipo Operativo. */
+  deriveNote?: string;
 }
 
 export interface MaintenanceOrder {
@@ -45,6 +59,6 @@ export function computeOrderStatus(order: Pick<MaintenanceOrder, 'returnedToOper
   if (order.returnedToOperation) return 'Cerrado';
   if (subOrders.length === 0) return 'Pendiente';
   if (subOrders.some(s => s.status === 'Corrección Solicitada')) return 'Requiere cambios';
-  if (subOrders.every(s => s.status === 'Cerrado')) return 'Aceptado';
+  if (subOrders.every(s => s.status === 'Cerrado' || s.status === 'Derivado a Pumping')) return 'Aceptado';
   return 'Pendiente';
 }

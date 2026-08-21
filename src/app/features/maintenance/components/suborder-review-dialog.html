@@ -22,4 +22,17 @@
     consequenceReject="Se solicitan correcciones — vuelve al operador asignado."
     (decisionChange)="decide($event)"
   />
+
+  @if (showCorrectionForm()) {
+    <div class="suborder-review-dialog__row">
+      <dynadrill-textarea
+        label="Motivo de la corrección — el operador lo verá al reabrir la sub-orden"
+        placeholder="Ej. Falta detallar la actividad realizada en el eje trasero."
+        [value]="correctionNote()"
+        (valueChange)="correctionNote.set($event)"
+        [rows]="3"
+      />
+      <dynadrill-button [disabled]="!canConfirmRejection()" (clicked)="confirmRejection()">Confirmar corrección solicitada</dynadrill-button>
+    </div>
+  }
 </div>

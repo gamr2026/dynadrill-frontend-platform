@@ -48,13 +48,23 @@ export class MaintenanceOrdersService {
     return this.http.put<SubOrder>(`/api/maintenance-suborders/${id}`, input);
   }
 
-  /** MAN-001-C: aprueba (cierra) o rechaza (vuelve a "Corrección Solicitada") la sub-orden. */
-  reviewSubOrder(id: number, decision: 'approved' | 'rejected'): Observable<SubOrder> {
-    return this.http.post<SubOrder>(`/api/maintenance-suborders/${id}/review`, { decision });
+  /** MAN-001-C: aprueba (cierra) o rechaza (vuelve a "Corrección Solicitada", con motivo) la sub-orden. */
+  reviewSubOrder(id: number, decision: 'approved' | 'rejected', correctionNote?: string): Observable<SubOrder> {
+    return this.http.post<SubOrder>(`/api/maintenance-suborders/${id}/review`, { decision, correctionNote });
   }
 
   /** Fin Correctivo: cierra la orden padre y la devuelve a Operaciones. */
   closeOrder(orderId: number, input: CloseOrderInput): Observable<MaintenanceOrderWithSubOrders> {
     return this.http.post<MaintenanceOrderWithSubOrders>(`/api/maintenance-orders/${orderId}/close`, input);
+  }
+
+  /** El Jefe asigna un Operador de Mantenimiento a una sub-orden Mecánico/Instrumental. */
+  assignOperator(subOrderId: number, userId: number, userName: string, assignedByName: string): Observable<SubOrder> {
+    return this.http.post<SubOrder>(`/api/maintenance-suborders/${subOrderId}/assign`, { userId, userName, assignedByName });
+  }
+
+  /** El Jefe deriva una sub-orden Operativo a Pumping — sale del flujo de Mantenimiento. */
+  deriveToOperations(subOrderId: number, note: string): Observable<SubOrder> {
+    return this.http.post<SubOrder>(`/api/maintenance-suborders/${subOrderId}/derive`, { note });
   }
 }

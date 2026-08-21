@@ -1,23 +1,19 @@
-import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
-  DynadrillDialogService,
+  DynadrillDrawerService,
   DynadrillIconComponent,
   DynadrillNotificationService,
   DynadrillTagVariant,
   DynadrillTextComponent,
 } from '@digitec-it-projects/dynadrill-ui';
-import { computeOrderStatus, MaintenanceOrderWithSubOrders, OrderStatus, SubOrder } from '../models/maintenance-order.model';
+import { computeOrderStatus, MaintenanceOrderWithSubOrders, OrderStatus } from '../models/maintenance-order.model';
 import { unitReportHasNovedades, UnitReport } from '../models/unit-report.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { UnitReportsService } from '../services/unit-reports.service';
-import { OrderClassificationDialog, OrderClassificationDialogData } from '../components/order-classification-dialog';
-import { SuborderExecutionDialog, SuborderExecutionDialogData } from '../components/suborder-execution-dialog';
-import { SuborderReviewDialog, SuborderReviewDialogData } from '../components/suborder-review-dialog';
-import { ReturnToOperationDialog, ReturnToOperationDialogData } from '../components/return-to-operation-dialog';
+import { OrderDetailPanel, OrderDetailPanelData } from '../components/order-detail-panel';
 
 const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
   Pendiente: 'warning',
@@ -29,7 +25,7 @@ const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
 
 @Component({
   selector: 'app-maintenance-list-page',
-  imports: [CommonModule, DynadrillTextComponent, DynadrillDataTableComponent, DynadrillIconComponent],
+  imports: [DynadrillTextComponent, DynadrillDataTableComponent, DynadrillIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './maintenance-list-page.html',
   styleUrl: './maintenance-list-page.scss',
@@ -38,7 +34,7 @@ export class MaintenanceListPage {
   private readonly ordersService = inject(MaintenanceOrdersService);
   private readonly unitReportsService = inject(UnitReportsService);
   private readonly notify = inject(DynadrillNotificationService);
-  private readonly dialog = inject(DynadrillDialogService);
+  private readonly drawer = inject(DynadrillDrawerService);
 
   protected readonly loading = signal(true);
   protected readonly orders = signal<MaintenanceOrderWithSubOrders[]>([]);
@@ -111,115 +107,20 @@ export class MaintenanceListPage {
     });
   }
 
-  isReportRow(row: Record<string, unknown>): boolean {
-    return row['kind'] === 'pending';
-  }
+  /** Único punto de entrada por fila — todas las acciones (clasificar, asignar, revisar, Fin Correctivo) viven en el panel. */
+  viewDetail(row: Record<string, unknown>): void {
+    const isOrder = row['kind'] === 'order';
+    const order = isOrder ? this.orders().find(o => o.id === row['orderId']) : undefined;
+    const unitReport = isOrder
+      ? this.unitReports().find(r => r.id === order!.unitReportId)!
+      : this.unitReports().find(r => r.id === row['reportId'])!;
 
-  isOrderRow(row: Record<string, unknown>): boolean {
-    return row['kind'] === 'order';
-  }
-
-  orderFor(row: Record<string, unknown>): MaintenanceOrderWithSubOrders {
-    return this.orders().find(o => o.id === row['orderId'])!;
-  }
-
-  /** La orden ya está Aceptada (todas sus sub-órdenes Cerradas) y aún no se devolvió a Operaciones. */
-  isReadyToReturn(row: Record<string, unknown>): boolean {
-    if (row['kind'] !== 'order') return false;
-    const order = this.orderFor(row);
-    return computeOrderStatus(order, order.subOrders) === 'Aceptado';
-  }
-
-  isUnclassified(row: Record<string, unknown>): boolean {
-    return this.isReportRow(row) && !this.reportFor(row).dismissed;
-  }
-
-  isDismissed(row: Record<string, unknown>): boolean {
-    return this.isReportRow(row) && this.reportFor(row).dismissed;
-  }
-
-  subOrdersFor(row: Record<string, unknown>): SubOrder[] {
-    if (row['kind'] !== 'order') return [];
-    return this.orders().find(o => o.id === row['orderId'])?.subOrders ?? [];
-  }
-
-  reportFor(row: Record<string, unknown>): UnitReport {
-    return this.unitReports().find(r => r.id === row['reportId'])!;
-  }
-
-  showDismissReason(row: Record<string, unknown>): void {
-    const report = this.reportFor(row);
-    this.notify.info('Motivo del descarte', report.dismissReason || '(sin motivo registrado)');
-  }
-
-  /** Lo que reportó el operador para el tipo de esta sub-orden — nunca lo escribe Mantenimiento. */
-  private novedadFor(subOrder: SubOrder): string {
-    const order = this.orders().find(o => o.id === subOrder.orderId);
-    const report = order && this.unitReports().find(r => r.id === order.unitReportId);
-    if (!report) return '';
-    if (subOrder.type === 'Mecánico') return report.problemasMecanica;
-    if (subOrder.type === 'Instrumental') return report.problemasInstrumentacion;
-    return report.problemasOperaciones;
-  }
-
-  classify(report: UnitReport): void {
-    const ref = this.dialog.open<OrderClassificationDialog, OrderClassificationDialogData>({
-      title: 'MAN-001-A — Revisión y Clasificación',
-      content: OrderClassificationDialog,
-      data: { unitReport: report },
-      footer: false,
+    const ref = this.drawer.open<OrderDetailPanel, OrderDetailPanelData>({
+      title: isOrder ? 'Detalle — ' + order!.code : 'Detalle — ' + unitReport.unidad,
+      content: OrderDetailPanel,
+      data: isOrder ? { kind: 'order', unitReport, order: order! } : { kind: 'pending', unitReport },
+      size: 'small',
     });
-    ref.afterClose.subscribe(changed => {
-      if (changed) this.reload();
-    });
-  }
-
-  editClassification(order: MaintenanceOrderWithSubOrders): void {
-    const report = this.unitReports().find(r => r.id === order.unitReportId)!;
-    const ref = this.dialog.open<OrderClassificationDialog, OrderClassificationDialogData>({
-      title: 'Editar clasificación — ' + order.code,
-      content: OrderClassificationDialog,
-      data: { unitReport: report, existingOrder: order },
-      footer: false,
-    });
-    ref.afterClose.subscribe(changed => {
-      if (changed) this.reload();
-    });
-  }
-
-  openExecution(subOrder: SubOrder): void {
-    const ref = this.dialog.open<SuborderExecutionDialog, SuborderExecutionDialogData>({
-      title: 'MAN-001-B — Diagnóstico y Ejecución',
-      content: SuborderExecutionDialog,
-      data: { subOrder, novedadOriginal: this.novedadFor(subOrder) },
-      footer: false,
-    });
-    ref.afterClose.subscribe(changed => {
-      if (changed) this.reload();
-    });
-  }
-
-  openReview(subOrder: SubOrder): void {
-    const ref = this.dialog.open<SuborderReviewDialog, SuborderReviewDialogData>({
-      title: 'MAN-001-C — Revisión de Cierre',
-      content: SuborderReviewDialog,
-      data: { subOrder, novedadOriginal: this.novedadFor(subOrder) },
-      footer: false,
-    });
-    ref.afterClose.subscribe(changed => {
-      if (changed) this.reload();
-    });
-  }
-
-  returnToOperation(order: MaintenanceOrderWithSubOrders): void {
-    const ref = this.dialog.open<ReturnToOperationDialog, ReturnToOperationDialogData>({
-      title: 'Fin Correctivo — Retorno a Operación',
-      content: ReturnToOperationDialog,
-      data: { order },
-      footer: false,
-    });
-    ref.afterClose.subscribe(changed => {
-      if (changed) this.reload();
-    });
+    ref.afterClose.subscribe(() => this.reload());
   }
 }

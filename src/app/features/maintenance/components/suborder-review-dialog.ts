@@ -1,7 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
-import { DynadrillApprovalActionsComponent, DynadrillApprovalDecision, DynadrillNotificationService, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
+import {
+  DynadrillApprovalActionsComponent,
+  DynadrillApprovalDecision,
+  DynadrillButtonComponent,
+  DynadrillNotificationService,
+  DynadrillTextareaComponent,
+  DynadrillTextComponent,
+} from '@digitec-it-projects/dynadrill-ui';
 import { NovedadReadonlyComponent } from '../../../shared/components/novedad-readonly/novedad-readonly';
 import { SubOrder } from '../models/maintenance-order.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
@@ -19,7 +26,14 @@ export interface SuborderReviewDialogData {
  */
 @Component({
   selector: 'app-suborder-review-dialog',
-  imports: [CommonModule, DynadrillTextComponent, DynadrillApprovalActionsComponent, NovedadReadonlyComponent],
+  imports: [
+    CommonModule,
+    DynadrillTextComponent,
+    DynadrillApprovalActionsComponent,
+    DynadrillTextareaComponent,
+    DynadrillButtonComponent,
+    NovedadReadonlyComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './suborder-review-dialog.html',
   styleUrl: './suborder-review-dialog.scss',
@@ -32,12 +46,27 @@ export class SuborderReviewDialog {
 
   protected readonly decision = signal<DynadrillApprovalDecision>(null);
   protected readonly submitting = signal(false);
+  protected readonly correctionNote = signal('');
+
+  protected readonly showCorrectionForm = computed(() => this.decision() === 'rejected' && !this.submitting());
+  protected readonly canConfirmRejection = computed(() => this.correctionNote().trim().length > 0);
 
   decide(decision: DynadrillApprovalDecision): void {
     if (this.submitting() || !decision) return;
     this.decision.set(decision);
+    // El rechazo necesita el motivo antes de enviarse — se confirma aparte con confirmRejection().
+    if (decision === 'rejected') return;
+    this.submit(decision);
+  }
+
+  confirmRejection(): void {
+    if (!this.canConfirmRejection() || this.submitting()) return;
+    this.submit('rejected', this.correctionNote().trim());
+  }
+
+  private submit(decision: 'approved' | 'rejected', correctionNote?: string): void {
     this.submitting.set(true);
-    this.ordersService.reviewSubOrder(this.data.subOrder.id, decision).subscribe({
+    this.ordersService.reviewSubOrder(this.data.subOrder.id, decision, correctionNote).subscribe({
       next: () => {
         this.notify.success(
           decision === 'approved' ? 'Sub-orden cerrada' : 'Corrección solicitada',

@@ -1,0 +1,25 @@
+@if (!loading()) {
+  <div class="assign-operator-dialog">
+    <div class="assign-operator-dialog__row">
+      <dynadrill-text variant="caption">Sub-orden</dynadrill-text>
+      <dynadrill-text variant="body">{{ data.subOrder.code }} · {{ data.subOrder.type }}</dynadrill-text>
+    </div>
+
+    <div class="assign-operator-dialog__row">
+      <dynadrill-select
+        label="Operador de Mantenimiento"
+        placeholder="Selecciona un operador"
+        [options]="operatorOptions()"
+        [value]="selectedUserId()"
+        (valueChange)="selectUser($event)"
+      />
+    </div>
+
+    <div class="assign-operator-dialog__actions">
+      <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+      <dynadrill-button [disabled]="!canConfirm() || submitting()" (clicked)="confirm()">
+        {{ submitting() ? 'Asignando…' : 'Asignar' }}
+      </dynadrill-button>
+    </div>
+  </div>
+}

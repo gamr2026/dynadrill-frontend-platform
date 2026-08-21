@@ -4,6 +4,7 @@ import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import { DynadrillButtonComponent, DynadrillInputComponent, DynadrillNotificationService, DynadrillTextareaComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
 import { MaintenanceOrderWithSubOrders, UnitFinalState } from '../models/maintenance-order.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 export interface ReturnToOperationDialogData {
   order: MaintenanceOrderWithSubOrders;
@@ -24,12 +25,14 @@ export interface ReturnToOperationDialogData {
 export class ReturnToOperationDialog {
   private readonly ordersService = inject(MaintenanceOrdersService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly auth = inject(AuthService);
   private readonly modalRef = inject(NzModalRef<ReturnToOperationDialog, boolean>);
   protected readonly data = inject<ReturnToOperationDialogData>(NZ_MODAL_DATA);
 
   protected readonly estadoFinal = signal<UnitFinalState | null>(null);
   protected readonly observaciones = signal('');
-  protected readonly responsable = signal('');
+  /** Precargado con el Jefe logueado — casi siempre es quien hace la entrega, pero sigue siendo editable. */
+  protected readonly responsable = signal(this.auth.currentUser()?.name ?? '');
   protected readonly submitting = signal(false);
 
   protected readonly canConfirm = computed(() => !!this.estadoFinal() && this.responsable().trim().length > 0);

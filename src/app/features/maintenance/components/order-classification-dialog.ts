@@ -53,8 +53,15 @@ export class OrderClassificationDialog {
   protected readonly submitting = signal(false);
 
   protected readonly allTypes = ALL_TYPES;
-  protected readonly canConfirm = computed(() => this.selectedTypes().length > 0);
   protected readonly canDismiss = computed(() => this.dismissReason().trim().length > 0);
+
+  private readonly originalTypes = new Set(this.data.existingOrder?.subOrders.map(s => s.type) ?? []);
+  /** En modo edición, no tiene sentido habilitar "Guardar cambios" si no se cambió nada. */
+  protected readonly hasChanges = computed(() => {
+    const current = this.selectedTypes();
+    return current.length !== this.originalTypes.size || current.some(t => !this.originalTypes.has(t));
+  });
+  protected readonly canConfirm = computed(() => this.selectedTypes().length > 0 && (!this.isEditMode || this.hasChanges()));
 
   /** Tipos cuya sub-orden ya está Cerrada — destildarlos no la elimina, solo lo avisamos. */
   protected readonly lockedTypes = computed(

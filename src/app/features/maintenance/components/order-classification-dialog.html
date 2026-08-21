@@ -1,0 +1,78 @@
+<div class="order-classification-dialog">
+  <div class="order-classification-dialog__row">
+    <dynadrill-text variant="caption">Unidad afectada</dynadrill-text>
+    <dynadrill-text variant="body">{{ data.unitReport.unidad }} — Reporte N° {{ data.unitReport.reportNo }}</dynadrill-text>
+  </div>
+
+  <div class="order-classification-dialog__detail">
+    @if (data.unitReport.problemasMecanica) {
+      <div class="order-classification-dialog__row">
+        <dynadrill-text variant="caption">Mecánica</dynadrill-text>
+        <dynadrill-text variant="body">{{ data.unitReport.problemasMecanica }}</dynadrill-text>
+      </div>
+    }
+    @if (data.unitReport.problemasInstrumentacion) {
+      <div class="order-classification-dialog__row">
+        <dynadrill-text variant="caption">Instrumentación</dynadrill-text>
+        <dynadrill-text variant="body">{{ data.unitReport.problemasInstrumentacion }}</dynadrill-text>
+      </div>
+    }
+    @if (data.unitReport.problemasOperaciones) {
+      <div class="order-classification-dialog__row">
+        <dynadrill-text variant="caption">Operaciones</dynadrill-text>
+        <dynadrill-text variant="body">{{ data.unitReport.problemasOperaciones }}</dynadrill-text>
+      </div>
+    }
+    @if (data.unitReport.interrumpioOperacion) {
+      <dynadrill-text variant="caption" class="order-classification-dialog__flag">
+        ⚠ Interrumpió/atrasó la operación{{ data.unitReport.detalleInterrupcion ? ': ' + data.unitReport.detalleInterrupcion : '' }}
+      </dynadrill-text>
+    }
+  </div>
+
+  @if (requiresMaintenance() === null) {
+    <div class="order-classification-dialog__decision">
+      <dynadrill-text variant="body">¿Requiere mantenimiento?</dynadrill-text>
+      <div class="order-classification-dialog__decision-actions">
+        <dynadrill-button (clicked)="chooseYes()">Sí requiere</dynadrill-button>
+        <dynadrill-button variant="secondary" (clicked)="chooseNo()">No requiere</dynadrill-button>
+      </div>
+    </div>
+  } @else if (requiresMaintenance() === true) {
+    <div class="order-classification-dialog__types">
+      <dynadrill-text variant="caption">Tipo(s) requerido(s) — selección múltiple</dynadrill-text>
+      @for (type of allTypes; track type) {
+        <dynadrill-checkbox
+          [label]="type + (lockedTypes().has(type) ? ' (sub-orden ya Cerrada, no se puede quitar)' : '')"
+          [checked]="isChecked(type)"
+          [disabled]="lockedTypes().has(type)"
+          (checkedChange)="toggleType(type, $event)"
+        />
+      }
+    </div>
+
+    <div class="order-classification-dialog__actions">
+      <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+      <dynadrill-button [disabled]="!canConfirm() || submitting()" (clicked)="confirm()">
+        {{ submitting() ? 'Guardando…' : isEditMode ? 'Guardar cambios' : 'Confirmar clasificación' }}
+      </dynadrill-button>
+    </div>
+  } @else {
+    <div class="order-classification-dialog__types">
+      <dynadrill-textarea
+        label="Motivo — para que Mantenimiento pueda justificarlo si Operaciones pregunta después"
+        placeholder="Ej. Novedad menor, no requiere intervención de Mantenimiento."
+        [value]="dismissReason()"
+        (valueChange)="dismissReason.set($event)"
+        [rows]="3"
+      />
+    </div>
+
+    <div class="order-classification-dialog__actions">
+      <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+      <dynadrill-button [disabled]="!canDismiss() || submitting()" (clicked)="confirmDismiss()">
+        {{ submitting() ? 'Guardando…' : 'Confirmar — No requiere mantenimiento' }}
+      </dynadrill-button>
+    </div>
+  }
+</div>

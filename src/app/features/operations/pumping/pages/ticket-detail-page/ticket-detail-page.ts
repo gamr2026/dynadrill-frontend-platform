@@ -54,6 +54,7 @@ const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecuc
     DynadrillInspectionGridComponent,
     DynadrillChipGroupComponent,
     DynadrillApprovalActionsComponent,
+    DynadrillChecklistComponent,
   ],
   templateUrl: './ticket-detail-page.html',
   styleUrl: './ticket-detail-page.scss',

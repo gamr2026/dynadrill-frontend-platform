@@ -1,0 +1,128 @@
+<div class="order-detail-panel">
+  @if (data.kind === 'pending') {
+    <div class="order-detail-panel__row">
+      <dynadrill-text variant="caption">Unidad</dynadrill-text>
+      <dynadrill-text variant="body">{{ report.unidad }} — Reporte N° {{ report.reportNo }}</dynadrill-text>
+    </div>
+
+    <div class="order-detail-panel__row">
+      <dynadrill-text variant="caption">Estado</dynadrill-text>
+      <dynadrill-text variant="body">{{ report.dismissed ? 'No requiere mantenimiento' : 'Pendiente de clasificar' }}</dynadrill-text>
+    </div>
+
+    @if (report.dismissed) {
+      <div class="order-detail-panel__row">
+        <dynadrill-text variant="caption">Motivo del descarte</dynadrill-text>
+        <dynadrill-text variant="body">{{ report.dismissReason || '(sin motivo registrado)' }}</dynadrill-text>
+      </div>
+    }
+
+    <div class="order-detail-panel__detail">
+      @if (report.problemasMecanica) {
+        <div class="order-detail-panel__row">
+          <dynadrill-text variant="caption">Mecánica</dynadrill-text>
+          <dynadrill-text variant="body">{{ report.problemasMecanica }}</dynadrill-text>
+        </div>
+      }
+      @if (report.problemasInstrumentacion) {
+        <div class="order-detail-panel__row">
+          <dynadrill-text variant="caption">Instrumentación</dynadrill-text>
+          <dynadrill-text variant="body">{{ report.problemasInstrumentacion }}</dynadrill-text>
+        </div>
+      }
+      @if (report.problemasOperaciones) {
+        <div class="order-detail-panel__row">
+          <dynadrill-text variant="caption">Operaciones</dynadrill-text>
+          <dynadrill-text variant="body">{{ report.problemasOperaciones }}</dynadrill-text>
+        </div>
+      }
+      @if (report.interrumpioOperacion) {
+        <dynadrill-text variant="caption" class="order-detail-panel__flag">
+          ⚠ Interrumpió/atrasó la operación{{ report.detalleInterrupcion ? ': ' + report.detalleInterrupcion : '' }}
+        </dynadrill-text>
+      }
+    </div>
+
+    @if (!report.dismissed) {
+      <dynadrill-button (clicked)="classify()">Clasificar</dynadrill-button>
+    }
+  } @else if (currentOrder()) {
+    @let ord = currentOrder()!;
+    <div class="order-detail-panel__row">
+      <dynadrill-text variant="caption">Orden</dynadrill-text>
+      <dynadrill-text variant="body">{{ ord.code }} · Unidad: {{ ord.unidad }} · Origen: {{ ord.origin }}</dynadrill-text>
+    </div>
+
+    <div class="order-detail-panel__row">
+      <dynadrill-text variant="caption">Estado</dynadrill-text>
+      <dynadrill-text variant="body">{{ orderStatus() }}</dynadrill-text>
+    </div>
+
+    <div class="order-detail-panel__order-actions">
+      @if (!ord.returnedToOperation) {
+        <dynadrill-button variant="secondary" (clicked)="editClassification()">Editar clasificación</dynadrill-button>
+      }
+      @if (isReadyToReturn()) {
+        <dynadrill-button (clicked)="returnToOperation()">Fin Correctivo</dynadrill-button>
+      }
+    </div>
+
+    <div class="order-detail-panel__suborders">
+      @for (sub of ord.subOrders; track sub.id) {
+        <div class="order-detail-panel__suborder-card">
+          <dynadrill-text variant="body">{{ sub.code }} · {{ sub.type }}</dynadrill-text>
+
+          <div class="order-detail-panel__row">
+            <dynadrill-text variant="caption">Estado</dynadrill-text>
+            <dynadrill-text variant="body">{{ sub.status }}</dynadrill-text>
+          </div>
+
+          <div class="order-detail-panel__row">
+            <dynadrill-text variant="caption">{{ sub.type === 'Operativo' ? 'Derivación' : 'Operador asignado' }}</dynadrill-text>
+            <dynadrill-text variant="body">{{ assignmentLabelFor(sub) }}</dynadrill-text>
+          </div>
+
+          @if (sub.diagnostico) {
+            <div class="order-detail-panel__row">
+              <dynadrill-text variant="caption">Diagnóstico técnico</dynadrill-text>
+              <dynadrill-text variant="body">{{ sub.diagnostico }}</dynadrill-text>
+            </div>
+          }
+
+          @if (sub.actividadesCorrectivas) {
+            <div class="order-detail-panel__row">
+              <dynadrill-text variant="caption">Actividades correctivas</dynadrill-text>
+              <dynadrill-text variant="body">{{ sub.actividadesCorrectivas }}</dynadrill-text>
+            </div>
+          }
+
+          @if (sub.correctionNote) {
+            <div class="order-detail-panel__row">
+              <dynadrill-text variant="caption">Motivo de la corrección solicitada</dynadrill-text>
+              <dynadrill-text variant="body">{{ sub.correctionNote }}</dynadrill-text>
+            </div>
+          }
+
+          @if (sub.deriveNote) {
+            <div class="order-detail-panel__row">
+              <dynadrill-text variant="caption">Motivo de la derivación a Pumping</dynadrill-text>
+              <dynadrill-text variant="body">{{ sub.deriveNote }}</dynadrill-text>
+            </div>
+          }
+
+          <div class="order-detail-panel__suborder-actions">
+            @if (isAssignable(sub)) {
+              <dynadrill-button variant="secondary" (clicked)="assignOperator(sub)">Asignar operador</dynadrill-button>
+            }
+            @if (isDerivable(sub)) {
+              <dynadrill-button variant="secondary" (clicked)="deriveToPumping(sub)">Derivar a Pumping</dynadrill-button>
+            }
+            @if (sub.status === 'En Revisión de Cierre') {
+              <dynadrill-button (clicked)="openReview(sub)">Revisar cierre</dynadrill-button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

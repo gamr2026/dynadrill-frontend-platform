@@ -1,30 +1,41 @@
 <div class="login-page">
-  <form class="login-page__card" [formGroup]="form" (ngSubmit)="submit()">
-    <dynadrill-text variant="h1">Iniciar sesión</dynadrill-text>
-    <dynadrill-text variant="subtitle">Ingresa tus credenciales para continuar.</dynadrill-text>
+  <div class="login-page__card">
+    <div class="login-page__image">
+      <div class="login-page__tagline">
+        <dynadrill-text variant="h2">La innovación es nuestra esencia</dynadrill-text>
+      </div>
+    </div>
 
-    <dynadrill-input
-      label="Correo"
-      type="text"
-      placeholder="nombre@dynadrill.com"
-      [value]="form.controls.email.value"
-      (valueChange)="form.controls.email.setValue($event)"
-    />
+    <form class="login-page__form" [formGroup]="form" (ngSubmit)="submit()">
+      <div class="login-page__header">
+        <img class="login-page__logo" src="/brand/dynadrill-logo.svg" alt="Dynadrill" />
+        <dynadrill-text variant="h1">Iniciar sesión</dynadrill-text>
+        <dynadrill-text variant="subtitle">Ingresa tus credenciales para continuar.</dynadrill-text>
+      </div>
 
-    <dynadrill-input
-      label="Contraseña"
-      type="password"
-      placeholder="••••••••"
-      [value]="form.controls.password.value"
-      (valueChange)="form.controls.password.setValue($event)"
-    />
+      <dynadrill-input
+        label="Correo"
+        type="text"
+        placeholder="nombre@dynadrill.com"
+        [value]="form.controls.email.value"
+        (valueChange)="form.controls.email.setValue($event)"
+      />
 
-    @if (errorMessage(); as message) {
-      <dynadrill-text variant="caption" class="login-page__error">{{ message }}</dynadrill-text>
-    }
+      <dynadrill-input
+        label="Contraseña"
+        type="password"
+        placeholder="••••••••"
+        [value]="form.controls.password.value"
+        (valueChange)="form.controls.password.setValue($event)"
+      />
 
-    <dynadrill-button [disabled]="submitting()">
-      {{ submitting() ? 'Ingresando…' : 'Ingresar' }}
-    </dynadrill-button>
-  </form>
+      @if (errorMessage(); as message) {
+        <dynadrill-text variant="caption" class="login-page__error">{{ message }}</dynadrill-text>
+      }
+
+      <dynadrill-button [disabled]="submitting()">
+        {{ submitting() ? 'Ingresando…' : 'Ingresar' }}
+      </dynadrill-button>
+    </form>
+  </div>
 </div>

@@ -13,6 +13,8 @@ const roles: Role[] = [
   { id: 2, name: 'Operador' },
   { id: 3, name: 'Op. Mantenimiento' },
   { id: 4, name: 'Jefe de Base' },
+  { id: 5, name: 'Jefe de Mantenimiento' },
+  { id: 6, name: 'Operador de Mantenimiento' },
 ];
 
 let users: User[] = [
@@ -52,9 +54,56 @@ let users: User[] = [
     createdAt: '2026-03-11T14:15:00.000Z',
     updatedAt: '2026-05-02T08:45:00.000Z',
   },
+  {
+    id: 4,
+    email: 'jefe.mantenimiento@dynadrill.com',
+    username: 'jhidalgo',
+    name: 'Jorge Hidalgo',
+    code: 'EMP-004',
+    phone: '0991112233',
+    roleId: 5,
+    status: true,
+    createdAt: '2026-06-01T08:00:00.000Z',
+    updatedAt: '2026-06-01T08:00:00.000Z',
+  },
+  {
+    id: 5,
+    email: 'operador.mecanico@dynadrill.com',
+    username: 'dsalazar',
+    name: 'Diego Salazar',
+    code: 'EMP-005',
+    phone: '0992223344',
+    roleId: 6,
+    status: true,
+    specialty: 'Mecánico',
+    createdAt: '2026-06-01T08:05:00.000Z',
+    updatedAt: '2026-06-01T08:05:00.000Z',
+  },
+  {
+    id: 6,
+    email: 'operador.instrumental@dynadrill.com',
+    username: 'ncastro',
+    name: 'Natalia Castro',
+    code: 'EMP-006',
+    phone: '0993334455',
+    roleId: 6,
+    status: true,
+    specialty: 'Instrumental',
+    createdAt: '2026-06-01T08:10:00.000Z',
+    updatedAt: '2026-06-01T08:10:00.000Z',
+  },
 ];
 
-let nextId = 4;
+/** Compartido con auth-mock.interceptor.ts: solo el login los necesita fuera de este archivo. */
+export function getMockUsers(): User[] {
+  return users;
+}
+
+export function getMockRoles(): Role[] {
+  return roles;
+}
+
+let nextId = 7;
 
 function matchUsersId(url: string): number | null {
   const match = url.match(/\/api\/users\/(\d+)$/);
@@ -82,6 +131,7 @@ export const usersMockInterceptor: HttpInterceptorFn = (req, next) => {
       phone: input.phone,
       roleId: input.roleId,
       status: input.status,
+      specialty: input.specialty,
       createdAt: now,
       updatedAt: now,
     };

@@ -1,0 +1,51 @@
+<div class="suborder-detail-dialog">
+  <div class="suborder-detail-dialog__row">
+    <dynadrill-text variant="caption">Sub-orden</dynadrill-text>
+    <dynadrill-text variant="body">{{ data.subOrder.code }} · Orden {{ data.orderCode }} · Tipo: {{ data.subOrder.type }}</dynadrill-text>
+  </div>
+
+  <div class="suborder-detail-dialog__row">
+    <dynadrill-text variant="caption">Estado</dynadrill-text>
+    <dynadrill-text variant="body">{{ data.subOrder.status }}</dynadrill-text>
+  </div>
+
+  <div class="suborder-detail-dialog__row">
+    <dynadrill-text variant="caption">{{ data.subOrder.type === 'Operativo' ? 'Derivación' : 'Operador asignado' }}</dynadrill-text>
+    <dynadrill-text variant="body">{{ assignmentLabel }}</dynadrill-text>
+  </div>
+
+  @if (data.subOrder.assignedByName) {
+    <div class="suborder-detail-dialog__row">
+      <dynadrill-text variant="caption">Asignado por</dynadrill-text>
+      <dynadrill-text variant="body">{{ data.subOrder.assignedByName }}</dynadrill-text>
+    </div>
+  }
+
+  @if (data.subOrder.deriveNote) {
+    <app-novedad-readonly label="Motivo de la derivación a Pumping" [content]="data.subOrder.deriveNote" />
+  }
+
+  <app-novedad-readonly label="Novedad reportada por el operador (Reporte de Unidad)" [content]="data.novedadOriginal" />
+
+  @if (data.subOrder.diagnostico) {
+    <div class="suborder-detail-dialog__row">
+      <dynadrill-text variant="caption">Diagnóstico técnico</dynadrill-text>
+      <dynadrill-text variant="body">{{ data.subOrder.diagnostico }}</dynadrill-text>
+    </div>
+  }
+
+  @if (data.subOrder.actividadesCorrectivas) {
+    <div class="suborder-detail-dialog__row">
+      <dynadrill-text variant="caption">Actividades correctivas</dynadrill-text>
+      <dynadrill-text variant="body">{{ data.subOrder.actividadesCorrectivas }}</dynadrill-text>
+    </div>
+  }
+
+  @if (data.subOrder.correctionNote) {
+    <app-novedad-readonly label="Motivo de la corrección solicitada" [content]="data.subOrder.correctionNote" />
+  }
+
+  <div class="suborder-detail-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="close()">Cerrar</dynadrill-button>
+  </div>
+</div>

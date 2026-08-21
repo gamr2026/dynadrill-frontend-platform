@@ -1,0 +1,25 @@
+<div class="derive-to-pumping-dialog">
+  <div class="derive-to-pumping-dialog__row">
+    <dynadrill-text variant="caption">Sub-orden</dynadrill-text>
+    <dynadrill-text variant="body">{{ data.subOrder.code }} · Tipo: {{ data.subOrder.type }}</dynadrill-text>
+  </div>
+
+  <dynadrill-text variant="body">
+    Se marcará como derivada a Pumping — el mantenimiento operativo no se gestiona desde este módulo.
+  </dynadrill-text>
+
+  <dynadrill-textarea
+    label="Motivo de la derivación"
+    placeholder="Ej. Válvulas mal mantenidas, requiere ajuste operativo de Pumping."
+    [value]="note()"
+    (valueChange)="note.set($event)"
+    [rows]="3"
+  />
+
+  <div class="derive-to-pumping-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!canConfirm() || submitting()" (clicked)="confirm()">
+      {{ submitting() ? 'Derivando…' : 'Derivar a Pumping' }}
+    </dynadrill-button>
+  </div>
+</div>

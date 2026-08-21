@@ -1,0 +1,23 @@
+.suborder-execution-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__rejected {
+    color: var(--error, #ff4d4f);
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    border-top: 1px solid var(--border, #e5e4ea);
+    padding-top: 16px;
+  }
+}

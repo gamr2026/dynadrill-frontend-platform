@@ -12,6 +12,9 @@ export interface Role {
   description?: string;
 }
 
+/** Solo aplica a usuarios con rol "Operador de Mantenimiento" — decide a qué sub-órdenes puede asignarse. */
+export type OperatorSpecialty = 'Mecánico' | 'Instrumental';
+
 export interface User {
   id: number;
   email: string;
@@ -21,6 +24,7 @@ export interface User {
   phone: string;
   roleId: number;
   status: boolean;
+  specialty?: OperatorSpecialty;
   createdAt: string;
   updatedAt: string;
 }
@@ -34,6 +38,7 @@ export interface CreateUserInput {
   phone: string;
   roleId: number;
   status: boolean;
+  specialty?: OperatorSpecialty;
 }
 
 export type UpdateUserInput = Partial<Omit<CreateUserInput, 'password'>> & { password?: string };

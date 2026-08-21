@@ -1,0 +1,51 @@
+.order-classification-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  &__row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__detail {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface-muted, #faf9fc);
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-sm, 4px);
+  }
+
+  &__flag {
+    color: var(--warning, #faad14);
+  }
+
+  &__decision {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__decision-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  &__types {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    border-top: 1px solid var(--border, #e5e4ea);
+    padding-top: 16px;
+  }
+}

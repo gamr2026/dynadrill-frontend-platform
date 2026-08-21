@@ -1,0 +1,24 @@
+.return-to-operation-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__state-options {
+    display: flex;
+    gap: 8px;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    border-top: 1px solid var(--border, #e5e4ea);
+    padding-top: 16px;
+  }
+}

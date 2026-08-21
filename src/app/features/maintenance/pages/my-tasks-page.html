@@ -1,0 +1,22 @@
+<div class="my-tasks-page">
+  <div class="my-tasks-page__header">
+    <dynadrill-text variant="h1">Mis tareas</dynadrill-text>
+  </div>
+
+  <dynadrill-data-table [columns]="columns" [rows]="rows()" [loading]="loading()" [rowKey]="rowKeyFn" [actionsTemplate]="actionsTpl" />
+
+  <ng-template #actionsTpl let-row>
+    <button type="button" class="dynadrill-data-table__action-btn" title="Ver detalle" (click)="viewDetail(row)">
+      <dynadrill-icon name="search" [size]="14" />
+    </button>
+    <button
+      *ngIf="isActionable(row)"
+      type="button"
+      class="dynadrill-data-table__action-btn"
+      title="Diagnosticar / Ejecutar"
+      (click)="openExecution(row)"
+    >
+      <dynadrill-icon name="edit" [size]="14" />
+    </button>
+  </ng-template>
+</div>

@@ -6,12 +6,13 @@ import { provideNzWave } from 'ng-zorro-antd/core/wave';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { registerLocaleData } from '@angular/common';
 import localeEs from '@angular/common/locales/es';
-import { provideDynadrillDialog } from '@digitec-it-projects/dynadrill-ui';
+import { provideDynadrillDialog, provideDynadrillDrawer } from '@digitec-it-projects/dynadrill-ui';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { authMockInterceptor } from './core/mocks/auth-mock.interceptor';
 import { usersMockInterceptor } from './core/mocks/users-mock.interceptor';
+import { maintenanceMockInterceptor } from './core/mocks/maintenance-mock.interceptor';
 
 // provideNzI18n(es_ES) cambia el LOCALE_ID de Angular a 'es', pero Angular
 // no trae los datos de ese locale por defecto — sin este registro,
@@ -23,7 +24,7 @@ registerLocaleData(localeEs);
 // junto con core/mocks/auth-mock.interceptor.ts cuando el backend NestJS
 // de auth exista de verdad.
 const interceptors: HttpInterceptorFn[] = isDevMode()
-  ? [authMockInterceptor, usersMockInterceptor, authInterceptor]
+  ? [authMockInterceptor, usersMockInterceptor, maintenanceMockInterceptor, authInterceptor]
   : [authInterceptor];
 
 export const appConfig: ApplicationConfig = {
@@ -43,5 +44,8 @@ export const appConfig: ApplicationConfig = {
     // Requisito de DynadrillDialogService — NzModalService no es
     // providedIn:'root' en ng-zorro-antd.
     provideDynadrillDialog(),
+    // Requisito de DynadrillDrawerService (panel maestro-detalle de
+    // Mantenimiento) — NzDrawerService tampoco es providedIn:'root'.
+    provideDynadrillDrawer(),
   ],
 };

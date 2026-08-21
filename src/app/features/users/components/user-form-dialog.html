@@ -81,6 +81,21 @@
       }
     </div>
 
+    @if (isOperatorRole()) {
+      <div class="user-form-dialog__row">
+        <dynadrill-select
+          label="Especialidad"
+          placeholder="Selecciona una especialidad"
+          [options]="specialtyOptions"
+          [value]="form.controls.specialty.value"
+          (valueChange)="updateSpecialty($event)"
+        />
+        @if (form.controls.specialty.invalid && form.controls.specialty.touched) {
+          <dynadrill-text variant="caption" class="user-form-dialog__error">Selecciona una especialidad.</dynadrill-text>
+        }
+      </div>
+    }
+
     <dynadrill-checkbox
       label="Usuario activo"
       [checked]="form.controls.status.value"

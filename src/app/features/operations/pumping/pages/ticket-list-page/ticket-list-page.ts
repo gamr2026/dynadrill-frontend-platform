@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
-  DynadrillButtonComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillKpiRowComponent,
@@ -14,12 +13,7 @@ import { PumpingService } from '../../services/pumping.service';
 @Component({
   selector: 'app-ticket-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    DynadrillScreenHeaderComponent,
-    DynadrillKpiRowComponent,
-    DynadrillDataTableComponent,
-    DynadrillButtonComponent,
-  ],
+  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillDataTableComponent],
   templateUrl: './ticket-list-page.html',
   styleUrl: './ticket-list-page.scss',
 })

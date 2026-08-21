@@ -20,6 +20,10 @@ export const routes: Routes = [
         loadChildren: () => import('./features/users/users.routes').then(m => m.usersRoutes),
       },
       {
+        path: 'dashboard/mantenimiento',
+        loadChildren: () => import('./features/maintenance/maintenance.routes').then(m => m.maintenanceRoutes),
+      },
+      {
         path: 'operaciones',
         loadChildren: () => import('./features/operations/operations.routes').then(m => m.operationsRoutes),
       },

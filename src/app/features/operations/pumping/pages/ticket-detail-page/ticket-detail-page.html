@@ -5,56 +5,285 @@
   roleTag="Jefe de Base"
 />
 
-<dynadrill-stepper [steps]="steps" [currentIndex]="currentStepIndex()" />
+<dynadrill-stepper [steps]="stepLabels" [currentIndex]="currentStepIndex()" />
 
 @if (loading()) {
   <dynadrill-text variant="body">Cargando ticket...</dynadrill-text>
 } @else {
-  <dynadrill-context-card [items]="contextItems()" />
 
-  <!-- Seccion: Herramientas -->
-  <section class="ticket-detail__section">
-    <dynadrill-text variant="h2">Herramientas</dynadrill-text>
-    <dynadrill-data-table
-      [columns]="toolColumns"
-      [rows]="toolRows()"
-      [loading]="false"
-    />
-  </section>
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- PASO 1: Revisión de propuesta              -->
+  <!-- ═══════════════════════════════════════════ -->
+  @if (currentStep() === 'revision_propuesta') {
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Información de la propuesta</dynadrill-text>
+      <dynadrill-context-card [items]="contextItems()" />
+    </section>
 
-  <!-- Seccion: Quimicos -->
-  <section class="ticket-detail__section">
-    <dynadrill-text variant="h2">Quimicos</dynadrill-text>
-    <dynadrill-data-table
-      [columns]="chemicalColumns"
-      [rows]="chemicalRows()"
-      [loading]="false"
-    />
-  </section>
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Asignar supervisor</dynadrill-text>
+      <dynadrill-select label="Supervisor responsable" placeholder="Seleccionar supervisor" [options]="supervisorOptions" [value]="selectedSupervisor()" (valueChange)="onSupervisorChange($event)" />
+    </section>
 
-  <!-- Seccion: Checklist documental -->
-  <section class="ticket-detail__section">
-    <dynadrill-text variant="h2">Checklist documental</dynadrill-text>
-    <dynadrill-checklist
-      [items]="checklist()"
-      (itemToggle)="onChecklistToggle($event)"
-    />
-  </section>
+    <footer class="ticket-detail__actions">
+      <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
+      <dynadrill-button variant="primary" [disabled]="selectedSupervisor() === null || submitting()" (clicked)="saveSupervisor()">Guardar y continuar</dynadrill-button>
+    </footer>
+  }
 
-  <!-- Seccion: Aprobacion -->
-  <section class="ticket-detail__section">
-    <dynadrill-text variant="h2">Decision</dynadrill-text>
-    <dynadrill-approval-actions
-      [decision]="decision()"
-      consequenceApprove="El ticket avanzara al siguiente paso del flujo."
-      consequenceReject="El ticket sera devuelto al paso anterior para correccion."
-      (decisionChange)="onDecisionChange($event)"
-    />
-  </section>
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- PASO 2: Asignación                          -->
+  <!-- ═══════════════════════════════════════════ -->
+  @if (currentStep() === 'asignacion') {
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Información del ticket</dynadrill-text>
+      <dynadrill-context-card [items]="contextItems()" />
+    </section>
 
-  <!-- Acciones -->
-  <footer class="ticket-detail__actions">
-    <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-    <dynadrill-button variant="primary" [disabled]="decision() === null">Confirmar</dynadrill-button>
-  </footer>
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Asignar operadores</dynadrill-text>
+      <dynadrill-select label="Operadores" placeholder="Seleccionar operadores" [options]="operatorOptions" [value]="selectedOperators()" [multiple]="true" (valueChange)="onOperatorsChange($event)" />
+    </section>
+
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Asignar unidades</dynadrill-text>
+      <dynadrill-select label="Unidades" placeholder="Seleccionar unidades" [options]="unitOptions" [value]="selectedUnits()" [multiple]="true" (valueChange)="onUnitsChange($event)" />
+    </section>
+
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Asignar químicos</dynadrill-text>
+      <dynadrill-select label="Químicos" placeholder="Seleccionar químicos" [options]="chemicalOptions" [value]="selectedChemicals()" [multiple]="true" (valueChange)="onChemicalsChange($event)" />
+    </section>
+
+    <footer class="ticket-detail__actions">
+      <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
+      <dynadrill-button variant="primary" [disabled]="selectedOperators().length === 0 || selectedUnits().length === 0 || submitting()" (clicked)="saveAssignments()">Guardar y continuar</dynadrill-button>
+    </footer>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- PASO 3a: En ejecución (SALIDA) — Solo Chasis modo salida         -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  @if (currentStep() === 'en_ejecucion') {
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
+      <dynadrill-data-table [columns]="personnelColumns" [rows]="personnelRows()" [loading]="false" />
+    </section>
+
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h1">Reporte de Unidad — Salida</dynadrill-text>
+      <dynadrill-text variant="caption">Documento: DYN-MNT-RE-012</dynadrill-text>
+    </section>
+
+    <!-- Info general -->
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Información general</dynadrill-text>
+      <div class="ticket-detail__form-grid">
+        <dynadrill-input label="Pozo" [value]="reportWellName()" (valueChange)="reportWellName.set($event)" />
+        <dynadrill-input label="Base" [value]="reportBaseName()" (valueChange)="reportBaseName.set($event)" />
+        <dynadrill-input label="Bloque" [value]="reportBlockName()" (valueChange)="reportBlockName.set($event)" />
+        <dynadrill-input label="Cabezal" [value]="reportHeaderCode()" (valueChange)="reportHeaderCode.set($event)" />
+        <dynadrill-input label="Cliente" [value]="reportClientName()" (valueChange)="reportClientName.set($event)" />
+        <dynadrill-input label="Unidad" [value]="reportUnitCode()" (valueChange)="reportUnitCode.set($event)" />
+      </div>
+    </section>
+
+    <!-- Fecha y combustible salida -->
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Fecha y combustible</dynadrill-text>
+      <div class="ticket-detail__form-grid">
+        <dynadrill-input label="Fecha de salida" [value]="reportDepartureDate()" (valueChange)="reportDepartureDate.set($event)" />
+        <dynadrill-input label="Combustible salida" [value]="reportFuelDeparture()" (valueChange)="reportFuelDeparture.set($event)" />
+      </div>
+    </section>
+
+    <!-- Neumáticos -->
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Neumáticos</dynadrill-text>
+      <dynadrill-data-table [columns]="tireColumns" [rows]="tireRows()" [loading]="false" />
+    </section>
+
+    <!-- Hubodómetro -->
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Hubodómetro</dynadrill-text>
+      <dynadrill-data-table [columns]="hubodometroColumns" [rows]="hubodometroRows()" [loading]="false" />
+    </section>
+
+
+    <!-- Inspección: instrucción + solo Chasis en modo SALIDA -->
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Inspección</dynadrill-text>
+      <dynadrill-text variant="caption">Inspección: Indique con ✓ OK · ✕ defectuoso</dynadrill-text>
+    </section>
+
+    <section class="ticket-detail__section">
+      <dynadrill-inspection-grid
+        title="Chasis"
+        mode="salida"
+        [items]="chassisItems()"
+        (itemChange)="onInspectionChange('chassisItems', $event)"
+      />
+    </section>
+
+    <footer class="ticket-detail__actions">
+      <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
+      <dynadrill-button variant="primary" [disabled]="submitting()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
+    </footer>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════════ -->
+  <!-- PASO 3b: En ejecución (LLEGADA) — Chasis lectura + Motor/Equipos/Instr. -->
+  <!-- ══════════════════════════════════════════════════════════════════════════ -->
+  @if (currentStep() === 'en_ejecucion_llegada') {
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
+      <dynadrill-data-table [columns]="personnelColumns" [rows]="personnelRows()" [loading]="false" />
+    </section>
+
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h1">Reporte de Unidad — Llegada</dynadrill-text>
+      <dynadrill-text variant="caption">Documento: DYN-MNT-RE-012</dynadrill-text>
+    </section>
+
+    <!-- Fecha y combustible llegada -->
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Fecha y combustible</dynadrill-text>
+      <div class="ticket-detail__form-grid">
+        <dynadrill-input label="Fecha de llegada" [value]="reportArrivalDate()" (valueChange)="reportArrivalDate.set($event)" />
+        <dynadrill-input label="Combustible llegada" [value]="reportFuelArrival()" (valueChange)="reportFuelArrival.set($event)" />
+      </div>
+    </section>
+
+    <!-- Inspección instrucción -->
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Inspección</dynadrill-text>
+      <dynadrill-text variant="caption">Inspección: Indique con ✓ OK · ✕ defectuoso</dynadrill-text>
+    </section>
+
+    <!-- Chasis: muestra Salida (lectura) + Llegada (editable) -->
+    <section class="ticket-detail__section">
+      <dynadrill-inspection-grid
+        title="Chasis"
+        mode="llegada"
+        [items]="chassisItems()"
+        (itemChange)="onInspectionChange('chassisItems', $event)"
+      />
+    </section>
+
+    <!-- Motor / Transmisión: solo Llegada -->
+    <section class="ticket-detail__section">
+      <dynadrill-inspection-grid
+        title="Motor / Transmisión"
+        mode="llegada"
+        [items]="motorItems()"
+        (itemChange)="onInspectionChange('motorItems', $event)"
+      />
+    </section>
+
+    <!-- Equipos (Llegada) -->
+    <section class="ticket-detail__section">
+      <dynadrill-inspection-grid
+        title="Equipos"
+        mode="llegada"
+        [items]="arrivalEquipmentItems()"
+        (itemChange)="onInspectionChange('arrivalEquipmentItems', $event)"
+      />
+    </section>
+
+    <!-- Instrumentación -->
+    <section class="ticket-detail__section">
+      <dynadrill-inspection-grid
+        title="Instrumentación"
+        mode="llegada"
+        [items]="instrumentationItems()"
+        (itemChange)="onInspectionChange('instrumentationItems', $event)"
+      />
+    </section>
+
+    <!-- Novedades -->
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Novedades — Describa en forma clara los problemas acontecidos</dynadrill-text>
+      <dynadrill-textarea label="Mecánica" placeholder="Ej: Fuga de aceite en área de freno..." [value]="noveltiesMecanica()" (valueChange)="noveltiesMecanica.set($event)" />
+      <dynadrill-textarea label="Instrumentación" placeholder="Ej: Display de cabina no funciona..." [value]="noveltiesInstrumentacion()" (valueChange)="noveltiesInstrumentacion.set($event)" />
+      <dynadrill-textarea label="Operaciones" placeholder="Ej: Válvulas mal mantenidas, conectores dañados..." [value]="noveltiesOperaciones()" (valueChange)="noveltiesOperaciones.set($event)" />
+    </section>
+
+    <!-- Operatividad -->
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">¿La unidad está lista y operativa para la siguiente operación?</dynadrill-text>
+      <dynadrill-chip-group [options]="unitReadyOptions" mode="single" [selected]="unitReadySelection()" (selectedChange)="unitReadySelection.set($event)" />
+    </section>
+
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">¿Alguno de los problemas de arriba interrumpió/atrasó la operación?</dynadrill-text>
+      <dynadrill-chip-group [options]="operationInterruptedOptions" mode="single" [selected]="operationInterruptedSelection()" (selectedChange)="operationInterruptedSelection.set($event)" />
+      @if (operationInterruptedSelection()[0] === 'Sí') {
+        <dynadrill-textarea label="¿Cuál?" placeholder="Describa qué problema interrumpió la operación..." [value]="interruptionDetail()" (valueChange)="interruptionDetail.set($event)" />
+      }
+    </section>
+
+    <!-- Firmas -->
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Firmas</dynadrill-text>
+      <div class="ticket-detail__form-grid">
+        <dynadrill-input label="Operador de salida" [value]="departureOperatorName()" (valueChange)="departureOperatorName.set($event)" />
+        <dynadrill-input label="Operador de llegada" [value]="arrivalOperatorName()" (valueChange)="arrivalOperatorName.set($event)" />
+      </div>
+    </section>
+
+    <footer class="ticket-detail__actions">
+      <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
+      <dynadrill-button variant="primary" [disabled]="submitting()" (clicked)="saveUnitReport()">Enviar reporte de unidad de llegada</dynadrill-button>
+    </footer>
+  }
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- PASO 4: En revisión — Aprobación            -->
+  <!-- ═══════════════════════════════════════════ -->
+  @if (currentStep() === 'en_revision') {
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Resumen del servicio</dynadrill-text>
+      <dynadrill-context-card [items]="reviewContextItems()" />
+    </section>
+
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Operadores asignados</dynadrill-text>
+      <dynadrill-data-table [columns]="personnelColumns" [rows]="personnelRows()" [loading]="false" />
+    </section>
+
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Químicos asignados</dynadrill-text>
+      <dynadrill-data-table [columns]="chemicalColumns" [rows]="chemicalRows()" [loading]="false" />
+    </section>
+
+    @if (ticket()?.unitReport; as report) {
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="h2">Reporte de unidad</dynadrill-text>
+        <dynadrill-context-card [items]="[
+          { label: 'Código reporte', value: report.reportCode },
+          { label: 'Unidad', value: report.unitCode },
+          { label: 'Origen', value: report.origin },
+          { label: 'Destino', value: report.destination },
+          { label: 'Operador salida', value: report.departureOperatorName },
+          { label: 'Operador llegada', value: report.arrivalOperatorName },
+          { label: 'Unidad operativa', value: report.unitReady === true ? 'Sí' : report.unitReady === false ? 'No' : 'Sin definir' }
+        ]" />
+      </section>
+    }
+
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Decisión del supervisor</dynadrill-text>
+      <dynadrill-approval-actions
+        [decision]="decision()"
+        consequenceApprove="El ticket será aprobado y pasará a estado finalizado."
+        consequenceReject="El ticket será devuelto para correcciones."
+        (decisionChange)="onDecisionChange($event)"
+      />
+    </section>
+
+    <footer class="ticket-detail__actions">
+      <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
+      <dynadrill-button variant="success" [disabled]="decision() !== 'approved' || submitting()" (clicked)="approveTicket()">Aprobar ticket</dynadrill-button>
+    </footer>
+  }
 }

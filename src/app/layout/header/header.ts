@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { DynadrillButtonComponent, DynadrillIconComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
+import { DynadrillButtonComponent, DynadrillIconComponent } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-header',
-  imports: [DynadrillTextComponent, DynadrillButtonComponent, DynadrillIconComponent],
+  imports: [DynadrillButtonComponent, DynadrillIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './header.html',
   styleUrl: './header.scss',

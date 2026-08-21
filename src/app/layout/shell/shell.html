@@ -1,6 +1,7 @@
-<div class="shell">
+<div class="shell" [class.shell--sidebar-open]="sidebarState.open()">
   <app-header class="shell__header" />
   <app-sidebar class="shell__sidebar" />
+  <div class="shell__backdrop" (click)="sidebarState.close()"></div>
   <main class="shell__content">
     <router-outlet />
   </main>

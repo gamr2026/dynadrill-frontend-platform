@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { DynadrillButtonComponent, DynadrillIconComponent } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../core/services/auth.service';
+import { SidebarStateService } from '../sidebar-state.service';
 
 @Component({
   selector: 'app-header',
@@ -13,6 +14,7 @@ import { AuthService } from '../../core/services/auth.service';
 export class Header {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  protected readonly sidebarState = inject(SidebarStateService);
 
   logout(): void {
     this.auth.logout();

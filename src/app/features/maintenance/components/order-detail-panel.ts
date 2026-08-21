@@ -5,7 +5,6 @@ import { computeOrderStatus, MaintenanceOrderWithSubOrders, SubOrder } from '../
 import { UnitReport } from '../models/unit-report.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { OrderClassificationDialog, OrderClassificationDialogData } from './order-classification-dialog';
-import { AssignOperatorDialog, AssignOperatorDialogData } from './assign-operator-dialog';
 import { DeriveToPumpingDialog, DeriveToPumpingDialogData } from './derive-to-pumping-dialog';
 import { SuborderReviewDialog, SuborderReviewDialogData } from './suborder-review-dialog';
 import { ReturnToOperationDialog, ReturnToOperationDialogData } from './return-to-operation-dialog';
@@ -70,11 +69,6 @@ export class OrderDetailPanel {
     return sub.assignedUserName ?? 'Sin asignar todavía';
   }
 
-  /** Mecánico/Instrumental sin operador asignado todavía. */
-  isAssignable(sub: SubOrder): boolean {
-    return sub.type !== 'Operativo' && sub.status === 'Pendiente' && sub.assignedUserId == null;
-  }
-
   /** Operativo recién clasificado — se deriva a Pumping, no se asigna a un operador interno. */
   isDerivable(sub: SubOrder): boolean {
     return sub.type === 'Operativo' && sub.status === 'Pendiente';
@@ -101,18 +95,6 @@ export class OrderDetailPanel {
       title: 'Editar clasificación — ' + order.code,
       content: OrderClassificationDialog,
       data: { unitReport: this.report, existingOrder: order },
-      footer: false,
-    });
-    ref.afterClose.subscribe(changed => {
-      if (changed) this.refreshOrder();
-    });
-  }
-
-  assignOperator(sub: SubOrder): void {
-    const ref = this.dialog.open<AssignOperatorDialog, AssignOperatorDialogData>({
-      title: 'Asignar operador — ' + sub.code,
-      content: AssignOperatorDialog,
-      data: { subOrder: sub },
       footer: false,
     });
     ref.afterClose.subscribe(changed => {

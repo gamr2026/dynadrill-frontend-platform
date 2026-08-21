@@ -1,16 +1,20 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { DynadrillMenuComponent, DynadrillMenuItem } from '@digitec-it-projects/dynadrill-ui';
+import { Router } from '@angular/router';
+import { DynadrillButtonComponent, DynadrillIconComponent, DynadrillMenuComponent, DynadrillMenuItem } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../core/services/auth.service';
+import { SidebarStateService } from '../sidebar-state.service';
 
 @Component({
   selector: 'app-sidebar',
-  imports: [DynadrillMenuComponent],
+  imports: [DynadrillMenuComponent, DynadrillButtonComponent, DynadrillIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.scss',
 })
 export class Sidebar {
   private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+  protected readonly sidebarState = inject(SidebarStateService);
 
   /**
    * El módulo de Mantenimiento solo aparece para quien tiene un rol de ese
@@ -50,4 +54,9 @@ export class Sidebar {
       },
     ];
   });
+
+  logout(): void {
+    this.auth.logout();
+    this.router.navigate(['/login']);
+  }
 }

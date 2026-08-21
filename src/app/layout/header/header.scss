@@ -1,4 +1,5 @@
 .app-header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -8,13 +9,58 @@
   border-bottom: var(--border-width, 1px) solid var(--border, #e5e4ea);
 
   &__logo {
-    height: 40px;
+    height: 52px;
     width: auto;
+  }
+
+  // Solo existe para mobile — el sidebar es permanente en desktop, no hay nada que alternar.
+  &__menu-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+
+    span {
+      display: block;
+      height: 2px;
+      border-radius: 1px;
+      background: var(--dynadrill-navy, #131529);
+    }
   }
 
   &__logout {
     display: inline-flex;
     align-items: center;
     gap: 6px;
+  }
+
+  @media (max-width: 840px) {
+    padding: 0 16px;
+
+    &__menu-toggle {
+      display: flex;
+    }
+
+    // Centrado independiente de los hermanos — la hamburguesa a la izquierda
+    // ya no deja al logo centrado si solo usara flex/space-between.
+    &__logo {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      height: 40px;
+    }
+
+    // "Cerrar sesión" se muda al pie del sidebar en mobile (ver sidebar.html) —
+    // el header ahí solo tiene la hamburguesa y el logo.
+    &__logout-btn {
+      display: none;
+    }
   }
 }

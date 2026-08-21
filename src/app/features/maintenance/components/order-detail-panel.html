@@ -111,9 +111,6 @@
           }
 
           <div class="order-detail-panel__suborder-actions">
-            @if (isAssignable(sub)) {
-              <dynadrill-button variant="secondary" (clicked)="assignOperator(sub)">Asignar operador</dynadrill-button>
-            }
             @if (isDerivable(sub)) {
               <dynadrill-button variant="secondary" (clicked)="deriveToPumping(sub)">Derivar a Pumping</dynadrill-button>
             }

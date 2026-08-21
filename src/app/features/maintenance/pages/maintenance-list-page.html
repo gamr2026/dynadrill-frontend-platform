@@ -3,7 +3,15 @@
     <dynadrill-text variant="h1">Mantenimiento</dynadrill-text>
   </div>
 
-  <dynadrill-data-table [columns]="columns" [rows]="rows()" [loading]="loading()" [rowKey]="rowKeyFn" [actionsTemplate]="actionsTpl" />
+  <dynadrill-data-table
+    [columns]="columns()"
+    [rows]="rows()"
+    [loading]="loading()"
+    [rowKey]="rowKeyFn"
+    [actionsTemplate]="actionsTpl"
+    [actionsFixed]="!!tableScrollX()"
+    [scrollX]="tableScrollX() ?? ''"
+  />
 
   <ng-template #actionsTpl let-row>
     <button type="button" class="dynadrill-data-table__action-btn" title="Ver detalle" (click)="viewDetail(row)">

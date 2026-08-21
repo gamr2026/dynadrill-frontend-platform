@@ -41,6 +41,26 @@
     gap: 10px;
   }
 
+  &__type-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-sm, 4px);
+  }
+
+  &__operativo-state {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__operativo-actions {
+    display: flex;
+    gap: 8px;
+  }
+
   &__actions {
     display: flex;
     justify-content: center;

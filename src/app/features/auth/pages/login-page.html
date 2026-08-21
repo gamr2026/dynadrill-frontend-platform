@@ -1,10 +1,6 @@
 <div class="login-page">
   <div class="login-page__card">
-    <div class="login-page__image">
-      <div class="login-page__tagline">
-        <dynadrill-text variant="h2">La innovación es nuestra esencia</dynadrill-text>
-      </div>
-    </div>
+    <div class="login-page__image"></div>
 
     <form class="login-page__form" [formGroup]="form" (ngSubmit)="submit()">
       <div class="login-page__header">
@@ -33,7 +29,7 @@
         <dynadrill-text variant="caption" class="login-page__error">{{ message }}</dynadrill-text>
       }
 
-      <dynadrill-button [disabled]="submitting()">
+      <dynadrill-button class="login-page__submit" [disabled]="submitting()">
         {{ submitting() ? 'Ingresando…' : 'Ingresar' }}
       </dynadrill-button>
     </form>

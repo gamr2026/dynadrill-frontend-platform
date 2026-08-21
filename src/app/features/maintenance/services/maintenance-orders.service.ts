@@ -3,11 +3,21 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { MaintenanceOrderWithSubOrders, MaintenanceType, SubOrder, UnitFinalState } from '../models/maintenance-order.model';
 
+export interface ClassifyTypeAssignment {
+  type: MaintenanceType;
+  /** Solo Mecánico/Instrumental. */
+  userId?: number;
+  userName?: string;
+  /** Solo Operativo — true (default) = Atendido, se deriva de inmediato; false = queda Pendiente para derivar después desde el panel. */
+  operativoAttended?: boolean;
+}
+
 export interface ClassifyOrderInput {
   unitReportId: number;
   unidad: string;
   origin: string;
-  types: MaintenanceType[];
+  assignments: ClassifyTypeAssignment[];
+  assignedByName: string;
 }
 
 export interface CloseOrderInput {
@@ -35,12 +45,20 @@ export class MaintenanceOrdersService {
 
   /**
    * Edita los tipos de una orden ya clasificada — agrega sub-órdenes para
-   * tipos nuevos, quita las que ya no aplican. Las sub-órdenes Cerradas se
-   * conservan aunque su tipo se destilde (no se pierde trabajo ya
-   * aprobado).
+   * tipos nuevos, quita las que ya no aplican, y puede reasignar el
+   * operador/estado Operativo de una sub-orden ya existente. Las
+   * sub-órdenes Cerradas se conservan intactas aunque su tipo se destilde
+   * (no se pierde trabajo ya aprobado).
    */
-  updateClassification(orderId: number, types: MaintenanceType[]): Observable<MaintenanceOrderWithSubOrders> {
-    return this.http.post<MaintenanceOrderWithSubOrders>(`/api/maintenance-orders/${orderId}/classification`, { types });
+  updateClassification(
+    orderId: number,
+    assignments: ClassifyTypeAssignment[],
+    assignedByName: string,
+  ): Observable<MaintenanceOrderWithSubOrders> {
+    return this.http.post<MaintenanceOrderWithSubOrders>(`/api/maintenance-orders/${orderId}/classification`, {
+      assignments,
+      assignedByName,
+    });
   }
 
   /** MAN-001-B: guarda diagnóstico/actividades y envía la sub-orden a revisión. */
@@ -56,11 +74,6 @@ export class MaintenanceOrdersService {
   /** Fin Correctivo: cierra la orden padre y la devuelve a Operaciones. */
   closeOrder(orderId: number, input: CloseOrderInput): Observable<MaintenanceOrderWithSubOrders> {
     return this.http.post<MaintenanceOrderWithSubOrders>(`/api/maintenance-orders/${orderId}/close`, input);
-  }
-
-  /** El Jefe asigna un Operador de Mantenimiento a una sub-orden Mecánico/Instrumental. */
-  assignOperator(subOrderId: number, userId: number, userName: string, assignedByName: string): Observable<SubOrder> {
-    return this.http.post<SubOrder>(`/api/maintenance-suborders/${subOrderId}/assign`, { userId, userName, assignedByName });
   }
 
   /** El Jefe deriva una sub-orden Operativo a Pumping — sale del flujo de Mantenimiento. */

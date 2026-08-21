@@ -1,7 +1,6 @@
 import { HttpInterceptorFn, HttpResponse } from '@angular/common/http';
 import { delay, of } from 'rxjs';
-import { ClassifyOrderInput, CloseOrderInput } from '../../features/maintenance/services/maintenance-orders.service';
-import { MaintenanceType } from '../../features/maintenance/models/maintenance-order.model';
+import { ClassifyOrderInput, ClassifyTypeAssignment, CloseOrderInput } from '../../features/maintenance/services/maintenance-orders.service';
 import { CreateUnitReportInput, UnitReport } from '../../features/maintenance/models/unit-report.model';
 import { MaintenanceOrderWithSubOrders, SubOrder } from '../../features/maintenance/models/maintenance-order.model';
 
@@ -82,6 +81,38 @@ function typeSuffix(type: string): string {
   return 'O';
 }
 
+/** Arma una sub-orden nueva ya con su asignación/estado inicial resuelto — usado al clasificar y al agregar tipos nuevos al editar. */
+function buildSubOrder(orderId: number, orderCode: string, assignment: ClassifyTypeAssignment, assignedByName: string): SubOrder {
+  const base: SubOrder = {
+    id: nextSubOrderId++,
+    orderId,
+    code: `${orderCode}-${typeSuffix(assignment.type)}`,
+    type: assignment.type,
+    status: 'Pendiente',
+  };
+  if (assignment.type === 'Operativo') {
+    const attended = assignment.operativoAttended ?? true;
+    return { ...base, status: attended ? 'Derivado a Pumping' : 'Pendiente' };
+  }
+  if (assignment.userId) {
+    return { ...base, assignedUserId: assignment.userId, assignedUserName: assignment.userName, assignedByName };
+  }
+  return base;
+}
+
+/** Aplica una reasignación a una sub-orden YA existente (edición de clasificación) — nunca toca una ya Cerrada. */
+function applyAssignment(sub: SubOrder, assignment: ClassifyTypeAssignment | undefined, assignedByName: string): SubOrder {
+  if (sub.status === 'Cerrado' || !assignment) return sub;
+  if (sub.type === 'Operativo') {
+    const attended = assignment.operativoAttended ?? true;
+    return { ...sub, status: attended ? 'Derivado a Pumping' : 'Pendiente' };
+  }
+  if (assignment.userId) {
+    return { ...sub, assignedUserId: assignment.userId, assignedUserName: assignment.userName, assignedByName };
+  }
+  return sub;
+}
+
 function matchId(url: string, base: string): number | null {
   const match = url.match(new RegExp(`${base}/(\\d+)$`));
   return match ? Number(match[1]) : null;
@@ -121,13 +152,7 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
     const input = req.body as ClassifyOrderInput;
     const orderId = nextOrderId++;
     const code = `OT-${2000 + orderId}`;
-    const subOrders: SubOrder[] = input.types.map(type => ({
-      id: nextSubOrderId++,
-      orderId,
-      code: `${code}-${typeSuffix(type)}`,
-      type,
-      status: 'Pendiente',
-    }));
+    const subOrders: SubOrder[] = input.assignments.map(a => buildSubOrder(orderId, code, a, input.assignedByName));
     const created: MaintenanceOrderWithSubOrders = {
       id: orderId,
       code,
@@ -151,16 +176,19 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
   const editClassificationId = req.url.match(/\/api\/maintenance-orders\/(\d+)\/classification$/);
   if (editClassificationId && req.method === 'POST') {
     const id = Number(editClassificationId[1]);
-    const { types } = req.body as { types: MaintenanceType[] };
+    const { assignments, assignedByName } = req.body as { assignments: ClassifyTypeAssignment[]; assignedByName: string };
+    const types = assignments.map(a => a.type);
     let updated: MaintenanceOrderWithSubOrders | undefined;
     orders = orders.map(order => {
       if (order.id !== id) return order;
       // Las Cerradas se conservan aunque el tipo se destilde — no se pierde trabajo ya aprobado.
-      const kept = order.subOrders.filter(sub => types.includes(sub.type) || sub.status === 'Cerrado');
+      const kept = order.subOrders
+        .filter(sub => types.includes(sub.type) || sub.status === 'Cerrado')
+        .map(sub => applyAssignment(sub, assignments.find(a => a.type === sub.type), assignedByName));
       const keptTypes = new Set(kept.map(s => s.type));
-      const added: SubOrder[] = types
-        .filter(type => !keptTypes.has(type))
-        .map(type => ({ id: nextSubOrderId++, orderId: id, code: `${order.code}-${typeSuffix(type)}`, type, status: 'Pendiente' as const }));
+      const added: SubOrder[] = assignments
+        .filter(a => !keptTypes.has(a.type))
+        .map(a => buildSubOrder(id, order.code, a, assignedByName));
       updated = { ...order, subOrders: [...kept, ...added] };
       return updated;
     });
@@ -198,22 +226,6 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
         // reabre a revisión. Cualquier otro estado sí pasa/vuelve a
         // "En Revisión de Cierre" (incluye la primera vez que se envía).
         updated = { ...sub, ...input, status: sub.status === 'Cerrado' ? 'Cerrado' : 'En Revisión de Cierre' };
-        return updated;
-      }),
-    }));
-    return of(new HttpResponse({ status: updated ? 200 : 404, body: updated ?? null })).pipe(delay(400));
-  }
-
-  const assignSubOrderId = req.url.match(/\/api\/maintenance-suborders\/(\d+)\/assign$/);
-  if (assignSubOrderId && req.method === 'POST') {
-    const id = Number(assignSubOrderId[1]);
-    const { userId, userName, assignedByName } = req.body as { userId: number; userName: string; assignedByName: string };
-    let updated: SubOrder | undefined;
-    orders = orders.map(order => ({
-      ...order,
-      subOrders: order.subOrders.map(sub => {
-        if (sub.id !== id) return sub;
-        updated = { ...sub, assignedUserId: userId, assignedUserName: userName, assignedByName };
         return updated;
       }),
     }));

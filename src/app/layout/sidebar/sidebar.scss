@@ -6,6 +6,13 @@
   padding: 16px 12px;
   background: var(--dynadrill-navy, #131529);
 
+  // Solo tienen sentido en el panel off-canvas de mobile — en desktop el
+  // sidebar es permanente (ver shell.scss) y "Cerrar sesión" vive en el header.
+  &__close,
+  &__logout {
+    display: none;
+  }
+
   &__link {
     display: flex;
     align-items: center;
@@ -26,6 +33,45 @@
     &--active {
       opacity: 1;
       background: var(--dynadrill-purple, #662e9b);
+    }
+  }
+
+  @media (max-width: 840px) {
+    &__close {
+      display: flex;
+      align-self: flex-end;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      margin-bottom: 8px;
+      padding: 0;
+      border: none;
+      border-radius: var(--radius-sm, 4px);
+      background: transparent;
+      color: var(--dynadrill-white, #fff);
+      cursor: pointer;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+    }
+
+    // Empuja "Cerrar sesión" al fondo del panel, sin importar cuántos
+    // ítems tenga el menú arriba.
+    > dynadrill-menu {
+      flex: 1;
+    }
+
+    &__logout {
+      display: block;
+      margin-top: 8px;
+    }
+
+    &__logout-content {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
   }
 }

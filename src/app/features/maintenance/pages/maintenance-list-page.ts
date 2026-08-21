@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import {
   DynadrillDataTableColumn,
@@ -40,12 +40,17 @@ export class MaintenanceListPage {
   protected readonly orders = signal<MaintenanceOrderWithSubOrders[]>([]);
   protected readonly unitReports = signal<UnitReport[]>([]);
 
-  protected readonly columns: DynadrillDataTableColumn[] = [
-    { key: 'code', header: 'Orden', sortable: true, searchable: true },
+  // Solo fijamos la columna de Orden + Acciones cuando la tabla realmente
+  // podría no entrar en pantalla — en desktop `fixed`/scrollX forzaban un
+  // scroll horizontal interno incluso sobrando espacio de sobra.
+  private readonly narrowViewport = signal(window.matchMedia('(max-width: 840px)').matches);
+  protected readonly columns = computed<DynadrillDataTableColumn[]>(() => [
+    { key: 'code', header: 'Orden', sortable: true, searchable: true, fixed: this.narrowViewport() ? 'left' : undefined },
     { key: 'unidad', header: 'Unidad', searchable: true },
     { key: 'origin', header: 'Origen' },
     { key: 'statusBadge', header: 'Estado', type: 'badge' },
-  ];
+  ]);
+  protected readonly tableScrollX = computed(() => (this.narrowViewport() ? '640px' : undefined));
 
   /**
    * Una sola tabla: reportes con novedad mezclados con las órdenes que ya
@@ -90,6 +95,11 @@ export class MaintenanceListPage {
 
   constructor() {
     this.reload();
+
+    const mq = window.matchMedia('(max-width: 840px)');
+    const onChange = (e: MediaQueryListEvent): void => this.narrowViewport.set(e.matches);
+    mq.addEventListener('change', onChange);
+    inject(DestroyRef).onDestroy(() => mq.removeEventListener('change', onChange));
   }
 
   private reload(): void {

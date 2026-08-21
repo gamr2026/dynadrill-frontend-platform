@@ -1,6 +1,11 @@
 <header class="app-header">
+  <button type="button" class="app-header__menu-toggle" aria-label="Abrir/cerrar menú" (click)="sidebarState.toggle()">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
   <img class="app-header__logo" src="/brand/dynadrill-logo.svg" alt="Dynadrill" />
-  <dynadrill-button variant="secondary" size="small" (clicked)="logout()">
+  <dynadrill-button class="app-header__logout-btn" variant="secondary" size="small" (clicked)="logout()">
     <span class="app-header__logout">
       <dynadrill-icon name="logout" [size]="14" />
       Cerrar sesión

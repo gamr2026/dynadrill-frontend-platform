@@ -41,14 +41,64 @@
   } @else if (requiresMaintenance() === true) {
     <div class="order-classification-dialog__types">
       <dynadrill-text variant="caption">Tipo(s) requerido(s) — selección múltiple</dynadrill-text>
-      @for (type of allTypes; track type) {
+
+      <div class="order-classification-dialog__type-block">
         <dynadrill-checkbox
-          [label]="type + (lockedTypes().has(type) ? ' (sub-orden ya Cerrada, no se puede quitar)' : '')"
-          [checked]="isChecked(type)"
-          [disabled]="lockedTypes().has(type)"
-          (checkedChange)="toggleType(type, $event)"
+          [label]="'Mecánico' + (lockedTypes().has('Mecánico') ? ' (sub-orden ya Cerrada, no se puede quitar)' : '')"
+          [checked]="isChecked('Mecánico')"
+          [disabled]="lockedTypes().has('Mecánico')"
+          (checkedChange)="toggleType('Mecánico', $event)"
         />
-      }
+        @if (isChecked('Mecánico') && !lockedTypes().has('Mecánico')) {
+          <dynadrill-select
+            label="Operador asignado"
+            placeholder="Selecciona un operador"
+            [options]="mecanicoOptions()"
+            [value]="mecanicoOperatorId()"
+            (valueChange)="selectMecanicoOperator($event)"
+          />
+        }
+      </div>
+
+      <div class="order-classification-dialog__type-block">
+        <dynadrill-checkbox
+          [label]="'Instrumental' + (lockedTypes().has('Instrumental') ? ' (sub-orden ya Cerrada, no se puede quitar)' : '')"
+          [checked]="isChecked('Instrumental')"
+          [disabled]="lockedTypes().has('Instrumental')"
+          (checkedChange)="toggleType('Instrumental', $event)"
+        />
+        @if (isChecked('Instrumental') && !lockedTypes().has('Instrumental')) {
+          <dynadrill-select
+            label="Operador asignado"
+            placeholder="Selecciona un operador"
+            [options]="instrumentalOptions()"
+            [value]="instrumentalOperatorId()"
+            (valueChange)="selectInstrumentalOperator($event)"
+          />
+        }
+      </div>
+
+      <div class="order-classification-dialog__type-block">
+        <dynadrill-checkbox
+          [label]="'Operativo' + (lockedTypes().has('Operativo') ? ' (sub-orden ya Cerrada, no se puede quitar)' : '')"
+          [checked]="isChecked('Operativo')"
+          [disabled]="lockedTypes().has('Operativo')"
+          (checkedChange)="toggleType('Operativo', $event)"
+        />
+        @if (isChecked('Operativo') && !lockedTypes().has('Operativo')) {
+          <div class="order-classification-dialog__operativo-state">
+            <dynadrill-text variant="caption">Estado — se deriva a Pumping, fuera del flujo de Mantenimiento</dynadrill-text>
+            <div class="order-classification-dialog__operativo-actions">
+              <dynadrill-button [variant]="operativoAttended() ? 'primary' : 'secondary'" (clicked)="setOperativoAttended(true)">
+                Atendido
+              </dynadrill-button>
+              <dynadrill-button [variant]="!operativoAttended() ? 'primary' : 'secondary'" (clicked)="setOperativoAttended(false)">
+                Pendiente
+              </dynadrill-button>
+            </div>
+          </div>
+        }
+      </div>
     </div>
 
     <div class="order-classification-dialog__actions">

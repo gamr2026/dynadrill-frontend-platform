@@ -2,22 +2,101 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-  background: var(--surface-muted, #faf9fc);
+  min-height: 100vh;
+  padding: 24px;
+  background: var(--dynadrill-navy, #131529);
 
   &__card {
     display: flex;
-    flex-direction: column;
-    gap: 16px;
     width: 100%;
-    max-width: 360px;
-    padding: 32px;
+    max-width: 960px;
+    min-height: 600px;
     background: var(--surface, #fff);
-    border: var(--border-width, 1px) solid var(--border, #e5e4ea);
     border-radius: var(--radius-md, 6px);
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  }
+
+  &__image {
+    position: relative;
+    flex: 1 1 45%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 32px;
+    // 15% en X recorta la esquina inferior derecha de la foto (trae un watermark propio
+    // de la imagen) fuera del encuadre, sin perder el camión/grúas que son el sujeto principal.
+    background: url('/brand/login-bg.jpg') 15% center / cover no-repeat, var(--dynadrill-navy, #131529);
+
+    // Oscurece la base de la foto para que la etiqueta de abajo siga siendo legible sin importar la imagen.
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(19, 21, 41, 0) 45%, rgba(19, 21, 41, 0.85) 100%);
+      pointer-events: none;
+    }
+  }
+
+  &__header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+    margin-bottom: 8px;
+
+    ::ng-deep .dynadrill-text {
+      text-align: center;
+    }
+  }
+
+  &__logo {
+    height: 44px;
+    width: auto;
+    margin-bottom: 8px;
+  }
+
+  &__tagline {
+    position: relative;
+    z-index: 1;
+    max-width: 320px;
+
+    ::ng-deep .dynadrill-text {
+      color: var(--dynadrill-white, #fff);
+    }
+  }
+
+  &__form {
+    flex: 1 1 55%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 16px;
+    padding: 56px 64px;
   }
 
   &__error {
     color: var(--error, #ff4d4f);
+  }
+
+  @media (max-width: 840px) {
+    padding: 0;
+
+    &__card {
+      max-width: 100%;
+      min-height: 100vh;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    &__image {
+      display: none;
+    }
+
+    &__form {
+      flex: 1 1 100%;
+      padding: 40px 24px;
+    }
   }
 }

@@ -99,9 +99,13 @@ export class MyTasksPage {
     return this.orders().flatMap(o => o.subOrders).find(s => s.id === row['id'])!;
   }
 
+  /** El operador puede abrir el dialog mientras no haya enviado a revisión ni esté Cerrado. */
   isActionable(row: Record<string, unknown>): boolean {
     const sub = this.subOrderFor(row);
-    return sub.status === 'Pendiente' || sub.status === 'Corrección Solicitada';
+    return sub.status === 'Pendiente'
+      || sub.status === 'En Diagnóstico'
+      || sub.status === 'En Ejecución'
+      || sub.status === 'Corrección Solicitada';
   }
 
   /** Lo que reportó el operador en el Reporte de Unidad — nunca lo escribe Mantenimiento. */

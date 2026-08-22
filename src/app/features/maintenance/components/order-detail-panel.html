@@ -84,36 +84,43 @@
             </div>
           }
 
-          @if (sub.diagnostico) {
-            <div class="order-detail-panel__row">
-              <dynadrill-text variant="caption">Diagnóstico técnico</dynadrill-text>
-              <dynadrill-text variant="body">{{ sub.diagnostico }}</dynadrill-text>
-            </div>
-          }
+          @if (hasProgress(sub)) {
+            <button type="button" class="order-detail-panel__toggle" (click)="toggleExpand(sub.id)">
+              {{ isExpanded(sub.id) ? '▲ Ocultar avance del operador' : '▼ Ver avance del operador' }}
+            </button>
 
-          @if (sub.actividadesCorrectivas) {
-            <div class="order-detail-panel__row">
-              <dynadrill-text variant="caption">Actividades correctivas</dynadrill-text>
-              <dynadrill-text variant="body">{{ sub.actividadesCorrectivas }}</dynadrill-text>
-            </div>
-          }
-
-          @if (sub.horasTrabajo) {
-            <div class="order-detail-panel__row">
-              <dynadrill-text variant="caption">Horas de trabajo</dynadrill-text>
-              <dynadrill-text variant="body">{{ sub.horasTrabajo }} h</dynadrill-text>
-            </div>
-          }
-
-          @if (sub.repuestos && sub.repuestos.length > 0) {
-            <div class="order-detail-panel__row">
-              <dynadrill-text variant="caption">Repuestos utilizados</dynadrill-text>
-              <div class="order-detail-panel__repuestos">
-                @for (r of sub.repuestos; track r.numeroParte) {
-                  <dynadrill-text variant="body">{{ r.numeroParte }} · {{ r.cantidad }} × {{ r.descripcion }}</dynadrill-text>
+            @if (isExpanded(sub.id)) {
+              <div class="order-detail-panel__progress-block">
+                @if (sub.diagnostico) {
+                  <div class="order-detail-panel__row">
+                    <dynadrill-text variant="caption">Diagnóstico técnico</dynadrill-text>
+                    <dynadrill-text variant="body">{{ sub.diagnostico }}</dynadrill-text>
+                  </div>
+                }
+                @if (sub.actividadesCorrectivas) {
+                  <div class="order-detail-panel__row">
+                    <dynadrill-text variant="caption">Actividades correctivas</dynadrill-text>
+                    <dynadrill-text variant="body">{{ sub.actividadesCorrectivas }}</dynadrill-text>
+                  </div>
+                }
+                @if (sub.horasTrabajo) {
+                  <div class="order-detail-panel__row">
+                    <dynadrill-text variant="caption">Horas de trabajo</dynadrill-text>
+                    <dynadrill-text variant="body">{{ sub.horasTrabajo }} h</dynadrill-text>
+                  </div>
+                }
+                @if (sub.repuestos && sub.repuestos.length > 0) {
+                  <div class="order-detail-panel__row">
+                    <dynadrill-text variant="caption">Repuestos utilizados</dynadrill-text>
+                    <div class="order-detail-panel__repuestos">
+                      @for (r of sub.repuestos; track r.numeroParte) {
+                        <dynadrill-text variant="body">{{ r.numeroParte }} · {{ r.cantidad }} × {{ r.descripcion }}</dynadrill-text>
+                      }
+                    </div>
+                  </div>
                 }
               </div>
-            </div>
+            }
           }
 
           @if (sub.correctionNote) {
@@ -133,11 +140,6 @@
           <div class="order-detail-panel__suborder-actions">
             @if (isDerivable(sub)) {
               <dynadrill-button variant="secondary" (clicked)="deriveToPumping(sub)">Derivar a Pumping</dynadrill-button>
-            }
-            @if (canExecute(sub)) {
-              <dynadrill-button variant="secondary" (clicked)="openExecution(sub)">
-                {{ sub.status === 'En Ejecución' ? 'Ver / editar ejecución' : 'Iniciar ejecución' }}
-              </dynadrill-button>
             }
             @if (sub.status === 'En Revisión de Cierre') {
               <dynadrill-button (clicked)="openReview(sub)">Revisar cierre</dynadrill-button>

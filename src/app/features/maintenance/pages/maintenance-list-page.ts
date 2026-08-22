@@ -3,12 +3,15 @@ import { forkJoin } from 'rxjs';
 import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
+  DynadrillDropdownComponent,
+  DynadrillDropdownOption,
   DynadrillDrawerService,
   DynadrillIconComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillProgressComponent,
   DynadrillScreenHeaderComponent,
+  DynadrillStatisticComponent,
   DynadrillTabsComponent,
   DynadrillTagComponent,
   DynadrillTagVariant,
@@ -39,7 +42,7 @@ const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
 
 @Component({
   selector: 'app-maintenance-list-page',
-  imports: [DynadrillDataTableComponent, DynadrillIconComponent, DynadrillKpiRowComponent, DynadrillProgressComponent, DynadrillScreenHeaderComponent, DynadrillTabsComponent, DynadrillTagComponent],
+  imports: [DynadrillDataTableComponent, DynadrillDropdownComponent, DynadrillIconComponent, DynadrillKpiRowComponent, DynadrillProgressComponent, DynadrillScreenHeaderComponent, DynadrillStatisticComponent, DynadrillTabsComponent, DynadrillTagComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './maintenance-list-page.html',
   styleUrl: './maintenance-list-page.scss',
@@ -84,12 +87,76 @@ export class MaintenanceListPage {
 
   protected readonly resumenPreventivo = computed(() => {
     const all = this.alertas();
-    return [
-      { nivel: 'rojo',    label: 'Vencidos', count: all.filter(a => a.nivel === 'rojo').length },
-      { nivel: 'amarillo', label: 'Próximos', count: all.filter(a => a.nivel === 'amarillo').length },
-      { nivel: 'verde',   label: 'Al día',   count: all.filter(a => a.nivel === 'verde').length },
-    ];
+    return {
+      rojo:    all.filter(a => a.nivel === 'rojo').length,
+      amarillo: all.filter(a => a.nivel === 'amarillo').length,
+      verde:   all.filter(a => a.nivel === 'verde').length,
+    };
   });
+
+  // ── Preventivo: filtros y paginación ──
+
+  protected readonly filtroNivel = signal<AlertaPreventivaNivel | null>(null);
+  protected readonly filtroTipo = signal<string | null>(null);
+  protected readonly prevPage = signal(1);
+  protected readonly prevPageSize = 10;
+  protected readonly sortDir = signal<'asc' | 'desc'>('asc');
+  protected readonly sortKey = signal<keyof AlertaPreventiva>('restante');
+
+  protected readonly tipoOptions: DynadrillDropdownOption[] = [
+    { label: 'Todos los tipos', value: null },
+    { label: 'Servicio', value: 'Servicio' },
+    { label: 'Auxiliar', value: 'Auxiliar' },
+    { label: 'Transporte', value: 'Transporte' },
+  ];
+
+  protected readonly alertasFiltradas = computed<AlertaPreventiva[]>(() => {
+    let list = this.alertas();
+    const nivel = this.filtroNivel();
+    const tipo = this.filtroTipo();
+    if (nivel) list = list.filter(a => a.nivel === nivel);
+    if (tipo) list = list.filter(a => {
+      // El unidadCode está en el mock con prefijos: PUM=Servicio, GEN=Auxiliar, CAM=Transporte
+      const u = this.unidades().find(u => u.code === a.unidadCode);
+      return u?.tipo === tipo;
+    });
+    const key = this.sortKey();
+    const dir = this.sortDir() === 'asc' ? 1 : -1;
+    return [...list].sort((a, b) => {
+      const av = a[key] as number | string;
+      const bv = b[key] as number | string;
+      return av < bv ? -dir : av > bv ? dir : 0;
+    });
+  });
+
+  protected readonly alertasPaginadas = computed(() => {
+    const page = this.prevPage();
+    const start = (page - 1) * this.prevPageSize;
+    return this.alertasFiltradas().slice(start, start + this.prevPageSize);
+  });
+
+  protected readonly totalPages = computed(() =>
+    Math.ceil(this.alertasFiltradas().length / this.prevPageSize),
+  );
+
+  toggleFiltroNivel(nivel: AlertaPreventivaNivel): void {
+    this.filtroNivel.update(current => current === nivel ? null : nivel);
+    this.prevPage.set(1);
+  }
+
+  toggleSort(key: keyof AlertaPreventiva): void {
+    if (this.sortKey() === key) {
+      this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortKey.set(key);
+      this.sortDir.set('asc');
+    }
+  }
+
+  sortIcon(key: keyof AlertaPreventiva): string {
+    if (this.sortKey() !== key) return '⇅';
+    return this.sortDir() === 'asc' ? '↑' : '↓';
+  }
 
   // Solo fijamos la columna de Orden + Acciones cuando la tabla realmente
   // podría no entrar en pantalla — en desktop `fixed`/scrollX forzaban un

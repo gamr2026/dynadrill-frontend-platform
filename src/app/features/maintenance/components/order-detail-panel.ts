@@ -6,7 +6,6 @@ import { UnitReport } from '../models/unit-report.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { OrderClassificationDialog, OrderClassificationDialogData } from './order-classification-dialog';
 import { DeriveToPumpingDialog, DeriveToPumpingDialogData } from './derive-to-pumping-dialog';
-import { SuborderExecutionDialog, SuborderExecutionDialogData } from './suborder-execution-dialog';
 import { SuborderReviewDialog, SuborderReviewDialogData } from './suborder-review-dialog';
 import { ReturnToOperationDialog, ReturnToOperationDialogData } from './return-to-operation-dialog';
 
@@ -75,10 +74,23 @@ export class OrderDetailPanel {
     return sub.type === 'Operativo' && sub.status === 'Pendiente';
   }
 
-  /** Sub-órdenes que el operador puede abrir para registrar o editar su ejecución. */
-  canExecute(sub: SubOrder): boolean {
-    return sub.type !== 'Operativo' &&
-      (sub.status === 'Pendiente' || sub.status === 'En Diagnóstico' || sub.status === 'En Ejecución' || sub.status === 'Corrección Solicitada' || sub.status === 'Cerrado');
+  /** IDs de sub-órdenes con el detalle de progreso expandido. */
+  private readonly expandedSubOrders = signal<Set<number>>(new Set());
+
+  isExpanded(subId: number): boolean {
+    return this.expandedSubOrders().has(subId);
+  }
+
+  toggleExpand(subId: number): void {
+    this.expandedSubOrders.update(set => {
+      const next = new Set(set);
+      next.has(subId) ? next.delete(subId) : next.add(subId);
+      return next;
+    });
+  }
+
+  hasProgress(sub: SubOrder): boolean {
+    return !!(sub.diagnostico || sub.actividadesCorrectivas || sub.horasTrabajo || sub.repuestos?.length);
   }
 
   classify(): void {
@@ -102,18 +114,6 @@ export class OrderDetailPanel {
       title: 'Editar clasificación — ' + order.code,
       content: OrderClassificationDialog,
       data: { unitReport: this.report, existingOrder: order },
-      footer: false,
-    });
-    ref.afterClose.subscribe(changed => {
-      if (changed) this.refreshOrder();
-    });
-  }
-
-  openExecution(sub: SubOrder): void {
-    const ref = this.dialog.open<SuborderExecutionDialog, SuborderExecutionDialogData>({
-      title: `MAN-001-B — Ejecución ${sub.code}`,
-      content: SuborderExecutionDialog,
-      data: { subOrder: sub, novedadOriginal: this.novedadFor(sub) },
       footer: false,
     });
     ref.afterClose.subscribe(changed => {
@@ -154,8 +154,10 @@ export class OrderDetailPanel {
       data: { order },
       footer: false,
     });
+    // Cierra el panel automáticamente — la orden está cerrada, no hay más acciones.
+    // El afterClose del drawer en la bandeja dispara reload() y actualiza los KPIs.
     ref.afterClose.subscribe(changed => {
-      if (changed) this.refreshOrder();
+      if (changed) this.drawerRef.close();
     });
   }
 }

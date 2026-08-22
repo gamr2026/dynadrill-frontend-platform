@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_DRAWER_DATA, NzDrawerRef } from 'ng-zorro-antd/drawer';
-import { DynadrillButtonComponent, DynadrillDialogService, DynadrillTextComponent, DynadrillTextareaComponent } from '@digitec-it-projects/dynadrill-ui';
+import { DynadrillButtonComponent, DynadrillDialogService, DynadrillTabsComponent, DynadrillTextComponent, DynadrillTextareaComponent, type DynadrillTab } from '@digitec-it-projects/dynadrill-ui';
 import { computeOrderStatus, MaintenanceOrderWithSubOrders, SubOrder } from '../models/maintenance-order.model';
 import { UnitReport } from '../models/unit-report.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
@@ -27,7 +27,7 @@ export interface OrderDetailPanelData {
  */
 @Component({
   selector: 'app-order-detail-panel',
-  imports: [DynadrillTextComponent, DynadrillButtonComponent, DynadrillTextareaComponent],
+  imports: [DynadrillTextComponent, DynadrillButtonComponent, DynadrillTextareaComponent, DynadrillTabsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './order-detail-panel.html',
   styleUrl: './order-detail-panel.scss',
@@ -43,6 +43,27 @@ export class OrderDetailPanel {
   protected readonly showDismissForm = signal(false);
   protected readonly dismissReason = signal('');
   protected readonly dismissing = signal(false);
+
+  // ── Tabs de novedades ──
+  protected readonly novedadTabIndex = signal(0);
+  protected readonly novedadTabs = computed<DynadrillTab[]>(() => {
+    const r = this.report;
+    const tabs: DynadrillTab[] = [];
+    if (r.problemasMecanica) tabs.push({ label: 'Mecánica' });
+    if (r.problemasInstrumentacion) tabs.push({ label: 'Instrumentación' });
+    if (r.problemasOperaciones) tabs.push({ label: 'Operaciones' });
+    return tabs;
+  });
+
+  protected readonly novedadActiva = computed(() => {
+    const r = this.report;
+    const tipos = [
+      r.problemasMecanica ? 'mecanica' : null,
+      r.problemasInstrumentacion ? 'instrumentacion' : null,
+      r.problemasOperaciones ? 'operaciones' : null,
+    ].filter(Boolean) as string[];
+    return tipos[this.novedadTabIndex()] ?? null;
+  });
 
   // Nombres distintos a los campos de OrderDetailPanelData a propósito: a diferencia de
   // DynadrillDialogService, el drawer de ng-zorro hace Object.assign(instancia, nzData) además

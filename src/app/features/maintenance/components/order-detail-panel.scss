@@ -19,6 +19,13 @@
     border-radius: var(--radius-sm, 4px);
   }
 
+  &__novedad-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 4px;
+  }
+
   &__detail-header {
     display: flex;
     align-items: center;

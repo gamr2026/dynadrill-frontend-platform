@@ -30,29 +30,28 @@
         }
       </div>
 
-      @if (report.problemasMecanica) {
-        <div class="order-detail-panel__row">
-          <dynadrill-text variant="caption">Mecánica</dynadrill-text>
+      <dynadrill-tabs
+        [tabs]="novedadTabs()"
+        [activeIndex]="novedadTabIndex()"
+        (activeIndexChange)="novedadTabIndex.set($event)"
+      />
+
+      <div class="order-detail-panel__novedad-content">
+        @if (novedadActiva() === 'mecanica') {
           <dynadrill-text variant="body">{{ report.problemasMecanica }}</dynadrill-text>
-        </div>
-      }
-      @if (report.problemasInstrumentacion) {
-        <div class="order-detail-panel__row">
-          <dynadrill-text variant="caption">Instrumentación</dynadrill-text>
+        }
+        @if (novedadActiva() === 'instrumentacion') {
           <dynadrill-text variant="body">{{ report.problemasInstrumentacion }}</dynadrill-text>
-        </div>
-      }
-      @if (report.problemasOperaciones) {
-        <div class="order-detail-panel__row">
-          <dynadrill-text variant="caption">Operaciones</dynadrill-text>
+        }
+        @if (novedadActiva() === 'operaciones') {
           <dynadrill-text variant="body">{{ report.problemasOperaciones }}</dynadrill-text>
-        </div>
-      }
-      @if (report.interrumpioOperacion) {
-        <dynadrill-text variant="caption" class="order-detail-panel__flag">
-          ⚠ Interrumpió/atrasó la operación{{ report.detalleInterrupcion ? ': ' + report.detalleInterrupcion : '' }}
-        </dynadrill-text>
-      }
+        }
+        @if (report.interrumpioOperacion) {
+          <dynadrill-text variant="caption" class="order-detail-panel__flag">
+            ⚠ Interrumpió/atrasó la operación{{ report.detalleInterrupcion ? ': ' + report.detalleInterrupcion : '' }}
+          </dynadrill-text>
+        }
+      </div>
     </div>
 
     @if (!report.dismissed) {

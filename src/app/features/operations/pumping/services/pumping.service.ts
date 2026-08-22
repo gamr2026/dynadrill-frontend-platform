@@ -16,15 +16,41 @@ export class PumpingService {
     return this.http.get<PumpingTicket>(`${this.baseUrl}/tickets/${id}`);
   }
 
-  assignSupervisor(ticketId: number, supervisorIds: number[]): Observable<PumpingTicket> {
-    return this.http.patch<PumpingTicket>(`${this.baseUrl}/tickets/${ticketId}/assign-supervisor`, { supervisorIds });
+  assignSupervisor(ticketId: number, supervisorId: number): Observable<PumpingTicket> {
+    return this.http.patch<PumpingTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/assign-supervisor`,
+      { supervisorId },
+    );
   }
 
-  assignOperator(ticketId: number, payload: { operatorId: number; unitId: number }): Observable<PumpingTicket> {
-    return this.http.patch<PumpingTicket>(`${this.baseUrl}/tickets/${ticketId}/assign-operator`, payload);
+  assignResources(
+    ticketId: number,
+    payload: { operatorIds: number[]; unitIds: number[]; chemicalIds: number[] },
+  ): Observable<PumpingTicket> {
+    return this.http.patch<PumpingTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/assign-resources`,
+      payload,
+    );
   }
 
-  updateStep(ticketId: number, step: PumpingStep, data: unknown): Observable<PumpingTicket> {
-    return this.http.patch<PumpingTicket>(`${this.baseUrl}/tickets/${ticketId}/steps/${step}`, data);
+  saveUnitReport(ticketId: number, report: unknown): Observable<PumpingTicket> {
+    return this.http.patch<PumpingTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/unit-report`,
+      report,
+    );
+  }
+
+  approveTicket(ticketId: number): Observable<PumpingTicket> {
+    return this.http.patch<PumpingTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/approve`,
+      {},
+    );
+  }
+
+  advanceStep(ticketId: number, step: PumpingStep): Observable<PumpingTicket> {
+    return this.http.patch<PumpingTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/advance`,
+      { step },
+    );
   }
 }

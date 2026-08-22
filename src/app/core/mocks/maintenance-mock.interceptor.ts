@@ -3,6 +3,63 @@ import { delay, of } from 'rxjs';
 import { ClassifyOrderInput, ClassifyTypeAssignment, CloseOrderInput } from '../../features/maintenance/services/maintenance-orders.service';
 import { CreateUnitReportInput, UnitReport } from '../../features/maintenance/models/unit-report.model';
 import { MaintenanceOrderWithSubOrders, SubOrder } from '../../features/maintenance/models/maintenance-order.model';
+import { Unidad } from '../../features/maintenance/models/unidad.model';
+
+const unidades: Unidad[] = [
+  {
+    id: 1, code: 'PUM-07', nombre: 'Unidad de Bombeo PUM-07', tipo: 'Servicio',
+    horometroActual: 1480,
+    registrosPrev: [
+      { intervaloHoras: 250,  ultimoEnHoras: 1250, ultimaFecha: '2026-05-10' },
+      { intervaloHoras: 500,  ultimoEnHoras: 1000, ultimaFecha: '2026-04-01' },
+      { intervaloHoras: 1000, ultimoEnHoras: 1000, ultimaFecha: '2026-04-01' },
+      { intervaloHoras: 2000, ultimoEnHoras: 0,    ultimaFecha: '2025-01-15' },
+    ],
+    fechaUltimoMantenimiento: '2026-05-10',
+  },
+  {
+    id: 2, code: 'PUM-15', nombre: 'Unidad de Bombeo PUM-15', tipo: 'Servicio',
+    horometroActual: 3950,
+    registrosPrev: [
+      { intervaloHoras: 250,  ultimoEnHoras: 3750, ultimaFecha: '2026-07-20' },
+      { intervaloHoras: 500,  ultimoEnHoras: 3500, ultimaFecha: '2026-06-15' },
+      { intervaloHoras: 1000, ultimoEnHoras: 3000, ultimaFecha: '2026-03-10' },
+      { intervaloHoras: 2000, ultimoEnHoras: 2000, ultimaFecha: '2025-08-01' },
+    ],
+    fechaUltimoMantenimiento: '2026-07-20',
+  },
+  {
+    id: 3, code: '4-CTV-03', nombre: 'Unidad CTU 4-CTV-03', tipo: 'Servicio',
+    horometroActual: 5620,
+    registrosPrev: [
+      { intervaloHoras: 250,  ultimoEnHoras: 5500, ultimaFecha: '2026-08-01' },
+      { intervaloHoras: 500,  ultimoEnHoras: 5500, ultimaFecha: '2026-08-01' },
+      { intervaloHoras: 1000, ultimoEnHoras: 5000, ultimaFecha: '2026-05-20' },
+      { intervaloHoras: 2000, ultimoEnHoras: 4000, ultimaFecha: '2025-11-10' },
+    ],
+    fechaUltimoMantenimiento: '2026-08-01',
+  },
+  {
+    id: 4, code: 'GEN-01', nombre: 'Generador auxiliar GEN-01', tipo: 'Auxiliar',
+    fechaUltimoMantenimientoAux: '2026-03-15',
+  },
+  {
+    id: 5, code: 'GEN-02', nombre: 'Generador auxiliar GEN-02', tipo: 'Auxiliar',
+    fechaUltimoMantenimientoAux: '2025-12-01',
+  },
+  {
+    id: 6, code: 'CAM-04', nombre: 'Camioneta CAM-04', tipo: 'Transporte',
+    kmActual: 87400,
+    kmUltimoMantenimiento: 85000,
+    fechaUltimoMantenimientoKm: '2026-07-10',
+  },
+  {
+    id: 7, code: 'CAM-08', nombre: 'Camión CAM-08', tipo: 'Transporte',
+    kmActual: 142800,
+    kmUltimoMantenimiento: 138000,
+    fechaUltimoMantenimientoKm: '2026-06-20',
+  },
+];
 
 /**
  * Solo activo mientras no exista el backend real de Mantenimiento. Mismo
@@ -121,6 +178,10 @@ function matchId(url: string, base: string): number | null {
 }
 
 export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
+  if (req.url === '/api/unidades' && req.method === 'GET') {
+    return of(new HttpResponse({ status: 200, body: unidades })).pipe(delay(300));
+  }
+
   if (req.url === '/api/unit-reports' && req.method === 'GET') {
     return of(new HttpResponse({ status: 200, body: unitReports })).pipe(delay(300));
   }

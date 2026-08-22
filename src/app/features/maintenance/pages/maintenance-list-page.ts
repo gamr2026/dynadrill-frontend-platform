@@ -7,15 +7,22 @@ import {
   DynadrillIconComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
+  DynadrillProgressComponent,
   DynadrillScreenHeaderComponent,
+  DynadrillTabsComponent,
+  DynadrillTagComponent,
   DynadrillTagVariant,
+  DynadrillTextComponent,
   type DynadrillKpiRowItem,
+  type DynadrillTab,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../core/services/auth.service';
 import { computeOrderStatus, MaintenanceOrderWithSubOrders, OrderStatus } from '../models/maintenance-order.model';
 import { unitReportHasNovedades, UnitReport } from '../models/unit-report.model';
+import { AlertaPreventiva, AlertaPreventivaNivel, calcularAlertas, Unidad } from '../models/unidad.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { UnitReportsService } from '../services/unit-reports.service';
+import { UnidadesService } from '../services/unidades.service';
 import { OrderDetailPanel, OrderDetailPanelData } from '../components/order-detail-panel';
 
 function formatDate(iso: string): string {
@@ -33,7 +40,7 @@ const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
 
 @Component({
   selector: 'app-maintenance-list-page',
-  imports: [DynadrillDataTableComponent, DynadrillIconComponent, DynadrillKpiRowComponent, DynadrillScreenHeaderComponent],
+  imports: [DynadrillDataTableComponent, DynadrillIconComponent, DynadrillKpiRowComponent, DynadrillProgressComponent, DynadrillScreenHeaderComponent, DynadrillTabsComponent, DynadrillTagComponent, DynadrillTextComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './maintenance-list-page.html',
   styleUrl: './maintenance-list-page.scss',
@@ -41,6 +48,7 @@ const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
 export class MaintenanceListPage {
   private readonly ordersService = inject(MaintenanceOrdersService);
   private readonly unitReportsService = inject(UnitReportsService);
+  private readonly unidadesService = inject(UnidadesService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly drawer = inject(DynadrillDrawerService);
   private readonly auth = inject(AuthService);
@@ -50,6 +58,39 @@ export class MaintenanceListPage {
   protected readonly loading = signal(true);
   protected readonly orders = signal<MaintenanceOrderWithSubOrders[]>([]);
   protected readonly unitReports = signal<UnitReport[]>([]);
+  protected readonly unidades = signal<Unidad[]>([]);
+
+  protected readonly alertas = computed<AlertaPreventiva[]>(() =>
+    this.unidades().flatMap(u => calcularAlertas(u)).sort((a, b) => a.restante - b.restante)
+  );
+
+  protected readonly activeTab = signal(0);
+
+  protected readonly tabs: DynadrillTab[] = [
+    { label: 'Correctivo' },
+    { label: 'Preventivo' },
+  ];
+
+  protected readonly alertasTone: Record<AlertaPreventivaNivel, DynadrillTagVariant> = {
+    rojo: 'error',
+    amarillo: 'warning',
+    verde: 'success',
+  };
+
+  protected readonly alertasLabel: Record<AlertaPreventivaNivel, string> = {
+    rojo: 'Vencido',
+    amarillo: 'Próximo',
+    verde: 'Al día',
+  };
+
+  protected readonly resumenPreventivo = computed(() => {
+    const all = this.alertas();
+    return [
+      { nivel: 'rojo',    label: 'Vencidos', count: all.filter(a => a.nivel === 'rojo').length },
+      { nivel: 'amarillo', label: 'Próximos', count: all.filter(a => a.nivel === 'amarillo').length },
+      { nivel: 'verde',   label: 'Al día',   count: all.filter(a => a.nivel === 'verde').length },
+    ];
+  });
 
   // Solo fijamos la columna de Orden + Acciones cuando la tabla realmente
   // podría no entrar en pantalla — en desktop `fixed`/scrollX forzaban un
@@ -140,10 +181,15 @@ export class MaintenanceListPage {
 
   private reload(): void {
     this.loading.set(true);
-    forkJoin({ orders: this.ordersService.list(), unitReports: this.unitReportsService.list() }).subscribe({
-      next: ({ orders, unitReports }) => {
+    forkJoin({
+      orders: this.ordersService.list(),
+      unitReports: this.unitReportsService.list(),
+      unidades: this.unidadesService.list(),
+    }).subscribe({
+      next: ({ orders, unitReports, unidades }) => {
         this.orders.set(orders);
         this.unitReports.set(unitReports);
+        this.unidades.set(unidades);
         this.loading.set(false);
       },
       error: () => {

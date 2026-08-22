@@ -32,9 +32,9 @@ export class UserListPage {
 
   protected readonly columns: DynadrillDataTableColumn[] = [
     { key: 'name', header: 'Nombre', sortable: true, searchable: true },
-    { key: 'username', header: 'Usuario', searchable: true },
+    { key: 'username', header: 'Usuario', sortable: true, searchable: true },
     { key: 'email', header: 'Correo', searchable: true },
-    { key: 'code', header: 'Código', sortable:true },
+    { key: 'code', header: 'Código', sortable: true },
     { key: 'phone', header: 'Teléfono' },
     { key: 'role', header: 'Rol', type: 'badge' },
     { key: 'statusBadge', header: 'Estado', type: 'badge' },

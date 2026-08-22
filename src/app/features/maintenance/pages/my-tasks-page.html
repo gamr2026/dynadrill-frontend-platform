@@ -7,7 +7,7 @@
 
   <ng-template #actionsTpl let-row>
     <button type="button" class="dynadrill-data-table__action-btn" title="Ver detalle" (click)="viewDetail(row)">
-      <dynadrill-icon name="search" [size]="14" />
+      <dynadrill-icon name="eye" [size]="14" />
     </button>
     <button
       *ngIf="isActionable(row)"

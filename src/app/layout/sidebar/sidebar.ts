@@ -31,6 +31,10 @@ export class Sidebar {
           ? { label: 'Mantenimiento', link: '/dashboard/mantenimiento/mis-tareas' }
           : null;
 
+    const maintenance = maintenanceLink
+      ? [{ ...maintenanceLink, icon: 'tool' }]
+      : [];
+
     return [
       { label: 'Dashboard', icon: 'home', link: '/dashboard' },
       {
@@ -40,15 +44,17 @@ export class Sidebar {
       },
       {
         label: 'Módulos',
+        icon: 'modules',
         children: [
           {
             label: 'Operativo',
+            icon: 'file-text',
             children: [
               { label: 'Pumping', link: '/operaciones/pumping' },
               { label: 'FCR', link: '/operaciones/fcr' },
             ],
           },
-          ...(maintenanceLink ? [maintenanceLink] : []),
+          ...maintenance,
           { label: 'QHSE', link: '/dashboard/qhse' },
         ],
       },

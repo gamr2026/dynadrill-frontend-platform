@@ -1,125 +1,97 @@
 <div class="order-detail-panel">
-  @if (data.kind === 'pending') {
-    <div class="order-detail-panel__row">
-      <dynadrill-text variant="caption">Unidad</dynadrill-text>
-      <dynadrill-text variant="body">{{ report.unidad }} — Reporte N° {{ report.reportNo }}</dynadrill-text>
-    </div>
+  @let ord = currentOrder();
 
-    <div class="order-detail-panel__row">
-      <dynadrill-text variant="caption">Estado</dynadrill-text>
-      <dynadrill-text variant="body">{{ report.dismissed ? 'No requiere mantenimiento' : 'Pendiente de clasificar' }}</dynadrill-text>
-    </div>
-
-    @if (report.dismissed) {
-      <div class="order-detail-panel__row">
-        <dynadrill-text variant="caption">Motivo del descarte</dynadrill-text>
-        <dynadrill-text variant="body">{{ report.dismissReason || '(sin motivo registrado)' }}</dynadrill-text>
-      </div>
-    }
-
-    <div class="order-detail-panel__detail">
-      <div class="order-detail-panel__detail-header">
-        <dynadrill-text variant="caption">Novedades reportadas</dynadrill-text>
-        @if (!report.dismissed) {
-          <div class="order-detail-panel__detail-actions">
-            <dynadrill-button size="small" (clicked)="classify()">Clasificar</dynadrill-button>
-            <dynadrill-button size="small" variant="secondary" (clicked)="showDismissForm.set(!showDismissForm())">
-              {{ showDismissForm() ? 'Cancelar' : 'Descartar' }}
-            </dynadrill-button>
-          </div>
-        }
-      </div>
-
-      <dynadrill-tabs
-        [tabs]="novedadTabs()"
-        [activeIndex]="novedadTabIndex()"
-        (activeIndexChange)="novedadTabIndex.set($event)"
-      />
-
-      <div class="order-detail-panel__novedad-content">
-        @if (novedadActiva() === 'mecanica') {
-          <dynadrill-text variant="body">{{ report.problemasMecanica }}</dynadrill-text>
-        }
-        @if (novedadActiva() === 'instrumentacion') {
-          <dynadrill-text variant="body">{{ report.problemasInstrumentacion }}</dynadrill-text>
-        }
-        @if (novedadActiva() === 'operaciones') {
-          <dynadrill-text variant="body">{{ report.problemasOperaciones }}</dynadrill-text>
-        }
-        @if (report.interrumpioOperacion) {
-          <dynadrill-text variant="caption" class="order-detail-panel__flag">
-            ⚠ Interrumpió/atrasó la operación{{ report.detalleInterrupcion ? ': ' + report.detalleInterrupcion : '' }}
-          </dynadrill-text>
-        }
-      </div>
-    </div>
-
-    @if (!report.dismissed) {
-
-      @if (showDismissForm()) {
-        <div class="order-detail-panel__dismiss-form">
-          <dynadrill-textarea
-            label="Motivo del descarte"
-            placeholder="Ej. Novedad menor, no requiere intervención de Mantenimiento."
-            [value]="dismissReason()"
-            (valueChange)="dismissReason.set($event)"
-            [rows]="3"
-          />
-          <dynadrill-button
-            variant="error"
-            [disabled]="!dismissReason().trim() || dismissing()"
-            (clicked)="confirmDismiss()"
-          >
-            {{ dismissing() ? 'Guardando…' : 'Confirmar descarte' }}
-          </dynadrill-button>
-        </div>
-      }
-    }
-  } @else if (currentOrder()) {
-    @let ord = currentOrder()!;
+  <!-- Cabecera de la orden -->
+  <div class="order-detail-panel__order-info">
     <div class="order-detail-panel__row">
       <dynadrill-text variant="caption">Orden</dynadrill-text>
-      <dynadrill-text variant="body">{{ ord.code }} · Unidad: {{ ord.unidad }} · Origen: {{ ord.origin }}</dynadrill-text>
+      <dynadrill-text variant="body">{{ ord.code }} · {{ ord.unidad }} · {{ ord.origin }}</dynadrill-text>
     </div>
-
     <div class="order-detail-panel__row">
-      <dynadrill-text variant="caption">Estado</dynadrill-text>
-      <dynadrill-text variant="body">{{ orderStatus() }}</dynadrill-text>
+      <dynadrill-text variant="caption">Estado general</dynadrill-text>
+      <dynadrill-tag [label]="orderStatus() ?? ''" [variant]="orderStatus() === 'Aceptado' ? 'success' : orderStatus() === 'Cerrado' ? 'neutral' : orderStatus() === 'Requiere cambios' ? 'error' : 'warning'" />
     </div>
+  </div>
 
-    <div class="order-detail-panel__order-actions">
-      @if (!ord.returnedToOperation) {
-        <dynadrill-button variant="secondary" (clicked)="editClassification()">Editar clasificación</dynadrill-button>
-      }
-      @if (isReadyToReturn()) {
-        <dynadrill-button (clicked)="returnToOperation()">Fin Correctivo</dynadrill-button>
-      }
-    </div>
+  <!-- Acciones de la orden -->
+  <div class="order-detail-panel__order-actions">
+    @if (isReadyToReturn()) {
+      <dynadrill-button (clicked)="returnToOperation()">Fin Correctivo</dynadrill-button>
+    }
+  </div>
 
-    <div class="order-detail-panel__suborders">
-      @for (sub of ord.subOrders; track sub.id) {
-        <div class="order-detail-panel__suborder-card">
-          <dynadrill-text variant="body">{{ sub.code }} · {{ sub.type }}</dynadrill-text>
+  <!-- Cards de sub-órdenes -->
+  <div class="order-detail-panel__suborders">
+    @for (sub of ord.subOrders; track sub.id) {
+      <dynadrill-card [accent]="statusAccent[sub.status]">
 
-          <div class="order-detail-panel__row">
-            <dynadrill-text variant="caption">Estado</dynadrill-text>
-            <dynadrill-text variant="body">{{ sub.status }}</dynadrill-text>
+        <!-- Header: código + tipo + estado -->
+        <div card-header class="order-detail-panel__card-header">
+          <div class="order-detail-panel__card-title">
+            <dynadrill-text variant="body">{{ sub.code }}</dynadrill-text>
+            <dynadrill-tag [label]="sub.type" variant="neutral" />
           </div>
+          <dynadrill-tag [label]="sub.status" [variant]="statusTone[sub.status]" />
+        </div>
 
-          @if (sub.type !== 'Operativo' || sub.status !== 'Derivado a Pumping') {
+        <!-- Cuerpo: operador + acciones -->
+        <div card-body class="order-detail-panel__card-body">
+
+          @if (sub.type !== 'Operativo') {
+            <!-- Operador asignado con edición inline -->
+            <div class="order-detail-panel__operator-row">
+              <div class="order-detail-panel__row">
+                <dynadrill-text variant="caption">Operador asignado</dynadrill-text>
+                @if (editingSubId() !== sub.id) {
+                  <dynadrill-text variant="body">{{ sub.assignedUserName ?? 'Sin asignar' }}</dynadrill-text>
+                }
+              </div>
+              @if (canEditOperator(sub) && editingSubId() !== sub.id) {
+                <dynadrill-button size="small" variant="secondary" (clicked)="startEditOperator(sub)">Cambiar</dynadrill-button>
+              }
+            </div>
+
+            @if (editingSubId() === sub.id) {
+              <div class="order-detail-panel__inline-edit">
+                <dynadrill-select
+                  label="Nuevo operador"
+                  placeholder="Selecciona un operador"
+                  [options]="operatorOptionsFor(sub)"
+                  [value]="editingOperatorId()"
+                  (valueChange)="editingOperatorId.set($event)"
+                />
+                <div class="order-detail-panel__inline-actions">
+                  <dynadrill-button variant="secondary" size="small" (clicked)="cancelEditOperator()">Cancelar</dynadrill-button>
+                  <dynadrill-button size="small" [disabled]="!editingOperatorId() || reassigning()" (clicked)="saveOperator(sub)">
+                    {{ reassigning() ? 'Guardando…' : 'Guardar' }}
+                  </dynadrill-button>
+                </div>
+              </div>
+            }
+          } @else {
+            <!-- Operativo: derivación -->
             <div class="order-detail-panel__row">
-              <dynadrill-text variant="caption">{{ sub.type === 'Operativo' ? 'Derivación' : 'Operador asignado' }}</dynadrill-text>
-              <dynadrill-text variant="body">{{ assignmentLabelFor(sub) }}</dynadrill-text>
+              <dynadrill-text variant="caption">Derivación</dynadrill-text>
+              <dynadrill-text variant="body">
+                {{ sub.status === 'Derivado a Pumping' ? 'Derivado a Pumping' : 'Pendiente de derivar' }}
+              </dynadrill-text>
             </div>
           }
 
-          @if (hasProgress(sub)) {
-            <dynadrill-button variant="secondary" size="small" (clicked)="toggleExpand(sub.id)">
-              {{ isExpanded(sub.id) ? 'Ocultar avance del operador' : 'Ver avance del operador' }}
+          <!-- Novedad original (colapsable) -->
+          @if (hasProgress(sub) || novedadFor(sub)) {
+            <dynadrill-button size="small" variant="secondary" (clicked)="toggleExpand(sub.id)">
+              {{ isExpanded(sub.id) ? 'Ocultar detalle' : 'Ver detalle' }}
             </dynadrill-button>
 
             @if (isExpanded(sub.id)) {
-              <div class="order-detail-panel__progress-block">
+              <div class="order-detail-panel__expanded">
+                @if (novedadFor(sub)) {
+                  <div class="order-detail-panel__row">
+                    <dynadrill-text variant="caption">Novedad reportada</dynadrill-text>
+                    <dynadrill-text variant="body">{{ novedadFor(sub) }}</dynadrill-text>
+                  </div>
+                }
                 @if (sub.diagnostico) {
                   <div class="order-detail-panel__row">
                     <dynadrill-text variant="caption">Diagnóstico técnico</dynadrill-text>
@@ -138,44 +110,42 @@
                     <dynadrill-text variant="body">{{ sub.horasTrabajo }} h</dynadrill-text>
                   </div>
                 }
-                @if (sub.repuestos && sub.repuestos.length > 0) {
+                @if (sub.repuestos?.length) {
                   <div class="order-detail-panel__row">
-                    <dynadrill-text variant="caption">Repuestos utilizados</dynadrill-text>
-                    <div class="order-detail-panel__repuestos">
-                      @for (r of sub.repuestos; track r.numeroParte) {
-                        <dynadrill-text variant="body">{{ r.numeroParte }} · {{ r.cantidad }} × {{ r.descripcion }}</dynadrill-text>
-                      }
-                    </div>
+                    <dynadrill-text variant="caption">Repuestos</dynadrill-text>
+                    @for (r of sub.repuestos; track r.numeroParte) {
+                      <dynadrill-text variant="body">{{ r.numeroParte }} · {{ r.cantidad }} × {{ r.descripcion }}</dynadrill-text>
+                    }
+                  </div>
+                }
+                @if (sub.correctionNote) {
+                  <div class="order-detail-panel__row">
+                    <dynadrill-text variant="caption">Motivo de corrección solicitada</dynadrill-text>
+                    <dynadrill-text variant="body">{{ sub.correctionNote }}</dynadrill-text>
+                  </div>
+                }
+                @if (sub.deriveNote) {
+                  <div class="order-detail-panel__row">
+                    <dynadrill-text variant="caption">Motivo de derivación</dynadrill-text>
+                    <dynadrill-text variant="body">{{ sub.deriveNote }}</dynadrill-text>
                   </div>
                 }
               </div>
             }
           }
 
-          @if (sub.correctionNote) {
-            <div class="order-detail-panel__row">
-              <dynadrill-text variant="caption">Motivo de la corrección solicitada</dynadrill-text>
-              <dynadrill-text variant="body">{{ sub.correctionNote }}</dynadrill-text>
-            </div>
-          }
-
-          @if (sub.deriveNote) {
-            <div class="order-detail-panel__row">
-              <dynadrill-text variant="caption">Motivo de la derivación a Pumping</dynadrill-text>
-              <dynadrill-text variant="body">{{ sub.deriveNote }}</dynadrill-text>
-            </div>
-          }
-
+          <!-- Acciones de la sub-orden -->
           <div class="order-detail-panel__suborder-actions">
             @if (isDerivable(sub)) {
-              <dynadrill-button variant="secondary" (clicked)="deriveToPumping(sub)">Derivar a Pumping</dynadrill-button>
+              <dynadrill-button variant="secondary" size="small" (clicked)="deriveToPumping(sub)">Derivar a Pumping</dynadrill-button>
             }
             @if (sub.status === 'En Revisión de Cierre') {
-              <dynadrill-button (clicked)="openReview(sub)">Revisar cierre</dynadrill-button>
+              <dynadrill-button size="small" (clicked)="openReview(sub)">Revisar cierre</dynadrill-button>
             }
           </div>
         </div>
-      }
-    </div>
-  }
+
+      </dynadrill-card>
+    }
+  </div>
 </div>

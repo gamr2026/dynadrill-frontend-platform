@@ -113,8 +113,10 @@ export class OrderClassificationDialog {
 
   protected readonly mecanicoOperatorId = signal<number | null>(this.originalMecanicoOperatorId);
   protected readonly instrumentalOperatorId = signal<number | null>(this.originalInstrumentalOperatorId);
-  /** true = Atendido (default, no bloquea el cierre) — false = Pendiente, queda para derivar después desde el panel. */
-  protected readonly operativoAttended = signal<boolean>(this.originalOperativoAttended);
+  /** null = sin seleccionar, true = Atendido, false = Pendiente. */
+  protected readonly operativoAttended = signal<boolean | null>(
+    this.isEditMode ? this.originalOperativoAttended : null,
+  );
 
   private readonly originalTypes = new Set(this.data.existingOrder?.subOrders.map(s => s.type) ?? []);
   /** En modo edición, no tiene sentido habilitar "Guardar cambios" si nada cambió (ni tipos ni asignaciones). */
@@ -132,6 +134,7 @@ export class OrderClassificationDialog {
     if (this.isEditMode && !this.hasChanges()) return false;
     if (this.isChecked('Mecánico') && !this.lockedTypes().has('Mecánico') && this.mecanicoOperatorId() == null) return false;
     if (this.isChecked('Instrumental') && !this.lockedTypes().has('Instrumental') && this.instrumentalOperatorId() == null) return false;
+    if (this.isChecked('Operativo') && !this.lockedTypes().has('Operativo') && this.operativoAttended() === null) return false;
     return true;
   });
 
@@ -210,7 +213,7 @@ export class OrderClassificationDialog {
         const userId = this.instrumentalOperatorId() ?? undefined;
         return { type, userId, userName: userId != null ? this.operatorNames.get(userId) : undefined };
       }
-      return { type, operativoAttended: this.operativoAttended() };
+      return { type, operativoAttended: this.operativoAttended() ?? true };
     });
 
     const request$ = this.isEditMode

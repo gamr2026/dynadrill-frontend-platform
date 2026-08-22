@@ -86,4 +86,9 @@ export class MaintenanceOrdersService {
   deriveToOperations(subOrderId: number, note: string): Observable<SubOrder> {
     return this.http.post<SubOrder>(`/api/maintenance-suborders/${subOrderId}/derive`, { note });
   }
+
+  /** Reasigna el operador de una sub-orden sin cambiar su tipo ni estado. */
+  reassignOperator(subOrderId: number, userId: number, userName: string, assignedByName: string): Observable<SubOrder> {
+    return this.http.patch<SubOrder>(`/api/maintenance-suborders/${subOrderId}/operator`, { userId, userName, assignedByName });
+  }
 }

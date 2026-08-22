@@ -316,7 +316,7 @@ export class MaintenanceListPage {
     const ref = this.drawer.open<OrderDetailPanel, OrderDetailPanelData>({
       title: 'Detalle — ' + order!.code,
       content: OrderDetailPanel,
-      data: { kind: 'order', unitReport, order: order! },
+      data: { unitReport, order: order! },
       size: 'small',
     });
     ref.afterClose.subscribe(() => this.reload());

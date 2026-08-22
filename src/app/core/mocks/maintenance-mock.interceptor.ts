@@ -396,6 +396,22 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
     return of(new HttpResponse({ status: updated ? 200 : 404, body: updated ?? null })).pipe(delay(400));
   }
 
+  const reassignOperatorId = req.url.match(/\/api\/maintenance-suborders\/(\d+)\/operator$/);
+  if (reassignOperatorId && req.method === 'PATCH') {
+    const id = Number(reassignOperatorId[1]);
+    const { userId, userName, assignedByName } = req.body as { userId: number; userName: string; assignedByName: string };
+    let updated: SubOrder | undefined;
+    orders = orders.map(order => ({
+      ...order,
+      subOrders: order.subOrders.map(sub => {
+        if (sub.id !== id) return sub;
+        updated = { ...sub, assignedUserId: userId, assignedUserName: userName, assignedByName };
+        return updated;
+      }),
+    }));
+    return of(new HttpResponse({ status: updated ? 200 : 404, body: updated ?? null })).pipe(delay(300));
+  }
+
   const deriveSubOrderId = req.url.match(/\/api\/maintenance-suborders\/(\d+)\/derive$/);
   if (deriveSubOrderId && req.method === 'POST') {
     const id = Number(deriveSubOrderId[1]);

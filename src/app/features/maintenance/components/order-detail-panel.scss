@@ -3,54 +3,18 @@
   flex-direction: column;
   gap: 16px;
 
+  &__order-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 12px;
+    border-bottom: var(--border-width, 1px) solid var(--border, #e5e4ea);
+  }
+
   &__row {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-  }
-
-  &__detail {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px 14px;
-    background: var(--surface-muted, #faf9fc);
-    border: 1px solid var(--border, #e5e4ea);
-    border-radius: var(--radius-sm, 4px);
-  }
-
-  &__novedad-content {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding-top: 4px;
-  }
-
-  &__detail-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-  }
-
-  &__detail-actions {
-    display: flex;
-    gap: 6px;
-    flex-shrink: 0;
-  }
-
-  &__flag {
-    color: var(--error, #d13438);
-  }
-
-  &__dismiss-form {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 14px;
-    background: var(--error-bg, rgba(255,77,79,.06));
-    border: var(--border-width, 1px) solid var(--error, #ff4d4f);
-    border-radius: var(--radius-md, 6px);
+    gap: 3px;
   }
 
   &__order-actions {
@@ -64,33 +28,59 @@
     gap: 12px;
   }
 
-  &__suborder-card {
+  // ── Dentro de cada DynadrillCard ──
+
+  &__card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+  }
+
+  &__card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__card-body {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 14px;
-    border: 1px solid var(--border, #e5e4ea);
+  }
+
+  &__operator-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  &__inline-edit {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__inline-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  &__expanded {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--surface-muted, #faf9fc);
     border-radius: var(--radius-sm, 4px);
+    border: var(--border-width, 1px) solid var(--border, #e5e4ea);
   }
 
   &__suborder-actions {
     display: flex;
     gap: 8px;
-  }
-
-  &__repuestos {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  &__progress-block {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 12px 14px;
-    background: #faf9fc;
-    border: 1px solid #e5e4ea;
-    border-radius: 6px;
   }
 }

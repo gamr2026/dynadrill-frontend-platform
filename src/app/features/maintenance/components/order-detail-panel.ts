@@ -1,114 +1,153 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_DRAWER_DATA, NzDrawerRef } from 'ng-zorro-antd/drawer';
-import { DynadrillButtonComponent, DynadrillDialogService, DynadrillTabsComponent, DynadrillTextComponent, DynadrillTextareaComponent, type DynadrillTab } from '@digitec-it-projects/dynadrill-ui';
-import { computeOrderStatus, MaintenanceOrderWithSubOrders, SubOrder } from '../models/maintenance-order.model';
+import {
+  DynadrillButtonComponent,
+  DynadrillCardComponent,
+  DynadrillDialogService,
+  DynadrillSelectComponent,
+  DynadrillTagComponent,
+  DynadrillTextComponent,
+  DynadrillTextareaComponent,
+  type DynadrillSelectOption,
+  type DynadrillTagVariant,
+} from '@digitec-it-projects/dynadrill-ui';
+import { computeOrderStatus, MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../models/maintenance-order.model';
 import { UnitReport } from '../models/unit-report.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
-import { UnitReportsService } from '../services/unit-reports.service';
-import { OrderClassificationDialog, OrderClassificationDialogData } from './order-classification-dialog';
 import { DeriveToPumpingDialog, DeriveToPumpingDialogData } from './derive-to-pumping-dialog';
 import { SuborderReviewDialog, SuborderReviewDialogData } from './suborder-review-dialog';
 import { ReturnToOperationDialog, ReturnToOperationDialogData } from './return-to-operation-dialog';
+import { RolesService, UsersService } from '../../users/services/users.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 export interface OrderDetailPanelData {
-  kind: 'pending' | 'order';
   unitReport: UnitReport;
-  /** Presente solo cuando kind === 'order'. */
-  order?: MaintenanceOrderWithSubOrders;
+  order: MaintenanceOrderWithSubOrders;
 }
 
-/**
- * Panel maestro-detalle del Jefe de Mantenimiento — reemplaza la fila de
- * botones variables de la bandeja: un único botón "Ver" por registro abre
- * este panel, y todas las acciones (clasificar, asignar, revisar, derivar,
- * Fin Correctivo) viven adentro. Cada acción, al cerrar su diálogo, refresca
- * solo esta orden (no cierra el panel) salvo Clasificar — esa sí cierra el
- * panel porque el registro cambia de identidad (de "pendiente" a "orden").
- */
+const STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
+  'Pendiente': 'warning',
+  'En Diagnóstico': 'info',
+  'En Ejecución': 'brand',
+  'En Revisión de Cierre': 'info',
+  'Cerrado': 'success',
+  'Corrección Solicitada': 'error',
+  'Derivado a Pumping': 'neutral',
+};
+
+const STATUS_ACCENT: Record<SubOrderStatus, 'warning' | 'info' | 'brand' | 'success' | 'error' | 'neutral' | 'none'> = {
+  'Pendiente': 'warning',
+  'En Diagnóstico': 'info',
+  'En Ejecución': 'brand',
+  'En Revisión de Cierre': 'info',
+  'Cerrado': 'success',
+  'Corrección Solicitada': 'error',
+  'Derivado a Pumping': 'neutral',
+};
+
 @Component({
   selector: 'app-order-detail-panel',
-  imports: [DynadrillTextComponent, DynadrillButtonComponent, DynadrillTextareaComponent, DynadrillTabsComponent],
+  imports: [
+    DynadrillTextComponent,
+    DynadrillButtonComponent,
+    DynadrillTextareaComponent,
+    DynadrillTagComponent,
+    DynadrillSelectComponent,
+    DynadrillCardComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './order-detail-panel.html',
   styleUrl: './order-detail-panel.scss',
 })
 export class OrderDetailPanel {
   private readonly ordersService = inject(MaintenanceOrdersService);
-  private readonly unitReportsService = inject(UnitReportsService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly drawerRef = inject(NzDrawerRef<OrderDetailPanel>);
+  private readonly auth = inject(AuthService);
+  private readonly rolesService = inject(RolesService);
+  private readonly usersService = inject(UsersService);
   protected readonly data = inject<OrderDetailPanelData>(NZ_DRAWER_DATA);
 
-  // ── Flujo "No requiere mantenimiento" inline en el panel ──
-  protected readonly showDismissForm = signal(false);
-  protected readonly dismissReason = signal('');
-  protected readonly dismissing = signal(false);
-
-  // ── Tabs de novedades ──
-  protected readonly novedadTabIndex = signal(0);
-  protected readonly novedadTabs = computed<DynadrillTab[]>(() => {
-    const r = this.report;
-    const tabs: DynadrillTab[] = [];
-    if (r.problemasMecanica) tabs.push({ label: 'Mecánica' });
-    if (r.problemasInstrumentacion) tabs.push({ label: 'Instrumentación' });
-    if (r.problemasOperaciones) tabs.push({ label: 'Operaciones' });
-    return tabs;
-  });
-
-  protected readonly novedadActiva = computed(() => {
-    const r = this.report;
-    const tipos = [
-      r.problemasMecanica ? 'mecanica' : null,
-      r.problemasInstrumentacion ? 'instrumentacion' : null,
-      r.problemasOperaciones ? 'operaciones' : null,
-    ].filter(Boolean) as string[];
-    return tipos[this.novedadTabIndex()] ?? null;
-  });
-
-  // Nombres distintos a los campos de OrderDetailPanelData a propósito: a diferencia de
-  // DynadrillDialogService, el drawer de ng-zorro hace Object.assign(instancia, nzData) además
-  // de inyectar NZ_DRAWER_DATA — si una propiedad se llamara igual que un campo del data (p.ej.
-  // "order"), ese Object.assign pisaría la signal con el valor plano y rompía el componente.
   protected readonly report = this.data.unitReport;
-  protected readonly currentOrder = signal<MaintenanceOrderWithSubOrders | undefined>(this.data.order);
+  protected readonly currentOrder = signal<MaintenanceOrderWithSubOrders>(this.data.order);
 
-  protected readonly orderStatus = computed(() => {
-    const order = this.currentOrder();
-    return order ? computeOrderStatus(order, order.subOrders) : undefined;
-  });
-
+  protected readonly orderStatus = computed(() =>
+    computeOrderStatus(this.currentOrder(), this.currentOrder().subOrders),
+  );
   protected readonly isReadyToReturn = computed(() => this.orderStatus() === 'Aceptado');
 
+  // ── Edición inline de operador por sub-orden ──
+  protected readonly editingSubId = signal<number | null>(null);
+  protected readonly editingOperatorId = signal<number | null>(null);
+  protected readonly reassigning = signal(false);
+  protected readonly mecanicoOptions = signal<DynadrillSelectOption[]>([]);
+  protected readonly instrumentalOptions = signal<DynadrillSelectOption[]>([]);
+
+  protected readonly statusTone = STATUS_TONE;
+  protected readonly statusAccent = STATUS_ACCENT;
+
+  constructor() {
+    const OPERATOR_ROLE = 'Operador de Mantenimiento';
+    this.rolesService.list().subscribe(roles => {
+      const role = roles.find(r => r.name === OPERATOR_ROLE);
+      this.usersService.list().subscribe(users => {
+        const active = users.filter(u => u.status && u.roleId === role?.id);
+        this.mecanicoOptions.set(active.filter(u => u.specialty === 'Mecánico').map(u => ({ label: u.name, value: u.id })));
+        this.instrumentalOptions.set(active.filter(u => u.specialty === 'Instrumental').map(u => ({ label: u.name, value: u.id })));
+      });
+    });
+  }
+
   private refreshOrder(): void {
-    const order = this.currentOrder();
-    if (!order) return;
-    this.ordersService.get(order.id).subscribe(updated => this.currentOrder.set(updated));
+    this.ordersService.get(this.currentOrder().id).subscribe(updated => this.currentOrder.set(updated));
   }
 
-  /** Lo que reportó el operador para el tipo de esta sub-orden — nunca lo escribe Mantenimiento. */
-  novedadFor(subOrder: SubOrder): string {
-    if (subOrder.type === 'Mecánico') return this.report.problemasMecanica;
-    if (subOrder.type === 'Instrumental') return this.report.problemasInstrumentacion;
-    return this.report.problemasOperaciones;
+  operatorOptionsFor(sub: SubOrder): DynadrillSelectOption[] {
+    return sub.type === 'Mecánico' ? this.mecanicoOptions() : this.instrumentalOptions();
   }
 
-  assignmentLabelFor(sub: SubOrder): string {
-    if (sub.type === 'Operativo') return sub.status === 'Derivado a Pumping' ? 'Derivado a Pumping' : 'Pendiente de derivar a Pumping';
-    return sub.assignedUserName ?? 'Sin asignar todavía';
+  startEditOperator(sub: SubOrder): void {
+    this.editingSubId.set(sub.id);
+    this.editingOperatorId.set(sub.assignedUserId ?? null);
   }
 
-  /** Operativo recién clasificado — se deriva a Pumping, no se asigna a un operador interno. */
+  cancelEditOperator(): void {
+    this.editingSubId.set(null);
+    this.editingOperatorId.set(null);
+  }
+
+  saveOperator(sub: SubOrder): void {
+    const newId = this.editingOperatorId();
+    if (!newId || this.reassigning()) return;
+    const opts = this.operatorOptionsFor(sub);
+    const opt = opts.find(o => o.value === newId);
+    if (!opt) return;
+    this.reassigning.set(true);
+    this.ordersService.reassignOperator(sub.id, newId, String(opt.label), this.auth.currentUser()?.name ?? '').subscribe({
+      next: () => {
+        this.editingSubId.set(null);
+        this.editingOperatorId.set(null);
+        this.reassigning.set(false);
+        this.refreshOrder();
+      },
+      error: () => this.reassigning.set(false),
+    });
+  }
+
   isDerivable(sub: SubOrder): boolean {
     return sub.type === 'Operativo' && sub.status === 'Pendiente';
   }
 
-  /** IDs de sub-órdenes con el detalle de progreso expandido. */
-  private readonly expandedSubOrders = signal<Set<number>>(new Set());
-
-  isExpanded(subId: number): boolean {
-    return this.expandedSubOrders().has(subId);
+  canEditOperator(sub: SubOrder): boolean {
+    return sub.type !== 'Operativo' && sub.status !== 'Cerrado' && sub.status !== 'Derivado a Pumping';
   }
 
+  hasProgress(sub: SubOrder): boolean {
+    return !!(sub.diagnostico || sub.actividadesCorrectivas || sub.horasTrabajo || sub.repuestos?.length);
+  }
+
+  private readonly expandedSubOrders = signal<Set<number>>(new Set());
+  isExpanded(subId: number): boolean { return this.expandedSubOrders().has(subId); }
   toggleExpand(subId: number): void {
     this.expandedSubOrders.update(set => {
       const next = new Set(set);
@@ -117,43 +156,10 @@ export class OrderDetailPanel {
     });
   }
 
-  hasProgress(sub: SubOrder): boolean {
-    return !!(sub.diagnostico || sub.actividadesCorrectivas || sub.horasTrabajo || sub.repuestos?.length);
-  }
-
-  confirmDismiss(): void {
-    if (!this.dismissReason().trim() || this.dismissing()) return;
-    this.dismissing.set(true);
-    this.unitReportsService.dismiss(this.report.id, this.dismissReason().trim()).subscribe({
-      next: () => this.drawerRef.close(),
-      error: () => this.dismissing.set(false),
-    });
-  }
-
-  classify(): void {
-    const ref = this.dialog.open<OrderClassificationDialog, OrderClassificationDialogData>({
-      title: 'MAN-001-A — Clasificación',
-      content: OrderClassificationDialog,
-      data: { unitReport: this.report, skipDecision: true },
-      footer: false,
-    });
-    ref.afterClose.subscribe(changed => {
-      if (changed) this.drawerRef.close();
-    });
-  }
-
-  editClassification(): void {
-    const order = this.currentOrder();
-    if (!order) return;
-    const ref = this.dialog.open<OrderClassificationDialog, OrderClassificationDialogData>({
-      title: 'Editar clasificación — ' + order.code,
-      content: OrderClassificationDialog,
-      data: { unitReport: this.report, existingOrder: order },
-      footer: false,
-    });
-    ref.afterClose.subscribe(changed => {
-      if (changed) this.refreshOrder();
-    });
+  novedadFor(subOrder: SubOrder): string {
+    if (subOrder.type === 'Mecánico') return this.report.problemasMecanica;
+    if (subOrder.type === 'Instrumental') return this.report.problemasInstrumentacion;
+    return this.report.problemasOperaciones;
   }
 
   deriveToPumping(sub: SubOrder): void {
@@ -163,9 +169,7 @@ export class OrderDetailPanel {
       data: { subOrder: sub },
       footer: false,
     });
-    ref.afterClose.subscribe(changed => {
-      if (changed) this.refreshOrder();
-    });
+    ref.afterClose.subscribe(changed => { if (changed) this.refreshOrder(); });
   }
 
   openReview(sub: SubOrder): void {
@@ -175,24 +179,16 @@ export class OrderDetailPanel {
       data: { subOrder: sub, novedadOriginal: this.novedadFor(sub) },
       footer: false,
     });
-    ref.afterClose.subscribe(changed => {
-      if (changed) this.refreshOrder();
-    });
+    ref.afterClose.subscribe(changed => { if (changed) this.refreshOrder(); });
   }
 
   returnToOperation(): void {
-    const order = this.currentOrder();
-    if (!order) return;
     const ref = this.dialog.open<ReturnToOperationDialog, ReturnToOperationDialogData>({
       title: 'Fin Correctivo — Retorno a Operación',
       content: ReturnToOperationDialog,
-      data: { order },
+      data: { order: this.currentOrder() },
       footer: false,
     });
-    // Cierra el panel automáticamente — la orden está cerrada, no hay más acciones.
-    // El afterClose del drawer en la bandeja dispara reload() y actualiza los KPIs.
-    ref.afterClose.subscribe(changed => {
-      if (changed) this.drawerRef.close();
-    });
+    ref.afterClose.subscribe(changed => { if (changed) this.drawerRef.close(); });
   }
 }

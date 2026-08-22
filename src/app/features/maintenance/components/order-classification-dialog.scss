@@ -40,11 +40,14 @@
     flex-shrink: 0;
   }
 
-  &__novedad-content {
+  &__novedad-item {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding-top: 4px;
+    gap: 3px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border, #e5e4ea);
+
+    &:last-of-type { border-bottom: none; padding-bottom: 0; }
   }
 
   &__flag {

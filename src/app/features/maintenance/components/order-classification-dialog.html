@@ -12,7 +12,7 @@
     </div>
   </div>
 
-  <!-- Novedades en tabs (solo en modo nuevo reporte, no en edición) -->
+  <!-- Novedades en lista (solo en modo nuevo reporte, no en edición) -->
   @if (!isEditMode && novedadTabs().length > 0) {
     <div class="order-classification-dialog__novedades">
       <div class="order-classification-dialog__novedades-header">
@@ -25,28 +25,29 @@
         }
       </div>
 
-      <dynadrill-tabs
-        [tabs]="novedadTabs()"
-        [activeIndex]="novedadTabIndex()"
-        (activeIndexChange)="novedadTabIndex.set($event)"
-      />
-
-      <div class="order-classification-dialog__novedad-content">
-        @if (novedadActiva() === 'mecanica') {
+      @if (data.unitReport.problemasMecanica) {
+        <div class="order-classification-dialog__novedad-item">
+          <dynadrill-text variant="caption">Mecánica</dynadrill-text>
           <dynadrill-text variant="body">{{ data.unitReport.problemasMecanica }}</dynadrill-text>
-        }
-        @if (novedadActiva() === 'instrumentacion') {
+        </div>
+      }
+      @if (data.unitReport.problemasInstrumentacion) {
+        <div class="order-classification-dialog__novedad-item">
+          <dynadrill-text variant="caption">Instrumentación</dynadrill-text>
           <dynadrill-text variant="body">{{ data.unitReport.problemasInstrumentacion }}</dynadrill-text>
-        }
-        @if (novedadActiva() === 'operaciones') {
+        </div>
+      }
+      @if (data.unitReport.problemasOperaciones) {
+        <div class="order-classification-dialog__novedad-item">
+          <dynadrill-text variant="caption">Operaciones</dynadrill-text>
           <dynadrill-text variant="body">{{ data.unitReport.problemasOperaciones }}</dynadrill-text>
-        }
-        @if (data.unitReport.interrumpioOperacion) {
-          <dynadrill-text variant="caption" class="order-classification-dialog__flag">
-            ⚠ Interrumpió/atrasó la operación{{ data.unitReport.detalleInterrupcion ? ': ' + data.unitReport.detalleInterrupcion : '' }}
-          </dynadrill-text>
-        }
-      </div>
+        </div>
+      }
+      @if (data.unitReport.interrumpioOperacion) {
+        <dynadrill-text variant="caption" class="order-classification-dialog__flag">
+          ⚠ Interrumpió/atrasó la operación{{ data.unitReport.detalleInterrupcion ? ': ' + data.unitReport.detalleInterrupcion : '' }}
+        </dynadrill-text>
+      }
     </div>
   }
 
@@ -119,10 +120,10 @@
         />
         @if (isChecked('Operativo') && !lockedTypes().has('Operativo')) {
           <div class="order-classification-dialog__operativo-state">
-            <dynadrill-text variant="caption">Estado — se deriva a Pumping, fuera del flujo de Mantenimiento</dynadrill-text>
+            <dynadrill-text variant="caption">¿Cuándo se deriva a Pumping?</dynadrill-text>
             <div class="order-classification-dialog__operativo-actions">
-              <dynadrill-button [variant]="operativoAttended() ? 'primary' : 'secondary'" (clicked)="setOperativoAttended(true)">Atendido</dynadrill-button>
-              <dynadrill-button [variant]="!operativoAttended() ? 'primary' : 'secondary'" (clicked)="setOperativoAttended(false)">Pendiente</dynadrill-button>
+              <dynadrill-button [variant]="operativoAttended() === true ? 'primary' : 'secondary'" (clicked)="setOperativoAttended(true)">Ahora (Atendido)</dynadrill-button>
+              <dynadrill-button [variant]="operativoAttended() === false ? 'primary' : 'secondary'" (clicked)="setOperativoAttended(false)">Después (Pendiente)</dynadrill-button>
             </div>
           </div>
         }

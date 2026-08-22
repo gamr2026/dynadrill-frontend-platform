@@ -5,6 +5,7 @@ import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDataTableProgressCell,
+  DynadrillDialogService,
   DynadrillDropdownComponent,
   DynadrillDropdownOption,
   DynadrillDrawerService,
@@ -26,6 +27,7 @@ import { MaintenanceOrdersService } from '../services/maintenance-orders.service
 import { UnitReportsService } from '../services/unit-reports.service';
 import { UnidadesService } from '../services/unidades.service';
 import { OrderDetailPanel, OrderDetailPanelData } from '../components/order-detail-panel';
+import { OrderClassificationDialog, OrderClassificationDialogData } from '../components/order-classification-dialog';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -53,6 +55,7 @@ export class MaintenanceListPage {
   private readonly unidadesService = inject(UnidadesService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly drawer = inject(DynadrillDrawerService);
+  private readonly dialogService = inject(DynadrillDialogService);
   private readonly auth = inject(AuthService);
 
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
@@ -287,7 +290,11 @@ export class MaintenanceListPage {
     });
   }
 
-  /** Único punto de entrada por fila — todas las acciones (clasificar, asignar, revisar, Fin Correctivo) viven en el panel. */
+  /**
+   * Enrutamiento inteligente según el tipo de fila:
+   * - Reporte pendiente → modal de clasificación (novedades + Clasificar/Descartar en un solo paso)
+   * - Orden clasificada → panel lateral (para ver y gestionar el estado de cada sub-orden)
+   */
   viewDetail(row: Record<string, unknown>): void {
     const isOrder = row['kind'] === 'order';
     const order = isOrder ? this.orders().find(o => o.id === row['orderId']) : undefined;
@@ -295,10 +302,21 @@ export class MaintenanceListPage {
       ? this.unitReports().find(r => r.id === order!.unitReportId)!
       : this.unitReports().find(r => r.id === row['reportId'])!;
 
+    if (!isOrder) {
+      const ref = this.dialogService.open<OrderClassificationDialog, OrderClassificationDialogData>({
+        title: `Reporte N° ${unitReport.reportNo} — ${unitReport.unidad}`,
+        content: OrderClassificationDialog,
+        data: { unitReport },
+        footer: false,
+      });
+      ref.afterClose.subscribe(changed => { if (changed) this.reload(); });
+      return;
+    }
+
     const ref = this.drawer.open<OrderDetailPanel, OrderDetailPanelData>({
-      title: isOrder ? 'Detalle — ' + order!.code : 'Detalle — ' + unitReport.unidad,
+      title: 'Detalle — ' + order!.code,
       content: OrderDetailPanel,
-      data: isOrder ? { kind: 'order', unitReport, order: order! } : { kind: 'pending', unitReport },
+      data: { kind: 'order', unitReport, order: order! },
       size: 'small',
     });
     ref.afterClose.subscribe(() => this.reload());

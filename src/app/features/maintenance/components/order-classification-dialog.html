@@ -1,44 +1,76 @@
 <div class="order-classification-dialog">
-  <div class="order-classification-dialog__row">
-    <dynadrill-text variant="caption">Unidad afectada</dynadrill-text>
-    <dynadrill-text variant="body">{{ data.unitReport.unidad }} — Reporte N° {{ data.unitReport.reportNo }}</dynadrill-text>
+
+  <!-- Cabecera con info de la unidad -->
+  <div class="order-classification-dialog__header">
+    <div class="order-classification-dialog__row">
+      <dynadrill-text variant="caption">Unidad</dynadrill-text>
+      <dynadrill-text variant="body">{{ data.unitReport.unidad }} — Reporte N° {{ data.unitReport.reportNo }}</dynadrill-text>
+    </div>
+    <div class="order-classification-dialog__row">
+      <dynadrill-text variant="caption">Módulo de origen</dynadrill-text>
+      <dynadrill-text variant="body">{{ data.unitReport.sourceModule }}</dynadrill-text>
+    </div>
   </div>
 
-  <div class="order-classification-dialog__detail">
-    @if (data.unitReport.problemasMecanica) {
-      <div class="order-classification-dialog__row">
-        <dynadrill-text variant="caption">Mecánica</dynadrill-text>
-        <dynadrill-text variant="body">{{ data.unitReport.problemasMecanica }}</dynadrill-text>
+  <!-- Novedades en tabs (solo en modo nuevo reporte, no en edición) -->
+  @if (!isEditMode && novedadTabs().length > 0) {
+    <div class="order-classification-dialog__novedades">
+      <div class="order-classification-dialog__novedades-header">
+        <dynadrill-text variant="caption">Novedades reportadas</dynadrill-text>
+        @if (requiresMaintenance() === null) {
+          <div class="order-classification-dialog__novedades-actions">
+            <dynadrill-button size="small" (clicked)="chooseYes()">Clasificar</dynadrill-button>
+            <dynadrill-button size="small" variant="secondary" (clicked)="chooseNo()">Descartar</dynadrill-button>
+          </div>
+        }
       </div>
-    }
-    @if (data.unitReport.problemasInstrumentacion) {
-      <div class="order-classification-dialog__row">
-        <dynadrill-text variant="caption">Instrumentación</dynadrill-text>
-        <dynadrill-text variant="body">{{ data.unitReport.problemasInstrumentacion }}</dynadrill-text>
-      </div>
-    }
-    @if (data.unitReport.problemasOperaciones) {
-      <div class="order-classification-dialog__row">
-        <dynadrill-text variant="caption">Operaciones</dynadrill-text>
-        <dynadrill-text variant="body">{{ data.unitReport.problemasOperaciones }}</dynadrill-text>
-      </div>
-    }
-    @if (data.unitReport.interrumpioOperacion) {
-      <dynadrill-text variant="caption" class="order-classification-dialog__flag">
-        ⚠ Interrumpió/atrasó la operación{{ data.unitReport.detalleInterrupcion ? ': ' + data.unitReport.detalleInterrupcion : '' }}
-      </dynadrill-text>
-    }
-  </div>
 
-  @if (requiresMaintenance() === null) {
-    <div class="order-classification-dialog__decision">
-      <dynadrill-text variant="body">¿Requiere mantenimiento?</dynadrill-text>
-      <div class="order-classification-dialog__decision-actions">
-        <dynadrill-button (clicked)="chooseYes()">Sí requiere</dynadrill-button>
-        <dynadrill-button variant="secondary" (clicked)="chooseNo()">No requiere</dynadrill-button>
+      <dynadrill-tabs
+        [tabs]="novedadTabs()"
+        [activeIndex]="novedadTabIndex()"
+        (activeIndexChange)="novedadTabIndex.set($event)"
+      />
+
+      <div class="order-classification-dialog__novedad-content">
+        @if (novedadActiva() === 'mecanica') {
+          <dynadrill-text variant="body">{{ data.unitReport.problemasMecanica }}</dynadrill-text>
+        }
+        @if (novedadActiva() === 'instrumentacion') {
+          <dynadrill-text variant="body">{{ data.unitReport.problemasInstrumentacion }}</dynadrill-text>
+        }
+        @if (novedadActiva() === 'operaciones') {
+          <dynadrill-text variant="body">{{ data.unitReport.problemasOperaciones }}</dynadrill-text>
+        }
+        @if (data.unitReport.interrumpioOperacion) {
+          <dynadrill-text variant="caption" class="order-classification-dialog__flag">
+            ⚠ Interrumpió/atrasó la operación{{ data.unitReport.detalleInterrupcion ? ': ' + data.unitReport.detalleInterrupcion : '' }}
+          </dynadrill-text>
+        }
       </div>
     </div>
-  } @else if (requiresMaintenance() === true) {
+  }
+
+  <!-- Formulario de descarte -->
+  @if (requiresMaintenance() === false) {
+    <div class="order-classification-dialog__section order-classification-dialog__section--dismiss">
+      <dynadrill-textarea
+        label="Motivo del descarte"
+        placeholder="Ej. Novedad menor, no requiere intervención de Mantenimiento."
+        [value]="dismissReason()"
+        (valueChange)="dismissReason.set($event)"
+        [rows]="3"
+      />
+      <div class="order-classification-dialog__actions">
+        <dynadrill-button variant="secondary" (clicked)="chooseYes()">← Volver a clasificar</dynadrill-button>
+        <dynadrill-button variant="error" [disabled]="!canDismiss() || submitting()" (clicked)="confirmDismiss()">
+          {{ submitting() ? 'Guardando…' : 'Confirmar descarte' }}
+        </dynadrill-button>
+      </div>
+    </div>
+  }
+
+  <!-- Selección de tipos y operadores -->
+  @if (requiresMaintenance() === true) {
     <div class="order-classification-dialog__types">
       <dynadrill-text variant="caption">Tipo(s) requerido(s) — selección múltiple</dynadrill-text>
 
@@ -89,12 +121,8 @@
           <div class="order-classification-dialog__operativo-state">
             <dynadrill-text variant="caption">Estado — se deriva a Pumping, fuera del flujo de Mantenimiento</dynadrill-text>
             <div class="order-classification-dialog__operativo-actions">
-              <dynadrill-button [variant]="operativoAttended() ? 'primary' : 'secondary'" (clicked)="setOperativoAttended(true)">
-                Atendido
-              </dynadrill-button>
-              <dynadrill-button [variant]="!operativoAttended() ? 'primary' : 'secondary'" (clicked)="setOperativoAttended(false)">
-                Pendiente
-              </dynadrill-button>
+              <dynadrill-button [variant]="operativoAttended() ? 'primary' : 'secondary'" (clicked)="setOperativoAttended(true)">Atendido</dynadrill-button>
+              <dynadrill-button [variant]="!operativoAttended() ? 'primary' : 'secondary'" (clicked)="setOperativoAttended(false)">Pendiente</dynadrill-button>
             </div>
           </div>
         }
@@ -105,23 +133,6 @@
       <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
       <dynadrill-button [disabled]="!canConfirm() || submitting()" (clicked)="confirm()">
         {{ submitting() ? 'Guardando…' : isEditMode ? 'Guardar cambios' : 'Confirmar clasificación' }}
-      </dynadrill-button>
-    </div>
-  } @else {
-    <div class="order-classification-dialog__types">
-      <dynadrill-textarea
-        label="Motivo — para que Mantenimiento pueda justificarlo si Operaciones pregunta después"
-        placeholder="Ej. Novedad menor, no requiere intervención de Mantenimiento."
-        [value]="dismissReason()"
-        (valueChange)="dismissReason.set($event)"
-        [rows]="3"
-      />
-    </div>
-
-    <div class="order-classification-dialog__actions">
-      <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
-      <dynadrill-button [disabled]="!canDismiss() || submitting()" (clicked)="confirmDismiss()">
-        {{ submitting() ? 'Guardando…' : 'Confirmar — No requiere mantenimiento' }}
       </dynadrill-button>
     </div>
   }

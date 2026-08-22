@@ -6,10 +6,11 @@ import {
   DynadrillCheckboxComponent,
   DynadrillNotificationService,
   DynadrillSelectComponent,
+  DynadrillTabsComponent,
   DynadrillTextareaComponent,
   DynadrillTextComponent,
 } from '@digitec-it-projects/dynadrill-ui';
-import type { DynadrillSelectOption } from '@digitec-it-projects/dynadrill-ui';
+import type { DynadrillSelectOption, DynadrillTab } from '@digitec-it-projects/dynadrill-ui';
 import { MaintenanceOrderWithSubOrders, MaintenanceType } from '../models/maintenance-order.model';
 import { UnitReport } from '../models/unit-report.model';
 import { ClassifyTypeAssignment, MaintenanceOrdersService } from '../services/maintenance-orders.service';
@@ -48,6 +49,7 @@ const OPERATOR_ROLE_NAME = 'Operador de Mantenimiento';
     DynadrillTextComponent,
     DynadrillCheckboxComponent,
     DynadrillSelectComponent,
+    DynadrillTabsComponent,
     DynadrillTextareaComponent,
     DynadrillButtonComponent,
   ],
@@ -74,6 +76,26 @@ export class OrderClassificationDialog {
   protected readonly dismissReason = signal('');
   protected readonly submitting = signal(false);
   protected readonly loadingOperators = signal(true);
+
+  // ── Tabs de novedades ──
+  protected readonly novedadTabIndex = signal(0);
+  protected readonly novedadTabs = computed<DynadrillTab[]>(() => {
+    const r = this.data.unitReport;
+    const tabs: DynadrillTab[] = [];
+    if (r.problemasMecanica) tabs.push({ label: 'Mecánica' });
+    if (r.problemasInstrumentacion) tabs.push({ label: 'Instrumentación' });
+    if (r.problemasOperaciones) tabs.push({ label: 'Operaciones' });
+    return tabs;
+  });
+  protected readonly novedadActiva = computed(() => {
+    const r = this.data.unitReport;
+    const tipos = [
+      r.problemasMecanica ? 'mecanica' : null,
+      r.problemasInstrumentacion ? 'instrumentacion' : null,
+      r.problemasOperaciones ? 'operaciones' : null,
+    ].filter(Boolean) as string[];
+    return tipos[this.novedadTabIndex()] ?? null;
+  });
 
   protected readonly allTypes = ALL_TYPES;
   protected readonly canDismiss = computed(() => this.dismissReason().trim().length > 0);

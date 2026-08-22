@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_DRAWER_DATA, NzDrawerRef } from 'ng-zorro-antd/drawer';
-import { DynadrillButtonComponent, DynadrillDialogService, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
+import { DynadrillButtonComponent, DynadrillDialogService, DynadrillTextComponent, DynadrillTextareaComponent } from '@digitec-it-projects/dynadrill-ui';
 import { computeOrderStatus, MaintenanceOrderWithSubOrders, SubOrder } from '../models/maintenance-order.model';
 import { UnitReport } from '../models/unit-report.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
+import { UnitReportsService } from '../services/unit-reports.service';
 import { OrderClassificationDialog, OrderClassificationDialogData } from './order-classification-dialog';
 import { DeriveToPumpingDialog, DeriveToPumpingDialogData } from './derive-to-pumping-dialog';
 import { SuborderReviewDialog, SuborderReviewDialogData } from './suborder-review-dialog';
@@ -26,16 +27,22 @@ export interface OrderDetailPanelData {
  */
 @Component({
   selector: 'app-order-detail-panel',
-  imports: [DynadrillTextComponent, DynadrillButtonComponent],
+  imports: [DynadrillTextComponent, DynadrillButtonComponent, DynadrillTextareaComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './order-detail-panel.html',
   styleUrl: './order-detail-panel.scss',
 })
 export class OrderDetailPanel {
   private readonly ordersService = inject(MaintenanceOrdersService);
+  private readonly unitReportsService = inject(UnitReportsService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly drawerRef = inject(NzDrawerRef<OrderDetailPanel>);
   protected readonly data = inject<OrderDetailPanelData>(NZ_DRAWER_DATA);
+
+  // ── Flujo "No requiere mantenimiento" inline en el panel ──
+  protected readonly showDismissForm = signal(false);
+  protected readonly dismissReason = signal('');
+  protected readonly dismissing = signal(false);
 
   // Nombres distintos a los campos de OrderDetailPanelData a propósito: a diferencia de
   // DynadrillDialogService, el drawer de ng-zorro hace Object.assign(instancia, nzData) además
@@ -93,15 +100,22 @@ export class OrderDetailPanel {
     return !!(sub.diagnostico || sub.actividadesCorrectivas || sub.horasTrabajo || sub.repuestos?.length);
   }
 
+  confirmDismiss(): void {
+    if (!this.dismissReason().trim() || this.dismissing()) return;
+    this.dismissing.set(true);
+    this.unitReportsService.dismiss(this.report.id, this.dismissReason().trim()).subscribe({
+      next: () => this.drawerRef.close(),
+      error: () => this.dismissing.set(false),
+    });
+  }
+
   classify(): void {
     const ref = this.dialog.open<OrderClassificationDialog, OrderClassificationDialogData>({
-      title: 'MAN-001-A — Revisión y Clasificación',
+      title: 'MAN-001-A — Clasificación',
       content: OrderClassificationDialog,
-      data: { unitReport: this.report },
+      data: { unitReport: this.report, skipDecision: true },
       footer: false,
     });
-    // El registro cambia de "pendiente" a "orden" — se cierra el panel y la
-    // bandeja recarga, mostrando ya la orden clasificada como fila nueva.
     ref.afterClose.subscribe(changed => {
       if (changed) this.drawerRef.close();
     });

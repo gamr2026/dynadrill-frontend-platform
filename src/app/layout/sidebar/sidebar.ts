@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { DynadrillButtonComponent, DynadrillIconComponent, DynadrillMenuComponent, DynadrillMenuItem } from '@digitec-it-projects/dynadrill-ui';
+import { DynadrillButtonComponent, DynadrillIconComponent, DynadrillIconName, DynadrillMenuComponent, DynadrillMenuItem } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../core/services/auth.service';
 import { SidebarStateService } from '../sidebar-state.service';
 
@@ -31,8 +31,8 @@ export class Sidebar {
           ? { label: 'Mantenimiento', link: '/dashboard/mantenimiento/mis-tareas' }
           : null;
 
-    const maintenance = maintenanceLink
-      ? [{ ...maintenanceLink, icon: 'tool' }]
+    const maintenance: DynadrillMenuItem[] = maintenanceLink
+      ? [{ ...maintenanceLink, icon: 'tool' as DynadrillIconName }]
       : [];
 
     return [

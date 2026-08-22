@@ -23,6 +23,22 @@
     color: var(--error, #d13438);
   }
 
+  &__pending-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__dismiss-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    background: var(--error-bg, rgba(255,77,79,.06));
+    border: var(--border-width, 1px) solid var(--error, #ff4d4f);
+    border-radius: var(--radius-md, 6px);
+  }
+
   &__order-actions {
     display: flex;
     gap: 8px;

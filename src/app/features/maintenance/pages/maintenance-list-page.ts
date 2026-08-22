@@ -14,7 +14,6 @@ import {
   DynadrillScreenHeaderComponent,
   DynadrillStatisticComponent,
   DynadrillTabsComponent,
-  DynadrillTagComponent,
   DynadrillTagVariant,
   type DynadrillKpiRowItem,
   type DynadrillTab,
@@ -43,7 +42,7 @@ const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
 
 @Component({
   selector: 'app-maintenance-list-page',
-  imports: [DynadrillButtonComponent, DynadrillDataTableComponent, DynadrillDropdownComponent, DynadrillIconComponent, DynadrillKpiRowComponent, DynadrillScreenHeaderComponent, DynadrillStatisticComponent, DynadrillTabsComponent, DynadrillTagComponent],
+  imports: [DynadrillButtonComponent, DynadrillDataTableComponent, DynadrillDropdownComponent, DynadrillIconComponent, DynadrillKpiRowComponent, DynadrillScreenHeaderComponent, DynadrillStatisticComponent, DynadrillTabsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './maintenance-list-page.html',
   styleUrl: './maintenance-list-page.scss',

@@ -21,6 +21,8 @@ export interface OrderClassificationDialogData {
   unitReport: UnitReport;
   /** Si viene, el diálogo abre en modo edición de una orden ya clasificada (salta el paso Sí/No). */
   existingOrder?: MaintenanceOrderWithSubOrders;
+  /** Salta directamente a la selección de tipos — el Jefe ya decidió que sí requiere mantenimiento. */
+  skipDecision?: boolean;
 }
 
 const ALL_TYPES: MaintenanceType[] = ['Mecánico', 'Instrumental', 'Operativo'];
@@ -65,7 +67,9 @@ export class OrderClassificationDialog {
 
   protected readonly isEditMode = !!this.data.existingOrder;
 
-  protected readonly requiresMaintenance = signal<boolean | null>(this.isEditMode ? true : null);
+  protected readonly requiresMaintenance = signal<boolean | null>(
+    (this.isEditMode || this.data.skipDecision) ? true : null,
+  );
   protected readonly selectedTypes = signal<MaintenanceType[]>(this.data.existingOrder?.subOrders.map(s => s.type) ?? []);
   protected readonly dismissReason = signal('');
   protected readonly submitting = signal(false);

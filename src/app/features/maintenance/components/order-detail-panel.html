@@ -44,7 +44,31 @@
     </div>
 
     @if (!report.dismissed) {
-      <dynadrill-button (clicked)="classify()">Clasificar</dynadrill-button>
+      <div class="order-detail-panel__pending-actions">
+        <dynadrill-button (clicked)="classify()">Clasificar</dynadrill-button>
+        <dynadrill-button variant="secondary" (clicked)="showDismissForm.set(!showDismissForm())">
+          {{ showDismissForm() ? 'Cancelar' : 'No requiere mantenimiento' }}
+        </dynadrill-button>
+      </div>
+
+      @if (showDismissForm()) {
+        <div class="order-detail-panel__dismiss-form">
+          <dynadrill-textarea
+            label="Motivo del descarte"
+            placeholder="Ej. Novedad menor, no requiere intervención de Mantenimiento."
+            [value]="dismissReason()"
+            (valueChange)="dismissReason.set($event)"
+            [rows]="3"
+          />
+          <dynadrill-button
+            variant="error"
+            [disabled]="!dismissReason().trim() || dismissing()"
+            (clicked)="confirmDismiss()"
+          >
+            {{ dismissing() ? 'Guardando…' : 'Confirmar descarte' }}
+          </dynadrill-button>
+        </div>
+      }
     }
   } @else if (currentOrder()) {
     @let ord = currentOrder()!;

@@ -19,6 +19,7 @@ let unitReports: UnitReport[] = [
   {
     id: 1,
     reportNo: '3104',
+    sourceModule: 'Pumping' as const,
     pozo: 'Guanta 43',
     bloque: '56',
     cliente: 'Petroecuador',
@@ -48,6 +49,7 @@ let unitReports: UnitReport[] = [
   {
     id: 2,
     reportNo: '3105',
+    sourceModule: 'FCR' as const,
     pozo: 'Sacha 12',
     bloque: '61',
     cliente: 'Petroamazonas',
@@ -159,6 +161,7 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
       unidad: input.unidad,
       unitReportId: input.unitReportId,
       origin: input.origin,
+      sourceModule: input.sourceModule,
       createdAt: new Date().toISOString(),
       returnedToOperation: false,
       subOrders,

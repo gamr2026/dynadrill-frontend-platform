@@ -18,6 +18,11 @@ import { MaintenanceOrdersService } from '../services/maintenance-orders.service
 import { UnitReportsService } from '../services/unit-reports.service';
 import { OrderDetailPanel, OrderDetailPanelData } from '../components/order-detail-panel';
 
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
   Pendiente: 'warning',
   'Requiere cambios': 'info',
@@ -53,6 +58,8 @@ export class MaintenanceListPage {
   protected readonly columns = computed<DynadrillDataTableColumn[]>(() => [
     { key: 'code', header: 'Orden', sortable: true, searchable: true, fixed: this.narrowViewport() ? 'left' : undefined },
     { key: 'unidad', header: 'Unidad', searchable: true },
+    { key: 'fecha', header: 'Fecha', sortable: true },
+    { key: 'tipo', header: 'Tipo' },
     { key: 'origin', header: 'Origen' },
     { key: 'statusBadge', header: 'Estado', type: 'badge' },
   ]);
@@ -73,9 +80,15 @@ export class MaintenanceListPage {
         kind: 'pending' as const,
         id: `report-${r.id}`,
         reportId: r.id,
-        code: '—',
+        code: `R${r.reportNo}`,
         unidad: r.unidad,
-        origin: '—',
+        fecha: formatDate(r.createdAt),
+        tipo: [
+          r.problemasMecanica.trim() ? 'Mecánico' : '',
+          r.problemasInstrumentacion.trim() ? 'Instrumental' : '',
+          r.problemasOperaciones.trim() ? 'Operativo' : '',
+        ].filter(Boolean).join(' · ') || '—',
+        origin: r.sourceModule,
         statusBadge: r.dismissed
           ? { text: 'No requiere mantenimiento', tone: 'neutral' as DynadrillTagVariant }
           : { text: 'Pendiente de clasificar', tone: 'warning' as DynadrillTagVariant },
@@ -83,13 +96,16 @@ export class MaintenanceListPage {
 
     const orderRows = this.orders().map(order => {
       const status = computeOrderStatus(order, order.subOrders);
+      const tipos = [...new Set(order.subOrders.map(s => s.type))].join(' · ');
       return {
         kind: 'order' as const,
         id: `order-${order.id}`,
         orderId: order.id,
         code: order.code,
         unidad: order.unidad,
-        origin: order.origin,
+        fecha: formatDate(order.createdAt),
+        tipo: tipos || '—',
+        origin: order.sourceModule,
         statusBadge: { text: status, tone: ORDER_STATUS_TONE[status] },
       };
     });

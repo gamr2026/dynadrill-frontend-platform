@@ -8,9 +8,12 @@ export interface ChecklistDualItem {
   llegada: 'ok' | 'x' | null;
 }
 
+export type MaintenanceSourceModule = 'Pumping' | 'FCR';
+
 export interface UnitReport {
   id: number;
   reportNo: string;
+  sourceModule: MaintenanceSourceModule;
   pozo: string;
   bloque: string;
   cliente: string;

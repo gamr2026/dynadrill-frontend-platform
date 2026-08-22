@@ -37,6 +37,7 @@ export interface MaintenanceOrder {
   unidad: string;
   unitReportId: number;
   origin: string;
+  sourceModule: 'Pumping' | 'FCR';
   createdAt: string;
   /** Fin Correctivo — se llena solo cuando la orden ya se devolvió a Operaciones. */
   returnedToOperation: boolean;

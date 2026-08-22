@@ -193,6 +193,7 @@ export class OrderClassificationDialog {
           unitReportId: this.data.unitReport.id,
           unidad: this.data.unitReport.unidad,
           origin: 'MAN-001',
+          sourceModule: this.data.unitReport.sourceModule,
           assignments,
           assignedByName,
         });

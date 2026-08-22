@@ -16,6 +16,7 @@ export interface ClassifyOrderInput {
   unitReportId: number;
   unidad: string;
   origin: string;
+  sourceModule: 'Pumping' | 'FCR';
   assignments: ClassifyTypeAssignment[];
   assignedByName: string;
 }

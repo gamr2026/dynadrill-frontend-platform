@@ -16,6 +16,7 @@ import {
   ChecklistDualItem,
   CreateUnitReportInput,
   INSTRUMENTACION_CHECKLIST_LABELS,
+  MaintenanceSourceModule,
   PLATAFORMA_CHECKLIST_LABELS,
   UnitReport,
   unitReportHasNovedades,
@@ -66,6 +67,9 @@ export class UnitReportDialog {
   protected readonly steps = STEPS;
   protected readonly currentStep = signal(0);
   protected readonly submitting = signal(false);
+
+  // El módulo que genera el reporte — se sobreescribe al instanciar desde Pumping o FCR.
+  sourceModule: MaintenanceSourceModule = 'Pumping';
 
   protected readonly reportNo = signal('');
   protected readonly pozo = signal('');
@@ -132,6 +136,7 @@ export class UnitReportDialog {
 
     const input: CreateUnitReportInput = {
       reportNo: this.reportNo(),
+      sourceModule: this.sourceModule,
       pozo: this.pozo(),
       bloque: this.bloque(),
       cliente: this.cliente(),

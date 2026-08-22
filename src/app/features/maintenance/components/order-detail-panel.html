@@ -18,6 +18,18 @@
     }
 
     <div class="order-detail-panel__detail">
+      <div class="order-detail-panel__detail-header">
+        <dynadrill-text variant="caption">Novedades reportadas</dynadrill-text>
+        @if (!report.dismissed) {
+          <div class="order-detail-panel__detail-actions">
+            <dynadrill-button size="small" (clicked)="classify()">Clasificar</dynadrill-button>
+            <dynadrill-button size="small" variant="secondary" (clicked)="showDismissForm.set(!showDismissForm())">
+              {{ showDismissForm() ? 'Cancelar' : 'Descartar' }}
+            </dynadrill-button>
+          </div>
+        }
+      </div>
+
       @if (report.problemasMecanica) {
         <div class="order-detail-panel__row">
           <dynadrill-text variant="caption">Mecánica</dynadrill-text>
@@ -44,12 +56,6 @@
     </div>
 
     @if (!report.dismissed) {
-      <div class="order-detail-panel__pending-actions">
-        <dynadrill-button (clicked)="classify()">Clasificar</dynadrill-button>
-        <dynadrill-button variant="secondary" (clicked)="showDismissForm.set(!showDismissForm())">
-          {{ showDismissForm() ? 'Cancelar' : 'No requiere mantenimiento' }}
-        </dynadrill-button>
-      </div>
 
       @if (showDismissForm()) {
         <div class="order-detail-panel__dismiss-form">

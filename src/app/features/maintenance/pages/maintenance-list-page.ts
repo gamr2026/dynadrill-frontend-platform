@@ -1,15 +1,16 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import {
+  DynadrillButtonComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
+  DynadrillDataTableProgressCell,
   DynadrillDropdownComponent,
   DynadrillDropdownOption,
   DynadrillDrawerService,
   DynadrillIconComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
-  DynadrillProgressComponent,
   DynadrillScreenHeaderComponent,
   DynadrillStatisticComponent,
   DynadrillTabsComponent,
@@ -42,7 +43,7 @@ const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
 
 @Component({
   selector: 'app-maintenance-list-page',
-  imports: [DynadrillDataTableComponent, DynadrillDropdownComponent, DynadrillIconComponent, DynadrillKpiRowComponent, DynadrillProgressComponent, DynadrillScreenHeaderComponent, DynadrillStatisticComponent, DynadrillTabsComponent, DynadrillTagComponent],
+  imports: [DynadrillButtonComponent, DynadrillDataTableComponent, DynadrillDropdownComponent, DynadrillIconComponent, DynadrillKpiRowComponent, DynadrillScreenHeaderComponent, DynadrillStatisticComponent, DynadrillTabsComponent, DynadrillTagComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './maintenance-list-page.html',
   styleUrl: './maintenance-list-page.scss',
@@ -109,6 +110,29 @@ export class MaintenanceListPage {
     { label: 'Auxiliar', value: 'Auxiliar' },
     { label: 'Transporte', value: 'Transporte' },
   ];
+
+  protected readonly prevColumns: DynadrillDataTableColumn[] = [
+    { key: 'unidadCode', header: 'Unidad', sortable: true, searchable: true },
+    { key: 'descripcion', header: 'Mantenimiento', searchable: true },
+    { key: 'progreso', header: 'Progreso', type: 'progress' },
+    { key: 'actualLabel', header: 'Actual', sortable: true },
+    { key: 'proximoEn', header: 'Próximo en', sortable: true },
+    { key: 'estadoBadge', header: 'Estado', type: 'badge' },
+  ];
+
+  protected readonly prevRows = computed(() =>
+    this.alertasFiltradas().map(a => ({
+      id: `${a.unidadId}-${a.descripcion}`,
+      unidadCode: a.unidadCode,
+      descripcion: a.descripcion,
+      progreso: { value: a.consumido, max: a.intervalo } satisfies DynadrillDataTableProgressCell,
+      actualLabel: a.actualLabel,
+      proximoEn: a.proximoEn,
+      estadoBadge: { text: this.alertasLabel[a.nivel], tone: this.alertasTone[a.nivel] },
+    })),
+  );
+
+  protected readonly prevRowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   protected readonly alertasFiltradas = computed<AlertaPreventiva[]>(() => {
     let list = this.alertas();

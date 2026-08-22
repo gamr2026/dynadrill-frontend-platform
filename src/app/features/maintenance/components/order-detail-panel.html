@@ -85,9 +85,9 @@
           }
 
           @if (hasProgress(sub)) {
-            <button type="button" class="order-detail-panel__toggle" (click)="toggleExpand(sub.id)">
-              {{ isExpanded(sub.id) ? '▲ Ocultar avance del operador' : '▼ Ver avance del operador' }}
-            </button>
+            <dynadrill-button variant="secondary" size="small" (clicked)="toggleExpand(sub.id)">
+              {{ isExpanded(sub.id) ? 'Ocultar avance del operador' : 'Ver avance del operador' }}
+            </dynadrill-button>
 
             @if (isExpanded(sub.id)) {
               <div class="order-detail-panel__progress-block">

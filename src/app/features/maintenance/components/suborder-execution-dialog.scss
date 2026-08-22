@@ -27,7 +27,7 @@
 
   &__repuesto {
     display: grid;
-    grid-template-columns: 110px 60px 1fr 32px;
+    grid-template-columns: 110px 60px 1fr auto;
     gap: 8px;
     align-items: flex-end;
   }

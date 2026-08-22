@@ -39,25 +39,13 @@
 
       <!-- Statistics — clic filtra la tabla -->
       <div class="prev-stats">
-        <div
-          class="prev-stats__card prev-stats__card--rojo"
-          [class.prev-stats__card--active]="filtroNivel() === 'rojo'"
-          (click)="toggleFiltroNivel('rojo')"
-        >
+        <div class="prev-stats__card prev-stats__card--rojo" [class.prev-stats__card--active]="filtroNivel() === 'rojo'" (click)="toggleFiltroNivel('rojo')">
           <dynadrill-statistic [value]="resumenPreventivo().rojo" title="Vencidos" tone="error" />
         </div>
-        <div
-          class="prev-stats__card prev-stats__card--amarillo"
-          [class.prev-stats__card--active]="filtroNivel() === 'amarillo'"
-          (click)="toggleFiltroNivel('amarillo')"
-        >
+        <div class="prev-stats__card prev-stats__card--amarillo" [class.prev-stats__card--active]="filtroNivel() === 'amarillo'" (click)="toggleFiltroNivel('amarillo')">
           <dynadrill-statistic [value]="resumenPreventivo().amarillo" title="Próximos" tone="warning" />
         </div>
-        <div
-          class="prev-stats__card prev-stats__card--verde"
-          [class.prev-stats__card--active]="filtroNivel() === 'verde'"
-          (click)="toggleFiltroNivel('verde')"
-        >
+        <div class="prev-stats__card prev-stats__card--verde" [class.prev-stats__card--active]="filtroNivel() === 'verde'" (click)="toggleFiltroNivel('verde')">
           <dynadrill-statistic [value]="resumenPreventivo().verde" title="Al día" tone="success" />
         </div>
       </div>
@@ -71,56 +59,21 @@
           (valueChange)="filtroTipo.set($event); prevPage.set(1)"
         />
         @if (filtroNivel() || filtroTipo()) {
-          <button type="button" class="prev-toolbar__clear" (click)="filtroNivel.set(null); filtroTipo.set(null); prevPage.set(1)">
-            × Limpiar filtros
-          </button>
+          <dynadrill-button variant="secondary" size="small" (clicked)="filtroNivel.set(null); filtroTipo.set(null); prevPage.set(1)">
+            Limpiar filtros
+          </dynadrill-button>
         }
         <span class="prev-toolbar__count">{{ alertasFiltradas().length }} registros</span>
       </div>
 
-      <!-- Tabla con sorting -->
-      <div class="prev-table">
-        <div class="prev-table__header">
-          <button class="prev-table__th prev-table__th--btn" (click)="toggleSort('unidadCode')">Unidad {{ sortIcon('unidadCode') }}</button>
-          <span class="prev-table__th">Mantenimiento</span>
-          <span class="prev-table__th">Progreso</span>
-          <button class="prev-table__th prev-table__th--btn" (click)="toggleSort('actualLabel')">Actual {{ sortIcon('actualLabel') }}</button>
-          <button class="prev-table__th prev-table__th--btn" (click)="toggleSort('restante')">Próximo en {{ sortIcon('restante') }}</button>
-          <span class="prev-table__th">Estado</span>
-        </div>
-
-        @if (alertasFiltradas().length === 0 && !loading()) {
-          <div class="prev-table__empty">
-            {{ filtroNivel() || filtroTipo() ? 'No hay registros con ese filtro.' : 'Todas las unidades al día.' }}
-          </div>
-        }
-
-        @for (alerta of alertasPaginadas(); track alerta.unidadId + alerta.descripcion) {
-          <div class="prev-table__row prev-table__row--{{ alerta.nivel }}">
-            <span class="prev-table__unit">{{ alerta.unidadCode }}</span>
-            <span class="prev-table__desc">{{ alerta.descripcion }}</span>
-            <span class="prev-table__progress">
-              <dynadrill-progress [value]="alerta.consumido" [max]="alerta.intervalo" [showInfo]="false" [strokeWidth]="6" />
-            </span>
-            <span class="prev-table__actual">{{ alerta.actualLabel }}</span>
-            <span class="prev-table__next" [class.prev-table__next--vencido]="alerta.nivel === 'rojo'">
-              {{ alerta.proximoEn }}
-            </span>
-            <span>
-              <dynadrill-tag [label]="alertasLabel[alerta.nivel]" [variant]="alertasTone[alerta.nivel]" />
-            </span>
-          </div>
-        }
-      </div>
-
-      <!-- Paginación -->
-      @if (totalPages() > 1) {
-        <div class="prev-pagination">
-          <button class="prev-pagination__btn" [disabled]="prevPage() === 1" (click)="prevPage.update(p => p - 1)">← Anterior</button>
-          <span class="prev-pagination__info">Página {{ prevPage() }} de {{ totalPages() }}</span>
-          <button class="prev-pagination__btn" [disabled]="prevPage() === totalPages()" (click)="prevPage.update(p => p + 1)">Siguiente →</button>
-        </div>
-      }
+      <!-- Tabla usando DynadrillDataTableComponent con type:progress -->
+      <dynadrill-data-table
+        [columns]="prevColumns"
+        [rows]="prevRows()"
+        [loading]="loading()"
+        [rowKey]="prevRowKeyFn"
+        [pageSize]="10"
+      />
     </div>
   }
 </div>

@@ -53,9 +53,9 @@
         <dynadrill-input placeholder="N° de parte" [value]="r.numeroParte" (valueChange)="updateRepuesto($index, 'numeroParte', $event)" />
         <dynadrill-input placeholder="Cant." type="number" [value]="r.cantidad.toString()" (valueChange)="updateRepuesto($index, 'cantidad', $event)" />
         <dynadrill-input placeholder="Descripción" [value]="r.descripcion" (valueChange)="updateRepuesto($index, 'descripcion', $event)" />
-        <button type="button" class="dynadrill-data-table__action-btn dynadrill-data-table__action-btn--danger" (click)="removeRepuesto($index)">
+        <dynadrill-button variant="error" size="small" (clicked)="removeRepuesto($index)">
           <dynadrill-icon name="delete" [size]="14" />
-        </button>
+        </dynadrill-button>
       </div>
     }
   </div>

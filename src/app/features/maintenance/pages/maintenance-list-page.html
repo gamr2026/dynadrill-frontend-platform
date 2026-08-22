@@ -1,7 +1,11 @@
 <div class="maintenance-list-page">
-  <div class="maintenance-list-page__header">
-    <dynadrill-text variant="h1">Mantenimiento</dynadrill-text>
-  </div>
+  <dynadrill-screen-header
+    title="Mantenimiento"
+    subtitle="Dashboard de órdenes correctivas"
+    [roleTag]="roleName()"
+  />
+
+  <dynadrill-kpi-row [items]="kpis()" />
 
   <dynadrill-data-table
     [columns]="columns()"

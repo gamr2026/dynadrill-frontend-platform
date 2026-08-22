@@ -5,10 +5,13 @@ import {
   DynadrillDataTableComponent,
   DynadrillDrawerService,
   DynadrillIconComponent,
+  DynadrillKpiRowComponent,
   DynadrillNotificationService,
+  DynadrillScreenHeaderComponent,
   DynadrillTagVariant,
-  DynadrillTextComponent,
+  type DynadrillKpiRowItem,
 } from '@digitec-it-projects/dynadrill-ui';
+import { AuthService } from '../../../core/services/auth.service';
 import { computeOrderStatus, MaintenanceOrderWithSubOrders, OrderStatus } from '../models/maintenance-order.model';
 import { unitReportHasNovedades, UnitReport } from '../models/unit-report.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
@@ -25,7 +28,7 @@ const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
 
 @Component({
   selector: 'app-maintenance-list-page',
-  imports: [DynadrillTextComponent, DynadrillDataTableComponent, DynadrillIconComponent],
+  imports: [DynadrillDataTableComponent, DynadrillIconComponent, DynadrillKpiRowComponent, DynadrillScreenHeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './maintenance-list-page.html',
   styleUrl: './maintenance-list-page.scss',
@@ -35,6 +38,9 @@ export class MaintenanceListPage {
   private readonly unitReportsService = inject(UnitReportsService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly drawer = inject(DynadrillDrawerService);
+  private readonly auth = inject(AuthService);
+
+  protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
 
   protected readonly loading = signal(true);
   protected readonly orders = signal<MaintenanceOrderWithSubOrders[]>([]);
@@ -89,6 +95,20 @@ export class MaintenanceListPage {
     });
 
     return [...reportRows, ...orderRows];
+  });
+
+  protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
+    const pendientes = this.unitReports().filter(r => unitReportHasNovedades(r) && !r.dismissed && !this.orders().some(o => o.unitReportId === r.id)).length;
+    const allOrders = this.orders();
+    const activas = allOrders.filter(o => !o.returnedToOperation).length;
+    const derivadas = allOrders.filter(o => o.subOrders.some(s => s.status === 'Derivado a Pumping')).length;
+    const cerradas = allOrders.filter(o => o.returnedToOperation).length;
+    return [
+      { label: 'Pendiente de clasificar', value: pendientes },
+      { label: 'Órdenes activas', value: activas },
+      { label: 'Derivadas a Pumping', value: derivadas },
+      { label: 'Cerradas', value: cerradas },
+    ];
   });
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);

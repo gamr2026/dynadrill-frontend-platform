@@ -10,4 +10,16 @@
     justify-content: space-between;
     gap: 12px;
   }
+
+  @media (max-width: 600px) {
+    ::ng-deep dynadrill-kpi-row .dynadrill-kpi-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    ::ng-deep dynadrill-kpi-row .dynadrill-kpi-card {
+      width: 100% !important;
+      min-width: unset !important;
+    }
+  }
 }

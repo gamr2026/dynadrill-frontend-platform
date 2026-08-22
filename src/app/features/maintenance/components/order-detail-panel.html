@@ -77,10 +77,12 @@
             <dynadrill-text variant="body">{{ sub.status }}</dynadrill-text>
           </div>
 
-          <div class="order-detail-panel__row">
-            <dynadrill-text variant="caption">{{ sub.type === 'Operativo' ? 'Derivación' : 'Operador asignado' }}</dynadrill-text>
-            <dynadrill-text variant="body">{{ assignmentLabelFor(sub) }}</dynadrill-text>
-          </div>
+          @if (sub.type !== 'Operativo' || sub.status !== 'Derivado a Pumping') {
+            <div class="order-detail-panel__row">
+              <dynadrill-text variant="caption">{{ sub.type === 'Operativo' ? 'Derivación' : 'Operador asignado' }}</dynadrill-text>
+              <dynadrill-text variant="body">{{ assignmentLabelFor(sub) }}</dynadrill-text>
+            </div>
+          }
 
           @if (sub.diagnostico) {
             <div class="order-detail-panel__row">

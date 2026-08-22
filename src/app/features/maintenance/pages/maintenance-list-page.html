@@ -67,7 +67,7 @@
         <dynadrill-dropdown
           [options]="tipoOptions"
           placeholder="Tipo de unidad"
-          [selected]="filtroTipo()"
+          [selected]="$any(filtroTipo())"
           (valueChange)="filtroTipo.set($event); prevPage.set(1)"
         />
         @if (filtroNivel() || filtroTipo()) {

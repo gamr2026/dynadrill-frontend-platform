@@ -97,7 +97,7 @@ export class MaintenanceListPage {
   // ── Preventivo: filtros y paginación ──
 
   protected readonly filtroNivel = signal<AlertaPreventivaNivel | null>(null);
-  protected readonly filtroTipo = signal<string | null>(null);
+  protected readonly filtroTipo = signal<string | number | null>(null);
   protected readonly prevPage = signal(1);
   protected readonly prevPageSize = 10;
   protected readonly sortDir = signal<'asc' | 'desc'>('asc');
@@ -116,9 +116,8 @@ export class MaintenanceListPage {
     const tipo = this.filtroTipo();
     if (nivel) list = list.filter(a => a.nivel === nivel);
     if (tipo) list = list.filter(a => {
-      // El unidadCode está en el mock con prefijos: PUM=Servicio, GEN=Auxiliar, CAM=Transporte
       const u = this.unidades().find(u => u.code === a.unidadCode);
-      return u?.tipo === tipo;
+      return u?.tipo === String(tipo);
     });
     const key = this.sortKey();
     const dir = this.sortDir() === 'asc' ? 1 : -1;

@@ -25,8 +25,7 @@ registerLocaleData(localeEs);
 // junto con core/mocks/auth-mock.interceptor.ts cuando el backend NestJS
 // de auth exista de verdad.
 const interceptors: HttpInterceptorFn[] = isDevMode()
-  ? [authMockInterceptor, usersMockInterceptor, pumpingMockInterceptor, authInterceptor]
-  ? [authMockInterceptor, usersMockInterceptor, maintenanceMockInterceptor, authInterceptor]
+  ? [authMockInterceptor, usersMockInterceptor, pumpingMockInterceptor, maintenanceMockInterceptor, authInterceptor]
   : [authInterceptor];
 
 export const appConfig: ApplicationConfig = {

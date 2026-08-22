@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
+  DynadrillButtonComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillKpiRowComponent,
@@ -46,7 +47,6 @@ const STEP_FILTERS = Object.entries(PUMPING_STEP_LABELS).map(
     DynadrillTabsComponent,
     DynadrillButtonComponent,
   ],
-  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillDataTableComponent],
   templateUrl: './ticket-list-page.html',
   styleUrl: './ticket-list-page.scss',
 })

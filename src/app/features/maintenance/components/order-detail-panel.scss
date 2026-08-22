@@ -47,4 +47,10 @@
     display: flex;
     gap: 8px;
   }
+
+  &__repuestos {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
 }

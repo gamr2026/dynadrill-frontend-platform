@@ -98,6 +98,24 @@
             </div>
           }
 
+          @if (sub.horasTrabajo) {
+            <div class="order-detail-panel__row">
+              <dynadrill-text variant="caption">Horas de trabajo</dynadrill-text>
+              <dynadrill-text variant="body">{{ sub.horasTrabajo }} h</dynadrill-text>
+            </div>
+          }
+
+          @if (sub.repuestos && sub.repuestos.length > 0) {
+            <div class="order-detail-panel__row">
+              <dynadrill-text variant="caption">Repuestos utilizados</dynadrill-text>
+              <div class="order-detail-panel__repuestos">
+                @for (r of sub.repuestos; track r.numeroParte) {
+                  <dynadrill-text variant="body">{{ r.numeroParte }} · {{ r.cantidad }} × {{ r.descripcion }}</dynadrill-text>
+                }
+              </div>
+            </div>
+          }
+
           @if (sub.correctionNote) {
             <div class="order-detail-panel__row">
               <dynadrill-text variant="caption">Motivo de la corrección solicitada</dynadrill-text>
@@ -115,6 +133,11 @@
           <div class="order-detail-panel__suborder-actions">
             @if (isDerivable(sub)) {
               <dynadrill-button variant="secondary" (clicked)="deriveToPumping(sub)">Derivar a Pumping</dynadrill-button>
+            }
+            @if (canExecute(sub)) {
+              <dynadrill-button variant="secondary" (clicked)="openExecution(sub)">
+                {{ sub.status === 'En Ejecución' ? 'Ver / editar ejecución' : 'Iniciar ejecución' }}
+              </dynadrill-button>
             }
             @if (sub.status === 'En Revisión de Cierre') {
               <dynadrill-button (clicked)="openReview(sub)">Revisar cierre</dynadrill-button>

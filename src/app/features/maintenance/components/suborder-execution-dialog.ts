@@ -1,25 +1,34 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
-import { DynadrillButtonComponent, DynadrillNotificationService, DynadrillTextareaComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
+import {
+  DynadrillButtonComponent,
+  DynadrillIconComponent,
+  DynadrillInputComponent,
+  DynadrillNotificationService,
+  DynadrillTextareaComponent,
+  DynadrillTextComponent,
+} from '@digitec-it-projects/dynadrill-ui';
 import { NovedadReadonlyComponent } from '../../../shared/components/novedad-readonly/novedad-readonly';
-import { SubOrder } from '../models/maintenance-order.model';
+import { Repuesto, SubOrder } from '../models/maintenance-order.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 
 export interface SuborderExecutionDialogData {
   subOrder: SubOrder;
-  /** Lo que reportó el OPERADOR en el Reporte de Unidad — no lo escribe Mantenimiento. */
   novedadOriginal: string;
 }
 
-/**
- * MAN-001-B — Diagnóstico y Ejecución. Al guardar, la sub-orden pasa a "En
- * Revisión de Cierre" (lo resuelve el mock interceptor) y el Jefe de
- * Mantenimiento la revisa desde MAN-001-C.
- */
 @Component({
   selector: 'app-suborder-execution-dialog',
-  imports: [CommonModule, DynadrillTextComponent, DynadrillTextareaComponent, DynadrillButtonComponent, NovedadReadonlyComponent],
+  imports: [
+    CommonModule,
+    DynadrillTextComponent,
+    DynadrillTextareaComponent,
+    DynadrillInputComponent,
+    DynadrillButtonComponent,
+    DynadrillIconComponent,
+    NovedadReadonlyComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './suborder-execution-dialog.html',
   styleUrl: './suborder-execution-dialog.scss',
@@ -32,34 +41,81 @@ export class SuborderExecutionDialog {
 
   protected readonly diagnostico = signal(this.data.subOrder.diagnostico ?? '');
   protected readonly actividadesCorrectivas = signal(this.data.subOrder.actividadesCorrectivas ?? '');
+  protected readonly horasTrabajo = signal(this.data.subOrder.horasTrabajo?.toString() ?? '');
+  protected readonly repuestos = signal<Repuesto[]>(this.data.subOrder.repuestos ? [...this.data.subOrder.repuestos] : []);
   protected readonly submitting = signal(false);
+
   protected readonly wasRejected = this.data.subOrder.status === 'Corrección Solicitada';
-  /** Ya tenía diagnóstico/actividades guardadas — esto es una edición, no el primer envío. */
-  protected readonly isEdit = !!(this.data.subOrder.diagnostico || this.data.subOrder.actividadesCorrectivas);
   protected readonly isClosed = this.data.subOrder.status === 'Cerrado';
 
-  submit(): void {
+  protected readonly canSubmit = computed(() =>
+    this.diagnostico().trim().length > 0 && this.actividadesCorrectivas().trim().length > 0,
+  );
+
+  addRepuesto(): void {
+    this.repuestos.update(list => [...list, { numeroParte: '', cantidad: 1, descripcion: '' }]);
+  }
+
+  removeRepuesto(index: number): void {
+    this.repuestos.update(list => list.filter((_, i) => i !== index));
+  }
+
+  updateRepuesto(index: number, field: keyof Repuesto, value: string): void {
+    this.repuestos.update(list =>
+      list.map((r, i) =>
+        i === index ? { ...r, [field]: field === 'cantidad' ? (Number(value) || 1) : value } : r,
+      ),
+    );
+  }
+
+  private buildInput() {
+    return {
+      diagnostico: this.diagnostico(),
+      actividadesCorrectivas: this.actividadesCorrectivas(),
+      horasTrabajo: this.horasTrabajo() ? Number(this.horasTrabajo()) : undefined,
+      repuestos: this.repuestos().filter(r => r.descripcion.trim()),
+    };
+  }
+
+  save(): void {
     if (this.submitting()) return;
-    if (!this.diagnostico().trim() || !this.actividadesCorrectivas().trim()) {
-      this.notify.error('Falta información', 'Completa diagnóstico y actividades correctivas.');
-      return;
-    }
     this.submitting.set(true);
-    this.ordersService
-      .updateSubOrder(this.data.subOrder.id, { diagnostico: this.diagnostico(), actividadesCorrectivas: this.actividadesCorrectivas() })
-      .subscribe({
-        next: () => {
-          this.notify.success(
-            this.isClosed ? 'Cambios guardados' : 'Enviado a revisión',
-            this.isClosed ? `${this.data.subOrder.code} se corrigió (sigue Cerrado).` : `${this.data.subOrder.code} está lista para revisión de cierre.`,
-          );
-          this.modalRef.close(true);
-        },
-        error: () => {
-          this.submitting.set(false);
-          this.notify.error('Error', 'No se pudo guardar la sub-orden.');
-        },
-      });
+    this.ordersService.updateSubOrder(this.data.subOrder.id, this.buildInput()).subscribe({
+      next: () => {
+        this.notify.success(
+          this.isClosed ? 'Cambios guardados' : 'Avance guardado',
+          this.isClosed ? `${this.data.subOrder.code} corregida.` : `${this.data.subOrder.code} en ejecución.`,
+        );
+        this.modalRef.close(true);
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.notify.error('Error', 'No se pudo guardar.');
+      },
+    });
+  }
+
+  submitForReview(): void {
+    if (!this.canSubmit() || this.submitting()) return;
+    this.submitting.set(true);
+    this.ordersService.updateSubOrder(this.data.subOrder.id, this.buildInput()).subscribe({
+      next: () => {
+        this.ordersService.submitSubOrderForReview(this.data.subOrder.id).subscribe({
+          next: () => {
+            this.notify.success('Enviado a revisión', `${this.data.subOrder.code} lista para revisión de cierre.`);
+            this.modalRef.close(true);
+          },
+          error: () => {
+            this.submitting.set(false);
+            this.notify.error('Error', 'No se pudo enviar a revisión.');
+          },
+        });
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.notify.error('Error', 'No se pudo guardar.');
+      },
+    });
   }
 
   cancel(): void {

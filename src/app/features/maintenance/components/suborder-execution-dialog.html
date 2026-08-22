@@ -22,23 +22,57 @@
     }
   } @else if (isClosed) {
     <dynadrill-text variant="caption">Esta sub-orden ya está Cerrada — editar aquí solo corrige el texto, no la reabre.</dynadrill-text>
-  } @else if (isEdit) {
-    <dynadrill-text variant="caption">Editando lo ya enviado — se puede ajustar antes o mientras el Jefe la revisa.</dynadrill-text>
   }
 
-  <dynadrill-textarea label="Diagnóstico técnico" placeholder="Hallazgos de la evaluación de la unidad" [value]="diagnostico()" (valueChange)="diagnostico.set($event)" [rows]="4" />
+  <dynadrill-textarea label="Diagnóstico técnico" placeholder="Hallazgos de la evaluación de la unidad" [value]="diagnostico()" (valueChange)="diagnostico.set($event)" [rows]="3" />
   <dynadrill-textarea
     label="Actividades correctivas determinadas"
     placeholder="Detalle de lo que se va a ejecutar"
     [value]="actividadesCorrectivas()"
     (valueChange)="actividadesCorrectivas.set($event)"
-    [rows]="4"
+    [rows]="3"
   />
+
+  <dynadrill-input
+    label="Horas de trabajo"
+    type="number"
+    placeholder="0"
+    [value]="horasTrabajo()"
+    (valueChange)="horasTrabajo.set($event)"
+  />
+
+  <!-- Repuestos -->
+  <div class="suborder-execution-dialog__section">
+    <div class="suborder-execution-dialog__section-header">
+      <dynadrill-text variant="caption">Repuestos utilizados</dynadrill-text>
+      <dynadrill-button variant="secondary" size="small" (clicked)="addRepuesto()">+ Agregar</dynadrill-button>
+    </div>
+
+    @for (r of repuestos(); track $index) {
+      <div class="suborder-execution-dialog__repuesto">
+        <dynadrill-input placeholder="N° de parte" [value]="r.numeroParte" (valueChange)="updateRepuesto($index, 'numeroParte', $event)" />
+        <dynadrill-input placeholder="Cant." type="number" [value]="r.cantidad.toString()" (valueChange)="updateRepuesto($index, 'cantidad', $event)" />
+        <dynadrill-input placeholder="Descripción" [value]="r.descripcion" (valueChange)="updateRepuesto($index, 'descripcion', $event)" />
+        <button type="button" class="dynadrill-data-table__action-btn dynadrill-data-table__action-btn--danger" (click)="removeRepuesto($index)">
+          <dynadrill-icon name="delete" [size]="14" />
+        </button>
+      </div>
+    }
+  </div>
 
   <div class="suborder-execution-dialog__actions">
     <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
-    <dynadrill-button [disabled]="submitting()" (clicked)="submit()">
-      {{ submitting() ? 'Guardando…' : isClosed ? 'Guardar cambios' : 'Guardar y enviar a revisión' }}
-    </dynadrill-button>
+    @if (!isClosed) {
+      <dynadrill-button variant="secondary" [disabled]="submitting()" (clicked)="save()">
+        {{ submitting() ? 'Guardando…' : 'Guardar avance' }}
+      </dynadrill-button>
+      <dynadrill-button [disabled]="submitting() || !canSubmit()" (clicked)="submitForReview()">
+        {{ submitting() ? 'Enviando…' : 'Enviar a revisión' }}
+      </dynadrill-button>
+    } @else {
+      <dynadrill-button [disabled]="submitting()" (clicked)="save()">
+        {{ submitting() ? 'Guardando…' : 'Guardar cambios' }}
+      </dynadrill-button>
+    }
   </div>
 </div>

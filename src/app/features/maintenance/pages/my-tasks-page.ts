@@ -21,6 +21,7 @@ import { SuborderDetailDialog, SuborderDetailDialogData } from '../components/su
 const SUB_ORDER_STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
   Pendiente: 'warning',
   'En Diagnóstico': 'info',
+  'En Ejecución': 'brand',
   'En Revisión de Cierre': 'info',
   Cerrado: 'success',
   'Corrección Solicitada': 'error',

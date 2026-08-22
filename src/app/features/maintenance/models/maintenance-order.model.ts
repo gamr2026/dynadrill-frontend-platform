@@ -3,6 +3,7 @@ export type MaintenanceType = 'Mecánico' | 'Instrumental' | 'Operativo';
 export type SubOrderStatus =
   | 'Pendiente'
   | 'En Diagnóstico'
+  | 'En Ejecución'
   | 'En Revisión de Cierre'
   | 'Cerrado'
   | 'Corrección Solicitada'
@@ -11,6 +12,12 @@ export type SubOrderStatus =
 export type OrderStatus = 'Pendiente' | 'Requiere cambios' | 'Aceptado' | 'Rechazado' | 'Cerrado';
 
 export type UnitFinalState = 'Disponible' | 'Con restricciones';
+
+export interface Repuesto {
+  numeroParte: string;
+  cantidad: number;
+  descripcion: string;
+}
 
 export interface SubOrder {
   id: number;
@@ -25,6 +32,8 @@ export interface SubOrder {
   status: SubOrderStatus;
   diagnostico?: string;
   actividadesCorrectivas?: string;
+  horasTrabajo?: number;
+  repuestos?: Repuesto[];
   /** Motivo que escribió el Jefe al rechazar el cierre — solo tiene sentido mientras está en Corrección Solicitada. */
   correctionNote?: string;
   /** Motivo de la derivación a Pumping — solo aplica a tipo Operativo. */

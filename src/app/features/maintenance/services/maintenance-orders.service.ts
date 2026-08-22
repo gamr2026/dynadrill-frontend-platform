@@ -62,9 +62,14 @@ export class MaintenanceOrdersService {
     });
   }
 
-  /** MAN-001-B: guarda diagnóstico/actividades y envía la sub-orden a revisión. */
-  updateSubOrder(id: number, input: Pick<SubOrder, 'diagnostico' | 'actividadesCorrectivas'>): Observable<SubOrder> {
+  /** MAN-001-B paso 1: guarda diagnóstico, actividades, horas y repuestos. Sub-orden pasa a "En Ejecución". */
+  updateSubOrder(id: number, input: Pick<SubOrder, 'diagnostico' | 'actividadesCorrectivas' | 'horasTrabajo' | 'repuestos'>): Observable<SubOrder> {
     return this.http.put<SubOrder>(`/api/maintenance-suborders/${id}`, input);
+  }
+
+  /** MAN-001-B paso 2: operador declara la ejecución terminada — sub-orden pasa a "En Revisión de Cierre". */
+  submitSubOrderForReview(id: number): Observable<SubOrder> {
+    return this.http.post<SubOrder>(`/api/maintenance-suborders/${id}/submit`, {});
   }
 
   /** MAN-001-C: aprueba (cierra) o rechaza (vuelve a "Corrección Solicitada", con motivo) la sub-orden. */

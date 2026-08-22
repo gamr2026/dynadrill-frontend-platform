@@ -12,7 +12,6 @@ import {
   DynadrillTabsComponent,
   DynadrillTagComponent,
   DynadrillTagVariant,
-  DynadrillTextComponent,
   type DynadrillKpiRowItem,
   type DynadrillTab,
 } from '@digitec-it-projects/dynadrill-ui';
@@ -40,7 +39,7 @@ const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
 
 @Component({
   selector: 'app-maintenance-list-page',
-  imports: [DynadrillDataTableComponent, DynadrillIconComponent, DynadrillKpiRowComponent, DynadrillProgressComponent, DynadrillScreenHeaderComponent, DynadrillTabsComponent, DynadrillTagComponent, DynadrillTextComponent],
+  imports: [DynadrillDataTableComponent, DynadrillIconComponent, DynadrillKpiRowComponent, DynadrillProgressComponent, DynadrillScreenHeaderComponent, DynadrillTabsComponent, DynadrillTagComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './maintenance-list-page.html',
   styleUrl: './maintenance-list-page.scss',

@@ -2,7 +2,7 @@ import { HttpInterceptorFn, HttpResponse } from '@angular/common/http';
 import { delay, of } from 'rxjs';
 import { ClassifyOrderInput, ClassifyTypeAssignment, CloseOrderInput } from '../../features/maintenance/services/maintenance-orders.service';
 import { CreateUnitReportInput, UnitReport } from '../../features/maintenance/models/unit-report.model';
-import { MaintenanceOrderWithSubOrders, SubOrder } from '../../features/maintenance/models/maintenance-order.model';
+import { MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../../features/maintenance/models/maintenance-order.model';
 import { Unidad } from '../../features/maintenance/models/unidad.model';
 
 const unidades: Unidad[] = [
@@ -280,16 +280,31 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
 
   const subOrderId = matchId(req.url, '/api/maintenance-suborders');
   if (subOrderId !== null && req.method === 'PUT') {
-    const input = req.body as Pick<SubOrder, 'diagnostico' | 'actividadesCorrectivas'>;
+    const input = req.body as Pick<SubOrder, 'diagnostico' | 'actividadesCorrectivas' | 'horasTrabajo' | 'repuestos'>;
     let updated: SubOrder | undefined;
     orders = orders.map(order => ({
       ...order,
       subOrders: order.subOrders.map(sub => {
         if (sub.id !== subOrderId) return sub;
-        // Editar una sub-orden ya Cerrada solo corrige el texto — no la
-        // reabre a revisión. Cualquier otro estado sí pasa/vuelve a
-        // "En Revisión de Cierre" (incluye la primera vez que se envía).
-        updated = { ...sub, ...input, status: sub.status === 'Cerrado' ? 'Cerrado' : 'En Revisión de Cierre' };
+        // Guardar avance: pasa a En Ejecución (salvo si ya está en un estado posterior).
+        const keepStatus: SubOrderStatus[] = ['En Revisión de Cierre', 'Cerrado', 'Corrección Solicitada'];
+        const nextStatus: SubOrderStatus = keepStatus.includes(sub.status) ? sub.status : 'En Ejecución';
+        updated = { ...sub, ...input, status: nextStatus };
+        return updated;
+      }),
+    }));
+    return of(new HttpResponse({ status: updated ? 200 : 404, body: updated ?? null })).pipe(delay(400));
+  }
+
+  const submitSubOrderId = req.url.match(/\/api\/maintenance-suborders\/(\d+)\/submit$/);
+  if (submitSubOrderId && req.method === 'POST') {
+    const id = Number(submitSubOrderId[1]);
+    let updated: SubOrder | undefined;
+    orders = orders.map(order => ({
+      ...order,
+      subOrders: order.subOrders.map(sub => {
+        if (sub.id !== id) return sub;
+        updated = { ...sub, status: sub.status === 'Cerrado' ? 'Cerrado' : 'En Revisión de Cierre' };
         return updated;
       }),
     }));

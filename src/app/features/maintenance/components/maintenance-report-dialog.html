@@ -1,0 +1,153 @@
+<div class="mnt-report">
+
+  <!-- Encabezado del documento -->
+  <div class="mnt-report__doc-header">
+    <div class="mnt-report__doc-title">
+      <dynadrill-text variant="h1">Informe de Mantenimiento Correctivo</dynadrill-text>
+      <dynadrill-text variant="caption">DYN-MNT-RE-008</dynadrill-text>
+    </div>
+    <div class="mnt-report__doc-meta">
+      <dynadrill-text variant="caption">Fecha de emisión: {{ printDate }}</dynadrill-text>
+    </div>
+  </div>
+
+  <!-- Datos generales de la orden -->
+  <div class="mnt-report__section">
+    <dynadrill-text variant="caption" class="mnt-report__section-label">Datos de la orden</dynadrill-text>
+    <div class="mnt-report__grid-4">
+      <div class="mnt-report__field">
+        <dynadrill-text variant="caption">N° Orden</dynadrill-text>
+        <dynadrill-text variant="body">{{ data.order.code }}</dynadrill-text>
+      </div>
+      <div class="mnt-report__field">
+        <dynadrill-text variant="caption">Unidad</dynadrill-text>
+        <dynadrill-text variant="body">{{ data.order.unidad }}</dynadrill-text>
+      </div>
+      <div class="mnt-report__field">
+        <dynadrill-text variant="caption">Origen</dynadrill-text>
+        <dynadrill-text variant="body">{{ data.order.sourceModule }}</dynadrill-text>
+      </div>
+      <div class="mnt-report__field">
+        <dynadrill-text variant="caption">Estado final unidad</dynadrill-text>
+        <dynadrill-text variant="body">{{ data.order.finalUnitState ?? '—' }}</dynadrill-text>
+      </div>
+      <div class="mnt-report__field">
+        <dynadrill-text variant="caption">Fecha de apertura</dynadrill-text>
+        <dynadrill-text variant="body">{{ data.order.createdAt | date:'dd/MM/yyyy' }}</dynadrill-text>
+      </div>
+      <div class="mnt-report__field">
+        <dynadrill-text variant="caption">Responsable de entrega</dynadrill-text>
+        <dynadrill-text variant="body">{{ data.order.finalResponsable ?? '—' }}</dynadrill-text>
+      </div>
+    </div>
+    @if (data.order.finalObservaciones) {
+      <div class="mnt-report__field">
+        <dynadrill-text variant="caption">Observaciones para Operaciones</dynadrill-text>
+        <dynadrill-text variant="body">{{ data.order.finalObservaciones }}</dynadrill-text>
+      </div>
+    }
+  </div>
+
+  <!-- Novedad original reportada -->
+  <div class="mnt-report__section">
+    <dynadrill-text variant="caption" class="mnt-report__section-label">Novedad reportada (Reporte de Unidad N° {{ data.unitReport.reportNo }})</dynadrill-text>
+    <div class="mnt-report__grid-3">
+      @if (data.unitReport.problemasMecanica) {
+        <div class="mnt-report__field">
+          <dynadrill-text variant="caption">Mecánica</dynadrill-text>
+          <dynadrill-text variant="body">{{ data.unitReport.problemasMecanica }}</dynadrill-text>
+        </div>
+      }
+      @if (data.unitReport.problemasInstrumentacion) {
+        <div class="mnt-report__field">
+          <dynadrill-text variant="caption">Instrumentación</dynadrill-text>
+          <dynadrill-text variant="body">{{ data.unitReport.problemasInstrumentacion }}</dynadrill-text>
+        </div>
+      }
+      @if (data.unitReport.problemasOperaciones) {
+        <div class="mnt-report__field">
+          <dynadrill-text variant="caption">Operaciones</dynadrill-text>
+          <dynadrill-text variant="body">{{ data.unitReport.problemasOperaciones }}</dynadrill-text>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Trabajos realizados por sub-orden -->
+  <div class="mnt-report__section">
+    <dynadrill-text variant="caption" class="mnt-report__section-label">Trabajos realizados</dynadrill-text>
+    <div class="mnt-report__suborders">
+      @for (sub of data.order.subOrders; track sub.id) {
+        <dynadrill-card accent="none">
+          <div card-title class="mnt-report__card-title">
+            <dynadrill-text variant="body"><strong>{{ sub.code }}</strong></dynadrill-text>
+            <dynadrill-tag [label]="sub.type" variant="neutral" />
+          </div>
+          <dynadrill-tag card-extra [label]="sub.status" [variant]="statusTone[sub.status]" />
+
+          <div class="mnt-report__grid-4">
+            @if (sub.assignedUserName) {
+              <div class="mnt-report__field">
+                <dynadrill-text variant="caption">Operador</dynadrill-text>
+                <dynadrill-text variant="body">{{ sub.assignedUserName }}</dynadrill-text>
+              </div>
+            }
+            @if (sub.horasTrabajo) {
+              <div class="mnt-report__field">
+                <dynadrill-text variant="caption">Horas de trabajo</dynadrill-text>
+                <dynadrill-text variant="body">{{ sub.horasTrabajo }} h</dynadrill-text>
+              </div>
+            }
+            @if (sub.diagnostico) {
+              <div class="mnt-report__field mnt-report__field--full">
+                <dynadrill-text variant="caption">Diagnóstico técnico</dynadrill-text>
+                <dynadrill-text variant="body">{{ sub.diagnostico }}</dynadrill-text>
+              </div>
+            }
+            @if (sub.actividadesCorrectivas) {
+              <div class="mnt-report__field mnt-report__field--full">
+                <dynadrill-text variant="caption">Actividades correctivas</dynadrill-text>
+                <dynadrill-text variant="body">{{ sub.actividadesCorrectivas }}</dynadrill-text>
+              </div>
+            }
+            @if (sub.repuestos?.length) {
+              <div class="mnt-report__field mnt-report__field--full">
+                <dynadrill-text variant="caption">Repuestos utilizados</dynadrill-text>
+                <table class="mnt-report__table">
+                  <thead>
+                    <tr>
+                      <th>N° Parte</th>
+                      <th>Cant.</th>
+                      <th>Descripción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (r of sub.repuestos; track r.numeroParte) {
+                      <tr>
+                        <td>{{ r.numeroParte }}</td>
+                        <td>{{ r.cantidad }}</td>
+                        <td>{{ r.descripcion }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+            @if (!sub.diagnostico && !sub.actividadesCorrectivas && !sub.horasTrabajo && !sub.repuestos?.length) {
+              <div class="mnt-report__field mnt-report__field--full">
+                <dynadrill-text variant="caption">Sin trabajos registrados en esta sub-orden</dynadrill-text>
+              </div>
+            }
+          </div>
+        </dynadrill-card>
+      }
+    </div>
+  </div>
+
+  <!-- Acciones -->
+  <div class="mnt-report__actions no-print">
+    <dynadrill-button variant="secondary" (clicked)="close()">Cerrar</dynadrill-button>
+    <dynadrill-button (clicked)="print()">Imprimir / Exportar PDF</dynadrill-button>
+  </div>
+
+</div>

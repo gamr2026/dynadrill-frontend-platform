@@ -1,7 +1,84 @@
 <div class="return-to-operation-dialog">
-  <div class="return-to-operation-dialog__row">
-    <dynadrill-text variant="caption">Orden</dynadrill-text>
-    <dynadrill-text variant="body">{{ data.order.code }} · Unidad: {{ data.order.unidad }}</dynadrill-text>
+
+  <!-- Cabecera -->
+  <div class="return-to-operation-dialog__header">
+    <div class="return-to-operation-dialog__row">
+      <dynadrill-text variant="caption">Orden</dynadrill-text>
+      <dynadrill-text variant="body">{{ data.order.code }}</dynadrill-text>
+    </div>
+    <div class="return-to-operation-dialog__row">
+      <dynadrill-text variant="caption">Unidad</dynadrill-text>
+      <dynadrill-text variant="body">{{ data.order.unidad }}</dynadrill-text>
+    </div>
+    <div class="return-to-operation-dialog__row">
+      <dynadrill-text variant="caption">Origen</dynadrill-text>
+      <dynadrill-text variant="body">{{ data.order.sourceModule }}</dynadrill-text>
+    </div>
+  </div>
+
+  <!-- Resumen de trabajos realizados -->
+  <div class="return-to-operation-dialog__section-title">
+    <dynadrill-text variant="caption">Resumen de trabajos realizados</dynadrill-text>
+  </div>
+
+  <div class="return-to-operation-dialog__suborders">
+    @for (sub of data.order.subOrders; track sub.id) {
+      <dynadrill-card accent="none">
+
+        <div card-title class="return-to-operation-dialog__card-title">
+          <dynadrill-text variant="body"><strong>{{ sub.code }}</strong></dynadrill-text>
+          <dynadrill-tag [label]="sub.type" variant="neutral" />
+        </div>
+
+        <dynadrill-tag card-extra [label]="sub.status" [variant]="statusTone[sub.status]" />
+
+        <div class="return-to-operation-dialog__card-grid">
+          @if (sub.assignedUserName) {
+            <div class="return-to-operation-dialog__row">
+              <dynadrill-text variant="caption">Operador</dynadrill-text>
+              <dynadrill-text variant="body">{{ sub.assignedUserName }}</dynadrill-text>
+            </div>
+          }
+          @if (sub.horasTrabajo) {
+            <div class="return-to-operation-dialog__row">
+              <dynadrill-text variant="caption">Horas de trabajo</dynadrill-text>
+              <dynadrill-text variant="body">{{ sub.horasTrabajo }} h</dynadrill-text>
+            </div>
+          }
+          @if (sub.diagnostico) {
+            <div class="return-to-operation-dialog__row return-to-operation-dialog__row--full">
+              <dynadrill-text variant="caption">Diagnóstico técnico</dynadrill-text>
+              <dynadrill-text variant="body">{{ sub.diagnostico }}</dynadrill-text>
+            </div>
+          }
+          @if (sub.actividadesCorrectivas) {
+            <div class="return-to-operation-dialog__row return-to-operation-dialog__row--full">
+              <dynadrill-text variant="caption">Actividades correctivas</dynadrill-text>
+              <dynadrill-text variant="body">{{ sub.actividadesCorrectivas }}</dynadrill-text>
+            </div>
+          }
+          @if (sub.repuestos?.length) {
+            <div class="return-to-operation-dialog__row return-to-operation-dialog__row--full">
+              <dynadrill-text variant="caption">Repuestos utilizados</dynadrill-text>
+              @for (r of sub.repuestos; track r.numeroParte) {
+                <dynadrill-text variant="body">{{ r.numeroParte }} · {{ r.cantidad }} × {{ r.descripcion }}</dynadrill-text>
+              }
+            </div>
+          }
+          @if (!sub.diagnostico && !sub.actividadesCorrectivas && !sub.horasTrabajo && !sub.repuestos?.length) {
+            <div class="return-to-operation-dialog__row return-to-operation-dialog__row--full">
+              <dynadrill-text variant="caption">Sin trabajos registrados</dynadrill-text>
+            </div>
+          }
+        </div>
+
+      </dynadrill-card>
+    }
+  </div>
+
+  <!-- Formulario de entrega -->
+  <div class="return-to-operation-dialog__section-title">
+    <dynadrill-text variant="caption">Entrega a Operaciones</dynadrill-text>
   </div>
 
   <div class="return-to-operation-dialog__row">
@@ -24,12 +101,17 @@
     [rows]="3"
   />
 
-  <dynadrill-input label="Responsable de entrega" placeholder="Nombre del responsable" [value]="responsable()" (valueChange)="responsable.set($event)" />
+  <dynadrill-input
+    label="Responsable de entrega"
+    placeholder="Nombre del responsable"
+    [value]="responsable()"
+    (valueChange)="responsable.set($event)"
+  />
 
   <div class="return-to-operation-dialog__actions">
     <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
     <dynadrill-button [disabled]="!canConfirm() || submitting()" (clicked)="confirm()">
-      {{ submitting() ? 'Entregando…' : 'Entregar reporte a Pumping' }}
+      {{ submitting() ? 'Entregando…' : 'Entregar a Operaciones' }}
     </dynadrill-button>
   </div>
 </div>

@@ -4,7 +4,7 @@ import { provideRouter } from '@angular/router';
 import { provideNzI18n, es_ES } from 'ng-zorro-antd/i18n';
 import { provideNzIcons } from 'ng-zorro-antd/icon';
 import { provideNzWave } from 'ng-zorro-antd/core/wave';
-import { EyeOutline, EyeInvisibleOutline, UserSwitchOutline } from '@ant-design/icons-angular/icons';
+import { EditOutline, EyeOutline, EyeInvisibleOutline, FilePdfOutline, UserSwitchOutline } from '@ant-design/icons-angular/icons';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { registerLocaleData } from '@angular/common';
 import localeEs from '@angular/common/locales/es';
@@ -38,7 +38,7 @@ export const appConfig: ApplicationConfig = {
     provideNzI18n(es_ES),
     // El manual de marca prohíbe el ripple/wave effect (sección 4) —
     // sin esto ng-zorro lo activa por defecto en botones/checkboxes.
-    provideNzIcons([EyeOutline, EyeInvisibleOutline, UserSwitchOutline]),
+    provideNzIcons([EditOutline, EyeOutline, EyeInvisibleOutline, FilePdfOutline, UserSwitchOutline]),
     provideNzWave({ disabled: true }),
     // Requisito de NzModalService (usado por DynadrillDialogService,
     // que a su vez usa DynadrillNotificationService.confirm() en el

@@ -88,7 +88,7 @@
   &__inline-actions {
     display: flex;
     gap: 8px;
-    justify-content: flex-end;
+    justify-content: center;
 
     > * { flex: none; }
   }
@@ -101,6 +101,24 @@
     background: var(--surface-muted, #faf9fc);
     border-radius: var(--radius-sm, 4px);
     border: var(--border-width, 1px) solid var(--border, #e5e4ea);
+  }
+
+  &__review-inline {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(102, 46, 155, 0.04);
+    border: 1px solid rgba(102, 46, 155, 0.15);
+    border-radius: var(--radius-sm, 4px);
+  }
+
+  &__review-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+
+    > * { flex: none; }
   }
 
   &__suborder-actions {

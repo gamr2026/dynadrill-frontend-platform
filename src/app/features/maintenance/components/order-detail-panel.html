@@ -149,15 +149,42 @@
             </div>
           }
 
-          <!-- Acciones secundarias al fondo (solo cuando aplica) -->
-          @if (isDerivable(sub) || sub.status === 'En Revisión de Cierre') {
+          <!-- Revisión inline de cierre (reemplaza el modal) -->
+          @if (sub.status === 'En Revisión de Cierre') {
+            <div class="order-detail-panel__review-inline">
+              @if (rejectingSubId() !== sub.id) {
+                <div class="order-detail-panel__review-actions">
+                  <dynadrill-button variant="success" size="small" [disabled]="reviewing()" (clicked)="approveInline(sub)">
+                    {{ reviewing() ? 'Procesando…' : 'Aprobar' }}
+                  </dynadrill-button>
+                  <dynadrill-button variant="error" size="small" [disabled]="reviewing()" (clicked)="startRejectMode(sub.id)">
+                    Corregir
+                  </dynadrill-button>
+                </div>
+              } @else {
+                <dynadrill-textarea
+                  label="Motivo de la corrección solicitada"
+                  placeholder="Indica qué debe corregir el operador"
+                  [value]="rejectionNote()"
+                  (valueChange)="rejectionNote.set($event)"
+                  [rows]="2"
+                />
+                <div class="order-detail-panel__inline-actions">
+                  <dynadrill-button variant="secondary" size="small" (clicked)="cancelRejectMode()">Cancelar</dynadrill-button>
+                  <dynadrill-button size="small"
+                    [disabled]="!rejectionNote().trim() || reviewing()"
+                    (clicked)="confirmRejectionInline(sub)">
+                    {{ reviewing() ? 'Enviando…' : 'Enviar' }}
+                  </dynadrill-button>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Derivar a Pumping (Operativo pendiente) -->
+          @if (isDerivable(sub)) {
             <div class="order-detail-panel__suborder-actions">
-              @if (isDerivable(sub)) {
-                <dynadrill-button variant="secondary" size="small" (clicked)="deriveToPumping(sub)">Derivar a Pumping</dynadrill-button>
-              }
-              @if (sub.status === 'En Revisión de Cierre') {
-                <dynadrill-button size="small" (clicked)="openReview(sub)">Revisar cierre</dynadrill-button>
-              }
+              <dynadrill-button variant="secondary" size="small" (clicked)="deriveToPumping(sub)">Derivar a Pumping</dynadrill-button>
             </div>
           }
 

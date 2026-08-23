@@ -6,8 +6,10 @@ import {
   DynadrillCardComponent,
   DynadrillDialogService,
   DynadrillIconButtonComponent,
+  DynadrillNotificationService,
   DynadrillSelectComponent,
   DynadrillTagComponent,
+  DynadrillTextareaComponent,
   DynadrillTextComponent,
   type DynadrillSelectOption,
   type DynadrillTagVariant,
@@ -16,7 +18,6 @@ import { computeOrderStatus, MaintenanceOrderWithSubOrders, SubOrder, SubOrderSt
 import { UnitReport } from '../models/unit-report.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { DeriveToPumpingDialog, DeriveToPumpingDialogData } from './derive-to-pumping-dialog';
-import { SuborderReviewDialog, SuborderReviewDialogData } from './suborder-review-dialog';
 import { ReturnToOperationDialog, ReturnToOperationDialogData } from './return-to-operation-dialog';
 import { RolesService, UsersService } from '../../users/services/users.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -56,6 +57,7 @@ const STATUS_ACCENT: Record<SubOrderStatus, 'warning' | 'info' | 'brand' | 'succ
     DynadrillCardComponent,
     DynadrillAvatarComponent,
     DynadrillIconButtonComponent,
+    DynadrillTextareaComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './order-detail-panel.html',
@@ -64,6 +66,7 @@ const STATUS_ACCENT: Record<SubOrderStatus, 'warning' | 'info' | 'brand' | 'succ
 export class OrderDetailPanel {
   private readonly ordersService = inject(MaintenanceOrdersService);
   private readonly dialog = inject(DynadrillDialogService);
+  private readonly notify = inject(DynadrillNotificationService);
   private readonly drawerRef = inject(NzDrawerRef<OrderDetailPanel>);
   private readonly auth = inject(AuthService);
   private readonly rolesService = inject(RolesService);
@@ -84,6 +87,11 @@ export class OrderDetailPanel {
   protected readonly reassigning = signal(false);
   protected readonly mecanicoOptions = signal<DynadrillSelectOption[]>([]);
   protected readonly instrumentalOptions = signal<DynadrillSelectOption[]>([]);
+
+  // ── Revisión inline de cierre (reemplaza el modal SuborderReviewDialog) ──
+  protected readonly rejectingSubId = signal<number | null>(null);
+  protected readonly rejectionNote = signal('');
+  protected readonly reviewing = signal(false);
 
   protected readonly statusTone = STATUS_TONE;
   protected readonly statusAccent = STATUS_ACCENT;
@@ -140,15 +148,24 @@ export class OrderDetailPanel {
     return sub.type === 'Operativo' && sub.status === 'Pendiente';
   }
 
+  // Punto 3: excluir "En Revisión de Cierre" — no tiene sentido cambiar operador cuando ya entregó
   canEditOperator(sub: SubOrder): boolean {
-    return sub.type !== 'Operativo' && sub.status !== 'Cerrado' && sub.status !== 'Derivado a Pumping';
+    return sub.type !== 'Operativo'
+      && sub.status !== 'Cerrado'
+      && sub.status !== 'Derivado a Pumping'
+      && sub.status !== 'En Revisión de Cierre';
   }
 
   hasProgress(sub: SubOrder): boolean {
     return !!(sub.diagnostico || sub.actividadesCorrectivas || sub.horasTrabajo || sub.repuestos?.length);
   }
 
-  private readonly expandedSubOrders = signal<Set<number>>(new Set());
+  // Punto 2: auto-expandir sub-órdenes "En Revisión de Cierre" al abrir el panel
+  private readonly expandedSubOrders = signal<Set<number>>(
+    new Set(this.data.order.subOrders
+      .filter(s => s.status === 'En Revisión de Cierre')
+      .map(s => s.id))
+  );
   isExpanded(subId: number): boolean { return this.expandedSubOrders().has(subId); }
   toggleExpand(subId: number): void {
     this.expandedSubOrders.update(set => {
@@ -174,14 +191,44 @@ export class OrderDetailPanel {
     ref.afterClose.subscribe(changed => { if (changed) this.refreshOrder(); });
   }
 
-  openReview(sub: SubOrder): void {
-    const ref = this.dialog.open<SuborderReviewDialog, SuborderReviewDialogData>({
-      title: 'MAN-001-C — Revisión de Cierre',
-      content: SuborderReviewDialog,
-      data: { subOrder: sub, novedadOriginal: this.novedadFor(sub) },
-      footer: false,
+  // ── Revisión inline ──
+  startRejectMode(subId: number): void {
+    this.rejectingSubId.set(subId);
+    this.rejectionNote.set('');
+  }
+
+  cancelRejectMode(): void {
+    this.rejectingSubId.set(null);
+    this.rejectionNote.set('');
+  }
+
+  approveInline(sub: SubOrder): void {
+    if (this.reviewing()) return;
+    this.reviewing.set(true);
+    this.ordersService.reviewSubOrder(sub.id, 'approved').subscribe({
+      next: () => {
+        this.reviewing.set(false);
+        this.notify.success('Sub-orden cerrada', `${sub.code} quedó cerrada.`);
+        this.refreshOrder();
+      },
+      error: () => this.reviewing.set(false),
     });
-    ref.afterClose.subscribe(changed => { if (changed) this.refreshOrder(); });
+  }
+
+  confirmRejectionInline(sub: SubOrder): void {
+    const note = this.rejectionNote().trim();
+    if (!note || this.reviewing()) return;
+    this.reviewing.set(true);
+    this.ordersService.reviewSubOrder(sub.id, 'rejected', note).subscribe({
+      next: () => {
+        this.reviewing.set(false);
+        this.rejectingSubId.set(null);
+        this.rejectionNote.set('');
+        this.notify.warning('Corrección solicitada', `${sub.code} regresa al operador.`);
+        this.refreshOrder();
+      },
+      error: () => this.reviewing.set(false),
+    });
   }
 
   returnToOperation(): void {

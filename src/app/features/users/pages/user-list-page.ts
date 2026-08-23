@@ -4,8 +4,10 @@ import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
+  DynadrillIconButtonComponent,
   DynadrillIconComponent,
   DynadrillNotificationService,
+  DynadrillSpinnerComponent,
   DynadrillTextComponent,
 } from '@digitec-it-projects/dynadrill-ui';
 import { forkJoin } from 'rxjs';
@@ -15,7 +17,7 @@ import { RolesService, UsersService } from '../services/users.service';
 
 @Component({
   selector: 'app-user-list-page',
-  imports: [DynadrillTextComponent, DynadrillButtonComponent, DynadrillDataTableComponent, DynadrillIconComponent],
+  imports: [DynadrillTextComponent, DynadrillButtonComponent, DynadrillDataTableComponent, DynadrillIconComponent, DynadrillIconButtonComponent, DynadrillSpinnerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './user-list-page.html',
   styleUrl: './user-list-page.scss',

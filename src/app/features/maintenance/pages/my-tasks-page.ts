@@ -5,8 +5,9 @@ import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
-  DynadrillIconComponent,
+  DynadrillIconButtonComponent,
   DynadrillNotificationService,
+  DynadrillSpinnerComponent,
   DynadrillTagVariant,
   DynadrillTextComponent,
 } from '@digitec-it-projects/dynadrill-ui';
@@ -35,7 +36,7 @@ const SUB_ORDER_STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
  */
 @Component({
   selector: 'app-my-tasks-page',
-  imports: [CommonModule, DynadrillTextComponent, DynadrillDataTableComponent, DynadrillIconComponent],
+  imports: [CommonModule, DynadrillTextComponent, DynadrillDataTableComponent, DynadrillIconButtonComponent, DynadrillSpinnerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './my-tasks-page.html',
   styleUrl: './my-tasks-page.scss',

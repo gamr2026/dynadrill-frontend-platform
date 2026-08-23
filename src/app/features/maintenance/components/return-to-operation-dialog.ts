@@ -1,8 +1,17 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
-import { DynadrillButtonComponent, DynadrillInputComponent, DynadrillNotificationService, DynadrillTextareaComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
-import { MaintenanceOrderWithSubOrders, UnitFinalState } from '../models/maintenance-order.model';
+import {
+  DynadrillButtonComponent,
+  DynadrillCardComponent,
+  DynadrillInputComponent,
+  DynadrillNotificationService,
+  DynadrillTagComponent,
+  DynadrillTextareaComponent,
+  DynadrillTextComponent,
+  type DynadrillTagVariant,
+} from '@digitec-it-projects/dynadrill-ui';
+import { MaintenanceOrderWithSubOrders, SubOrderStatus, UnitFinalState } from '../models/maintenance-order.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -15,14 +24,25 @@ export interface ReturnToOperationDialogData {
  * Aceptada (todas sus sub-órdenes Cerradas) — cierra el ciclo correctivo
  * devolviendo la unidad a Operaciones/Pumping con su estado final.
  */
+const STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
+  'Pendiente': 'warning',
+  'En Diagnóstico': 'info',
+  'En Ejecución': 'brand',
+  'En Revisión de Cierre': 'info',
+  'Cerrado': 'success',
+  'Corrección Solicitada': 'error',
+  'Derivado a Pumping': 'neutral',
+};
+
 @Component({
   selector: 'app-return-to-operation-dialog',
-  imports: [CommonModule, DynadrillTextComponent, DynadrillInputComponent, DynadrillTextareaComponent, DynadrillButtonComponent],
+  imports: [CommonModule, DynadrillTextComponent, DynadrillInputComponent, DynadrillTextareaComponent, DynadrillButtonComponent, DynadrillCardComponent, DynadrillTagComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './return-to-operation-dialog.html',
   styleUrl: './return-to-operation-dialog.scss',
 })
 export class ReturnToOperationDialog {
+  protected readonly statusTone = STATUS_TONE;
   private readonly ordersService = inject(MaintenanceOrdersService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);

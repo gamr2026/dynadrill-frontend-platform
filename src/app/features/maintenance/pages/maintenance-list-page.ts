@@ -7,11 +7,12 @@ import {
   DynadrillDataTableProgressCell,
   DynadrillDialogService,
   DynadrillDrawerService,
-  DynadrillIconComponent,
+  DynadrillIconButtonComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSelectComponent,
+  DynadrillSpinnerComponent,
   DynadrillStatisticComponent,
   DynadrillTabsComponent,
   DynadrillTagVariant,
@@ -28,6 +29,7 @@ import { UnitReportsService } from '../services/unit-reports.service';
 import { UnidadesService } from '../services/unidades.service';
 import { OrderDetailPanel, OrderDetailPanelData } from '../components/order-detail-panel';
 import { OrderClassificationDialog, OrderClassificationDialogData } from '../components/order-classification-dialog';
+import { MaintenanceReportDialog, MaintenanceReportDialogData } from '../components/maintenance-report-dialog';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -44,7 +46,7 @@ const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
 
 @Component({
   selector: 'app-maintenance-list-page',
-  imports: [DynadrillButtonComponent, DynadrillDataTableComponent, DynadrillIconComponent, DynadrillKpiRowComponent, DynadrillScreenHeaderComponent, DynadrillSelectComponent, DynadrillStatisticComponent, DynadrillTabsComponent],
+  imports: [DynadrillButtonComponent, DynadrillDataTableComponent, DynadrillIconButtonComponent, DynadrillKpiRowComponent, DynadrillScreenHeaderComponent, DynadrillSelectComponent, DynadrillSpinnerComponent, DynadrillStatisticComponent, DynadrillTabsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './maintenance-list-page.html',
   styleUrl: './maintenance-list-page.scss',
@@ -319,5 +321,18 @@ export class MaintenanceListPage {
       size: 'small',
     });
     ref.afterClose.subscribe(() => this.reload());
+  }
+
+  openReport(row: Record<string, unknown>): void {
+    const order = this.orders().find(o => o.id === row['orderId']);
+    if (!order) return;
+    const unitReport = this.unitReports().find(r => r.id === order.unitReportId)!;
+    this.dialogService.open<MaintenanceReportDialog, MaintenanceReportDialogData>({
+      title: `Informe DYN-MNT-RE-008 — ${order.code}`,
+      content: MaintenanceReportDialog,
+      data: { order, unitReport },
+      footer: false,
+      width: '780px',
+    });
   }
 }

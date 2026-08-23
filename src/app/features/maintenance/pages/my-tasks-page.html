@@ -3,20 +3,14 @@
     <dynadrill-text variant="h1">Mis tareas</dynadrill-text>
   </div>
 
-  <dynadrill-data-table [columns]="columns" [rows]="rows()" [loading]="loading()" [rowKey]="rowKeyFn" [actionsTemplate]="actionsTpl" />
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando tareas…">
+    <dynadrill-data-table [columns]="columns" [rows]="rows()" [rowKey]="rowKeyFn" [actionsTemplate]="actionsTpl" />
+  </dynadrill-spinner>
 
   <ng-template #actionsTpl let-row>
-    <button type="button" class="dynadrill-data-table__action-btn" title="Ver detalle" (click)="viewDetail(row)">
-      <dynadrill-icon name="eye" [size]="14" />
-    </button>
-    <button
-      *ngIf="isActionable(row)"
-      type="button"
-      class="dynadrill-data-table__action-btn"
-      title="Diagnosticar / Ejecutar"
-      (click)="openExecution(row)"
-    >
-      <dynadrill-icon name="edit" [size]="14" />
-    </button>
+    <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
+    @if (isActionable(row)) {
+      <dynadrill-icon-button icon="edit" tooltip="Diagnosticar / Ejecutar" tooltipPlacement="top" (clicked)="openExecution(row)" />
+    }
   </ng-template>
 </div>

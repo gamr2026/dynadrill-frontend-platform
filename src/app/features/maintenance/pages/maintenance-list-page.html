@@ -13,12 +13,12 @@
     (activeIndexChange)="activeTab.set($event)"
   />
 
-  @if (activeTab() === 0) {
-    <!-- ── TAB CORRECTIVO ── -->
+  <!-- ── TAB CORRECTIVO — hidden en lugar de @if para no destruir/recrear ── -->
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando órdenes…">
+  <div [hidden]="activeTab() !== 0">
     <dynadrill-data-table
       [columns]="columns()"
       [rows]="rows()"
-      [loading]="loading()"
       [rowKey]="rowKeyFn"
       [pageSize]="10"
       [actionsTemplate]="actionsTpl"
@@ -27,55 +27,54 @@
     />
 
     <ng-template #actionsTpl let-row>
-      <button type="button" class="dynadrill-data-table__action-btn" title="Ver detalle" (click)="viewDetail(row)">
-        <dynadrill-icon name="eye" [size]="14" />
-      </button>
+      <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
+      @if (row['kind'] === 'order' && row['statusBadge']?.['text'] === 'Cerrado') {
+        <dynadrill-icon-button icon="file-pdf" tooltip="Ver informe DYN-MNT-RE-008" tooltipPlacement="top" (clicked)="openReport(row)" />
+      }
     </ng-template>
-  }
+  </div>
 
-  @if (activeTab() === 1) {
-    <!-- ── TAB PREVENTIVO ── -->
-    <div class="prev-section">
+  <!-- ── TAB PREVENTIVO — hidden en lugar de @if para no destruir/recrear ── -->
+  <div [hidden]="activeTab() !== 1" class="prev-section">
 
-      <!-- Statistics — clic filtra la tabla -->
-      <div class="prev-stats">
-        <div class="prev-stats__card prev-stats__card--rojo" [class.prev-stats__card--active]="filtroNivel() === 'rojo'" (click)="toggleFiltroNivel('rojo')">
-          <dynadrill-statistic [value]="resumenPreventivo().rojo" title="Vencidos" tone="error" />
-        </div>
-        <div class="prev-stats__card prev-stats__card--amarillo" [class.prev-stats__card--active]="filtroNivel() === 'amarillo'" (click)="toggleFiltroNivel('amarillo')">
-          <dynadrill-statistic [value]="resumenPreventivo().amarillo" title="Próximos" tone="warning" />
-        </div>
-        <div class="prev-stats__card prev-stats__card--verde" [class.prev-stats__card--active]="filtroNivel() === 'verde'" (click)="toggleFiltroNivel('verde')">
-          <dynadrill-statistic [value]="resumenPreventivo().verde" title="Al día" tone="success" />
-        </div>
+    <!-- Statistics — clic filtra la tabla -->
+    <div class="prev-stats">
+      <div class="prev-stats__card prev-stats__card--rojo" [class.prev-stats__card--active]="filtroNivel() === 'rojo'" (click)="toggleFiltroNivel('rojo')">
+        <dynadrill-statistic [value]="resumenPreventivo().rojo" title="Vencidos" tone="error" />
       </div>
-
-      <!-- Toolbar de filtros -->
-      <div class="prev-toolbar">
-        <dynadrill-select
-          class="prev-toolbar__select"
-          placeholder="Tipo de unidad"
-          [options]="tipoOptions"
-          [value]="filtroTipo()"
-          (valueChange)="filtroTipo.set($any($event)); prevPage.set(1)"
-        />
-        @if (filtroNivel() || filtroTipo()) {
-          <dynadrill-button variant="secondary" size="small" (clicked)="filtroNivel.set(null); filtroTipo.set(null); prevPage.set(1)">
-            Limpiar filtros
-          </dynadrill-button>
-        }
-        <span class="prev-toolbar__count">{{ alertasFiltradas().length }} registros</span>
+      <div class="prev-stats__card prev-stats__card--amarillo" [class.prev-stats__card--active]="filtroNivel() === 'amarillo'" (click)="toggleFiltroNivel('amarillo')">
+        <dynadrill-statistic [value]="resumenPreventivo().amarillo" title="Próximos" tone="warning" />
       </div>
-
-      <!-- Tabla usando DynadrillDataTableComponent con type:progress -->
-      <dynadrill-data-table
-        [columns]="prevColumns"
-        [rows]="prevRows()"
-        [loading]="loading()"
-        [rowKey]="prevRowKeyFn"
-        [pageSize]="10"
-        scrollX="780px"
-      />
+      <div class="prev-stats__card prev-stats__card--verde" [class.prev-stats__card--active]="filtroNivel() === 'verde'" (click)="toggleFiltroNivel('verde')">
+        <dynadrill-statistic [value]="resumenPreventivo().verde" title="Al día" tone="success" />
+      </div>
     </div>
-  }
+
+    <!-- Toolbar de filtros -->
+    <div class="prev-toolbar">
+      <dynadrill-select
+        class="prev-toolbar__select"
+        placeholder="Tipo de unidad"
+        [options]="tipoOptions"
+        [value]="filtroTipo()"
+        (valueChange)="filtroTipo.set($any($event)); prevPage.set(1)"
+      />
+      @if (filtroNivel() || filtroTipo()) {
+        <dynadrill-button variant="secondary" size="small" (clicked)="filtroNivel.set(null); filtroTipo.set(null); prevPage.set(1)">
+          Limpiar filtros
+        </dynadrill-button>
+      }
+      <span class="prev-toolbar__count">{{ alertasFiltradas().length }} registros</span>
+    </div>
+
+    <!-- Tabla preventivo con columnas fijas -->
+    <dynadrill-data-table
+      [columns]="prevColumns"
+      [rows]="prevRows()"
+      [rowKey]="prevRowKeyFn"
+      [pageSize]="10"
+      scrollX="780px"
+    />
+  </div>
+  </dynadrill-spinner>
 </div>

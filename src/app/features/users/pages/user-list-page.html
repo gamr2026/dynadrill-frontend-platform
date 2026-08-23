@@ -9,26 +9,18 @@
     </div>
   </div>
 
-  <dynadrill-data-table
-    [columns]="columns"
-    [rows]="rows()"
-    [loading]="loading()"
-    [rowKey]="rowKeyFn"
-    [pageSize]="10"
-    [actionsTemplate]="actions"
-  />
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando usuarios…">
+    <dynadrill-data-table
+      [columns]="columns"
+      [rows]="rows()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="10"
+      [actionsTemplate]="actions"
+    />
+  </dynadrill-spinner>
 
   <ng-template #actions let-row>
-    <button type="button" class="dynadrill-data-table__action-btn" title="Editar usuario" (click)="editRow(row)">
-      <dynadrill-icon name="edit" [size]="14" />
-    </button>
-    <button
-      type="button"
-      class="dynadrill-data-table__action-btn dynadrill-data-table__action-btn--danger"
-      title="Eliminar usuario"
-      (click)="deleteRow(row)"
-    >
-      <dynadrill-icon name="delete" [size]="14" />
-    </button>
+    <dynadrill-icon-button icon="edit" iconSource="dynadrill" tooltip="Editar usuario" tooltipPlacement="top" (clicked)="editRow(row)" />
+    <dynadrill-icon-button icon="delete" iconSource="dynadrill" tooltip="Eliminar usuario" tooltipPlacement="top" class="btn-danger" (clicked)="deleteRow(row)" />
   </ng-template>
 </div>

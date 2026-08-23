@@ -1,0 +1,129 @@
+.mnt-report {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  &__doc-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--dynadrill-purple, #662e9b);
+  }
+
+  &__doc-title {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__section-label {
+    font-weight: 700 !important;
+    color: var(--dynadrill-purple, #662e9b) !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border, #e5e4ea);
+  }
+
+  &__grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px 20px;
+  }
+
+  &__grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px 20px;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    &--full {
+      grid-column: 1 / -1;
+    }
+  }
+
+  &__card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__suborders {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-body, 'Lato', sans-serif);
+    font-size: 13px;
+    margin-top: 6px;
+
+    th {
+      text-align: left;
+      padding: 6px 10px;
+      background: var(--surface-muted, #faf9fc);
+      border: 1px solid var(--border, #e5e4ea);
+      font-weight: 700;
+      color: var(--text-muted, #5c5870);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    td {
+      padding: 6px 10px;
+      border: 1px solid var(--border, #e5e4ea);
+      color: var(--text, #2c2b35);
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border, #e5e4ea);
+
+    > * { flex: none; }
+  }
+}
+
+@media print {
+  .no-print { display: none !important; }
+
+  // Ocultar toda la UI excepto el contenido del modal
+  body > * { display: none !important; }
+
+  nz-modal-container,
+  .ant-modal-wrap,
+  .ant-modal,
+  .ant-modal-content {
+    display: block !important;
+    position: static !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .ant-modal-header,
+  .ant-modal-footer { display: none !important; }
+
+  .ant-modal-body { padding: 0 !important; }
+}

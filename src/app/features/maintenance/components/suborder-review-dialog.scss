@@ -8,4 +8,8 @@
     flex-direction: column;
     gap: 4px;
   }
+
+  ::ng-deep .dynadrill-approval-actions__row {
+    justify-content: center;
+  }
 }

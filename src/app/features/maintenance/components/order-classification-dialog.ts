@@ -6,7 +6,6 @@ import {
   DynadrillCheckboxComponent,
   DynadrillNotificationService,
   DynadrillSelectComponent,
-  DynadrillTabsComponent,
   DynadrillTextareaComponent,
   DynadrillTextComponent,
 } from '@digitec-it-projects/dynadrill-ui';
@@ -49,7 +48,6 @@ const OPERATOR_ROLE_NAME = 'Operador de Mantenimiento';
     DynadrillTextComponent,
     DynadrillCheckboxComponent,
     DynadrillSelectComponent,
-    DynadrillTabsComponent,
     DynadrillTextareaComponent,
     DynadrillButtonComponent,
   ],

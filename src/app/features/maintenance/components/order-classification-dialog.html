@@ -12,6 +12,7 @@
     </div>
   </div>
 
+
   <!-- Novedades en lista (solo en modo nuevo reporte, no en edición) -->
   @if (!isEditMode && novedadTabs().length > 0) {
     <div class="order-classification-dialog__novedades">
@@ -88,6 +89,7 @@
             placeholder="Selecciona un operador"
             [options]="mecanicoOptions()"
             [value]="mecanicoOperatorId()"
+            [searchable]="true"
             (valueChange)="selectMecanicoOperator($event)"
           />
         }
@@ -106,6 +108,7 @@
             placeholder="Selecciona un operador"
             [options]="instrumentalOptions()"
             [value]="instrumentalOperatorId()"
+            [searchable]="true"
             (valueChange)="selectInstrumentalOperator($event)"
           />
         }

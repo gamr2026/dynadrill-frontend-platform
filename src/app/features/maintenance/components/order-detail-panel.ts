@@ -1,13 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_DRAWER_DATA, NzDrawerRef } from 'ng-zorro-antd/drawer';
 import {
+  DynadrillAvatarComponent,
   DynadrillButtonComponent,
   DynadrillCardComponent,
   DynadrillDialogService,
+  DynadrillIconButtonComponent,
   DynadrillSelectComponent,
   DynadrillTagComponent,
   DynadrillTextComponent,
-  DynadrillTextareaComponent,
   type DynadrillSelectOption,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
@@ -50,10 +51,11 @@ const STATUS_ACCENT: Record<SubOrderStatus, 'warning' | 'info' | 'brand' | 'succ
   imports: [
     DynadrillTextComponent,
     DynadrillButtonComponent,
-    DynadrillTextareaComponent,
     DynadrillTagComponent,
     DynadrillSelectComponent,
     DynadrillCardComponent,
+    DynadrillAvatarComponent,
+    DynadrillIconButtonComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './order-detail-panel.html',

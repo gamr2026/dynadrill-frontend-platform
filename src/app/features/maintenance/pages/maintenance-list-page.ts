@@ -6,17 +6,17 @@ import {
   DynadrillDataTableComponent,
   DynadrillDataTableProgressCell,
   DynadrillDialogService,
-  DynadrillDropdownComponent,
-  DynadrillDropdownOption,
   DynadrillDrawerService,
   DynadrillIconComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
+  DynadrillSelectComponent,
   DynadrillStatisticComponent,
   DynadrillTabsComponent,
   DynadrillTagVariant,
   type DynadrillKpiRowItem,
+  type DynadrillSelectOption,
   type DynadrillTab,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../core/services/auth.service';
@@ -44,7 +44,7 @@ const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
 
 @Component({
   selector: 'app-maintenance-list-page',
-  imports: [DynadrillButtonComponent, DynadrillDataTableComponent, DynadrillDropdownComponent, DynadrillIconComponent, DynadrillKpiRowComponent, DynadrillScreenHeaderComponent, DynadrillStatisticComponent, DynadrillTabsComponent],
+  imports: [DynadrillButtonComponent, DynadrillDataTableComponent, DynadrillIconComponent, DynadrillKpiRowComponent, DynadrillScreenHeaderComponent, DynadrillSelectComponent, DynadrillStatisticComponent, DynadrillTabsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './maintenance-list-page.html',
   styleUrl: './maintenance-list-page.scss',
@@ -106,20 +106,19 @@ export class MaintenanceListPage {
   protected readonly sortDir = signal<'asc' | 'desc'>('asc');
   protected readonly sortKey = signal<keyof AlertaPreventiva>('restante');
 
-  protected readonly tipoOptions: DynadrillDropdownOption[] = [
-    { label: 'Todos los tipos', value: null },
+  protected readonly tipoOptions: DynadrillSelectOption[] = [
     { label: 'Servicio', value: 'Servicio' },
     { label: 'Auxiliar', value: 'Auxiliar' },
     { label: 'Transporte', value: 'Transporte' },
   ];
 
   protected readonly prevColumns: DynadrillDataTableColumn[] = [
-    { key: 'unidadCode', header: 'Unidad', sortable: true, searchable: true },
+    { key: 'unidadCode', header: 'Unidad', sortable: true, searchable: true, fixed: 'left' },
     { key: 'descripcion', header: 'Mantenimiento', searchable: true },
     { key: 'progreso', header: 'Progreso', type: 'progress' },
     { key: 'actualLabel', header: 'Actual', sortable: true },
     { key: 'proximoEn', header: 'Próximo en', sortable: true },
-    { key: 'estadoBadge', header: 'Estado', type: 'badge' },
+    { key: 'estadoBadge', header: 'Estado', type: 'badge', fixed: 'right' },
   ];
 
   protected readonly prevRows = computed(() =>

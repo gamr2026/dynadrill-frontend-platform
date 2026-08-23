@@ -20,6 +20,8 @@
   &__order-actions {
     display: flex;
     gap: 8px;
+
+    > * { flex: none; }
   }
 
   &__suborders {
@@ -29,6 +31,12 @@
   }
 
   // ── Dentro de cada DynadrillCard ──
+
+  &__card-extra {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
 
   &__card-header {
     display: flex;
@@ -50,11 +58,25 @@
     gap: 10px;
   }
 
+  &__operator-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__operator-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
   &__operator-row {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: space-between;
     gap: 8px;
+
+    > * { flex: none; }
   }
 
   &__inline-edit {
@@ -67,6 +89,8 @@
     display: flex;
     gap: 8px;
     justify-content: flex-end;
+
+    > * { flex: none; }
   }
 
   &__expanded {
@@ -82,5 +106,12 @@
   &__suborder-actions {
     display: flex;
     gap: 8px;
+
+    > * { flex: none; }
+
+    ::ng-deep dynadrill-button {
+      display: inline-flex !important;
+      width: auto !important;
+    }
   }
 }

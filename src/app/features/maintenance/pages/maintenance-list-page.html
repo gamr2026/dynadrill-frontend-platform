@@ -52,11 +52,12 @@
 
       <!-- Toolbar de filtros -->
       <div class="prev-toolbar">
-        <dynadrill-dropdown
-          [options]="tipoOptions"
+        <dynadrill-select
+          class="prev-toolbar__select"
           placeholder="Tipo de unidad"
-          [selected]="$any(filtroTipo())"
-          (valueChange)="filtroTipo.set($event); prevPage.set(1)"
+          [options]="tipoOptions"
+          [value]="filtroTipo()"
+          (valueChange)="filtroTipo.set($any($event)); prevPage.set(1)"
         />
         @if (filtroNivel() || filtroTipo()) {
           <dynadrill-button variant="secondary" size="small" (clicked)="filtroNivel.set(null); filtroTipo.set(null); prevPage.set(1)">
@@ -73,6 +74,7 @@
         [loading]="loading()"
         [rowKey]="prevRowKeyFn"
         [pageSize]="10"
+        scrollX="780px"
       />
     </div>
   }

@@ -12,9 +12,9 @@
   }
 
   .prev-stats {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(120px, 200px));
+    gap: 12px;
 
     &__card {
       padding: 16px 24px;
@@ -23,14 +23,13 @@
       background: var(--surface, #fff);
       cursor: pointer;
       transition: border-color 0.15s, box-shadow 0.15s;
-      min-width: 130px;
 
       &:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
 
       &--active { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12); }
-      &--rojo.prev-stats__card--active    { border-color: var(--error, #ff4d4f);   background: var(--error-bg, rgba(255,77,79,.08)); }
-      &--amarillo.prev-stats__card--active { border-color: var(--warning, #faad14); background: var(--warning-bg, rgba(250,173,20,.08)); }
-      &--verde.prev-stats__card--active   { border-color: var(--success, #52c41a); background: var(--success-bg, rgba(82,196,26,.08)); }
+      &--rojo.prev-stats__card--active    { border-color: var(--error, #ff4d4f);   background: rgba(255,77,79,.06); }
+      &--amarillo.prev-stats__card--active { border-color: var(--warning, #faad14); background: rgba(250,173,20,.06); }
+      &--verde.prev-stats__card--active   { border-color: var(--success, #52c41a); background: rgba(82,196,26,.06); }
     }
   }
 
@@ -39,6 +38,15 @@
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
+
+    &__select {
+      width: 180px;
+
+      // El dynadrill-select tiene un wrapper con label — quitamos el label margin
+      ::ng-deep .dynadrill-select {
+        margin: 0;
+      }
+    }
 
     &__count {
       margin-left: auto;
@@ -49,7 +57,17 @@
     }
   }
 
+  // ── Responsive ──
+
   @media (max-width: 600px) {
+    .prev-stats {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .prev-toolbar__select {
+      width: 100%;
+    }
+
     ::ng-deep dynadrill-kpi-row .dynadrill-kpi-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -58,6 +76,12 @@
     ::ng-deep dynadrill-kpi-row .dynadrill-kpi-card {
       width: 100% !important;
       min-width: unset !important;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .prev-stats {
+      grid-template-columns: 1fr;
     }
   }
 }

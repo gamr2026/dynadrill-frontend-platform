@@ -3,10 +3,18 @@
   flex-direction: column;
   gap: 16px;
 
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 24px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border, #e5e4ea);
+  }
+
   &__row {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
   }
 
   &__actions {

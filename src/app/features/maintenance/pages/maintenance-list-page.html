@@ -74,7 +74,18 @@
       [rowKey]="prevRowKeyFn"
       [pageSize]="10"
       scrollX="780px"
+      [actionsTemplate]="prevActionsTpl"
+      [actionsFixed]="true"
     />
+
+    <ng-template #prevActionsTpl let-row>
+      <dynadrill-icon-button
+        icon="check-circle"
+        tooltip="Registrar mantenimiento"
+        tooltipPlacement="top"
+        (clicked)="openRegisterPM(row)"
+      />
+    </ng-template>
   </div>
   </dynadrill-spinner>
 </div>

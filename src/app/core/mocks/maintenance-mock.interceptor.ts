@@ -264,7 +264,46 @@ function matchId(url: string, base: string): number | null {
 
 export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.url === '/api/unidades' && req.method === 'GET') {
-    return of(new HttpResponse({ status: 200, body: unidades })).pipe(delay(300));
+    return of(new HttpResponse({ status: 200, body: unidades.map(u => ({ ...u })) })).pipe(delay(300));
+  }
+
+  const unidadMantenimientoMatch = req.url.match(/\/api\/unidades\/(\d+)\/mantenimiento$/);
+  if (unidadMantenimientoMatch && req.method === 'PATCH') {
+    const unidadId = Number(unidadMantenimientoMatch[1]);
+    const body = req.body as {
+      intervaloHoras?: number;
+      horometroAlMomento?: number;
+      kmAlMomento?: number;
+      fecha: string;
+    };
+    const idx = unidades.findIndex(u => u.id === unidadId);
+    if (idx !== -1) {
+      const u = { ...unidades[idx] };
+      if (u.tipo === 'Servicio' && body.intervaloHoras && body.horometroAlMomento !== undefined) {
+        const regs = (u.registrosPrev ?? []).map(r =>
+          r.intervaloHoras === body.intervaloHoras
+            ? { ...r, ultimoEnHoras: body.horometroAlMomento!, ultimaFecha: body.fecha }
+            : r
+        );
+        if (!regs.some(r => r.intervaloHoras === body.intervaloHoras)) {
+          regs.push({ intervaloHoras: body.intervaloHoras as any, ultimoEnHoras: body.horometroAlMomento!, ultimaFecha: body.fecha });
+        }
+        u.registrosPrev = regs;
+        u.fechaUltimoMantenimiento = body.fecha;
+      } else if (u.tipo === 'Auxiliar') {
+        u.fechaUltimoMantenimientoAux = body.fecha;
+      } else if (u.tipo === 'Transporte' && body.kmAlMomento !== undefined) {
+        u.kmUltimoMantenimiento = body.kmAlMomento;
+        u.kmActual = body.kmAlMomento;
+        u.fechaUltimoMantenimientoKm = body.fecha;
+      } else if (u.tipo === 'Servicio' && !body.intervaloHoras) {
+        // regla de 6 meses (sin intervaloHoras)
+        u.fechaUltimoMantenimiento = body.fecha;
+      }
+      unidades[idx] = u;
+      return of(new HttpResponse({ status: 200, body: unidades[idx] })).pipe(delay(400));
+    }
+    return of(new HttpResponse({ status: 404 })).pipe(delay(300));
   }
 
   if (req.url === '/api/unit-reports' && req.method === 'GET') {

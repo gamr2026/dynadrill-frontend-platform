@@ -72,6 +72,10 @@ export interface AlertaPreventiva {
   unidad: 'horas' | 'km' | 'días';
   nivel: AlertaPreventivaNivel;
   proximoEn: string;
+  /** Solo para Servicio: intervalo específico que generó esta alerta (250, 500, 1000, 2000). */
+  intervaloHoras?: IntervaloServicio;
+  /** Valor actual de la métrica principal (horómetro o km). */
+  valorActual?: number;
 }
 
 // ── Tolerancias según el Plan de Mantenimiento 2026 ──
@@ -116,6 +120,8 @@ export function calcularAlertas(u: Unidad): AlertaPreventiva[] {
         unidad: 'horas',
         nivel: nivelAlerta(restante, intervalo.horas),
         proximoEn: restante > 0 ? `${Math.round(restante)} h` : 'Vencido',
+        intervaloHoras: intervalo.horas,
+        valorActual: u.horometroActual,
       });
     }
 
@@ -177,6 +183,7 @@ export function calcularAlertas(u: Unidad): AlertaPreventiva[] {
       unidad: 'km',
       nivel: nivelAlerta(restanteKm, 5000),
       proximoEn: restanteKm > 0 ? `${Math.round(restanteKm)} km` : 'Vencido',
+      valorActual: u.kmActual,
     });
   }
 

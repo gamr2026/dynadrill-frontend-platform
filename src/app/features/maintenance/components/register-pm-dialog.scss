@@ -1,0 +1,31 @@
+.register-pm-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border, #e5e4ea);
+  }
+
+  &__row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    &--full { grid-column: 1 / -1; }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border, #e5e4ea);
+
+    > * { flex: none; }
+  }
+}

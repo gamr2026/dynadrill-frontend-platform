@@ -30,6 +30,7 @@ import { UnidadesService } from '../services/unidades.service';
 import { OrderDetailPanel, OrderDetailPanelData } from '../components/order-detail-panel';
 import { OrderClassificationDialog, OrderClassificationDialogData } from '../components/order-classification-dialog';
 import { MaintenanceReportDialog, MaintenanceReportDialogData } from '../components/maintenance-report-dialog';
+import { RegisterPMDialog, RegisterPMDialogData } from '../components/register-pm-dialog';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -132,6 +133,7 @@ export class MaintenanceListPage {
       actualLabel: a.actualLabel,
       proximoEn: a.proximoEn,
       estadoBadge: { text: this.alertasLabel[a.nivel], tone: this.alertasTone[a.nivel] },
+      _alerta: a,
     })),
   );
 
@@ -319,6 +321,17 @@ export class MaintenanceListPage {
       content: OrderDetailPanel,
       data: { unitReport, order: order! },
       size: 'small',
+    });
+    ref.afterClose.subscribe(() => this.reload());
+  }
+
+  openRegisterPM(row: Record<string, unknown>): void {
+    const alerta = row['_alerta'] as AlertaPreventiva;
+    const ref = this.dialogService.open<RegisterPMDialog, RegisterPMDialogData>({
+      title: `Registrar PM — ${alerta.unidadCode}`,
+      content: RegisterPMDialog,
+      data: { alerta },
+      footer: false,
     });
     ref.afterClose.subscribe(() => this.reload());
   }

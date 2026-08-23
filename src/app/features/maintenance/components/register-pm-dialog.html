@@ -1,0 +1,69 @@
+<div class="register-pm-dialog">
+
+  <!-- Resumen de la alerta -->
+  <div class="register-pm-dialog__header">
+    <div class="register-pm-dialog__row">
+      <dynadrill-text variant="caption">Unidad</dynadrill-text>
+      <dynadrill-text variant="body">{{ alerta.unidadCode }} — {{ alerta.unidadNombre }}</dynadrill-text>
+    </div>
+    <div class="register-pm-dialog__row">
+      <dynadrill-text variant="caption">Estado actual</dynadrill-text>
+      <dynadrill-tag [label]="nivelLabel[alerta.nivel]" [variant]="nivelVariant[alerta.nivel]" />
+    </div>
+    <div class="register-pm-dialog__row register-pm-dialog__row--full">
+      <dynadrill-text variant="caption">Mantenimiento a registrar</dynadrill-text>
+      <dynadrill-text variant="body">{{ alerta.descripcion }}</dynadrill-text>
+    </div>
+  </div>
+
+  <!-- Campos según tipo de métrica -->
+  @if (alerta.unidad === 'horas') {
+    <dynadrill-input
+      label="Horómetro al momento del mantenimiento (h)"
+      type="number"
+      placeholder="Ej. 1480"
+      [value]="valorMetrica()"
+      (valueChange)="valorMetrica.set($event)"
+    />
+  }
+
+  @if (alerta.unidad === 'km') {
+    <dynadrill-input
+      label="Kilometraje al momento del mantenimiento (km)"
+      type="number"
+      placeholder="Ej. 87400"
+      [value]="valorMetrica()"
+      (valueChange)="valorMetrica.set($event)"
+    />
+  }
+
+  <dynadrill-datetime-picker
+    label="Fecha de realización"
+    placeholder="Selecciona la fecha"
+    [value]="$any(fecha())"
+    [showToday]="true"
+    (valueChange)="fecha.set($event)"
+  />
+
+  <dynadrill-input
+    label="Responsable"
+    placeholder="Técnico que realizó el mantenimiento"
+    [value]="responsable()"
+    (valueChange)="responsable.set($event)"
+  />
+
+  <dynadrill-textarea
+    label="Observaciones"
+    placeholder="Notas adicionales del mantenimiento realizado (opcional)"
+    [value]="observaciones()"
+    (valueChange)="observaciones.set($event)"
+    [rows]="2"
+  />
+
+  <div class="register-pm-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!canConfirm() || submitting()" (clicked)="confirm()">
+      {{ submitting() ? 'Registrando…' : 'Registrar mantenimiento' }}
+    </dynadrill-button>
+  </div>
+</div>

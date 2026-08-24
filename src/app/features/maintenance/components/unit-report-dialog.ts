@@ -22,6 +22,7 @@ import {
   MaintenanceSourceModule,
   PLATAFORMA_CHECKLIST_LABELS,
   UnitReport,
+  unitReportCode,
   unitReportHasNovedades,
 } from '../models/unit-report.model';
 import { UnitReportsService } from '../services/unit-reports.service';
@@ -230,7 +231,7 @@ export class UnitReportDialog {
 
     this.unitReportsService.create(input).subscribe({
       next: report => {
-        this.notify.success('Guardado', `Reporte de Unidad N° ${report.reportNo} creado.`);
+        this.notify.success('Guardado', `Reporte de Unidad ${unitReportCode(report.reportNo)} creado.`);
         if (unitReportHasNovedades(report)) {
           this.notify.info('Novedad detectada', 'Este reporte trae problemas reportados — clasifícalo desde la Bandeja.');
         }

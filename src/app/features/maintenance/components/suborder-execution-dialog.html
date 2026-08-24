@@ -50,7 +50,7 @@
 
     @for (r of repuestos(); track $index) {
       <div class="suborder-execution-dialog__repuesto">
-        <dynadrill-input placeholder="N° de parte" [value]="r.numeroParte" (valueChange)="updateRepuesto($index, 'numeroParte', $event)" />
+        <dynadrill-input placeholder="N° de parte (código de la pieza)" [value]="r.numeroParte" (valueChange)="updateRepuesto($index, 'numeroParte', $event)" />
         <dynadrill-input placeholder="Cant." type="number" [value]="r.cantidad.toString()" (valueChange)="updateRepuesto($index, 'cantidad', $event)" />
         <dynadrill-input placeholder="Descripción" [value]="r.descripcion" (valueChange)="updateRepuesto($index, 'descripcion', $event)" />
         <dynadrill-button variant="error" size="small" (clicked)="removeRepuesto($index)">

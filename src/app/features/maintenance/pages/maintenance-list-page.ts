@@ -23,7 +23,7 @@ import {
 import { AuthService } from '../../../core/services/auth.service';
 import { AppNotificationItem, NotificationsService } from '../../../core/services/notifications.service';
 import { computeOrderStatus, MaintenanceOrderWithSubOrders, OrderStatus } from '../models/maintenance-order.model';
-import { unitReportHasNovedades, UnitReport } from '../models/unit-report.model';
+import { unitReportCode, unitReportHasNovedades, UnitReport } from '../models/unit-report.model';
 import { AlertaPreventiva, AlertaPreventivaNivel, calcularAlertas, Unidad } from '../models/unidad.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { UnitReportsService } from '../services/unit-reports.service';
@@ -33,6 +33,9 @@ import { OrderClassificationDialog, OrderClassificationDialogData } from '../com
 import { MaintenanceReportDialog, MaintenanceReportDialogData } from '../components/maintenance-report-dialog';
 import { RegisterPMDialog, RegisterPMDialogData } from '../components/register-pm-dialog';
 import { HistorialDialog, HistorialDialogData } from '../components/historial-dialog';
+import { VehicleInspectionsTable } from '../components/vehicle-inspections-table';
+import { VehicleInspectionsService } from '../services/vehicle-inspections.service';
+import { VehicleInspection } from '../models/vehicle-inspection.model';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -49,7 +52,7 @@ const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
 
 @Component({
   selector: 'app-maintenance-list-page',
-  imports: [DynadrillButtonComponent, DynadrillDataTableComponent, DynadrillIconButtonComponent, DynadrillKpiRowComponent, DynadrillScreenHeaderComponent, DynadrillSelectComponent, DynadrillSpinnerComponent, DynadrillStatisticComponent, DynadrillTabsComponent],
+  imports: [DynadrillButtonComponent, DynadrillDataTableComponent, DynadrillIconButtonComponent, DynadrillKpiRowComponent, DynadrillScreenHeaderComponent, DynadrillSelectComponent, DynadrillSpinnerComponent, DynadrillStatisticComponent, DynadrillTabsComponent, VehicleInspectionsTable],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './maintenance-list-page.html',
   styleUrl: './maintenance-list-page.scss',
@@ -58,6 +61,7 @@ export class MaintenanceListPage {
   private readonly ordersService = inject(MaintenanceOrdersService);
   private readonly unitReportsService = inject(UnitReportsService);
   private readonly unidadesService = inject(UnidadesService);
+  private readonly inspectionsService = inject(VehicleInspectionsService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly drawer = inject(DynadrillDrawerService);
   private readonly dialogService = inject(DynadrillDialogService);
@@ -70,6 +74,7 @@ export class MaintenanceListPage {
   protected readonly orders = signal<MaintenanceOrderWithSubOrders[]>([]);
   protected readonly unitReports = signal<UnitReport[]>([]);
   protected readonly unidades = signal<Unidad[]>([]);
+  protected readonly inspections = signal<VehicleInspection[]>([]);
 
   protected readonly alertas = computed<AlertaPreventiva[]>(() =>
     this.unidades().flatMap(u => calcularAlertas(u)).sort((a, b) => a.restante - b.restante)
@@ -80,6 +85,7 @@ export class MaintenanceListPage {
   protected readonly tabs: DynadrillTab[] = [
     { label: 'Correctivo' },
     { label: 'Preventivo' },
+    { label: 'Inspecciones' },
   ];
 
   protected readonly alertasTone: Record<AlertaPreventivaNivel, DynadrillTagVariant> = {
@@ -237,7 +243,7 @@ export class MaintenanceListPage {
         kind: 'pending' as const,
         id: `report-${r.id}`,
         reportId: r.id,
-        code: `R${r.reportNo}`,
+        code: unitReportCode(r.reportNo),
         unidad: r.unidad,
         fecha: formatDate(r.createdAt),
         tipo: [
@@ -307,7 +313,7 @@ export class MaintenanceListPage {
     for (const r of this.unitReports().filter(r => unitReportHasNovedades(r) && !r.dismissed && !this.orders().some(o => o.unitReportId === r.id))) {
       items.push({
         id: `report-${r.id}`,
-        title: `Reporte N° ${r.reportNo} sin clasificar`,
+        title: `Reporte ${unitReportCode(r.reportNo)} sin clasificar`,
         description: r.unidad,
         tone: 'warning',
         link: '/dashboard/mantenimiento',
@@ -347,11 +353,13 @@ export class MaintenanceListPage {
       orders: this.ordersService.list(),
       unitReports: this.unitReportsService.list(),
       unidades: this.unidadesService.list(),
+      inspections: this.inspectionsService.list(),
     }).subscribe({
-      next: ({ orders, unitReports, unidades }) => {
+      next: ({ orders, unitReports, unidades, inspections }) => {
         this.orders.set(orders);
         this.unitReports.set(unitReports);
         this.unidades.set(unidades);
+        this.inspections.set(inspections);
         this.loading.set(false);
       },
       error: () => {
@@ -375,7 +383,7 @@ export class MaintenanceListPage {
 
     if (!isOrder) {
       const ref = this.dialogService.open<OrderClassificationDialog, OrderClassificationDialogData>({
-        title: `Reporte N° ${unitReport.reportNo} — ${unitReport.unidad}`,
+        title: `Reporte ${unitReportCode(unitReport.reportNo)} — ${unitReport.unidad}`,
         content: OrderClassificationDialog,
         data: { unitReport },
         footer: false,

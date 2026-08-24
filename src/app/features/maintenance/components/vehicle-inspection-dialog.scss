@@ -22,6 +22,16 @@
     gap: 14px;
   }
 
+  &__blocking-warning {
+    padding: 10px 14px;
+    border-radius: var(--radius-sm, 4px);
+    background: var(--error-bg, rgba(255, 77, 79, 0.12));
+    border: 1px solid var(--error, #ff4d4f);
+    color: var(--error, #ff4d4f);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
   &__section-label {
     font-weight: 700 !important;
     color: var(--dynadrill-purple, #662e9b) !important;
@@ -53,46 +63,48 @@
 .vehicle-checklist {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  max-height: 400px;
-  overflow-y: auto;
+  gap: 10px;
 
-  &__header,
-  &__row {
-    display: grid;
-    grid-template-columns: 1fr 64px 64px 64px;
-    align-items: center;
+  &__toolbar {
+    display: flex;
     gap: 8px;
   }
 
-  &__header {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-muted, #5c5870);
-    padding: 4px 0;
-    text-align: center;
-  }
-  &__header span:first-child {
-    text-align: left;
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px 20px;
+    max-height: 400px;
+    overflow-y: auto;
   }
 
-  &__row {
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
     padding: 6px 0;
     border-bottom: 1px solid var(--border, #e5e4ea);
   }
 
   &__label {
     font-size: 13px;
+    flex: 1;
   }
 
-  &__cell {
+  &__controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: none;
+  }
+
+  &__toggle {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 32px;
     height: 32px;
-    margin: 0 auto;
     background: var(--surface-muted, #faf9fc);
     border: 1px solid var(--border, #e5e4ea);
     border-radius: var(--radius-sm, 4px);
@@ -100,34 +112,58 @@
     cursor: pointer;
     font-weight: 700;
   }
-  &__cell:hover {
+  &__toggle:hover {
     border-color: var(--dynadrill-purple, #662e9b);
   }
-  &__cell--ok {
+  &__toggle--ok {
     background: var(--success-bg, rgba(82, 196, 26, 0.12));
     border-color: var(--success, #52c41a);
     color: var(--success, #52c41a);
   }
-  &__cell--bad {
+  &__toggle--bad {
     background: var(--error-bg, rgba(255, 77, 79, 0.12));
     border-color: var(--error, #ff4d4f);
     color: var(--error, #ff4d4f);
   }
-  &__cell--na {
+
+  &__na {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 0 8px;
     background: var(--surface-muted, #faf9fc);
-    border-color: var(--text-muted, #5c5870);
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-sm, 4px);
     color: var(--text-muted, #5c5870);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  &__na:hover {
+    border-color: var(--text-muted, #5c5870);
+  }
+  &__na--active {
+    background: var(--surface, #ffffff);
+    border-color: var(--text-muted, #5c5870);
+    color: var(--ink, #1b1b2a);
   }
 
   @media (max-width: 600px) {
-    &__header,
-    &__row {
-      grid-template-columns: 1fr repeat(3, 40px);
-      gap: 4px;
+    &__grid {
+      grid-template-columns: 1fr;
     }
 
-    &__cell {
+    &__toolbar {
+      flex-direction: column;
+    }
+
+    &__toggle {
       width: 28px;
+      height: 28px;
+    }
+
+    &__na {
       height: 28px;
     }
 

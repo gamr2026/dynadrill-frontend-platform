@@ -22,22 +22,27 @@
 
       <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">Documentos del vehículo</dynadrill-text>
       <div class="vehicle-inspection-dialog__grid">
-        <dynadrill-input label="Fecha de matrícula" [value]="fechaMatricula()" (valueChange)="fechaMatricula.set($event)" />
-        <dynadrill-input label="Caducidad de matrícula" [value]="caducidadMatricula()" (valueChange)="caducidadMatricula.set($event)" />
-        <dynadrill-input label="Caducidad póliza de seguro" [value]="caducidadPoliza()" (valueChange)="caducidadPoliza.set($event)" />
-        <dynadrill-input label="Vigencia otro documento" [value]="vigenciaOtroDocumento()" (valueChange)="vigenciaOtroDocumento.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Fecha de matrícula" [value]="fechaMatricula()!" (valueChange)="fechaMatricula.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Caducidad de matrícula" [value]="caducidadMatricula()!" (valueChange)="caducidadMatricula.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Caducidad póliza de seguro" [value]="caducidadPoliza()!" (valueChange)="caducidadPoliza.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Vigencia otro documento" [value]="vigenciaOtroDocumento()!" (valueChange)="vigenciaOtroDocumento.set($event)" />
       </div>
 
       <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">Kilometraje</dynadrill-text>
       <div class="vehicle-inspection-dialog__grid">
         <dynadrill-input label="Inicial" type="number" [value]="kmInicial()" (valueChange)="kmInicial.set($event)" />
         <dynadrill-input label="Final" type="number" [value]="kmFinal()" (valueChange)="kmFinal.set($event)" />
-        <dynadrill-input label="Próximo mantenimiento" [value]="proximoMantenimiento()" (valueChange)="proximoMantenimiento.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Próximo mantenimiento" [value]="proximoMantenimiento()!" (valueChange)="proximoMantenimiento.set($event)" />
       </div>
     }
 
     @if (currentStep() === 1) {
       <ng-container [ngTemplateOutlet]="checklist" [ngTemplateOutletContext]="{ $implicit: checklistVehiculo, list: checklistVehiculo }" />
+      @if (seatbeltBlocked()) {
+        <div class="vehicle-inspection-dialog__blocking-warning">
+          ⚠ Cinturón de seguridad reprobado — según la Nota 1 del formato DYN-SGI-RE-068, el vehículo no podrá utilizarse hasta que esto se resuelva. Igual puedes guardar la inspección para dejar la falla registrada.
+        </div>
+      }
     }
 
     @if (currentStep() === 2) {
@@ -69,7 +74,7 @@
       @if (currentStep() < steps.length - 1) {
         <dynadrill-button (clicked)="next()">Siguiente</dynadrill-button>
       } @else {
-        <dynadrill-button [disabled]="submitting()" (clicked)="submit()">{{ submitting() ? 'Guardando…' : 'Guardar' }}</dynadrill-button>
+        <dynadrill-button [disabled]="submitting()" (clicked)="submit()">{{ submitting() ? 'Guardando…' : (isEditMode ? 'Guardar cambios' : 'Guardar') }}</dynadrill-button>
       }
     </div>
   </div>
@@ -77,25 +82,38 @@
 
 <ng-template #checklist let-items let-list="list">
   <div class="vehicle-checklist">
-    <div class="vehicle-checklist__header">
-      <span></span>
-      <span>Cumple</span>
-      <span>No cumple</span>
-      <span>N/A</span>
+    <div class="vehicle-checklist__toolbar">
+      <dynadrill-button variant="secondary" size="small" (clicked)="markAll(list, 'C')">Marcar todos: Cumple</dynadrill-button>
+      <dynadrill-button variant="secondary" size="small" (clicked)="markAll(list, 'NC')">Marcar todos: No cumple</dynadrill-button>
     </div>
-    @for (item of items(); track item.label; let i = $index) {
-      <div class="vehicle-checklist__row">
-        <span class="vehicle-checklist__label">{{ item.label }}</span>
-        <button type="button" class="vehicle-checklist__cell" [class.vehicle-checklist__cell--ok]="item.estado === 'C'" (click)="setEstado(list, i, 'C')">
-          @if (item.estado === 'C') { ✓ }
-        </button>
-        <button type="button" class="vehicle-checklist__cell" [class.vehicle-checklist__cell--bad]="item.estado === 'NC'" (click)="setEstado(list, i, 'NC')">
-          @if (item.estado === 'NC') { ✕ }
-        </button>
-        <button type="button" class="vehicle-checklist__cell" [class.vehicle-checklist__cell--na]="item.estado === 'NA'" (click)="setEstado(list, i, 'NA')">
-          @if (item.estado === 'NA') { — }
-        </button>
-      </div>
-    }
+    <div class="vehicle-checklist__grid">
+      @for (item of items(); track item.label; let i = $index) {
+        <div class="vehicle-checklist__item">
+          <span class="vehicle-checklist__label">{{ item.label }}</span>
+          <div class="vehicle-checklist__controls">
+            <button
+              type="button"
+              class="vehicle-checklist__toggle"
+              [class.vehicle-checklist__toggle--ok]="item.estado === 'C'"
+              [class.vehicle-checklist__toggle--bad]="item.estado === 'NC'"
+              [attr.aria-label]="item.estado === 'C' ? 'Cumple' : item.estado === 'NC' ? 'No cumple' : 'Sin marcar'"
+              (click)="cycleEstado(list, i)"
+            >
+              @switch (item.estado) {
+                @case ('C') { ✓ }
+                @case ('NC') { ✕ }
+              }
+            </button>
+            <button
+              type="button"
+              class="vehicle-checklist__na"
+              [class.vehicle-checklist__na--active]="item.estado === 'NA'"
+              aria-label="No aplica"
+              (click)="setNA(list, i)"
+            >N/A</button>
+          </div>
+        </div>
+      }
+    </div>
   </div>
 </ng-template>

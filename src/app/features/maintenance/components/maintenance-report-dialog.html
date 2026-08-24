@@ -9,7 +9,7 @@
     <div class="mnt-report__doc-meta">
       <dynadrill-text variant="caption">Fecha de emisión: {{ printDate }}</dynadrill-text>
       @if (data.clase === 'Correctivo') {
-        <dynadrill-text variant="caption">Reporte / Inspección N° {{ data.unitReport.reportNo }}</dynadrill-text>
+        <dynadrill-text variant="caption">Reporte / Inspección {{ unitReportCode(data.unitReport.reportNo) }}</dynadrill-text>
       }
     </div>
   </div>

@@ -35,6 +35,10 @@ export class Sidebar {
       return [dashboard, { label: 'Inspección de Vehículos', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/inspeccion-vehiculos' }];
     }
 
+    if (roleName === 'Supervisor') {
+      return [dashboard, { label: 'Aprobar Inspecciones', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/inspeccion-vehiculos' }];
+    }
+
     const maintenance: DynadrillMenuItem[] =
       roleName === 'Jefe de Mantenimiento'
         ? [{

@@ -94,5 +94,15 @@
       />
     </ng-template>
   </div>
+
+  <!-- ── TAB INSPECCIONES — solo lectura, visibilidad total (con y sin novedad) ── -->
+  <div [hidden]="activeTab() !== 2">
+    <app-vehicle-inspections-table
+      [inspections]="inspections()"
+      [orders]="orders()"
+      [unitReports]="unitReports()"
+      [editable]="false"
+    />
+  </div>
   </dynadrill-spinner>
 </div>

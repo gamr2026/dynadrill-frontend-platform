@@ -1,6 +1,6 @@
 import { ApplicationConfig, isDevMode, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { HttpInterceptorFn, provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideRouter } from '@angular/router';
+import { PreloadAllModules, provideRouter, withPreloading } from '@angular/router';
 import { provideNzI18n, es_ES } from 'ng-zorro-antd/i18n';
 import { provideNzIcons } from 'ng-zorro-antd/icon';
 import { provideNzWave } from 'ng-zorro-antd/core/wave';
@@ -33,7 +33,15 @@ const interceptors: HttpInterceptorFn[] = isDevMode()
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes),
+    // Sin esto, cada ruta lazy (ej. /login al cerrar sesión, o
+    // /dashboard/mantenimiento/kpis con su chunk pesado de ECharts) recién
+    // descarga y parsea su bundle en el primer clic — con red/CPU lentas eso
+    // se siente como que la app se congela (hasta el aviso nativo del
+    // navegador de "página no responde"). PreloadAllModules los descarga en
+    // segundo plano, en tiempo ocioso, después de la carga inicial — sin
+    // tocar qué va en el bundle inicial (ver nota de provideDynadrillCharts
+    // más abajo, eso sigue aparte).
+    provideRouter(routes, withPreloading(PreloadAllModules)),
     provideHttpClient(withInterceptors(interceptors)),
     provideNzI18n(es_ES),
     // El manual de marca prohíbe el ripple/wave effect (sección 4) —

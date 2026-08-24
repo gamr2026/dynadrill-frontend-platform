@@ -1,16 +1,21 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import {
+  DynadrillButtonComponent,
   DynadrillChartComponent,
   DynadrillChartSeries,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
+  DynadrillDrawerService,
+  DynadrillIconButtonComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
+  DynadrillSelectComponent,
   DynadrillSpinnerComponent,
   DynadrillTextComponent,
   type DynadrillKpiRowItem,
+  type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import { MaintenanceOrderWithSubOrders } from '../models/maintenance-order.model';
 import { UnitReport } from '../models/unit-report.model';
@@ -18,6 +23,7 @@ import { Unidad, calcularAlertas } from '../models/unidad.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { UnitReportsService } from '../services/unit-reports.service';
 import { UnidadesService } from '../services/unidades.service';
+import { OrderDetailPanel, OrderDetailPanelData } from '../components/order-detail-panel';
 
 function hoursBetween(aIso: string, bIso: string): number {
   return (new Date(bIso).getTime() - new Date(aIso).getTime()) / 3_600_000;
@@ -42,6 +48,9 @@ function average(values: number[]): number {
     DynadrillTextComponent,
     DynadrillChartComponent,
     DynadrillDataTableComponent,
+    DynadrillSelectComponent,
+    DynadrillIconButtonComponent,
+    DynadrillButtonComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './maintenance-kpis-page.html',
@@ -52,11 +61,33 @@ export class MaintenanceKpisPage {
   private readonly unitReportsService = inject(UnitReportsService);
   private readonly unidadesService = inject(UnidadesService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly drawer = inject(DynadrillDrawerService);
 
   protected readonly loading = signal(true);
   protected readonly orders = signal<MaintenanceOrderWithSubOrders[]>([]);
   protected readonly unitReports = signal<UnitReport[]>([]);
   protected readonly unidades = signal<Unidad[]>([]);
+
+  // ── Filtro por tipo de unidad ──
+
+  protected readonly tipoOptions: DynadrillSelectOption[] = [
+    { label: 'Servicio', value: 'Servicio' },
+    { label: 'Auxiliar', value: 'Auxiliar' },
+    { label: 'Transporte', value: 'Transporte' },
+  ];
+  protected readonly filtroTipo = signal<string | number | null>(null);
+
+  protected readonly filteredUnidades = computed(() => {
+    const tipo = this.filtroTipo();
+    return tipo ? this.unidades().filter(u => u.tipo === String(tipo)) : this.unidades();
+  });
+
+  protected readonly filteredOrders = computed(() => {
+    const tipo = this.filtroTipo();
+    if (!tipo) return this.orders();
+    const codes = new Set(this.filteredUnidades().map(u => u.code));
+    return this.orders().filter(o => codes.has(o.unidad));
+  });
 
   constructor() {
     this.reload();
@@ -85,7 +116,7 @@ export class MaintenanceKpisPage {
   // ── De proceso ──
 
   protected readonly tiempoGeneracionOrden = computed(() => {
-    const horas = this.orders()
+    const horas = this.filteredOrders()
       .map(o => {
         const report = this.unitReports().find(r => r.id === o.unitReportId);
         return report ? hoursBetween(report.createdAt, o.createdAt) : null;
@@ -95,7 +126,7 @@ export class MaintenanceKpisPage {
   });
 
   protected readonly tiempoDiagnostico = computed(() => {
-    const horas = this.orders().flatMap(o =>
+    const horas = this.filteredOrders().flatMap(o =>
       o.subOrders
         .filter(s => s.ejecucionIniciadaEn)
         .map(s => hoursBetween(o.createdAt, s.ejecucionIniciadaEn!)),
@@ -104,7 +135,7 @@ export class MaintenanceKpisPage {
   });
 
   protected readonly tiempoReparacion = computed(() => {
-    const horas = this.orders().flatMap(o =>
+    const horas = this.filteredOrders().flatMap(o =>
       o.subOrders
         .filter(s => s.ejecucionIniciadaEn && s.ejecucionTerminadaEn)
         .map(s => hoursBetween(s.ejecucionIniciadaEn!, s.ejecucionTerminadaEn!)),
@@ -115,7 +146,7 @@ export class MaintenanceKpisPage {
   // ── De flota / confiabilidad ──
 
   protected readonly mttrHoras = computed(() => {
-    const horas = this.orders()
+    const horas = this.filteredOrders()
       .filter(o => o.closedAt)
       .map(o => hoursBetween(o.createdAt, o.closedAt!));
     return average(horas);
@@ -124,7 +155,7 @@ export class MaintenanceKpisPage {
   /** MTBF aproximado: promedio de días entre creación de órdenes consecutivas, por unidad. */
   protected readonly mtbfDias = computed(() => {
     const porUnidad = new Map<string, string[]>();
-    for (const o of this.orders()) {
+    for (const o of this.filteredOrders()) {
       porUnidad.set(o.unidad, [...(porUnidad.get(o.unidad) ?? []), o.createdAt]);
     }
     const gaps: number[] = [];
@@ -138,16 +169,16 @@ export class MaintenanceKpisPage {
   });
 
   protected readonly disponibilidadFlota = computed(() => {
-    const total = this.unidades().length;
+    const total = this.filteredUnidades().length;
     if (!total) return 0;
-    const conOrdenAbierta = new Set(this.orders().filter(o => !o.returnedToOperation).map(o => o.unidad));
-    const disponibles = this.unidades().filter(u => !conOrdenAbierta.has(u.code)).length;
+    const conOrdenAbierta = new Set(this.filteredOrders().filter(o => !o.returnedToOperation).map(o => o.unidad));
+    const disponibles = this.filteredUnidades().filter(u => !conOrdenAbierta.has(u.code)).length;
     return Math.round((disponibles / total) * 100);
   });
 
   protected readonly fallasRepetitivas = computed(() => {
     const porUnidad = new Map<string, number>();
-    for (const o of this.orders()) {
+    for (const o of this.filteredOrders()) {
       porUnidad.set(o.unidad, (porUnidad.get(o.unidad) ?? 0) + 1);
     }
     return [...porUnidad.entries()]
@@ -159,7 +190,7 @@ export class MaintenanceKpisPage {
 
   // ── De cumplimiento preventivo ──
 
-  protected readonly alertas = computed(() => this.unidades().flatMap(u => calcularAlertas(u)));
+  protected readonly alertas = computed(() => this.filteredUnidades().flatMap(u => calcularAlertas(u)));
 
   protected readonly cumplimientoPreventivo = computed(() => {
     const all = this.alertas();
@@ -191,4 +222,21 @@ export class MaintenanceKpisPage {
     { key: 'cantidad', header: 'N° de órdenes', sortable: true },
   ];
   protected readonly fallasRowKeyFn = (row: Record<string, unknown>): string => String(row['unidad']);
+
+  /** Abre la orden más reciente de esta unidad — mismo panel que usa la Bandeja. */
+  openUnitOrder(row: Record<string, unknown>): void {
+    const unidad = String(row['unidad']);
+    const unitOrders = this.filteredOrders().filter(o => o.unidad === unidad);
+    const latest = [...unitOrders].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+    if (!latest) return;
+    const unitReport = this.unitReports().find(r => r.id === latest.unitReportId);
+    if (!unitReport) return;
+
+    this.drawer.open<OrderDetailPanel, OrderDetailPanelData>({
+      title: 'Detalle — ' + latest.code,
+      content: OrderDetailPanel,
+      data: { unitReport, order: latest },
+      size: 'small',
+    });
+  }
 }

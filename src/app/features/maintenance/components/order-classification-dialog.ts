@@ -11,7 +11,7 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import type { DynadrillSelectOption, DynadrillTab } from '@digitec-it-projects/dynadrill-ui';
 import { MaintenanceOrderWithSubOrders, MaintenanceType } from '../models/maintenance-order.model';
-import { UnitReport } from '../models/unit-report.model';
+import { unitReportCode, UnitReport } from '../models/unit-report.model';
 import { ClassifyTypeAssignment, MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { UnitReportsService } from '../services/unit-reports.service';
 import { RolesService, UsersService } from '../../users/services/users.service';
@@ -64,6 +64,7 @@ export class OrderClassificationDialog {
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<OrderClassificationDialog, boolean>);
   protected readonly data = inject<OrderClassificationDialogData>(NZ_MODAL_DATA);
+  protected readonly unitReportCode = unitReportCode;
 
   protected readonly isEditMode = !!this.data.existingOrder;
 

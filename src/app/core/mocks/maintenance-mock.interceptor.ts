@@ -407,6 +407,38 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
     return of(new HttpResponse({ status: 201, body: created })).pipe(delay(400));
   }
 
+  const editInspectionId = req.url.match(/\/api\/vehicle-inspections\/(\d+)$/);
+  if (editInspectionId && req.method === 'PUT') {
+    const id = Number(editInspectionId[1]);
+    const input = req.body as CreateVehicleInspectionInput;
+    const existing = vehicleInspections.find(i => i.id === id);
+    if (!existing) return of(new HttpResponse({ status: 404 })).pipe(delay(300));
+
+    const updated: VehicleInspection = { ...existing, ...input, id, createdAt: existing.createdAt };
+    vehicleInspections = vehicleInspections.map(i => (i.id === id ? updated : i));
+
+    const unidadIdx = unidades.findIndex(u => u.id === input.unidadId);
+    if (unidadIdx !== -1 && input.kmFinal) {
+      const u = { ...unidades[unidadIdx] };
+      u.kmActual = Math.max(u.kmActual ?? 0, input.kmFinal);
+      unidades[unidadIdx] = u;
+    }
+
+    return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(400));
+  }
+
+  const approveInspectionId = req.url.match(/\/api\/vehicle-inspections\/(\d+)\/approve$/);
+  if (approveInspectionId && req.method === 'PATCH') {
+    const id = Number(approveInspectionId[1]);
+    const { supervisorName } = req.body as { supervisorName: string };
+    const existing = vehicleInspections.find(i => i.id === id);
+    if (!existing) return of(new HttpResponse({ status: 404 })).pipe(delay(300));
+
+    const updated: VehicleInspection = { ...existing, supervisorApprovedBy: supervisorName, supervisorApprovedAt: new Date().toISOString() };
+    vehicleInspections = vehicleInspections.map(i => (i.id === id ? updated : i));
+    return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(300));
+  }
+
   if (req.url === '/api/unit-reports' && req.method === 'GET') {
     return of(new HttpResponse({ status: 200, body: unitReports })).pipe(delay(300));
   }
@@ -440,6 +472,30 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
     }
 
     return of(new HttpResponse({ status: 201, body: created })).pipe(delay(400));
+  }
+
+  const editReportId = matchId(req.url, '/api/unit-reports');
+  if (editReportId !== null && req.method === 'PUT') {
+    const input = req.body as CreateUnitReportInput;
+    const existing = unitReports.find(r => r.id === editReportId);
+    if (!existing) return of(new HttpResponse({ status: 404 })).pipe(delay(300));
+
+    const updated: UnitReport = { ...existing, ...input, id: editReportId, createdAt: existing.createdAt };
+    unitReports = unitReports.map(r => (r.id === editReportId ? updated : r));
+
+    const unidadIdx = unidades.findIndex(u => u.id === input.unidadId);
+    if (unidadIdx !== -1) {
+      const u = { ...unidades[unidadIdx] };
+      if (u.tipo === 'Servicio' && input.horometroLlegada !== undefined) {
+        u.horometroActual = Math.max(u.horometroActual ?? 0, input.horometroLlegada);
+      }
+      if (u.tipo === 'Transporte' && input.odometroLlegada !== undefined) {
+        u.kmActual = Math.max(u.kmActual ?? 0, input.odometroLlegada);
+      }
+      unidades[unidadIdx] = u;
+    }
+
+    return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(400));
   }
 
   const dismissReportId = req.url.match(/\/api\/unit-reports\/(\d+)\/dismiss$/);

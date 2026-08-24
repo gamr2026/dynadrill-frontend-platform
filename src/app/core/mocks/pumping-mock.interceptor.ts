@@ -112,7 +112,9 @@ const tickets: PumpingTicket[] = [
       operationInterrupted: false,
       interruptionDetail: '',
       departureOperatorName: 'Carlos Vega',
+      departureApprovalDate: '2026-07-20',
       arrivalOperatorName: 'Carlos Vega',
+      arrivalApprovalDate: '2026-07-21',
     },
     chemicals: [
       { id: 3, name: 'Surfactante SF-3', quantityAssigned: 15, quantityUsed: 12, quantityReturned: 3, unit: 'gal' },
@@ -211,7 +213,9 @@ const tickets: PumpingTicket[] = [
       operationInterrupted: false,
       interruptionDetail: '',
       departureOperatorName: 'Marcos Torres',
+      departureApprovalDate: '2026-08-01',
       arrivalOperatorName: 'Marcos Torres',
+      arrivalApprovalDate: '2026-08-02',
     },
     chemicals: [
       { id: 4, name: 'Fosfato', quantityAssigned: 10, quantityUsed: 8, quantityReturned: 2, unit: 'gal' },
@@ -266,8 +270,8 @@ const tickets: PumpingTicket[] = [
       fuelDeparture: 75,
       fuelArrival: 40,
       hubodometro: [
-        { label: 'A', salida: 5720, llegada: 5900 },
-        { label: 'B', salida: 4550190, llegada: 4550350 },
+        { label: 'A', salida: null, llegada: null },
+        { label: 'B', salida: null, llegada: null },
         { label: 'C', salida: null, llegada: null },
         { label: 'D', salida: null, llegada: null },
       ],
@@ -287,7 +291,9 @@ const tickets: PumpingTicket[] = [
       operationInterrupted: false,
       interruptionDetail: '',
       departureOperatorName: 'Carla Fiallos',
+      departureApprovalDate: '2026-08-10',
       arrivalOperatorName: 'Carlos Vega',
+      arrivalApprovalDate: '2026-08-11',
     },
     chemicals: [
       { id: 5, name: 'Amonio', quantityAssigned: 25, quantityUsed: 20, quantityReturned: 5, unit: 'gal' },

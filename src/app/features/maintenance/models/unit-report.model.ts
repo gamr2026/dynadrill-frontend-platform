@@ -24,6 +24,8 @@ export interface UnitReport {
   unidad: string;
   /** Cuando este reporte se generó desde una falla detectada en Inspección de Vehículos (DYN-SGI-RE-068). */
   originVehicleInspectionId?: number;
+  /** Cuando este reporte se generó automáticamente desde el Reporte de Unidad de un ticket de Pumping. */
+  originTicketId?: number;
   fechaSalida: string;
   fechaLlegada: string;
   horometroSalida?: number;
@@ -62,6 +64,11 @@ export type CreateUnitReportInput = Omit<UnitReport, 'id' | 'createdAt' | 'dismi
 /** ¿El reporte trae alguna novedad que amerite disparar una orden de mantenimiento? */
 export function unitReportHasNovedades(report: Pick<UnitReport, 'problemasMecanica' | 'problemasInstrumentacion' | 'problemasOperaciones'>): boolean {
   return !!(report.problemasMecanica.trim() || report.problemasInstrumentacion.trim() || report.problemasOperaciones.trim());
+}
+
+/** Código legible del Reporte de Unidad — mismo formato en toda la pantalla donde se muestre. */
+export function unitReportCode(reportNo: string): string {
+  return `R${reportNo}`;
 }
 
 /** Ítems fijos del formulario físico — no son datos configurables. */

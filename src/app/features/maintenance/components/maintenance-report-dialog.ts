@@ -9,7 +9,7 @@ import {
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
 import { MaintenanceOrderWithSubOrders, SubOrderStatus } from '../models/maintenance-order.model';
-import { UnitReport } from '../models/unit-report.model';
+import { unitReportCode, UnitReport } from '../models/unit-report.model';
 import { RegistroMantenimiento } from '../models/historial-mantenimiento.model';
 
 /**
@@ -42,6 +42,7 @@ export class MaintenanceReportDialog {
   protected readonly data = inject<MaintenanceReportDialogData>(NZ_MODAL_DATA);
   private readonly modalRef = inject(NzModalRef<MaintenanceReportDialog>);
   protected readonly statusTone = STATUS_TONE;
+  protected readonly unitReportCode = unitReportCode;
 
   /** Casillas del formato físico DYN-MNT-RE-008 — se marca la que aplica. */
   protected readonly tiposMantenimiento = ['Correctivo', 'Preventivo', 'Predictivo', 'Operativo'] as const;

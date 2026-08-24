@@ -2,6 +2,7 @@ import { HttpInterceptorFn, HttpResponse } from '@angular/common/http';
 import { delay, of } from 'rxjs';
 import {
   PumpingTicket,
+  PumpingUnitReport,
   createChassisInspectionItems,
   createMotorInspectionItems,
   createArrivalEquipmentItems,
@@ -16,7 +17,7 @@ const defaultTires: TireEntry[] = [
   { axle: 'D', salida: '', llegada: '' },
 ];
 
-const tickets: PumpingTicket[] = [
+let tickets: PumpingTicket[] = [
   {
     id: 1,
     code: 'PUMP-2026-00456',
@@ -306,6 +307,31 @@ export const pumpingMockInterceptor: HttpInterceptorFn = (req, next) => {
     const id = Number(detailMatch[1]);
     const found = tickets.find(t => t.id === id);
     return of(new HttpResponse({ status: found ? 200 : 404, body: found ?? null })).pipe(delay(300));
+  }
+
+  const advanceMatch = req.url.match(/\/api\/operations\/pumping\/tickets\/(\d+)\/advance$/);
+  if (advanceMatch && req.method === 'PATCH') {
+    const id = Number(advanceMatch[1]);
+    const idx = tickets.findIndex(t => t.id === id);
+    if (idx !== -1) {
+      const { step } = req.body as { step: PumpingTicket['currentStep'] };
+      const updated: PumpingTicket = { ...tickets[idx], currentStep: step };
+      tickets = tickets.map(t => (t.id === id ? updated : t));
+      return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(300));
+    }
+    return of(new HttpResponse({ status: 404 })).pipe(delay(300));
+  }
+
+  const unitReportMatch = req.url.match(/\/api\/operations\/pumping\/tickets\/(\d+)\/unit-report$/);
+  if (unitReportMatch && req.method === 'PATCH') {
+    const id = Number(unitReportMatch[1]);
+    const idx = tickets.findIndex(t => t.id === id);
+    if (idx !== -1) {
+      const updated: PumpingTicket = { ...tickets[idx], unitReport: req.body as PumpingUnitReport };
+      tickets = tickets.map(t => (t.id === id ? updated : t));
+      return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(300));
+    }
+    return of(new HttpResponse({ status: 404 })).pipe(delay(300));
   }
 
   const patchMatch = req.url.match(/\/api\/operations\/pumping\/tickets\/(\d+)\//);

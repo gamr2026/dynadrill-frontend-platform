@@ -1,25 +1,47 @@
 <div class="maintenance-kpis-page">
   <dynadrill-screen-header title="Indicadores de Mantenimiento" subtitle="MAN-MASTER-001 — calculados sobre los datos actuales del sistema" />
 
+  <div class="maintenance-kpis-page__toolbar">
+    <dynadrill-select
+      class="maintenance-kpis-page__toolbar-select"
+      placeholder="Tipo de unidad"
+      [options]="tipoOptions"
+      [value]="filtroTipo()"
+      (valueChange)="filtroTipo.set($any($event))"
+    />
+    @if (filtroTipo()) {
+      <dynadrill-button variant="secondary" size="small" (clicked)="filtroTipo.set(null)">Limpiar filtro</dynadrill-button>
+    }
+  </div>
+
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Calculando indicadores…">
     <dynadrill-kpi-row [items]="kpis()" />
 
     <div class="maintenance-kpis-page__gauges">
-      <div class="maintenance-kpis-page__gauge-card">
+      <div class="maintenance-kpis-page__card">
         <dynadrill-text variant="h2">Cumplimiento del plan preventivo</dynadrill-text>
         <dynadrill-chart type="gauge" [value]="cumplimientoPreventivo()" [max]="100" height="220px" />
       </div>
-      <div class="maintenance-kpis-page__gauge-card">
+      <div class="maintenance-kpis-page__card">
         <dynadrill-text variant="h2">Disponibilidad de flota</dynadrill-text>
         <dynadrill-chart type="gauge" [value]="disponibilidadFlota()" [max]="100" height="220px" />
       </div>
     </div>
 
-    <div class="maintenance-kpis-page__section">
+    <div class="maintenance-kpis-page__card">
       <dynadrill-text variant="h2">Unidades con fallas repetitivas</dynadrill-text>
       @if (fallasRepetitivas().length) {
         <dynadrill-chart type="bar" [categories]="fallasChartCategories()" [series]="fallasChartSeries()" height="260px" />
-        <dynadrill-data-table [columns]="fallasColumns" [rows]="fallasRepetitivas()" [rowKey]="fallasRowKeyFn" [pageSize]="5" />
+        <dynadrill-data-table
+          [columns]="fallasColumns"
+          [rows]="fallasRepetitivas()"
+          [rowKey]="fallasRowKeyFn"
+          [pageSize]="5"
+          [actionsTemplate]="fallasActionsTpl"
+        />
+        <ng-template #fallasActionsTpl let-row>
+          <dynadrill-icon-button icon="eye" tooltip="Ver orden más reciente" tooltipPlacement="top" (clicked)="openUnitOrder(row)" />
+        </ng-template>
       } @else {
         <dynadrill-text variant="caption">Ninguna unidad tiene más de una orden correctiva todavía.</dynadrill-text>
       }

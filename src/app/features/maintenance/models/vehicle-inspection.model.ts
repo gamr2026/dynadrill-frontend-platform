@@ -94,6 +94,10 @@ export interface VehicleInspection {
 
   supervisorNombre?: string;
 
+  /** Firma del Supervisor (Plan 2026, 5.3) — ausente = pendiente de aprobación. */
+  supervisorApprovedBy?: string;
+  supervisorApprovedAt?: string;
+
   createdAt: string;
 }
 
@@ -102,4 +106,16 @@ export type CreateVehicleInspectionInput = Omit<VehicleInspection, 'id' | 'creat
 /** ¿Algún ítem quedó "No cumple"? — dispara la oferta de generar Reporte de Unidad (Plan 2026, 5.4). */
 export function vehicleInspectionHasNoCumple(insp: Pick<VehicleInspection, 'checklistVehiculo' | 'checklistEquipo'>): boolean {
   return [...insp.checklistVehiculo, ...insp.checklistEquipo].some(item => item.estado === 'NC');
+}
+
+/** Nota 1 del formato DYN-SGI-RE-068: sin cinturón de seguridad en buen estado, el vehículo no puede usarse. */
+export const SEATBELT_ITEM_LABEL = 'Cinturones de seguridad — operativos para todos los asientos';
+
+export function vehicleInspectionBlockedBySeatbelt(insp: Pick<VehicleInspection, 'checklistVehiculo'>): boolean {
+  return insp.checklistVehiculo.some(item => item.label === SEATBELT_ITEM_LABEL && item.estado === 'NC');
+}
+
+/** Apta para viaje (Plan 2026, 5.3/5.4): aprobada por el Supervisor y sin el bloqueo de la Nota 1. */
+export function vehicleInspectionIsUsable(insp: Pick<VehicleInspection, 'checklistVehiculo' | 'supervisorApprovedBy'>): boolean {
+  return !!insp.supervisorApprovedBy && !vehicleInspectionBlockedBySeatbelt(insp);
 }

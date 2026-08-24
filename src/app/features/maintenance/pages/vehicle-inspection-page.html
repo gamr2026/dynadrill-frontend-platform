@@ -5,21 +5,24 @@
     [roleTag]="roleName()"
   />
 
-  <div class="vehicle-inspection-page__toolbar">
-    <dynadrill-button (clicked)="openInspection()">
-      <dynadrill-icon name="add" [size]="14" />
-      Nueva inspección
-    </dynadrill-button>
-  </div>
+  @if (isConductor()) {
+    <div class="vehicle-inspection-page__toolbar">
+      <dynadrill-button (clicked)="openInspection()">
+        <dynadrill-icon name="add" [size]="14" />
+        Nueva inspección
+      </dynadrill-button>
+    </div>
+  }
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando inspecciones…">
-    <dynadrill-data-table
-      [columns]="columns()"
-      [rows]="rows()"
-      [rowKey]="rowKeyFn"
-      [pageSize]="10"
-      [actionsFixed]="!!tableScrollX()"
-      [scrollX]="tableScrollX() ?? ''"
+    <app-vehicle-inspections-table
+      [inspections]="inspections()"
+      [orders]="orders()"
+      [unitReports]="unitReports()"
+      [editable]="isConductor()"
+      [approvable]="isSupervisor()"
+      (edit)="editInspection($event)"
+      (approve)="approveInspection($event)"
     />
   </dynadrill-spinner>
 </div>

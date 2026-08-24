@@ -22,6 +22,7 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import {
   PumpingTicket,
+  PumpingUnitReport,
   PUMPING_SERVICE_TYPE_LABELS,
   PUMPING_STEP_LABELS,
   createChassisInspectionItems,
@@ -33,6 +34,12 @@ import {
   type TireEntry,
 } from '../../models/pumping.model';
 import { PumpingService } from '../../services/pumping.service';
+import { CreateUnitReportInput, unitReportHasNovedades } from '../../../../maintenance/models/unit-report.model';
+import { UnitReportsService } from '../../../../maintenance/services/unit-reports.service';
+import { UnidadesService } from '../../../../maintenance/services/unidades.service';
+import { VehicleInspectionsService } from '../../../../maintenance/services/vehicle-inspections.service';
+import { vehicleInspectionIsUsable } from '../../../../maintenance/models/vehicle-inspection.model';
+import { forkJoin, map } from 'rxjs';
 
 const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'en_ejecucion_llegada', 'en_revision'];
 
@@ -61,6 +68,9 @@ export class TicketDetailPage {
   private readonly router = inject(Router);
   private readonly pumpingService = inject(PumpingService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly unitReportsService = inject(UnitReportsService);
+  private readonly unidadesService = inject(UnidadesService);
+  private readonly vehicleInspectionsService = inject(VehicleInspectionsService);
 
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
@@ -120,6 +130,8 @@ export class TicketDetailPage {
     { label: 'PUM-07', value: 1 },
     { label: 'PUM-15', value: 2 },
     { label: '4-CTV-03', value: 3 },
+    { label: 'CAM-04', value: 4 },
+    { label: 'CAM-08', value: 5 },
   ];
   protected readonly selectedUnits = signal<number[]>([]);
 
@@ -323,6 +335,7 @@ export class TicketDetailPage {
         this.ticket.set(updated);
         this.submitting.set(false);
         this.notify.success('Guardado', 'Supervisor asignado correctamente.');
+        this.advanceToNextStep(t);
       },
       error: () => {
         this.submitting.set(false);
@@ -335,21 +348,73 @@ export class TicketDetailPage {
     const t = this.ticket();
     if (!t) return;
     this.submitting.set(true);
-    this.pumpingService.assignResources(t.id, {
-      operatorIds: this.selectedOperators(),
-      unitIds: this.selectedUnits(),
-      chemicalIds: this.selectedChemicals(),
-    }).subscribe({
-      next: updated => {
-        this.ticket.set(updated);
+
+    this.validateTransporteUnits().subscribe(errorMessage => {
+      if (errorMessage) {
         this.submitting.set(false);
-        this.notify.success('Guardado', 'Asignaciones guardadas correctamente.');
-      },
-      error: () => {
-        this.submitting.set(false);
-        this.notify.error('Error', 'No se pudieron guardar las asignaciones.');
-      },
+        this.notify.error('Unidad no disponible', errorMessage);
+        return;
+      }
+
+      this.pumpingService.assignResources(t.id, {
+        operatorIds: this.selectedOperators(),
+        unitIds: this.selectedUnits(),
+        chemicalIds: this.selectedChemicals(),
+      }).subscribe({
+        next: updated => {
+          this.ticket.set(updated);
+          this.submitting.set(false);
+          this.notify.success('Guardado', 'Asignaciones guardadas correctamente.');
+          this.advanceToNextStep(t);
+        },
+        error: () => {
+          this.submitting.set(false);
+          this.notify.error('Error', 'No se pudieron guardar las asignaciones.');
+        },
+      });
     });
+  }
+
+  /**
+   * Plan 2026, 5.3/5.4: ninguna unidad de Transporte puede salir a un
+   * servicio sin una Inspección de Vehículos aprobada por el Supervisor y
+   * sin el bloqueo de la Nota 1 (cinturón de seguridad). Devuelve el
+   * motivo del bloqueo, o null si todas las unidades de Transporte
+   * seleccionadas están en regla.
+   */
+  private validateTransporteUnits() {
+    const selectedCodes = this.unitOptions
+      .filter(o => this.selectedUnits().includes(o.value as number))
+      .map(o => o.label);
+
+    return forkJoin({
+      unidades: this.unidadesService.list(),
+      inspections: this.vehicleInspectionsService.list(),
+    }).pipe(
+      map(({ unidades, inspections }) => {
+        const transporteCodes = unidades
+          .filter(u => u.tipo === 'Transporte' && selectedCodes.includes(u.code))
+          .map(u => u.code);
+
+        for (const code of transporteCodes) {
+          const forUnit = inspections
+            .filter(i => i.unidadCode === code)
+            .sort((a, b) => b.fecha.localeCompare(a.fecha));
+          const latest = forUnit[0];
+
+          if (!latest) {
+            return `${code} no tiene ninguna Inspección de Vehículos registrada.`;
+          }
+          if (!latest.supervisorApprovedBy) {
+            return `${code} tiene una inspección pendiente de aprobación del Supervisor.`;
+          }
+          if (!vehicleInspectionIsUsable(latest)) {
+            return `${code} está bloqueada por la inspección — falla en cinturón de seguridad (Nota 1, DYN-SGI-RE-068).`;
+          }
+        }
+        return null;
+      }),
+    );
   }
 
   protected saveUnitReport(): void {
@@ -394,11 +459,100 @@ export class TicketDetailPage {
         this.ticket.set(updated);
         this.submitting.set(false);
         this.notify.success('Guardado', 'Reporte de unidad guardado correctamente.');
+        this.bridgeToMaintenance(t, report);
+        this.advanceToNextStep(t);
       },
       error: () => {
         this.submitting.set(false);
         this.notify.error('Error', 'No se pudo guardar el reporte.');
       },
+    });
+  }
+
+  /**
+   * Cada acción de guardado (asignar supervisor, asignar recursos, enviar
+   * reporte de unidad) persistía su propio paso pero nunca movía el ticket
+   * al siguiente paso del wizard — el ticket se quedaba pegado donde
+   * estaba aunque el toast dijera "Guardado".
+   */
+  private readonly NEXT_STEP: Partial<Record<PumpingStep, PumpingStep>> = {
+    revision_propuesta: 'asignacion',
+    asignacion: 'en_ejecucion',
+    en_ejecucion: 'en_ejecucion_llegada',
+    en_ejecucion_llegada: 'en_revision',
+  };
+
+  private advanceToNextStep(t: PumpingTicket): void {
+    const nextStep = this.NEXT_STEP[t.currentStep];
+    if (!nextStep) return;
+
+    this.pumpingService.advanceStep(t.id, nextStep).subscribe({
+      next: updated => this.ticket.set(updated),
+      error: () => this.notify.error('Error', 'No se pudo avanzar el ticket al siguiente paso.'),
+    });
+  }
+
+  /**
+   * Puente automático y silencioso hacia Mantenimiento: si el reporte trae
+   * novedades, crea (o actualiza, si ya existía uno para este ticket) un
+   * UnitReport para que aparezca en la Bandeja del Jefe — sin pedirle un
+   * paso extra al Operador de Pumping. No bloquea el guardado del reporte
+   * de Pumping si algo falla acá.
+   */
+  private bridgeToMaintenance(t: PumpingTicket, report: PumpingUnitReport): void {
+    if (!unitReportHasNovedades({
+      problemasMecanica: report.novelties.mecanica,
+      problemasInstrumentacion: report.novelties.instrumentacion,
+      problemasOperaciones: report.novelties.operaciones,
+    })) {
+      return;
+    }
+
+    const unitCode = report.unitCode || t.unitCode;
+    this.unidadesService.list().subscribe(unidades => {
+      const unidad = unidades.find(u => u.code === unitCode);
+      if (!unidad) {
+        this.notify.error('No se sincronizó con Mantenimiento', `No se encontró la unidad '${unitCode}' — el reporte de Pumping sí quedó guardado.`);
+        return;
+      }
+
+      const input: CreateUnitReportInput = {
+        sourceModule: 'Pumping',
+        originTicketId: t.id,
+        reportNo: t.code.replace('PUMP-', ''),
+        pozo: t.wellName,
+        cliente: t.clientName,
+        bloque: report.blockName,
+        base: report.baseName,
+        unidad: unitCode,
+        unidadId: unidad.id,
+        fechaSalida: report.departureDate || t.estimatedDate,
+        fechaLlegada: report.arrivalDate || new Date().toISOString(),
+        origen: report.origin,
+        destino: report.destination,
+        inspeccionChasis: [],
+        inspeccionPlataforma: [],
+        inspeccionInstrumentacion: [],
+        problemasMecanica: report.novelties.mecanica,
+        problemasInstrumentacion: report.novelties.instrumentacion,
+        problemasOperaciones: report.novelties.operaciones,
+        interrumpioOperacion: report.operationInterrupted ?? false,
+        detalleInterrupcion: report.interruptionDetail,
+        listaParaSiguienteOperacion: report.unitReady ?? true,
+        operadorSalida: report.departureOperatorName,
+        operadorLlegada: report.arrivalOperatorName,
+        supervisorSalida: t.assignedSupervisor || '',
+        supervisorLlegada: t.assignedSupervisor || '',
+      };
+
+      this.unitReportsService.list().subscribe(existingReports => {
+        const existing = existingReports.find(r => r.originTicketId === t.id);
+        const save$ = existing ? this.unitReportsService.update(existing.id, input) : this.unitReportsService.create(input);
+        save$.subscribe({
+          next: () => this.notify.success('Sincronizado', 'La novedad se envió a la Bandeja de Mantenimiento.'),
+          error: () => this.notify.error('No se sincronizó con Mantenimiento', 'El reporte de Pumping sí quedó guardado, pero no se pudo enviar la novedad a la Bandeja.'),
+        });
+      });
     });
   }
 

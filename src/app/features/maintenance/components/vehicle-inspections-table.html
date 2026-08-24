@@ -1,0 +1,14 @@
+@if (editable() || approvable()) {
+  <dynadrill-data-table [columns]="columns()" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" [actionsTemplate]="actionsTpl" />
+} @else {
+  <dynadrill-data-table [columns]="columns()" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" />
+}
+
+<ng-template #actionsTpl let-row>
+  @if (row['canEdit']) {
+    <dynadrill-icon-button icon="edit" tooltip="Editar inspección" tooltipPlacement="top" (clicked)="onEdit(row)" />
+  }
+  @if (row['canApprove']) {
+    <dynadrill-icon-button icon="check-circle" tooltip="Aprobar inspección" tooltipPlacement="top" (clicked)="onApprove(row)" />
+  }
+</ng-template>

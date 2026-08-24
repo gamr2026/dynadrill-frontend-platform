@@ -19,6 +19,10 @@ export class UnitReportsService {
     return this.http.post<UnitReport>('/api/unit-reports', input);
   }
 
+  update(id: number, input: CreateUnitReportInput): Observable<UnitReport> {
+    return this.http.put<UnitReport>(`/api/unit-reports/${id}`, input);
+  }
+
   /** MAN-001-A, rama "No requiere mantenimiento": descarta el reporte sin generar orden, con motivo obligatorio. */
   dismiss(id: number, reason: string): Observable<void> {
     return this.http.post<void>(`/api/unit-reports/${id}/dismiss`, { reason });

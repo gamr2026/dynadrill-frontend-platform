@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import {
   DynadrillButtonComponent,
@@ -21,6 +21,7 @@ import {
   type DynadrillTab,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../core/services/auth.service';
+import { AppNotificationItem, NotificationsService } from '../../../core/services/notifications.service';
 import { computeOrderStatus, MaintenanceOrderWithSubOrders, OrderStatus } from '../models/maintenance-order.model';
 import { unitReportHasNovedades, UnitReport } from '../models/unit-report.model';
 import { AlertaPreventiva, AlertaPreventivaNivel, calcularAlertas, Unidad } from '../models/unidad.model';
@@ -31,6 +32,7 @@ import { OrderDetailPanel, OrderDetailPanelData } from '../components/order-deta
 import { OrderClassificationDialog, OrderClassificationDialogData } from '../components/order-classification-dialog';
 import { MaintenanceReportDialog, MaintenanceReportDialogData } from '../components/maintenance-report-dialog';
 import { RegisterPMDialog, RegisterPMDialogData } from '../components/register-pm-dialog';
+import { HistorialDialog, HistorialDialogData } from '../components/historial-dialog';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -60,6 +62,7 @@ export class MaintenanceListPage {
   private readonly drawer = inject(DynadrillDrawerService);
   private readonly dialogService = inject(DynadrillDialogService);
   private readonly auth = inject(AuthService);
+  private readonly notifications = inject(NotificationsService);
 
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
 
@@ -139,6 +142,18 @@ export class MaintenanceListPage {
 
   protected readonly prevRowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
+  /** Historial de una unidad — accesible desde cualquier alerta de Preventivo que le pertenezca. */
+  openHistorial(row: Record<string, unknown>): void {
+    const alerta = row['_alerta'] as AlertaPreventiva;
+    this.dialogService.open<HistorialDialog, HistorialDialogData>({
+      title: 'Historial de mantenimiento',
+      content: HistorialDialog,
+      data: { unidadId: alerta.unidadId, unidadCode: alerta.unidadCode, unidadNombre: alerta.unidadNombre },
+      footer: false,
+      width: '640px',
+    });
+  }
+
   protected readonly alertasFiltradas = computed<AlertaPreventiva[]>(() => {
     let list = this.alertas();
     const nivel = this.filtroNivel();
@@ -169,6 +184,13 @@ export class MaintenanceListPage {
 
   toggleFiltroNivel(nivel: AlertaPreventivaNivel): void {
     this.filtroNivel.update(current => current === nivel ? null : nivel);
+    this.prevPage.set(1);
+  }
+
+  onTabChange(index: number): void {
+    this.activeTab.set(index);
+    this.filtroNivel.set(null);
+    this.filtroTipo.set(null);
     this.prevPage.set(1);
   }
 
@@ -264,6 +286,49 @@ export class MaintenanceListPage {
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
+  /**
+   * Fuente de avisos para la campana del Header (Fase 09.1): preventivos
+   * vencidos, reportes sin clasificar y sub-órdenes en revisión de cierre.
+   * El Header no conoce esta lógica — solo lee NotificationsService.items().
+   */
+  protected readonly notificationItems = computed<AppNotificationItem[]>(() => {
+    const items: AppNotificationItem[] = [];
+
+    for (const a of this.alertas().filter(a => a.nivel === 'rojo')) {
+      items.push({
+        id: `prev-${a.unidadId}-${a.descripcion}`,
+        title: `${a.unidadCode} — mantenimiento vencido`,
+        description: a.descripcion,
+        tone: 'error',
+        link: '/dashboard/mantenimiento',
+      });
+    }
+
+    for (const r of this.unitReports().filter(r => unitReportHasNovedades(r) && !r.dismissed && !this.orders().some(o => o.unitReportId === r.id))) {
+      items.push({
+        id: `report-${r.id}`,
+        title: `Reporte N° ${r.reportNo} sin clasificar`,
+        description: r.unidad,
+        tone: 'warning',
+        link: '/dashboard/mantenimiento',
+      });
+    }
+
+    for (const o of this.orders()) {
+      for (const s of o.subOrders.filter(s => s.status === 'En Revisión de Cierre')) {
+        items.push({
+          id: `subrev-${s.id}`,
+          title: `${s.code} en revisión de cierre`,
+          description: o.unidad,
+          tone: 'info',
+          link: '/dashboard/mantenimiento',
+        });
+      }
+    }
+
+    return items;
+  });
+
   constructor() {
     this.reload();
 
@@ -271,6 +336,9 @@ export class MaintenanceListPage {
     const onChange = (e: MediaQueryListEvent): void => this.narrowViewport.set(e.matches);
     mq.addEventListener('change', onChange);
     inject(DestroyRef).onDestroy(() => mq.removeEventListener('change', onChange));
+
+    effect(() => this.notifications.setSource('maintenance', this.notificationItems()));
+    inject(DestroyRef).onDestroy(() => this.notifications.clearSource('maintenance'));
   }
 
   private reload(): void {
@@ -343,7 +411,7 @@ export class MaintenanceListPage {
     this.dialogService.open<MaintenanceReportDialog, MaintenanceReportDialogData>({
       title: `Informe DYN-MNT-RE-008 — ${order.code}`,
       content: MaintenanceReportDialog,
-      data: { order, unitReport },
+      data: { clase: 'Correctivo', order, unitReport },
       footer: false,
       width: '780px',
     });

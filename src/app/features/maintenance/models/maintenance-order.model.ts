@@ -1,3 +1,5 @@
+import { MaintenanceSourceModule } from './unit-report.model';
+
 export type MaintenanceType = 'Mecánico' | 'Instrumental' | 'Operativo';
 
 export type SubOrderStatus =
@@ -36,6 +38,20 @@ export interface SubOrder {
   repuestos?: Repuesto[];
   /** Motivo que escribió el Jefe al rechazar el cierre — solo tiene sentido mientras está en Corrección Solicitada. */
   correctionNote?: string;
+  /**
+   * Problemas detectados durante la ejecución que exceden el alcance de
+   * esta sub-orden (D3: se gestionan sobre la orden existente, no generan
+   * una orden nueva). Alimenta el casillero "Trabajos adicionales por
+   * atender" del Informe de Mantenimiento (DYN-MNT-RE-008).
+   */
+  trabajosAdicionales?: string;
+  // ── Marcas de tiempo para KPIs (MAN-MASTER-001 / Fase 10) ──
+  /** Cuándo se guardó el primer avance (Pendiente → En Ejecución) — inicio real del trabajo. */
+  ejecucionIniciadaEn?: string;
+  /** Cuándo se envió a revisión de cierre — fin del trabajo del operador. */
+  ejecucionTerminadaEn?: string;
+  /** Cuándo el Jefe aprobó el cierre de esta sub-orden. */
+  cierreAprobadoEn?: string;
   /** Motivo de la derivación a Pumping — solo aplica a tipo Operativo. */
   deriveNote?: string;
 }
@@ -46,13 +62,15 @@ export interface MaintenanceOrder {
   unidad: string;
   unitReportId: number;
   origin: string;
-  sourceModule: 'Pumping' | 'FCR';
+  sourceModule: MaintenanceSourceModule;
   createdAt: string;
   /** Fin Correctivo — se llena solo cuando la orden ya se devolvió a Operaciones. */
   returnedToOperation: boolean;
   finalUnitState?: UnitFinalState;
   finalObservaciones?: string;
   finalResponsable?: string;
+  /** Fin Correctivo — cuándo se devolvió la unidad a Operaciones. Base para "tiempo fuera de servicio". */
+  closedAt?: string;
 }
 
 export interface MaintenanceOrderWithSubOrders extends MaintenanceOrder {

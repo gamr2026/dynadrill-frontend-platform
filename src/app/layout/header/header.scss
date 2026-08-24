@@ -2,7 +2,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   height: 100%;
   padding: 0 24px;
   background: var(--surface, #fff);
@@ -11,6 +11,14 @@
   &__logo {
     height: 52px;
     width: auto;
+  }
+
+  &__spacer {
+    flex: 1 1 auto;
+  }
+
+  &__bell {
+    flex: none;
   }
 
   // Solo existe para mobile — el sidebar es permanente en desktop, no hay nada que alternar.
@@ -38,6 +46,16 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
+
+    // dynadrill-spinner en modo standalone está pensado como spinner de
+    // sección completa (host block + padding vertical) — acá va inline,
+    // pequeño, dentro del botón.
+    ::ng-deep dynadrill-spinner {
+      display: inline-flex;
+    }
+    ::ng-deep .dynadrill-spinner--standalone {
+      padding: 0;
+    }
   }
 
   @media (max-width: 840px) {

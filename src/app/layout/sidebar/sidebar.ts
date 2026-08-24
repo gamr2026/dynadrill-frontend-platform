@@ -1,12 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { DynadrillButtonComponent, DynadrillIconComponent, DynadrillIconName, DynadrillMenuComponent, DynadrillMenuItem } from '@digitec-it-projects/dynadrill-ui';
+import { DynadrillButtonComponent, DynadrillIconComponent, DynadrillIconName, DynadrillMenuComponent, DynadrillMenuItem, DynadrillSpinnerComponent } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../core/services/auth.service';
 import { SidebarStateService } from '../sidebar-state.service';
 
 @Component({
   selector: 'app-sidebar',
-  imports: [DynadrillMenuComponent, DynadrillButtonComponent, DynadrillIconComponent],
+  imports: [DynadrillMenuComponent, DynadrillButtonComponent, DynadrillIconComponent, DynadrillSpinnerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.scss',
@@ -18,25 +18,37 @@ export class Sidebar {
 
   /**
    * El módulo de Mantenimiento solo aparece para quien tiene un rol de ese
-   * flujo, y cada uno apunta a su propia vista (Jefe: bandeja completa;
-   * Operador: solo sus tareas asignadas) — antes cualquier usuario logueado
-   * veía la bandeja completa, que era justo la confusión reportada.
+   * flujo. Por ahora, de los tres roles de Mantenimiento, solo el Jefe ve
+   * el resto de la aplicación (Administración, Operativo, QHSE) — Operador
+   * de Mantenimiento y Conductor ven ÚNICAMENTE su propia pantalla: nada
+   * de otros módulos, ni Administración.
    */
   protected readonly items = computed<DynadrillMenuItem[]>(() => {
     const roleName = this.auth.currentUser()?.roleName;
-    const maintenanceLink =
-      roleName === 'Jefe de Mantenimiento'
-        ? { label: 'Mantenimiento', link: '/dashboard/mantenimiento' }
-        : roleName === 'Operador de Mantenimiento'
-          ? { label: 'Mantenimiento', link: '/dashboard/mantenimiento/mis-tareas' }
-          : null;
+    const dashboard: DynadrillMenuItem = { label: 'Dashboard', icon: 'home', link: '/dashboard' };
 
-    const maintenance: DynadrillMenuItem[] = maintenanceLink
-      ? [{ ...maintenanceLink, icon: 'tool' as DynadrillIconName }]
-      : [];
+    if (roleName === 'Operador de Mantenimiento') {
+      return [dashboard, { label: 'Mis tareas', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/mis-tareas' }];
+    }
+
+    if (roleName === 'Conductor') {
+      return [dashboard, { label: 'Inspección de Vehículos', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/inspeccion-vehiculos' }];
+    }
+
+    const maintenance: DynadrillMenuItem[] =
+      roleName === 'Jefe de Mantenimiento'
+        ? [{
+            label: 'Mantenimiento',
+            icon: 'tool' as DynadrillIconName,
+            children: [
+              { label: 'Bandeja', link: '/dashboard/mantenimiento' },
+              { label: 'Indicadores', link: '/dashboard/mantenimiento/kpis' },
+            ],
+          }]
+        : [];
 
     return [
-      { label: 'Dashboard', icon: 'home', link: '/dashboard' },
+      dashboard,
       {
         label: 'Administración',
         icon: 'settings',
@@ -61,8 +73,12 @@ export class Sidebar {
     ];
   });
 
-  logout(): void {
+  protected readonly loggingOut = signal(false);
+
+  async logout(): Promise<void> {
+    if (this.loggingOut()) return;
+    this.loggingOut.set(true);
     this.auth.logout();
-    this.router.navigate(['/login']);
+    await this.router.navigate(['/login']);
   }
 }

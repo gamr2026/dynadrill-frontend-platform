@@ -32,6 +32,41 @@
     display: none;
   }
 
+  // Barra de progreso fija bajo el header — única señal visual mientras se
+  // descarga el chunk de una ruta lazy (aparece en NavigationStart, antes
+  // de que exista cualquier componente propio de la página destino).
+  &__nav-progress {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    z-index: 50;
+    background: var(--dynadrill-purple-tint-strong, rgba(102, 46, 155, 0.16));
+    overflow: hidden;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      width: 40%;
+      background: var(--dynadrill-purple, #662e9b);
+      animation: shell-nav-progress 1s ease-in-out infinite;
+    }
+  }
+
+  @keyframes shell-nav-progress {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(250%); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__nav-progress::after {
+      animation: none;
+      width: 100%;
+    }
+  }
+
   // Debajo de 840px el sidebar deja de ocupar espacio en el grid — pasa a
   // ser un panel off-canvas fijo que se desliza sobre el contenido, con el
   // botón hamburguesa del header (ver header.scss) como único trigger.

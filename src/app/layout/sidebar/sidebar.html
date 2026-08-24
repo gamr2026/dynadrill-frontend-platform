@@ -5,10 +5,14 @@
 
   <dynadrill-menu [items]="items()" />
 
-  <dynadrill-button class="app-sidebar__logout" variant="primary" size="small" (clicked)="logout()">
+  <dynadrill-button class="app-sidebar__logout" variant="primary" size="small" [disabled]="loggingOut()" (clicked)="logout()">
     <span class="app-sidebar__logout-content">
-      <dynadrill-icon name="logout" [size]="14" />
-      Cerrar sesión
+      @if (loggingOut()) {
+        <dynadrill-spinner size="sm" />
+      } @else {
+        <dynadrill-icon name="logout" [size]="14" />
+      }
+      {{ loggingOut() ? 'Cerrando sesión…' : 'Cerrar sesión' }}
     </span>
   </dynadrill-button>
 </nav>

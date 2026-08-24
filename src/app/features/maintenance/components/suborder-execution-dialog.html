@@ -60,6 +60,14 @@
     }
   </div>
 
+  <dynadrill-textarea
+    label="Trabajos adicionales por atender (opcional)"
+    placeholder="Problemas detectados que exceden el alcance de esta sub-orden — quedan registrados para seguimiento, no generan una orden nueva"
+    [value]="trabajosAdicionales()"
+    (valueChange)="trabajosAdicionales.set($event)"
+    [rows]="2"
+  />
+
   <div class="suborder-execution-dialog__actions">
     <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
     @if (!isClosed) {

@@ -1,0 +1,54 @@
+.historial-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__header {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border, #e5e4ea);
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 120px;
+  }
+
+  &__card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__card-extra {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px 20px;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    &--full {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (max-width: 600px) {
+    &__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}

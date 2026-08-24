@@ -7,21 +7,22 @@
 export type UnidadTipo = 'Servicio' | 'Auxiliar' | 'Transporte';
 
 /**
- * Intervalos de mantenimiento preventivo para unidades de Servicio (horas).
- * Cada intervalo representa un tipo de trabajo distinto según MAN-002.
+ * Servicios de mantenimiento preventivo para unidades de Servicio (horas),
+ * según el diagrama de flujo y el Plan de Mantenimiento 2026 del cliente —
+ * dos tipos, no cuatro intervalos independientes. El tipo B es acumulativo:
+ * incluye las actividades de A, así que ejecutar un B resetea también el
+ * contador de A (ver 2.2 en calcularAlertas y el mock de registro).
  */
-export const INTERVALOS_SERVICIO = [
-  { horas: 250,  descripcion: 'Aceite de motor + filtros de combustible' },
-  { horas: 500,  descripcion: 'Filtro de aire' },
-  { horas: 1000, descripcion: 'Filtro de aceite hidráulico' },
-  { horas: 2000, descripcion: 'Sistema hidráulico + filtros' },
+export const TIPOS_SERVICIO = [
+  { tipo: 'A', horas: 250,  tolerancia: 30, descripcion: 'Tipo A — aceites, filtros, inspección visual y pruebas' },
+  { tipo: 'B', horas: 2000, tolerancia: 50, descripcion: 'Tipo B — incluye A + transmisiones, cajas, hidráulico' },
 ] as const;
 
-export type IntervaloServicio = typeof INTERVALOS_SERVICIO[number]['horas'];
+export type TipoServicio = typeof TIPOS_SERVICIO[number]['tipo'];
 
-/** Registro del último mantenimiento ejecutado para un intervalo específico (Servicio). */
+/** Registro del último mantenimiento ejecutado para un tipo de servicio específico (A o B). */
 export interface RegistroPreventivo {
-  intervaloHoras: IntervaloServicio;
+  tipoServicio: TipoServicio;
   ultimoEnHoras: number;
   ultimaFecha: string;
 }
@@ -50,6 +51,14 @@ export interface Unidad {
 
   // ── Equipos Auxiliares ──
   fechaUltimoMantenimientoAux?: string;
+
+  /**
+   * Proveedor externo a cargo del mantenimiento preventivo — típico en
+   * camionetas/camiones (Plan 2026: "el reporte de mantenimiento vinculado
+   * es el proporcionado por el proveedor de servicio"). Si está vacío, el
+   * mantenimiento se asume interno (Dynadrill).
+   */
+  proveedorMantenimiento?: string;
 }
 
 /** Nivel de alerta del semáforo preventivo. */
@@ -72,23 +81,34 @@ export interface AlertaPreventiva {
   unidad: 'horas' | 'km' | 'días';
   nivel: AlertaPreventivaNivel;
   proximoEn: string;
-  /** Solo para Servicio: intervalo específico que generó esta alerta (250, 500, 1000, 2000). */
-  intervaloHoras?: IntervaloServicio;
+  /** Solo para Servicio: tipo de servicio que generó esta alerta (A o B). */
+  tipoServicio?: TipoServicio;
   /** Valor actual de la métrica principal (horómetro o km). */
   valorActual?: number;
 }
 
 // ── Tolerancias según el Plan de Mantenimiento 2026 ──
-const TOLERANCIA_250H = 30;
-const TOLERANCIA_2000H = 50;
 const TOLERANCIA_KM = 500;
 const MESES_SIN_HORAS = 6;
 const UMBRAL_AMARILLO_PCT = 0.15; // alerta amarilla cuando queda ≤ 15% del intervalo
 
-function nivelAlerta(restante: number, intervalo: number): AlertaPreventivaNivel {
-  if (restante <= 0) return 'rojo';
+/**
+ * `tolerancia` es la ventana ± que el Plan de Mantenimiento 2026 admite
+ * como normal (ej. 250h ±30h): dentro de esa ventana la unidad sigue
+ * "amarillo" (próximo), no "rojo" — recién al superarla se considera
+ * realmente vencida.
+ */
+function nivelAlerta(restante: number, intervalo: number, tolerancia = 0): AlertaPreventivaNivel {
+  if (restante < -tolerancia) return 'rojo';
   if (restante <= intervalo * UMBRAL_AMARILLO_PCT) return 'amarillo';
   return 'verde';
+}
+
+/** Texto del "próximo en" respetando la ventana de tolerancia — "Vencido" solo cuando ya la supera. */
+function proximoEnTexto(restante: number, tolerancia: number, unidad: string): string {
+  if (restante > 0) return `${Math.round(restante)} ${unidad}`;
+  if (restante >= -tolerancia) return `En ventana (${Math.round(-restante)} ${unidad} sobre lo previsto)`;
+  return 'Vencido';
 }
 
 function diasDesde(isoFecha: string): number {
@@ -102,41 +122,56 @@ function diasDesde(isoFecha: string): number {
 export function calcularAlertas(u: Unidad): AlertaPreventiva[] {
   const alertas: AlertaPreventiva[] = [];
 
-  if (u.tipo === 'Servicio' && u.horometroActual !== undefined) {
-    for (const intervalo of INTERVALOS_SERVICIO) {
-      const registro = u.registrosPrev?.find(r => r.intervaloHoras === intervalo.horas);
-      const ultimoEn = registro?.ultimoEnHoras ?? 0;
-      const consumido = u.horometroActual - ultimoEn;
-      const restante = intervalo.horas - consumido;
-      alertas.push({
-        unidadId: u.id,
-        unidadCode: u.code,
-        unidadNombre: u.nombre,
-        descripcion: `${intervalo.horas}h — ${intervalo.descripcion}`,
-        consumido,
-        intervalo: intervalo.horas,
-        actualLabel: `${u.horometroActual} h`,
-        restante: Math.round(restante),
-        unidad: 'horas',
-        nivel: nivelAlerta(restante, intervalo.horas),
-        proximoEn: restante > 0 ? `${Math.round(restante)} h` : 'Vencido',
-        intervaloHoras: intervalo.horas,
-        valorActual: u.horometroActual,
-      });
+  if (u.tipo === 'Servicio') {
+    if (u.horometroActual !== undefined) {
+      const registroA = u.registrosPrev?.find(r => r.tipoServicio === 'A');
+      const registroB = u.registrosPrev?.find(r => r.tipoServicio === 'B');
+      for (const svc of TIPOS_SERVICIO) {
+        // Un servicio B incluye las actividades de A, así que también resetea su contador.
+        const ultimoEn = svc.tipo === 'A'
+          ? Math.max(registroA?.ultimoEnHoras ?? 0, registroB?.ultimoEnHoras ?? 0)
+          : registroB?.ultimoEnHoras ?? 0;
+        const consumido = u.horometroActual - ultimoEn;
+        const restante = svc.horas - consumido;
+        alertas.push({
+          unidadId: u.id,
+          unidadCode: u.code,
+          unidadNombre: u.nombre,
+          descripcion: `Tipo ${svc.tipo} (${svc.horas}h) — ${svc.descripcion}`,
+          consumido,
+          intervalo: svc.horas,
+          actualLabel: `${u.horometroActual} h`,
+          restante: Math.round(restante),
+          unidad: 'horas',
+          nivel: nivelAlerta(restante, svc.horas, svc.tolerancia),
+          proximoEn: proximoEnTexto(restante, svc.tolerancia, 'h'),
+          tipoServicio: svc.tipo,
+          valorActual: u.horometroActual,
+        });
+      }
     }
 
-    // Regla de 6 meses sin alcanzar 250h
+    /**
+     * Regla de 6 meses sin alcanzar el tipo A (250h) — aplica a TODA unidad
+     * de Servicio, tenga horómetro o no (ej. cisternas y tanques, que el
+     * cliente nombra explícitamente como equipos de servicio sin
+     * horómetro). Antes vivía dentro del `if (horometroActual !== undefined)`
+     * de arriba y esas unidades no generaban ninguna alerta.
+     */
     if (u.fechaUltimoMantenimiento) {
       const diasTranscurridos = diasDesde(u.fechaUltimoMantenimiento);
       const diasLimite = MESES_SIN_HORAS * 30;
       const restanteDias = diasLimite - diasTranscurridos;
-      const horasDesdeUltimo = u.horometroActual - (u.registrosPrev?.find(r => r.intervaloHoras === 250)?.ultimoEnHoras ?? 0);
+      const registroA = u.registrosPrev?.find(r => r.tipoServicio === 'A');
+      const registroB = u.registrosPrev?.find(r => r.tipoServicio === 'B');
+      const ultimoEnA = Math.max(registroA?.ultimoEnHoras ?? 0, registroB?.ultimoEnHoras ?? 0);
+      const horasDesdeUltimo = u.horometroActual === undefined ? 0 : u.horometroActual - ultimoEnA;
       if (horasDesdeUltimo < 250) {
         alertas.push({
           unidadId: u.id,
           unidadCode: u.code,
           unidadNombre: u.nombre,
-          descripcion: '6 meses sin alcanzar 250h — mantenimiento por tiempo',
+          descripcion: '6 meses sin alcanzar tipo A (250h) — mantenimiento por tiempo',
           consumido: diasTranscurridos,
           intervalo: diasLimite,
           actualLabel: `${diasTranscurridos} días`,
@@ -144,6 +179,7 @@ export function calcularAlertas(u: Unidad): AlertaPreventiva[] {
           unidad: 'días',
           nivel: nivelAlerta(restanteDias, diasLimite),
           proximoEn: restanteDias > 0 ? `${restanteDias} días` : 'Vencido',
+          tipoServicio: 'A',
         });
       }
     }
@@ -181,8 +217,8 @@ export function calcularAlertas(u: Unidad): AlertaPreventiva[] {
       actualLabel: `${u.kmActual.toLocaleString()} km`,
       restante: Math.round(restanteKm),
       unidad: 'km',
-      nivel: nivelAlerta(restanteKm, 5000),
-      proximoEn: restanteKm > 0 ? `${Math.round(restanteKm)} km` : 'Vencido',
+      nivel: nivelAlerta(restanteKm, 5000, TOLERANCIA_KM),
+      proximoEn: proximoEnTexto(restanteKm, TOLERANCIA_KM, 'km'),
       valorActual: u.kmActual,
     });
   }

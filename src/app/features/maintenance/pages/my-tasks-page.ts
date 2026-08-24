@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import {
   DynadrillDataTableColumn,
@@ -7,9 +7,9 @@ import {
   DynadrillDialogService,
   DynadrillIconButtonComponent,
   DynadrillNotificationService,
+  DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
   DynadrillTagVariant,
-  DynadrillTextComponent,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../core/services/auth.service';
 import { MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../models/maintenance-order.model';
@@ -36,7 +36,7 @@ const SUB_ORDER_STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
  */
 @Component({
   selector: 'app-my-tasks-page',
-  imports: [CommonModule, DynadrillTextComponent, DynadrillDataTableComponent, DynadrillIconButtonComponent, DynadrillSpinnerComponent],
+  imports: [CommonModule, DynadrillDataTableComponent, DynadrillIconButtonComponent, DynadrillSpinnerComponent, DynadrillScreenHeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './my-tasks-page.html',
   styleUrl: './my-tasks-page.scss',
@@ -48,17 +48,24 @@ export class MyTasksPage {
   private readonly dialog = inject(DynadrillDialogService);
   private readonly auth = inject(AuthService);
 
+  protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
+
   protected readonly loading = signal(true);
   protected readonly orders = signal<MaintenanceOrderWithSubOrders[]>([]);
   protected readonly unitReports = signal<UnitReport[]>([]);
 
-  protected readonly columns: DynadrillDataTableColumn[] = [
-    { key: 'code', header: 'Sub-orden', sortable: true, searchable: true },
+  // Mismo patrón que maintenance-list-page (bandeja del Jefe): solo fijamos
+  // la primera columna + acciones cuando la tabla realmente podría no
+  // entrar en pantalla.
+  private readonly narrowViewport = signal(window.matchMedia('(max-width: 840px)').matches);
+  protected readonly columns = computed<DynadrillDataTableColumn[]>(() => [
+    { key: 'code', header: 'Sub-orden', sortable: true, searchable: true, fixed: this.narrowViewport() ? 'left' : undefined },
     { key: 'orderCode', header: 'Orden', searchable: true },
     { key: 'unidad', header: 'Unidad', searchable: true },
     { key: 'type', header: 'Tipo' },
     { key: 'statusBadge', header: 'Estado', type: 'badge' },
-  ];
+  ]);
+  protected readonly tableScrollX = computed(() => (this.narrowViewport() ? '560px' : undefined));
 
   protected readonly rows = computed(() => {
     const userId = this.auth.currentUser()?.id;
@@ -79,6 +86,11 @@ export class MyTasksPage {
 
   constructor() {
     this.reload();
+
+    const mq = window.matchMedia('(max-width: 840px)');
+    const onChange = (e: MediaQueryListEvent): void => this.narrowViewport.set(e.matches);
+    mq.addEventListener('change', onChange);
+    inject(DestroyRef).onDestroy(() => mq.removeEventListener('change', onChange));
   }
 
   private reload(): void {

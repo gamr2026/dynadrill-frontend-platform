@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, WritableSignal, inject, signal } from '@angular/core';
-import { NzModalRef } from 'ng-zorro-antd/modal';
+import { ChangeDetectionStrategy, Component, WritableSignal, computed, inject, signal } from '@angular/core';
+import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import {
   DynadrillButtonComponent,
   DynadrillCheckboxComponent,
@@ -8,8 +8,11 @@ import {
   DynadrillIconComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
+  DynadrillSelectComponent,
   DynadrillStepperComponent,
   DynadrillTextareaComponent,
+  DynadrillTextComponent,
+  type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import {
   CHASIS_CHECKLIST_LABELS,
@@ -22,8 +25,19 @@ import {
   unitReportHasNovedades,
 } from '../models/unit-report.model';
 import { UnitReportsService } from '../services/unit-reports.service';
+import { UnidadesService } from '../services/unidades.service';
+import { Unidad } from '../models/unidad.model';
 
 const STEPS = ['Datos', 'Métricas', 'Chasis', 'Plataforma', 'Instrum.', 'Problemas', 'Firmas'];
+
+export interface UnitReportDialogData {
+  /** Prellena la unidad — usado al ofrecer un Reporte de Unidad desde una Inspección de Vehículos con "No cumple". */
+  unidadId?: number;
+  /** Prellena el origen — evita que el reporte diga "Pumping" cuando en realidad viene de Inspección de Vehículos. */
+  sourceModule?: MaintenanceSourceModule;
+  /** Enlaza el reporte con la inspección que lo originó, para poder rastrear si la novedad ya se atendió. */
+  originVehicleInspectionId?: number;
+}
 
 function toDualItems(labels: string[]): ChecklistDualItem[] {
   return labels.map(label => ({ label, salida: null, llegada: null }));
@@ -54,6 +68,8 @@ function toDualItems(labels: string[]): ChecklistDualItem[] {
     DynadrillButtonComponent,
     DynadrillIconComponent,
     DynadrillStepperComponent,
+    DynadrillSelectComponent,
+    DynadrillTextComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './unit-report-dialog.html',
@@ -61,24 +77,42 @@ function toDualItems(labels: string[]): ChecklistDualItem[] {
 })
 export class UnitReportDialog {
   private readonly unitReportsService = inject(UnitReportsService);
+  private readonly unidadesService = inject(UnidadesService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<UnitReportDialog, UnitReport | undefined>);
+  private readonly data = inject<UnitReportDialogData>(NZ_MODAL_DATA, { optional: true });
 
   protected readonly steps = STEPS;
   protected readonly currentStep = signal(0);
   protected readonly submitting = signal(false);
 
-  // El módulo que genera el reporte — se sobreescribe al instanciar desde Pumping o FCR.
-  sourceModule: MaintenanceSourceModule = 'Pumping';
+  // El módulo que genera el reporte — se sobreescribe al instanciar desde Pumping, FCR o Vehículos.
+  sourceModule: MaintenanceSourceModule = this.data?.sourceModule ?? 'Pumping';
 
   protected readonly reportNo = signal('');
   protected readonly pozo = signal('');
   protected readonly bloque = signal('');
   protected readonly cliente = signal('');
   protected readonly base = signal('');
-  protected readonly unidad = signal('');
+  protected readonly unidadId = signal<number | null>(this.data?.unidadId ?? null);
   protected readonly fechaSalida = signal<Date | null>(null);
   protected readonly fechaLlegada = signal<Date | null>(null);
+
+  protected readonly unidades = signal<Unidad[]>([]);
+  protected readonly unidadOptions = computed<DynadrillSelectOption[]>(() =>
+    this.unidades().map(u => ({ label: `${u.code} — ${u.nombre}`, value: u.id })),
+  );
+  protected readonly unidadSeleccionada = computed<Unidad | undefined>(() =>
+    this.unidades().find(u => u.id === this.unidadId()),
+  );
+  /** Casillero de horas acumuladas (MAN-002) — pedido explícito del correo del cliente. */
+  protected readonly horasAcumuladasLabel = computed(() => {
+    const u = this.unidadSeleccionada();
+    if (!u || u.tipo !== 'Servicio' || u.horometroActual === undefined) return null;
+    const ultimoServicio = u.registrosPrev?.reduce((max, r) => Math.max(max, r.ultimoEnHoras), 0) ?? 0;
+    const acumuladas = u.horometroActual - ultimoServicio;
+    return `${acumuladas} h acumuladas desde el último mantenimiento (horómetro actual: ${u.horometroActual} h)`;
+  });
 
   protected readonly horometroSalida = signal('');
   protected readonly horometroLlegada = signal('');
@@ -103,6 +137,33 @@ export class UnitReportDialog {
   protected readonly operadorLlegada = signal('');
   protected readonly supervisorLlegada = signal('');
 
+  /** Advertencia no bloqueante: una lectura que retrocede es una situación real (cambio de equipo, etc.) y debe poder registrarse igual. */
+  protected readonly lecturaWarning = computed(() => {
+    const u = this.unidadSeleccionada();
+    const hSalida = Number(this.horometroSalida()) || null;
+    const hLlegada = Number(this.horometroLlegada()) || null;
+    const oSalida = Number(this.odometroSalida()) || null;
+    const oLlegada = Number(this.odometroLlegada()) || null;
+
+    if (hSalida !== null && hLlegada !== null && hLlegada < hSalida) {
+      return 'El horómetro de llegada es menor al de salida — verifica las lecturas.';
+    }
+    if (oSalida !== null && oLlegada !== null && oLlegada < oSalida) {
+      return 'El odómetro de llegada es menor al de salida — verifica las lecturas.';
+    }
+    if (u?.tipo === 'Servicio' && u.horometroActual !== undefined && hLlegada !== null && hLlegada < u.horometroActual) {
+      return `El horómetro de llegada (${hLlegada} h) es menor al último registrado para esta unidad (${u.horometroActual} h).`;
+    }
+    if (u?.tipo === 'Transporte' && u.kmActual !== undefined && oLlegada !== null && oLlegada < u.kmActual) {
+      return `El odómetro de llegada (${oLlegada} km) es menor al último registrado para esta unidad (${u.kmActual} km).`;
+    }
+    return null;
+  });
+
+  constructor() {
+    this.unidadesService.list().subscribe(unidades => this.unidades.set(unidades));
+  }
+
   toggleChecklist(list: WritableSignal<ChecklistDualItem[]>, index: number, column: 'salida' | 'llegada'): void {
     list.update(items =>
       items.map((item, i) => {
@@ -115,7 +176,7 @@ export class UnitReportDialog {
   }
 
   next(): void {
-    if (this.currentStep() === 0 && (!this.reportNo().trim() || !this.pozo().trim() || !this.unidad().trim() || !this.fechaSalida())) {
+    if (this.currentStep() === 0 && (!this.reportNo().trim() || !this.pozo().trim() || !this.unidadId() || !this.fechaSalida())) {
       this.notify.error('Falta información', 'Completa Reporte N°, Pozo, Unidad y Fecha de Salida antes de continuar.');
       return;
     }
@@ -131,7 +192,7 @@ export class UnitReportDialog {
   }
 
   submit(): void {
-    if (this.submitting()) return;
+    if (this.submitting() || !this.unidadId()) return;
     this.submitting.set(true);
 
     const input: CreateUnitReportInput = {
@@ -141,7 +202,8 @@ export class UnitReportDialog {
       bloque: this.bloque(),
       cliente: this.cliente(),
       base: this.base(),
-      unidad: this.unidad(),
+      unidadId: this.unidadId()!,
+      unidad: this.unidadSeleccionada()?.code ?? '',
       fechaSalida: this.fechaSalida()?.toISOString() ?? '',
       fechaLlegada: this.fechaLlegada()?.toISOString() ?? '',
       horometroSalida: this.horometroSalida() ? Number(this.horometroSalida()) : undefined,
@@ -163,6 +225,7 @@ export class UnitReportDialog {
       supervisorSalida: this.supervisorSalida(),
       operadorLlegada: this.operadorLlegada(),
       supervisorLlegada: this.supervisorLlegada(),
+      originVehicleInspectionId: this.data?.originVehicleInspectionId,
     };
 
     this.unitReportsService.create(input).subscribe({

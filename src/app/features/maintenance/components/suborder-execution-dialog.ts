@@ -43,6 +43,7 @@ export class SuborderExecutionDialog {
   protected readonly actividadesCorrectivas = signal(this.data.subOrder.actividadesCorrectivas ?? '');
   protected readonly horasTrabajo = signal(this.data.subOrder.horasTrabajo?.toString() ?? '');
   protected readonly repuestos = signal<Repuesto[]>(this.data.subOrder.repuestos ? [...this.data.subOrder.repuestos] : []);
+  protected readonly trabajosAdicionales = signal(this.data.subOrder.trabajosAdicionales ?? '');
   protected readonly submitting = signal(false);
 
   protected readonly wasRejected = this.data.subOrder.status === 'Corrección Solicitada';
@@ -74,6 +75,7 @@ export class SuborderExecutionDialog {
       actividadesCorrectivas: this.actividadesCorrectivas(),
       horasTrabajo: this.horasTrabajo() ? Number(this.horasTrabajo()) : undefined,
       repuestos: this.repuestos().filter(r => r.descripcion.trim()),
+      trabajosAdicionales: this.trabajosAdicionales().trim() || undefined,
     };
   }
 

@@ -15,6 +15,17 @@ const roles: Role[] = [
   { id: 4, name: 'Jefe de Base' },
   { id: 5, name: 'Jefe de Mantenimiento' },
   { id: 6, name: 'Operador de Mantenimiento' },
+  /**
+   * Rol propio para quien llena la Inspección de Vehículos (DYN-SGI-RE-068)
+   * antes de salir con un vehículo de apoyo — Plan de Mantenimiento 2026,
+   * sección 5.4, lo llama explícitamente "conductor". Antes reusaba
+   * "Operador" (id 2), que en realidad es el rol de Pumping/FCR — se separó
+   * porque son módulos distintos y los "Documentos del conductor" del
+   * formato (licencia, manejo defensivo, examen médico) son atestación
+   * personal de quien maneja, no algo que el Jefe de Mantenimiento pueda
+   * llenar por él.
+   */
+  { id: 7, name: 'Conductor' },
 ];
 
 let users: User[] = [
@@ -91,6 +102,18 @@ let users: User[] = [
     specialty: 'Instrumental',
     createdAt: '2026-06-01T08:10:00.000Z',
     updatedAt: '2026-06-01T08:10:00.000Z',
+  },
+  {
+    id: 7,
+    email: 'conductor@dynadrill.com',
+    username: 'rcabrera',
+    name: 'Ramiro Cabrera',
+    code: 'EMP-007',
+    phone: '0994445566',
+    roleId: 7,
+    status: true,
+    createdAt: '2026-08-01T08:00:00.000Z',
+    updatedAt: '2026-08-01T08:00:00.000Z',
   },
 ];
 

@@ -10,7 +10,7 @@
   <dynadrill-tabs
     [tabs]="tabs"
     [activeIndex]="activeTab()"
-    (activeIndexChange)="activeTab.set($event)"
+    (activeIndexChange)="onTabChange($event)"
   />
 
   <!-- ── TAB CORRECTIVO — hidden en lugar de @if para no destruir/recrear ── -->
@@ -84,6 +84,13 @@
         tooltip="Registrar mantenimiento"
         tooltipPlacement="top"
         (clicked)="openRegisterPM(row)"
+      />
+      <dynadrill-icon-button
+        icon="clock"
+        iconSource="dynadrill"
+        tooltip="Ver historial"
+        tooltipPlacement="top"
+        (clicked)="openHistorial(row)"
       />
     </ng-template>
   </div>

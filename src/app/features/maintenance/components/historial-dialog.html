@@ -1,0 +1,72 @@
+<div class="historial-dialog">
+  <div class="historial-dialog__header">
+    <dynadrill-text variant="caption">Unidad</dynadrill-text>
+    <dynadrill-text variant="body">{{ data.unidadCode }} — {{ data.unidadNombre }}</dynadrill-text>
+  </div>
+
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando historial…">
+    @if (!loading() && registros().length === 0) {
+      <dynadrill-text variant="caption">Sin mantenimientos registrados todavía.</dynadrill-text>
+    }
+
+    <div class="historial-dialog__list">
+      @for (r of registros(); track r.id) {
+        <dynadrill-card accent="none">
+          <div card-title class="historial-dialog__card-title">
+            <dynadrill-text variant="body"><strong>{{ r.fecha }}</strong></dynadrill-text>
+            @if (r.tipoServicio) {
+              <dynadrill-tag [label]="'Tipo ' + r.tipoServicio" variant="neutral" />
+            }
+          </div>
+          <div card-extra class="historial-dialog__card-extra">
+            <dynadrill-tag [label]="r.clase" [variant]="claseTone[r.clase]" />
+            @if (r.clase === 'Preventivo') {
+              <dynadrill-icon-button icon="file-pdf" tooltip="Imprimir informe" tooltipPlacement="top" (clicked)="printInforme(r)" />
+            }
+          </div>
+
+          <div class="historial-dialog__grid">
+            <div class="historial-dialog__field">
+              <dynadrill-text variant="caption">Responsable</dynadrill-text>
+              <dynadrill-text variant="body">{{ r.responsable }}</dynadrill-text>
+            </div>
+            <div class="historial-dialog__field">
+              <dynadrill-text variant="caption">Ejecutado por</dynadrill-text>
+              <dynadrill-text variant="body">{{ r.ejecutadoPor }}{{ r.proveedor ? ' — ' + r.proveedor : '' }}</dynadrill-text>
+            </div>
+            @if (r.horometro !== undefined) {
+              <div class="historial-dialog__field">
+                <dynadrill-text variant="caption">Horómetro</dynadrill-text>
+                <dynadrill-text variant="body">{{ r.horometro }} h</dynadrill-text>
+              </div>
+            }
+            @if (r.km !== undefined) {
+              <div class="historial-dialog__field">
+                <dynadrill-text variant="caption">Kilometraje</dynadrill-text>
+                <dynadrill-text variant="body">{{ r.km }} km</dynadrill-text>
+              </div>
+            }
+            @if (r.ordenId) {
+              <div class="historial-dialog__field">
+                <dynadrill-text variant="caption">Orden vinculada</dynadrill-text>
+                <dynadrill-text variant="body">#{{ r.ordenId }}</dynadrill-text>
+              </div>
+            }
+            @if (r.checklistRealizado) {
+              <div class="historial-dialog__field">
+                <dynadrill-text variant="caption">Check list interno</dynadrill-text>
+                <dynadrill-text variant="body">Realizado</dynadrill-text>
+              </div>
+            }
+            @if (r.observaciones) {
+              <div class="historial-dialog__field historial-dialog__field--full">
+                <dynadrill-text variant="caption">Observaciones</dynadrill-text>
+                <dynadrill-text variant="body">{{ r.observaciones }}</dynadrill-text>
+              </div>
+            }
+          </div>
+        </dynadrill-card>
+      }
+    </div>
+  </dynadrill-spinner>
+</div>

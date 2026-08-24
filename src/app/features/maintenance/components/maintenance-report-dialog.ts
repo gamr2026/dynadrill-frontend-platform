@@ -10,11 +10,16 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { MaintenanceOrderWithSubOrders, SubOrderStatus } from '../models/maintenance-order.model';
 import { UnitReport } from '../models/unit-report.model';
+import { RegistroMantenimiento } from '../models/historial-mantenimiento.model';
 
-export interface MaintenanceReportDialogData {
-  order: MaintenanceOrderWithSubOrders;
-  unitReport: UnitReport;
-}
+/**
+ * DYN-MNT-RE-008 sirve tanto para el cierre correctivo (una orden con sus
+ * sub-órdenes) como para un mantenimiento preventivo ejecutado (un único
+ * registro de historial) — el formato físico trae ambas casillas. Fase 05.
+ */
+export type MaintenanceReportDialogData =
+  | { clase: 'Correctivo'; order: MaintenanceOrderWithSubOrders; unitReport: UnitReport }
+  | { clase: 'Preventivo'; registro: RegistroMantenimiento; unidadNombre: string };
 
 const STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
   'Pendiente': 'warning',
@@ -37,6 +42,9 @@ export class MaintenanceReportDialog {
   protected readonly data = inject<MaintenanceReportDialogData>(NZ_MODAL_DATA);
   private readonly modalRef = inject(NzModalRef<MaintenanceReportDialog>);
   protected readonly statusTone = STATUS_TONE;
+
+  /** Casillas del formato físico DYN-MNT-RE-008 — se marca la que aplica. */
+  protected readonly tiposMantenimiento = ['Correctivo', 'Preventivo', 'Predictivo', 'Operativo'] as const;
 
   protected readonly printDate = new Date().toLocaleDateString('es-EC', {
     day: '2-digit', month: '2-digit', year: 'numeric',

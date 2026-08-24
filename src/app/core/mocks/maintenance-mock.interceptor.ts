@@ -4,16 +4,16 @@ import { ClassifyOrderInput, ClassifyTypeAssignment, CloseOrderInput } from '../
 import { CreateUnitReportInput, UnitReport } from '../../features/maintenance/models/unit-report.model';
 import { MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../../features/maintenance/models/maintenance-order.model';
 import { Unidad } from '../../features/maintenance/models/unidad.model';
+import { RegistroMantenimiento } from '../../features/maintenance/models/historial-mantenimiento.model';
+import { CreateVehicleInspectionInput, VehicleInspection } from '../../features/maintenance/models/vehicle-inspection.model';
 
 const unidades: Unidad[] = [
   {
     id: 1, code: 'PUM-07', nombre: 'Unidad de Bombeo PUM-07', tipo: 'Servicio',
     horometroActual: 1480,
     registrosPrev: [
-      { intervaloHoras: 250,  ultimoEnHoras: 1250, ultimaFecha: '2026-05-10' },
-      { intervaloHoras: 500,  ultimoEnHoras: 1000, ultimaFecha: '2026-04-01' },
-      { intervaloHoras: 1000, ultimoEnHoras: 1000, ultimaFecha: '2026-04-01' },
-      { intervaloHoras: 2000, ultimoEnHoras: 0,    ultimaFecha: '2025-01-15' },
+      { tipoServicio: 'A', ultimoEnHoras: 1250, ultimaFecha: '2026-05-10' },
+      { tipoServicio: 'B', ultimoEnHoras: 0,    ultimaFecha: '2025-01-15' },
     ],
     fechaUltimoMantenimiento: '2026-05-10',
   },
@@ -21,10 +21,8 @@ const unidades: Unidad[] = [
     id: 2, code: 'PUM-15', nombre: 'Unidad de Bombeo PUM-15', tipo: 'Servicio',
     horometroActual: 3950,
     registrosPrev: [
-      { intervaloHoras: 250,  ultimoEnHoras: 3750, ultimaFecha: '2026-07-20' },
-      { intervaloHoras: 500,  ultimoEnHoras: 3500, ultimaFecha: '2026-06-15' },
-      { intervaloHoras: 1000, ultimoEnHoras: 3000, ultimaFecha: '2026-03-10' },
-      { intervaloHoras: 2000, ultimoEnHoras: 2000, ultimaFecha: '2025-08-01' },
+      { tipoServicio: 'A', ultimoEnHoras: 3750, ultimaFecha: '2026-07-20' },
+      { tipoServicio: 'B', ultimoEnHoras: 2000, ultimaFecha: '2025-08-01' },
     ],
     fechaUltimoMantenimiento: '2026-07-20',
   },
@@ -32,10 +30,8 @@ const unidades: Unidad[] = [
     id: 3, code: '4-CTV-03', nombre: 'Unidad CTU 4-CTV-03', tipo: 'Servicio',
     horometroActual: 5620,
     registrosPrev: [
-      { intervaloHoras: 250,  ultimoEnHoras: 5500, ultimaFecha: '2026-08-01' },
-      { intervaloHoras: 500,  ultimoEnHoras: 5500, ultimaFecha: '2026-08-01' },
-      { intervaloHoras: 1000, ultimoEnHoras: 5000, ultimaFecha: '2026-05-20' },
-      { intervaloHoras: 2000, ultimoEnHoras: 4000, ultimaFecha: '2025-11-10' },
+      { tipoServicio: 'A', ultimoEnHoras: 5500, ultimaFecha: '2026-08-01' },
+      { tipoServicio: 'B', ultimoEnHoras: 4000, ultimaFecha: '2025-11-10' },
     ],
     fechaUltimoMantenimiento: '2026-08-01',
   },
@@ -59,7 +55,46 @@ const unidades: Unidad[] = [
     kmUltimoMantenimiento: 138000,
     fechaUltimoMantenimientoKm: '2026-06-20',
   },
+  {
+    id: 8, code: 'PMP-14', nombre: 'Unidad de Bombeo PMP-14', tipo: 'Servicio',
+    horometroActual: 2210,
+    registrosPrev: [
+      { tipoServicio: 'A', ultimoEnHoras: 2100, ultimaFecha: '2026-06-25' },
+      { tipoServicio: 'B', ultimoEnHoras: 2000, ultimaFecha: '2026-05-12' },
+    ],
+    fechaUltimoMantenimiento: '2026-06-25',
+  },
+  {
+    // Cisterna sin horómetro — cubre la regla de 180 días sin depender de horas (correo del cliente).
+    id: 9, code: 'CIS-02', nombre: 'Cisterna CIS-02', tipo: 'Servicio',
+    fechaUltimoMantenimiento: '2026-01-20',
+  },
 ];
+
+/**
+ * Historial persistente de mantenimientos ejecutados (MAN-003) — a
+ * diferencia de `registrosPrev` en Unidad (que solo guarda el último
+ * registro por tipo), acá se conserva cada intervención. Se alimenta
+ * desde el registro de PM y desde el cierre de una orden correctiva.
+ */
+let historial: RegistroMantenimiento[] = [
+  {
+    id: 1, unidadId: 1, unidadCode: 'PUM-07', clase: 'Preventivo', tipoServicio: 'A',
+    fecha: '2026-05-10', horometro: 1250, responsable: 'C. Vega', ejecutadoPor: 'Interno', checklistRealizado: true,
+  },
+  {
+    id: 2, unidadId: 3, unidadCode: '4-CTV-03', clase: 'Preventivo', tipoServicio: 'A',
+    fecha: '2026-08-01', horometro: 5500, responsable: 'C. Vega', ejecutadoPor: 'Interno', checklistRealizado: true,
+  },
+  {
+    id: 3, unidadId: 6, unidadCode: 'CAM-04', clase: 'Preventivo',
+    fecha: '2026-07-10', km: 85000, responsable: 'Taller Norte', ejecutadoPor: 'Tercero', proveedor: 'Lubricentro Norte S.A.',
+  },
+];
+let nextHistorialId = 4;
+
+let vehicleInspections: VehicleInspection[] = [];
+let nextInspectionId = 1;
 
 /**
  * Solo activo mientras no exista el backend real de Mantenimiento. Mismo
@@ -81,6 +116,7 @@ let unitReports: UnitReport[] = [
     bloque: '56',
     cliente: 'Petroecuador',
     base: 'Coca',
+    unidadId: 3,
     unidad: '4-CTV-03',
     fechaSalida: '2026-06-08T08:00:00.000Z',
     fechaLlegada: '2026-06-08T18:00:00.000Z',
@@ -111,6 +147,7 @@ let unitReports: UnitReport[] = [
     bloque: '61',
     cliente: 'Petroamazonas',
     base: 'Coca',
+    unidadId: 8,
     unidad: 'PMP-14',
     fechaSalida: '2026-06-09T07:30:00.000Z',
     fechaLlegada: '2026-06-09T15:00:00.000Z',
@@ -135,6 +172,7 @@ let unitReports: UnitReport[] = [
     bloque: '57',
     cliente: 'Repsol',
     base: 'Lago Agrio',
+    unidadId: 1,
     unidad: 'PUM-07',
     fechaSalida: '2026-07-14T06:00:00.000Z',
     fechaLlegada: '2026-07-14T20:00:00.000Z',
@@ -164,6 +202,7 @@ let unitReports: UnitReport[] = [
     bloque: '53',
     cliente: 'OCP',
     base: 'Shushufindi',
+    unidadId: 3,
     unidad: '4-CTV-03',
     fechaSalida: '2026-07-28T05:30:00.000Z',
     fechaLlegada: '2026-07-28T19:00:00.000Z',
@@ -192,6 +231,7 @@ let unitReports: UnitReport[] = [
     bloque: '61',
     cliente: 'Petroecuador',
     base: 'Coca',
+    unidadId: 2,
     unidad: 'PUM-15',
     fechaSalida: '2026-08-05T07:00:00.000Z',
     fechaLlegada: '2026-08-05T18:00:00.000Z',
@@ -271,22 +311,39 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
   if (unidadMantenimientoMatch && req.method === 'PATCH') {
     const unidadId = Number(unidadMantenimientoMatch[1]);
     const body = req.body as {
-      intervaloHoras?: number;
+      tipoServicio?: 'A' | 'B';
       horometroAlMomento?: number;
       kmAlMomento?: number;
       fecha: string;
+      responsable: string;
+      observaciones?: string;
+      checklistRealizado?: boolean;
+      ejecutadoPor: 'Interno' | 'Tercero';
+      proveedor?: string;
     };
     const idx = unidades.findIndex(u => u.id === unidadId);
     if (idx !== -1) {
       const u = { ...unidades[idx] };
-      if (u.tipo === 'Servicio' && body.intervaloHoras && body.horometroAlMomento !== undefined) {
-        const regs = (u.registrosPrev ?? []).map(r =>
-          r.intervaloHoras === body.intervaloHoras
+      if (body.ejecutadoPor === 'Tercero' && body.proveedor) {
+        u.proveedorMantenimiento = body.proveedor;
+      }
+      if (u.tipo === 'Servicio' && body.tipoServicio && body.horometroAlMomento !== undefined) {
+        let regs = (u.registrosPrev ?? []).map(r =>
+          r.tipoServicio === body.tipoServicio
             ? { ...r, ultimoEnHoras: body.horometroAlMomento!, ultimaFecha: body.fecha }
             : r
         );
-        if (!regs.some(r => r.intervaloHoras === body.intervaloHoras)) {
-          regs.push({ intervaloHoras: body.intervaloHoras as any, ultimoEnHoras: body.horometroAlMomento!, ultimaFecha: body.fecha });
+        if (!regs.some(r => r.tipoServicio === body.tipoServicio)) {
+          regs.push({ tipoServicio: body.tipoServicio, ultimoEnHoras: body.horometroAlMomento!, ultimaFecha: body.fecha });
+        }
+        // Cascada: un servicio B incluye las actividades de A, así que también resetea su contador.
+        if (body.tipoServicio === 'B') {
+          regs = regs.map(r =>
+            r.tipoServicio === 'A' ? { ...r, ultimoEnHoras: body.horometroAlMomento!, ultimaFecha: body.fecha } : r
+          );
+          if (!regs.some(r => r.tipoServicio === 'A')) {
+            regs.push({ tipoServicio: 'A', ultimoEnHoras: body.horometroAlMomento!, ultimaFecha: body.fecha });
+          }
         }
         u.registrosPrev = regs;
         u.fechaUltimoMantenimiento = body.fecha;
@@ -296,14 +353,58 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
         u.kmUltimoMantenimiento = body.kmAlMomento;
         u.kmActual = body.kmAlMomento;
         u.fechaUltimoMantenimientoKm = body.fecha;
-      } else if (u.tipo === 'Servicio' && !body.intervaloHoras) {
-        // regla de 6 meses (sin intervaloHoras)
+      } else if (u.tipo === 'Servicio' && !body.tipoServicio) {
+        // regla de 6 meses (sin tipoServicio — la unidad no tiene horómetro)
         u.fechaUltimoMantenimiento = body.fecha;
       }
       unidades[idx] = u;
+
+      historial = [...historial, {
+        id: nextHistorialId++,
+        unidadId: u.id,
+        unidadCode: u.code,
+        clase: 'Preventivo',
+        tipoServicio: body.tipoServicio,
+        fecha: body.fecha,
+        horometro: body.horometroAlMomento,
+        km: body.kmAlMomento,
+        responsable: body.responsable,
+        ejecutadoPor: body.ejecutadoPor,
+        proveedor: body.proveedor,
+        observaciones: body.observaciones,
+        checklistRealizado: body.checklistRealizado,
+      }];
+
       return of(new HttpResponse({ status: 200, body: unidades[idx] })).pipe(delay(400));
     }
     return of(new HttpResponse({ status: 404 })).pipe(delay(300));
+  }
+
+  if (req.url.startsWith('/api/historial-mantenimiento') && req.method === 'GET') {
+    const params = new URLSearchParams(req.url.split('?')[1] ?? '');
+    const unidadIdParam = params.get('unidadId');
+    const filtered = unidadIdParam ? historial.filter(h => h.unidadId === Number(unidadIdParam)) : historial;
+    return of(new HttpResponse({ status: 200, body: [...filtered].sort((a, b) => b.fecha.localeCompare(a.fecha)) })).pipe(delay(300));
+  }
+
+  if (req.url === '/api/vehicle-inspections' && req.method === 'GET') {
+    return of(new HttpResponse({ status: 200, body: [...vehicleInspections].sort((a, b) => b.fecha.localeCompare(a.fecha)) })).pipe(delay(300));
+  }
+
+  if (req.url === '/api/vehicle-inspections' && req.method === 'POST') {
+    const input = req.body as CreateVehicleInspectionInput;
+    const created: VehicleInspection = { ...input, id: nextInspectionId++, createdAt: new Date().toISOString() };
+    vehicleInspections = [...vehicleInspections, created];
+
+    // Puente MAN-002: el kilometraje de la inspección alimenta Unidad.kmActual.
+    const unidadIdx = unidades.findIndex(u => u.id === input.unidadId);
+    if (unidadIdx !== -1 && input.kmFinal) {
+      const u = { ...unidades[unidadIdx] };
+      u.kmActual = Math.max(u.kmActual ?? 0, input.kmFinal);
+      unidades[unidadIdx] = u;
+    }
+
+    return of(new HttpResponse({ status: 201, body: created })).pipe(delay(400));
   }
 
   if (req.url === '/api/unit-reports' && req.method === 'GET') {
@@ -314,6 +415,30 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
     const input = req.body as CreateUnitReportInput;
     const created: UnitReport = { ...input, id: nextReportId++, dismissed: false, createdAt: new Date().toISOString() };
     unitReports = [...unitReports, created];
+
+    // Enlaza de vuelta con la Inspección de Vehículos que originó este
+    // reporte, para poder rastrear si la novedad ya se atendió.
+    if (input.originVehicleInspectionId !== undefined) {
+      vehicleInspections = vehicleInspections.map(vi =>
+        vi.id === input.originVehicleInspectionId ? { ...vi, unitReportId: created.id } : vi,
+      );
+    }
+
+    // MAN-002: el Reporte de Unidad alimenta el horómetro/km de la unidad —
+    // toma siempre el máximo para que un reporte cargado tarde no haga
+    // retroceder el contador.
+    const unidadIdx = unidades.findIndex(u => u.id === input.unidadId);
+    if (unidadIdx !== -1) {
+      const u = { ...unidades[unidadIdx] };
+      if (u.tipo === 'Servicio' && input.horometroLlegada !== undefined) {
+        u.horometroActual = Math.max(u.horometroActual ?? 0, input.horometroLlegada);
+      }
+      if (u.tipo === 'Transporte' && input.odometroLlegada !== undefined) {
+        u.kmActual = Math.max(u.kmActual ?? 0, input.odometroLlegada);
+      }
+      unidades[unidadIdx] = u;
+    }
+
     return of(new HttpResponse({ status: 201, body: created })).pipe(delay(400));
   }
 
@@ -338,7 +463,10 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.url === '/api/maintenance-orders' && req.method === 'POST') {
     const input = req.body as ClassifyOrderInput;
     const orderId = nextOrderId++;
-    const code = `OT-${2000 + orderId}`;
+    // El correo del cliente pide mantener el mismo número del Reporte de
+    // Unidad para dar seguimiento — la orden no lleva correlativo propio.
+    const reportNo = unitReports.find(r => r.id === input.unitReportId)?.reportNo;
+    const code = reportNo ? `OT-${reportNo}` : `OT-${2000 + orderId}`;
     const subOrders: SubOrder[] = input.assignments.map(a => buildSubOrder(orderId, code, a, input.assignedByName));
     const created: MaintenanceOrderWithSubOrders = {
       id: orderId,
@@ -396,15 +524,34 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
         finalUnitState: input.estadoFinal,
         finalObservaciones: input.observaciones,
         finalResponsable: input.responsable,
+        closedAt: new Date().toISOString(),
       };
       return updated;
     });
+
+    if (updated) {
+      const unidad = unidades.find(u => u.code === updated!.unidad);
+      if (unidad) {
+        historial = [...historial, {
+          id: nextHistorialId++,
+          unidadId: unidad.id,
+          unidadCode: unidad.code,
+          clase: 'Correctivo',
+          fecha: new Date().toISOString().slice(0, 10),
+          responsable: input.responsable,
+          ejecutadoPor: 'Interno',
+          observaciones: input.observaciones,
+          ordenId: updated.id,
+        }];
+      }
+    }
+
     return of(new HttpResponse({ status: updated ? 200 : 404, body: updated ?? null })).pipe(delay(400));
   }
 
   const subOrderId = matchId(req.url, '/api/maintenance-suborders');
   if (subOrderId !== null && req.method === 'PUT') {
-    const input = req.body as Pick<SubOrder, 'diagnostico' | 'actividadesCorrectivas' | 'horasTrabajo' | 'repuestos'>;
+    const input = req.body as Pick<SubOrder, 'diagnostico' | 'actividadesCorrectivas' | 'horasTrabajo' | 'repuestos' | 'trabajosAdicionales'>;
     let updated: SubOrder | undefined;
     orders = orders.map(order => ({
       ...order,
@@ -413,7 +560,8 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
         // Guardar avance: pasa a En Ejecución (salvo si ya está en un estado posterior).
         const keepStatus: SubOrderStatus[] = ['En Revisión de Cierre', 'Cerrado', 'Corrección Solicitada'];
         const nextStatus: SubOrderStatus = keepStatus.includes(sub.status) ? sub.status : 'En Ejecución';
-        updated = { ...sub, ...input, status: nextStatus };
+        const ejecucionIniciadaEn = sub.ejecucionIniciadaEn ?? (nextStatus === 'En Ejecución' ? new Date().toISOString() : undefined);
+        updated = { ...sub, ...input, status: nextStatus, ejecucionIniciadaEn };
         return updated;
       }),
     }));
@@ -428,7 +576,11 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
       ...order,
       subOrders: order.subOrders.map(sub => {
         if (sub.id !== id) return sub;
-        updated = { ...sub, status: sub.status === 'Cerrado' ? 'Cerrado' : 'En Revisión de Cierre' };
+        updated = {
+          ...sub,
+          status: sub.status === 'Cerrado' ? 'Cerrado' : 'En Revisión de Cierre',
+          ejecucionTerminadaEn: new Date().toISOString(),
+        };
         return updated;
       }),
     }));
@@ -480,6 +632,7 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
           ...sub,
           status: decision === 'approved' ? 'Cerrado' : 'Corrección Solicitada',
           correctionNote: decision === 'rejected' ? correctionNote : undefined,
+          cierreAprobadoEn: decision === 'approved' ? new Date().toISOString() : sub.cierreAprobadoEn,
         };
         return updated;
       }),

@@ -9,10 +9,16 @@
         <dynadrill-input label="Bloque" placeholder="56" [value]="bloque()" (valueChange)="bloque.set($event)" />
         <dynadrill-input label="Cliente" placeholder="Petroecuador" [value]="cliente()" (valueChange)="cliente.set($event)" />
         <dynadrill-input label="Base" placeholder="Coca" [value]="base()" (valueChange)="base.set($event)" />
-        <dynadrill-input label="Unidad" placeholder="4-CTV-03" [value]="unidad()" (valueChange)="unidad.set($event)" />
+        <dynadrill-select label="Unidad" placeholder="Selecciona la unidad" [options]="unidadOptions()" [value]="unidadId()" (valueChange)="unidadId.set($any($event))" />
         <dynadrill-datetime-picker label="Fecha Salida" [value]="fechaSalida()!" (valueChange)="fechaSalida.set($event)" />
         <dynadrill-datetime-picker label="Fecha Llegada" [value]="fechaLlegada()!" (valueChange)="fechaLlegada.set($event)" />
       </div>
+      @if (horasAcumuladasLabel(); as label) {
+        <div class="unit-report-dialog__horas-acumuladas">
+          <dynadrill-icon name="clock" [size]="16" />
+          <dynadrill-text variant="caption">{{ label }}</dynadrill-text>
+        </div>
+      }
     }
 
     @if (currentStep() === 1) {
@@ -24,6 +30,12 @@
         <dynadrill-input label="Origen" [value]="origen()" (valueChange)="origen.set($event)" />
         <dynadrill-input label="Destino" [value]="destino()" (valueChange)="destino.set($event)" />
       </div>
+      @if (lecturaWarning(); as warning) {
+        <div class="unit-report-dialog__warning">
+          <dynadrill-icon name="alert" [size]="16" />
+          <dynadrill-text variant="caption">{{ warning }}</dynadrill-text>
+        </div>
+      }
     }
 
     @if (currentStep() === 2) {

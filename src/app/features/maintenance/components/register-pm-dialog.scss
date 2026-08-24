@@ -28,4 +28,10 @@
 
     > * { flex: none; }
   }
+
+  @media (max-width: 600px) {
+    &__header {
+      grid-template-columns: 1fr;
+    }
+  }
 }

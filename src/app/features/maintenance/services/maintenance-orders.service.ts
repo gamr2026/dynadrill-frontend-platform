@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { MaintenanceOrderWithSubOrders, MaintenanceType, SubOrder, UnitFinalState } from '../models/maintenance-order.model';
+import { MaintenanceSourceModule } from '../models/unit-report.model';
 
 export interface ClassifyTypeAssignment {
   type: MaintenanceType;
@@ -16,7 +17,7 @@ export interface ClassifyOrderInput {
   unitReportId: number;
   unidad: string;
   origin: string;
-  sourceModule: 'Pumping' | 'FCR';
+  sourceModule: MaintenanceSourceModule;
   assignments: ClassifyTypeAssignment[];
   assignedByName: string;
 }
@@ -62,8 +63,8 @@ export class MaintenanceOrdersService {
     });
   }
 
-  /** MAN-001-B paso 1: guarda diagnóstico, actividades, horas y repuestos. Sub-orden pasa a "En Ejecución". */
-  updateSubOrder(id: number, input: Pick<SubOrder, 'diagnostico' | 'actividadesCorrectivas' | 'horasTrabajo' | 'repuestos'>): Observable<SubOrder> {
+  /** MAN-001-B paso 1: guarda diagnóstico, actividades, horas, repuestos y trabajos adicionales. Sub-orden pasa a "En Ejecución". */
+  updateSubOrder(id: number, input: Pick<SubOrder, 'diagnostico' | 'actividadesCorrectivas' | 'horasTrabajo' | 'repuestos' | 'trabajosAdicionales'>): Observable<SubOrder> {
     return this.http.put<SubOrder>(`/api/maintenance-suborders/${id}`, input);
   }
 

@@ -1,0 +1,33 @@
+<div class="maintenance-kpis-page">
+  <dynadrill-screen-header title="Indicadores de Mantenimiento" subtitle="MAN-MASTER-001 — calculados sobre los datos actuales del sistema" />
+
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Calculando indicadores…">
+    <dynadrill-kpi-row [items]="kpis()" />
+
+    <div class="maintenance-kpis-page__gauges">
+      <div class="maintenance-kpis-page__gauge-card">
+        <dynadrill-text variant="h2">Cumplimiento del plan preventivo</dynadrill-text>
+        <dynadrill-chart type="gauge" [value]="cumplimientoPreventivo()" [max]="100" height="220px" />
+      </div>
+      <div class="maintenance-kpis-page__gauge-card">
+        <dynadrill-text variant="h2">Disponibilidad de flota</dynadrill-text>
+        <dynadrill-chart type="gauge" [value]="disponibilidadFlota()" [max]="100" height="220px" />
+      </div>
+    </div>
+
+    <div class="maintenance-kpis-page__section">
+      <dynadrill-text variant="h2">Unidades con fallas repetitivas</dynadrill-text>
+      @if (fallasRepetitivas().length) {
+        <dynadrill-chart type="bar" [categories]="fallasChartCategories()" [series]="fallasChartSeries()" height="260px" />
+        <dynadrill-data-table [columns]="fallasColumns" [rows]="fallasRepetitivas()" [rowKey]="fallasRowKeyFn" [pageSize]="5" />
+      } @else {
+        <dynadrill-text variant="caption">Ninguna unidad tiene más de una orden correctiva todavía.</dynadrill-text>
+      }
+    </div>
+
+    <dynadrill-text variant="caption" class="maintenance-kpis-page__note">
+      Calculado sobre los registros actuales del interceptor de mocks — sirve para validar la definición de cada
+      indicador, no para tomar decisiones. Se reinicia al recargar la página.
+    </dynadrill-text>
+  </dynadrill-spinner>
+</div>

@@ -1,0 +1,59 @@
+.maintenance-kpis-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  &__gauges {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  &__gauge-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 16px;
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-md, 6px);
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-md, 6px);
+  }
+
+  &__note {
+    color: var(--text-muted, #5c5870);
+    padding-top: 4px;
+  }
+
+  // ── Responsive ──
+  // Mismo patrón que maintenance-list-page.scss: dynadrill-kpi-row no es
+  // responsive por sí solo, necesita el override manual acá.
+
+  @media (max-width: 700px) {
+    &__gauges {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 600px) {
+    ::ng-deep dynadrill-kpi-row .dynadrill-kpi-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    ::ng-deep dynadrill-kpi-row .dynadrill-kpi-card {
+      width: 100% !important;
+      min-width: unset !important;
+    }
+  }
+}

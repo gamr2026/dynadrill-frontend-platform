@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Header } from '../header/header';
@@ -17,14 +17,28 @@ import { SidebarStateService } from '../sidebar-state.service';
 export class Shell {
   protected readonly sidebarState = inject(SidebarStateService);
 
+  /**
+   * Indicador global de navegación — sin esto, cambiar a una ruta lazy
+   * (ej. Indicadores, con su chunk pesado de ECharts, o /login al cerrar
+   * sesión) no mostraba ningún feedback mientras el navegador descargaba
+   * el chunk: no hay ningún componente montado todavía en ese momento
+   * para pintar un spinner propio.
+   */
+  protected readonly navigating = signal(false);
+
   constructor() {
+    const router = inject(Router);
+
+    router.events.pipe(takeUntilDestroyed()).subscribe(e => {
+      if (e instanceof NavigationStart) this.navigating.set(true);
+      else if (e instanceof NavigationEnd || e instanceof NavigationCancel || e instanceof NavigationError) this.navigating.set(false);
+    });
+
     // dynadrill-menu no expone un evento de click en sus links — cerrar por
     // NavigationEnd cubre igual los clicks y el botón atrás/adelante del navegador.
-    inject(Router)
-      .events.pipe(
-        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
-        takeUntilDestroyed(),
-      )
-      .subscribe(() => this.sidebarState.close());
+    router.events.pipe(
+      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+      takeUntilDestroyed(),
+    ).subscribe(() => this.sidebarState.close());
   }
 }

@@ -19,8 +19,10 @@
     "@angular/forms": "^21.2.0",
     "@angular/platform-browser": "^21.2.0",
     "@angular/router": "^21.2.0",
-    "@digitec-it-projects/dynadrill-ui": "^0.10.5",
+    "@digitec-it-projects/dynadrill-ui": "^0.12.2",
+    "echarts": "^6.1.0",
     "ng-zorro-antd": "^21.0.0",
+    "ngx-echarts": "^21.0.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },

@@ -8,7 +8,7 @@ export interface ChecklistDualItem {
   llegada: 'ok' | 'x' | null;
 }
 
-export type MaintenanceSourceModule = 'Pumping' | 'FCR';
+export type MaintenanceSourceModule = 'Pumping' | 'FCR' | 'Vehículos';
 
 export interface UnitReport {
   id: number;
@@ -18,7 +18,12 @@ export interface UnitReport {
   bloque: string;
   cliente: string;
   base: string;
+  /** FK a Unidad — de acá se lee horómetro/km acumulado para el casillero de horas. */
+  unidadId: number;
+  /** Denormalizado para mostrar sin resolver la unidad (code o nombre corto). */
   unidad: string;
+  /** Cuando este reporte se generó desde una falla detectada en Inspección de Vehículos (DYN-SGI-RE-068). */
+  originVehicleInspectionId?: number;
   fechaSalida: string;
   fechaLlegada: string;
   horometroSalida?: number;

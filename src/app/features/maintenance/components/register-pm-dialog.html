@@ -52,6 +52,37 @@
     (valueChange)="responsable.set($event)"
   />
 
+  @if (permiteTercero()) {
+    <dynadrill-select
+      label="Ejecutado por"
+      [options]="ejecutadoPorOptions"
+      [value]="ejecutadoPor()"
+      (valueChange)="ejecutadoPor.set($any($event))"
+    />
+  }
+
+  @if (permiteTercero() && ejecutadoPor() === 'Tercero') {
+    <dynadrill-input
+      label="Proveedor"
+      placeholder="Nombre del taller / proveedor calificado por QHSE"
+      [value]="proveedor()"
+      (valueChange)="proveedor.set($event)"
+    />
+    <dynadrill-upload-zone
+      [state]="informeExterno() ? 'uploaded' : 'idle'"
+      [fileName]="informeExterno()?.name ?? ''"
+      (fileSelected)="onInformeSeleccionado($event)"
+    />
+  }
+
+  @if (!permiteTercero()) {
+    <dynadrill-checkbox
+      label="Check list de mantenimiento interno realizado"
+      [checked]="checklistRealizado()"
+      (checkedChange)="checklistRealizado.set($event)"
+    />
+  }
+
   <dynadrill-textarea
     label="Observaciones"
     placeholder="Notas adicionales del mantenimiento realizado (opcional)"

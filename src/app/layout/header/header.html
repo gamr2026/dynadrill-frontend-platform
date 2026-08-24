@@ -5,10 +5,16 @@
     <span></span>
   </button>
   <img class="app-header__logo" src="/brand/dynadrill-logo.svg" alt="Dynadrill" />
-  <dynadrill-button class="app-header__logout-btn" variant="secondary" size="small" (clicked)="logout()">
+  <div class="app-header__spacer"></div>
+  <dynadrill-notification-bell class="app-header__bell" [items]="notificationItems()" (itemClick)="onNotificationClick($event)" />
+  <dynadrill-button class="app-header__logout-btn" variant="secondary" size="small" [disabled]="loggingOut()" (clicked)="logout()">
     <span class="app-header__logout">
-      <dynadrill-icon name="logout" [size]="14" />
-      Cerrar sesión
+      @if (loggingOut()) {
+        <dynadrill-spinner size="sm" />
+      } @else {
+        <dynadrill-icon name="logout" [size]="14" />
+      }
+      {{ loggingOut() ? 'Cerrando sesión…' : 'Cerrar sesión' }}
     </span>
   </dynadrill-button>
 </header>

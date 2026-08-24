@@ -30,6 +30,9 @@
 
         <!-- Extra: tag de estado + botones icono -->
         <div card-extra class="order-detail-panel__card-extra">
+          @if (sub.trabajosAdicionales && sub.status === 'Cerrado') {
+            <dynadrill-tag label="Con pendientes" variant="warning" />
+          }
           <dynadrill-tag [label]="sub.status" [variant]="statusTone[sub.status]" />
           <dynadrill-icon-button
             [icon]="isExpanded(sub.id) ? 'eye-invisible' : 'eye'"
@@ -144,6 +147,12 @@
                 <div class="order-detail-panel__row">
                   <dynadrill-text variant="caption">Motivo de derivación</dynadrill-text>
                   <dynadrill-text variant="body">{{ sub.deriveNote }}</dynadrill-text>
+                </div>
+              }
+              @if (sub.trabajosAdicionales) {
+                <div class="order-detail-panel__row">
+                  <dynadrill-text variant="caption">Trabajos adicionales por atender</dynadrill-text>
+                  <dynadrill-text variant="body">{{ sub.trabajosAdicionales }}</dynadrill-text>
                 </div>
               }
             </div>

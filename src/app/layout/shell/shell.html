@@ -1,4 +1,7 @@
 <div class="shell" [class.shell--sidebar-open]="sidebarState.open()">
+  @if (navigating()) {
+    <div class="shell__nav-progress" role="status" aria-label="Cargando…"></div>
+  }
   <app-header class="shell__header" />
   <app-sidebar class="shell__sidebar" />
   <div class="shell__backdrop" (click)="sidebarState.close()"></div>

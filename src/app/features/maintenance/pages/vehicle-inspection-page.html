@@ -1,0 +1,25 @@
+<div class="vehicle-inspection-page">
+  <dynadrill-screen-header
+    title="Mantenimiento"
+    subtitle="Inspección de Vehículos — DYN-SGI-RE-068"
+    [roleTag]="roleName()"
+  />
+
+  <div class="vehicle-inspection-page__toolbar">
+    <dynadrill-button (clicked)="openInspection()">
+      <dynadrill-icon name="add" [size]="14" />
+      Nueva inspección
+    </dynadrill-button>
+  </div>
+
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando inspecciones…">
+    <dynadrill-data-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="10"
+      [actionsFixed]="!!tableScrollX()"
+      [scrollX]="tableScrollX() ?? ''"
+    />
+  </dynadrill-spinner>
+</div>

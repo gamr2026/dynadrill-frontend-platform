@@ -1,10 +1,19 @@
 <div class="my-tasks-page">
-  <div class="my-tasks-page__header">
-    <dynadrill-text variant="h1">Mis tareas</dynadrill-text>
-  </div>
+  <dynadrill-screen-header
+    title="Mantenimiento"
+    subtitle="Sub-órdenes asignadas — diagnóstico y ejecución"
+    [roleTag]="roleName()"
+  />
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando tareas…">
-    <dynadrill-data-table [columns]="columns" [rows]="rows()" [rowKey]="rowKeyFn" [actionsTemplate]="actionsTpl" />
+    <dynadrill-data-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [rowKey]="rowKeyFn"
+      [actionsTemplate]="actionsTpl"
+      [actionsFixed]="!!tableScrollX()"
+      [scrollX]="tableScrollX() ?? ''"
+    />
   </dynadrill-spinner>
 
   <ng-template #actionsTpl let-row>

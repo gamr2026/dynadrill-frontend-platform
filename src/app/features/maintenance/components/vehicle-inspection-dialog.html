@@ -1,0 +1,101 @@
+<div class="vehicle-inspection-dialog">
+  <dynadrill-stepper [steps]="steps" [currentIndex]="currentStep()" />
+
+  <div class="vehicle-inspection-dialog__body">
+    @if (currentStep() === 0) {
+      <div class="vehicle-inspection-dialog__grid">
+        <dynadrill-select label="Unidad" placeholder="Selecciona el vehículo" [options]="unidadOptions()" [value]="unidadId()" (valueChange)="unidadId.set($any($event))" />
+        <dynadrill-datetime-picker label="Fecha" [value]="fecha()!" (valueChange)="fecha.set($event)" />
+        <dynadrill-input label="Punto de partida" [value]="puntoPartida()" (valueChange)="puntoPartida.set($event)" />
+        <dynadrill-input label="Destino" [value]="destino()" (valueChange)="destino.set($event)" />
+        <dynadrill-input label="Inspeccionado por" [value]="inspeccionadoPor()" (valueChange)="inspeccionadoPor.set($event)" />
+      </div>
+
+      <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">Descripción del vehículo</dynadrill-text>
+      <div class="vehicle-inspection-dialog__grid">
+        <dynadrill-input label="Marca" [value]="marca()" (valueChange)="marca.set($event)" />
+        <dynadrill-input label="Tipo" [value]="tipo()" (valueChange)="tipo.set($event)" />
+        <dynadrill-input label="Modelo" [value]="modelo()" (valueChange)="modelo.set($event)" />
+        <dynadrill-input label="Año fabricación" [value]="anioFabricacion()" (valueChange)="anioFabricacion.set($event)" />
+        <dynadrill-input label="Placa N°" [value]="placa()" (valueChange)="placa.set($event)" />
+      </div>
+
+      <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">Documentos del vehículo</dynadrill-text>
+      <div class="vehicle-inspection-dialog__grid">
+        <dynadrill-input label="Fecha de matrícula" [value]="fechaMatricula()" (valueChange)="fechaMatricula.set($event)" />
+        <dynadrill-input label="Caducidad de matrícula" [value]="caducidadMatricula()" (valueChange)="caducidadMatricula.set($event)" />
+        <dynadrill-input label="Caducidad póliza de seguro" [value]="caducidadPoliza()" (valueChange)="caducidadPoliza.set($event)" />
+        <dynadrill-input label="Vigencia otro documento" [value]="vigenciaOtroDocumento()" (valueChange)="vigenciaOtroDocumento.set($event)" />
+      </div>
+
+      <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">Kilometraje</dynadrill-text>
+      <div class="vehicle-inspection-dialog__grid">
+        <dynadrill-input label="Inicial" type="number" [value]="kmInicial()" (valueChange)="kmInicial.set($event)" />
+        <dynadrill-input label="Final" type="number" [value]="kmFinal()" (valueChange)="kmFinal.set($event)" />
+        <dynadrill-input label="Próximo mantenimiento" [value]="proximoMantenimiento()" (valueChange)="proximoMantenimiento.set($event)" />
+      </div>
+    }
+
+    @if (currentStep() === 1) {
+      <ng-container [ngTemplateOutlet]="checklist" [ngTemplateOutletContext]="{ $implicit: checklistVehiculo, list: checklistVehiculo }" />
+    }
+
+    @if (currentStep() === 2) {
+      <ng-container [ngTemplateOutlet]="checklist" [ngTemplateOutletContext]="{ $implicit: checklistEquipo, list: checklistEquipo }" />
+    }
+
+    @if (currentStep() === 3) {
+      <div class="vehicle-inspection-dialog__stack">
+        <dynadrill-checkbox label="Licencia de conducción vigente" [checked]="licenciaVigente()" (checkedChange)="licenciaVigente.set($event)" />
+        <dynadrill-checkbox label="Manejo defensivo vigente" [checked]="manejoDefensivoVigente()" (checkedChange)="manejoDefensivoVigente.set($event)" />
+        <dynadrill-checkbox label="Exámen médico vigente (1 año)" [checked]="examenMedicoVigente()" (checkedChange)="examenMedicoVigente.set($event)" />
+        <dynadrill-checkbox label="Exámen psicosensométrico" [checked]="examenPsicosensometrico()" (checkedChange)="examenPsicosensometrico.set($event)" />
+        <dynadrill-checkbox label="Documentos requeridos por los clientes (carnets, etc.)" [checked]="documentosClientes()" (checkedChange)="documentosClientes.set($event)" />
+        <dynadrill-checkbox label="Vacunas — certificado" [checked]="vacunasCertificado()" (checkedChange)="vacunasCertificado.set($event)" />
+        <dynadrill-checkbox label="Reúne las condiciones para trabajar" [checked]="reuneCondicionesParaTrabajar()" (checkedChange)="reuneCondicionesParaTrabajar.set($event)" />
+
+        <dynadrill-textarea label="Observaciones" [value]="observacionesConductor()" (valueChange)="observacionesConductor.set($event)" [rows]="2" />
+        <dynadrill-input label="Nombre del Supervisor" [value]="supervisorNombre()" (valueChange)="supervisorNombre.set($event)" />
+      </div>
+    }
+  </div>
+
+  <div class="vehicle-inspection-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+    <div class="vehicle-inspection-dialog__actions-right">
+      @if (currentStep() > 0) {
+        <dynadrill-button variant="secondary" (clicked)="back()">Atrás</dynadrill-button>
+      }
+      @if (currentStep() < steps.length - 1) {
+        <dynadrill-button (clicked)="next()">Siguiente</dynadrill-button>
+      } @else {
+        <dynadrill-button [disabled]="submitting()" (clicked)="submit()">{{ submitting() ? 'Guardando…' : 'Guardar' }}</dynadrill-button>
+      }
+    </div>
+  </div>
+</div>
+
+<ng-template #checklist let-items let-list="list">
+  <div class="vehicle-checklist">
+    <div class="vehicle-checklist__header">
+      <span></span>
+      <span>Cumple</span>
+      <span>No cumple</span>
+      <span>N/A</span>
+    </div>
+    @for (item of items(); track item.label; let i = $index) {
+      <div class="vehicle-checklist__row">
+        <span class="vehicle-checklist__label">{{ item.label }}</span>
+        <button type="button" class="vehicle-checklist__cell" [class.vehicle-checklist__cell--ok]="item.estado === 'C'" (click)="setEstado(list, i, 'C')">
+          @if (item.estado === 'C') { ✓ }
+        </button>
+        <button type="button" class="vehicle-checklist__cell" [class.vehicle-checklist__cell--bad]="item.estado === 'NC'" (click)="setEstado(list, i, 'NC')">
+          @if (item.estado === 'NC') { ✕ }
+        </button>
+        <button type="button" class="vehicle-checklist__cell" [class.vehicle-checklist__cell--na]="item.estado === 'NA'" (click)="setEstado(list, i, 'NA')">
+          @if (item.estado === 'NA') { — }
+        </button>
+      </div>
+    }
+  </div>
+</ng-template>

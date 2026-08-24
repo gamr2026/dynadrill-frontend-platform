@@ -51,5 +51,11 @@ export const appConfig: ApplicationConfig = {
     // Requisito de DynadrillDrawerService (panel maestro-detalle de
     // Mantenimiento) — NzDrawerService tampoco es providedIn:'root'.
     provideDynadrillDrawer(),
+    // provideDynadrillCharts NO va acá: si se registra a nivel de app, el
+    // import de echarts/charts queda estático en app.config.ts y Angular
+    // lo empaqueta en main.js (bundle inicial) para TODOS los usuarios,
+    // aunque nunca visiten una pantalla con charts. Se registra en el
+    // route-level providers de la ruta que sí los usa (maintenance.routes.ts,
+    // ruta 'kpis') para que quede dentro de su chunk lazy.
   ],
 };

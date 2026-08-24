@@ -2,7 +2,7 @@
   [eyebrow]="'PUM-02'"
   [title]="ticket()?.code ?? 'Cargando...'"
   [subtitle]="ticket()?.wellName ?? ''"
-  roleTag="Jefe de Base"
+  [roleTag]="roleName()"
 />
 
 <dynadrill-stepper [steps]="stepLabels" [currentIndex]="currentStepIndex()" />
@@ -40,25 +40,52 @@
       <dynadrill-context-card [items]="contextItems()" />
     </section>
 
-    <section class="ticket-detail__section">
-      <dynadrill-text variant="h2">Asignar operadores</dynadrill-text>
-      <dynadrill-select label="Operadores" placeholder="Seleccionar operadores" [options]="operatorOptions" [value]="selectedOperators()" [multiple]="true" (valueChange)="onOperatorsChange($event)" />
-    </section>
+    @if (viewMode() === 'resumen') {
+      <!-- Vista resumen: tablas de operadores y químicos asignados -->
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="h2">Operadores asignados</dynadrill-text>
+        <dynadrill-data-table [columns]="assignmentSummaryColumns" [rows]="assignmentSummaryRows()" [loading]="false" />
+      </section>
 
-    <section class="ticket-detail__section">
-      <dynadrill-text variant="h2">Asignar unidades</dynadrill-text>
-      <dynadrill-select label="Unidades" placeholder="Seleccionar unidades" [options]="unitOptions" [value]="selectedUnits()" [multiple]="true" (valueChange)="onUnitsChange($event)" />
-    </section>
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="h2">Químicos asignados</dynadrill-text>
+        <dynadrill-data-table [columns]="chemicalSummaryColumns" [rows]="chemicalSummaryRows()" [loading]="false" />
+      </section>
 
-    <section class="ticket-detail__section">
-      <dynadrill-text variant="h2">Asignar químicos</dynadrill-text>
-      <dynadrill-select label="Químicos" placeholder="Seleccionar químicos" [options]="chemicalOptions" [value]="selectedChemicals()" [multiple]="true" (valueChange)="onChemicalsChange($event)" />
-    </section>
+      @if (!allOperatorsReady()) {
+        <section class="ticket-detail__section">
+          <dynadrill-text variant="caption">Todos los operadores deben completar su inspección de vehículos y reporte de unidad de salida antes de poder aprobar.</dynadrill-text>
+        </section>
+      }
 
-    <footer class="ticket-detail__actions">
-      <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="primary" [disabled]="selectedOperators().length === 0 || selectedUnits().length === 0 || submitting()" (clicked)="saveAssignments()">Guardar y continuar</dynadrill-button>
-    </footer>
+      <footer class="ticket-detail__actions">
+        <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
+      </footer>
+    } @else {
+      <!-- Vista asignar: formulario de asignación -->
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="h2">Asignar operadores</dynadrill-text>
+        <dynadrill-select label="Operadores" placeholder="Seleccionar operadores" [options]="operatorOptions" [value]="selectedOperators()" [multiple]="true" (valueChange)="onOperatorAdded($event)" />
+      </section>
+
+      <!-- Asignar unidad a cada operador -->
+      @for (assignment of operatorAssignments(); track assignment.operatorId) {
+        <section class="ticket-detail__section">
+          <dynadrill-text variant="body">Unidad para: <strong>{{ getOperatorName(assignment.operatorId) }}</strong></dynadrill-text>
+          <dynadrill-select label="Unidad" placeholder="Seleccionar unidad" [options]="unitOptions" [value]="getOperatorUnit(assignment.operatorId)" (valueChange)="onOperatorUnitChange(assignment.operatorId, $event)" />
+        </section>
+      }
+
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="h2">Asignar químicos</dynadrill-text>
+        <dynadrill-select label="Químicos" placeholder="Seleccionar químicos" [options]="chemicalOptions" [value]="selectedChemicals()" [multiple]="true" (valueChange)="onChemicalsChange($event)" />
+      </section>
+
+      <footer class="ticket-detail__actions">
+        <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
+        <dynadrill-button variant="primary" [disabled]="selectedOperators().length === 0 || !allOperatorsHaveUnits() || submitting()" (clicked)="saveAssignments()">Guardar y continuar</dynadrill-button>
+      </footer>
+    }
   }
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
@@ -67,7 +94,29 @@
   @if (currentStep() === 'en_ejecucion') {
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
-      <dynadrill-data-table [columns]="personnelColumns" [rows]="personnelRows()" [loading]="false" />
+
+      <ng-template #inspectionActionsTpl let-row>
+        @if (hasCompletedInspection(row)) {
+          <dynadrill-button variant="success" size="small" [disabled]="true">
+            Inspección realizada
+          </dynadrill-button>
+          <dynadrill-button variant="secondary" size="small" (click)="viewInspection(row)">
+            Ver detalle
+          </dynadrill-button>
+        } @else {
+          <dynadrill-button variant="primary" size="small" (click)="openInspection(row)">
+            Realizar inspección
+          </dynadrill-button>
+        }
+      </ng-template>
+
+      <dynadrill-data-table
+        [columns]="personnelColumns"
+        [rows]="personnelRows()"
+        [loading]="false"
+        actionsHeader="Acciones"
+        [actionsTemplate]="inspectionActionsTpl"
+      />
     </section>
 
     <section class="ticket-detail__section">
@@ -137,7 +186,7 @@
 
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="primary" [disabled]="submitting()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
+      <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || submitting()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
     </footer>
   }
 
@@ -147,7 +196,23 @@
   @if (currentStep() === 'en_ejecucion_llegada') {
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
-      <dynadrill-data-table [columns]="personnelColumns" [rows]="personnelRows()" [loading]="false" />
+
+      <ng-template #inspectionActionsLlegadaTpl let-row>
+        <dynadrill-button variant="success" size="small" [disabled]="true">
+          Inspección realizada
+        </dynadrill-button>
+        <dynadrill-button variant="secondary" size="small" (click)="viewInspection(row)">
+          Ver detalle
+        </dynadrill-button>
+      </ng-template>
+
+      <dynadrill-data-table
+        [columns]="personnelColumns"
+        [rows]="personnelRows()"
+        [loading]="false"
+        actionsHeader="Acciones"
+        [actionsTemplate]="inspectionActionsLlegadaTpl"
+      />
     </section>
 
     <section class="ticket-detail__section">

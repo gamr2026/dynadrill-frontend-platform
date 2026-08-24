@@ -31,12 +31,25 @@ export class Sidebar {
       return [dashboard, { label: 'Mis tareas', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/mis-tareas' }];
     }
 
-    if (roleName === 'Conductor') {
-      return [dashboard, { label: 'Inspección de Vehículos', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/inspeccion-vehiculos' }];
-    }
-
     if (roleName === 'Supervisor') {
-      return [dashboard, { label: 'Aprobar Inspecciones', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/inspeccion-vehiculos' }];
+      return [
+        dashboard,
+        { label: 'Aprobar Inspecciones', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/inspeccion-vehiculos' },
+        {
+          label: 'Módulos',
+          icon: 'modules',
+          children: [
+            {
+              label: 'Operativo',
+              icon: 'file-text',
+              children: [
+                { label: 'Pumping', link: '/modulos/operativo/pumping' },
+                { label: 'FCR', link: '/modulos/operativo/fcr' },
+              ],
+            },
+          ],
+        },
+      ];
     }
 
     const maintenance: DynadrillMenuItem[] =
@@ -66,8 +79,8 @@ export class Sidebar {
             label: 'Operativo',
             icon: 'file-text',
             children: [
-              { label: 'Pumping', link: '/operaciones/pumping' },
-              { label: 'FCR', link: '/operaciones/fcr' },
+              { label: 'Pumping', link: '/modulos/operativo/pumping' },
+              { label: 'FCR', link: '/modulos/operativo/fcr' },
             ],
           },
           ...maintenance,

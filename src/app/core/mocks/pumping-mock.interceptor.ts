@@ -34,6 +34,7 @@ let tickets: PumpingTicket[] = [
     operators: [
       { id: 1, name: 'Jorge Salinas', role: 'Operador Mecánico', unitCode: 'PUM-07' },
       { id: 2, name: 'David Cevallos', role: 'Operador Instrumental', unitCode: 'PUM-07' },
+      { id: 10, name: 'Marco Ruiz', role: 'Operador', unitCode: 'PUM-07' },
     ],
     unitReport: null,
     chemicals: [
@@ -257,6 +258,7 @@ let tickets: PumpingTicket[] = [
     operators: [
       { id: 5, name: 'Carla Fiallos', role: 'Operador Instrumental', unitCode: 'PUM-15' },
       { id: 6, name: 'Carlos Vega', role: 'Operador Mecánico', unitCode: 'PUM-15' },
+      { id: 10, name: 'Marco Ruiz', role: 'Operador', unitCode: 'PUM-15' },
     ],
     unitReport: {
       reportCode: 'RU-2026-00463',

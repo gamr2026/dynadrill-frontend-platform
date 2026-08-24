@@ -31,6 +31,6 @@ export const maintenanceRoutes: Routes = [
     path: 'inspeccion-vehiculos',
     loadComponent: () => import('./pages/vehicle-inspection-page').then(m => m.VehicleInspectionPage),
     canActivate: [roleGuard],
-    data: { allowedRoles: ['Conductor', 'Supervisor'] },
+    data: { allowedRoles: ['Operador', 'Supervisor'] },
   },
 ];

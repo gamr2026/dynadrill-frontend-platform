@@ -17,6 +17,7 @@ import {
   type PumpingStep,
 } from '../../models/pumping.model';
 import { PumpingService } from '../../services/pumping.service';
+import { AuthService } from '../../../../../core/services/auth.service';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
 
@@ -54,6 +55,13 @@ export class TicketListPage {
   private readonly pumpingService = inject(PumpingService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly auth = inject(AuthService);
+
+  // ── Rol actual ──
+  protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
+  protected readonly isJefeBase = computed(() => this.roleName() === 'Jefe de Base');
+  protected readonly isSupervisor = computed(() => this.roleName() === 'Supervisor');
+  protected readonly isOperador = computed(() => this.roleName() === 'Operador');
 
   protected readonly loading = signal(true);
   protected readonly tickets = signal<PumpingTicket[]>([]);
@@ -121,6 +129,7 @@ export class TicketListPage {
       clientName: t.clientName,
       serviceType: { text: PUMPING_SERVICE_TYPE_LABELS[t.serviceType], tone: 'brand' as const },
       statusBadge: STEP_BADGES[t.currentStep] ?? { text: t.currentStep, tone: 'neutral' as const },
+      step: t.currentStep,
     })),
   );
 
@@ -132,6 +141,7 @@ export class TicketListPage {
       clientName: t.clientName,
       serviceType: { text: PUMPING_SERVICE_TYPE_LABELS[t.serviceType], tone: 'brand' as const },
       statusBadge: { text: 'Finalizado', tone: 'success' as const },
+      step: 'aprobado',
     })),
   );
 
@@ -153,5 +163,28 @@ export class TicketListPage {
 
   protected viewDetail(row: Record<string, unknown>): void {
     this.router.navigate([String(row['id'])], { relativeTo: this.route });
+  }
+
+  protected viewDetailMode(row: Record<string, unknown>, mode: string): void {
+    this.router.navigate([String(row['id'])], { relativeTo: this.route, queryParams: { mode } });
+  }
+
+  /**
+   * Determina si el usuario puede acceder al detalle de un ticket
+   * según su rol y el estado (step) del ticket.
+   *
+   * - Jefe de Base → revision_propuesta
+   * - Supervisor → asignacion
+   * - Operador → en_ejecucion, en_ejecucion_llegada
+   *
+   * Todos ven los tickets, pero solo pueden entrar al detalle
+   * de los estados que les corresponden.
+   */
+  protected canViewDetail(row: Record<string, unknown>): boolean {
+    const step = row['step'] as string;
+    if (this.isJefeBase()) return step === 'revision_propuesta';
+    if (this.isSupervisor()) return step === 'asignacion';
+    if (this.isOperador()) return step === 'en_ejecucion' || step === 'en_ejecucion_llegada';
+    return false;
   }
 }

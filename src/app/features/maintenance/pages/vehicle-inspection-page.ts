@@ -35,7 +35,7 @@ export class VehicleInspectionPage {
   private readonly auth = inject(AuthService);
 
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
-  protected readonly isConductor = computed(() => this.roleName() === 'Conductor');
+  protected readonly isConductor = computed(() => this.roleName() === 'Operador');
   protected readonly isSupervisor = computed(() => this.roleName() === 'Supervisor');
 
   protected readonly loading = signal(true);

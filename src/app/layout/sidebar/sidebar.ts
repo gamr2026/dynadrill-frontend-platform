@@ -51,6 +51,24 @@ export class Sidebar {
           }]
         : [];
 
+    /**
+     * A diferencia de Operativo (visible para cualquier rol "de oficina"),
+     * QHSE sí se gatea por rol desde el sidebar — igual que Mantenimiento.
+     * Antes era un link plano visible para todos (placeholder sin ruta
+     * real); ahora que /dashboard/qhse existe de verdad y su roleGuard
+     * exige uno de los tres roles HSE (HSE-MASTER-001, "Roles y
+     * Responsabilidades"), mostrarlo a todos los demás roles solo los
+     * llevaría a un redirect a /dashboard.
+     */
+    const hse: DynadrillMenuItem[] =
+      roleName === 'Técnico HSE' || roleName === 'Coordinador HSE' || roleName === 'Gerente HSE'
+        ? [{
+            label: 'QHSE',
+            icon: 'alert' as DynadrillIconName,
+            children: [{ label: 'IPERC', link: '/dashboard/qhse/iperc' }],
+          }]
+        : [];
+
     return [
       dashboard,
       {
@@ -71,7 +89,7 @@ export class Sidebar {
             ],
           },
           ...maintenance,
-          { label: 'QHSE', link: '/dashboard/qhse' },
+          ...hse,
         ],
       },
     ];

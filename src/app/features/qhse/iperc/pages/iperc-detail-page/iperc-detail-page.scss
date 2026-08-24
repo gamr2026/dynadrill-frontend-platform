@@ -1,0 +1,73 @@
+:host {
+  display: block;
+  padding: 1.5rem;
+}
+
+.iperc-detail-page__meta {
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.iperc-detail-page__task {
+  margin-top: 1.5rem;
+}
+
+.iperc-detail-page__task-title {
+  font-family: var(--font-heading, sans-serif);
+  color: var(--dynadrill-navy, #131529);
+}
+
+.iperc-detail-page__hazard {
+  border: var(--border-width, 1px) solid var(--border, #e5e4ea);
+  border-radius: var(--radius-md, 6px);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: var(--surface, #fff);
+}
+
+.iperc-detail-page__hazard-header h4 {
+  margin: 0;
+}
+
+.iperc-detail-page__hazard-source {
+  margin: 0.25rem 0 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-muted, #5c5870);
+}
+
+.iperc-detail-page__matrices {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+
+.iperc-detail-page__controls ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.iperc-detail-page__controls li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.iperc-detail-page__empty {
+  color: var(--text-muted, #5c5870);
+  font-size: 0.85rem;
+}
+
+.iperc-detail-page__actions {
+  display: flex;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}

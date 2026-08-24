@@ -1,0 +1,84 @@
+@if (loading()) {
+  <p class="iperc-detail-page__loading">Cargando matriz IPERC…</p>
+} @else if (matrix(); as m) {
+  <dynadrill-screen-header [eyebrow]="m.code" [title]="m.actividad" [subtitle]="m.ubicacion" [roleTag]="statusLabel()" />
+
+  <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a IPERC</dynadrill-button>
+
+  <section class="iperc-detail-page__meta">
+    <p><strong>Equipo evaluador:</strong> {{ m.equipoEvaluador.join(', ') || 'Sin definir' }}</p>
+    <p><strong>ATS base generado:</strong> {{ m.atsGenerado ? 'Sí' : 'No' }}</p>
+    @if (m.approvedByName) {
+      <p><strong>Aprobada por:</strong> {{ m.approvedByName }} — {{ m.approvedAt }}</p>
+    }
+  </section>
+
+  @for (task of m.tasks; track task.id) {
+    <section class="iperc-detail-page__task">
+      <h3 class="iperc-detail-page__task-title">{{ task.descripcion }}</h3>
+
+      @for (hazard of task.hazards; track hazard.id) {
+        <article class="iperc-detail-page__hazard">
+          <header class="iperc-detail-page__hazard-header">
+            <h4>{{ hazard.peligro }}</h4>
+            <p class="iperc-detail-page__hazard-source">Fuente: {{ hazard.fuenteRiesgo }}</p>
+          </header>
+
+          <p class="iperc-detail-page__hazard-existing">
+            <strong>Controles existentes:</strong> {{ hazard.controlesExistentes || 'Ninguno registrado' }}
+          </p>
+
+          <div class="iperc-detail-page__matrices">
+            <dynadrill-risk-matrix
+              title="Riesgo inicial"
+              [probabilidad]="hazard.probabilidadInicial"
+              [severidad]="hazard.severidadInicial"
+              [interactive]="riskEditable()"
+              (riskChange)="onInitialRiskChange(hazard, $event)"
+            />
+            <dynadrill-risk-matrix
+              title="Riesgo residual"
+              [probabilidad]="hazard.probabilidadResidual"
+              [severidad]="hazard.severidadResidual"
+              [interactive]="riskEditable()"
+              (riskChange)="onResidualRiskChange(hazard, $event)"
+            />
+          </div>
+
+          <div class="iperc-detail-page__controls">
+            <strong>Controles definidos:</strong>
+            @if (hazard.controles.length > 0) {
+              <ul>
+                @for (c of hazard.controles; track c.id) {
+                  <li>
+                    <dynadrill-tag [label]="controlTypeLabels[c.type]" variant="neutral" />
+                    {{ c.description }}
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="iperc-detail-page__empty">Sin controles definidos todavía.</p>
+            }
+          </div>
+        </article>
+      }
+    </section>
+  }
+
+  <section class="iperc-detail-page__actions">
+    @if (canStartEvaluation()) {
+      <dynadrill-button (click)="startEvaluation()">Iniciar evaluación</dynadrill-button>
+    }
+    @if (canSendToReview()) {
+      <dynadrill-button (click)="sendToReview()">Enviar a revisión</dynadrill-button>
+    }
+  </section>
+
+  @if (canReviewNow() && canApprove()) {
+    <dynadrill-approval-actions
+      consequenceApprove="La matriz queda aprobada y disponible para generar el ATS base de HSE-SITIO-001."
+      consequenceReject="La matriz vuelve a evaluación para que el equipo la corrija."
+      (decisionChange)="onDecision($event)"
+    />
+  }
+}

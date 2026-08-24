@@ -26,6 +26,16 @@ const roles: Role[] = [
    * llenar por él.
    */
   { id: 7, name: 'Conductor' },
+  /**
+   * Roles del módulo QHSE (HSE-MASTER-001, sección "Roles y
+   * Responsabilidades"). Los tres tienen login propio — a diferencia del
+   * Company Man (cliente, queda fuera del sistema) y del personal
+   * operativo (que actúa sobre QHSE con sus roles existentes, no con uno
+   * nuevo — ver plan de desarrollo del módulo en el proyecto).
+   */
+  { id: 8, name: 'Técnico HSE' },
+  { id: 9, name: 'Coordinador HSE' },
+  { id: 10, name: 'Gerente HSE' },
 ];
 
 let users: User[] = [
@@ -115,6 +125,42 @@ let users: User[] = [
     createdAt: '2026-08-01T08:00:00.000Z',
     updatedAt: '2026-08-01T08:00:00.000Z',
   },
+  {
+    id: 8,
+    email: 'tecnico.hse@dynadrill.com',
+    username: 'atorres',
+    name: 'Ana Torres',
+    code: 'EMP-008',
+    phone: '0995556677',
+    roleId: 8,
+    status: true,
+    createdAt: '2026-08-15T08:00:00.000Z',
+    updatedAt: '2026-08-15T08:00:00.000Z',
+  },
+  {
+    id: 9,
+    email: 'coordinador.hse@dynadrill.com',
+    username: 'jhidalgo.hse',
+    name: 'Jorge Hidalgo',
+    code: 'EMP-009',
+    phone: '0996667788',
+    roleId: 9,
+    status: true,
+    createdAt: '2026-08-15T08:05:00.000Z',
+    updatedAt: '2026-08-15T08:05:00.000Z',
+  },
+  {
+    id: 10,
+    email: 'gerente.hse@dynadrill.com',
+    username: 'mflores',
+    name: 'Mónica Flores',
+    code: 'EMP-010',
+    phone: '0997778899',
+    roleId: 10,
+    status: true,
+    createdAt: '2026-08-15T08:10:00.000Z',
+    updatedAt: '2026-08-15T08:10:00.000Z',
+  },
 ];
 
 /** Compartido con auth-mock.interceptor.ts: solo el login los necesita fuera de este archivo. */
@@ -126,7 +172,7 @@ export function getMockRoles(): Role[] {
   return roles;
 }
 
-let nextId = 7;
+let nextId = 10;
 
 function matchUsersId(url: string): number | null {
   const match = url.match(/\/api\/users\/(\d+)$/);

@@ -1,0 +1,84 @@
+/**
+ * Fases de HSE-PLAN-001: Preparación → Identificación/Evaluación inicial →
+ * Controles/Reevaluación → Documentación y aprobación. "borrador" cubre la
+ * Fase 1 (desglose de actividad en tareas, todavía sin evaluar peligros).
+ */
+export type IpercStatus = 'borrador' | 'en_evaluacion' | 'en_revision' | 'aprobada' | 'rechazada';
+
+export const IPERC_STATUS_LABELS: Record<IpercStatus, string> = {
+  borrador: 'Borrador',
+  en_evaluacion: 'En evaluación',
+  en_revision: 'En revisión',
+  aprobada: 'Aprobada',
+  rechazada: 'Rechazada',
+};
+
+export type ControlType = 'ingenieria' | 'administrativo' | 'epp';
+
+export const CONTROL_TYPE_LABELS: Record<ControlType, string> = {
+  ingenieria: 'Ingeniería',
+  administrativo: 'Administrativo',
+  epp: 'EPP',
+};
+
+export interface IpercControl {
+  id: number;
+  type: ControlType;
+  description: string;
+}
+
+/**
+ * El formato DYN-SGI-RE-087 describe su ficha con notación GTC 45
+ * (ND/NE/NP/NC/NR), pero el cuerpo de HSE-PLAN-001 define la evaluación
+ * real con la matriz simple Probabilidad x Severidad (1-5 cada eje) — es
+ * la que implementa dynadrill-risk-matrix en dynadrill-ui, y la que se
+ * sigue acá. Si más adelante se exige el desglose GTC 45 completo (ND x NE
+ * por separado, NC por separado), este es el modelo a extender sin romper
+ * la matriz visual ni el resto del módulo.
+ */
+export interface IpercHazard {
+  id: number;
+  /** Peligro identificado. */
+  peligro: string;
+  /** Fuente/origen del riesgo. */
+  fuenteRiesgo: string;
+  /** Controles que ya existían antes de esta evaluación (texto libre, Fase 1-2). */
+  controlesExistentes: string;
+  /** Riesgo inicial — Fase 2, sin los controles nuevos definidos en Fase 3. */
+  probabilidadInicial: number | null;
+  severidadInicial: number | null;
+  /** Controles nuevos definidos en Fase 3 (ingeniería/administrativos/EPP). */
+  controles: IpercControl[];
+  /** Riesgo residual — Fase 3, con los controles de arriba ya aplicados. */
+  probabilidadResidual: number | null;
+  severidadResidual: number | null;
+}
+
+export interface IpercTask {
+  id: number;
+  /** Tarea dentro del desglose de la actividad (Fase 1). */
+  descripcion: string;
+  hazards: IpercHazard[];
+}
+
+/** DYN-SGI-RE-087 — único formato de HSE-PLAN-001 generado nativamente por el sistema (ver tabla de formatos del proceso). */
+export interface IpercMatrix {
+  id: number;
+  code: string;
+  status: IpercStatus;
+  actividad: string;
+  ubicacion: string;
+  /** Nombres del equipo evaluador multidisciplinario (Fase 1). Texto libre por ahora — no requiere que cada integrante tenga usuario en el sistema. */
+  equipoEvaluador: string[];
+  tasks: IpercTask[];
+  /** true una vez que el ATS base (input de HSE-SITIO-001) fue generado a partir de esta matriz. La generación del ATS en sí no es parte de esta fase. */
+  atsGenerado: boolean;
+  createdAt: string;
+  updatedAt: string;
+  /**
+   * Fase 4 — aprobación. "De momento una línea": usuario + fecha, sin
+   * captura de firma manuscrita (ver decisiones del plan de desarrollo).
+   */
+  approvedByName?: string;
+  approvedAt?: string;
+}

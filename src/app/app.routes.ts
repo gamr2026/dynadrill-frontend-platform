@@ -24,7 +24,7 @@ export const routes: Routes = [
         loadChildren: () => import('./features/maintenance/maintenance.routes').then(m => m.maintenanceRoutes),
       },
       {
-        path: 'operaciones',
+        path: 'modulos/operativo',
         loadChildren: () => import('./features/operations/operations.routes').then(m => m.operationsRoutes),
       },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },

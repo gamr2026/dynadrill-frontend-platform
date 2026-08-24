@@ -2,7 +2,7 @@
   eyebrow="PUM-01"
   title="Tickets Pumping"
   subtitle="Dashboard de propuestas y tickets activos"
-  roleTag="Jefe de Base"
+  [roleTag]="roleName()"
 />
 
 <dynadrill-kpi-row [items]="kpis()" />
@@ -13,11 +13,30 @@
   (activeIndexChange)="onTabChange($event)"
 />
 
-<!-- Template de acciones reutilizable -->
+<!-- Template de acciones: muestra botón solo si el rol puede ver ese estado -->
 <ng-template #actionsTpl let-row>
-  <dynadrill-button variant="secondary" size="small" (click)="viewDetail(row)">
-    Ver detalle
-  </dynadrill-button>
+  @if (canViewDetail(row)) {
+    @if (isSupervisor() && row['step'] === 'asignacion') {
+      <dynadrill-button variant="primary" size="small" (click)="viewDetailMode(row, 'asignar')">
+        Asignar
+      </dynadrill-button>
+      <dynadrill-button variant="secondary" size="small" (click)="viewDetailMode(row, 'resumen')">
+        Ver detalle
+      </dynadrill-button>
+    } @else if (isSupervisor() && row['step'] === 'revisar_reportes_salida') {
+      <dynadrill-button variant="primary" size="small" (click)="viewDetail(row)">
+        Revisar reportes de salida
+      </dynadrill-button>
+    } @else if (isSupervisor() && row['step'] === 'revisar_reportes_llegada') {
+      <dynadrill-button variant="primary" size="small" (click)="viewDetail(row)">
+        Revisar reportes de llegada
+      </dynadrill-button>
+    } @else {
+      <dynadrill-button variant="secondary" size="small" (click)="viewDetail(row)">
+        Ver detalle
+      </dynadrill-button>
+    }
+  }
 </ng-template>
 
 @if (isInProcessTab()) {

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { AuthService } from '../../../../../core/services/auth.service';
 import {
   DynadrillApprovalActionsComponent,
   DynadrillButtonComponent,
@@ -7,6 +8,7 @@ import {
   DynadrillContextCardComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
+  DynadrillDialogService,
   DynadrillInputComponent,
   DynadrillInspectionGridComponent,
   DynadrillNotificationService,
@@ -37,11 +39,55 @@ import { PumpingService } from '../../services/pumping.service';
 import { CreateUnitReportInput, unitReportHasNovedades } from '../../../../maintenance/models/unit-report.model';
 import { UnitReportsService } from '../../../../maintenance/services/unit-reports.service';
 import { UnidadesService } from '../../../../maintenance/services/unidades.service';
+import {
+  VehicleInspection,
+  VEHICLE_CHECKLIST_VEHICULO,
+  VEHICLE_CHECKLIST_EQUIPO,
+  vehicleInspectionIsUsable,
+} from '../../../../maintenance/models/vehicle-inspection.model';
+import { VehicleInspectionDialog, VehicleInspectionDialogData } from '../../../../maintenance/components/vehicle-inspection-dialog';
 import { VehicleInspectionsService } from '../../../../maintenance/services/vehicle-inspections.service';
-import { vehicleInspectionIsUsable } from '../../../../maintenance/models/vehicle-inspection.model';
 import { forkJoin, map } from 'rxjs';
 
-const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'en_ejecucion_llegada', 'en_revision'];
+/** Genera una inspección mock de ejemplo para ver detalle en llegada */
+function createMockCompletedInspection(operatorName: string, unitCode: string): VehicleInspection {
+  return {
+    id: 999,
+    unidadId: 1,
+    unidadCode: unitCode,
+    fecha: new Date().toISOString().split('T')[0],
+    puntoPartida: 'Base Coco',
+    destino: 'Pozo Beta-9',
+    inspeccionadoPor: operatorName,
+    marca: 'Kenworth',
+    tipo: 'Cabezal',
+    modelo: 'T800',
+    anioFabricacion: '2022',
+    placa: 'PBA-1234',
+    fechaMatricula: '2026-01-15',
+    caducidadMatricula: '2027-01-15',
+    caducidadPoliza: '2027-06-30',
+    kmInicial: 45200,
+    kmFinal: 45380,
+    proximoMantenimiento: '46000',
+    checklistVehiculo: VEHICLE_CHECKLIST_VEHICULO.map(label => ({ label, estado: 'C' as const })),
+    checklistEquipo: VEHICLE_CHECKLIST_EQUIPO.map(label => ({ label, estado: 'C' as const })),
+    licenciaVigente: true,
+    manejoDefensivoVigente: true,
+    examenMedicoVigente: true,
+    examenPsicosensometrico: true,
+    documentosClientes: true,
+    vacunasCertificado: true,
+    reuneCondicionesParaTrabajar: true,
+    observacionesConductor: 'Sin novedades',
+    supervisorNombre: 'Luis Vega',
+    supervisorApprovedBy: 'Luis Vega',
+    supervisorApprovedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+  };
+}
+
+const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'revisar_reportes_salida', 'en_ejecucion_llegada', 'revisar_reportes_llegada', 'en_revision'];
 
 @Component({
   selector: 'app-ticket-detail-page',
@@ -68,6 +114,10 @@ export class TicketDetailPage {
   private readonly router = inject(Router);
   private readonly pumpingService = inject(PumpingService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly auth = inject(AuthService);
+  private readonly dialog = inject(DynadrillDialogService);
+
+  protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
   private readonly unitReportsService = inject(UnitReportsService);
   private readonly unidadesService = inject(UnidadesService);
   private readonly vehicleInspectionsService = inject(VehicleInspectionsService);
@@ -75,6 +125,7 @@ export class TicketDetailPage {
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
   protected readonly ticket = signal<PumpingTicket | null>(null);
+  protected readonly viewMode = signal<string>(''); // 'asignar' | 'resumen' | ''
 
   // ── Stepper ──
 
@@ -145,6 +196,239 @@ export class TicketDetailPage {
   protected readonly selectedChemicals = signal<number[]>([]);
 
   // ══════════════════════════════════════════════
+  // PASO 2: Asignación — Resumen
+  // ══════════════════════════════════════════════
+
+  protected readonly assignmentSummaryColumns: DynadrillDataTableColumn[] = [
+    { key: 'name', header: 'Operador' },
+    { key: 'role', header: 'Cargo/Rol' },
+    { key: 'unitCode', header: 'Unidad asignada' },
+    { key: 'inspectionStatus', header: 'Inspección', type: 'badge' },
+    { key: 'reportStatus', header: 'Reporte de unidad', type: 'badge' },
+  ];
+
+  protected readonly assignmentSummaryRows = computed(() => {
+    const t = this.ticket();
+    if (!t || t.operators.length === 0) {
+      // Datos de ejemplo para vista previa
+      return [
+        {
+          id: 1, name: 'Jorge Salinas', role: 'Operador Mecánico', unitCode: 'PUM-07',
+          inspectionStatus: { text: 'Realizada', tone: 'success' as const },
+          reportStatus: { text: 'Completado', tone: 'success' as const },
+        },
+        {
+          id: 2, name: 'David Cevallos', role: 'Operador Instrumental', unitCode: 'PUM-07',
+          inspectionStatus: { text: 'Realizada', tone: 'success' as const },
+          reportStatus: { text: 'Completado', tone: 'success' as const },
+        },
+        {
+          id: 10, name: 'Marco Ruiz', role: 'Operador', unitCode: 'PUM-07',
+          inspectionStatus: { text: 'Pendiente', tone: 'warning' as const },
+          reportStatus: { text: 'Pendiente', tone: 'warning' as const },
+        },
+      ];
+    }
+    return t.operators.map(op => ({
+      id: op.id,
+      name: op.name,
+      role: op.role,
+      unitCode: op.unitCode,
+      inspectionStatus: { text: 'Pendiente', tone: 'warning' as const },
+      reportStatus: { text: 'Pendiente', tone: 'warning' as const },
+    }));
+  });
+
+  /** Verifica si todos los operadores tienen inspección y reporte completados */
+  protected readonly allOperatorsReady = computed(() => {
+    const rows = this.assignmentSummaryRows();
+    return rows.length > 0 && rows.every(
+      r => r.inspectionStatus.text === 'Realizada' && r.reportStatus.text === 'Completado',
+    );
+  });
+
+  protected readonly chemicalSummaryColumns: DynadrillDataTableColumn[] = [
+    { key: 'name', header: 'Químico' },
+    { key: 'quantityAssigned', header: 'Cantidad asignada' },
+    { key: 'unit', header: 'Unidad' },
+  ];
+
+  protected readonly chemicalSummaryRows = computed(() => {
+    const t = this.ticket();
+    if (!t || t.chemicals.length === 0) {
+      // Datos de ejemplo
+      return [
+        { id: 1, name: 'Biocida QX-12', quantityAssigned: 40, unit: 'gal' },
+        { id: 2, name: 'Inhibidor de corrosión', quantityAssigned: 20, unit: 'gal' },
+        { id: 3, name: 'Surfactante SF-3', quantityAssigned: 15, unit: 'gal' },
+      ];
+    }
+    return t.chemicals.map(c => ({
+      id: c.id,
+      name: c.name,
+      quantityAssigned: c.quantityAssigned,
+      unit: c.unit,
+    }));
+  });
+
+  // ══════════════════════════════════════════════
+  // PASO 2: Asignación — Formulario con operador-unidad vinculado
+  // ══════════════════════════════════════════════
+
+  protected readonly operatorAssignments = signal<{ operatorId: number; unitId: number | null }[]>([]);
+
+  protected onOperatorAdded(value: unknown): void {
+    const ids = Array.isArray(value) ? value as number[] : [];
+    this.selectedOperators.set(ids);
+    // Sincronizar assignments: agregar nuevos, quitar eliminados
+    this.operatorAssignments.update(current => {
+      const existing = current.filter(a => ids.includes(a.operatorId));
+      const newIds = ids.filter(id => !current.some(a => a.operatorId === id));
+      return [...existing, ...newIds.map(id => ({ operatorId: id, unitId: null }))];
+    });
+  }
+
+  protected onOperatorUnitChange(operatorId: number, unitId: unknown): void {
+    this.operatorAssignments.update(assignments =>
+      assignments.map(a => a.operatorId === operatorId ? { ...a, unitId: unitId as number } : a),
+    );
+    // Actualizar selectedUnits con todas las unidades asignadas
+    const allUnits = this.operatorAssignments()
+      .map(a => a.unitId)
+      .filter((id): id is number => id !== null);
+    this.selectedUnits.set([...new Set(allUnits)]);
+  }
+
+  protected getOperatorName(operatorId: number): string {
+    return this.operatorOptions.find(o => o.value === operatorId)?.label ?? '';
+  }
+
+  protected getOperatorUnit(operatorId: number): number | null {
+    return this.operatorAssignments().find(a => a.operatorId === operatorId)?.unitId ?? null;
+  }
+
+  protected readonly allOperatorsHaveUnits = computed(() => {
+    const assignments = this.operatorAssignments();
+    return assignments.length > 0 && assignments.every(a => a.unitId !== null);
+  });
+
+  // ══════════════════════════════════════════════
+  // Supervisor: Revisar reportes de salida
+  // ══════════════════════════════════════════════
+
+  protected readonly reviewSalidaColumns: DynadrillDataTableColumn[] = [
+    { key: 'name', header: 'Operador' },
+    { key: 'role', header: 'Cargo/Rol' },
+    { key: 'unitCode', header: 'Unidad asignada' },
+    { key: 'inspectionStatus', header: 'Inspección', type: 'badge' },
+    { key: 'reportStatus', header: 'Reporte de unidad', type: 'badge' },
+  ];
+
+  protected readonly reviewSalidaRows = computed(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    return t.operators.map(op => ({
+      id: op.id,
+      name: op.name,
+      role: op.role,
+      unitCode: op.unitCode,
+      inspectionStatus: { text: 'Realizada', tone: 'success' as const },
+      reportStatus: { text: 'Completado', tone: 'success' as const },
+      approved: false,
+    }));
+  });
+
+  // Trackeo de aprobaciones por operador para salida
+  protected readonly approvedSalidaOperators = signal<Set<number>>(new Set());
+
+  protected isOperatorSalidaApproved(row: Record<string, unknown>): boolean {
+    return this.approvedSalidaOperators().has(row['id'] as number);
+  }
+
+  protected canReviewSalida(row: Record<string, unknown>): boolean {
+    const insp = row['inspectionStatus'] as { text: string };
+    const report = row['reportStatus'] as { text: string };
+    return insp.text === 'Realizada' && report.text === 'Completado';
+  }
+
+  protected approveSalidaOperator(row: Record<string, unknown>): void {
+    const id = row['id'] as number;
+    this.approvedSalidaOperators.update(set => {
+      const updated = new Set(set);
+      updated.add(id);
+      return updated;
+    });
+    this.notify.success('Aprobado', `Reporte de salida de ${row['name']} aprobado.`);
+  }
+
+  protected readonly allSalidaApproved = computed(() => {
+    const rows = this.reviewSalidaRows();
+    const approved = this.approvedSalidaOperators();
+    return rows.length > 0 && rows.every(r => approved.has(r.id));
+  });
+
+  // ══════════════════════════════════════════════
+  // Supervisor: Revisar reportes de llegada (sin inspección)
+  // ══════════════════════════════════════════════
+
+  protected readonly reviewLlegadaColumns: DynadrillDataTableColumn[] = [
+    { key: 'name', header: 'Operador' },
+    { key: 'role', header: 'Cargo/Rol' },
+    { key: 'unitCode', header: 'Unidad asignada' },
+    { key: 'reportStatus', header: 'Reporte de unidad', type: 'badge' },
+  ];
+
+  protected readonly reviewLlegadaRows = computed(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    return t.operators.map(op => ({
+      id: op.id,
+      name: op.name,
+      role: op.role,
+      unitCode: op.unitCode,
+      reportStatus: { text: 'Completado', tone: 'success' as const },
+    }));
+  });
+
+  // Trackeo de aprobaciones por operador para llegada
+  protected readonly approvedLlegadaOperators = signal<Set<number>>(new Set());
+
+  protected isOperatorLlegadaApproved(row: Record<string, unknown>): boolean {
+    return this.approvedLlegadaOperators().has(row['id'] as number);
+  }
+
+  protected canReviewLlegada(row: Record<string, unknown>): boolean {
+    const report = row['reportStatus'] as { text: string };
+    return report.text === 'Completado';
+  }
+
+  protected approveLlegadaOperator(row: Record<string, unknown>): void {
+    const id = row['id'] as number;
+    this.approvedLlegadaOperators.update(set => {
+      const updated = new Set(set);
+      updated.add(id);
+      return updated;
+    });
+    this.notify.success('Aprobado', `Reporte de llegada de ${row['name']} aprobado.`);
+  }
+
+  protected readonly allLlegadaApproved = computed(() => {
+    const rows = this.reviewLlegadaRows();
+    const approved = this.approvedLlegadaOperators();
+    return rows.length > 0 && rows.every(r => approved.has(r.id));
+  });
+
+  protected approveAllSalidaReports(): void {
+    this.notify.success('Aprobado', 'Todos los reportes de salida han sido aprobados.');
+    this.router.navigate(['..'], { relativeTo: this.route });
+  }
+
+  protected approveAllLlegadaReports(): void {
+    this.notify.success('Aprobado', 'Todos los reportes de llegada han sido aprobados.');
+    this.router.navigate(['..'], { relativeTo: this.route });
+  }
+
+  // ══════════════════════════════════════════════
   // PASO 3: Ejecución — Reporte de Unidad DYN-MNT-RE-012
   // ══════════════════════════════════════════════
 
@@ -154,15 +438,38 @@ export class TicketDetailPage {
     { key: 'unitCode', header: 'Unidad asignada' },
   ];
 
+  protected readonly isOperador = computed(() => this.roleName() === 'Operador');
+
   protected readonly personnelRows = computed(() => {
     const t = this.ticket();
     if (!t) return [];
-    return t.operators.map(op => ({
+    const currentUser = this.auth.currentUser();
+    const rows = t.operators.map(op => ({
       id: op.id,
       name: op.name,
       role: op.role,
       unitCode: op.unitCode,
     }));
+    // Si es operador, solo muestra su propia fila
+    if (this.isOperador() && currentUser) {
+      return rows.filter(r => r.name === currentUser.name);
+    }
+    return rows;
+  });
+
+  // Trackeo de inspecciones realizadas por operador (id -> VehicleInspection)
+  protected readonly completedInspections = signal<Map<number, unknown>>(new Map());
+
+  protected hasCompletedInspection(row: Record<string, unknown>): boolean {
+    return this.completedInspections().has(row['id'] as number);
+  }
+
+  /** Verifica si todos los operadores de la tabla tienen inspección realizada */
+  protected readonly allInspectionsCompleted = computed(() => {
+    const rows = this.personnelRows();
+    const completed = this.completedInspections();
+    if (rows.length === 0) return false;
+    return rows.every(r => completed.has(r.id));
   });
 
   // Información general del reporte
@@ -340,14 +647,29 @@ export class TicketDetailPage {
 
   constructor() {
     const id = Number(this.route.snapshot.paramMap.get('id'));
+    this.viewMode.set(this.route.snapshot.queryParamMap.get('mode') ?? '');
     this.pumpingService.getTicket(id).subscribe({
       next: ticket => {
+        // Validar que el rol puede ver este estado
+        if (!this.canAccessStep(ticket.currentStep)) {
+          this.notify.error('Acceso denegado', 'No tienes permisos para ver este ticket en su estado actual.');
+          this.router.navigate(['..'], { relativeTo: this.route });
+          return;
+        }
         this.ticket.set(ticket);
         this.loading.set(false);
         this.initFromTicket(ticket);
       },
       error: () => this.loading.set(false),
     });
+  }
+
+  private canAccessStep(step: PumpingStep): boolean {
+    const role = this.roleName();
+    if (role === 'Jefe de Base') return step === 'revision_propuesta';
+    if (role === 'Supervisor') return step === 'asignacion' || step === 'revisar_reportes_salida' || step === 'revisar_reportes_llegada';
+    if (role === 'Operador') return step === 'en_ejecucion' || step === 'en_ejecucion_llegada';
+    return false;
   }
 
   // ══════════════════════════════════════════════
@@ -427,8 +749,8 @@ export class TicketDetailPage {
 
         for (const code of transporteCodes) {
           const forUnit = inspections
-            .filter(i => i.unidadCode === code)
-            .sort((a, b) => b.fecha.localeCompare(a.fecha));
+            .filter((i: VehicleInspection) => i.unidadCode === code)
+            .sort((a: VehicleInspection, b: VehicleInspection) => b.fecha.localeCompare(a.fecha));
           const latest = forUnit[0];
 
           if (!latest) {
@@ -449,6 +771,15 @@ export class TicketDetailPage {
   protected saveUnitReport(): void {
     const t = this.ticket();
     if (!t) return;
+
+    // Validar que la inspección esté realizada antes de enviar
+    if (!this.allInspectionsCompleted()) {
+      this.notify.error(
+        'Inspección pendiente',
+        'Debe realizar la inspección de vehículos antes de enviar el reporte de unidad.',
+      );
+      return;
+    }
 
     const report = {
       reportCode: `RU-${t.code.replace('PUMP-', '')}`,
@@ -641,6 +972,47 @@ export class TicketDetailPage {
     this.router.navigate(['..'], { relativeTo: this.route });
   }
 
+  /**
+   * Abre el dialog de inspección de vehículos (DYN-SGI-RE-068)
+   * para el operador seleccionado en la tabla de personal asignado.
+   */
+  protected openInspection(row: Record<string, unknown>): void {
+    const ref = this.dialog.open<VehicleInspectionDialog>({
+      title: 'Inspección de Vehículos — DYN-SGI-RE-068',
+      content: VehicleInspectionDialog,
+      size: 'large',
+      footer: false,
+    });
+    ref.afterClose.subscribe(result => {
+      if (result) {
+        const operatorId = row['id'] as number;
+        this.completedInspections.update(map => {
+          const updated = new Map(map);
+          updated.set(operatorId, result);
+          return updated;
+        });
+        this.notify.success('Inspección guardada', `Inspección realizada por ${row['name']}.`);
+      }
+    });
+  }
+
+  /**
+   * Abre el dialog de inspección en modo lectura para ver el detalle
+   * de la inspección ya realizada.
+   */
+  protected viewInspection(row: Record<string, unknown>): void {
+    const operatorId = row['id'] as number;
+    const existing = this.completedInspections().get(operatorId) as VehicleInspection | undefined;
+    if (!existing) return;
+    this.dialog.open<VehicleInspectionDialog, VehicleInspectionDialogData>({
+      title: 'Detalle de Inspección — DYN-SGI-RE-068',
+      content: VehicleInspectionDialog,
+      data: { existing },
+      size: 'large',
+      footer: false,
+    });
+  }
+
   // ══════════════════════════════════════════════
   // Init
   // ══════════════════════════════════════════════
@@ -655,6 +1027,15 @@ export class TicketDetailPage {
     this.reportWellName.set(ticket.wellName);
     this.reportClientName.set(ticket.clientName);
     this.reportUnitCode.set(ticket.unitCode || '');
+
+    // En llegada, las inspecciones ya se realizaron en salida
+    if (ticket.currentStep === 'en_ejecucion_llegada') {
+      const inspMap = new Map<number, VehicleInspection>();
+      for (const op of ticket.operators) {
+        inspMap.set(op.id, createMockCompletedInspection(op.name, op.unitCode));
+      }
+      this.completedInspections.set(inspMap);
+    }
 
     if (ticket.unitReport) {
       const r = ticket.unitReport;

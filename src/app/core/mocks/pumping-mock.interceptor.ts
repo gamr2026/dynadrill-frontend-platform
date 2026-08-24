@@ -34,6 +34,7 @@ let tickets: PumpingTicket[] = [
     operators: [
       { id: 1, name: 'Jorge Salinas', role: 'Operador Mecánico', unitCode: 'PUM-07' },
       { id: 2, name: 'David Cevallos', role: 'Operador Instrumental', unitCode: 'PUM-07' },
+      { id: 10, name: 'Marco Ruiz', role: 'Operador', unitCode: 'PUM-07' },
     ],
     unitReport: null,
     chemicals: [
@@ -257,6 +258,7 @@ let tickets: PumpingTicket[] = [
     operators: [
       { id: 5, name: 'Carla Fiallos', role: 'Operador Instrumental', unitCode: 'PUM-15' },
       { id: 6, name: 'Carlos Vega', role: 'Operador Mecánico', unitCode: 'PUM-15' },
+      { id: 10, name: 'Marco Ruiz', role: 'Operador', unitCode: 'PUM-15' },
     ],
     unitReport: {
       reportCode: 'RU-2026-00463',
@@ -298,6 +300,54 @@ let tickets: PumpingTicket[] = [
     },
     chemicals: [
       { id: 5, name: 'Amonio', quantityAssigned: 25, quantityUsed: 20, quantityReturned: 5, unit: 'gal' },
+    ],
+    tools: [],
+  },
+  {
+    id: 9,
+    code: 'PUMP-2026-00464',
+    status: 'en_ejecucion',
+    wellName: 'Pozo Gamma-5',
+    clientName: 'Petroandina',
+    estimatedDate: '2026-09-10',
+    assignedSupervisor: 'Luis Vega',
+    assignedOperator: 'Marco Ruiz',
+    unitCode: 'PUM-07',
+    serviceType: 'coiled_tubing',
+    proposalOrigin: 'AS2',
+    currentStep: 'revisar_reportes_salida',
+    operators: [
+      { id: 1, name: 'Jorge Salinas', role: 'Operador Mecánico', unitCode: 'PUM-07' },
+      { id: 2, name: 'David Cevallos', role: 'Operador Instrumental', unitCode: 'PUM-07' },
+      { id: 10, name: 'Marco Ruiz', role: 'Operador', unitCode: 'PUM-07' },
+    ],
+    unitReport: null,
+    chemicals: [
+      { id: 1, name: 'Biocida QX-12', quantityAssigned: 40, quantityUsed: 0, quantityReturned: 0, unit: 'gal' },
+      { id: 2, name: 'Inhibidor de corrosión', quantityAssigned: 20, quantityUsed: 0, quantityReturned: 0, unit: 'gal' },
+    ],
+    tools: [],
+  },
+  {
+    id: 10,
+    code: 'PUMP-2026-00465',
+    status: 'en_ejecucion',
+    wellName: 'Pozo Delta-12',
+    clientName: 'Operadora XYZ S.A.',
+    estimatedDate: '2026-09-12',
+    assignedSupervisor: 'Luis Vega',
+    assignedOperator: 'Marco Ruiz',
+    unitCode: 'PUM-15',
+    serviceType: 'estimulaciones',
+    proposalOrigin: 'AS2',
+    currentStep: 'revisar_reportes_llegada',
+    operators: [
+      { id: 4, name: 'Marcos Torres', role: 'Operador Mecánico', unitCode: 'PUM-15' },
+      { id: 10, name: 'Marco Ruiz', role: 'Operador', unitCode: 'PUM-15' },
+    ],
+    unitReport: null,
+    chemicals: [
+      { id: 3, name: 'Surfactante SF-3', quantityAssigned: 15, quantityUsed: 0, quantityReturned: 0, unit: 'gal' },
     ],
     tools: [],
   },

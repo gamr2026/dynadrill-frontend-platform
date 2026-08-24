@@ -23,6 +23,14 @@
       <dynadrill-button variant="secondary" size="small" (click)="viewDetailMode(row, 'resumen')">
         Ver detalle
       </dynadrill-button>
+    } @else if (isSupervisor() && row['step'] === 'revisar_reportes_salida') {
+      <dynadrill-button variant="primary" size="small" (click)="viewDetail(row)">
+        Revisar reportes de salida
+      </dynadrill-button>
+    } @else if (isSupervisor() && row['step'] === 'revisar_reportes_llegada') {
+      <dynadrill-button variant="primary" size="small" (click)="viewDetail(row)">
+        Revisar reportes de llegada
+      </dynadrill-button>
     } @else {
       <dynadrill-button variant="secondary" size="small" (click)="viewDetail(row)">
         Ver detalle

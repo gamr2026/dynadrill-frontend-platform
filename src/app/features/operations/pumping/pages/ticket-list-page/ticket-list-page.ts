@@ -26,7 +26,9 @@ const STEP_BADGES: Record<PumpingStep, { text: string; tone: BadgeTone }> = {
   revision_propuesta: { text: 'Revisión de propuesta', tone: 'warning' },
   asignacion: { text: 'Asignación', tone: 'info' },
   en_ejecucion: { text: 'En ejecución (Salida)', tone: 'brand' },
+  revisar_reportes_salida: { text: 'Revisar reportes de salida', tone: 'warning' },
   en_ejecucion_llegada: { text: 'En ejecución (Llegada)', tone: 'brand' },
+  revisar_reportes_llegada: { text: 'Revisar reportes de llegada', tone: 'warning' },
   en_revision: { text: 'En revisión', tone: 'warning' },
 };
 
@@ -174,7 +176,7 @@ export class TicketListPage {
    * según su rol y el estado (step) del ticket.
    *
    * - Jefe de Base → revision_propuesta
-   * - Supervisor → asignacion
+   * - Supervisor → asignacion, en_ejecucion, en_ejecucion_llegada
    * - Operador → en_ejecucion, en_ejecucion_llegada
    *
    * Todos ven los tickets, pero solo pueden entrar al detalle
@@ -183,7 +185,7 @@ export class TicketListPage {
   protected canViewDetail(row: Record<string, unknown>): boolean {
     const step = row['step'] as string;
     if (this.isJefeBase()) return step === 'revision_propuesta';
-    if (this.isSupervisor()) return step === 'asignacion';
+    if (this.isSupervisor()) return step === 'asignacion' || step === 'revisar_reportes_salida' || step === 'revisar_reportes_llegada';
     if (this.isOperador()) return step === 'en_ejecucion' || step === 'en_ejecucion_llegada';
     return false;
   }

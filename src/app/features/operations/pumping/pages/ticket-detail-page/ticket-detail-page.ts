@@ -87,7 +87,7 @@ function createMockCompletedInspection(operatorName: string, unitCode: string): 
   };
 }
 
-const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'en_ejecucion_llegada', 'en_revision'];
+const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'revisar_reportes_salida', 'en_ejecucion_llegada', 'revisar_reportes_llegada', 'en_revision'];
 
 @Component({
   selector: 'app-ticket-detail-page',
@@ -311,6 +311,122 @@ export class TicketDetailPage {
     const assignments = this.operatorAssignments();
     return assignments.length > 0 && assignments.every(a => a.unitId !== null);
   });
+
+  // ══════════════════════════════════════════════
+  // Supervisor: Revisar reportes de salida
+  // ══════════════════════════════════════════════
+
+  protected readonly reviewSalidaColumns: DynadrillDataTableColumn[] = [
+    { key: 'name', header: 'Operador' },
+    { key: 'role', header: 'Cargo/Rol' },
+    { key: 'unitCode', header: 'Unidad asignada' },
+    { key: 'inspectionStatus', header: 'Inspección', type: 'badge' },
+    { key: 'reportStatus', header: 'Reporte de unidad', type: 'badge' },
+  ];
+
+  protected readonly reviewSalidaRows = computed(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    return t.operators.map(op => ({
+      id: op.id,
+      name: op.name,
+      role: op.role,
+      unitCode: op.unitCode,
+      inspectionStatus: { text: 'Realizada', tone: 'success' as const },
+      reportStatus: { text: 'Completado', tone: 'success' as const },
+      approved: false,
+    }));
+  });
+
+  // Trackeo de aprobaciones por operador para salida
+  protected readonly approvedSalidaOperators = signal<Set<number>>(new Set());
+
+  protected isOperatorSalidaApproved(row: Record<string, unknown>): boolean {
+    return this.approvedSalidaOperators().has(row['id'] as number);
+  }
+
+  protected canReviewSalida(row: Record<string, unknown>): boolean {
+    const insp = row['inspectionStatus'] as { text: string };
+    const report = row['reportStatus'] as { text: string };
+    return insp.text === 'Realizada' && report.text === 'Completado';
+  }
+
+  protected approveSalidaOperator(row: Record<string, unknown>): void {
+    const id = row['id'] as number;
+    this.approvedSalidaOperators.update(set => {
+      const updated = new Set(set);
+      updated.add(id);
+      return updated;
+    });
+    this.notify.success('Aprobado', `Reporte de salida de ${row['name']} aprobado.`);
+  }
+
+  protected readonly allSalidaApproved = computed(() => {
+    const rows = this.reviewSalidaRows();
+    const approved = this.approvedSalidaOperators();
+    return rows.length > 0 && rows.every(r => approved.has(r.id));
+  });
+
+  // ══════════════════════════════════════════════
+  // Supervisor: Revisar reportes de llegada (sin inspección)
+  // ══════════════════════════════════════════════
+
+  protected readonly reviewLlegadaColumns: DynadrillDataTableColumn[] = [
+    { key: 'name', header: 'Operador' },
+    { key: 'role', header: 'Cargo/Rol' },
+    { key: 'unitCode', header: 'Unidad asignada' },
+    { key: 'reportStatus', header: 'Reporte de unidad', type: 'badge' },
+  ];
+
+  protected readonly reviewLlegadaRows = computed(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    return t.operators.map(op => ({
+      id: op.id,
+      name: op.name,
+      role: op.role,
+      unitCode: op.unitCode,
+      reportStatus: { text: 'Completado', tone: 'success' as const },
+    }));
+  });
+
+  // Trackeo de aprobaciones por operador para llegada
+  protected readonly approvedLlegadaOperators = signal<Set<number>>(new Set());
+
+  protected isOperatorLlegadaApproved(row: Record<string, unknown>): boolean {
+    return this.approvedLlegadaOperators().has(row['id'] as number);
+  }
+
+  protected canReviewLlegada(row: Record<string, unknown>): boolean {
+    const report = row['reportStatus'] as { text: string };
+    return report.text === 'Completado';
+  }
+
+  protected approveLlegadaOperator(row: Record<string, unknown>): void {
+    const id = row['id'] as number;
+    this.approvedLlegadaOperators.update(set => {
+      const updated = new Set(set);
+      updated.add(id);
+      return updated;
+    });
+    this.notify.success('Aprobado', `Reporte de llegada de ${row['name']} aprobado.`);
+  }
+
+  protected readonly allLlegadaApproved = computed(() => {
+    const rows = this.reviewLlegadaRows();
+    const approved = this.approvedLlegadaOperators();
+    return rows.length > 0 && rows.every(r => approved.has(r.id));
+  });
+
+  protected approveAllSalidaReports(): void {
+    this.notify.success('Aprobado', 'Todos los reportes de salida han sido aprobados.');
+    this.router.navigate(['..'], { relativeTo: this.route });
+  }
+
+  protected approveAllLlegadaReports(): void {
+    this.notify.success('Aprobado', 'Todos los reportes de llegada han sido aprobados.');
+    this.router.navigate(['..'], { relativeTo: this.route });
+  }
 
   // ══════════════════════════════════════════════
   // PASO 3: Ejecución — Reporte de Unidad DYN-MNT-RE-012
@@ -551,7 +667,7 @@ export class TicketDetailPage {
   private canAccessStep(step: PumpingStep): boolean {
     const role = this.roleName();
     if (role === 'Jefe de Base') return step === 'revision_propuesta';
-    if (role === 'Supervisor') return step === 'asignacion';
+    if (role === 'Supervisor') return step === 'asignacion' || step === 'revisar_reportes_salida' || step === 'revisar_reportes_llegada';
     if (role === 'Operador') return step === 'en_ejecucion' || step === 'en_ejecucion_llegada';
     return false;
   }

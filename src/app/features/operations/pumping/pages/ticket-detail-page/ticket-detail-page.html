@@ -89,6 +89,100 @@
   }
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Supervisor: Revisar reportes de salida                           -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  @if (currentStep() === 'revisar_reportes_salida') {
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Revisar reportes de salida</dynadrill-text>
+      <dynadrill-text variant="caption">Revise y apruebe la inspección y reporte de unidad de cada operador.</dynadrill-text>
+    </section>
+
+    <section class="ticket-detail__section">
+      <ng-template #reviewSalidaActionsTpl let-row>
+        @if (isOperatorSalidaApproved(row)) {
+          <dynadrill-button variant="success" size="small" [disabled]="true">
+            Aprobado
+          </dynadrill-button>
+        } @else if (canReviewSalida(row)) {
+          <dynadrill-button variant="primary" size="small" (click)="approveSalidaOperator(row)">
+            Revisar y aprobar
+          </dynadrill-button>
+        } @else {
+          <dynadrill-button variant="secondary" size="small" [disabled]="true">
+            Pendiente
+          </dynadrill-button>
+        }
+      </ng-template>
+
+      <dynadrill-data-table
+        [columns]="reviewSalidaColumns"
+        [rows]="reviewSalidaRows()"
+        [loading]="false"
+        actionsHeader="Acciones"
+        [actionsTemplate]="reviewSalidaActionsTpl"
+      />
+    </section>
+
+    @if (!allSalidaApproved()) {
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="caption">Debe aprobar todos los reportes de salida antes de continuar.</dynadrill-text>
+      </section>
+    }
+
+    <footer class="ticket-detail__actions">
+      <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
+      <dynadrill-button variant="success" [disabled]="!allSalidaApproved() || submitting()" (clicked)="approveAllSalidaReports()">Aprobar reportes de salida</dynadrill-button>
+    </footer>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Supervisor: Revisar reportes de llegada (sin inspección)         -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  @if (currentStep() === 'revisar_reportes_llegada') {
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Revisar reportes de llegada</dynadrill-text>
+      <dynadrill-text variant="caption">Revise y apruebe el reporte de unidad de cada operador.</dynadrill-text>
+    </section>
+
+    <section class="ticket-detail__section">
+      <ng-template #reviewLlegadaActionsTpl let-row>
+        @if (isOperatorLlegadaApproved(row)) {
+          <dynadrill-button variant="success" size="small" [disabled]="true">
+            Aprobado
+          </dynadrill-button>
+        } @else if (canReviewLlegada(row)) {
+          <dynadrill-button variant="primary" size="small" (click)="approveLlegadaOperator(row)">
+            Revisar y aprobar
+          </dynadrill-button>
+        } @else {
+          <dynadrill-button variant="secondary" size="small" [disabled]="true">
+            Pendiente
+          </dynadrill-button>
+        }
+      </ng-template>
+
+      <dynadrill-data-table
+        [columns]="reviewLlegadaColumns"
+        [rows]="reviewLlegadaRows()"
+        [loading]="false"
+        actionsHeader="Acciones"
+        [actionsTemplate]="reviewLlegadaActionsTpl"
+      />
+    </section>
+
+    @if (!allLlegadaApproved()) {
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="caption">Debe aprobar todos los reportes de llegada antes de continuar.</dynadrill-text>
+      </section>
+    }
+
+    <footer class="ticket-detail__actions">
+      <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
+      <dynadrill-button variant="success" [disabled]="!allLlegadaApproved() || submitting()" (clicked)="approveAllLlegadaReports()">Aprobar reportes de llegada</dynadrill-button>
+    </footer>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- PASO 3a: En ejecución (SALIDA) — Solo Chasis modo salida         -->
   <!-- ══════════════════════════════════════════════════════════════════ -->
   @if (currentStep() === 'en_ejecucion') {

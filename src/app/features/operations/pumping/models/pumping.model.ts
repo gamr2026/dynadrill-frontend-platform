@@ -34,14 +34,18 @@ export type PumpingStep =
   | 'revision_propuesta'
   | 'asignacion'
   | 'en_ejecucion'
+  | 'revisar_reportes_salida'
   | 'en_ejecucion_llegada'
+  | 'revisar_reportes_llegada'
   | 'en_revision';
 
 export const PUMPING_STEP_LABELS: Record<PumpingStep, string> = {
   revision_propuesta: 'Revisión de propuesta',
   asignacion: 'Asignación',
   en_ejecucion: 'En ejecución (Salida)',
+  revisar_reportes_salida: 'Revisar reportes de salida',
   en_ejecucion_llegada: 'En ejecución (Llegada)',
+  revisar_reportes_llegada: 'Revisar reportes de llegada',
   en_revision: 'En revisión',
 };
 

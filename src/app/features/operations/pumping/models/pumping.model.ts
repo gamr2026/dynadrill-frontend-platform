@@ -115,7 +115,9 @@ export interface PumpingUnitReport {
   operationInterrupted: boolean | null;
   interruptionDetail: string;
   departureOperatorName: string;
+  departureApprovalDate: string;
   arrivalOperatorName: string;
+  arrivalApprovalDate: string;
 }
 
 export interface PumpingTicket extends Ticket {

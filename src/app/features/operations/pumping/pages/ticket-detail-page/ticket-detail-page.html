@@ -99,18 +99,19 @@
 
     <!-- Neumáticos -->
     <section class="ticket-detail__section">
-      <dynadrill-text variant="h2">Neumáticos</dynadrill-text>
       <dynadrill-data-table [columns]="tireColumns" [rows]="tireRows()" [loading]="false" />
     </section>
 
     <!-- Hubodómetro -->
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Hubodómetro</dynadrill-text>
-      <dynadrill-data-table [columns]="hubodometroColumns" [rows]="hubodometroRows()" [loading]="false" />
+      <div class="ticket-detail__hubodometro">
+        <dynadrill-data-table [columns]="hubodometroColumns" [rows]="hubodometroRows()" [loading]="false" />
+      </div>
     </section>
 
 
-    <!-- Inspección: instrucción + solo Chasis en modo SALIDA -->
+    <!-- Inspección: instrucción en modo SALIDA -->
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Inspección</dynadrill-text>
       <dynadrill-text variant="caption">Inspección: Indique con ✓ OK · ✕ defectuoso</dynadrill-text>
@@ -118,11 +119,20 @@
 
     <section class="ticket-detail__section">
       <dynadrill-inspection-grid
-        title="Chasis"
         mode="salida"
         [items]="chassisItems()"
         (itemChange)="onInspectionChange('chassisItems', $event)"
       />
+    </section>
+
+    <!-- Firma Salida -->
+    <section class="ticket-detail__section ticket-detail__signature">
+      <dynadrill-text variant="h2">Firma — Salida</dynadrill-text>
+      <div class="ticket-detail__signature-block">
+        <div class="ticket-detail__signature-line"></div>
+        <dynadrill-text variant="body">{{ departureSignatureName() }}</dynadrill-text>
+        <dynadrill-text variant="caption">{{ departureSignatureDate() }}</dynadrill-text>
+      </div>
     </section>
 
     <footer class="ticket-detail__actions">
@@ -145,12 +155,32 @@
       <dynadrill-text variant="caption">Documento: DYN-MNT-RE-012</dynadrill-text>
     </section>
 
-    <!-- Fecha y combustible llegada -->
+    <!-- Info general (datos de salida, solo lectura) -->
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Información general</dynadrill-text>
+      <dynadrill-context-card [items]="arrivalGeneralInfoItems()" />
+    </section>
+
+    <!-- Fecha y combustible (salida solo lectura + llegada editable) -->
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Fecha y combustible</dynadrill-text>
+      <dynadrill-context-card [items]="arrivalFuelReadonlyItems()" />
       <div class="ticket-detail__form-grid">
         <dynadrill-input label="Fecha de llegada" [value]="reportArrivalDate()" (valueChange)="reportArrivalDate.set($event)" />
         <dynadrill-input label="Combustible llegada" [value]="reportFuelArrival()" (valueChange)="reportFuelArrival.set($event)" />
+      </div>
+    </section>
+
+    <!-- Neumáticos (datos de salida ya llenos) -->
+    <section class="ticket-detail__section">
+      <dynadrill-data-table [columns]="tireColumns" [rows]="tireRows()" [loading]="false" />
+    </section>
+
+    <!-- Hubodómetro (datos de salida ya llenos) -->
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Hubodómetro</dynadrill-text>
+      <div class="ticket-detail__hubodometro">
+        <dynadrill-data-table [columns]="hubodometroColumns" [rows]="hubodometroRows()" [loading]="false" />
       </div>
     </section>
 
@@ -160,30 +190,29 @@
       <dynadrill-text variant="caption">Inspección: Indique con ✓ OK · ✕ defectuoso</dynadrill-text>
     </section>
 
-    <!-- Chasis: muestra Salida (lectura) + Llegada (editable) -->
+    <!-- Inspección de salida (lectura, sin título) + Llegada (editable) -->
     <section class="ticket-detail__section">
       <dynadrill-inspection-grid
-        title="Chasis"
         mode="llegada"
         [items]="chassisItems()"
         (itemChange)="onInspectionChange('chassisItems', $event)"
       />
     </section>
 
-    <!-- Motor / Transmisión: solo Llegada -->
+    <!-- Chasis (era Motor / Transmisión) -->
     <section class="ticket-detail__section">
       <dynadrill-inspection-grid
-        title="Motor / Transmisión"
+        title="Chasis"
         mode="llegada"
         [items]="motorItems()"
         (itemChange)="onInspectionChange('motorItems', $event)"
       />
     </section>
 
-    <!-- Equipos (Llegada) -->
+    <!-- Plataforma (era Equipos) -->
     <section class="ticket-detail__section">
       <dynadrill-inspection-grid
-        title="Equipos"
+        title="Plataforma"
         mode="llegada"
         [items]="arrivalEquipmentItems()"
         (itemChange)="onInspectionChange('arrivalEquipmentItems', $event)"
@@ -222,12 +251,23 @@
       }
     </section>
 
-    <!-- Firmas -->
-    <section class="ticket-detail__section">
-      <dynadrill-text variant="h2">Firmas</dynadrill-text>
-      <div class="ticket-detail__form-grid">
-        <dynadrill-input label="Operador de salida" [value]="departureOperatorName()" (valueChange)="departureOperatorName.set($event)" />
-        <dynadrill-input label="Operador de llegada" [value]="arrivalOperatorName()" (valueChange)="arrivalOperatorName.set($event)" />
+    <!-- Firma Salida -->
+    <section class="ticket-detail__section ticket-detail__signature">
+      <dynadrill-text variant="h2">Firma — Salida</dynadrill-text>
+      <div class="ticket-detail__signature-block">
+        <div class="ticket-detail__signature-line"></div>
+        <dynadrill-text variant="body">{{ departureSignatureName() }}</dynadrill-text>
+        <dynadrill-text variant="caption">{{ departureSignatureDate() }}</dynadrill-text>
+      </div>
+    </section>
+
+    <!-- Firma Llegada -->
+    <section class="ticket-detail__section ticket-detail__signature">
+      <dynadrill-text variant="h2">Firma — Llegada</dynadrill-text>
+      <div class="ticket-detail__signature-block">
+        <div class="ticket-detail__signature-line"></div>
+        <dynadrill-text variant="body">{{ arrivalSignatureName() }}</dynadrill-text>
+        <dynadrill-text variant="caption">{{ arrivalSignatureDate() }}</dynadrill-text>
       </div>
     </section>
 

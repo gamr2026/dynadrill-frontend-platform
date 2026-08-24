@@ -167,7 +167,7 @@ export class TicketDetailPage {
   protected readonly reportOrigin = signal('');
   protected readonly reportDestination = signal('');
 
-  // Neumáticos (tabla con ejes A/B/C/D arriba, filas Salida/Llegada)
+  // Neumáticos (encabezados A/B/C/D, filas Salida/Llegada)
   protected readonly tires = signal<TireEntry[]>([
     { axle: 'A', salida: '', llegada: '' },
     { axle: 'B', salida: '', llegada: '' },
@@ -191,7 +191,7 @@ export class TicketDetailPage {
     ];
   });
 
-  // Hubodómetro (tabla con Origen en la mitad)
+  // Hubodómetro (con Origen/Destino en la mitad)
   protected readonly hubodometro = signal<HubodometroEntry[]>([
     { label: 'A', salida: null, llegada: null },
     { label: 'B', salida: null, llegada: null },
@@ -201,34 +201,22 @@ export class TicketDetailPage {
 
   protected readonly hubodometroColumns: DynadrillDataTableColumn[] = [
     { key: 'salida', header: 'Salida' },
-    { key: 'sA', header: 'A' },
-    { key: 'sB', header: 'B' },
-    { key: 'origin', header: 'Origen' },
-    { key: 'sC', header: 'C' },
-    { key: 'sD', header: 'D' },
+    { key: 'centro', header: '' },
     { key: 'llegada', header: 'Llegada' },
   ];
 
-  protected readonly hubodometroRows = computed(() => {
-    const h = this.hubodometro();
-    return [{
+  protected readonly hubodometroRows = computed(() => [
+    {
+      salida: this.hubodometro().map(h => h.salida ?? '—').join(' / '),
+      centro: 'Origen',
+      llegada: this.hubodometro().map(h => h.llegada ?? '—').join(' / '),
+    },
+    {
       salida: '',
-      sA: h[0].salida ?? '—',
-      sB: h[1].salida ?? '—',
-      origin: this.reportOrigin(),
-      sC: h[2].salida ?? '—',
-      sD: h[3].salida ?? '—',
+      centro: 'Destino',
       llegada: '',
-    }, {
-      salida: '',
-      sA: h[0].llegada ?? '—',
-      sB: h[1].llegada ?? '—',
-      origin: this.reportDestination(),
-      sC: h[2].llegada ?? '—',
-      sD: h[3].llegada ?? '—',
-      llegada: '',
-    }];
-  });
+    },
+  ]);
 
   // Secciones de inspección
   protected readonly chassisItems = signal<DynadrillInspectionItem[]>(createChassisInspectionItems());
@@ -248,9 +236,50 @@ export class TicketDetailPage {
   protected readonly operationInterruptedSelection = signal<string[]>([]);
   protected readonly interruptionDetail = signal('');
 
-  // Firmas
+  // Firmas (automáticas desde operador asignado)
   protected readonly departureOperatorName = signal('');
   protected readonly arrivalOperatorName = signal('');
+  protected readonly departureApprovalDate = signal('');
+  protected readonly arrivalApprovalDate = signal('');
+
+  protected readonly departureSignatureName = computed(() => {
+    const t = this.ticket();
+    if (t?.operators?.length) return t.operators[0].name;
+    return this.departureOperatorName() || '—';
+  });
+
+  protected readonly departureSignatureDate = computed(() => {
+    if (this.departureApprovalDate()) return this.departureApprovalDate();
+    if (this.reportDepartureDate()) return this.reportDepartureDate();
+    return new Date().toISOString().split('T')[0];
+  });
+
+  protected readonly arrivalSignatureName = computed(() => {
+    const t = this.ticket();
+    if (t?.operators?.length) return t.operators[t.operators.length > 1 ? 1 : 0].name;
+    return this.arrivalOperatorName() || '—';
+  });
+
+  protected readonly arrivalSignatureDate = computed(() => {
+    if (this.arrivalApprovalDate()) return this.arrivalApprovalDate();
+    if (this.reportArrivalDate()) return this.reportArrivalDate();
+    return new Date().toISOString().split('T')[0];
+  });
+
+  // Datos de salida en solo lectura para la vista de llegada
+  protected readonly arrivalGeneralInfoItems = computed<DynadrillContextCardItem[]>(() => [
+    { label: 'Pozo', value: this.reportWellName() || '—' },
+    { label: 'Base', value: this.reportBaseName() || '—' },
+    { label: 'Bloque', value: this.reportBlockName() || '—' },
+    { label: 'Cabezal', value: this.reportHeaderCode() || '—' },
+    { label: 'Cliente', value: this.reportClientName() || '—' },
+    { label: 'Unidad', value: this.reportUnitCode() || '—' },
+  ]);
+
+  protected readonly arrivalFuelReadonlyItems = computed<DynadrillContextCardItem[]>(() => [
+    { label: 'Fecha de salida', value: this.reportDepartureDate() || '—' },
+    { label: 'Combustible salida', value: this.reportFuelDeparture() || '—' },
+  ]);
 
   // ══════════════════════════════════════════════
   // PASO 4: Revisión — resumen + aprobación
@@ -385,7 +414,9 @@ export class TicketDetailPage {
       operationInterrupted: this.operationInterruptedSelection()[0] === 'Sí' ? true : this.operationInterruptedSelection()[0] === 'No' ? false : null,
       interruptionDetail: this.interruptionDetail(),
       departureOperatorName: this.departureOperatorName(),
+      departureApprovalDate: this.departureApprovalDate(),
       arrivalOperatorName: this.arrivalOperatorName(),
+      arrivalApprovalDate: this.arrivalApprovalDate(),
     };
 
     this.submitting.set(true);
@@ -495,7 +526,9 @@ export class TicketDetailPage {
       this.operationInterruptedSelection.set(r.operationInterrupted === true ? ['Sí'] : r.operationInterrupted === false ? ['No'] : []);
       this.interruptionDetail.set(r.interruptionDetail);
       this.departureOperatorName.set(r.departureOperatorName);
+      this.departureApprovalDate.set(r.departureApprovalDate || '');
       this.arrivalOperatorName.set(r.arrivalOperatorName);
+      this.arrivalApprovalDate.set(r.arrivalApprovalDate || '');
     }
   }
 }

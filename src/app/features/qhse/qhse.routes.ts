@@ -73,4 +73,28 @@ export const qhseRoutes: Routes = [
     canActivate: [roleGuard],
     data: { allowedRoles: HSE_STAFF_ROLES },
   },
+  {
+    path: 'desechos',
+    loadComponent: () => import('./desechos/pages/desecho-list-page/desecho-list-page').then(m => m.DesechoListPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES },
+  },
+  {
+    path: 'desechos/:id',
+    loadComponent: () => import('./desechos/pages/desecho-detail-page/desecho-detail-page').then(m => m.DesechoDetailPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES },
+  },
+  {
+    path: 'derrames',
+    loadComponent: () => import('./derrames/pages/derrame-list-page/derrame-list-page').then(m => m.DerrameListPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES },
+  },
+  {
+    path: 'derrames/:id',
+    loadComponent: () => import('./derrames/pages/derrame-detail-page/derrame-detail-page').then(m => m.DerrameDetailPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES },
+  },
 ];

@@ -81,6 +81,8 @@ export class Sidebar {
               { label: 'Inspecciones de campo', link: '/dashboard/qhse/inspecciones' },
               { label: 'Tarjetas STOP', link: '/dashboard/qhse/stop' },
               { label: 'Stop Work Authority', link: '/dashboard/qhse/swa' },
+              { label: 'Gestión de Desechos', link: '/dashboard/qhse/desechos' },
+              { label: 'Control de Derrames', link: '/dashboard/qhse/derrames' },
             ],
           }]
         : [];

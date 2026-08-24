@@ -1,0 +1,26 @@
+<div class="desecho-dialog">
+  <dynadrill-text variant="caption">Clasificación</dynadrill-text>
+  <dynadrill-chip-group mode="single" [options]="clasificacionOptions" [selected]="clasificacionLabel()" (selectedChange)="clasificacionLabel.set($event)" />
+
+  @if (esPeligroso()) {
+    <dynadrill-text variant="caption">Características CRETIB</dynadrill-text>
+    <dynadrill-chip-group mode="multiple" [options]="cretibOptions" [selected]="cretib()" (selectedChange)="cretib.set($event)" />
+  }
+
+  <div class="desecho-dialog__grid">
+    <dynadrill-select label="Contenedor (código de color)" [options]="contenedorOptions" [value]="contenedorColor()" (valueChange)="contenedorColor.set($any($event))" />
+    <dynadrill-input label="Peso (kg)" type="number" [value]="pesoKg()" (valueChange)="pesoKg.set($event)" />
+  </div>
+
+  <dynadrill-textarea label="Descripción" [value]="descripcion()" (valueChange)="descripcion.set($event)" [rows]="2" />
+
+  <div class="desecho-dialog__grid">
+    <dynadrill-input label="Ubicación" [value]="ubicacion()" (valueChange)="ubicacion.set($event)" />
+    <dynadrill-input label="Generado por" [value]="generadoPorNombre()" (valueChange)="generadoPorNombre.set($event)" />
+  </div>
+
+  <div class="desecho-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">{{ submitting() ? 'Guardando…' : 'Registrar desecho' }}</dynadrill-button>
+  </div>
+</div>

@@ -5,6 +5,12 @@ import { DEFAULT_LOTO_CHECKLIST, PTW_DOCUMENTOS_REQUERIDOS, PtwMatrix } from '..
 import { CreateStopCardInput, StopCard } from '../../features/qhse/stop/models/stop-card.model';
 import { CreateSwaInput, DEFAULT_SWA_REANUDACION_CHECKLIST, SWA_NOTIFICATION_ROLES, SwaEvento } from '../../features/qhse/swa/models/swa.model';
 import { CreateInspeccionInput, InspeccionEquipo, inspeccionVigenciaHasta } from '../../features/qhse/inspecciones/models/inspeccion-equipo.model';
+import { CreateDesechoInput, Desecho, desechoLimiteAlmacenamiento } from '../../features/qhse/desechos/models/desecho.model';
+import {
+  CreateDerrameInput,
+  DEFAULT_CONTENCION_CHECKLIST,
+  DerrameEvento,
+} from '../../features/qhse/derrames/models/derrame.model';
 
 /**
  * Solo activo mientras no exista el backend real de QHSE — mismo patrón
@@ -221,6 +227,22 @@ function nextInspeccionCode(): string {
   return `INSP-${year}-${String(nextInspeccionId).padStart(4, '0')}`;
 }
 
+let desechos: Desecho[] = [];
+let nextDesechoId = 1;
+
+function nextDesechoCode(): string {
+  const year = new Date().getFullYear();
+  return `RES-${year}-${String(nextDesechoId).padStart(4, '0')}`;
+}
+
+let derrames: DerrameEvento[] = [];
+let nextDerrameId = 1;
+
+function nextDerrameCode(): string {
+  const year = new Date().getFullYear();
+  return `DER-${year}-${String(nextDerrameId).padStart(4, '0')}`;
+}
+
 export const qhseMockInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.url === '/api/qhse/iperc' && req.method === 'GET') {
     return of(new HttpResponse({ status: 200, body: matrices })).pipe(delay(400));
@@ -420,6 +442,116 @@ export const qhseMockInterceptor: HttpInterceptorFn = (req, next) => {
     inspecciones = [...inspecciones, created];
     nextInspeccionId += 1;
     return of(new HttpResponse({ status: 201, body: created })).pipe(delay(400));
+  }
+
+  // --- HSE-AMBIENTAL-001: Gestión de desechos ---
+
+  if (req.url === '/api/qhse/desechos' && req.method === 'GET') {
+    return of(new HttpResponse({ status: 200, body: desechos })).pipe(delay(400));
+  }
+
+  if (req.url === '/api/qhse/desechos' && req.method === 'POST') {
+    const input = req.body as CreateDesechoInput;
+    const now = new Date().toISOString();
+    const created: Desecho = {
+      ...input,
+      id: nextDesechoId,
+      code: nextDesechoCode(),
+      estado: 'almacenado',
+      createdAt: now,
+      limiteAlmacenamientoHasta: desechoLimiteAlmacenamiento(now),
+    };
+    desechos = [...desechos, created];
+    nextDesechoId += 1;
+    return of(new HttpResponse({ status: 201, body: created })).pipe(delay(400));
+  }
+
+  const desechoDetailMatch = req.url.match(/\/api\/qhse\/desechos\/(\d+)$/);
+  if (desechoDetailMatch && req.method === 'GET') {
+    const id = Number(desechoDetailMatch[1]);
+    const found = desechos.find(d => d.id === id);
+    return of(new HttpResponse({ status: found ? 200 : 404, body: found ?? null })).pipe(delay(300));
+  }
+
+  if (desechoDetailMatch && req.method === 'PATCH') {
+    const id = Number(desechoDetailMatch[1]);
+    const idx = desechos.findIndex(d => d.id === id);
+    if (idx !== -1) {
+      const updated: Desecho = { ...desechos[idx], ...(req.body as Partial<Desecho>) };
+      desechos = desechos.map(d => (d.id === id ? updated : d));
+      return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(300));
+    }
+    return of(new HttpResponse({ status: 404 })).pipe(delay(300));
+  }
+
+  // --- HSE-AMBIENTAL-002: Control y respuesta a derrames ---
+
+  if (req.url === '/api/qhse/derrames' && req.method === 'GET') {
+    return of(new HttpResponse({ status: 200, body: derrames })).pipe(delay(400));
+  }
+
+  if (req.url === '/api/qhse/derrames' && req.method === 'POST') {
+    const input = req.body as CreateDerrameInput;
+    const created: DerrameEvento = {
+      ...input,
+      id: nextDerrameId,
+      code: nextDerrameCode(),
+      estado: 'activo',
+      activadoAt: new Date().toISOString(),
+      checklistContencion: DEFAULT_CONTENCION_CHECKLIST.map(i => ({ ...i })),
+      notificadoMae: false,
+    };
+    derrames = [...derrames, created];
+    nextDerrameId += 1;
+    return of(new HttpResponse({ status: 201, body: created })).pipe(delay(400));
+  }
+
+  const derrameDetailMatch = req.url.match(/\/api\/qhse\/derrames\/(\d+)$/);
+  if (derrameDetailMatch && req.method === 'GET') {
+    const id = Number(derrameDetailMatch[1]);
+    const found = derrames.find(d => d.id === id);
+    return of(new HttpResponse({ status: found ? 200 : 404, body: found ?? null })).pipe(delay(300));
+  }
+
+  if (derrameDetailMatch && req.method === 'PATCH') {
+    const id = Number(derrameDetailMatch[1]);
+    const idx = derrames.findIndex(d => d.id === id);
+    if (idx !== -1) {
+      const updated: DerrameEvento = { ...derrames[idx], ...(req.body as Partial<DerrameEvento>) };
+      derrames = derrames.map(d => (d.id === id ? updated : d));
+      return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(300));
+    }
+    return of(new HttpResponse({ status: 404 })).pipe(delay(300));
+  }
+
+  const generarDesechoMatch = req.url.match(/\/api\/qhse\/derrames\/(\d+)\/generar-desecho$/);
+  if (generarDesechoMatch && req.method === 'POST') {
+    const id = Number(generarDesechoMatch[1]);
+    const derrame = derrames.find(d => d.id === id);
+    if (!derrame) return of(new HttpResponse({ status: 404 })).pipe(delay(300));
+
+    const now = new Date().toISOString();
+    const desecho: Desecho = {
+      id: nextDesechoId,
+      code: nextDesechoCode(),
+      clasificacion: 'peligroso',
+      cretib: ['Tóxico'],
+      contenedorColor: 'negro',
+      descripcion: `Suelo contaminado por derrame ${derrame.code} (${derrame.descripcion})`,
+      pesoKg: 0,
+      ubicacion: derrame.ubicacionFisica,
+      generadoPorNombre: derrame.activadoPorNombre,
+      estado: 'almacenado',
+      createdAt: now,
+      limiteAlmacenamientoHasta: desechoLimiteAlmacenamiento(now),
+    };
+    desechos = [...desechos, desecho];
+    nextDesechoId += 1;
+
+    const updatedDerrame: DerrameEvento = { ...derrame, desechoGeneradoId: desecho.id };
+    derrames = derrames.map(d => (d.id === id ? updatedDerrame : d));
+
+    return of(new HttpResponse({ status: 200, body: updatedDerrame })).pipe(delay(400));
   }
 
   return next(req);

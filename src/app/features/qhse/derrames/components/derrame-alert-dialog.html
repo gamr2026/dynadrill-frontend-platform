@@ -1,0 +1,22 @@
+<div class="derrame-alert-dialog">
+  <dynadrill-banner variant="warning" message="Prioriza tu seguridad: usa EPP antes de intervenir. La contención debe iniciar en los primeros 5 minutos." />
+
+  <dynadrill-textarea label="Descripción de la situación" [value]="descripcion()" (valueChange)="descripcion.set($event)" [rows]="2" />
+
+  <div class="derrame-alert-dialog__grid">
+    <dynadrill-select label="Volumen estimado" [options]="volumenOptions" [value]="volumen()" (valueChange)="volumen.set($any($event))" />
+    <dynadrill-select label="Dónde ocurrió" [options]="ubicacionOptions" [value]="ubicacion()" (valueChange)="ubicacion.set($any($event))" />
+  </div>
+
+  <div class="derrame-alert-dialog__grid">
+    <dynadrill-input label="Ubicación física" [value]="ubicacionFisica()" (valueChange)="ubicacionFisica.set($event)" />
+    <dynadrill-input label="Activado por" [value]="activadoPorNombre()" (valueChange)="activadoPorNombre.set($event)" />
+  </div>
+
+  <div class="derrame-alert-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button variant="error" [disabled]="!puedeActivar() || submitting()" (clicked)="activar()">
+      {{ submitting() ? 'Registrando…' : '⚠ Derrame detectado' }}
+    </dynadrill-button>
+  </div>
+</div>

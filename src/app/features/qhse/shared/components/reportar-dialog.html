@@ -24,4 +24,20 @@
       <span>Eslinga, detector de gas o vehículo-grúa</span>
     </div>
   </button>
+
+  <button type="button" class="reportar-dialog__option" (click)="reportarDesecho()">
+    <dynadrill-icon name="modules" [size]="20" />
+    <div>
+      <strong>Registrar desecho</strong>
+      <span>Clasificación en campo — peligroso o no peligroso</span>
+    </div>
+  </button>
+
+  <button type="button" class="reportar-dialog__option reportar-dialog__option--swa" (click)="reportarDerrame()">
+    <dynadrill-icon name="warning" [size]="20" />
+    <div>
+      <strong>Derrame detectado</strong>
+      <span>Alerta y protocolo de contención</span>
+    </div>
+  </button>
 </div>

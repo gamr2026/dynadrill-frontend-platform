@@ -1,0 +1,66 @@
+@if (loading()) {
+  <p class="desecho-detail-page__loading">Cargando…</p>
+} @else if (desecho(); as d) {
+  <dynadrill-screen-header [eyebrow]="d.code" [title]="d.descripcion" [roleTag]="estadoLabels[d.estado]" />
+
+  <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a Gestión de Desechos</dynadrill-button>
+
+  <dynadrill-context-card [items]="contextItems()" />
+
+  @if (!d.manifiesto) {
+    <section class="desecho-detail-page__section">
+      <h3>Manifiesto Único</h3>
+      <p class="desecho-detail-page__note">Verifica que el gestor tenga licencia ambiental vigente (SUIA) antes de generar el manifiesto.</p>
+      <div class="desecho-detail-page__grid">
+        <dynadrill-input label="N° de manifiesto" [value]="manifiestoNumero()" (valueChange)="manifiestoNumero.set($event)" />
+        <dynadrill-input label="Gestor" [value]="gestorNombre()" (valueChange)="gestorNombre.set($event)" />
+        <dynadrill-input label="Licencia SUIA del gestor" [value]="gestorLicenciaSuia()" (valueChange)="gestorLicenciaSuia.set($event)" />
+      </div>
+      <dynadrill-button (clicked)="generarManifiesto()">Generar manifiesto</dynadrill-button>
+    </section>
+  } @else {
+    <section class="desecho-detail-page__section">
+      <h3>Manifiesto Único {{ d.manifiesto.numero }}</h3>
+      <p>Gestor: {{ d.manifiesto.gestorNombre }} — Licencia SUIA: {{ d.manifiesto.gestorLicenciaSuia }}</p>
+
+      <div class="desecho-detail-page__firmas">
+        <div class="desecho-detail-page__firma">
+          <span>Generador</span>
+          @if (d.manifiesto!.firmaGenerador; as f) {
+            <dynadrill-tag label="Firmado por {{ f.nombre }}" variant="success" />
+          } @else {
+            <dynadrill-button variant="secondary" size="small" (clicked)="firmar('firmaGenerador')">Firmar</dynadrill-button>
+          }
+        </div>
+        <div class="desecho-detail-page__firma">
+          <span>Transportista</span>
+          @if (d.manifiesto!.firmaTransportista; as f) {
+            <dynadrill-tag label="Firmado por {{ f.nombre }}" variant="success" />
+          } @else {
+            <dynadrill-button variant="secondary" size="small" (clicked)="firmar('firmaTransportista')">Firmar</dynadrill-button>
+          }
+        </div>
+        <div class="desecho-detail-page__firma">
+          <span>Gestor final</span>
+          @if (d.manifiesto!.firmaGestor; as f) {
+            <dynadrill-tag label="Firmado por {{ f.nombre }}" variant="success" />
+          } @else {
+            <dynadrill-button variant="secondary" size="small" (clicked)="firmar('firmaGestor')">Firmar</dynadrill-button>
+          }
+        </div>
+      </div>
+
+      @if (manifiestoCompleto() && d.estado !== 'dispuesto') {
+        <div class="desecho-detail-page__certificado">
+          <p class="desecho-detail-page__note">Plazo para el certificado de disposición final: {{ certificadoPlazo() | date: 'mediumDate' }}</p>
+          <dynadrill-upload-zone [state]="certificadoFileName() ? 'uploaded' : 'idle'" [fileName]="certificadoFileName()" (fileSelected)="onCertificadoUpload($event)" />
+          <dynadrill-button [disabled]="!certificadoFileName()" (clicked)="registrarCertificado()">Registrar certificado de disposición final</dynadrill-button>
+        </div>
+      }
+
+      @if (d.certificado) {
+        <dynadrill-tag label="Dispuesto — certificado registrado" variant="success" />
+      }
+    </section>
+  }
+}

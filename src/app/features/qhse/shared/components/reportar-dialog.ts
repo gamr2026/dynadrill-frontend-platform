@@ -4,15 +4,18 @@ import { DynadrillDialogService, DynadrillIconComponent, DynadrillTextComponent 
 import { StopCardDialog } from '../../stop/components/stop-card-dialog';
 import { SwaActivationDialog } from '../../swa/components/swa-activation-dialog';
 import { InspeccionEquipoDialog } from '../../inspecciones/components/inspeccion-equipo-dialog';
+import { DesechoDialog } from '../../desechos/components/desecho-dialog';
+import { DerrameAlertDialog } from '../../derrames/components/derrame-alert-dialog';
 
 /**
  * Acceso rápido universal "Reportar" (QHSE-PLAN-DESARROLLO.md, sección 7):
  * las acciones que la documentación asigna a "Cualquier Trabajador" —
  * Tarjeta STOP (HSE-SEGUIMIENTO-002), Stop Work Authority
- * (HSE-SEGUIMIENTO-003) e Inspección pre-operacional
- * (HSE-SEGUIMIENTO-001) — sin pasar por el roleGuard de QHSE. Botón de
- * emergencia y alerta de derrame se agregan acá cuando existan (Fases
- * 3-4 del plan de desarrollo).
+ * (HSE-SEGUIMIENTO-003), Inspección pre-operacional (HSE-SEGUIMIENTO-001),
+ * clasificación de desechos en campo (HSE-AMBIENTAL-001) y alerta de
+ * derrame (HSE-AMBIENTAL-002) — sin pasar por el roleGuard de QHSE. Botón
+ * de emergencia se agrega acá cuando exista (Fase 4 del plan de
+ * desarrollo).
  */
 @Component({
   selector: 'app-reportar-dialog',
@@ -38,5 +41,15 @@ export class ReportarDialog {
   protected reportarInspeccion(): void {
     this.modalRef.close();
     this.dialogService.open<InspeccionEquipoDialog>({ title: 'Inspección pre-operacional — HSE-SEGUIMIENTO-001', content: InspeccionEquipoDialog, footer: false });
+  }
+
+  protected reportarDesecho(): void {
+    this.modalRef.close();
+    this.dialogService.open<DesechoDialog>({ title: 'Registrar desecho — HSE-AMBIENTAL-001', content: DesechoDialog, footer: false });
+  }
+
+  protected reportarDerrame(): void {
+    this.modalRef.close();
+    this.dialogService.open<DerrameAlertDialog>({ title: 'Alerta de derrame — HSE-AMBIENTAL-002', content: DerrameAlertDialog, footer: false });
   }
 }

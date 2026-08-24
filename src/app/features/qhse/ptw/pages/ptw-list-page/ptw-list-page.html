@@ -1,0 +1,24 @@
+<dynadrill-screen-header
+  eyebrow="QHSE"
+  title="Recibimiento de Sitio (PTW)"
+  subtitle="Permit to Work — desde el gabinete hasta la devolución del sitio"
+  roleTag="HSE"
+/>
+
+<dynadrill-kpi-row [items]="kpis()" />
+
+<ng-template #actionsTpl let-row>
+  <dynadrill-button variant="secondary" size="small" (click)="viewDetail(row)">
+    Ver detalle
+  </dynadrill-button>
+</ng-template>
+
+<dynadrill-data-table
+  [columns]="columns"
+  [rows]="rows()"
+  [loading]="loading()"
+  [rowKey]="rowKeyFn"
+  [pageSize]="10"
+  actionsHeader="Acciones"
+  [actionsTemplate]="actionsTpl"
+/>

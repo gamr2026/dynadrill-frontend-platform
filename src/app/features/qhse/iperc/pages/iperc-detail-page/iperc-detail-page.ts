@@ -12,6 +12,7 @@ import {
 import { AuthService } from '../../../../../core/services/auth.service';
 import { CONTROL_TYPE_LABELS, IPERC_STATUS_LABELS, IpercHazard, IpercMatrix } from '../../models/iperc.model';
 import { IpercService } from '../../services/iperc.service';
+import { PtwService } from '../../../ptw/services/ptw.service';
 
 @Component({
   selector: 'app-iperc-detail-page',
@@ -28,6 +29,7 @@ import { IpercService } from '../../services/iperc.service';
 })
 export class IpercDetailPage {
   private readonly ipercService = inject(IpercService);
+  private readonly ptwService = inject(PtwService);
   private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -57,6 +59,12 @@ export class IpercDetailPage {
     const roleName = this.auth.currentUser()?.roleName;
     return roleName === 'Coordinador HSE' || roleName === 'Gerente HSE';
   });
+
+  /** HSE-MASTER-001: sin IPERC aprobado el sistema bloquea la apertura del PTW — por eso solo aparece con status "aprobada". */
+  protected readonly canOpenPtw = computed(() => this.matrix()?.status === 'aprobada');
+
+  protected readonly openingPtw = signal(false);
+  protected readonly openPtwError = signal('');
 
   constructor() {
     const id = Number(this.route.snapshot.paramMap.get('id'));
@@ -97,6 +105,24 @@ export class IpercDetailPage {
 
     // Rechazada: vuelve a evaluación para que el equipo la corrija (HSE-MASTER-001, ciclo de mejora continua).
     this.ipercService.update(current.id, { status: 'en_evaluacion' }).subscribe(updated => this.matrix.set(updated));
+  }
+
+  /** HSE-PLAN-001 → HSE-SITIO-001: abre el PTW/Recibimiento de Sitio a partir de esta matriz ya aprobada. */
+  protected abrirRecibimientoSitio(): void {
+    const current = this.matrix();
+    if (!current || this.openingPtw()) return;
+    this.openingPtw.set(true);
+    this.openPtwError.set('');
+    this.ptwService.createFromIperc(current.id).subscribe({
+      next: ptw => {
+        this.openingPtw.set(false);
+        this.router.navigate(['/dashboard/qhse/ptw', ptw.id]);
+      },
+      error: () => {
+        this.openingPtw.set(false);
+        this.openPtwError.set('No se pudo abrir el PTW. Verifica que la matriz siga aprobada e intenta de nuevo.');
+      },
+    });
   }
 
   protected back(): void {

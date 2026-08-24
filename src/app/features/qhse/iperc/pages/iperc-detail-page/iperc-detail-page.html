@@ -72,11 +72,20 @@
     @if (canSendToReview()) {
       <dynadrill-button (click)="sendToReview()">Enviar a revisión</dynadrill-button>
     }
+    @if (canOpenPtw()) {
+      <dynadrill-button [disabled]="openingPtw()" (click)="abrirRecibimientoSitio()">
+        {{ openingPtw() ? 'Abriendo PTW…' : 'Abrir Recibimiento de Sitio (PTW) →' }}
+      </dynadrill-button>
+    }
   </section>
+
+  @if (openPtwError()) {
+    <p class="iperc-detail-page__error">{{ openPtwError() }}</p>
+  }
 
   @if (canReviewNow() && canApprove()) {
     <dynadrill-approval-actions
-      consequenceApprove="La matriz queda aprobada y disponible para generar el ATS base de HSE-SITIO-001."
+      consequenceApprove="La matriz queda aprobada y disponible para abrir el Recibimiento de Sitio (PTW) de HSE-SITIO-001."
       consequenceReject="La matriz vuelve a evaluación para que el equipo la corrija."
       (decisionChange)="onDecision($event)"
     />

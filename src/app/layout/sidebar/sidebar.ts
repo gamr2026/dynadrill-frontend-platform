@@ -36,7 +36,17 @@ export class Sidebar {
     }
 
     if (roleName === 'Supervisor') {
-      return [dashboard, { label: 'Aprobar Inspecciones', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/inspeccion-vehiculos' }];
+      /**
+       * HSE-SITIO-001 asigna "Firmar PTW y Actas" al Supervisor Operativo
+       * (a diferencia de IPERC, donde el Supervisor solo participa de
+       * forma informativa) — por eso entra a Recibimiento de Sitio pero no
+       * a Matrices IPERC.
+       */
+      return [
+        dashboard,
+        { label: 'Aprobar Inspecciones', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/inspeccion-vehiculos' },
+        { label: 'Recibimiento de Sitio (PTW)', icon: 'alert' as DynadrillIconName, link: '/dashboard/qhse/ptw' },
+      ];
     }
 
     const maintenance: DynadrillMenuItem[] =
@@ -65,7 +75,10 @@ export class Sidebar {
         ? [{
             label: 'QHSE',
             icon: 'alert' as DynadrillIconName,
-            children: [{ label: 'IPERC', link: '/dashboard/qhse/iperc' }],
+            children: [
+              { label: 'IPERC', link: '/dashboard/qhse/iperc' },
+              { label: 'Recibimiento de Sitio (PTW)', link: '/dashboard/qhse/ptw' },
+            ],
           }]
         : [];
 

@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { DynadrillButtonComponent, DynadrillIconComponent, DynadrillNotificationBellComponent, DynadrillSpinnerComponent, type DynadrillNotificationItem } from '@digitec-it-projects/dynadrill-ui';
+import { DynadrillButtonComponent, DynadrillDialogService, DynadrillIconComponent, DynadrillNotificationBellComponent, DynadrillSpinnerComponent, type DynadrillNotificationItem } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationsService, AppNotificationItem } from '../../core/services/notifications.service';
 import { SidebarStateService } from '../sidebar-state.service';
+import { ReportarDialog } from '../../features/qhse/shared/components/reportar-dialog';
 
 @Component({
   selector: 'app-header',
@@ -16,7 +17,13 @@ export class Header {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly notifications = inject(NotificationsService);
+  private readonly dialogService = inject(DynadrillDialogService);
   protected readonly sidebarState = inject(SidebarStateService);
+
+  /** Acceso rápido QHSE — cualquier usuario autenticado, sin roleGuard (ver reportar-dialog.ts). */
+  protected openReportar(): void {
+    this.dialogService.open<ReportarDialog>({ title: 'Reportar', content: ReportarDialog, size: 'small', footer: false });
+  }
 
   protected readonly notificationItems = this.notifications.items;
 

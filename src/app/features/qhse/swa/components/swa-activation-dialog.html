@@ -1,0 +1,15 @@
+<div class="swa-activation-dialog">
+  <dynadrill-banner variant="critical" [message]="zeroRetaliationNotice" />
+
+  <dynadrill-input label="Tipo de peligro" placeholder="Ej: fuga de gas, caída de objeto, línea energizada..." [value]="tipoPeligro()" (valueChange)="tipoPeligro.set($event)" />
+  <dynadrill-textarea label="Descripción de la situación" [value]="descripcion()" (valueChange)="descripcion.set($event)" [rows]="3" />
+  <dynadrill-input label="Ubicación" [value]="ubicacion()" (valueChange)="ubicacion.set($event)" />
+  <dynadrill-input label="Activado por" [value]="activadoPorNombre()" (valueChange)="activadoPorNombre.set($event)" />
+
+  <div class="swa-activation-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button variant="error" [disabled]="!puedeActivar() || submitting()" (clicked)="activar()">
+      {{ submitting() ? 'Deteniendo…' : '⏹ Detener el trabajo' }}
+    </dynadrill-button>
+  </div>
+</div>

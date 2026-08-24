@@ -2,6 +2,9 @@ import { HttpInterceptorFn, HttpResponse } from '@angular/common/http';
 import { delay, of } from 'rxjs';
 import { IpercMatrix } from '../../features/qhse/iperc/models/iperc.model';
 import { DEFAULT_LOTO_CHECKLIST, PTW_DOCUMENTOS_REQUERIDOS, PtwMatrix } from '../../features/qhse/ptw/models/ptw.model';
+import { CreateStopCardInput, StopCard } from '../../features/qhse/stop/models/stop-card.model';
+import { CreateSwaInput, DEFAULT_SWA_REANUDACION_CHECKLIST, SWA_NOTIFICATION_ROLES, SwaEvento } from '../../features/qhse/swa/models/swa.model';
+import { CreateInspeccionInput, InspeccionEquipo, inspeccionVigenciaHasta } from '../../features/qhse/inspecciones/models/inspeccion-equipo.model';
 
 /**
  * Solo activo mientras no exista el backend real de QHSE — mismo patrón
@@ -180,6 +183,44 @@ function nextPtwCode(): string {
   return `PTW-${year}-${seq}`;
 }
 
+let stopCards: StopCard[] = [
+  {
+    id: 1,
+    code: 'STOP-2026-0089',
+    tipo: 'condicion_insegura',
+    categorias: ['Orden y limpieza', 'EPP'],
+    descripcion: 'Cables de extensión sobre el paso peatonal de la locación, sin protección.',
+    riesgoPotencial: 'Tropiezo/caída de personal en tránsito.',
+    accionCorrectivaInmediata: 'Se reubicaron los cables y se instaló canaleta pasacables.',
+    observadorNombre: 'Ana Torres',
+    observadoNombre: 'Cuadrilla de electricidad',
+    ubicacion: 'Pozo Beta-9',
+    createdAt: '2026-08-20T10:15:00.000Z',
+  },
+];
+let nextStopId = 2;
+
+function nextStopCode(): string {
+  const year = new Date().getFullYear();
+  return `STOP-${year}-${String(nextStopId).padStart(4, '0')}`;
+}
+
+let swaEventos: SwaEvento[] = [];
+let nextSwaId = 1;
+
+function nextSwaCode(): string {
+  const year = new Date().getFullYear();
+  return `SWA-${year}-${String(nextSwaId).padStart(4, '0')}`;
+}
+
+let inspecciones: InspeccionEquipo[] = [];
+let nextInspeccionId = 1;
+
+function nextInspeccionCode(): string {
+  const year = new Date().getFullYear();
+  return `INSP-${year}-${String(nextInspeccionId).padStart(4, '0')}`;
+}
+
 export const qhseMockInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.url === '/api/qhse/iperc' && req.method === 'GET') {
     return of(new HttpResponse({ status: 200, body: matrices })).pipe(delay(400));
@@ -303,6 +344,82 @@ export const qhseMockInterceptor: HttpInterceptorFn = (req, next) => {
       return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(300));
     }
     return of(new HttpResponse({ status: 404 })).pipe(delay(300));
+  }
+
+  // --- HSE-SEGUIMIENTO-002: Tarjetas STOP ---
+
+  if (req.url === '/api/qhse/stop' && req.method === 'GET') {
+    return of(new HttpResponse({ status: 200, body: stopCards })).pipe(delay(400));
+  }
+
+  if (req.url === '/api/qhse/stop' && req.method === 'POST') {
+    const input = req.body as CreateStopCardInput;
+    const created: StopCard = { ...input, id: nextStopId, code: nextStopCode(), createdAt: new Date().toISOString() };
+    stopCards = [...stopCards, created];
+    nextStopId += 1;
+    return of(new HttpResponse({ status: 201, body: created })).pipe(delay(400));
+  }
+
+  // --- HSE-SEGUIMIENTO-003: Stop Work Authority ---
+
+  if (req.url === '/api/qhse/swa' && req.method === 'GET') {
+    return of(new HttpResponse({ status: 200, body: swaEventos })).pipe(delay(400));
+  }
+
+  if (req.url === '/api/qhse/swa' && req.method === 'POST') {
+    const input = req.body as CreateSwaInput;
+    const now = new Date().toISOString();
+    const created: SwaEvento = {
+      ...input,
+      id: nextSwaId,
+      code: nextSwaCode(),
+      estado: 'activo',
+      activadoAt: now,
+      notificaciones: SWA_NOTIFICATION_ROLES.map(rol => ({ rol })),
+      riesgoReal: null,
+      checklistReanudacion: DEFAULT_SWA_REANUDACION_CHECKLIST.map(i => ({ ...i })),
+      heroeSeguridad: false,
+    };
+    swaEventos = [...swaEventos, created];
+    nextSwaId += 1;
+    return of(new HttpResponse({ status: 201, body: created })).pipe(delay(400));
+  }
+
+  const swaDetailMatch = req.url.match(/\/api\/qhse\/swa\/(\d+)$/);
+  if (swaDetailMatch && req.method === 'GET') {
+    const id = Number(swaDetailMatch[1]);
+    const found = swaEventos.find(s => s.id === id);
+    return of(new HttpResponse({ status: found ? 200 : 404, body: found ?? null })).pipe(delay(300));
+  }
+
+  if (swaDetailMatch && req.method === 'PATCH') {
+    const id = Number(swaDetailMatch[1]);
+    const idx = swaEventos.findIndex(s => s.id === id);
+    if (idx !== -1) {
+      const updated: SwaEvento = { ...swaEventos[idx], ...(req.body as Partial<SwaEvento>) };
+      swaEventos = swaEventos.map(s => (s.id === id ? updated : s));
+      return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(300));
+    }
+    return of(new HttpResponse({ status: 404 })).pipe(delay(300));
+  }
+
+  // --- HSE-SEGUIMIENTO-001: Inspecciones de campo ---
+
+  if (req.url === '/api/qhse/inspecciones' && req.method === 'GET') {
+    return of(new HttpResponse({ status: 200, body: inspecciones })).pipe(delay(400));
+  }
+
+  if (req.url === '/api/qhse/inspecciones' && req.method === 'POST') {
+    const input = req.body as CreateInspeccionInput;
+    const created: InspeccionEquipo = {
+      ...input,
+      id: nextInspeccionId,
+      code: nextInspeccionCode(),
+      vigenciaHasta: inspeccionVigenciaHasta(input.fecha),
+    };
+    inspecciones = [...inspecciones, created];
+    nextInspeccionId += 1;
+    return of(new HttpResponse({ status: 201, body: created })).pipe(delay(400));
   }
 
   return next(req);

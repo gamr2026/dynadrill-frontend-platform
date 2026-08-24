@@ -78,6 +78,9 @@ export class Sidebar {
             children: [
               { label: 'IPERC', link: '/dashboard/qhse/iperc' },
               { label: 'Recibimiento de Sitio (PTW)', link: '/dashboard/qhse/ptw' },
+              { label: 'Inspecciones de campo', link: '/dashboard/qhse/inspecciones' },
+              { label: 'Tarjetas STOP', link: '/dashboard/qhse/stop' },
+              { label: 'Stop Work Authority', link: '/dashboard/qhse/swa' },
             ],
           }]
         : [];

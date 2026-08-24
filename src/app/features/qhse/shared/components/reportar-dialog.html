@@ -1,0 +1,27 @@
+<div class="reportar-dialog">
+  <dynadrill-text variant="body">Disponible para cualquier persona, sin importar tu rol. Elige qué quieres reportar:</dynadrill-text>
+
+  <button type="button" class="reportar-dialog__option reportar-dialog__option--stop" (click)="reportarStop()">
+    <dynadrill-icon name="warning" [size]="20" />
+    <div>
+      <strong>Tarjeta STOP</strong>
+      <span>Acto o condición insegura observada</span>
+    </div>
+  </button>
+
+  <button type="button" class="reportar-dialog__option reportar-dialog__option--swa" (click)="reportarSwa()">
+    <dynadrill-icon name="alert" [size]="20" />
+    <div>
+      <strong>Detener el trabajo (SWA)</strong>
+      <span>Peligro inminente — para la actividad ahora</span>
+    </div>
+  </button>
+
+  <button type="button" class="reportar-dialog__option" (click)="reportarInspeccion()">
+    <dynadrill-icon name="check" [size]="20" />
+    <div>
+      <strong>Inspección pre-operacional</strong>
+      <span>Eslinga, detector de gas o vehículo-grúa</span>
+    </div>
+  </button>
+</div>

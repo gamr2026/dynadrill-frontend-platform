@@ -1,0 +1,22 @@
+<div class="stop-list-page">
+  <dynadrill-screen-header title="Tarjetas STOP" subtitle="HSE-SEGUIMIENTO-002 — observaciones de campo" />
+
+  <div class="stop-list-page__toolbar">
+    <dynadrill-button (clicked)="nuevaTarjeta()">+ Nueva tarjeta STOP</dynadrill-button>
+  </div>
+
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
+    <dynadrill-kpi-row [items]="kpis()" />
+
+    <div class="stop-list-page__card">
+      <dynadrill-text variant="h2">Tendencia por categoría (Pareto)</dynadrill-text>
+      @if (paretoCategorias().length) {
+        <dynadrill-chart type="bar" [categories]="paretoChartCategories()" [series]="paretoChartSeries()" height="260px" />
+      } @else {
+        <dynadrill-text variant="caption">Todavía no hay tarjetas registradas.</dynadrill-text>
+      }
+    </div>
+
+    <dynadrill-data-table [columns]="columns" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" />
+  </dynadrill-spinner>
+</div>

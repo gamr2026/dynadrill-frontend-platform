@@ -1,10 +1,14 @@
 import { Routes } from '@angular/router';
+import { provideDynadrillCharts } from '@digitec-it-projects/dynadrill-ui';
+import { BarChart } from 'echarts/charts';
 import { roleGuard } from '../../core/guards/role.guard';
 
 /**
- * Fase 1 del módulo QHSE (HSE-PLAN-001 / HSE-SITIO-001, ver plan de
- * desarrollo en el proyecto): IPERC + PTW/Recibimiento de Sitio. El resto
- * de fases se agrega como rutas hermanas a medida que se construyen.
+ * Fase 1 del módulo QHSE (HSE-PLAN-001 / HSE-SITIO-001): IPERC + PTW.
+ * Fase 2 (control operativo diario, HSE-SEGUIMIENTO-001/002/003):
+ * Inspecciones, Tarjetas STOP y Stop Work Authority. Ver plan de
+ * desarrollo del proyecto. El resto de fases se agrega como rutas
+ * hermanas a medida que se construyen.
  */
 const HSE_STAFF_ROLES = ['Técnico HSE', 'Coordinador HSE', 'Gerente HSE'];
 
@@ -41,5 +45,32 @@ export const qhseRoutes: Routes = [
     loadComponent: () => import('./ptw/pages/ptw-detail-page/ptw-detail-page').then(m => m.PtwDetailPage),
     canActivate: [roleGuard],
     data: { allowedRoles: PTW_ROLES },
+  },
+  {
+    path: 'inspecciones',
+    loadComponent: () => import('./inspecciones/pages/inspeccion-list-page/inspeccion-list-page').then(m => m.InspeccionListPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES },
+  },
+  {
+    path: 'stop',
+    loadComponent: () => import('./stop/pages/stop-list-page/stop-list-page').then(m => m.StopListPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES },
+    // Igual que Indicadores de Mantenimiento: ECharts solo se paga en esta
+    // ruta (Pareto de tendencias STOP), no en el bundle inicial.
+    providers: [provideDynadrillCharts([BarChart])],
+  },
+  {
+    path: 'swa',
+    loadComponent: () => import('./swa/pages/swa-list-page/swa-list-page').then(m => m.SwaListPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES },
+  },
+  {
+    path: 'swa/:id',
+    loadComponent: () => import('./swa/pages/swa-detail-page/swa-detail-page').then(m => m.SwaDetailPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES },
   },
 ];

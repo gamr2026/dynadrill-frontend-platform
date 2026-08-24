@@ -1,0 +1,13 @@
+.swa-activation-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border, #e5e4ea);
+  }
+}

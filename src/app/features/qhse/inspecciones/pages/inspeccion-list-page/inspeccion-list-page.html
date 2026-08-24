@@ -1,0 +1,12 @@
+<div class="inspeccion-list-page">
+  <dynadrill-screen-header title="Inspecciones de campo" subtitle="HSE-SEGUIMIENTO-001 — eslingas, detectores de gas y vehículos-grúa" />
+
+  <div class="inspeccion-list-page__toolbar">
+    <dynadrill-button (clicked)="nuevaInspeccion()">+ Nueva inspección</dynadrill-button>
+  </div>
+
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
+    <dynadrill-kpi-row [items]="kpis()" />
+    <dynadrill-data-table [columns]="columns" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" />
+  </dynadrill-spinner>
+</div>

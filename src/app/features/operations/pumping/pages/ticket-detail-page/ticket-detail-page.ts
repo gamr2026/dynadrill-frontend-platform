@@ -410,7 +410,7 @@ export class TicketDetailPage {
       next: () => {
         this.submitting.set(false);
         this.notify.success('Aprobado', 'Ticket aprobado correctamente.');
-        this.router.navigate(['/modulos/operativo/pumping']);
+        this.router.navigate(['..'], { relativeTo: this.route });
       },
       error: () => {
         this.submitting.set(false);
@@ -453,7 +453,7 @@ export class TicketDetailPage {
   }
 
   protected goBack(): void {
-    this.router.navigate(['/modulos/operativo/pumping']);
+    this.router.navigate(['..'], { relativeTo: this.route });
   }
 
   // ══════════════════════════════════════════════

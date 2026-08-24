@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   DynadrillButtonComponent,
   DynadrillDataTableColumn,
@@ -53,6 +53,7 @@ const STEP_FILTERS = Object.entries(PUMPING_STEP_LABELS).map(
 export class TicketListPage {
   private readonly pumpingService = inject(PumpingService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly loading = signal(true);
   protected readonly tickets = signal<PumpingTicket[]>([]);
@@ -151,6 +152,6 @@ export class TicketListPage {
   }
 
   protected viewDetail(row: Record<string, unknown>): void {
-    this.router.navigate(['/modulos/operativo/pumping', row['id']]);
+    this.router.navigate([String(row['id'])], { relativeTo: this.route });
   }
 }

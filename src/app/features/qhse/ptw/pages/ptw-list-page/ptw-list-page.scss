@@ -3,3 +3,37 @@
   flex-direction: column;
   gap: 16px;
 }
+
+.ptw-list-page__fase-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-muted, #5c5870);
+  margin-top: -8px;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.ptw-list-page__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  &--done {
+    background: var(--success, #52c41a);
+  }
+
+  &--current {
+    background: var(--dynadrill-purple, #662e9b);
+  }
+
+  &--pending {
+    background: var(--border, #e5e4ea);
+  }
+}

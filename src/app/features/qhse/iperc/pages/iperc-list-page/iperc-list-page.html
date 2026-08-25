@@ -21,6 +21,12 @@
   />
 </ng-template>
 
+<div class="iperc-list-page__fase-legend">
+  <span><i class="iperc-list-page__dot iperc-list-page__dot--done"></i>Completada</span>
+  <span><i class="iperc-list-page__dot iperc-list-page__dot--current"></i>Fase actual</span>
+  <span><i class="iperc-list-page__dot iperc-list-page__dot--pending"></i>Pendiente</span>
+</div>
+
 <dynadrill-data-table
   [columns]="columns()"
   [rows]="rows()"

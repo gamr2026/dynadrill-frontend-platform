@@ -15,6 +15,12 @@
   <dynadrill-phase-track [steps]="faseSteps" [currentIndex]="row.faseIndex" [stepLabels]="faseLabels" />
 </ng-template>
 
+<div class="ptw-list-page__fase-legend">
+  <span><i class="ptw-list-page__dot ptw-list-page__dot--done"></i>Completada</span>
+  <span><i class="ptw-list-page__dot ptw-list-page__dot--current"></i>Fase actual</span>
+  <span><i class="ptw-list-page__dot ptw-list-page__dot--pending"></i>Pendiente</span>
+</div>
+
 <dynadrill-data-table
   [columns]="columns()"
   [rows]="rows()"

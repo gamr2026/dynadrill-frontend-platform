@@ -40,7 +40,7 @@
 
     @if (p.fase === 'gabinete') {
       <dynadrill-button [disabled]="!puedeAvanzarDeGabinete()" (click)="avanzarFase()">
-        Continuar a Ingreso a locación →
+        Continuar a Ingreso a locación
       </dynadrill-button>
     }
   </section>
@@ -54,7 +54,7 @@
 
     @if (p.fase === 'ingreso') {
       <dynadrill-button [disabled]="!puedeAvanzarDeIngreso()" (click)="avanzarFase()">
-        Continuar a Verificaciones de seguridad →
+        Continuar a Verificaciones de seguridad
       </dynadrill-button>
     }
   </section>
@@ -120,7 +120,7 @@
 
     @if (p.fase === 'verificaciones') {
       <dynadrill-button [disabled]="!puedeAvanzarDeVerificaciones()" (click)="avanzarFase()">
-        Continuar a Formalización →
+        Continuar a Formalización
       </dynadrill-button>
     }
   </section>
@@ -156,7 +156,7 @@
 
     @if (p.fase === 'formalizacion') {
       <dynadrill-button [disabled]="!puedeAvanzarDeFormalizacion()" (click)="avanzarFase()">
-        Continuar a Ejecución →
+        Continuar a Ejecución
       </dynadrill-button>
     }
   </section>
@@ -182,7 +182,7 @@
 
     @if (p.fase === 'ejecucion') {
       <dynadrill-button [disabled]="!puedeAvanzarDeEjecucion()" (click)="avanzarFase()">
-        Continuar a Gestión documental →
+        Continuar a Gestión documental
       </dynadrill-button>
     }
   </section>

@@ -7,18 +7,31 @@
 
 <dynadrill-kpi-row [items]="kpis()" />
 
-<ng-template #actionsTpl let-row>
-  <dynadrill-button variant="secondary" size="small" (click)="viewDetail(row)">
-    Ver detalle
-  </dynadrill-button>
-</ng-template>
+<div class="emergencia-list-page__grid">
+  @for (e of cards(); track e.id) {
+    <dynadrill-card [accent]="e.accent">
+      <span card-title>{{ e.code }}</span>
+      <div card-extra class="emergencia-list-page__extra">
+        <dynadrill-tag [label]="e.nivelLabel" variant="neutral" />
+        <dynadrill-tag [label]="e.estadoLabel" [variant]="e.accent" />
+      </div>
 
-<dynadrill-data-table
-  [columns]="columns"
-  [rows]="rows()"
-  [loading]="loading()"
-  [rowKey]="rowKeyFn"
-  [pageSize]="10"
-  actionsHeader="Acciones"
-  [actionsTemplate]="actionsTpl"
-/>
+      <p class="emergencia-list-page__tipo">{{ e.tipo }}</p>
+      <dl class="emergencia-list-page__meta">
+        <div><dt>Ubicación</dt><dd>{{ e.ubicacion }}</dd></div>
+        <div><dt>Fecha/hora</dt><dd>{{ e.activadoAt }}</dd></div>
+      </dl>
+
+      @if (e.flashSegundosRestantes !== null) {
+        <div class="emergencia-list-page__flash">
+          <span>Reporte Flash vence en</span>
+          <dynadrill-timer [seconds]="e.flashSegundosRestantes" [critical]="e.flashSegundosRestantes < 900" />
+        </div>
+      } @else if (e.flashLabel) {
+        <dynadrill-tag [label]="e.flashLabel" [variant]="e.flashLabel.includes('vencido') ? 'error' : 'success'" />
+      }
+
+      <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(e.id)">Ver detalle</dynadrill-button>
+    </dynadrill-card>
+  }
+</div>

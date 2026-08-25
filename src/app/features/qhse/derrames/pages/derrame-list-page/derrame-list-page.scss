@@ -1,3 +1,40 @@
-// Sin estilos propios por ahora: dynadrill-screen-header, dynadrill-kpi-row y
-// dynadrill-data-table ya resuelven layout y espaciado (mismo patrón que
-// swa-list-page/ptw-list-page).
+.derrame-list-page__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.derrame-list-page__extra {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.derrame-list-page__descripcion {
+  font-weight: 600;
+  margin: 0;
+}
+
+.derrame-list-page__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+
+  div {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  dt {
+    color: var(--text-muted, #5c5870);
+  }
+
+  dd {
+    margin: 0;
+    text-align: right;
+  }
+}

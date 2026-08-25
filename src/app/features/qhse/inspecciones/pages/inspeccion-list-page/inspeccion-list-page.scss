@@ -7,4 +7,15 @@
     display: flex;
     justify-content: flex-end;
   }
+
+  &__kpis {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+
+    dynadrill-kpi-row {
+      flex: 1 1 auto;
+    }
+  }
 }

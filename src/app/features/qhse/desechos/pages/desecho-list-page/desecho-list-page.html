@@ -4,7 +4,10 @@
   <dynadrill-button (clicked)="nuevoDesecho()">+ Registrar desecho</dynadrill-button>
 </div>
 
-<dynadrill-kpi-row [items]="kpis()" />
+<div class="desecho-list-page__kpis">
+  <dynadrill-kpi-row [items]="kpis()" />
+  <dynadrill-statistic [value]="proximosAVencer()" title="Próximos a vencer (AM 142)" tone="warning" />
+</div>
 
 <ng-template #actionsTpl let-row>
   <dynadrill-button variant="secondary" size="small" (click)="viewDetail(row)">Ver detalle</dynadrill-button>

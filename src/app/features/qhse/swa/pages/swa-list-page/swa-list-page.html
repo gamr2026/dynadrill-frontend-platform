@@ -7,18 +7,25 @@
 
 <dynadrill-kpi-row [items]="kpis()" />
 
-<ng-template #actionsTpl let-row>
-  <dynadrill-button variant="secondary" size="small" (click)="viewDetail(row)">
-    Ver detalle
-  </dynadrill-button>
-</ng-template>
+<div class="swa-list-page__grid">
+  @for (c of cards(); track c.id) {
+    <dynadrill-card [accent]="c.accent">
+      <span card-title>{{ c.code }}</span>
+      <div card-extra class="swa-list-page__extra">
+        @if (c.heroeSeguridad) {
+          <dynadrill-tag label="Héroe de Seguridad" variant="brand" />
+        }
+        <dynadrill-tag [label]="c.estadoLabel" [variant]="c.accent" />
+      </div>
 
-<dynadrill-data-table
-  [columns]="columns"
-  [rows]="rows()"
-  [loading]="loading()"
-  [rowKey]="rowKeyFn"
-  [pageSize]="10"
-  actionsHeader="Acciones"
-  [actionsTemplate]="actionsTpl"
-/>
+      <p class="swa-list-page__peligro">{{ c.tipoPeligro }}</p>
+      <dl class="swa-list-page__meta">
+        <div><dt>Ubicación</dt><dd>{{ c.ubicacion }}</dd></div>
+        <div><dt>Activado por</dt><dd>{{ c.activadoPorNombre }}</dd></div>
+        <div><dt>Fecha/hora</dt><dd>{{ c.activadoAt }}</dd></div>
+      </dl>
+
+      <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(c.id)">Ver detalle</dynadrill-button>
+    </dynadrill-card>
+  }
+</div>

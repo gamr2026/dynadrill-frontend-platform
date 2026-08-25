@@ -6,6 +6,10 @@ import {
   DynadrillInputComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
+  DynadrillStatisticComponent,
+  type DynadrillStatisticTone,
+  DynadrillTabsComponent,
+  type DynadrillTab,
   DynadrillTagComponent,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
@@ -54,7 +58,15 @@ function daysBetween(a: Date, b: Date): number {
 /** HSE-MASTER-001 — Dashboard Integrado del Sistema: cierra el ciclo PDCA agregando los 16 indicadores estratégicos de las 4 fases ya construidas, con semáforo de cumplimiento configurable por metas. */
 @Component({
   selector: 'app-qhse-dashboard-page',
-  imports: [DynadrillScreenHeaderComponent, DynadrillBannerComponent, DynadrillTagComponent, DynadrillInputComponent, DynadrillButtonComponent],
+  imports: [
+    DynadrillScreenHeaderComponent,
+    DynadrillBannerComponent,
+    DynadrillTagComponent,
+    DynadrillStatisticComponent,
+    DynadrillTabsComponent,
+    DynadrillInputComponent,
+    DynadrillButtonComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './qhse-dashboard-page.html',
   styleUrl: './qhse-dashboard-page.scss',
@@ -72,6 +84,8 @@ export class QhseDashboardPage {
   private readonly notify = inject(DynadrillNotificationService);
 
   protected readonly categorias = CATEGORIAS;
+  protected readonly categoriaTabs: DynadrillTab[] = CATEGORIAS.map(label => ({ label }));
+  protected readonly categoriaIndex = signal(0);
   protected readonly defs = DASHBOARD_KPI_DEFS;
   protected readonly semaforoLabel = SEMAFORO_LABEL;
   protected readonly semaforoTone = SEMAFORO_TONE;
@@ -95,6 +109,12 @@ export class QhseDashboardPage {
     const meta = this.metas()[def.id];
     if (meta == null) return { texto: 'Sin meta definida', tone: 'info' };
     return kpiFueraDeMeta(valor, meta, def.direccion) ? { texto: 'Fuera de meta', tone: 'error' } : { texto: 'En meta', tone: 'success' };
+  }
+
+  /** dynadrill-statistic solo entiende default/success/warning/error — colapsa 'info'/'neutral' del semáforo de estadoKpi() a 'default'. */
+  protected statTone(def: DashboardKpiDef): DynadrillStatisticTone {
+    const tone = this.estadoKpi(def).tone;
+    return tone === 'success' || tone === 'error' ? tone : 'default';
   }
 
   protected readonly indicadoresFueraDeMeta = computed(() => {
@@ -122,7 +142,7 @@ export class QhseDashboardPage {
       investigaciones: this.investigacionService.list(),
       metas: this.metasService.get(),
     }).subscribe({
-      next: ({ matrices, ptw, inspecciones, desechos, derrames, stop, swa, investigaciones }) => {
+      next: ({ matrices, ptw, inspecciones, desechos, derrames, stop, swa, investigaciones, metas }) => {
         const ahora = new Date();
         const detalleLegal: string[] = [];
 
@@ -203,12 +223,11 @@ export class QhseDashboardPage {
         });
         this.incumplimientoLegal.set(detalleLegal.length > 0);
         this.incumplimientoDetalle.set(detalleLegal);
+        this.metas.set(metas);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
     });
-
-    this.metasService.get().subscribe(metas => this.metas.set(metas));
   }
 
   protected metaEdit(id: string): string {

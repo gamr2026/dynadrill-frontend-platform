@@ -13,6 +13,10 @@
   </dynadrill-button>
 </ng-template>
 
+<ng-template #faseTpl let-row>
+  <dynadrill-phase-track [steps]="faseSteps" [currentIndex]="row.faseIndex" [blocked]="row.faseBlocked" [blockedReason]="row.faseBlockedReason" />
+</ng-template>
+
 <dynadrill-data-table
   [columns]="columns"
   [rows]="rows()"
@@ -21,4 +25,5 @@
   [pageSize]="10"
   actionsHeader="Acciones"
   [actionsTemplate]="actionsTpl"
+  [columnTemplates]="{ statusBadge: faseTpl }"
 />

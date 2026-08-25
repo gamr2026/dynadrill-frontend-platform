@@ -2,11 +2,12 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   DynadrillButtonComponent,
-  DynadrillDataTableColumn,
-  DynadrillDataTableComponent,
+  DynadrillCardAccent,
+  DynadrillCardComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
+  DynadrillTagComponent,
   type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
@@ -17,7 +18,7 @@ function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-const ESTADO_TONE: Record<SwaEvento['estado'], DynadrillTagVariant> = {
+const ESTADO_TONE: Record<SwaEvento['estado'], DynadrillTagVariant & DynadrillCardAccent> = {
   activo: 'error',
   evaluado: 'warning',
   cerrado: 'success',
@@ -26,7 +27,7 @@ const ESTADO_TONE: Record<SwaEvento['estado'], DynadrillTagVariant> = {
 /** HSE-SEGUIMIENTO-003 — bandeja de eventos Stop Work Authority. */
 @Component({
   selector: 'app-swa-list-page',
-  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillDataTableComponent, DynadrillButtonComponent],
+  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillCardComponent, DynadrillTagComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './swa-list-page.html',
   styleUrl: './swa-list-page.scss',
@@ -50,16 +51,7 @@ export class SwaListPage {
     ];
   });
 
-  protected readonly columns: DynadrillDataTableColumn[] = [
-    { key: 'code', header: 'Código', sortable: true, searchable: true },
-    { key: 'tipoPeligro', header: 'Tipo de peligro', searchable: true },
-    { key: 'ubicacion', header: 'Ubicación' },
-    { key: 'activadoPorNombre', header: 'Activado por' },
-    { key: 'activadoAt', header: 'Fecha/hora', sortable: true },
-    { key: 'estadoBadge', header: 'Estado', type: 'badge' },
-  ];
-
-  protected readonly rows = computed(() =>
+  protected readonly cards = computed(() =>
     this.eventos().map(e => ({
       id: e.id,
       code: e.code,
@@ -67,11 +59,11 @@ export class SwaListPage {
       ubicacion: e.ubicacion || '—',
       activadoPorNombre: e.activadoPorNombre,
       activadoAt: formatDateTime(e.activadoAt),
-      estadoBadge: { text: SWA_ESTADO_LABELS[e.estado], tone: ESTADO_TONE[e.estado] },
+      estadoLabel: SWA_ESTADO_LABELS[e.estado],
+      accent: ESTADO_TONE[e.estado],
+      heroeSeguridad: e.heroeSeguridad,
     })),
   );
-
-  protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   constructor() {
     this.swaService.list().subscribe({
@@ -86,7 +78,7 @@ export class SwaListPage {
     });
   }
 
-  protected viewDetail(row: Record<string, unknown>): void {
-    this.router.navigate([String(row['id'])], { relativeTo: this.route });
+  protected viewDetail(id: number): void {
+    this.router.navigate([id], { relativeTo: this.route });
   }
 }

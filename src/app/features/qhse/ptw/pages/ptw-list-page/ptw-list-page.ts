@@ -5,10 +5,11 @@ import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillKpiRowComponent,
+  DynadrillPhaseTrackComponent,
   DynadrillScreenHeaderComponent,
   type DynadrillKpiRowItem,
 } from '@digitec-it-projects/dynadrill-ui';
-import { PTW_FASE_LABELS, PtwFase, PtwMatrix, ptwCerrado } from '../../models/ptw.model';
+import { PTW_FASE_LABELS, PTW_FASE_ORDER, PtwFase, PtwMatrix, ptwCerrado } from '../../models/ptw.model';
 import { PtwService } from '../../services/ptw.service';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
@@ -27,7 +28,7 @@ const CERRADO_BADGE: { text: string; tone: BadgeTone } = { text: 'Cerrado', tone
 @Component({
   selector: 'app-ptw-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillDataTableComponent, DynadrillButtonComponent],
+  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillDataTableComponent, DynadrillButtonComponent, DynadrillPhaseTrackComponent],
   templateUrl: './ptw-list-page.html',
   styleUrl: './ptw-list-page.scss',
 })
@@ -57,6 +58,8 @@ export class PtwListPage {
     { key: 'faseBadge', header: 'Fase actual', type: 'badge' },
   ];
 
+  protected readonly faseSteps = PTW_FASE_ORDER.length;
+
   protected readonly rows = computed(() =>
     this.records().map(p => ({
       id: p.id,
@@ -65,6 +68,7 @@ export class PtwListPage {
       actividad: p.actividad,
       ubicacion: p.ubicacion,
       faseBadge: ptwCerrado(p) ? CERRADO_BADGE : FASE_BADGES[p.fase],
+      faseIndex: ptwCerrado(p) ? PTW_FASE_ORDER.length : PTW_FASE_ORDER.indexOf(p.fase),
     })),
   );
 

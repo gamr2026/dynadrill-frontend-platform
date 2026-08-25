@@ -7,18 +7,25 @@
 
 <dynadrill-kpi-row [items]="kpis()" />
 
-<ng-template #actionsTpl let-row>
-  <dynadrill-button variant="secondary" size="small" (click)="viewDetail(row)">
-    Ver detalle
-  </dynadrill-button>
-</ng-template>
+<div class="investigacion-list-page__grid">
+  @for (i of cards(); track i.id) {
+    <dynadrill-card [accent]="i.accent">
+      <span card-title>{{ i.code }}</span>
+      <div card-extra class="investigacion-list-page__extra">
+        @if (i.accionesPendientes > 0) {
+          <dynadrill-tag [label]="i.accionesPendientes + ' acciones pendientes'" variant="neutral" />
+        }
+        <dynadrill-tag [label]="i.estadoLabel" variant="neutral" />
+        <dynadrill-tag [label]="i.plazoLabel" [variant]="i.accent" />
+      </div>
 
-<dynadrill-data-table
-  [columns]="columns"
-  [rows]="rows()"
-  [loading]="loading()"
-  [rowKey]="rowKeyFn"
-  [pageSize]="10"
-  actionsHeader="Acciones"
-  [actionsTemplate]="actionsTpl"
-/>
+      <p class="investigacion-list-page__resultado">{{ i.resultadoLabel }}</p>
+      <dl class="investigacion-list-page__meta">
+        <div><dt>Ubicación</dt><dd>{{ i.ubicacion }}</dd></div>
+        <div><dt>Fecha del incidente</dt><dd>{{ i.fechaIncidente }}</dd></div>
+      </dl>
+
+      <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(i.id)">Ver detalle</dynadrill-button>
+    </dynadrill-card>
+  }
+</div>

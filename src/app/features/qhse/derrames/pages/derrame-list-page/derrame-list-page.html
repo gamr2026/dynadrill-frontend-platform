@@ -2,16 +2,27 @@
 
 <dynadrill-kpi-row [items]="kpis()" />
 
-<ng-template #actionsTpl let-row>
-  <dynadrill-button variant="secondary" size="small" (click)="viewDetail(row)">Ver detalle</dynadrill-button>
-</ng-template>
+<div class="derrame-list-page__grid">
+  @for (c of cards(); track c.id) {
+    <dynadrill-card [accent]="c.accent">
+      <span card-title>{{ c.code }}</span>
+      <div card-extra class="derrame-list-page__extra">
+        @if (c.esMayor) {
+          <dynadrill-tag label="Mayor" variant="error" />
+        }
+        @if (c.notificadoMae) {
+          <dynadrill-tag label="MAE notificado" variant="info" />
+        }
+        <dynadrill-tag [label]="c.estadoLabel" [variant]="c.accent" />
+      </div>
 
-<dynadrill-data-table
-  [columns]="columns"
-  [rows]="rows()"
-  [loading]="loading()"
-  [rowKey]="rowKeyFn"
-  [pageSize]="10"
-  actionsHeader="Acciones"
-  [actionsTemplate]="actionsTpl"
-/>
+      <p class="derrame-list-page__descripcion">{{ c.descripcion }}</p>
+      <dl class="derrame-list-page__meta">
+        <div><dt>Volumen</dt><dd>{{ c.volumenLabel }}</dd></div>
+        <div><dt>Fecha/hora</dt><dd>{{ c.activadoAt }}</dd></div>
+      </dl>
+
+      <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(c.id)">Ver detalle</dynadrill-button>
+    </dynadrill-card>
+  }
+</div>

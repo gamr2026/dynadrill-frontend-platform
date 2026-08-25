@@ -2,11 +2,13 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   DynadrillButtonComponent,
-  DynadrillDataTableColumn,
-  DynadrillDataTableComponent,
+  DynadrillCardAccent,
+  DynadrillCardComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
+  DynadrillTagComponent,
+  DynadrillTimerComponent,
   type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
@@ -17,16 +19,25 @@ function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-const ESTADO_TONE: Record<EmergenciaEstado, DynadrillTagVariant> = {
+const ESTADO_TONE: Record<EmergenciaEstado, DynadrillTagVariant & DynadrillCardAccent> = {
   activa: 'error',
   controlada: 'warning',
   cerrada: 'success',
 };
 
+const DOS_HORAS_SEGUNDOS = 2 * 60 * 60;
+
 /** HSE-TRIAGE-001 — bandeja de emergencias y MEDEVAC. */
 @Component({
   selector: 'app-emergencia-list-page',
-  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillDataTableComponent, DynadrillButtonComponent],
+  imports: [
+    DynadrillScreenHeaderComponent,
+    DynadrillKpiRowComponent,
+    DynadrillCardComponent,
+    DynadrillTagComponent,
+    DynadrillTimerComponent,
+    DynadrillButtonComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './emergencia-list-page.html',
   styleUrl: './emergencia-list-page.scss',
@@ -50,34 +61,31 @@ export class EmergenciaListPage {
     ];
   });
 
-  protected readonly columns: DynadrillDataTableColumn[] = [
-    { key: 'code', header: 'Código', sortable: true, searchable: true },
-    { key: 'tipo', header: 'Tipo', searchable: true },
-    { key: 'nivelLabel', header: 'Nivel' },
-    { key: 'ubicacion', header: 'Ubicación' },
-    { key: 'activadoAt', header: 'Fecha/hora', sortable: true },
-    { key: 'estadoBadge', header: 'Estado', type: 'badge' },
-    { key: 'flashBadge', header: 'Reporte Flash', type: 'badge' },
-  ];
+  protected readonly cards = computed(() =>
+    this.eventos().map(e => {
+      const flashVencido = reporteFlashVencido(e);
+      const flashEmitido = !!e.reporteFlash.emitidoAt;
 
-  protected readonly rows = computed(() =>
-    this.eventos().map(e => ({
-      id: e.id,
-      code: e.code,
-      tipo: e.tipo,
-      nivelLabel: e.nivel ? EMERGENCIA_NIVEL_LABELS[e.nivel] : 'Sin declarar',
-      ubicacion: e.ubicacion || '—',
-      activadoAt: formatDateTime(e.activadoAt),
-      estadoBadge: { text: EMERGENCIA_ESTADO_LABELS[e.estado], tone: ESTADO_TONE[e.estado] },
-      flashBadge: e.reporteFlash.emitidoAt
-        ? { text: 'Emitido', tone: 'success' as DynadrillTagVariant }
-        : reporteFlashVencido(e)
-          ? { text: 'Vencido', tone: 'error' as DynadrillTagVariant }
-          : { text: 'Pendiente', tone: 'warning' as DynadrillTagVariant },
-    })),
+      /** Cuenta regresiva real al plazo del Reporte Flash (activadoAt + 2h) — solo mientras siga pendiente y sin vencer. */
+      const flashSegundosRestantes =
+        !flashEmitido && !flashVencido
+          ? Math.max(0, DOS_HORAS_SEGUNDOS - Math.floor((Date.now() - new Date(e.activadoAt).getTime()) / 1000))
+          : null;
+
+      return {
+        id: e.id,
+        code: e.code,
+        tipo: e.tipo,
+        nivelLabel: e.nivel ? EMERGENCIA_NIVEL_LABELS[e.nivel] : 'Sin declarar',
+        ubicacion: e.ubicacion || '—',
+        activadoAt: formatDateTime(e.activadoAt),
+        estadoLabel: EMERGENCIA_ESTADO_LABELS[e.estado],
+        accent: ESTADO_TONE[e.estado],
+        flashLabel: flashEmitido ? 'Reporte Flash emitido' : flashVencido ? 'Reporte Flash vencido' : null,
+        flashSegundosRestantes,
+      };
+    }),
   );
-
-  protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   constructor() {
     this.emergenciaService.list().subscribe({
@@ -92,7 +100,7 @@ export class EmergenciaListPage {
     });
   }
 
-  protected viewDetail(row: Record<string, unknown>): void {
-    this.router.navigate([String(row['id'])], { relativeTo: this.route });
+  protected viewDetail(id: number): void {
+    this.router.navigate([id], { relativeTo: this.route });
   }
 }

@@ -5,6 +5,7 @@ import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillKpiRowComponent,
+  DynadrillPhaseTrackComponent,
   DynadrillScreenHeaderComponent,
   dynadrillRiskLevel,
   type DynadrillKpiRowItem,
@@ -31,10 +32,20 @@ const RISK_BADGES: Record<DynadrillRiskLevel, { text: string; tone: BadgeTone }>
 
 const STATUS_FILTERS = Object.entries(IPERC_STATUS_LABELS).map(([value, text]) => ({ text, value }));
 
+/** HSE-PLAN-001: Preparación → Identificación/Evaluación → Controles/Reevaluación → Documentación y aprobación. */
+const FASE_STEPS = 4;
+const STATUS_INDEX: Record<IpercStatus, number> = {
+  borrador: 0,
+  en_evaluacion: 1,
+  en_revision: 2,
+  aprobada: 3,
+  rechazada: 2,
+};
+
 @Component({
   selector: 'app-iperc-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillDataTableComponent, DynadrillButtonComponent],
+  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillDataTableComponent, DynadrillButtonComponent, DynadrillPhaseTrackComponent],
   templateUrl: './iperc-list-page.html',
   styleUrl: './iperc-list-page.scss',
 })
@@ -60,10 +71,12 @@ export class IpercListPage {
     { key: 'code', header: 'Código', sortable: true, searchable: true },
     { key: 'actividad', header: 'Actividad', searchable: true },
     { key: 'ubicacion', header: 'Ubicación', searchable: true },
-    { key: 'statusBadge', header: 'Estado', type: 'badge', filters: STATUS_FILTERS },
+    { key: 'statusBadge', header: 'Fase', type: 'badge', filters: STATUS_FILTERS },
     { key: 'riesgoBadge', header: 'Riesgo residual más alto', type: 'badge' },
     { key: 'leccionBadge', header: 'Lección aprendida', type: 'badge' },
   ];
+
+  protected readonly faseSteps = FASE_STEPS;
 
   protected readonly rows = computed(() =>
     this.matrices().map(m => ({
@@ -72,6 +85,9 @@ export class IpercListPage {
       actividad: m.actividad,
       ubicacion: m.ubicacion,
       statusBadge: STATUS_BADGES[m.status],
+      faseIndex: STATUS_INDEX[m.status],
+      faseBlocked: m.status === 'rechazada',
+      faseBlockedReason: 'Rechazada',
       riesgoBadge: this.highestResidualBadge(m),
       leccionBadge: m.leccionAprendidaPendiente
         ? { text: 'Pendiente de revisar', tone: 'warning' as BadgeTone }

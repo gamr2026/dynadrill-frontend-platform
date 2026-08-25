@@ -6,7 +6,10 @@
   </div>
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
-    <dynadrill-kpi-row [items]="kpis()" />
+    <div class="inspeccion-list-page__kpis">
+      <dynadrill-kpi-row [items]="kpis()" />
+      <dynadrill-statistic [value]="enCuarentena()" title="En cuarentena" tone="error" />
+    </div>
     <dynadrill-data-table [columns]="columns" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" />
   </dynadrill-spinner>
 </div>

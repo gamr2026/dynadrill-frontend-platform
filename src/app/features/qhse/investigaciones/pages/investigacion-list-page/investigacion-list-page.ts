@@ -2,11 +2,12 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   DynadrillButtonComponent,
-  DynadrillDataTableColumn,
-  DynadrillDataTableComponent,
+  DynadrillCardAccent,
+  DynadrillCardComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
+  DynadrillTagComponent,
   type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
@@ -14,7 +15,7 @@ import {
   accionesPendientes,
   INCIDENTE_RESULTADO_LABELS,
   Investigacion,
-  InvestigacionEstado,
+  PLAZOS_POR_RESULTADO,
   plazoFinalVencido,
   plazoInicioVencido,
 } from '../../models/investigacion.model';
@@ -24,15 +25,16 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-const ESTADO_TONE: Record<InvestigacionEstado, DynadrillTagVariant> = {
-  abierta: 'warning',
-  cerrada: 'success',
-};
-
 /** HSE-TRIAGE-002 — bandeja de investigaciones de incidentes y casi accidentes. */
 @Component({
   selector: 'app-investigacion-list-page',
-  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillDataTableComponent, DynadrillButtonComponent],
+  imports: [
+    DynadrillScreenHeaderComponent,
+    DynadrillKpiRowComponent,
+    DynadrillCardComponent,
+    DynadrillTagComponent,
+    DynadrillButtonComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './investigacion-list-page.html',
   styleUrl: './investigacion-list-page.scss',
@@ -56,33 +58,37 @@ export class InvestigacionListPage {
     ];
   });
 
-  protected readonly columns: DynadrillDataTableColumn[] = [
-    { key: 'code', header: 'Código', sortable: true, searchable: true },
-    { key: 'resultadoLabel', header: 'Clasificación', searchable: true },
-    { key: 'ubicacion', header: 'Ubicación' },
-    { key: 'fechaIncidente', header: 'Fecha', sortable: true },
-    { key: 'estadoBadge', header: 'Estado', type: 'badge' },
-    { key: 'plazoBadge', header: 'Plazo', type: 'badge' },
-  ];
+  protected readonly cards = computed(() =>
+    this.investigaciones().map(i => {
+      const vencida = i.estado === 'abierta' && (plazoInicioVencido(i) || plazoFinalVencido(i));
+      const accent: DynadrillTagVariant & DynadrillCardAccent = i.estado === 'cerrada' ? 'success' : vencida ? 'error' : 'warning';
 
-  protected readonly rows = computed(() =>
-    this.investigaciones().map(i => ({
-      id: i.id,
-      code: i.code,
-      resultadoLabel: INCIDENTE_RESULTADO_LABELS[i.resultado],
-      ubicacion: i.ubicacion || '—',
-      fechaIncidente: formatDate(i.fechaIncidente),
-      estadoBadge: { text: i.estado === 'abierta' ? 'Abierta' : 'Cerrada', tone: ESTADO_TONE[i.estado] },
-      plazoBadge:
-        i.estado === 'cerrada'
-          ? { text: 'Cerrada a tiempo', tone: 'success' as DynadrillTagVariant }
-          : plazoInicioVencido(i) || plazoFinalVencido(i)
-            ? { text: 'Vencido', tone: 'error' as DynadrillTagVariant }
-            : { text: 'En plazo', tone: 'info' as DynadrillTagVariant },
-    })),
+      /** Días restantes reales al plazo final (fechaIncidente + finalDias) — solo si abierta y todavía no vencido. dynadrill-timer no aplica a esta escala (semanas, no minutos). */
+      const diasRestantes =
+        i.estado === 'abierta' && !vencida
+          ? Math.max(
+              0,
+              Math.ceil(
+                (new Date(i.fechaIncidente).getTime() + PLAZOS_POR_RESULTADO[i.resultado].finalDias * 86_400_000 - Date.now()) / 86_400_000,
+              ),
+            )
+          : null;
+
+      const plazoLabel = i.estado === 'cerrada' ? 'Cerrada' : vencida ? 'Plazo vencido' : `${diasRestantes} días restantes`;
+
+      return {
+        id: i.id,
+        code: i.code,
+        resultadoLabel: INCIDENTE_RESULTADO_LABELS[i.resultado],
+        ubicacion: i.ubicacion || '—',
+        fechaIncidente: formatDate(i.fechaIncidente),
+        estadoLabel: i.estado === 'abierta' ? 'Abierta' : 'Cerrada',
+        accent,
+        plazoLabel,
+        accionesPendientes: accionesPendientes(i.acciones),
+      };
+    }),
   );
-
-  protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   constructor() {
     this.investigacionService.list().subscribe({
@@ -97,7 +103,7 @@ export class InvestigacionListPage {
     });
   }
 
-  protected viewDetail(row: Record<string, unknown>): void {
-    this.router.navigate([String(row['id'])], { relativeTo: this.route });
+  protected viewDetail(id: number): void {
+    this.router.navigate([id], { relativeTo: this.route });
   }
 }

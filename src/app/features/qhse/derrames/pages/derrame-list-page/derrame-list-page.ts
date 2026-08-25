@@ -2,11 +2,12 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   DynadrillButtonComponent,
-  DynadrillDataTableColumn,
-  DynadrillDataTableComponent,
+  DynadrillCardAccent,
+  DynadrillCardComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
+  DynadrillTagComponent,
   type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
@@ -17,7 +18,7 @@ function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-const ESTADO_TONE: Record<DerrameEvento['estado'], DynadrillTagVariant> = {
+const ESTADO_TONE: Record<DerrameEvento['estado'], DynadrillTagVariant & DynadrillCardAccent> = {
   activo: 'error',
   contenido: 'warning',
   cerrado: 'success',
@@ -26,7 +27,7 @@ const ESTADO_TONE: Record<DerrameEvento['estado'], DynadrillTagVariant> = {
 /** HSE-AMBIENTAL-002 — bandeja de eventos de derrame. */
 @Component({
   selector: 'app-derrame-list-page',
-  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillDataTableComponent, DynadrillButtonComponent],
+  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillCardComponent, DynadrillTagComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './derrame-list-page.html',
   styleUrl: './derrame-list-page.scss',
@@ -50,26 +51,19 @@ export class DerrameListPage {
     ];
   });
 
-  protected readonly columns: DynadrillDataTableColumn[] = [
-    { key: 'code', header: 'Código', sortable: true, searchable: true },
-    { key: 'descripcion', header: 'Descripción', searchable: true },
-    { key: 'volumenLabel', header: 'Volumen' },
-    { key: 'activadoAt', header: 'Fecha/hora', sortable: true },
-    { key: 'estadoBadge', header: 'Estado', type: 'badge' },
-  ];
-
-  protected readonly rows = computed(() =>
+  protected readonly cards = computed(() =>
     this.eventos().map(e => ({
       id: e.id,
       code: e.code,
       descripcion: e.descripcion,
       volumenLabel: DERRAME_VOLUMEN_LABELS[e.volumen],
+      esMayor: e.volumen === 'mayor',
       activadoAt: formatDateTime(e.activadoAt),
-      estadoBadge: { text: DERRAME_ESTADO_LABELS[e.estado], tone: ESTADO_TONE[e.estado] },
+      estadoLabel: DERRAME_ESTADO_LABELS[e.estado],
+      accent: ESTADO_TONE[e.estado],
+      notificadoMae: e.notificadoMae,
     })),
   );
-
-  protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   constructor() {
     this.derrameService.list().subscribe({
@@ -84,7 +78,7 @@ export class DerrameListPage {
     });
   }
 
-  protected viewDetail(row: Record<string, unknown>): void {
-    this.router.navigate([String(row['id'])], { relativeTo: this.route });
+  protected viewDetail(id: number): void {
+    this.router.navigate([id], { relativeTo: this.route });
   }
 }

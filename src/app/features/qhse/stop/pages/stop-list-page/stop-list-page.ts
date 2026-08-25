@@ -1,25 +1,32 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import {
   DynadrillButtonComponent,
+  DynadrillCardAccent,
+  DynadrillCardComponent,
   DynadrillChartComponent,
   DynadrillChartSeries,
-  DynadrillDataTableColumn,
-  DynadrillDataTableComponent,
   DynadrillDialogService,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
+  DynadrillTagComponent,
   DynadrillTextComponent,
   type DynadrillKpiRowItem,
+  type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
-import { StopCard, STOP_TIPO_LABELS } from '../../models/stop-card.model';
+import { StopCard, StopTipo, STOP_TIPO_LABELS } from '../../models/stop-card.model';
 import { StopCardService } from '../../services/stop-card.service';
 import { StopCardDialog } from '../../components/stop-card-dialog';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
+
+const TIPO_ACCENT: Record<StopTipo, DynadrillTagVariant & DynadrillCardAccent> = {
+  acto_inseguro: 'warning',
+  condicion_insegura: 'error',
+};
 
 /** HSE-SEGUIMIENTO-002 — bandeja + dashboard de tendencias (Pareto por categoría). */
 @Component({
@@ -28,7 +35,8 @@ function formatDate(iso: string): string {
     DynadrillScreenHeaderComponent,
     DynadrillKpiRowComponent,
     DynadrillButtonComponent,
-    DynadrillDataTableComponent,
+    DynadrillCardComponent,
+    DynadrillTagComponent,
     DynadrillSpinnerComponent,
     DynadrillChartComponent,
     DynadrillTextComponent,
@@ -71,28 +79,18 @@ export class StopListPage {
     { name: 'Observaciones', data: this.paretoCategorias().map(([, count]) => count) },
   ]);
 
-  protected readonly columns: DynadrillDataTableColumn[] = [
-    { key: 'code', header: 'Código', sortable: true, searchable: true },
-    { key: 'fecha', header: 'Fecha', sortable: true },
-    { key: 'tipoLabel', header: 'Tipo' },
-    { key: 'categoriasLabel', header: 'Categorías' },
-    { key: 'ubicacion', header: 'Ubicación' },
-    { key: 'observadorNombre', header: 'Observador' },
-  ];
-
-  protected readonly rows = computed(() =>
+  protected readonly viewCards = computed(() =>
     this.cards().map(c => ({
       id: c.id,
       code: c.code,
       fecha: formatDate(c.createdAt),
       tipoLabel: STOP_TIPO_LABELS[c.tipo],
+      accent: TIPO_ACCENT[c.tipo],
       categoriasLabel: c.categorias.join(', '),
       ubicacion: c.ubicacion || '—',
       observadorNombre: c.observadorNombre,
     })),
   );
-
-  protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   constructor() {
     this.reload();

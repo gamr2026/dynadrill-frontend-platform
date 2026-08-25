@@ -8,6 +8,7 @@ import {
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
+  DynadrillStatisticComponent,
   type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
@@ -28,7 +29,7 @@ const ESTADO_TONE: Record<Desecho['estado'], DynadrillTagVariant> = {
 /** HSE-AMBIENTAL-001 — bandeja de desechos, vencimientos AM 142. */
 @Component({
   selector: 'app-desecho-list-page',
-  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillButtonComponent, DynadrillDataTableComponent],
+  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillStatisticComponent, DynadrillButtonComponent, DynadrillDataTableComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './desecho-list-page.html',
   styleUrl: './desecho-list-page.scss',
@@ -48,18 +49,32 @@ export class DesechoListPage {
     return [
       { label: 'Total registrados', value: all.length },
       { label: 'Peligrosos', value: all.filter(d => d.clasificacion === 'peligroso').length },
-      { label: 'Próximos a vencer (AM 142)', value: all.filter(d => desechoVencido(d)).length },
       { label: 'Dispuestos', value: all.filter(d => d.estado === 'dispuesto').length },
     ];
   });
 
+  /** Se destaca aparte (no como una cuarta tarjeta más) porque es el número que de verdad pide atención en esta bandeja. */
+  protected readonly proximosAVencer = computed(() => this.desechos().filter(d => desechoVencido(d)).length);
+
   protected readonly columns: DynadrillDataTableColumn[] = [
     { key: 'code', header: 'Código', sortable: true, searchable: true },
     { key: 'descripcion', header: 'Descripción', searchable: true },
-    { key: 'clasificacionLabel', header: 'Clasificación' },
+    {
+      key: 'clasificacionLabel',
+      header: 'Clasificación',
+      filters: [
+        { text: 'Peligroso', value: 'Peligroso' },
+        { text: 'No peligroso', value: 'No peligroso' },
+      ],
+    },
     { key: 'pesoKg', header: 'Peso (kg)', sortable: true },
     { key: 'limiteAlmacenamiento', header: 'Límite almacenamiento', sortable: true },
-    { key: 'estadoBadge', header: 'Estado', type: 'badge' },
+    {
+      key: 'estadoBadge',
+      header: 'Estado',
+      type: 'badge',
+      filters: Object.entries(DESECHO_ESTADO_LABELS).map(([, text]) => ({ text, value: text })),
+    },
   ];
 
   protected readonly rows = computed(() =>

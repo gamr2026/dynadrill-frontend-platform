@@ -22,31 +22,35 @@
     </ul>
   }
 
-  @for (categoria of categorias; track categoria) {
-    <section class="qhse-dashboard-page__section">
-      <h3>{{ categoria }}</h3>
-      <div class="qhse-dashboard-page__grid">
-        @for (def of defsPorCategoria(categoria); track def.id) {
-          <article class="qhse-dashboard-page__card">
-            <header>
-              <strong>{{ def.label }}</strong>
-              <dynadrill-tag [label]="estadoKpi(def).texto" [variant]="estadoKpi(def).tone" />
-            </header>
+  <dynadrill-tabs
+    [tabs]="categoriaTabs"
+    [activeIndex]="categoriaIndex()"
+    (activeIndexChange)="categoriaIndex.set($event)"
+    [contentTemplate]="categoriaTpl"
+  />
 
-            @if (!def.disponible) {
-              <p class="qhse-dashboard-page__note">{{ def.motivoNoDisponible }}</p>
-            } @else {
-              <p class="qhse-dashboard-page__valor">
-                {{ valores()[def.id] ?? '—' }} <span class="qhse-dashboard-page__unidad">{{ def.unidad }}</span>
-              </p>
-              <div class="qhse-dashboard-page__meta-form">
-                <dynadrill-input label="Meta" type="number" [value]="metaEdit(def.id)" (valueChange)="setMetaEdit(def.id, $event)" />
-                <dynadrill-button variant="secondary" size="small" (click)="guardarMeta(def.id)">Guardar meta</dynadrill-button>
-              </div>
-            }
-          </article>
-        }
-      </div>
-    </section>
-  }
+  <ng-template #categoriaTpl let-tab let-index="index">
+    <div class="qhse-dashboard-page__grid">
+      @for (def of defsPorCategoria(categorias[index]); track def.id) {
+        <article class="qhse-dashboard-page__card">
+          <dynadrill-statistic
+            [title]="def.label"
+            [value]="def.disponible ? (valores()[def.id] ?? '—') : ''"
+            [suffix]="def.disponible ? def.unidad : ''"
+            [tone]="statTone(def)"
+            [unavailable]="!def.disponible"
+            [unavailableReason]="def.motivoNoDisponible ?? ''"
+          />
+
+          @if (def.disponible) {
+            <dynadrill-tag [label]="estadoKpi(def).texto" [variant]="estadoKpi(def).tone" />
+            <div class="qhse-dashboard-page__meta-form">
+              <dynadrill-input label="Meta" type="number" [value]="metaEdit(def.id)" (valueChange)="setMetaEdit(def.id, $event)" />
+              <dynadrill-button variant="secondary" size="small" (click)="guardarMeta(def.id)">Guardar meta</dynadrill-button>
+            </div>
+          }
+        </article>
+      }
+    </div>
+  </ng-template>
 }

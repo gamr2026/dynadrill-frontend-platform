@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   DynadrillApprovalActionsComponent,
+  DynadrillBannerComponent,
   DynadrillButtonComponent,
   DynadrillRiskMatrixComponent,
   DynadrillScreenHeaderComponent,
@@ -23,6 +24,7 @@ import { PtwService } from '../../../ptw/services/ptw.service';
     DynadrillTagComponent,
     DynadrillButtonComponent,
     DynadrillApprovalActionsComponent,
+    DynadrillBannerComponent,
   ],
   templateUrl: './iperc-detail-page.html',
   styleUrl: './iperc-detail-page.scss',
@@ -123,6 +125,15 @@ export class IpercDetailPage {
         this.openPtwError.set('No se pudo abrir el PTW. Verifica que la matriz siga aprobada e intenta de nuevo.');
       },
     });
+  }
+
+  /** HSE-TRIAGE-002 cerró una investigación con lección aprendida para esta matriz: se marca revisada tras actualizar controles. */
+  protected marcarLeccionRevisada(): void {
+    const current = this.matrix();
+    if (!current) return;
+    this.ipercService
+      .update(current.id, { leccionAprendidaPendiente: false })
+      .subscribe(updated => this.matrix.set(updated));
   }
 
   protected back(): void {

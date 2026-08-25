@@ -5,6 +5,14 @@
 
   <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a IPERC</dynadrill-button>
 
+  @if (m.leccionAprendidaPendiente) {
+    <dynadrill-banner
+      variant="warning"
+      [message]="'Lección aprendida de ' + (m.leccionAprendidaInvestigacionCode ?? 'una investigación') + ': ' + m.leccionAprendidaTexto"
+    />
+    <dynadrill-button variant="secondary" size="small" (click)="marcarLeccionRevisada()">Marcar lección revisada</dynadrill-button>
+  }
+
   <section class="iperc-detail-page__meta">
     <p><strong>Equipo evaluador:</strong> {{ m.equipoEvaluador.join(', ') || 'Sin definir' }}</p>
     <p><strong>ATS base generado:</strong> {{ m.atsGenerado ? 'Sí' : 'No' }}</p>

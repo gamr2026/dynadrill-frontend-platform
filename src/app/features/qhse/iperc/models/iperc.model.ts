@@ -81,4 +81,14 @@ export interface IpercMatrix {
    */
   approvedByName?: string;
   approvedAt?: string;
+  /**
+   * HSE-MASTER-001 — ciclo de mejora continua: al cerrar una Investigación
+   * (HSE-TRIAGE-002) que involucra esta actividad, se marca la matriz para
+   * revisión con la lección aprendida ya redactada, en vez de solo un
+   * banner informativo. El responsable de HSE-PLAN-001 la revisa, actualiza
+   * controles si aplica y limpia el flag.
+   */
+  leccionAprendidaPendiente?: boolean;
+  leccionAprendidaTexto?: string;
+  leccionAprendidaInvestigacionCode?: string;
 }

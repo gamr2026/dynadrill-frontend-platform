@@ -1,0 +1,145 @@
+@if (loading()) {
+  <p class="investigacion-detail-page__loading">Cargando investigación…</p>
+} @else if (investigacion(); as i) {
+  <dynadrill-screen-header [eyebrow]="i.code" [title]="resultadoLabels[i.resultado]" [subtitle]="i.descripcionEvento" [roleTag]="i.estado === 'abierta' ? 'Abierta' : 'Cerrada'" />
+
+  <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a Investigaciones</dynadrill-button>
+
+  @if (i.origenEmergenciaId) {
+    <dynadrill-banner variant="info" [message]="'Activada automáticamente desde Emergencia #' + i.origenEmergenciaId" />
+  }
+  @if (inicioVencido()) {
+    <dynadrill-banner variant="critical" message="Plazo de inicio de investigación VENCIDO — asegura la escena cuanto antes." />
+  }
+  @if (finalVencido()) {
+    <dynadrill-banner variant="critical" message="Plazo de cierre del informe final VENCIDO." />
+  }
+
+  <dynadrill-context-card [items]="contextItems()" />
+
+  <!-- ① Escena y equipo -->
+  <section class="investigacion-detail-page__section">
+    <h3>① Escena y equipo investigador</h3>
+    @if (i.escenaAseguradaAt) {
+      <dynadrill-tag [label]="'Escena asegurada ' + (i.escenaAseguradaAt | date: 'short')" variant="success" />
+    } @else {
+      <dynadrill-button variant="secondary" (click)="asegurarEscena()">Marcar escena asegurada</dynadrill-button>
+    }
+
+    <div class="investigacion-detail-page__list">
+      @for (nombre of i.equipoInvestigador; track nombre) {
+        <dynadrill-tag [label]="nombre" variant="neutral" />
+      }
+      @if (!i.equipoInvestigador.length) {
+        <p class="investigacion-detail-page__note">Sin integrantes registrados.</p>
+      }
+    </div>
+    <div class="investigacion-detail-page__inline-form">
+      <dynadrill-input label="Agregar integrante" placeholder="Nombre" [value]="nuevoIntegrante()" (valueChange)="nuevoIntegrante.set($event)" />
+      <dynadrill-button variant="secondary" (click)="agregarIntegrante()">Agregar</dynadrill-button>
+    </div>
+  </section>
+
+  <!-- ② Evidencias y testimonios -->
+  <section class="investigacion-detail-page__section">
+    <h3>② Evidencias y testimonios</h3>
+    <dynadrill-textarea label="Evidencias recopiladas" [value]="evidencias()" (valueChange)="evidencias.set($event)" [rows]="3" />
+    <dynadrill-textarea label="Declaraciones de testigos (resumen)" [value]="testimonios()" (valueChange)="testimonios.set($event)" [rows]="3" />
+    <dynadrill-button variant="secondary" size="small" (click)="guardarEvidencias()">Guardar</dynadrill-button>
+  </section>
+
+  <!-- ③ 5 Porqués -->
+  <section class="investigacion-detail-page__section">
+    <h3>③ Metodología 5 Porqués {{ porquesCompleto() ? '✓' : '(mínimo 5 niveles)' }}</h3>
+    @for (p of i.cincoPorques; track $index) {
+      <p class="investigacion-detail-page__porque">{{ $index + 1 }}. <strong>{{ p.pregunta }}</strong> — {{ p.respuesta }}</p>
+    }
+    <div class="investigacion-detail-page__inline-form">
+      <dynadrill-input label="¿Por qué...?" [value]="nuevaPregunta()" (valueChange)="nuevaPregunta.set($event)" />
+      <dynadrill-input label="Respuesta" [value]="nuevaRespuesta()" (valueChange)="nuevaRespuesta.set($event)" />
+      <dynadrill-button variant="secondary" (click)="agregarPorque()">+ Agregar nivel</dynadrill-button>
+    </div>
+  </section>
+
+  <!-- ④ Ishikawa -->
+  <section class="investigacion-detail-page__section">
+    <h3>④ Diagrama de Ishikawa (espina de pescado)</h3>
+    @for (cat of ishikawaCategorias; track cat) {
+      <dynadrill-textarea [label]="cat" [value]="i.ishikawa[cat]" (valueChange)="actualizarIshikawa(cat, $event)" [rows]="2" />
+    }
+  </section>
+
+  <!-- ⑤ Causas raíz y lecciones aprendidas -->
+  <section class="investigacion-detail-page__section">
+    <h3>⑤ Causas raíz y lecciones aprendidas</h3>
+    <dynadrill-textarea label="Causas raíz identificadas" [value]="causasRaiz()" (valueChange)="causasRaiz.set($event)" [rows]="3" />
+    <dynadrill-textarea label="Lecciones aprendidas" [value]="leccionesAprendidas()" (valueChange)="leccionesAprendidas.set($event)" [rows]="3" />
+    <dynadrill-button variant="secondary" size="small" (click)="guardarCausas()">Guardar</dynadrill-button>
+  </section>
+
+  <!-- ⑥ Acciones correctivas y preventivas -->
+  <section class="investigacion-detail-page__section">
+    <h3>⑥ Acciones correctivas y preventivas</h3>
+    @for (a of i.acciones; track a.id) {
+      <div class="investigacion-detail-page__accion">
+        <div>
+          <strong>{{ a.descripcion }}</strong>
+          <span class="investigacion-detail-page__note">{{ accionTipoLabels[a.tipo] }} — {{ a.responsable }} — plazo {{ a.plazo }}</span>
+        </div>
+        <dynadrill-select [options]="accionEstadoOptions" [value]="a.estado" (valueChange)="actualizarEstadoAccion(a, $any($event))" />
+      </div>
+    }
+    <div class="investigacion-detail-page__inline-form">
+      <dynadrill-input label="Descripción" [value]="nuevaAccionDescripcion()" (valueChange)="nuevaAccionDescripcion.set($event)" />
+      <dynadrill-select label="Tipo" [options]="accionTipoOptions" [value]="nuevaAccionTipo()" (valueChange)="nuevaAccionTipo.set($any($event))" />
+      <dynadrill-input label="Responsable" [value]="nuevaAccionResponsable()" (valueChange)="nuevaAccionResponsable.set($event)" />
+      <dynadrill-input label="Plazo (AAAA-MM-DD)" [value]="nuevaAccionPlazo()" (valueChange)="nuevaAccionPlazo.set($event)" />
+      <dynadrill-button variant="secondary" [disabled]="!puedeAgregarAccion()" (click)="agregarAccion()">+ Agregar acción</dynadrill-button>
+    </div>
+  </section>
+
+  <!-- ⑦ Notificación legal -->
+  <section class="investigacion-detail-page__section">
+    <h3>⑦ Notificación legal (Ministerio del Trabajo / IESS — plazo 24h)</h3>
+    @if (sugiereLegal()) {
+      <dynadrill-banner variant="warning" message="Clasificación sugiere notificación obligatoria — confirma con el equipo legal si aplica." />
+    }
+    <div class="investigacion-detail-page__inline-form">
+      @if (i.notificacionLegal.ministerioTrabajoNotificadoAt) {
+        <dynadrill-tag [label]="'Ministerio del Trabajo notificado ' + (i.notificacionLegal.ministerioTrabajoNotificadoAt | date: 'short')" variant="success" />
+      } @else {
+        <dynadrill-button variant="secondary" size="small" (click)="marcarNotificadoMinisterio()">Marcar Ministerio del Trabajo notificado</dynadrill-button>
+      }
+      @if (i.notificacionLegal.iessNotificadoAt) {
+        <dynadrill-tag [label]="'IESS notificado ' + (i.notificacionLegal.iessNotificadoAt | date: 'short')" variant="success" />
+      } @else {
+        <dynadrill-button variant="secondary" size="small" (click)="marcarNotificadoIess()">Marcar IESS notificado</dynadrill-button>
+      }
+    </div>
+  </section>
+
+  <!-- ⑧ Retroalimentación a IPERC -->
+  <section class="investigacion-detail-page__section">
+    <h3>⑧ Retroalimentación a IPERC (HSE-MASTER-001)</h3>
+    @if (i.ipercActualizadoId) {
+      <dynadrill-tag label="Matriz IPERC marcada para revisión" variant="info" />
+    } @else {
+      <dynadrill-select label="Vincular matriz IPERC afectada (opcional)" [options]="ipercOptions()" (valueChange)="seleccionarIperc($any($event))" />
+    }
+  </section>
+
+  <!-- ⑨ Cierre -->
+  <section class="investigacion-detail-page__section">
+    <h3>⑨ Cierre del informe</h3>
+    @if (i.estado === 'cerrada') {
+      <dynadrill-tag [label]="'Cerrada por ' + i.informeAprobadoPorNombre + ' — ' + (i.cerradaAt | date: 'short')" variant="success" />
+    } @else {
+      @if (!puedeCerrar()) {
+        <p class="investigacion-detail-page__note">
+          Para cerrar: completa 5 Porqués (mín. 5 niveles), causas raíz, al menos una acción y que todas estén verificadas, y lecciones aprendidas.
+        </p>
+      }
+      <dynadrill-button variant="error" [disabled]="!puedeCerrar()" (click)="cerrar()">Cerrar investigación</dynadrill-button>
+    }
+  </section>
+}

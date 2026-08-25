@@ -97,4 +97,34 @@ export const qhseRoutes: Routes = [
     canActivate: [roleGuard],
     data: { allowedRoles: HSE_STAFF_ROLES },
   },
+  {
+    path: 'emergencias',
+    loadComponent: () => import('./emergencias/pages/emergencia-list-page/emergencia-list-page').then(m => m.EmergenciaListPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES },
+  },
+  {
+    path: 'emergencias/:id',
+    loadComponent: () => import('./emergencias/pages/emergencia-detail-page/emergencia-detail-page').then(m => m.EmergenciaDetailPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES },
+  },
+  {
+    path: 'investigaciones',
+    loadComponent: () => import('./investigaciones/pages/investigacion-list-page/investigacion-list-page').then(m => m.InvestigacionListPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES },
+  },
+  {
+    path: 'investigaciones/:id',
+    loadComponent: () => import('./investigaciones/pages/investigacion-detail-page/investigacion-detail-page').then(m => m.InvestigacionDetailPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES },
+  },
+  {
+    path: 'dashboard',
+    loadComponent: () => import('./dashboard/pages/qhse-dashboard-page/qhse-dashboard-page').then(m => m.QhseDashboardPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES },
+  },
 ];

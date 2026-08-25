@@ -76,6 +76,7 @@ export class Sidebar {
             label: 'QHSE',
             icon: 'alert' as DynadrillIconName,
             children: [
+              { label: 'Dashboard Integrado', link: '/dashboard/qhse/dashboard' },
               { label: 'IPERC', link: '/dashboard/qhse/iperc' },
               { label: 'Recibimiento de Sitio (PTW)', link: '/dashboard/qhse/ptw' },
               { label: 'Inspecciones de campo', link: '/dashboard/qhse/inspecciones' },
@@ -83,6 +84,8 @@ export class Sidebar {
               { label: 'Stop Work Authority', link: '/dashboard/qhse/swa' },
               { label: 'Gestión de Desechos', link: '/dashboard/qhse/desechos' },
               { label: 'Control de Derrames', link: '/dashboard/qhse/derrames' },
+              { label: 'Emergencias y MEDEVAC', link: '/dashboard/qhse/emergencias' },
+              { label: 'Investigación de Incidentes', link: '/dashboard/qhse/investigaciones' },
             ],
           }]
         : [];

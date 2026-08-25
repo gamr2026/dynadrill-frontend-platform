@@ -41,6 +41,14 @@
       @if (e.evaluacionNota) {
         <p>{{ e.evaluacionNota }}</p>
       }
+      @if (e.riesgoReal && e.estado !== 'cerrado') {
+        @if (e.emergenciaId) {
+          <dynadrill-tag [label]="'Emergencia vinculada — #' + e.emergenciaId" variant="error" />
+        } @else {
+          <p class="swa-detail-page__note">Si el riesgo no se puede controlar en sitio, escala a Emergencia Mayor en vez de reanudar.</p>
+          <dynadrill-button variant="error" (click)="escalarAEmergencia()">🚨 Escalar a Emergencia Mayor</dynadrill-button>
+        }
+      }
     }
   </section>
 

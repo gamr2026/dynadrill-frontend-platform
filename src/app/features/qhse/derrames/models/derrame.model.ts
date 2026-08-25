@@ -4,17 +4,16 @@
  * roleGuard de QHSE (ver header.ts, acceso "Reportar"); la gestión del
  * evento (contención, notificación a MAE, cierre) queda para el staff HSE.
  *
- * Bandas de volumen: HSE-AMBIENTAL-002 no fija los límites exactos en el
- * documento — se adoptan bandas razonables (menor <1 barril ~159 L,
- * moderado 1-10 barriles, mayor >10 barriles) hasta que QHSE confirme los
- * umbrales oficiales; queda anotado como supuesto a validar.
+ * Bandas de volumen: HSE-AMBIENTAL-002 SÍ fija los límites exactos (antes
+ * se había asumido lo contrario). Un derrame en cuerpo de agua es "Mayor"
+ * sin importar el volumen — ver derrameActivaEmergenciaMayor().
  */
 export type DerrameVolumen = 'menor' | 'moderado' | 'mayor';
 
 export const DERRAME_VOLUMEN_LABELS: Record<DerrameVolumen, string> = {
   menor: 'Menor (< 1 barril)',
-  moderado: 'Moderado (1-10 barriles)',
-  mayor: 'Mayor (> 10 barriles)',
+  moderado: 'Moderado (1-5 barriles)',
+  mayor: 'Mayor (> 5 barriles, o cualquier volumen en cuerpo de agua)',
 };
 
 export type DerrameUbicacion = 'geomembrana' | 'suelo' | 'cuerpo_agua';
@@ -62,23 +61,39 @@ export interface DerrameEvento {
   checklistContencion: DerrameChecklistItem[];
   contenidoAt?: string;
 
-  /** Obligatoria cuando ubicacion !== 'geomembrana', o cuando volumen === 'mayor'. */
+  /** Obligatoria cuando volumen === 'mayor' (>5 barriles) o ubicacion === 'cuerpo_agua' — ver derrameRequiereNotificacionMae(). */
   notificadoMae: boolean;
   notificadoMaeAt?: string;
 
   /** Suelo contaminado alimenta Gestión de Desechos como peligroso (integración de HSE-AMBIENTAL-001/002). */
   desechoGeneradoId?: number;
 
+  /** HSE-MASTER-001: derrame mayor escala a Emergencia Mayor (HSE-TRIAGE-001). */
+  emergenciaId?: number;
+
   cerradoAt?: string;
 }
 
 export type CreateDerrameInput = Pick<DerrameEvento, 'activadoPorNombre' | 'descripcion' | 'ubicacionFisica' | 'volumen' | 'ubicacion'>;
 
-/** Derrame mayor debería activar Emergencia Mayor (HSE-TRIAGE-001) — todavía no construido, ver Fase 4 del plan de desarrollo. */
-export function derrameActivaEmergenciaMayor(d: Pick<DerrameEvento, 'volumen'>): boolean {
-  return d.volumen === 'mayor';
+/**
+ * HSE-MASTER-001: "Derrame mayor (>5 barriles o en agua) → Escalar a
+ * Emergencia Mayor" — un derrame en cuerpo de agua escala aunque el
+ * volumen todavía esté clasificado como menor/moderado.
+ */
+export function derrameActivaEmergenciaMayor(d: Pick<DerrameEvento, 'volumen' | 'ubicacion'>): boolean {
+  return d.volumen === 'mayor' || d.ubicacion === 'cuerpo_agua';
 }
 
+/**
+ * HSE-AMBIENTAL-002: "Obligatorio si: Derrame > 5 barriles / Derrame en
+ * cuerpo de agua (cualquier volumen) / Derrame en área protegida /
+ * Afectación a comunidades." Los dos últimos criterios no están modelados
+ * todavía (no hay campo de área protegida/comunidades) — solo volumen y
+ * ubicación. Antes esto disparaba notificación para CUALQUIER derrame que
+ * no fuera sobre geomembrana (incluyendo suelo descubierto sin ser mayor),
+ * más estricto de lo que pide el documento.
+ */
 export function derrameRequiereNotificacionMae(d: Pick<DerrameEvento, 'ubicacion' | 'volumen'>): boolean {
-  return d.ubicacion !== 'geomembrana' || d.volumen === 'mayor';
+  return d.volumen === 'mayor' || d.ubicacion === 'cuerpo_agua';
 }

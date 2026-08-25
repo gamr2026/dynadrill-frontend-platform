@@ -11,6 +11,12 @@ import {
   DEFAULT_CONTENCION_CHECKLIST,
   DerrameEvento,
 } from '../../features/qhse/derrames/models/derrame.model';
+import {
+  CreateEmergenciaInput,
+  DEFAULT_EMERGENCIA_NOTIFICACIONES,
+  EmergenciaEvento,
+} from '../../features/qhse/emergencias/models/emergencia.model';
+import { CreateInvestigacionInput, DEFAULT_ISHIKAWA, Investigacion } from '../../features/qhse/investigaciones/models/investigacion.model';
 
 /**
  * Solo activo mientras no exista el backend real de QHSE — mismo patrón
@@ -242,6 +248,25 @@ function nextDerrameCode(): string {
   const year = new Date().getFullYear();
   return `DER-${year}-${String(nextDerrameId).padStart(4, '0')}`;
 }
+
+let emergencias: EmergenciaEvento[] = [];
+let nextEmergenciaId = 1;
+
+function nextEmergenciaCode(): string {
+  const year = new Date().getFullYear();
+  return `EMG-${year}-${String(nextEmergenciaId).padStart(4, '0')}`;
+}
+
+let investigaciones: Investigacion[] = [];
+let nextInvestigacionId = 1;
+
+function nextInvestigacionCode(): string {
+  const year = new Date().getFullYear();
+  return `INV-${year}-${String(nextInvestigacionId).padStart(4, '0')}`;
+}
+
+/** HSE-MASTER-001 — metas por KPI que el staff HSE define para el semáforo del Dashboard Integrado; sin persistencia real detrás, solo en memoria como el resto del mock. */
+let dashboardMetas: Record<string, number> = {};
 
 export const qhseMockInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.url === '/api/qhse/iperc' && req.method === 'GET') {
@@ -552,6 +577,140 @@ export const qhseMockInterceptor: HttpInterceptorFn = (req, next) => {
     derrames = derrames.map(d => (d.id === id ? updatedDerrame : d));
 
     return of(new HttpResponse({ status: 200, body: updatedDerrame })).pipe(delay(400));
+  }
+
+  // --- HSE-TRIAGE-001: Plan de Respuesta a Emergencias y MEDEVAC ---
+
+  if (req.url === '/api/qhse/emergencias' && req.method === 'GET') {
+    return of(new HttpResponse({ status: 200, body: emergencias })).pipe(delay(400));
+  }
+
+  if (req.url === '/api/qhse/emergencias' && req.method === 'POST') {
+    const input = req.body as CreateEmergenciaInput;
+    const now = new Date().toISOString();
+    const created: EmergenciaEvento = {
+      ...input,
+      id: nextEmergenciaId,
+      code: nextEmergenciaCode(),
+      nivel: null,
+      estado: 'activa',
+      activadoAt: now,
+      timeline: [{ timestamp: now, evento: 'Emergencia detectada y activada' }],
+      conteoPersonal: { totalEnLocacion: 0, evacuados: 0 },
+      heridos: [],
+      notificaciones: DEFAULT_EMERGENCIA_NOTIFICACIONES.map(n => ({ ...n })),
+      reporteFlash: { resumenEjecutivo: '', personalAfectado: '', accionesTomadas: '', estadoActual: '', proximosPasos: '' },
+    };
+    emergencias = [...emergencias, created];
+    nextEmergenciaId += 1;
+    return of(new HttpResponse({ status: 201, body: created })).pipe(delay(400));
+  }
+
+  const emergenciaDetailMatch = req.url.match(/\/api\/qhse\/emergencias\/(\d+)$/);
+  if (emergenciaDetailMatch && req.method === 'GET') {
+    const id = Number(emergenciaDetailMatch[1]);
+    const found = emergencias.find(e => e.id === id);
+    return of(new HttpResponse({ status: found ? 200 : 404, body: found ?? null })).pipe(delay(300));
+  }
+
+  if (emergenciaDetailMatch && req.method === 'PATCH') {
+    const id = Number(emergenciaDetailMatch[1]);
+    const idx = emergencias.findIndex(e => e.id === id);
+    if (idx !== -1) {
+      const updated: EmergenciaEvento = { ...emergencias[idx], ...(req.body as Partial<EmergenciaEvento>) };
+      emergencias = emergencias.map(e => (e.id === id ? updated : e));
+      return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(300));
+    }
+    return of(new HttpResponse({ status: 404 })).pipe(delay(300));
+  }
+
+  // --- HSE-TRIAGE-002: Investigación de Incidentes y Casi Accidentes ---
+
+  if (req.url === '/api/qhse/investigaciones' && req.method === 'GET') {
+    return of(new HttpResponse({ status: 200, body: investigaciones })).pipe(delay(400));
+  }
+
+  if (req.url === '/api/qhse/investigaciones' && req.method === 'POST') {
+    const input = req.body as CreateInvestigacionInput;
+    const now = new Date().toISOString();
+    const created: Investigacion = {
+      ...input,
+      id: nextInvestigacionId,
+      code: nextInvestigacionCode(),
+      estado: 'abierta',
+      equipoInvestigador: [],
+      evidenciasRecopiladas: '',
+      testimoniosResumen: '',
+      cincoPorques: [],
+      ishikawa: { ...DEFAULT_ISHIKAWA },
+      causasRaiz: '',
+      acciones: [],
+      notificacionLegal: { requerida: false },
+      leccionesAprendidas: '',
+      createdAt: now,
+    };
+    investigaciones = [...investigaciones, created];
+    nextInvestigacionId += 1;
+
+    if (input.origenEmergenciaId) {
+      const idx = emergencias.findIndex(e => e.id === input.origenEmergenciaId);
+      if (idx !== -1) {
+        emergencias = emergencias.map(e => (e.id === input.origenEmergenciaId ? { ...e, investigacionId: created.id } : e));
+      }
+    }
+
+    return of(new HttpResponse({ status: 201, body: created })).pipe(delay(400));
+  }
+
+  const investigacionDetailMatch = req.url.match(/\/api\/qhse\/investigaciones\/(\d+)$/);
+  if (investigacionDetailMatch && req.method === 'GET') {
+    const id = Number(investigacionDetailMatch[1]);
+    const found = investigaciones.find(i => i.id === id);
+    return of(new HttpResponse({ status: found ? 200 : 404, body: found ?? null })).pipe(delay(300));
+  }
+
+  if (investigacionDetailMatch && req.method === 'PATCH') {
+    const id = Number(investigacionDetailMatch[1]);
+    const idx = investigaciones.findIndex(i => i.id === id);
+    if (idx !== -1) {
+      const changes = req.body as Partial<Investigacion>;
+      const updated: Investigacion = { ...investigaciones[idx], ...changes };
+      investigaciones = investigaciones.map(i => (i.id === id ? updated : i));
+
+      /**
+       * HSE-MASTER-001 — al cerrar la investigación con una matriz IPERC
+       * marcada, se retroalimenta esa matriz de verdad (no un banner):
+       * queda lista para que HSE-PLAN-001 la revise con la lección ya
+       * redactada.
+       */
+      if (changes.estado === 'cerrada' && updated.ipercActualizadoId) {
+        const mIdx = matrices.findIndex(m => m.id === updated.ipercActualizadoId);
+        if (mIdx !== -1) {
+          const updatedMatrix: IpercMatrix = {
+            ...matrices[mIdx],
+            leccionAprendidaPendiente: true,
+            leccionAprendidaTexto: updated.leccionesAprendidas,
+            leccionAprendidaInvestigacionCode: updated.code,
+            updatedAt: new Date().toISOString(),
+          };
+          matrices = matrices.map(m => (m.id === updated.ipercActualizadoId ? updatedMatrix : m));
+        }
+      }
+
+      return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(300));
+    }
+    return of(new HttpResponse({ status: 404 })).pipe(delay(300));
+  }
+
+  // --- HSE-MASTER-001: Dashboard Integrado (metas del semáforo) ---
+
+  if (req.url === '/api/qhse/dashboard-metas' && req.method === 'GET') {
+    return of(new HttpResponse({ status: 200, body: dashboardMetas })).pipe(delay(200));
+  }
+
+  if (req.url === '/api/qhse/dashboard-metas' && req.method === 'PATCH') {
+    dashboardMetas = { ...dashboardMetas, ...(req.body as Record<string, number>) };
+    return of(new HttpResponse({ status: 200, body: dashboardMetas })).pipe(delay(200));
   }
 
   return next(req);

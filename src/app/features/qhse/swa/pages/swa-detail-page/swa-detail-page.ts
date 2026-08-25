@@ -8,6 +8,7 @@ import {
   DynadrillChecklistComponent,
   type DynadrillChecklistItem,
   DynadrillContextCardComponent,
+  DynadrillDialogService,
   DynadrillScreenHeaderComponent,
   DynadrillTagComponent,
   DynadrillTextareaComponent,
@@ -15,6 +16,7 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { SWA_ESTADO_LABELS, SWA_ZERO_RETALIATION_NOTICE, SwaEvento, swaNotificacionCompleta } from '../../models/swa.model';
 import { SwaService } from '../../services/swa.service';
+import { EmergenciaAlertDialog, EmergenciaAlertDialogData } from '../../../emergencias/components/emergencia-alert-dialog';
 
 /** HSE-SEGUIMIENTO-003 — gestión del evento: notificación → evaluación → reanudación. */
 @Component({
@@ -36,6 +38,7 @@ import { SwaService } from '../../services/swa.service';
 })
 export class SwaDetailPage {
   private readonly swaService = inject(SwaService);
+  private readonly dialogService = inject(DynadrillDialogService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -113,6 +116,25 @@ export class SwaDetailPage {
   protected reanudar(): void {
     if (!this.puedeReanudar()) return;
     this.patch({ estado: 'cerrado', reanudadoAt: new Date().toISOString() });
+  }
+
+  /** HSE-MASTER-001: si el riesgo no se controla, escala a Emergencia Mayor (HSE-TRIAGE-001). */
+  protected escalarAEmergencia(): void {
+    const e = this.evento();
+    if (!e) return;
+    const ref = this.dialogService.open<EmergenciaAlertDialog, EmergenciaAlertDialogData>({
+      title: 'Escalar a Emergencia Mayor — HSE-TRIAGE-001',
+      content: EmergenciaAlertDialog,
+      data: {
+        origenSwaId: e.id,
+        tipoSugerido: e.tipoPeligro,
+        descripcionSugerida: `Escalado desde SWA ${e.code}: ${e.descripcion}`,
+      },
+      footer: false,
+    });
+    ref.afterClose.subscribe(evento => {
+      if (evento) this.patch({ emergenciaId: evento.id });
+    });
   }
 
   protected back(): void {

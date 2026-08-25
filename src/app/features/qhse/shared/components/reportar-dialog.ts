@@ -6,16 +6,16 @@ import { SwaActivationDialog } from '../../swa/components/swa-activation-dialog'
 import { InspeccionEquipoDialog } from '../../inspecciones/components/inspeccion-equipo-dialog';
 import { DesechoDialog } from '../../desechos/components/desecho-dialog';
 import { DerrameAlertDialog } from '../../derrames/components/derrame-alert-dialog';
+import { EmergenciaAlertDialog } from '../../emergencias/components/emergencia-alert-dialog';
 
 /**
- * Acceso rápido universal "Reportar" (QHSE-PLAN-DESARROLLO.md, sección 7):
- * las acciones que la documentación asigna a "Cualquier Trabajador" —
- * Tarjeta STOP (HSE-SEGUIMIENTO-002), Stop Work Authority
- * (HSE-SEGUIMIENTO-003), Inspección pre-operacional (HSE-SEGUIMIENTO-001),
- * clasificación de desechos en campo (HSE-AMBIENTAL-001) y alerta de
- * derrame (HSE-AMBIENTAL-002) — sin pasar por el roleGuard de QHSE. Botón
- * de emergencia se agrega acá cuando exista (Fase 4 del plan de
- * desarrollo).
+ * Acceso rápido universal "Reportar": las acciones que la documentación
+ * asigna a "Cualquier Trabajador" — Tarjeta STOP (HSE-SEGUIMIENTO-002),
+ * Stop Work Authority (HSE-SEGUIMIENTO-003), Inspección pre-operacional
+ * (HSE-SEGUIMIENTO-001), clasificación de desechos en campo
+ * (HSE-AMBIENTAL-001), alerta de derrame (HSE-AMBIENTAL-002) y activación
+ * de emergencia (HSE-TRIAGE-001, "Cualquier Trabajador — Detector
+ * Inicial") — sin pasar por el roleGuard de QHSE.
  */
 @Component({
   selector: 'app-reportar-dialog',
@@ -27,6 +27,11 @@ import { DerrameAlertDialog } from '../../derrames/components/derrame-alert-dial
 export class ReportarDialog {
   private readonly dialogService = inject(DynadrillDialogService);
   private readonly modalRef = inject(NzModalRef<ReportarDialog>);
+
+  protected reportarEmergencia(): void {
+    this.modalRef.close();
+    this.dialogService.open<EmergenciaAlertDialog>({ title: 'Activar Emergencia — HSE-TRIAGE-001', content: EmergenciaAlertDialog, footer: false });
+  }
 
   protected reportarStop(): void {
     this.modalRef.close();

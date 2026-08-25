@@ -6,7 +6,12 @@
   <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a Control de Derrames</dynadrill-button>
 
   @if (esEmergenciaMayor()) {
-    <dynadrill-banner variant="critical" message="Derrame MAYOR — según HSE-MASTER-001 esto debería activar el protocolo de Emergencia Mayor (HSE-TRIAGE-001). Ese módulo todavía no está construido (Fase 4) — coordina la escalación manualmente mientras tanto." />
+    <dynadrill-banner variant="critical" message="Derrame MAYOR — según HSE-MASTER-001 esto debe escalar a Emergencia Mayor (HSE-TRIAGE-001)." />
+    @if (e.emergenciaId) {
+      <dynadrill-tag [label]="'Emergencia EMG vinculada — #' + e.emergenciaId" variant="error" />
+    } @else {
+      <dynadrill-button variant="error" (click)="escalarAEmergencia()">🚨 Escalar a Emergencia Mayor</dynadrill-button>
+    }
   }
 
   <dynadrill-context-card [items]="contextItems()" />

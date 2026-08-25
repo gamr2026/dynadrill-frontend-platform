@@ -1,6 +1,14 @@
 <div class="reportar-dialog">
   <dynadrill-text variant="body">Disponible para cualquier persona, sin importar tu rol. Elige qué quieres reportar:</dynadrill-text>
 
+  <button type="button" class="reportar-dialog__option reportar-dialog__option--swa" (click)="reportarEmergencia()">
+    <dynadrill-icon name="alert" [size]="20" />
+    <div>
+      <strong>🚨 Activar Emergencia</strong>
+      <span>Incendio, fuga, accidente grave, reventón — MEDEVAC</span>
+    </div>
+  </button>
+
   <button type="button" class="reportar-dialog__option reportar-dialog__option--stop" (click)="reportarStop()">
     <dynadrill-icon name="warning" [size]="20" />
     <div>

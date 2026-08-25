@@ -1,0 +1,52 @@
+@if (loading()) {
+  <p class="qhse-dashboard-page__loading">Cargando dashboard…</p>
+} @else {
+  <dynadrill-screen-header
+    eyebrow="QHSE"
+    title="Dashboard Integrado del Sistema"
+    subtitle="HSE-MASTER-001 — indicadores estratégicos y semáforo de cumplimiento"
+    roleTag="HSE"
+  />
+
+  <div class="qhse-dashboard-page__semaforo">
+    <dynadrill-tag [label]="semaforoLabel[semaforo()]" [variant]="semaforoTone[semaforo()]" />
+    <span class="qhse-dashboard-page__note">{{ indicadoresFueraDeMeta() }} indicador(es) fuera de meta de los que tienen meta definida.</span>
+  </div>
+
+  @if (incumplimientoLegal()) {
+    <dynadrill-banner variant="critical" message="Incumplimiento legal detectado — ver detalle abajo. Esto fuerza el semáforo a Rojo sin importar los demás indicadores." />
+    <ul class="qhse-dashboard-page__legal-list">
+      @for (d of incumplimientoDetalle(); track d) {
+        <li>{{ d }}</li>
+      }
+    </ul>
+  }
+
+  @for (categoria of categorias; track categoria) {
+    <section class="qhse-dashboard-page__section">
+      <h3>{{ categoria }}</h3>
+      <div class="qhse-dashboard-page__grid">
+        @for (def of defsPorCategoria(categoria); track def.id) {
+          <article class="qhse-dashboard-page__card">
+            <header>
+              <strong>{{ def.label }}</strong>
+              <dynadrill-tag [label]="estadoKpi(def).texto" [variant]="estadoKpi(def).tone" />
+            </header>
+
+            @if (!def.disponible) {
+              <p class="qhse-dashboard-page__note">{{ def.motivoNoDisponible }}</p>
+            } @else {
+              <p class="qhse-dashboard-page__valor">
+                {{ valores()[def.id] ?? '—' }} <span class="qhse-dashboard-page__unidad">{{ def.unidad }}</span>
+              </p>
+              <div class="qhse-dashboard-page__meta-form">
+                <dynadrill-input label="Meta" type="number" [value]="metaEdit(def.id)" (valueChange)="setMetaEdit(def.id, $event)" />
+                <dynadrill-button variant="secondary" size="small" (click)="guardarMeta(def.id)">Guardar meta</dynadrill-button>
+              </div>
+            }
+          </article>
+        }
+      </div>
+    </section>
+  }
+}

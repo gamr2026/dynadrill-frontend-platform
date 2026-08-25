@@ -6,6 +6,7 @@ import {
   DynadrillChecklistComponent,
   type DynadrillChecklistItem,
   DynadrillContextCardComponent,
+  DynadrillDialogService,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillTagComponent,
@@ -20,6 +21,7 @@ import {
   derrameRequiereNotificacionMae,
 } from '../../models/derrame.model';
 import { DerrameService } from '../../services/derrame.service';
+import { EmergenciaAlertDialog, EmergenciaAlertDialogData } from '../../../emergencias/components/emergencia-alert-dialog';
 
 /** HSE-AMBIENTAL-002 — checklist de contención, notificación a MAE, cierre e integración con desechos. */
 @Component({
@@ -39,6 +41,7 @@ import { DerrameService } from '../../services/derrame.service';
 export class DerrameDetailPage {
   private readonly derrameService = inject(DerrameService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly dialogService = inject(DynadrillDialogService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -139,6 +142,25 @@ export class DerrameDetailPage {
   protected cerrar(): void {
     if (!this.puedeCerrar()) return;
     this.patch({ estado: 'cerrado', cerradoAt: new Date().toISOString() });
+  }
+
+  /** HSE-MASTER-001: derrame mayor escala a Emergencia Mayor (HSE-TRIAGE-001). */
+  protected escalarAEmergencia(): void {
+    const e = this.evento();
+    if (!e) return;
+    const ref = this.dialogService.open<EmergenciaAlertDialog, EmergenciaAlertDialogData>({
+      title: 'Escalar a Emergencia Mayor — HSE-TRIAGE-001',
+      content: EmergenciaAlertDialog,
+      data: {
+        origenDerrameId: e.id,
+        tipoSugerido: 'Derrame mayor',
+        descripcionSugerida: `Escalado desde derrame ${e.code}: ${e.descripcion}`,
+      },
+      footer: false,
+    });
+    ref.afterClose.subscribe(evento => {
+      if (evento) this.patch({ emergenciaId: evento.id });
+    });
   }
 
   protected back(): void {

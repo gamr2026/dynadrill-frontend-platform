@@ -62,6 +62,7 @@ export class IpercListPage {
     { key: 'ubicacion', header: 'Ubicación', searchable: true },
     { key: 'statusBadge', header: 'Estado', type: 'badge', filters: STATUS_FILTERS },
     { key: 'riesgoBadge', header: 'Riesgo residual más alto', type: 'badge' },
+    { key: 'leccionBadge', header: 'Lección aprendida', type: 'badge' },
   ];
 
   protected readonly rows = computed(() =>
@@ -72,6 +73,9 @@ export class IpercListPage {
       ubicacion: m.ubicacion,
       statusBadge: STATUS_BADGES[m.status],
       riesgoBadge: this.highestResidualBadge(m),
+      leccionBadge: m.leccionAprendidaPendiente
+        ? { text: 'Pendiente de revisar', tone: 'warning' as BadgeTone }
+        : { text: '—', tone: 'neutral' as BadgeTone },
     })),
   );
 

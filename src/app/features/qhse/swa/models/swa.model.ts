@@ -62,6 +62,9 @@ export interface SwaEvento {
 
   /** Reconocimiento "Héroe de Seguridad" — se otorga al cerrar, a discreción del staff HSE. */
   heroeSeguridad: boolean;
+
+  /** HSE-MASTER-001: si el riesgo no se controla, escala a Emergencia Mayor (HSE-TRIAGE-001). */
+  emergenciaId?: number;
 }
 
 export type CreateSwaInput = Pick<SwaEvento, 'activadoPorNombre' | 'tipoPeligro' | 'descripcion' | 'ubicacion'>;

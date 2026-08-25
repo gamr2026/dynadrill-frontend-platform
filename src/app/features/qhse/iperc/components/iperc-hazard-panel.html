@@ -25,14 +25,14 @@
         title="Riesgo inicial"
         [probabilidad]="hazard().probabilidadInicial"
         [severidad]="hazard().severidadInicial"
-        [interactive]="editable"
+        [interactive]="isEditable"
         (riskChange)="onInitialRiskChange($event)"
       />
       <dynadrill-risk-matrix
         title="Riesgo residual"
         [probabilidad]="hazard().probabilidadResidual"
         [severidad]="hazard().severidadResidual"
-        [interactive]="editable"
+        [interactive]="isEditable"
         (riskChange)="onResidualRiskChange($event)"
       />
     </div>
@@ -54,7 +54,7 @@
       <dynadrill-text variant="caption">Sin controles definidos todavía.</dynadrill-text>
     }
 
-    @if (editable) {
+    @if (isEditable) {
       <div class="iperc-hazard-panel__add-control">
         <dynadrill-select label="Tipo" [options]="controlTypeOptions" [value]="controlType()" (valueChange)="controlType.set($any($event))" />
         <dynadrill-input label="Descripción del control" [value]="controlDescription()" (valueChange)="controlDescription.set($event)" />

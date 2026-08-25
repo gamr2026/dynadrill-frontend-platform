@@ -43,14 +43,22 @@ export class IpercHazardPanel {
   private readonly drawerRef = inject(NzDrawerRef<void>);
   private readonly data = inject<IpercHazardPanelData>(NZ_DRAWER_DATA);
 
-  protected readonly editable = this.data.editable;
+  protected readonly isEditable = this.data.editable;
   protected readonly controlTypeLabels = CONTROL_TYPE_LABELS;
   protected readonly controlTypeOptions = CONTROL_TYPE_OPTIONS;
 
-  private readonly matrix = signal(this.data.matrix);
+  /**
+   * OJO: NzDrawerService copia las propiedades de nzData directamente sobre
+   * la instancia del componente (además de exponerlas vía NZ_DRAWER_DATA) —
+   * un campo local llamado igual que una clave de IpercHazardPanelData
+   * (ej. "matrix") queda sobreescrito con el valor plano, rompiendo la
+   * señal ("this.matrix is not a function"). Por eso este campo no se
+   * llama igual que ninguna clave de IpercHazardPanelData.
+   */
+  private readonly matrixState = signal(this.data.matrix);
 
   protected readonly hazard = computed<IpercHazard>(() => {
-    const task = this.matrix().tasks.find(t => t.id === this.data.taskId);
+    const task = this.matrixState().tasks.find(t => t.id === this.data.taskId);
     return task?.hazards.find(h => h.id === this.data.hazardId) ?? this.data.matrix.tasks[0].hazards[0];
   });
 
@@ -85,7 +93,7 @@ export class IpercHazardPanel {
 
   private nextLocalId(): number {
     let max = 0;
-    for (const task of this.matrix().tasks) {
+    for (const task of this.matrixState().tasks) {
       max = Math.max(max, task.id);
       for (const hz of task.hazards) {
         max = Math.max(max, hz.id);
@@ -96,12 +104,12 @@ export class IpercHazardPanel {
   }
 
   private patchHazard(changes: Partial<IpercHazard>): void {
-    const current = this.matrix();
+    const current = this.matrixState();
     const tasks = current.tasks.map(t =>
       t.id === this.data.taskId ? { ...t, hazards: t.hazards.map(h => (h.id === this.data.hazardId ? { ...h, ...changes } : h)) } : t,
     );
     const updated: IpercMatrix = { ...current, tasks };
-    this.matrix.set(updated);
+    this.matrixState.set(updated);
     this.ipercService.update(current.id, { tasks }).subscribe();
   }
 }

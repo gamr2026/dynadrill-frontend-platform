@@ -73,6 +73,15 @@ export interface IpercMatrix {
   tasks: IpercTask[];
   /** true una vez que el ATS base (input de HSE-SITIO-001) fue generado a partir de esta matriz. La generación del ATS en sí no es parte de esta fase. */
   atsGenerado: boolean;
+  /**
+   * Fase 4: "Elaborar procedimiento [operativo] y ATS base" — a diferencia
+   * del ATS (que es el mismo documento que HSE-SITIO-001 llama ART y se
+   * carga ahí), el procedimiento operativo no tiene ningún formato propio
+   * ni código DYN-SGI-RE-xxx en ningún proceso; se adjunta directamente
+   * acá como el único lugar del sistema donde vive.
+   */
+  procedimientoAdjunto?: string;
+  procedimientoAdjuntadoAt?: string;
   createdAt: string;
   updatedAt: string;
   /**

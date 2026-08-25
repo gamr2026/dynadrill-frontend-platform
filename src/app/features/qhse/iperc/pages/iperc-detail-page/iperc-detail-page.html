@@ -96,6 +96,18 @@
     }
   </div>
 
+  @if (canSendToReview() || m.procedimientoAdjunto) {
+    <section class="iperc-detail-page__task">
+      <h3 class="iperc-detail-page__task-title">Fase 4 — Documentación</h3>
+      <p class="iperc-detail-page__empty">Procedimiento operativo específico para esta actividad (el ATS/ART se carga aparte, en el Paso 1 del PTW).</p>
+      <dynadrill-upload-zone
+        [state]="m.procedimientoAdjunto ? 'uploaded' : 'idle'"
+        [fileName]="m.procedimientoAdjunto ?? ''"
+        (fileSelected)="onProcedimientoUpload($event)"
+      />
+    </section>
+  }
+
   <section class="iperc-detail-page__actions">
     @if (canStartEvaluation()) {
       <dynadrill-button (click)="startEvaluation()">Iniciar evaluación</dynadrill-button>

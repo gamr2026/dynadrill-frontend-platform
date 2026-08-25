@@ -13,6 +13,7 @@ import {
   DynadrillScreenHeaderComponent,
   DynadrillStepperComponent,
   DynadrillTagComponent,
+  DynadrillUploadZoneComponent,
   dynadrillRiskLevel,
   type DynadrillApprovalDecision,
   type DynadrillContextCardItem,
@@ -55,6 +56,7 @@ const STATUS_STEP_INDEX: Record<IpercStatus, number> = {
     DynadrillButtonComponent,
     DynadrillIconButtonComponent,
     DynadrillInputComponent,
+    DynadrillUploadZoneComponent,
     DynadrillApprovalActionsComponent,
     DynadrillBannerComponent,
   ],
@@ -95,7 +97,8 @@ export class IpercDetailPage {
     if (!m) return [];
     return [
       { label: 'Código', value: m.code },
-      { label: 'ATS base generado', value: m.atsGenerado ? 'Sí' : 'No' },
+      { label: 'ATS base (ART) generado', value: m.atsGenerado ? 'Sí' : 'No — se carga en el Paso 1 del PTW' },
+      { label: 'Procedimiento operativo', value: m.procedimientoAdjunto ?? 'Sin adjuntar' },
       { label: 'Aprobada por', value: m.approvedByName ? `${m.approvedByName}` : '—' },
       { label: 'Tareas desglosadas', value: String(m.tasks.length) },
     ];
@@ -227,6 +230,15 @@ export class IpercDetailPage {
     if (!current) return;
     this.ipercService
       .update(current.id, { leccionAprendidaPendiente: false })
+      .subscribe(updated => this.matrix.set(updated));
+  }
+
+  /** Fase 4: "Elaborar procedimiento [operativo] y ATS base" — la mitad "procedimiento" del paso, ya que ATS/ART se satisface aparte en el PTW. */
+  protected onProcedimientoUpload(file: { name?: string }): void {
+    const current = this.matrix();
+    if (!current) return;
+    this.ipercService
+      .update(current.id, { procedimientoAdjunto: file.name ?? 'procedimiento.pdf', procedimientoAdjuntadoAt: new Date().toISOString() })
       .subscribe(updated => this.matrix.set(updated));
   }
 

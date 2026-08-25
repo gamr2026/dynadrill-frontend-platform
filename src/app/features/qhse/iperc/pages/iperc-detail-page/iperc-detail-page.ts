@@ -97,7 +97,7 @@ export class IpercDetailPage {
     if (!m) return [];
     return [
       { label: 'Código', value: m.code },
-      { label: 'ATS base (ART) generado', value: m.atsGenerado ? 'Sí' : 'No — se carga en el Paso 1 del PTW' },
+      { label: 'ATS base', value: m.atsAdjunto ?? 'Sin adjuntar' },
       { label: 'Procedimiento operativo', value: m.procedimientoAdjunto ?? 'Sin adjuntar' },
       { label: 'Aprobada por', value: m.approvedByName ? `${m.approvedByName}` : '—' },
       { label: 'Tareas desglosadas', value: String(m.tasks.length) },
@@ -127,7 +127,19 @@ export class IpercDetailPage {
   protected readonly hazardDraft = signal<HazardDraft>(EMPTY_HAZARD_DRAFT);
 
   protected readonly canStartEvaluation = computed(() => this.matrix()?.status === 'borrador');
-  protected readonly canSendToReview = computed(() => this.matrix()?.status === 'en_evaluacion');
+
+  /**
+   * Fase 4 de HSE-PLAN-001: "Elaborar procedimiento y ATS base" está antes
+   * de "¿Aprobado?" en el diagrama — no se puede enviar a revisión sin
+   * tener ambos documentos adjuntos, para que quien aprueba (Coordinador/
+   * Gerente HSE) ya los tenga disponibles al decidir.
+   */
+  protected readonly isEnEvaluacion = computed(() => this.matrix()?.status === 'en_evaluacion');
+  protected readonly documentacionCompleta = computed(() => {
+    const m = this.matrix();
+    return !!m?.atsAdjunto && !!m?.procedimientoAdjunto;
+  });
+  protected readonly canSendToReview = this.isEnEvaluacion;
   protected readonly canReviewNow = computed(() => this.matrix()?.status === 'en_revision');
 
   protected readonly canApprove = computed(() => {
@@ -189,6 +201,7 @@ export class IpercDetailPage {
   }
 
   protected sendToReview(): void {
+    if (!this.documentacionCompleta()) return;
     this.transitionTo('en_revision');
   }
 
@@ -233,7 +246,15 @@ export class IpercDetailPage {
       .subscribe(updated => this.matrix.set(updated));
   }
 
-  /** Fase 4: "Elaborar procedimiento [operativo] y ATS base" — la mitad "procedimiento" del paso, ya que ATS/ART se satisface aparte en el PTW. */
+  /** Fase 4: "Elaborar procedimiento y ATS base" — ambos se adjuntan acá, antes de enviar a revisión (ver documentacionCompleta()). */
+  protected onAtsUpload(file: { name?: string }): void {
+    const current = this.matrix();
+    if (!current) return;
+    this.ipercService
+      .update(current.id, { atsAdjunto: file.name ?? 'ats.pdf', atsAdjuntadoAt: new Date().toISOString() })
+      .subscribe(updated => this.matrix.set(updated));
+  }
+
   protected onProcedimientoUpload(file: { name?: string }): void {
     const current = this.matrix();
     if (!current) return;

@@ -96,15 +96,24 @@
     }
   </div>
 
-  @if (canSendToReview() || m.procedimientoAdjunto) {
+  @if (isEnEvaluacion() || m.atsAdjunto || m.procedimientoAdjunto) {
     <section class="iperc-detail-page__task">
       <h3 class="iperc-detail-page__task-title">Fase 4 — Documentación</h3>
-      <p class="iperc-detail-page__empty">Procedimiento operativo específico para esta actividad (el ATS/ART se carga aparte, en el Paso 1 del PTW).</p>
-      <dynadrill-upload-zone
-        [state]="m.procedimientoAdjunto ? 'uploaded' : 'idle'"
-        [fileName]="m.procedimientoAdjunto ?? ''"
-        (fileSelected)="onProcedimientoUpload($event)"
-      />
+      <p class="iperc-detail-page__empty">Se elaboran y adjuntan acá, antes de enviar la matriz a revisión — quien la aprueba necesita tenerlos disponibles.</p>
+      <div class="iperc-detail-page__docs">
+        <div>
+          <span class="iperc-detail-page__docs-label">ATS base</span>
+          <dynadrill-upload-zone [state]="m.atsAdjunto ? 'uploaded' : 'idle'" [fileName]="m.atsAdjunto ?? ''" (fileSelected)="onAtsUpload($event)" />
+        </div>
+        <div>
+          <span class="iperc-detail-page__docs-label">Procedimiento operativo</span>
+          <dynadrill-upload-zone
+            [state]="m.procedimientoAdjunto ? 'uploaded' : 'idle'"
+            [fileName]="m.procedimientoAdjunto ?? ''"
+            (fileSelected)="onProcedimientoUpload($event)"
+          />
+        </div>
+      </div>
     </section>
   }
 
@@ -113,7 +122,10 @@
       <dynadrill-button (click)="startEvaluation()">Iniciar evaluación</dynadrill-button>
     }
     @if (canSendToReview()) {
-      <dynadrill-button (click)="sendToReview()">Enviar a revisión</dynadrill-button>
+      <dynadrill-button [disabled]="!documentacionCompleta()" (click)="sendToReview()">Enviar a revisión</dynadrill-button>
+      @if (!documentacionCompleta()) {
+        <span class="iperc-detail-page__actions-hint">Adjunta el ATS y el procedimiento operativo para poder enviar a revisión.</span>
+      }
     }
     @if (canOpenPtw()) {
       <dynadrill-button [disabled]="openingPtw()" (click)="abrirRecibimientoSitio()">

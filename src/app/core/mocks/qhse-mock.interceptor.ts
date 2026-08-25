@@ -38,7 +38,10 @@ let matrices: IpercMatrix[] = [
     actividad: 'Mantenimiento de bomba de transferencia de crudo',
     ubicacion: 'Pozo Delta-7',
     equipoEvaluador: ['Luis Vega (Supervisor)', 'Ana Torres (Técnico HSE)'],
-    atsGenerado: false,
+    atsAdjunto: 'ats-bomba-transferencia.pdf',
+    atsAdjuntadoAt: '2026-08-17T09:00:00.000Z',
+    procedimientoAdjunto: 'procedimiento-mantenimiento-bomba.pdf',
+    procedimientoAdjuntadoAt: '2026-08-17T09:05:00.000Z',
     createdAt: '2026-08-15T08:00:00.000Z',
     updatedAt: '2026-08-18T10:00:00.000Z',
     leccionAprendidaPendiente: true,
@@ -94,7 +97,6 @@ let matrices: IpercMatrix[] = [
     actividad: 'Instalación de línea de flujo temporal',
     ubicacion: 'Pozo Alfa-3',
     equipoEvaluador: ['Ana Ruiz (Supervisor)'],
-    atsGenerado: false,
     createdAt: '2026-08-20T08:00:00.000Z',
     updatedAt: '2026-08-20T08:00:00.000Z',
     tasks: [
@@ -124,7 +126,10 @@ let matrices: IpercMatrix[] = [
     actividad: 'Inspección y purga de separador de producción',
     ubicacion: 'Pozo Beta-9',
     equipoEvaluador: ['Ana Torres (Técnico HSE)', 'Jorge Hidalgo (Coordinador HSE)'],
-    atsGenerado: true,
+    atsAdjunto: 'ats-purga-separador.pdf',
+    atsAdjuntadoAt: '2026-08-08T10:00:00.000Z',
+    procedimientoAdjunto: 'procedimiento-purga-separador.pdf',
+    procedimientoAdjuntadoAt: '2026-08-08T10:05:00.000Z',
     approvedByName: 'Jorge Hidalgo',
     approvedAt: '2026-08-10T15:00:00.000Z',
     createdAt: '2026-07-20T09:00:00.000Z',
@@ -579,7 +584,6 @@ export const qhseMockInterceptor: HttpInterceptorFn = (req, next) => {
       ubicacion: input.ubicacion,
       equipoEvaluador: input.equipoEvaluador,
       tasks: [],
-      atsGenerado: false,
       createdAt: now,
       updatedAt: now,
     };
@@ -700,24 +704,6 @@ export const qhseMockInterceptor: HttpInterceptorFn = (req, next) => {
         updatedAt: new Date().toISOString(),
       };
       ptwRecords = ptwRecords.map(p => (p.id === id ? updated : p));
-
-      /**
-       * HSE-SITIO-001: "Análisis de Riesgo en el Trabajo (ART)" es el
-       * mismo documento que HSE-PLAN-001 llama ATS ("formato propio del
-       * cliente, equivalente al ATS"), y ahí se carga (no se genera) —
-       * por eso atsGenerado en la matriz IPERC de origen se marca en
-       * el momento real en que ese documento queda cargado en el PTW,
-       * no antes (antes se marcaba al solo abrir el PTW, sin que el
-       * documento existiera todavía).
-       */
-      const art = updated.documentos.find(d => d.tipo === 'art');
-      if (art?.cargado) {
-        const iperc = matrices.find(m => m.id === updated.ipercMatrixId);
-        if (iperc && !iperc.atsGenerado) {
-          matrices = matrices.map(m => (m.id === iperc.id ? { ...m, atsGenerado: true, updatedAt: new Date().toISOString() } : m));
-        }
-      }
-
       return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(300));
     }
     return of(new HttpResponse({ status: 404 })).pipe(delay(300));

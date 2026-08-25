@@ -71,15 +71,17 @@ export interface IpercMatrix {
   /** Nombres del equipo evaluador multidisciplinario (Fase 1). Texto libre por ahora — no requiere que cada integrante tenga usuario en el sistema. */
   equipoEvaluador: string[];
   tasks: IpercTask[];
-  /** true una vez que el ATS base (input de HSE-SITIO-001) fue generado a partir de esta matriz. La generación del ATS en sí no es parte de esta fase. */
-  atsGenerado: boolean;
   /**
-   * Fase 4: "Elaborar procedimiento [operativo] y ATS base" — a diferencia
-   * del ATS (que es el mismo documento que HSE-SITIO-001 llama ART y se
-   * carga ahí), el procedimiento operativo no tiene ningún formato propio
-   * ni código DYN-SGI-RE-xxx en ningún proceso; se adjunta directamente
-   * acá como el único lugar del sistema donde vive.
+   * Fase 4: "Elaborar procedimiento [operativo] y ATS base" — el diagrama
+   * de HSE-PLAN-001 pone este paso ANTES de "¿Aprobado?", así que ambos
+   * documentos se adjuntan directamente acá, previo a enviar la matriz a
+   * revisión — no dependen de ningún otro proceso (en particular, no del
+   * PTW: ese ni siquiera puede existir todavía, porque solo se abre a
+   * partir de una matriz ya aprobada). Ninguno de los dos tiene código
+   * DYN-SGI-RE-xxx propio ni aparece en la tabla de formatos del proceso.
    */
+  atsAdjunto?: string;
+  atsAdjuntadoAt?: string;
   procedimientoAdjunto?: string;
   procedimientoAdjuntadoAt?: string;
   createdAt: string;

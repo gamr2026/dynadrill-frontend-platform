@@ -25,6 +25,10 @@
     <section class="iperc-detail-page__task">
       <h3 class="iperc-detail-page__task-title">{{ task.descripcion }}</h3>
 
+      @if (task.hazards.length === 0 && !canEditContent()) {
+        <p class="iperc-detail-page__empty">Sin peligros identificados todavía.</p>
+      }
+
       @for (hazard of task.hazards; track hazard.id) {
         <article class="iperc-detail-page__hazard">
           <header class="iperc-detail-page__hazard-header">
@@ -123,6 +127,11 @@
       consequenceApprove="La matriz queda aprobada y disponible para abrir el Recibimiento de Sitio (PTW) de HSE-SITIO-001."
       consequenceReject="La matriz vuelve a evaluación para que el equipo la corrija."
       (decisionChange)="onDecision($event)"
+    />
+  } @else if (canReviewNow()) {
+    <dynadrill-banner
+      variant="info"
+      message="En revisión — pendiente de que Coordinador HSE o Gerente HSE la aprueben o la rechacen. Tu rol no tiene permiso para decidir sobre esta matriz."
     />
   }
 }

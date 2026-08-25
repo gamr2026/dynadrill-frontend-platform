@@ -36,6 +36,7 @@ import { StopCardService } from '../../../stop/services/stop-card.service';
 import { SwaService } from '../../../swa/services/swa.service';
 import { InvestigacionService } from '../../../investigaciones/services/investigacion.service';
 import { sugiereNotificacionLegal } from '../../../investigaciones/models/investigacion.model';
+import { UsersService } from '../../../../users/services/users.service';
 
 const CATEGORIAS: DashboardKpiCategoria[] = ['Seguridad', 'Operacional', 'Ambiental', 'Cultura Preventiva'];
 
@@ -80,6 +81,7 @@ export class QhseDashboardPage {
   private readonly stopService = inject(StopCardService);
   private readonly swaService = inject(SwaService);
   private readonly investigacionService = inject(InvestigacionService);
+  private readonly usersService = inject(UsersService);
   private readonly metasService = inject(DashboardMetasService);
   private readonly notify = inject(DynadrillNotificationService);
 
@@ -140,9 +142,10 @@ export class QhseDashboardPage {
       stop: this.stopService.list(),
       swa: this.swaService.list(),
       investigaciones: this.investigacionService.list(),
+      usuarios: this.usersService.list(),
       metas: this.metasService.get(),
     }).subscribe({
-      next: ({ matrices, ptw, inspecciones, desechos, derrames, stop, swa, investigaciones, metas }) => {
+      next: ({ matrices, ptw, inspecciones, desechos, derrames, stop, swa, investigaciones, usuarios, metas }) => {
         const ahora = new Date();
         const detalleLegal: string[] = [];
 
@@ -196,6 +199,8 @@ export class QhseDashboardPage {
 
         // ── Cultura Preventiva ──
         const swaEventos = swa.length;
+        const usuariosActivos = usuarios.filter(u => u.status).length;
+        const stopPerCapita = usuariosActivos > 0 ? Math.round((stop.length / usuariosActivos) * 100) / 100 : null;
 
         // ── Incumplimiento legal (para el semáforo) ──
         derrames
@@ -220,6 +225,7 @@ export class QhseDashboardPage {
           derrames_trimestre: derramesTrimestre,
           derrames_mayor_year: derramesMayorYear,
           swa_eventos: swaEventos,
+          stop_per_capita: stopPerCapita,
         });
         this.incumplimientoLegal.set(detalleLegal.length > 0);
         this.incumplimientoDetalle.set(detalleLegal);

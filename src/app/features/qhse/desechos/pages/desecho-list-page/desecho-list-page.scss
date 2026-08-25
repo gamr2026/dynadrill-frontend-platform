@@ -3,15 +3,3 @@
   justify-content: flex-end;
   margin-bottom: 12px;
 }
-
-.desecho-list-page__kpis {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-
-  dynadrill-kpi-row {
-    flex: 1 1 auto;
-  }
-}

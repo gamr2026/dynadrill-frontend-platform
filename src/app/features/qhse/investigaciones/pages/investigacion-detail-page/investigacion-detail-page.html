@@ -17,9 +17,9 @@
 
   <dynadrill-context-card [items]="contextItems()" />
 
-  <!-- ① Escena y equipo -->
+  <!-- 1. Escena y equipo -->
   <section class="investigacion-detail-page__section">
-    <h3>① Escena y equipo investigador</h3>
+    <h3>1. Escena y equipo investigador</h3>
     @if (i.escenaAseguradaAt) {
       <dynadrill-tag [label]="'Escena asegurada ' + (i.escenaAseguradaAt | date: 'short')" variant="success" />
     } @else {
@@ -40,17 +40,17 @@
     </div>
   </section>
 
-  <!-- ② Evidencias y testimonios -->
+  <!-- 2. Evidencias y testimonios -->
   <section class="investigacion-detail-page__section">
-    <h3>② Evidencias y testimonios</h3>
+    <h3>2. Evidencias y testimonios</h3>
     <dynadrill-textarea label="Evidencias recopiladas" [value]="evidencias()" (valueChange)="evidencias.set($event)" [rows]="3" />
     <dynadrill-textarea label="Declaraciones de testigos (resumen)" [value]="testimonios()" (valueChange)="testimonios.set($event)" [rows]="3" />
     <dynadrill-button variant="secondary" size="small" (click)="guardarEvidencias()">Guardar</dynadrill-button>
   </section>
 
-  <!-- ③ 5 Porqués -->
+  <!-- 3. 5 Porqués -->
   <section class="investigacion-detail-page__section">
-    <h3>③ Metodología 5 Porqués {{ porquesCompleto() ? '✓' : '(mínimo 5 niveles)' }}</h3>
+    <h3>3. Metodología 5 Porqués {{ porquesCompleto() ? '✓' : '(mínimo 5 niveles)' }}</h3>
     @for (p of i.cincoPorques; track $index) {
       <p class="investigacion-detail-page__porque">{{ $index + 1 }}. <strong>{{ p.pregunta }}</strong> — {{ p.respuesta }}</p>
     }
@@ -61,25 +61,25 @@
     </div>
   </section>
 
-  <!-- ④ Ishikawa -->
+  <!-- 4. Ishikawa -->
   <section class="investigacion-detail-page__section">
-    <h3>④ Diagrama de Ishikawa (espina de pescado)</h3>
+    <h3>4. Diagrama de Ishikawa (espina de pescado)</h3>
     @for (cat of ishikawaCategorias; track cat) {
       <dynadrill-textarea [label]="cat" [value]="i.ishikawa[cat]" (valueChange)="actualizarIshikawa(cat, $event)" [rows]="2" />
     }
   </section>
 
-  <!-- ⑤ Causas raíz y lecciones aprendidas -->
+  <!-- 5. Causas raíz y lecciones aprendidas -->
   <section class="investigacion-detail-page__section">
-    <h3>⑤ Causas raíz y lecciones aprendidas</h3>
+    <h3>5. Causas raíz y lecciones aprendidas</h3>
     <dynadrill-textarea label="Causas raíz identificadas" [value]="causasRaiz()" (valueChange)="causasRaiz.set($event)" [rows]="3" />
     <dynadrill-textarea label="Lecciones aprendidas" [value]="leccionesAprendidas()" (valueChange)="leccionesAprendidas.set($event)" [rows]="3" />
     <dynadrill-button variant="secondary" size="small" (click)="guardarCausas()">Guardar</dynadrill-button>
   </section>
 
-  <!-- ⑥ Acciones correctivas y preventivas -->
+  <!-- 6. Acciones correctivas y preventivas -->
   <section class="investigacion-detail-page__section">
-    <h3>⑥ Acciones correctivas y preventivas</h3>
+    <h3>6. Acciones correctivas y preventivas</h3>
     @for (a of i.acciones; track a.id) {
       <div class="investigacion-detail-page__accion">
         <div>
@@ -98,9 +98,9 @@
     </div>
   </section>
 
-  <!-- ⑦ Notificación legal -->
+  <!-- 7. Notificación legal -->
   <section class="investigacion-detail-page__section">
-    <h3>⑦ Notificación legal (Ministerio del Trabajo / IESS — plazo 24h)</h3>
+    <h3>7. Notificación legal (Ministerio del Trabajo / IESS — plazo 24h)</h3>
     @if (sugiereLegal()) {
       <dynadrill-banner variant="warning" message="Clasificación sugiere notificación obligatoria — confirma con el equipo legal si aplica." />
     }
@@ -118,9 +118,9 @@
     </div>
   </section>
 
-  <!-- ⑧ Retroalimentación a IPERC -->
+  <!-- 8. Retroalimentación a IPERC -->
   <section class="investigacion-detail-page__section">
-    <h3>⑧ Retroalimentación a IPERC (HSE-MASTER-001)</h3>
+    <h3>8. Retroalimentación a IPERC (HSE-MASTER-001)</h3>
     @if (i.ipercActualizadoId) {
       <dynadrill-tag label="Matriz IPERC marcada para revisión" variant="info" />
     } @else {
@@ -128,9 +128,9 @@
     }
   </section>
 
-  <!-- ⑨ Cierre -->
+  <!-- 9. Cierre -->
   <section class="investigacion-detail-page__section">
-    <h3>⑨ Cierre del informe</h3>
+    <h3>9. Cierre del informe</h3>
     @if (i.estado === 'cerrada') {
       <dynadrill-tag [label]="'Cerrada por ' + i.informeAprobadoPorNombre + ' — ' + (i.cerradaAt | date: 'short')" variant="success" />
     } @else {

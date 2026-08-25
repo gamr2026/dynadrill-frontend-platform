@@ -8,11 +8,10 @@ import {
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
-  DynadrillStatisticComponent,
   type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
-import { DESECHO_ESTADO_LABELS, Desecho, desechoVencido } from '../../models/desecho.model';
+import { DESECHO_ESTADO_LABELS, Desecho } from '../../models/desecho.model';
 import { DesechoService } from '../../services/desecho.service';
 import { DesechoDialog } from '../../components/desecho-dialog';
 
@@ -29,7 +28,7 @@ const ESTADO_TONE: Record<Desecho['estado'], DynadrillTagVariant> = {
 /** HSE-AMBIENTAL-001 — bandeja de desechos, vencimientos AM 142. */
 @Component({
   selector: 'app-desecho-list-page',
-  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillStatisticComponent, DynadrillButtonComponent, DynadrillDataTableComponent],
+  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillButtonComponent, DynadrillDataTableComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './desecho-list-page.html',
   styleUrl: './desecho-list-page.scss',
@@ -52,9 +51,6 @@ export class DesechoListPage {
       { label: 'Dispuestos', value: all.filter(d => d.estado === 'dispuesto').length },
     ];
   });
-
-  /** Se destaca aparte (no como una cuarta tarjeta más) porque es el número que de verdad pide atención en esta bandeja. */
-  protected readonly proximosAVencer = computed(() => this.desechos().filter(d => desechoVencido(d)).length);
 
   protected readonly columns: DynadrillDataTableColumn[] = [
     { key: 'code', header: 'Código', sortable: true, searchable: true },

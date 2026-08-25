@@ -33,6 +33,7 @@
     <div class="qhse-dashboard-page__grid">
       @for (def of defsPorCategoria(categorias[index]); track def.id) {
         <article class="qhse-dashboard-page__card">
+          <span class="qhse-dashboard-page__valor-label">Valor actual</span>
           <dynadrill-statistic
             [title]="def.label"
             [value]="def.disponible ? (valores()[def.id] ?? '—') : ''"
@@ -45,9 +46,20 @@
           @if (def.disponible) {
             <dynadrill-tag [label]="estadoKpi(def).texto" [variant]="estadoKpi(def).tone" />
             <div class="qhse-dashboard-page__meta-form">
-              <dynadrill-input label="Meta" type="number" [value]="metaEdit(def.id)" (valueChange)="setMetaEdit(def.id, $event)" />
-              <dynadrill-button variant="secondary" size="small" (click)="guardarMeta(def.id)">Guardar meta</dynadrill-button>
+              <dynadrill-input
+                label="Meta"
+                type="number"
+                placeholder="Definida por HSE"
+                [value]="metaEdit(def.id)"
+                (valueChange)="setMetaEdit(def.id, $event)"
+              />
+              <dynadrill-button variant="secondary" size="small" (click)="guardarMeta(def.id)">
+                {{ metas()[def.id] != null ? 'Actualizar meta' : 'Guardar meta' }}
+              </dynadrill-button>
             </div>
+            <p class="qhse-dashboard-page__meta-hint">
+              Objetivo interno del sitio para este indicador — HSE-MASTER-001 no fija un valor único; lo define y ajusta el equipo HSE según su propia política.
+            </p>
           }
         </article>
       }

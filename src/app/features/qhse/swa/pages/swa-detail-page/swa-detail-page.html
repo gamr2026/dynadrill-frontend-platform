@@ -10,7 +10,7 @@
   <dynadrill-context-card [items]="contextItems()" />
 
   <section class="swa-detail-page__section">
-    <h3>① Cadena de notificación</h3>
+    <h3>1. Cadena de notificación</h3>
     <div class="swa-detail-page__notificaciones">
       @for (n of e.notificaciones; track n.rol) {
         <div class="swa-detail-page__notificacion">
@@ -26,7 +26,7 @@
   </section>
 
   <section class="swa-detail-page__section">
-    <h3>② Evaluación — ¿riesgo real o falsa alarma?</h3>
+    <h3>2. Evaluación — ¿riesgo real o falsa alarma?</h3>
     @if (e.riesgoReal === null) {
       <dynadrill-textarea label="Nota de evaluación (opcional)" [value]="evaluacionNota()" (valueChange)="evaluacionNota.set($event)" [rows]="2" />
       <div class="swa-detail-page__evaluacion-actions">
@@ -53,7 +53,7 @@
   </section>
 
   <section class="swa-detail-page__section">
-    <h3>③ Checklist de reanudación</h3>
+    <h3>3. Checklist de reanudación</h3>
     <dynadrill-checklist [items]="checklistItems()" (itemToggle)="toggleChecklist($event)" />
   </section>
 

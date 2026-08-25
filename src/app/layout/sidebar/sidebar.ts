@@ -1,8 +1,17 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { DynadrillButtonComponent, DynadrillIconComponent, DynadrillIconName, DynadrillMenuComponent, DynadrillMenuItem, DynadrillSpinnerComponent } from '@digitec-it-projects/dynadrill-ui';
+import {
+  DynadrillButtonComponent,
+  DynadrillDialogService,
+  DynadrillIconComponent,
+  DynadrillIconName,
+  DynadrillMenuComponent,
+  DynadrillMenuItem,
+  DynadrillSpinnerComponent,
+} from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../core/services/auth.service';
 import { SidebarStateService } from '../sidebar-state.service';
+import { ReportarDialog } from '../../features/qhse/shared/components/reportar-dialog';
 
 @Component({
   selector: 'app-sidebar',
@@ -14,7 +23,14 @@ import { SidebarStateService } from '../sidebar-state.service';
 export class Sidebar {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly dialogService = inject(DynadrillDialogService);
   protected readonly sidebarState = inject(SidebarStateService);
+
+  /** Solo visible en mobile (ver sidebar.scss) — en desktop "Reportar" vive en el header. */
+  protected openReportar(): void {
+    this.sidebarState.close();
+    this.dialogService.open<ReportarDialog>({ title: 'Reportar', content: ReportarDialog, size: 'small', footer: false });
+  }
 
   /**
    * El módulo de Mantenimiento solo aparece para quien tiene un rol de ese
@@ -64,11 +80,11 @@ export class Sidebar {
     /**
      * A diferencia de Operativo (visible para cualquier rol "de oficina"),
      * QHSE sí se gatea por rol desde el sidebar — igual que Mantenimiento.
-     * Antes era un link plano visible para todos (placeholder sin ruta
-     * real); ahora que /dashboard/qhse existe de verdad y su roleGuard
-     * exige uno de los tres roles HSE (HSE-MASTER-001, "Roles y
-     * Responsabilidades"), mostrarlo a todos los demás roles solo los
-     * llevaría a un redirect a /dashboard.
+     * Mismas 3 categorías funcionales que la propuesta de composición UI
+     * ya validada con el equipo de diseño (Registros/Bitácora, Flujos por
+     * fases, Eventos críticos) — 10 ítems planos eran difíciles de escanear.
+     * Labels acortados a propósito: el sidebar es angosto y cada nivel de
+     * anidamiento le resta espacio horizontal al texto.
      */
     const hse: DynadrillMenuItem[] =
       roleName === 'Técnico HSE' || roleName === 'Coordinador HSE' || roleName === 'Gerente HSE'
@@ -76,16 +92,31 @@ export class Sidebar {
             label: 'QHSE',
             icon: 'alert' as DynadrillIconName,
             children: [
-              { label: 'Dashboard Integrado', link: '/dashboard/qhse/dashboard' },
-              { label: 'IPERC', link: '/dashboard/qhse/iperc' },
-              { label: 'Recibimiento de Sitio (PTW)', link: '/dashboard/qhse/ptw' },
-              { label: 'Inspecciones de campo', link: '/dashboard/qhse/inspecciones' },
-              { label: 'Tarjetas STOP', link: '/dashboard/qhse/stop' },
-              { label: 'Stop Work Authority', link: '/dashboard/qhse/swa' },
-              { label: 'Gestión de Desechos', link: '/dashboard/qhse/desechos' },
-              { label: 'Control de Derrames', link: '/dashboard/qhse/derrames' },
-              { label: 'Emergencias y MEDEVAC', link: '/dashboard/qhse/emergencias' },
-              { label: 'Investigación de Incidentes', link: '/dashboard/qhse/investigaciones' },
+              { label: 'Dashboard', link: '/dashboard/qhse/dashboard' },
+              {
+                label: 'Planificación',
+                children: [
+                  { label: 'IPERC', link: '/dashboard/qhse/iperc' },
+                  { label: 'PTW / Recibimiento', link: '/dashboard/qhse/ptw' },
+                ],
+              },
+              {
+                label: 'Registros de campo',
+                children: [
+                  { label: 'Inspecciones', link: '/dashboard/qhse/inspecciones' },
+                  { label: 'Desechos', link: '/dashboard/qhse/desechos' },
+                ],
+              },
+              {
+                label: 'Eventos críticos',
+                children: [
+                  { label: 'STOP', link: '/dashboard/qhse/stop' },
+                  { label: 'SWA', link: '/dashboard/qhse/swa' },
+                  { label: 'Derrames', link: '/dashboard/qhse/derrames' },
+                  { label: 'Emergencias', link: '/dashboard/qhse/emergencias' },
+                  { label: 'Investigaciones', link: '/dashboard/qhse/investigaciones' },
+                ],
+              },
             ],
           }]
         : [];

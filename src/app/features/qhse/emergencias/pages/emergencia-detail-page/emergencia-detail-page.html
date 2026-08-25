@@ -17,9 +17,9 @@
 
   <dynadrill-context-card [items]="contextItems()" />
 
-  <!-- ① Nivel -->
+  <!-- 1. Nivel -->
   <section class="emergencia-detail-page__section">
-    <h3>① Nivel de emergencia</h3>
+    <h3>1. Nivel de emergencia</h3>
     @if (e.nivel) {
       <dynadrill-tag [label]="'Nivel ' + e.nivel" [variant]="e.nivel === 3 ? 'error' : e.nivel === 2 ? 'warning' : 'info'" />
     } @else {
@@ -27,9 +27,9 @@
     }
   </section>
 
-  <!-- ② Cronómetro -->
+  <!-- 2. Cronómetro -->
   <section class="emergencia-detail-page__section">
-    <h3>② Cronómetro del evento</h3>
+    <h3>2. Cronómetro del evento</h3>
     <div class="emergencia-detail-page__timeline">
       @for (t of e.timeline; track t.timestamp) {
         <div class="emergencia-detail-page__timeline-item">
@@ -47,9 +47,9 @@
     </div>
   </section>
 
-  <!-- ③ Conteo de personal -->
+  <!-- 3. Conteo de personal -->
   <section class="emergencia-detail-page__section">
-    <h3>③ Conteo de personal</h3>
+    <h3>3. Conteo de personal</h3>
     @if (e.conteoPersonal.completadoAt) {
       <dynadrill-context-card [items]="[
         { label: 'Total en locación', value: e.conteoPersonal.totalEnLocacion.toString() },
@@ -68,9 +68,9 @@
     }
   </section>
 
-  <!-- ④ Heridos / Triage / MEDEVAC -->
+  <!-- 4. Heridos / Triage / MEDEVAC -->
   <section class="emergencia-detail-page__section">
-    <h3>④ Heridos — Triage y MEDEVAC</h3>
+    <h3>4. Heridos — Triage y MEDEVAC</h3>
 
     @for (h of e.heridos; track h.id) {
       <div class="emergencia-detail-page__herido">
@@ -130,9 +130,9 @@
     </div>
   </section>
 
-  <!-- ⑤ Cadena de notificación -->
+  <!-- 5. Cadena de notificación -->
   <section class="emergencia-detail-page__section">
-    <h3>⑤ Cadena de notificación</h3>
+    <h3>5. Cadena de notificación</h3>
     <div class="emergencia-detail-page__notificaciones">
       @for (n of e.notificaciones; track n.paso) {
         <div class="emergencia-detail-page__notificacion">
@@ -147,9 +147,9 @@
     </div>
   </section>
 
-  <!-- ⑥ Reporte Flash -->
+  <!-- 6. Reporte Flash -->
   <section class="emergencia-detail-page__section">
-    <h3>⑥ Reporte Flash (plazo: 2 horas)</h3>
+    <h3>6. Reporte Flash (plazo: 2 horas)</h3>
     @if (e.reporteFlash.emitidoAt) {
       <dynadrill-tag [label]="'Emitido ' + (e.reporteFlash.emitidoAt | date: 'short')" variant="success" />
     } @else {
@@ -162,9 +162,9 @@
     }
   </section>
 
-  <!-- ⑦ Cierre -->
+  <!-- 7. Cierre -->
   <section class="emergencia-detail-page__section">
-    <h3>⑦ Control y cierre</h3>
+    <h3>7. Control y cierre</h3>
     @if (e.estado === 'activa') {
       <dynadrill-button variant="secondary" (click)="marcarControlada()">Marcar como controlada</dynadrill-button>
     } @else if (e.estado === 'controlada') {

@@ -70,6 +70,10 @@ export class DesechoDetailPage {
     ];
   });
 
+  protected readonly puedeGenerarManifiesto = computed(
+    () => !!this.manifiestoNumero().trim() && !!this.gestorNombre().trim() && !!this.gestorLicenciaSuia().trim(),
+  );
+
   protected readonly manifiestoCompleto = computed(() => {
     const d = this.desecho();
     return !!d?.manifiesto && manifiestoCompleto(d.manifiesto);

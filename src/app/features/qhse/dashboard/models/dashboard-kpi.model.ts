@@ -2,13 +2,19 @@
  * HSE-MASTER-001 — "Dashboard Integrado del Sistema". El documento lista 16
  * indicadores en 4 categorías (Seguridad, Operacional, Ambiental, Cultura
  * Preventiva) más un semáforo Verde/Amarillo/Rojo por "indicadores fuera de
- * meta". Ningún proceso de QHSE registra horas-hombre trabajadas ni nómina
- * de personal, así que TRIR, LTIR, STOP per cápita, % de participación y %
- * de personal capacitado no son calculables con datos reales del sistema
- * — se muestran marcados como "no disponible" en vez de inventar un número.
- * El resto de indicadores se calcula en vivo a partir de los módulos ya
- * construidos (PTW, IPERC, Inspecciones, Desechos, Derrames, STOP, SWA,
- * Investigaciones).
+ * meta". Ningún proceso de QHSE registra horas-hombre trabajadas, así que
+ * TRIR y LTIR no son calculables con datos reales del sistema — se
+ * muestran marcados como "no disponible" en vez de inventar un número.
+ * % de participación en STOP tampoco: las tarjetas guardan el observador
+ * como texto libre (observadorNombre), no como referencia a un usuario del
+ * sistema, así que no hay forma confiable de cruzarlo contra el módulo de
+ * usuarios. % de personal capacitado tampoco: no existe ningún módulo de
+ * capacitaciones/entrenamientos HSE en el sistema. STOP per cápita SÍ se
+ * puede calcular — usa el conteo de usuarios activos (status=true) del
+ * módulo de Usuarios como denominador (proxy razonable de headcount,
+ * aunque no distinga personal de sitio vs. oficina). El resto de
+ * indicadores se calcula en vivo a partir de los módulos ya construidos
+ * (PTW, IPERC, Inspecciones, Desechos, Derrames, STOP, SWA, Investigaciones).
  */
 export type DashboardKpiCategoria = 'Seguridad' | 'Operacional' | 'Ambiental' | 'Cultura Preventiva';
 
@@ -41,7 +47,7 @@ export const DASHBOARD_KPI_DEFS: DashboardKpiDef[] = [
   { id: 'derrames_trimestre', categoria: 'Ambiental', label: 'Derrames en el trimestre actual', unidad: 'eventos', direccion: 'menor_mejor', disponible: true },
   { id: 'derrames_mayor_year', categoria: 'Ambiental', label: 'Derrames Mayor en el año', unidad: 'eventos', direccion: 'menor_mejor', disponible: true },
 
-  { id: 'stop_per_capita', categoria: 'Cultura Preventiva', label: 'Tarjetas STOP per cápita', unidad: 'tarjetas/persona', direccion: 'mayor_mejor', disponible: false, motivoNoDisponible: 'Requiere nómina de personal — no existe módulo de personal en el sistema.' },
+  { id: 'stop_per_capita', categoria: 'Cultura Preventiva', label: 'Tarjetas STOP per cápita', unidad: 'tarjetas/persona', direccion: 'mayor_mejor', disponible: true },
   { id: 'stop_participacion_pct', categoria: 'Cultura Preventiva', label: '% de participación en programa STOP', unidad: '%', direccion: 'mayor_mejor', disponible: false, motivoNoDisponible: 'Requiere nómina de personal — no existe módulo de personal en el sistema.' },
   { id: 'swa_eventos', categoria: 'Cultura Preventiva', label: 'Eventos de Stop Work Authority (indicador positivo)', unidad: 'eventos', direccion: 'mayor_mejor', disponible: true },
   { id: 'personal_capacitado_pct', categoria: 'Cultura Preventiva', label: '% de personal capacitado en procedimientos HSE', unidad: '%', direccion: 'mayor_mejor', disponible: false, motivoNoDisponible: 'Requiere módulo de capacitación — no existe en el sistema.' },

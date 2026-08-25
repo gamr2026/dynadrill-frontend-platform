@@ -90,7 +90,7 @@ let matrices: IpercMatrix[] = [
   {
     id: 2,
     code: 'DYN-SGI-RE-087-2026-015',
-    status: 'borrador',
+    status: 'en_evaluacion',
     actividad: 'Instalación de línea de flujo temporal',
     ubicacion: 'Pozo Alfa-3',
     equipoEvaluador: ['Ana Ruiz (Supervisor)'],

@@ -19,7 +19,7 @@
 
   <!-- Fase 1: Gabinete -->
   <section class="ptw-detail-page__fase">
-    <h3 class="ptw-detail-page__fase-title">① Preparación en gabinete</h3>
+    <h3 class="ptw-detail-page__fase-title">1. Preparación en gabinete</h3>
     <p class="ptw-detail-page__fase-note">
       Formato de Recepción, ART, PTW pre-llenado y Carnet de Vacunas son formatos del cliente o estándares externos
       (MSP) — el sistema los carga, valida y archiva, no los construye como formulario propio.
@@ -47,7 +47,7 @@
 
   <!-- Fase 2: Ingreso -->
   <section class="ptw-detail-page__fase">
-    <h3 class="ptw-detail-page__fase-title">② Ingreso a locación</h3>
+    <h3 class="ptw-detail-page__fase-title">2. Ingreso a locación</h3>
     <p class="ptw-detail-page__fase-note">Check-in con Company Man, Toolbox Talk y validaciones iniciales de campo.</p>
 
     <dynadrill-checklist [items]="ingresoChecklist()" (itemToggle)="onIngresoToggle($event)" />
@@ -61,7 +61,7 @@
 
   <!-- Fase 3: Verificaciones -->
   <section class="ptw-detail-page__fase">
-    <h3 class="ptw-detail-page__fase-title">③ Verificaciones de seguridad</h3>
+    <h3 class="ptw-detail-page__fase-title">3. Verificaciones de seguridad</h3>
 
     @if (gasInseguroDetalle()) {
       <dynadrill-banner variant="critical" [message]="gasInseguroDetalle()" />
@@ -127,7 +127,7 @@
 
   <!-- Fase 4: Formalización -->
   <section class="ptw-detail-page__fase">
-    <h3 class="ptw-detail-page__fase-title">④ Formalización del recibimiento</h3>
+    <h3 class="ptw-detail-page__fase-title">4. Formalización del recibimiento</h3>
 
     <div class="ptw-detail-page__firma">
       <p>Firmar PTW en sitio</p>
@@ -163,7 +163,7 @@
 
   <!-- Fase 5: Ejecución y devolución -->
   <section class="ptw-detail-page__fase">
-    <h3 class="ptw-detail-page__fase-title">⑤ Ejecución y devolución</h3>
+    <h3 class="ptw-detail-page__fase-title">5. Ejecución y devolución</h3>
     <p class="ptw-detail-page__fase-note">Monitoreo HSE continuo durante el trabajo. Al finalizar: limpieza total e inspección conjunta final.</p>
 
     <div class="ptw-detail-page__firma">
@@ -189,7 +189,7 @@
 
   <!-- Fase 6: Gestión documental final -->
   <section class="ptw-detail-page__fase">
-    <h3 class="ptw-detail-page__fase-title">⑥ Gestión documental final</h3>
+    <h3 class="ptw-detail-page__fase-title">6. Gestión documental final</h3>
 
     <div class="ptw-detail-page__firma">
       <p>Cerrar PTW</p>

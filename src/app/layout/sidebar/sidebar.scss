@@ -3,13 +3,15 @@
   flex-direction: column;
   gap: 4px;
   height: 100%;
-  padding: 16px 12px;
+  padding: 16px 8px;
   background: var(--dynadrill-navy, #131529);
 
   // Solo tienen sentido en el panel off-canvas de mobile — en desktop el
-  // sidebar es permanente (ver shell.scss) y "Cerrar sesión" vive en el header.
+  // sidebar es permanente (ver shell.scss) y "Cerrar sesión"/"Reportar"
+  // viven en el header.
   &__close,
-  &__logout {
+  &__logout,
+  &__reportar {
     display: none;
   }
 
@@ -61,6 +63,11 @@
     // ítems tenga el menú arriba.
     > dynadrill-menu {
       flex: 1;
+    }
+
+    &__reportar {
+      display: block;
+      margin-top: 8px;
     }
 
     &__logout {

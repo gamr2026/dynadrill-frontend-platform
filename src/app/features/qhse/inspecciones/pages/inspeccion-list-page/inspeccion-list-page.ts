@@ -8,7 +8,6 @@ import {
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
-  DynadrillStatisticComponent,
   type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
@@ -29,8 +28,7 @@ function formatDate(iso: string): string {
     DynadrillButtonComponent,
     DynadrillDataTableComponent,
     DynadrillSpinnerComponent,
-    DynadrillStatisticComponent,
-  ],
+    ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './inspeccion-list-page.html',
   styleUrl: './inspeccion-list-page.scss',
@@ -51,9 +49,6 @@ export class InspeccionListPage {
       { label: 'Vencidas', value: all.filter(i => !inspeccionEnCuarentena(i) && inspeccionVencida(i)).length },
     ];
   });
-
-  /** Se destaca aparte porque una cuarentena implica un equipo fuera de servicio, no solo una desviación de vigencia. */
-  protected readonly enCuarentena = computed(() => this.inspecciones().filter(inspeccionEnCuarentena).length);
 
   protected readonly columns: DynadrillDataTableColumn[] = [
     { key: 'code', header: 'Código', sortable: true, searchable: true },

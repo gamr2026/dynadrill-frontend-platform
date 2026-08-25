@@ -16,7 +16,7 @@
         <dynadrill-input label="Gestor" [value]="gestorNombre()" (valueChange)="gestorNombre.set($event)" />
         <dynadrill-input label="Licencia SUIA del gestor" [value]="gestorLicenciaSuia()" (valueChange)="gestorLicenciaSuia.set($event)" />
       </div>
-      <dynadrill-button (clicked)="generarManifiesto()">Generar manifiesto</dynadrill-button>
+      <dynadrill-button [disabled]="!puedeGenerarManifiesto()" (clicked)="generarManifiesto()">Generar manifiesto</dynadrill-button>
     </section>
   } @else {
     <section class="desecho-detail-page__section">

@@ -17,7 +17,7 @@
   <dynadrill-context-card [items]="contextItems()" />
 
   <section class="derrame-detail-page__section">
-    <h3>① Contención (primeros 5 minutos)</h3>
+    <h3>1. Contención (primeros 5 minutos)</h3>
     <dynadrill-checklist [items]="checklistItems()" (itemToggle)="toggleChecklist($event)" />
     @if (e.estado === 'activo') {
       <dynadrill-button [disabled]="!puedeContener()" (click)="marcarContenido()">Marcar como contenido</dynadrill-button>
@@ -26,7 +26,7 @@
 
   @if (requiereMae()) {
     <section class="derrame-detail-page__section">
-      <h3>② Notificación obligatoria a MAE</h3>
+      <h3>2. Notificación obligatoria a MAE</h3>
       @if (e.notificadoMae) {
         <dynadrill-tag label="Notificado a MAE" variant="success" />
       } @else {

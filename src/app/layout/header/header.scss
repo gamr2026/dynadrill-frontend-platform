@@ -75,9 +75,11 @@
       height: 40px;
     }
 
-    // "Cerrar sesión" se muda al pie del sidebar en mobile (ver sidebar.html) —
-    // el header ahí solo tiene la hamburguesa y el logo.
-    &__logout-btn {
+    // "Cerrar sesión" y "Reportar" se mudan al sidebar en mobile (ver
+    // sidebar.html) — el botón "Reportar" flotando a la derecha del header
+    // se sobreponía al logo centrado en viewports angostos.
+    &__logout-btn,
+    &__reportar-btn {
       display: none;
     }
   }

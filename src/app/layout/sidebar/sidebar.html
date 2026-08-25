@@ -5,6 +5,11 @@
 
   <dynadrill-menu [items]="items()" />
 
+  <dynadrill-button class="app-sidebar__reportar" variant="error" size="small" (clicked)="openReportar()">
+    <dynadrill-icon name="alert" [size]="14" />
+    Reportar
+  </dynadrill-button>
+
   <dynadrill-button class="app-sidebar__logout" variant="primary" size="small" [disabled]="loggingOut()" (clicked)="logout()">
     <span class="app-sidebar__logout-content">
       @if (loggingOut()) {

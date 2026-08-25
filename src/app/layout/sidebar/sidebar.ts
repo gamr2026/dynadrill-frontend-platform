@@ -49,9 +49,7 @@ export class Sidebar {
             {
               label: 'Mantenimiento',
               icon: 'tool' as DynadrillIconName,
-              children: [
-                { label: 'Mantenimiento Operativo', link: '/dashboard/mantenimiento/operativo' },
-              ],
+              link: '/dashboard/mantenimiento/operativo',
             },
           ],
         },

@@ -5,6 +5,8 @@ import {
   DynadrillButtonComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
+  DynadrillProgressComponent,
+  type DynadrillProgressStatus,
   DynadrillScreenHeaderComponent,
   DynadrillStatisticComponent,
   type DynadrillStatisticTone,
@@ -64,6 +66,7 @@ function daysBetween(a: Date, b: Date): number {
     DynadrillBannerComponent,
     DynadrillTagComponent,
     DynadrillStatisticComponent,
+    DynadrillProgressComponent,
     DynadrillTabsComponent,
     DynadrillInputComponent,
     DynadrillButtonComponent,
@@ -117,6 +120,32 @@ export class QhseDashboardPage {
   protected statTone(def: DashboardKpiDef): DynadrillStatisticTone {
     const tone = this.estadoKpi(def).tone;
     return tone === 'success' || tone === 'error' ? tone : 'default';
+  }
+
+  /**
+   * % de la meta alcanzado — no el valor crudo, sino "qué tan cerca está el
+   * valor actual de cumplir el objetivo que el equipo definió". null si
+   * todavía no hay meta o no hay datos suficientes: sin meta, no hay nada
+   * contra qué medir el progreso (a diferencia de un indicador con umbral
+   * fijo universal, estas metas las define cada sitio).
+   *
+   * 'mayor_mejor' (ej. % PTW cerrados): progreso = valor / meta.
+   * 'menor_mejor' (ej. tiempo promedio de cierre): progreso = meta / valor
+   * — cuanto más bajo el valor respecto a la meta, más cerca (o por
+   * encima) del 100%.
+   */
+  protected metaProgressPercent(def: DashboardKpiDef): number | null {
+    const valor = this.valores()[def.id];
+    const meta = this.metas()[def.id];
+    if (valor == null || meta == null || meta === 0) return null;
+    if (def.direccion === 'mayor_mejor') return Math.max(0, (valor / meta) * 100);
+    if (valor === 0) return 100;
+    return Math.max(0, (meta / valor) * 100);
+  }
+
+  protected metaProgressStatus(def: DashboardKpiDef): DynadrillProgressStatus {
+    const tone = this.estadoKpi(def).tone;
+    return tone === 'success' ? 'success' : tone === 'error' ? 'exception' : 'normal';
   }
 
   protected readonly indicadoresFueraDeMeta = computed(() => {

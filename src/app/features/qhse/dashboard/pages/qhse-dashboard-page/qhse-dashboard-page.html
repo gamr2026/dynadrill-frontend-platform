@@ -13,6 +13,10 @@
     <span class="qhse-dashboard-page__note">{{ indicadoresFueraDeMeta() }} indicador(es) fuera de meta de los que tienen meta definida.</span>
   </div>
 
+  <p class="qhse-dashboard-page__intro">
+    Cada tarjeta compara el valor medido contra la meta que tu equipo define — sin meta no hay nada contra qué medir el progreso, así que la barra queda vacía hasta que asignes una. El semáforo de arriba cuenta cuántos indicadores (de los que sí tienen meta) están fuera de rango.
+  </p>
+
   @if (incumplimientoLegal()) {
     <dynadrill-banner variant="critical" message="Incumplimiento legal detectado — ver detalle abajo. Esto fuerza el semáforo a Rojo sin importar los demás indicadores." />
     <ul class="qhse-dashboard-page__legal-list">
@@ -45,6 +49,18 @@
 
           @if (def.disponible) {
             <dynadrill-tag [label]="estadoKpi(def).texto" [variant]="estadoKpi(def).tone" />
+
+            @if (metaProgressPercent(def); as pct) {
+              <div class="qhse-dashboard-page__progress">
+                <dynadrill-progress [value]="pct" [max]="100" [showInfo]="true" [statusOverride]="metaProgressStatus(def)" />
+                <span class="qhse-dashboard-page__progress-caption">
+                  {{ pct >= 100 ? 'Meta alcanzada' : 'de la meta (' + metas()[def.id] + ' ' + def.unidad + ')' }}
+                </span>
+              </div>
+            } @else {
+              <p class="qhse-dashboard-page__meta-hint">Sin meta definida todavía — no hay contra qué medir el progreso.</p>
+            }
+
             <div class="qhse-dashboard-page__meta-form">
               <dynadrill-input
                 label="Meta"
@@ -57,9 +73,6 @@
                 {{ metas()[def.id] != null ? 'Actualizar meta' : 'Guardar meta' }}
               </dynadrill-button>
             </div>
-            <p class="qhse-dashboard-page__meta-hint">
-              Objetivo interno del sitio para este indicador — HSE-MASTER-001 no fija un valor único; lo define y ajusta el equipo HSE según su propia política.
-            </p>
           }
         </article>
       }

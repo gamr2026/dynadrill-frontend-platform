@@ -15,6 +15,26 @@
   &__sidebar {
     grid-area: sidebar;
     overflow-y: auto;
+    // Sin esto, el scrollbar nativo del sistema operativo se pinta encima
+    // del sidebar oscuro (en Windows/Chromium, como una franja gris
+    // translúcida sobre los últimos ítems del menú) en vez de quedar en un
+    // canal angosto y discreto a juego con la marca.
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 999px;
+    }
+    &::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.4);
+    }
   }
 
   &__content {

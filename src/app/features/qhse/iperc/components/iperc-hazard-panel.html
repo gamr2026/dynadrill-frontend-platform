@@ -1,0 +1,69 @@
+<div class="iperc-hazard-panel">
+  <section class="iperc-hazard-panel__section">
+    <dynadrill-text variant="caption">Peligro identificado</dynadrill-text>
+    <dynadrill-text variant="h2">{{ hazard().peligro }}</dynadrill-text>
+
+    <div class="iperc-hazard-panel__row">
+      <dynadrill-text variant="caption">Fuente del riesgo</dynadrill-text>
+      <dynadrill-text variant="body">{{ hazard().fuenteRiesgo }}</dynadrill-text>
+    </div>
+
+    <div class="iperc-hazard-panel__row">
+      <dynadrill-text variant="caption">Controles existentes</dynadrill-text>
+      <dynadrill-text variant="body">{{ hazard().controlesExistentes || 'Ninguno registrado' }}</dynadrill-text>
+    </div>
+
+    @if (residualTone(); as tone) {
+      <dynadrill-tag [label]="'Riesgo residual: ' + (tone === 'success' ? 'Bajo' : tone === 'warning' ? 'Medio' : 'Alto')" [variant]="tone" />
+    }
+  </section>
+
+  <section class="iperc-hazard-panel__section">
+    <dynadrill-text variant="caption">Evaluación de riesgo (HSE-PLAN-001)</dynadrill-text>
+    <div class="iperc-hazard-panel__matrices">
+      <dynadrill-risk-matrix
+        title="Riesgo inicial"
+        [probabilidad]="hazard().probabilidadInicial"
+        [severidad]="hazard().severidadInicial"
+        [interactive]="editable"
+        (riskChange)="onInitialRiskChange($event)"
+      />
+      <dynadrill-risk-matrix
+        title="Riesgo residual"
+        [probabilidad]="hazard().probabilidadResidual"
+        [severidad]="hazard().severidadResidual"
+        [interactive]="editable"
+        (riskChange)="onResidualRiskChange($event)"
+      />
+    </div>
+  </section>
+
+  <section class="iperc-hazard-panel__section">
+    <dynadrill-text variant="caption">Controles definidos</dynadrill-text>
+
+    @if (hazard().controles.length > 0) {
+      <ul class="iperc-hazard-panel__controls">
+        @for (c of hazard().controles; track c.id) {
+          <li>
+            <dynadrill-tag [label]="controlTypeLabels[c.type]" variant="neutral" />
+            <span>{{ c.description }}</span>
+          </li>
+        }
+      </ul>
+    } @else {
+      <dynadrill-text variant="caption">Sin controles definidos todavía.</dynadrill-text>
+    }
+
+    @if (editable) {
+      <div class="iperc-hazard-panel__add-control">
+        <dynadrill-select label="Tipo" [options]="controlTypeOptions" [value]="controlType()" (valueChange)="controlType.set($any($event))" />
+        <dynadrill-input label="Descripción del control" [value]="controlDescription()" (valueChange)="controlDescription.set($event)" />
+        <dynadrill-button variant="secondary" size="small" (clicked)="agregarControl()">+ Agregar control</dynadrill-button>
+      </div>
+    }
+  </section>
+
+  <div class="iperc-hazard-panel__footer">
+    <dynadrill-button variant="secondary" (clicked)="cerrar()">Cerrar</dynadrill-button>
+  </div>
+</div>

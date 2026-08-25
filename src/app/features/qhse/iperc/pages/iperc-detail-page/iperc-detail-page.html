@@ -13,96 +13,88 @@
     <dynadrill-button variant="secondary" size="small" (click)="marcarLeccionRevisada()">Marcar lección revisada</dynadrill-button>
   }
 
-  <section class="iperc-detail-page__meta">
-    <p><strong>Equipo evaluador:</strong> {{ m.equipoEvaluador.join(', ') || 'Sin definir' }}</p>
-    <p><strong>ATS base generado:</strong> {{ m.atsGenerado ? 'Sí' : 'No' }}</p>
-    @if (m.approvedByName) {
-      <p><strong>Aprobada por:</strong> {{ m.approvedByName }} — {{ m.approvedAt }}</p>
-    }
+  <section class="iperc-detail-page__stepper-card">
+    <dynadrill-stepper [steps]="faseSteps" [currentIndex]="faseIndex()" />
   </section>
 
-  @for (task of m.tasks; track task.id) {
-    <section class="iperc-detail-page__task">
-      <h3 class="iperc-detail-page__task-title">{{ task.descripcion }}</h3>
+  <div class="iperc-detail-page__overview">
+    <dynadrill-context-card [items]="contextItems()" layout="vertical" />
 
-      @if (task.hazards.length === 0 && !canEditContent()) {
-        <p class="iperc-detail-page__empty">Sin peligros identificados todavía.</p>
-      }
-
-      @for (hazard of task.hazards; track hazard.id) {
-        <article class="iperc-detail-page__hazard">
-          <header class="iperc-detail-page__hazard-header">
-            <h4>{{ hazard.peligro }}</h4>
-            <p class="iperc-detail-page__hazard-source">Fuente: {{ hazard.fuenteRiesgo }}</p>
-          </header>
-
-          <p class="iperc-detail-page__hazard-existing">
-            <strong>Controles existentes:</strong> {{ hazard.controlesExistentes || 'Ninguno registrado' }}
-          </p>
-
-          <div class="iperc-detail-page__matrices">
-            <dynadrill-risk-matrix
-              title="Riesgo inicial"
-              [probabilidad]="hazard.probabilidadInicial"
-              [severidad]="hazard.severidadInicial"
-              [interactive]="riskEditable()"
-              (riskChange)="onInitialRiskChange(hazard, $event)"
-            />
-            <dynadrill-risk-matrix
-              title="Riesgo residual"
-              [probabilidad]="hazard.probabilidadResidual"
-              [severidad]="hazard.severidadResidual"
-              [interactive]="riskEditable()"
-              (riskChange)="onResidualRiskChange(hazard, $event)"
-            />
-          </div>
-
-          <div class="iperc-detail-page__controls">
-            <strong>Controles definidos:</strong>
-            @if (hazard.controles.length > 0) {
-              <ul>
-                @for (c of hazard.controles; track c.id) {
-                  <li>
-                    <dynadrill-tag [label]="controlTypeLabels[c.type]" variant="neutral" />
-                    {{ c.description }}
-                  </li>
-                }
-              </ul>
-            } @else {
-              <p class="iperc-detail-page__empty">Sin controles definidos todavía.</p>
-            }
-
-            @if (canEditContent()) {
-              <div class="iperc-detail-page__add-form">
-                <dynadrill-select [options]="controlTypeOptions" [value]="controlDraft(hazard.id).type" (valueChange)="setControlDraftField(hazard.id, { type: $any($event) })" />
-                <dynadrill-input placeholder="Descripción del control" [value]="controlDraft(hazard.id).description" (valueChange)="setControlDraftField(hazard.id, { description: $event })" />
-                <dynadrill-button variant="secondary" size="small" (click)="agregarControl(hazard.id)">+ Agregar control</dynadrill-button>
-              </div>
-            }
-          </div>
-        </article>
-      }
-
-      @if (canEditContent()) {
-        <div class="iperc-detail-page__add-form iperc-detail-page__add-form--hazard">
-          <dynadrill-input placeholder="Peligro identificado" [value]="hazardDraft(task.id).peligro" (valueChange)="setHazardDraftField(task.id, 'peligro', $event)" />
-          <dynadrill-input placeholder="Fuente del riesgo" [value]="hazardDraft(task.id).fuenteRiesgo" (valueChange)="setHazardDraftField(task.id, 'fuenteRiesgo', $event)" />
-          <dynadrill-input placeholder="Controles existentes (opcional)" [value]="hazardDraft(task.id).controlesExistentes" (valueChange)="setHazardDraftField(task.id, 'controlesExistentes', $event)" />
-          <dynadrill-button variant="secondary" size="small" (click)="agregarPeligro(task.id)">+ Agregar peligro</dynadrill-button>
+    <div class="iperc-detail-page__equipo">
+      <span class="iperc-detail-page__equipo-label">Equipo evaluador</span>
+      @if (m.equipoEvaluador.length > 0) {
+        <div class="iperc-detail-page__equipo-avatars">
+          @for (nombre of m.equipoEvaluador; track nombre) {
+            <div class="iperc-detail-page__equipo-member">
+              <dynadrill-avatar [name]="nombre" size="sm" />
+              <span>{{ nombre }}</span>
+            </div>
+          }
         </div>
+      } @else {
+        <span class="iperc-detail-page__equipo-empty">Sin definir</span>
       }
-    </section>
-  }
+    </div>
+  </div>
 
-  @if (canAddTask()) {
-    <section class="iperc-detail-page__task iperc-detail-page__add-task">
-      <h3 class="iperc-detail-page__task-title">Agregar tarea</h3>
-      <div class="iperc-detail-page__add-form">
-        <dynadrill-input placeholder="Descripción de la tarea" [value]="nuevaTareaDescripcion()" (valueChange)="nuevaTareaDescripcion.set($event)" />
-        <dynadrill-button variant="secondary" size="small" (click)="agregarTarea()">+ Agregar tarea</dynadrill-button>
-      </div>
-    </section>
-  }
+  <div class="iperc-detail-page__tasks">
+    @for (task of m.tasks; track task.id) {
+      <dynadrill-card [accent]="taskRiskTone(task).tone">
+        <span card-title>{{ task.descripcion }}</span>
+        <dynadrill-tag card-extra [label]="taskRiskTone(task).label" [variant]="taskRiskTone(task).tone" />
+
+        @if (task.hazards.length > 0) {
+          <ul class="iperc-detail-page__hazard-list">
+            @for (hazard of task.hazards; track hazard.id) {
+              <li class="iperc-detail-page__hazard-row">
+                <div class="iperc-detail-page__hazard-info">
+                  <span class="iperc-detail-page__hazard-name">{{ hazard.peligro }}</span>
+                  <span class="iperc-detail-page__hazard-source">{{ hazard.fuenteRiesgo }}</span>
+                </div>
+                <dynadrill-tag [label]="hazardRiskTag(hazard).label" [variant]="hazardRiskTag(hazard).tone" />
+                <dynadrill-icon-button icon="eye" tooltip="Ver detalle y controles" tooltipPlacement="top" (clicked)="verPeligro(task, hazard)" />
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="iperc-detail-page__empty">Sin peligros identificados todavía.</p>
+        }
+
+        @if (canEditContent()) {
+          @if (addingHazardForTask() === task.id) {
+            <div class="iperc-detail-page__add-form">
+              <dynadrill-input placeholder="Peligro identificado" [value]="hazardDraft().peligro" (valueChange)="setHazardDraftField('peligro', $event)" />
+              <dynadrill-input placeholder="Fuente del riesgo" [value]="hazardDraft().fuenteRiesgo" (valueChange)="setHazardDraftField('fuenteRiesgo', $event)" />
+              <dynadrill-input placeholder="Controles existentes (opcional)" [value]="hazardDraft().controlesExistentes" (valueChange)="setHazardDraftField('controlesExistentes', $event)" />
+              <div class="iperc-detail-page__add-form-actions">
+                <dynadrill-button variant="secondary" size="small" (click)="toggleAddHazard(task.id)">Cancelar</dynadrill-button>
+                <dynadrill-button size="small" (click)="agregarPeligro(task.id)">+ Agregar peligro</dynadrill-button>
+              </div>
+            </div>
+          } @else {
+            <dynadrill-button variant="secondary" size="small" (click)="toggleAddHazard(task.id)">+ Agregar peligro</dynadrill-button>
+          }
+        }
+      </dynadrill-card>
+    }
+
+    @if (canAddTask()) {
+      @if (addingTask()) {
+        <dynadrill-card accent="none">
+          <span card-title>Nueva tarea</span>
+          <div class="iperc-detail-page__add-form">
+            <dynadrill-input placeholder="Descripción de la tarea" [value]="nuevaTareaDescripcion()" (valueChange)="nuevaTareaDescripcion.set($event)" />
+            <div class="iperc-detail-page__add-form-actions">
+              <dynadrill-button variant="secondary" size="small" (click)="toggleAddTask()">Cancelar</dynadrill-button>
+              <dynadrill-button size="small" (click)="agregarTarea()">+ Agregar tarea</dynadrill-button>
+            </div>
+          </div>
+        </dynadrill-card>
+      } @else {
+        <dynadrill-button variant="secondary" (click)="toggleAddTask()">+ Agregar tarea</dynadrill-button>
+      }
+    }
+  </div>
 
   <section class="iperc-detail-page__actions">
     @if (canStartEvaluation()) {

@@ -2,29 +2,27 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   DynadrillApprovalActionsComponent,
+  DynadrillAvatarComponent,
   DynadrillBannerComponent,
   DynadrillButtonComponent,
+  DynadrillCardComponent,
+  DynadrillContextCardComponent,
+  DynadrillDrawerService,
+  DynadrillIconButtonComponent,
   DynadrillInputComponent,
-  DynadrillRiskMatrixComponent,
   DynadrillScreenHeaderComponent,
-  DynadrillSelectComponent,
+  DynadrillStepperComponent,
   DynadrillTagComponent,
+  dynadrillRiskLevel,
   type DynadrillApprovalDecision,
-  type DynadrillRiskMatrixValue,
-  type DynadrillSelectOption,
+  type DynadrillContextCardItem,
+  type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../../../core/services/auth.service';
-import {
-  CONTROL_TYPE_LABELS,
-  ControlType,
-  IPERC_STATUS_LABELS,
-  IpercControl,
-  IpercHazard,
-  IpercMatrix,
-  IpercTask,
-} from '../../models/iperc.model';
+import { IPERC_STATUS_LABELS, IpercHazard, IpercMatrix, IpercStatus, IpercTask } from '../../models/iperc.model';
 import { IpercService } from '../../services/iperc.service';
 import { PtwService } from '../../../ptw/services/ptw.service';
+import { IpercHazardPanel, IpercHazardPanelData } from '../../components/iperc-hazard-panel';
 
 interface HazardDraft {
   peligro: string;
@@ -32,27 +30,31 @@ interface HazardDraft {
   controlesExistentes: string;
 }
 
-interface ControlDraft {
-  type: ControlType;
-  description: string;
-}
-
 const EMPTY_HAZARD_DRAFT: HazardDraft = { peligro: '', fuenteRiesgo: '', controlesExistentes: '' };
-const EMPTY_CONTROL_DRAFT: ControlDraft = { type: 'administrativo', description: '' };
-const CONTROL_TYPE_OPTIONS: DynadrillSelectOption[] = (Object.entries(CONTROL_TYPE_LABELS) as [ControlType, string][]).map(
-  ([value, label]) => ({ label, value }),
-);
+
+/** Mismas 4 fases documentadas en HSE-PLAN-001. */
+const FASE_STEPS = ['Preparación', 'Identificación/Evaluación', 'Controles/Reevaluación', 'Documentación y aprobación'];
+const STATUS_STEP_INDEX: Record<IpercStatus, number> = {
+  borrador: 0,
+  en_evaluacion: 1,
+  en_revision: 2,
+  aprobada: 3,
+  rechazada: 1,
+};
 
 @Component({
   selector: 'app-iperc-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DynadrillScreenHeaderComponent,
-    DynadrillRiskMatrixComponent,
+    DynadrillStepperComponent,
+    DynadrillContextCardComponent,
+    DynadrillAvatarComponent,
+    DynadrillCardComponent,
     DynadrillTagComponent,
     DynadrillButtonComponent,
+    DynadrillIconButtonComponent,
     DynadrillInputComponent,
-    DynadrillSelectComponent,
     DynadrillApprovalActionsComponent,
     DynadrillBannerComponent,
   ],
@@ -63,16 +65,40 @@ export class IpercDetailPage {
   private readonly ipercService = inject(IpercService);
   private readonly ptwService = inject(PtwService);
   private readonly auth = inject(AuthService);
+  private readonly drawer = inject(DynadrillDrawerService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
+  private readonly matrixId = Number(this.route.snapshot.paramMap.get('id'));
+
   protected readonly loading = signal(true);
   protected readonly matrix = signal<IpercMatrix | null>(null);
-  protected readonly controlTypeLabels = CONTROL_TYPE_LABELS;
+
+  protected readonly faseSteps = FASE_STEPS;
+  protected readonly faseIndex = computed(() => STATUS_STEP_INDEX[this.matrix()?.status ?? 'borrador']);
 
   protected readonly statusLabel = computed(() => {
     const m = this.matrix();
     return m ? IPERC_STATUS_LABELS[m.status] : '';
+  });
+
+  protected readonly statusTone = computed<DynadrillTagVariant>(() => {
+    const status = this.matrix()?.status;
+    if (status === 'aprobada') return 'success';
+    if (status === 'rechazada') return 'error';
+    if (status === 'en_revision') return 'warning';
+    return 'info';
+  });
+
+  protected readonly contextItems = computed<DynadrillContextCardItem[]>(() => {
+    const m = this.matrix();
+    if (!m) return [];
+    return [
+      { label: 'Código', value: m.code },
+      { label: 'ATS base generado', value: m.atsGenerado ? 'Sí' : 'No' },
+      { label: 'Aprobada por', value: m.approvedByName ? `${m.approvedByName}` : '—' },
+      { label: 'Tareas desglosadas', value: String(m.tasks.length) },
+    ];
   });
 
   /**
@@ -88,14 +114,14 @@ export class IpercDetailPage {
     const status = this.matrix()?.status;
     return status === 'borrador' || status === 'en_evaluacion';
   });
-  /** Fase 2/3 ("identificar peligros" / "definir controles") — solo mientras la matriz sigue en evaluación, igual que el riesgo. */
+  /** Fase 2 ("identificar peligros") — solo mientras la matriz sigue en evaluación, igual que el riesgo. */
   protected readonly canEditContent = this.riskEditable;
 
-  protected readonly controlTypeOptions = CONTROL_TYPE_OPTIONS;
-
+  protected readonly addingTask = signal(false);
   protected readonly nuevaTareaDescripcion = signal('');
-  protected readonly hazardDrafts = signal<Record<number, HazardDraft>>({});
-  protected readonly controlDrafts = signal<Record<number, ControlDraft>>({});
+
+  protected readonly addingHazardForTask = signal<number | null>(null);
+  protected readonly hazardDraft = signal<HazardDraft>(EMPTY_HAZARD_DRAFT);
 
   protected readonly canStartEvaluation = computed(() => this.matrix()?.status === 'borrador');
   protected readonly canSendToReview = computed(() => this.matrix()?.status === 'en_evaluacion');
@@ -113,8 +139,11 @@ export class IpercDetailPage {
   protected readonly openPtwError = signal('');
 
   constructor() {
-    const id = Number(this.route.snapshot.paramMap.get('id'));
-    this.ipercService.get(id).subscribe({
+    this.reload();
+  }
+
+  private reload(): void {
+    this.ipercService.get(this.matrixId).subscribe({
       next: matrix => {
         this.matrix.set(matrix);
         this.loading.set(false);
@@ -123,12 +152,33 @@ export class IpercDetailPage {
     });
   }
 
-  protected onInitialRiskChange(hazard: IpercHazard, value: DynadrillRiskMatrixValue): void {
-    this.patchHazard(hazard.id, { probabilidadInicial: value.probabilidad, severidadInicial: value.severidad });
+  /** Nivel de riesgo residual más alto entre los peligros de una tarea — para el badge de la card, de un vistazo. */
+  protected taskRiskTone(task: IpercTask): { label: string; tone: DynadrillTagVariant } {
+    const valores = task.hazards
+      .map(h => (h.probabilidadResidual != null && h.severidadResidual != null ? h.probabilidadResidual * h.severidadResidual : null))
+      .filter((v): v is number => v != null);
+    if (task.hazards.length === 0) return { label: 'Sin peligros', tone: 'neutral' };
+    if (valores.length === 0) return { label: 'Sin evaluar', tone: 'neutral' };
+    const nivel = dynadrillRiskLevel(Math.max(...valores));
+    return nivel === 'bajo' ? { label: 'Riesgo bajo', tone: 'success' } : nivel === 'medio' ? { label: 'Riesgo medio', tone: 'warning' } : { label: 'Riesgo alto', tone: 'error' };
   }
 
-  protected onResidualRiskChange(hazard: IpercHazard, value: DynadrillRiskMatrixValue): void {
-    this.patchHazard(hazard.id, { probabilidadResidual: value.probabilidad, severidadResidual: value.severidad });
+  protected hazardRiskTag(hazard: IpercHazard): { label: string; tone: DynadrillTagVariant } {
+    if (hazard.probabilidadResidual == null || hazard.severidadResidual == null) return { label: 'Sin evaluar', tone: 'neutral' };
+    const nivel = dynadrillRiskLevel(hazard.probabilidadResidual * hazard.severidadResidual);
+    return nivel === 'bajo' ? { label: 'Bajo', tone: 'success' } : nivel === 'medio' ? { label: 'Medio', tone: 'warning' } : { label: 'Alto', tone: 'error' };
+  }
+
+  protected verPeligro(task: IpercTask, hazard: IpercHazard): void {
+    const matrix = this.matrix();
+    if (!matrix) return;
+    const ref = this.drawer.open<IpercHazardPanel, IpercHazardPanelData>({
+      title: 'Detalle del peligro',
+      content: IpercHazardPanel,
+      data: { matrix, taskId: task.id, hazardId: hazard.id, editable: this.riskEditable() },
+      size: 'medium',
+    });
+    ref.afterClose.subscribe(() => this.reload());
   }
 
   protected startEvaluation(): void {
@@ -184,6 +234,11 @@ export class IpercDetailPage {
     this.router.navigate(['/dashboard/qhse/iperc']);
   }
 
+  protected toggleAddTask(): void {
+    this.addingTask.update(v => !v);
+    this.nuevaTareaDescripcion.set('');
+  }
+
   /** Fase 1: "Desglosar actividades en tareas secuenciales". */
   protected agregarTarea(): void {
     const current = this.matrix();
@@ -193,21 +248,23 @@ export class IpercDetailPage {
     const nuevaTarea: IpercTask = { id: this.nextLocalId(current), descripcion, hazards: [] };
     const tasks = [...current.tasks, nuevaTarea];
     this.persistTasks(current, tasks);
+    this.addingTask.set(false);
     this.nuevaTareaDescripcion.set('');
   }
 
-  protected hazardDraft(taskId: number): HazardDraft {
-    return this.hazardDrafts()[taskId] ?? EMPTY_HAZARD_DRAFT;
+  protected toggleAddHazard(taskId: number): void {
+    this.addingHazardForTask.update(current => (current === taskId ? null : taskId));
+    this.hazardDraft.set(EMPTY_HAZARD_DRAFT);
   }
 
-  protected setHazardDraftField(taskId: number, field: keyof HazardDraft, value: string): void {
-    this.hazardDrafts.update(drafts => ({ ...drafts, [taskId]: { ...this.hazardDraft(taskId), [field]: value } }));
+  protected setHazardDraftField(field: keyof HazardDraft, value: string): void {
+    this.hazardDraft.update(draft => ({ ...draft, [field]: value }));
   }
 
-  /** Fase 2: "Identificar peligros por tarea" + "Evaluar riesgo inicial" (el riesgo en sí se completa después, clicando la matriz). */
+  /** Fase 2: "Identificar peligros por tarea" (el riesgo y los controles se completan después, dentro del panel de detalle). */
   protected agregarPeligro(taskId: number): void {
     const current = this.matrix();
-    const draft = this.hazardDraft(taskId);
+    const draft = this.hazardDraft();
     if (!current || !draft.peligro.trim() || !draft.fuenteRiesgo.trim()) return;
 
     const nuevoPeligro: IpercHazard = {
@@ -223,30 +280,8 @@ export class IpercDetailPage {
     };
     const tasks = current.tasks.map(t => (t.id === taskId ? { ...t, hazards: [...t.hazards, nuevoPeligro] } : t));
     this.persistTasks(current, tasks);
-    this.hazardDrafts.update(drafts => ({ ...drafts, [taskId]: EMPTY_HAZARD_DRAFT }));
-  }
-
-  protected controlDraft(hazardId: number): ControlDraft {
-    return this.controlDrafts()[hazardId] ?? EMPTY_CONTROL_DRAFT;
-  }
-
-  protected setControlDraftField(hazardId: number, changes: Partial<ControlDraft>): void {
-    this.controlDrafts.update(drafts => ({ ...drafts, [hazardId]: { ...this.controlDraft(hazardId), ...changes } }));
-  }
-
-  /** Fase 3: "Definir controles: ingeniería, administrativos y EPP". */
-  protected agregarControl(hazardId: number): void {
-    const current = this.matrix();
-    const draft = this.controlDraft(hazardId);
-    if (!current || !draft.description.trim()) return;
-
-    const nuevoControl: IpercControl = { id: this.nextLocalId(current), type: draft.type, description: draft.description.trim() };
-    const tasks = current.tasks.map(task => ({
-      ...task,
-      hazards: task.hazards.map(h => (h.id === hazardId ? { ...h, controles: [...h.controles, nuevoControl] } : h)),
-    }));
-    this.persistTasks(current, tasks);
-    this.controlDrafts.update(drafts => ({ ...drafts, [hazardId]: EMPTY_CONTROL_DRAFT }));
+    this.addingHazardForTask.set(null);
+    this.hazardDraft.set(EMPTY_HAZARD_DRAFT);
   }
 
   /** IDs únicos dentro de la matriz — no hay backend real generándolos, así que se calculan a partir del máximo existente entre tareas, peligros y controles. */
@@ -272,16 +307,5 @@ export class IpercDetailPage {
     const current = this.matrix();
     if (!current) return;
     this.ipercService.update(current.id, { status }).subscribe(updated => this.matrix.set(updated));
-  }
-
-  private patchHazard(hazardId: number, changes: Partial<IpercHazard>): void {
-    const current = this.matrix();
-    if (!current) return;
-
-    const tasks = current.tasks.map(task => ({
-      ...task,
-      hazards: task.hazards.map(h => (h.id === hazardId ? { ...h, ...changes } : h)),
-    }));
-    this.persistTasks(current, tasks);
   }
 }

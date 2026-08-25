@@ -1,0 +1,56 @@
+@if (loading()) {
+  <p class="derrame-detail-page__loading">Cargando evento…</p>
+} @else if (evento(); as e) {
+  <dynadrill-screen-header [eyebrow]="e.code" title="Evento de derrame" [subtitle]="e.descripcion" [roleTag]="estadoLabels[e.estado]" />
+
+  <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a Control de Derrames</dynadrill-button>
+
+  @if (esEmergenciaMayor()) {
+    <dynadrill-banner variant="critical" message="Derrame MAYOR — según HSE-MASTER-001 esto debe escalar a Emergencia Mayor (HSE-TRIAGE-001)." />
+    @if (e.emergenciaId) {
+      <dynadrill-tag [label]="'Emergencia EMG vinculada — #' + e.emergenciaId" variant="error" />
+    } @else {
+      <dynadrill-button variant="error" (click)="escalarAEmergencia()">🚨 Escalar a Emergencia Mayor</dynadrill-button>
+    }
+  }
+
+  <dynadrill-context-card [items]="contextItems()" />
+
+  <section class="derrame-detail-page__section">
+    <h3>1. Contención (primeros 5 minutos)</h3>
+    <dynadrill-checklist [items]="checklistItems()" (itemToggle)="toggleChecklist($event)" />
+    @if (e.estado === 'activo') {
+      <dynadrill-button [disabled]="!puedeContener()" (click)="marcarContenido()">Marcar como contenido</dynadrill-button>
+    }
+  </section>
+
+  @if (requiereMae()) {
+    <section class="derrame-detail-page__section">
+      <h3>2. Notificación obligatoria a MAE</h3>
+      @if (e.notificadoMae) {
+        <dynadrill-tag label="Notificado a MAE" variant="success" />
+      } @else {
+        <dynadrill-button variant="error" (click)="notificarMae()">Notificar a MAE</dynadrill-button>
+      }
+    </section>
+  }
+
+  @if (e.ubicacion === 'suelo') {
+    <section class="derrame-detail-page__section">
+      <h3>Suelo contaminado</h3>
+      @if (e.desechoGeneradoId) {
+        <dynadrill-tag label="Registro de desecho generado" variant="success" />
+      } @else {
+        <dynadrill-button variant="secondary" [disabled]="generandoDesecho()" (click)="generarDesecho()">
+          {{ generandoDesecho() ? 'Generando…' : 'Registrar desecho peligroso' }}
+        </dynadrill-button>
+      }
+    </section>
+  }
+
+  @if (e.estado !== 'cerrado') {
+    <dynadrill-button [disabled]="!puedeCerrar()" (click)="cerrar()">Cerrar evento</dynadrill-button>
+  } @else {
+    <dynadrill-tag label="Evento cerrado" variant="success" />
+  }
+}

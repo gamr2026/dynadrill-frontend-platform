@@ -1,0 +1,81 @@
+@if (loading()) {
+  <p class="qhse-dashboard-page__loading">Cargando dashboard…</p>
+} @else {
+  <dynadrill-screen-header
+    eyebrow="QHSE"
+    title="Dashboard Integrado del Sistema"
+    subtitle="HSE-MASTER-001 — indicadores estratégicos y semáforo de cumplimiento"
+    roleTag="HSE"
+  />
+
+  <div class="qhse-dashboard-page__semaforo">
+    <dynadrill-tag [label]="semaforoLabel[semaforo()]" [variant]="semaforoTone[semaforo()]" />
+    <span class="qhse-dashboard-page__note">{{ indicadoresFueraDeMeta() }} indicador(es) fuera de meta de los que tienen meta definida.</span>
+  </div>
+
+  <p class="qhse-dashboard-page__intro">
+    Cada tarjeta compara el valor medido contra la meta que tu equipo define — sin meta no hay nada contra qué medir el progreso, así que la barra queda vacía hasta que asignes una. El semáforo de arriba cuenta cuántos indicadores (de los que sí tienen meta) están fuera de rango.
+  </p>
+
+  @if (incumplimientoLegal()) {
+    <dynadrill-banner variant="critical" message="Incumplimiento legal detectado — ver detalle abajo. Esto fuerza el semáforo a Rojo sin importar los demás indicadores." />
+    <ul class="qhse-dashboard-page__legal-list">
+      @for (d of incumplimientoDetalle(); track d) {
+        <li>{{ d }}</li>
+      }
+    </ul>
+  }
+
+  <dynadrill-tabs
+    [tabs]="categoriaTabs"
+    [activeIndex]="categoriaIndex()"
+    (activeIndexChange)="categoriaIndex.set($event)"
+    [contentTemplate]="categoriaTpl"
+  />
+
+  <ng-template #categoriaTpl let-tab let-index="index">
+    <div class="qhse-dashboard-page__grid">
+      @for (def of defsPorCategoria(categorias[index]); track def.id) {
+        <article class="qhse-dashboard-page__card">
+          <span class="qhse-dashboard-page__valor-label">Valor actual</span>
+          <dynadrill-statistic
+            [title]="def.label"
+            [value]="def.disponible ? (valores()[def.id] ?? '—') : ''"
+            [suffix]="def.disponible ? def.unidad : ''"
+            [tone]="statTone(def)"
+            [unavailable]="!def.disponible"
+            [unavailableReason]="def.motivoNoDisponible ?? ''"
+          />
+
+          @if (def.disponible) {
+            <dynadrill-tag [label]="estadoKpi(def).texto" [variant]="estadoKpi(def).tone" />
+
+            @if (metaProgressPercent(def); as pct) {
+              <div class="qhse-dashboard-page__progress">
+                <dynadrill-progress [value]="pct" [max]="100" [showInfo]="true" [statusOverride]="metaProgressStatus(def)" />
+                <span class="qhse-dashboard-page__progress-caption">
+                  {{ pct >= 100 ? 'Meta alcanzada' : 'de la meta (' + metas()[def.id] + ' ' + def.unidad + ')' }}
+                </span>
+              </div>
+            } @else {
+              <p class="qhse-dashboard-page__meta-hint">Sin meta definida todavía — no hay contra qué medir el progreso.</p>
+            }
+
+            <div class="qhse-dashboard-page__meta-form">
+              <dynadrill-input
+                label="Meta"
+                type="number"
+                placeholder="Definida por HSE"
+                [value]="metaEdit(def.id)"
+                (valueChange)="setMetaEdit(def.id, $event)"
+              />
+              <dynadrill-button variant="secondary" size="small" (click)="guardarMeta(def.id)">
+                {{ metas()[def.id] != null ? 'Actualizar meta' : 'Guardar meta' }}
+              </dynadrill-button>
+            </div>
+          }
+        </article>
+      }
+    </div>
+  </ng-template>
+}

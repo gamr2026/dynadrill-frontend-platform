@@ -1,0 +1,62 @@
+.iperc-hazard-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border, #e5e4ea);
+
+    &:last-of-type {
+      border-bottom: none;
+    }
+  }
+
+  &__row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__matrices {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  &__controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+  }
+
+  &__add-control {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 12px;
+    background: var(--surface-muted, #faf9fc);
+    border: 1px dashed var(--border, #e5e4ea);
+    border-radius: var(--radius-sm, 4px);
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+  }
+}

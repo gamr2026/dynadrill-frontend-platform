@@ -1,8 +1,17 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { DynadrillButtonComponent, DynadrillIconComponent, DynadrillIconName, DynadrillMenuComponent, DynadrillMenuItem, DynadrillSpinnerComponent } from '@digitec-it-projects/dynadrill-ui';
+import {
+  DynadrillButtonComponent,
+  DynadrillDialogService,
+  DynadrillIconComponent,
+  DynadrillIconName,
+  DynadrillMenuComponent,
+  DynadrillMenuItem,
+  DynadrillSpinnerComponent,
+} from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../core/services/auth.service';
 import { SidebarStateService } from '../sidebar-state.service';
+import { ReportarDialog } from '../../features/qhse/shared/components/reportar-dialog';
 
 @Component({
   selector: 'app-sidebar',
@@ -14,7 +23,14 @@ import { SidebarStateService } from '../sidebar-state.service';
 export class Sidebar {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly dialogService = inject(DynadrillDialogService);
   protected readonly sidebarState = inject(SidebarStateService);
+
+  /** Solo visible en mobile (ver sidebar.scss) — en desktop "Reportar" vive en el header. */
+  protected openReportar(): void {
+    this.sidebarState.close();
+    this.dialogService.open<ReportarDialog>({ title: 'Reportar', content: ReportarDialog, size: 'small', footer: false });
+  }
 
   /**
    * El módulo de Mantenimiento solo aparece para quien tiene un rol de ese
@@ -59,8 +75,16 @@ export class Sidebar {
     }
 
     if (roleName === 'Supervisor') {
+      /**
+       * HSE-SITIO-001 asigna "Firmar PTW y Actas" al Supervisor Operativo
+       * (a diferencia de IPERC, donde el Supervisor solo participa de
+       * forma informativa) — por eso entra a Recibimiento de Sitio pero no
+       * a Matrices IPERC.
+       */
       return [
         dashboard,
+        { label: 'Aprobar Inspecciones', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/inspeccion-vehiculos' },
+        { label: 'Recibimiento de Sitio (PTW)', icon: 'alert' as DynadrillIconName, link: '/dashboard/qhse/ptw' },
         {
           label: 'Módulos',
           icon: 'modules',
@@ -90,6 +114,50 @@ export class Sidebar {
           }]
         : [];
 
+    /**
+     * A diferencia de Operativo (visible para cualquier rol "de oficina"),
+     * QHSE sí se gatea por rol desde el sidebar — igual que Mantenimiento.
+     * Mismas 3 categorías funcionales que la propuesta de composición UI
+     * ya validada con el equipo de diseño (Registros/Bitácora, Flujos por
+     * fases, Eventos críticos) — 10 ítems planos eran difíciles de escanear.
+     * Labels acortados a propósito: el sidebar es angosto y cada nivel de
+     * anidamiento le resta espacio horizontal al texto.
+     */
+    const hse: DynadrillMenuItem[] =
+      roleName === 'Técnico HSE' || roleName === 'Coordinador HSE' || roleName === 'Gerente HSE'
+        ? [{
+            label: 'QHSE',
+            icon: 'alert' as DynadrillIconName,
+            children: [
+              { label: 'Dashboard', link: '/dashboard/qhse/dashboard' },
+              {
+                label: 'Planificación',
+                children: [
+                  { label: 'IPERC', link: '/dashboard/qhse/iperc' },
+                  { label: 'PTW / Recibimiento', link: '/dashboard/qhse/ptw' },
+                ],
+              },
+              {
+                label: 'Registros de campo',
+                children: [
+                  { label: 'Inspecciones', link: '/dashboard/qhse/inspecciones' },
+                  { label: 'Desechos', link: '/dashboard/qhse/desechos' },
+                ],
+              },
+              {
+                label: 'Eventos críticos',
+                children: [
+                  { label: 'STOP', link: '/dashboard/qhse/stop' },
+                  { label: 'SWA', link: '/dashboard/qhse/swa' },
+                  { label: 'Derrames', link: '/dashboard/qhse/derrames' },
+                  { label: 'Emergencias', link: '/dashboard/qhse/emergencias' },
+                  { label: 'Investigaciones', link: '/dashboard/qhse/investigaciones' },
+                ],
+              },
+            ],
+          }]
+        : [];
+
     return [
       dashboard,
       {
@@ -110,7 +178,7 @@ export class Sidebar {
             ],
           },
           ...maintenance,
-          { label: 'QHSE', link: '/dashboard/qhse' },
+          ...hse,
         ],
       },
     ];

@@ -1,0 +1,10 @@
+.inspeccion-list-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__toolbar {
+    display: flex;
+    justify-content: flex-end;
+  }
+}

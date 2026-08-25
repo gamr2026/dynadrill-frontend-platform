@@ -1,0 +1,15 @@
+<div class="emergencia-alert-dialog">
+  <dynadrill-banner variant="critical" message="EMERGENCIA — detén el trabajo, evacúa a favor del viento y dirígete al Punto de Encuentro. Esto activa el cronómetro y la notificación en cascada." />
+
+  <dynadrill-input label="Tipo de emergencia" placeholder="Ej: fuego, fuga de H2S, accidente grave, reventón..." [value]="tipo()" (valueChange)="tipo.set($event)" />
+  <dynadrill-textarea label="Descripción de la situación" [value]="descripcion()" (valueChange)="descripcion.set($event)" [rows]="3" />
+  <dynadrill-input label="Ubicación" [value]="ubicacion()" (valueChange)="ubicacion.set($event)" />
+  <dynadrill-input label="Activado por" [value]="activadoPorNombre()" (valueChange)="activadoPorNombre.set($event)" />
+
+  <div class="emergencia-alert-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button variant="error" [disabled]="!puedeActivar() || submitting()" (clicked)="activar()">
+      {{ submitting() ? 'Activando…' : '🚨 Activar Emergencia' }}
+    </dynadrill-button>
+  </div>
+</div>

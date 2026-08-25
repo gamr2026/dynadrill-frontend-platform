@@ -1,0 +1,23 @@
+<dynadrill-screen-header eyebrow="QHSE" title="Gestión de Desechos" subtitle="HSE-AMBIENTAL-001 — bitácora, manifiestos y disposición final" roleTag="HSE" />
+
+<div class="desecho-list-page__toolbar">
+  <dynadrill-button (clicked)="nuevoDesecho()">+ Registrar desecho</dynadrill-button>
+</div>
+
+<dynadrill-kpi-row [items]="kpis()" />
+
+<ng-template #actionsTpl let-row>
+  <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
+</ng-template>
+
+<dynadrill-data-table
+  [columns]="columns()"
+  [rows]="rows()"
+  [loading]="loading()"
+  [rowKey]="rowKeyFn"
+  [pageSize]="10"
+  [scrollX]="tableScrollX() ?? ''"
+  actionsHeader="Ver"
+  [actionsFixed]="!!tableScrollX()"
+  [actionsTemplate]="actionsTpl"
+/>

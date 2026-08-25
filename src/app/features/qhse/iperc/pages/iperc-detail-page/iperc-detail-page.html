@@ -1,0 +1,153 @@
+@if (loading()) {
+  <p class="iperc-detail-page__loading">Cargando matriz IPERC…</p>
+} @else if (matrix(); as m) {
+  <dynadrill-screen-header [eyebrow]="m.code" [title]="m.actividad" [subtitle]="m.ubicacion" [roleTag]="statusLabel()" />
+
+  <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a IPERC</dynadrill-button>
+
+  @if (m.leccionAprendidaPendiente) {
+    <dynadrill-banner
+      variant="warning"
+      [message]="'Lección aprendida de ' + (m.leccionAprendidaInvestigacionCode ?? 'una investigación') + ': ' + m.leccionAprendidaTexto"
+    />
+    <dynadrill-button variant="secondary" size="small" (click)="marcarLeccionRevisada()">Marcar lección revisada</dynadrill-button>
+  }
+
+  <section class="iperc-detail-page__stepper-card">
+    <dynadrill-stepper [steps]="faseSteps" [currentIndex]="faseIndex()" />
+  </section>
+
+  <div class="iperc-detail-page__overview">
+    <dynadrill-context-card [items]="contextItems()" layout="vertical" />
+
+    <div class="iperc-detail-page__equipo">
+      <span class="iperc-detail-page__equipo-label">Equipo evaluador</span>
+      @if (m.equipoEvaluador.length > 0) {
+        <div class="iperc-detail-page__equipo-avatars">
+          @for (nombre of m.equipoEvaluador; track nombre) {
+            <div class="iperc-detail-page__equipo-member">
+              <dynadrill-avatar [name]="nombre" size="sm" />
+              <span>{{ nombre }}</span>
+            </div>
+          }
+        </div>
+      } @else {
+        <span class="iperc-detail-page__equipo-empty">Sin definir</span>
+      }
+    </div>
+  </div>
+
+  <div class="iperc-detail-page__tasks">
+    @for (task of m.tasks; track task.id) {
+      <dynadrill-card [accent]="taskRiskTone(task).tone">
+        <span card-title>{{ task.descripcion }}</span>
+        <dynadrill-tag card-extra [label]="taskRiskTone(task).label" [variant]="taskRiskTone(task).tone" />
+
+        @if (task.hazards.length > 0) {
+          <ul class="iperc-detail-page__hazard-list">
+            @for (hazard of task.hazards; track hazard.id) {
+              <li class="iperc-detail-page__hazard-row">
+                <div class="iperc-detail-page__hazard-info">
+                  <span class="iperc-detail-page__hazard-name">{{ hazard.peligro }}</span>
+                  <span class="iperc-detail-page__hazard-source">{{ hazard.fuenteRiesgo }}</span>
+                </div>
+                <dynadrill-tag [label]="hazardRiskTag(hazard).label" [variant]="hazardRiskTag(hazard).tone" />
+                <dynadrill-icon-button icon="eye" tooltip="Ver detalle y controles" tooltipPlacement="top" (clicked)="verPeligro(task, hazard)" />
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="iperc-detail-page__empty">Sin peligros identificados todavía.</p>
+        }
+
+        @if (canEditContent()) {
+          @if (addingHazardForTask() === task.id) {
+            <div class="iperc-detail-page__add-form">
+              <dynadrill-input placeholder="Peligro identificado" [value]="hazardDraft().peligro" (valueChange)="setHazardDraftField('peligro', $event)" />
+              <dynadrill-input placeholder="Fuente del riesgo" [value]="hazardDraft().fuenteRiesgo" (valueChange)="setHazardDraftField('fuenteRiesgo', $event)" />
+              <dynadrill-input placeholder="Controles existentes (opcional)" [value]="hazardDraft().controlesExistentes" (valueChange)="setHazardDraftField('controlesExistentes', $event)" />
+              <div class="iperc-detail-page__add-form-actions">
+                <dynadrill-button variant="secondary" size="small" (click)="toggleAddHazard(task.id)">Cancelar</dynadrill-button>
+                <dynadrill-button size="small" (click)="agregarPeligro(task.id)">+ Agregar peligro</dynadrill-button>
+              </div>
+            </div>
+          } @else {
+            <dynadrill-button variant="secondary" size="small" (click)="toggleAddHazard(task.id)">+ Agregar peligro</dynadrill-button>
+          }
+        }
+      </dynadrill-card>
+    }
+
+    @if (canAddTask()) {
+      @if (addingTask()) {
+        <dynadrill-card accent="none">
+          <span card-title>Nueva tarea</span>
+          <div class="iperc-detail-page__add-form">
+            <dynadrill-input placeholder="Descripción de la tarea" [value]="nuevaTareaDescripcion()" (valueChange)="nuevaTareaDescripcion.set($event)" />
+            <div class="iperc-detail-page__add-form-actions">
+              <dynadrill-button variant="secondary" size="small" (click)="toggleAddTask()">Cancelar</dynadrill-button>
+              <dynadrill-button size="small" (click)="agregarTarea()">+ Agregar tarea</dynadrill-button>
+            </div>
+          </div>
+        </dynadrill-card>
+      } @else {
+        <dynadrill-button variant="secondary" (click)="toggleAddTask()">+ Agregar tarea</dynadrill-button>
+      }
+    }
+  </div>
+
+  @if (isEnEvaluacion() || m.atsAdjunto || m.procedimientoAdjunto) {
+    <section class="iperc-detail-page__task">
+      <h3 class="iperc-detail-page__task-title">Fase 4 — Documentación</h3>
+      <p class="iperc-detail-page__empty">Se elaboran y adjuntan acá, antes de enviar la matriz a revisión — quien la aprueba necesita tenerlos disponibles.</p>
+      <div class="iperc-detail-page__docs">
+        <div>
+          <span class="iperc-detail-page__docs-label">ATS base</span>
+          <dynadrill-upload-zone [state]="m.atsAdjunto ? 'uploaded' : 'idle'" [fileName]="m.atsAdjunto ?? ''" (fileSelected)="onAtsUpload($event)" />
+        </div>
+        <div>
+          <span class="iperc-detail-page__docs-label">Procedimiento operativo</span>
+          <dynadrill-upload-zone
+            [state]="m.procedimientoAdjunto ? 'uploaded' : 'idle'"
+            [fileName]="m.procedimientoAdjunto ?? ''"
+            (fileSelected)="onProcedimientoUpload($event)"
+          />
+        </div>
+      </div>
+    </section>
+  }
+
+  <section class="iperc-detail-page__actions">
+    @if (canStartEvaluation()) {
+      <dynadrill-button (click)="startEvaluation()">Iniciar evaluación</dynadrill-button>
+    }
+    @if (canSendToReview()) {
+      <dynadrill-button [disabled]="!documentacionCompleta()" (click)="sendToReview()">Enviar a revisión</dynadrill-button>
+      @if (!documentacionCompleta()) {
+        <span class="iperc-detail-page__actions-hint">Adjunta el ATS y el procedimiento operativo para poder enviar a revisión.</span>
+      }
+    }
+    @if (canOpenPtw()) {
+      <dynadrill-button [disabled]="openingPtw()" (click)="abrirRecibimientoSitio()">
+        {{ openingPtw() ? 'Abriendo PTW…' : 'Abrir Recibimiento de Sitio (PTW)' }}
+      </dynadrill-button>
+    }
+  </section>
+
+  @if (openPtwError()) {
+    <p class="iperc-detail-page__error">{{ openPtwError() }}</p>
+  }
+
+  @if (canReviewNow() && canApprove()) {
+    <dynadrill-approval-actions
+      consequenceApprove="La matriz queda aprobada y disponible para abrir el Recibimiento de Sitio (PTW) de HSE-SITIO-001."
+      consequenceReject="La matriz vuelve a evaluación para que el equipo la corrija."
+      (decisionChange)="onDecision($event)"
+    />
+  } @else if (canReviewNow()) {
+    <dynadrill-banner
+      variant="info"
+      message="En revisión — pendiente de que Coordinador HSE o Gerente HSE la aprueben o la rechacen. Tu rol no tiene permiso para decidir sobre esta matriz."
+    />
+  }
+}

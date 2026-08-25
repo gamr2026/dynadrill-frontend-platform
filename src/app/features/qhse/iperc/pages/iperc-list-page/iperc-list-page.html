@@ -1,0 +1,45 @@
+<dynadrill-screen-header
+  eyebrow="QHSE"
+  title="Matrices IPERC"
+  subtitle="Identificación de Peligros, Evaluación de Riesgos y Controles"
+  roleTag="HSE"
+/>
+
+<div class="iperc-list-page__toolbar">
+  <dynadrill-button (clicked)="nuevaMatriz()">+ Nueva matriz IPERC</dynadrill-button>
+</div>
+
+<dynadrill-kpi-row [items]="kpis()" />
+
+<ng-template #actionsTpl let-row>
+  <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
+</ng-template>
+
+<ng-template #faseTpl let-row>
+  <dynadrill-phase-track
+    [steps]="faseSteps"
+    [currentIndex]="row.faseIndex"
+    [blocked]="row.faseBlocked"
+    [blockedReason]="row.faseBlockedReason"
+    [stepLabels]="faseLabels"
+  />
+</ng-template>
+
+<div class="iperc-list-page__fase-legend">
+  <span><i class="iperc-list-page__dot iperc-list-page__dot--done"></i>Completada</span>
+  <span><i class="iperc-list-page__dot iperc-list-page__dot--current"></i>Fase actual</span>
+  <span><i class="iperc-list-page__dot iperc-list-page__dot--pending"></i>Pendiente</span>
+</div>
+
+<dynadrill-data-table
+  [columns]="columns()"
+  [rows]="rows()"
+  [loading]="loading()"
+  [rowKey]="rowKeyFn"
+  [pageSize]="10"
+  [scrollX]="tableScrollX() ?? ''"
+  actionsHeader="Ver"
+  [actionsFixed]="!!tableScrollX()"
+  [actionsTemplate]="actionsTpl"
+  [columnTemplates]="{ statusBadge: faseTpl }"
+/>

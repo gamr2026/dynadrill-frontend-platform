@@ -1,0 +1,27 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.derrame-detail-page {
+  &__loading {
+    padding: 24px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-md, 6px);
+
+    h3 {
+      margin: 0 0 4px;
+      font-size: 15px;
+    }
+  }
+}

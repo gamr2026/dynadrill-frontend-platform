@@ -1,0 +1,28 @@
+<div class="inspeccion-equipo-dialog">
+  <div class="inspeccion-equipo-dialog__grid">
+    <dynadrill-select label="Tipo de equipo" [options]="tipoOptions" [value]="tipo()" (valueChange)="onTipoChange($event)" />
+    <dynadrill-input label="Código del equipo" [value]="equipoCodigo()" (valueChange)="equipoCodigo.set($event)" />
+  </div>
+
+  <div class="inspeccion-equipo-dialog__grid">
+    <dynadrill-input label="Inspector" [value]="inspectorNombre()" (valueChange)="inspectorNombre.set($event)" />
+    <dynadrill-datetime-picker mode="date" label="Fecha" [value]="fecha()!" (valueChange)="fecha.set($event)" />
+  </div>
+
+  @if (tipo() === 'detector_gas') {
+    <dynadrill-checkbox label="Bump test realizado en las últimas 24 h" [checked]="bumpTestRealizado()" (checkedChange)="bumpTestRealizado.set($event)" />
+  }
+
+  <p class="inspeccion-equipo-dialog__criterios-label">Criterios de rechazo — marca lo que SÍ cumple</p>
+  <dynadrill-checklist [items]="criterios()" (itemToggle)="onCriterioToggle($event)" />
+
+  <div class="inspeccion-equipo-dialog__resultado">
+    <span>Resultado:</span>
+    <dynadrill-tag [label]="resultado() === 'aprobado' ? 'Aprobado' : 'Rechazado — en cuarentena'" [variant]="resultado() === 'aprobado' ? 'success' : 'error'" />
+  </div>
+
+  <div class="inspeccion-equipo-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">{{ submitting() ? 'Guardando…' : 'Registrar inspección' }}</dynadrill-button>
+  </div>
+</div>

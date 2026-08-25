@@ -1,0 +1,40 @@
+<div class="iperc-matrix-dialog">
+  <dynadrill-textarea label="Actividad" [value]="actividad()" (valueChange)="actividad.set($event)" [rows]="2" />
+
+  <dynadrill-select
+    label="Ubicación"
+    placeholder="Selecciona o agrega una ubicación"
+    [options]="ubicacionOptions()"
+    [value]="ubicacion()"
+    [searchable]="true"
+    [creatable]="true"
+    (valueChange)="ubicacion.set($any($event) ?? '')"
+    (itemCreated)="agregarUbicacion($event)"
+  />
+
+  <div class="iperc-matrix-dialog__equipo">
+    <span class="iperc-matrix-dialog__label">Equipo evaluador multidisciplinario</span>
+    <div class="iperc-matrix-dialog__equipo-add">
+      <dynadrill-input placeholder="Nombre y rol (ej. Ana Torres — Técnico HSE)" [value]="nuevoIntegrante()" (valueChange)="nuevoIntegrante.set($event)" />
+      <dynadrill-button variant="secondary" size="small" (clicked)="agregarIntegrante()">+ Agregar</dynadrill-button>
+    </div>
+
+    @if (equipoEvaluador().length > 0) {
+      <ul class="iperc-matrix-dialog__equipo-list">
+        @for (nombre of equipoEvaluador(); track nombre) {
+          <li>
+            <span>{{ nombre }}</span>
+            <dynadrill-icon-button icon="delete" tooltip="Quitar" (clicked)="quitarIntegrante(nombre)" />
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="iperc-matrix-dialog__hint">Agrega al menos un integrante — HSE-PLAN-001 exige un equipo multidisciplinario, no una sola persona.</p>
+    }
+  </div>
+
+  <div class="iperc-matrix-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">{{ submitting() ? 'Creando…' : 'Crear matriz' }}</dynadrill-button>
+  </div>
+</div>

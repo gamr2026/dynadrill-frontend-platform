@@ -1,0 +1,30 @@
+<dynadrill-screen-header eyebrow="QHSE" title="Control de Derrames" subtitle="HSE-AMBIENTAL-002 — contención y respuesta" roleTag="HSE" />
+
+<dynadrill-kpi-row [items]="kpis()" />
+
+<div class="derrame-list-page__grid">
+  @for (c of cards(); track c.id) {
+    <dynadrill-card [accent]="c.accent">
+      <span card-title>{{ c.code }}</span>
+      <div card-extra class="derrame-list-page__extra">
+        @if (c.esMayor) {
+          <dynadrill-tag label="Mayor" variant="error" />
+        }
+        @if (c.notificadoMae) {
+          <dynadrill-tag label="MAE notificado" variant="info" />
+        }
+        <dynadrill-tag [label]="c.estadoLabel" [variant]="c.accent" />
+      </div>
+
+      <p class="derrame-list-page__descripcion">{{ c.descripcion }}</p>
+      <dl class="derrame-list-page__meta">
+        <div><dt>Volumen</dt><dd>{{ c.volumenLabel }}</dd></div>
+        <div><dt>Fecha/hora</dt><dd>{{ c.activadoAt }}</dd></div>
+      </dl>
+
+      <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(c.id)">Ver detalle</dynadrill-button>
+    </dynadrill-card>
+  } @empty {
+    <dynadrill-banner variant="info" message="Todavía no hay derrames registrados. Se crean desde el botón 'Reportar' del encabezado." />
+  }
+</div>

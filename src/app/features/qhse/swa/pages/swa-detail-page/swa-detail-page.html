@@ -1,0 +1,68 @@
+@if (loading()) {
+  <p class="swa-detail-page__loading">Cargando evento…</p>
+} @else if (evento(); as e) {
+  <dynadrill-screen-header [eyebrow]="e.code" [title]="e.tipoPeligro" [subtitle]="e.descripcion" [roleTag]="estadoLabels[e.estado]" />
+
+  <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a Stop Work Authority</dynadrill-button>
+
+  <dynadrill-banner variant="critical" [message]="zeroRetaliationNotice" />
+
+  <dynadrill-context-card [items]="contextItems()" />
+
+  <section class="swa-detail-page__section">
+    <h3>1. Cadena de notificación</h3>
+    <div class="swa-detail-page__notificaciones">
+      @for (n of e.notificaciones; track n.rol) {
+        <div class="swa-detail-page__notificacion">
+          <span>{{ n.rol }}</span>
+          @if (n.notificadoAt) {
+            <dynadrill-tag label="Notificado {{ n.notificadoAt | date: 'short' }}" variant="success" />
+          } @else {
+            <dynadrill-button variant="secondary" size="small" (click)="notificarRol(n.rol)">Marcar notificado</dynadrill-button>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="swa-detail-page__section">
+    <h3>2. Evaluación — ¿riesgo real o falsa alarma?</h3>
+    @if (e.riesgoReal === null) {
+      <dynadrill-textarea label="Nota de evaluación (opcional)" [value]="evaluacionNota()" (valueChange)="evaluacionNota.set($event)" [rows]="2" />
+      <div class="swa-detail-page__evaluacion-actions">
+        <dynadrill-button variant="error" [disabled]="!notificacionCompleta()" (click)="evaluar(true)">Riesgo real</dynadrill-button>
+        <dynadrill-button variant="secondary" [disabled]="!notificacionCompleta()" (click)="evaluar(false)">Falsa alarma</dynadrill-button>
+      </div>
+      @if (!notificacionCompleta()) {
+        <p class="swa-detail-page__note">Notifica a los 3 roles antes de evaluar el riesgo.</p>
+      }
+    } @else {
+      <dynadrill-tag [label]="e.riesgoReal ? 'Riesgo real' : 'Falsa alarma'" [variant]="e.riesgoReal ? 'error' : 'neutral'" />
+      @if (e.evaluacionNota) {
+        <p>{{ e.evaluacionNota }}</p>
+      }
+      @if (e.riesgoReal && e.estado !== 'cerrado') {
+        @if (e.emergenciaId) {
+          <dynadrill-tag [label]="'Emergencia vinculada — #' + e.emergenciaId" variant="error" />
+        } @else {
+          <p class="swa-detail-page__note">Si el riesgo no se puede controlar en sitio, escala a Emergencia Mayor en vez de reanudar.</p>
+          <dynadrill-button variant="error" (click)="escalarAEmergencia()">🚨 Escalar a Emergencia Mayor</dynadrill-button>
+        }
+      }
+    }
+  </section>
+
+  <section class="swa-detail-page__section">
+    <h3>3. Checklist de reanudación</h3>
+    <dynadrill-checklist [items]="checklistItems()" (itemToggle)="toggleChecklist($event)" />
+  </section>
+
+  @if (e.estado !== 'cerrado') {
+    <section class="swa-detail-page__section">
+      <dynadrill-checkbox label="Reconocer como 'Héroe de Seguridad'" [checked]="e.heroeSeguridad" (checkedChange)="toggleHeroe($event)" />
+      <dynadrill-button [disabled]="!puedeReanudar()" (click)="reanudar()">Reanudar trabajo</dynadrill-button>
+    </section>
+  } @else {
+    <dynadrill-tag label="Trabajo reanudado — evento cerrado" variant="success" />
+  }
+}

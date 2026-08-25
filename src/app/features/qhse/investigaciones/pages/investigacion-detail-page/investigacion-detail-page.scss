@@ -1,0 +1,68 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.investigacion-detail-page {
+  &__loading {
+    padding: 24px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__note {
+    color: var(--text-muted, #5c5870);
+    font-size: 13px;
+    margin: 0;
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-md, 6px);
+
+    h3 {
+      margin: 0 0 4px;
+      font-size: 15px;
+    }
+  }
+
+  &__inline-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px;
+
+    > * { flex: 1 1 160px; }
+  }
+
+  &__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  &__porque {
+    margin: 0;
+    font-size: 13px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border, #e5e4ea);
+  }
+
+  &__accion {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px;
+    background: var(--surface-muted, #faf9fc);
+    border-radius: var(--radius-sm, 4px);
+    font-size: 13px;
+
+    > div { display: flex; flex-direction: column; gap: 2px; }
+  }
+}

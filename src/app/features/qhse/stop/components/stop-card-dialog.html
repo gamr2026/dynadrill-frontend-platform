@@ -1,0 +1,29 @@
+<div class="stop-card-dialog">
+  <dynadrill-text variant="caption">Tipo de observación</dynadrill-text>
+  <dynadrill-chip-group mode="single" [options]="tipoOptions" [selected]="tipoLabel()" (selectedChange)="tipoLabel.set($event)" />
+
+  <dynadrill-text variant="caption">Categoría (elige una o más)</dynadrill-text>
+  <dynadrill-chip-group mode="multiple" [options]="categoriaOptions" [selected]="categorias()" (selectedChange)="categorias.set($event)" />
+
+  <dynadrill-textarea label="Descripción" [value]="descripcion()" (valueChange)="descripcion.set($event)" [rows]="2" />
+  <dynadrill-textarea label="Riesgo potencial" [value]="riesgoPotencial()" (valueChange)="riesgoPotencial.set($event)" [rows]="2" />
+  <dynadrill-textarea label="Acción correctiva inmediata" [value]="accionCorrectivaInmediata()" (valueChange)="accionCorrectivaInmediata.set($event)" [rows]="2" />
+
+  <div class="stop-card-dialog__grid">
+    <dynadrill-input label="Ubicación" [value]="ubicacion()" (valueChange)="ubicacion.set($event)" />
+    <dynadrill-input label="Observador (quien reporta)" [value]="observadorNombre()" (valueChange)="observadorNombre.set($event)" />
+  </div>
+
+  <div class="stop-card-dialog__observado">
+    <dynadrill-input label="Observado (opcional)" [value]="observadoNombre()" (valueChange)="observadoNombre.set($event)" />
+    <dynadrill-button variant="secondary" size="small" (clicked)="marcarAnonimo()">Anónimo</dynadrill-button>
+  </div>
+
+  <dynadrill-text variant="caption">Fotografía (opcional)</dynadrill-text>
+  <dynadrill-upload-zone [state]="fotoFileName() ? 'uploaded' : 'idle'" [fileName]="fotoFileName()" (fileSelected)="onFotoUpload($event)" />
+
+  <div class="stop-card-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">{{ submitting() ? 'Guardando…' : 'Registrar tarjeta STOP' }}</dynadrill-button>
+  </div>
+</div>

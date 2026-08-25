@@ -6,6 +6,10 @@
   </button>
   <img class="app-header__logo" src="/brand/dynadrill-logo.svg" alt="Dynadrill" />
   <div class="app-header__spacer"></div>
+  <dynadrill-button class="app-header__reportar-btn" variant="error" size="small" (clicked)="openReportar()">
+    <dynadrill-icon name="alert" [size]="14" />
+    Reportar
+  </dynadrill-button>
   <dynadrill-notification-bell class="app-header__bell" [items]="notificationItems()" (itemClick)="onNotificationClick($event)" />
   <dynadrill-button class="app-header__logout-btn" variant="secondary" size="small" [disabled]="loggingOut()" (clicked)="logout()">
     <span class="app-header__logout">

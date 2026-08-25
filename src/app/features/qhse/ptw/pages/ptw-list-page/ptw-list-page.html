@@ -1,0 +1,35 @@
+<dynadrill-screen-header
+  eyebrow="QHSE"
+  title="Recibimiento de Sitio (PTW)"
+  subtitle="Permit to Work — desde el gabinete hasta la devolución del sitio"
+  roleTag="HSE"
+/>
+
+<dynadrill-kpi-row [items]="kpis()" />
+
+<ng-template #actionsTpl let-row>
+  <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
+</ng-template>
+
+<ng-template #faseTpl let-row>
+  <dynadrill-phase-track [steps]="faseSteps" [currentIndex]="row.faseIndex" [stepLabels]="faseLabels" />
+</ng-template>
+
+<div class="ptw-list-page__fase-legend">
+  <span><i class="ptw-list-page__dot ptw-list-page__dot--done"></i>Completada</span>
+  <span><i class="ptw-list-page__dot ptw-list-page__dot--current"></i>Fase actual</span>
+  <span><i class="ptw-list-page__dot ptw-list-page__dot--pending"></i>Pendiente</span>
+</div>
+
+<dynadrill-data-table
+  [columns]="columns()"
+  [rows]="rows()"
+  [loading]="loading()"
+  [rowKey]="rowKeyFn"
+  [pageSize]="10"
+  [scrollX]="tableScrollX() ?? ''"
+  actionsHeader="Ver"
+  [actionsFixed]="!!tableScrollX()"
+  [actionsTemplate]="actionsTpl"
+  [columnTemplates]="{ faseBadge: faseTpl }"
+/>

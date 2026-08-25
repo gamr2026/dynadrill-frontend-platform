@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
+  DynadrillBannerComponent,
   DynadrillButtonComponent,
   DynadrillCardAccent,
   DynadrillCardComponent,
@@ -34,6 +35,7 @@ function formatDate(iso: string): string {
     DynadrillCardComponent,
     DynadrillTagComponent,
     DynadrillButtonComponent,
+    DynadrillBannerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './investigacion-list-page.html',

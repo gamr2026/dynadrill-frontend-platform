@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
+  DynadrillBannerComponent,
   DynadrillButtonComponent,
   DynadrillCardAccent,
   DynadrillCardComponent,
@@ -27,7 +28,14 @@ const ESTADO_TONE: Record<SwaEvento['estado'], DynadrillTagVariant & DynadrillCa
 /** HSE-SEGUIMIENTO-003 — bandeja de eventos Stop Work Authority. */
 @Component({
   selector: 'app-swa-list-page',
-  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillCardComponent, DynadrillTagComponent, DynadrillButtonComponent],
+  imports: [
+    DynadrillScreenHeaderComponent,
+    DynadrillKpiRowComponent,
+    DynadrillCardComponent,
+    DynadrillTagComponent,
+    DynadrillButtonComponent,
+    DynadrillBannerComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './swa-list-page.html',
   styleUrl: './swa-list-page.scss',

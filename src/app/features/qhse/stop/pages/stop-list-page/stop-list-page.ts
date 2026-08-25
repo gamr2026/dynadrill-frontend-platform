@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import {
+  DynadrillBannerComponent,
   DynadrillButtonComponent,
   DynadrillCardAccent,
   DynadrillCardComponent,
@@ -40,6 +41,7 @@ const TIPO_ACCENT: Record<StopTipo, DynadrillTagVariant & DynadrillCardAccent> =
     DynadrillSpinnerComponent,
     DynadrillChartComponent,
     DynadrillTextComponent,
+    DynadrillBannerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './stop-list-page.html',

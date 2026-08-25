@@ -24,5 +24,7 @@
 
       <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(c.id)">Ver detalle</dynadrill-button>
     </dynadrill-card>
+  } @empty {
+    <dynadrill-banner variant="info" message="Todavía no hay derrames registrados. Se crean desde el botón 'Reportar' del encabezado." />
   }
 </div>

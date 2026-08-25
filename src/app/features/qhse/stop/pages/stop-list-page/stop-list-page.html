@@ -30,6 +30,8 @@
             <div><dt>Fecha</dt><dd>{{ c.fecha }}</dd></div>
           </dl>
         </dynadrill-card>
+      } @empty {
+        <dynadrill-banner variant="info" message="Todavía no hay tarjetas STOP registradas. Se crean desde el botón 'Reportar' del encabezado." />
       }
     </div>
   </dynadrill-spinner>

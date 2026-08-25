@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
+  DynadrillBannerComponent,
   DynadrillButtonComponent,
   DynadrillCardAccent,
   DynadrillCardComponent,
@@ -37,6 +38,7 @@ const DOS_HORAS_SEGUNDOS = 2 * 60 * 60;
     DynadrillTagComponent,
     DynadrillTimerComponent,
     DynadrillButtonComponent,
+    DynadrillBannerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './emergencia-list-page.html',

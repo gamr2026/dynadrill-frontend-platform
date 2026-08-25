@@ -24,6 +24,12 @@ import { CreateInvestigacionInput, DEFAULT_ISHIKAWA, Investigacion } from '../..
  * Borrar junto con su registro en app.config.ts cuando /api/qhse exista de
  * verdad.
  */
+
+/** Timestamp relativo a "ahora" — usado para que la emergencia activa de la semilla siempre muestre una cuenta regresiva de Reporte Flash con tiempo real restante, sin importar cuándo se abra la demo. */
+function hace(minutos: number): string {
+  return new Date(Date.now() - minutos * 60_000).toISOString();
+}
+
 let matrices: IpercMatrix[] = [
   {
     id: 1,
@@ -35,6 +41,9 @@ let matrices: IpercMatrix[] = [
     atsGenerado: false,
     createdAt: '2026-08-15T08:00:00.000Z',
     updatedAt: '2026-08-18T10:00:00.000Z',
+    leccionAprendidaPendiente: true,
+    leccionAprendidaTexto: 'Incorporar inspección periódica de empaques de líneas críticas en el plan de mantenimiento preventivo.',
+    leccionAprendidaInvestigacionCode: 'INV-2026-0008',
     tasks: [
       {
         id: 1,
@@ -217,48 +226,327 @@ function nextStopCode(): string {
   return `STOP-${year}-${String(nextStopId).padStart(4, '0')}`;
 }
 
-let swaEventos: SwaEvento[] = [];
-let nextSwaId = 1;
+let swaEventos: SwaEvento[] = [
+  {
+    id: 1,
+    code: 'SWA-2026-0004',
+    estado: 'activo',
+    activadoPorNombre: 'Pedro Salinas',
+    tipoPeligro: 'Fuga de gas en línea de producción',
+    descripcion: 'Se detectó olor a gas cerca de la válvula de la línea 3; se detuvo el trabajo de inmediato.',
+    ubicacion: 'Pozo Delta-7',
+    activadoAt: '2026-08-25T09:00:00.000Z',
+    notificaciones: SWA_NOTIFICATION_ROLES.map(rol => ({ rol, notificadoAt: rol === 'Supervisor' ? '2026-08-25T09:05:00.000Z' : undefined })),
+    riesgoReal: null,
+    checklistReanudacion: DEFAULT_SWA_REANUDACION_CHECKLIST.map(i => ({ ...i })),
+    heroeSeguridad: false,
+  },
+  {
+    id: 2,
+    code: 'SWA-2026-0003',
+    estado: 'cerrado',
+    activadoPorNombre: 'Marta Chávez',
+    tipoPeligro: 'Posición insegura bajo carga suspendida',
+    descripcion: 'Operador detuvo la maniobra de izaje al notar personal bajo la carga.',
+    ubicacion: 'Pozo Beta-9',
+    activadoAt: '2026-08-18T11:00:00.000Z',
+    notificaciones: SWA_NOTIFICATION_ROLES.map(rol => ({ rol, notificadoAt: '2026-08-18T11:10:00.000Z' })),
+    riesgoReal: true,
+    evaluacionNota: 'Se confirmó zona de riesgo bajo carga; se reforzó señalización y radio de exclusión.',
+    evaluadoAt: '2026-08-18T11:30:00.000Z',
+    checklistReanudacion: DEFAULT_SWA_REANUDACION_CHECKLIST.map(i => ({ ...i, checked: true })),
+    reanudadoAt: '2026-08-18T12:00:00.000Z',
+    heroeSeguridad: true,
+  },
+];
+let nextSwaId = 3;
 
 function nextSwaCode(): string {
   const year = new Date().getFullYear();
   return `SWA-${year}-${String(nextSwaId).padStart(4, '0')}`;
 }
 
-let inspecciones: InspeccionEquipo[] = [];
-let nextInspeccionId = 1;
+let inspecciones: InspeccionEquipo[] = [
+  {
+    id: 1,
+    code: 'INSP-2026-0014',
+    tipo: 'eslinga_cable',
+    equipoCodigo: 'ESL-014',
+    inspectorNombre: 'Carlos Muñoz',
+    fecha: '2026-08-24T07:30:00.000Z',
+    criterios: [
+      { label: 'Sin hilos rotos, cocas ni aplastamientos', checked: true },
+      { label: 'Ganchos con seguro funcional, sin deformación', checked: true },
+      { label: 'Etiqueta de capacidad (WLL) legible', checked: true },
+      { label: 'Sin corrosión ni decoloración por calor', checked: true },
+    ],
+    resultado: 'aprobado',
+    vigenciaHasta: inspeccionVigenciaHasta('2026-08-24T07:30:00.000Z'),
+  },
+  {
+    id: 2,
+    code: 'INSP-2026-0015',
+    tipo: 'detector_gas',
+    equipoCodigo: 'DET-007',
+    inspectorNombre: 'Ana Torres',
+    fecha: '2026-08-24T07:45:00.000Z',
+    criterios: [
+      { label: 'Bump test vigente (últimas 24 h)', checked: true },
+      { label: 'Batería con carga suficiente para el turno', checked: true },
+      { label: 'Sensores sin daño físico ni obstrucción', checked: true },
+      { label: 'Calibración dentro del período del fabricante', checked: true },
+    ],
+    resultado: 'aprobado',
+    bumpTestRealizado: true,
+    vigenciaHasta: inspeccionVigenciaHasta('2026-08-24T07:45:00.000Z'),
+  },
+  {
+    id: 3,
+    code: 'INSP-2026-0013',
+    tipo: 'vehiculo_grua',
+    equipoCodigo: 'CAM-04',
+    inspectorNombre: 'Jorge Ibarra',
+    fecha: '2026-08-23T08:00:00.000Z',
+    criterios: [
+      { label: 'Frenos, luces y cinturones operativos', checked: false },
+      { label: 'Estabilizadores y niveles sin fugas', checked: true },
+      { label: 'Cable/pluma sin daño visible', checked: true },
+      { label: 'Documentos de la unidad vigentes', checked: true },
+    ],
+    resultado: 'rechazado',
+    vigenciaHasta: inspeccionVigenciaHasta('2026-08-23T08:00:00.000Z'),
+  },
+];
+let nextInspeccionId = 4;
 
 function nextInspeccionCode(): string {
   const year = new Date().getFullYear();
   return `INSP-${year}-${String(nextInspeccionId).padStart(4, '0')}`;
 }
 
-let desechos: Desecho[] = [];
-let nextDesechoId = 1;
+let desechos: Desecho[] = [
+  {
+    id: 1,
+    code: 'RES-2026-0018',
+    clasificacion: 'peligroso',
+    cretib: ['Inflamable', 'Tóxico'],
+    contenedorColor: 'negro',
+    descripcion: 'Trapos y EPP contaminados con hidrocarburo',
+    pesoKg: 45,
+    ubicacion: 'Pozo Delta-7',
+    generadoPorNombre: 'Cuadrilla de mantenimiento',
+    estado: 'almacenado',
+    createdAt: '2025-09-10T08:00:00.000Z',
+    limiteAlmacenamientoHasta: desechoLimiteAlmacenamiento('2025-09-10T08:00:00.000Z'),
+  },
+  {
+    id: 2,
+    code: 'RES-2026-0009',
+    clasificacion: 'no_peligroso',
+    cretib: [],
+    contenedorColor: 'azul',
+    descripcion: 'Chatarra metálica y embalajes reciclables',
+    pesoKg: 120,
+    ubicacion: 'Pozo Beta-9',
+    generadoPorNombre: 'Bodega',
+    estado: 'dispuesto',
+    createdAt: '2026-06-01T08:00:00.000Z',
+    limiteAlmacenamientoHasta: desechoLimiteAlmacenamiento('2026-06-01T08:00:00.000Z'),
+    certificado: { fecha: '2026-06-20T00:00:00.000Z', fileName: 'certificado-disposicion-0002.pdf' },
+  },
+  {
+    id: 3,
+    code: 'RES-2026-0014',
+    clasificacion: 'peligroso',
+    cretib: ['Corrosivo'],
+    contenedorColor: 'negro',
+    descripcion: 'Baterías usadas de equipos de monitoreo',
+    pesoKg: 18,
+    ubicacion: 'Pozo Alfa-3',
+    generadoPorNombre: 'Ana Torres',
+    estado: 'con_manifiesto',
+    createdAt: '2026-07-15T08:00:00.000Z',
+    limiteAlmacenamientoHasta: desechoLimiteAlmacenamiento('2026-07-15T08:00:00.000Z'),
+    manifiesto: {
+      numero: 'MU-2026-0031',
+      fecha: '2026-08-01T00:00:00.000Z',
+      gestorNombre: 'GestAmbiental EC',
+      gestorLicenciaSuia: 'SUIA-2024-1188',
+      firmaGenerador: { nombre: 'Ana Torres', firmadoAt: '2026-08-01T09:00:00.000Z' },
+      firmaTransportista: { nombre: 'Luis Paredes', firmadoAt: '2026-08-01T10:00:00.000Z' },
+    },
+  },
+];
+let nextDesechoId = 4;
 
 function nextDesechoCode(): string {
   const year = new Date().getFullYear();
   return `RES-${year}-${String(nextDesechoId).padStart(4, '0')}`;
 }
 
-let derrames: DerrameEvento[] = [];
-let nextDerrameId = 1;
+let derrames: DerrameEvento[] = [
+  {
+    id: 1,
+    code: 'DER-2026-0011',
+    estado: 'contenido',
+    activadoPorNombre: 'Marco Vera',
+    descripcion: 'Derrame de crudo por falla de empaque en línea de transferencia',
+    ubicacionFisica: 'Plataforma de bombeo, Pozo Delta-7',
+    volumen: 'mayor',
+    ubicacion: 'suelo',
+    activadoAt: '2026-08-12T14:00:00.000Z',
+    checklistContencion: DEFAULT_CONTENCION_CHECKLIST.map(i => ({ ...i, checked: true })),
+    contenidoAt: '2026-08-12T14:20:00.000Z',
+    notificadoMae: true,
+    notificadoMaeAt: '2026-08-12T16:00:00.000Z',
+    emergenciaId: 2,
+  },
+  {
+    id: 2,
+    code: 'DER-2026-0012',
+    estado: 'activo',
+    activadoPorNombre: 'Silvia Reyes',
+    descripcion: 'Goteo de aceite hidráulico bajo la grúa durante maniobra de izaje',
+    ubicacionFisica: 'Zona de laydown',
+    volumen: 'menor',
+    ubicacion: 'geomembrana',
+    activadoAt: hace(90),
+    checklistContencion: DEFAULT_CONTENCION_CHECKLIST.map((i, idx) => ({ ...i, checked: idx < 2 })),
+    notificadoMae: false,
+  },
+];
+let nextDerrameId = 3;
 
 function nextDerrameCode(): string {
   const year = new Date().getFullYear();
   return `DER-${year}-${String(nextDerrameId).padStart(4, '0')}`;
 }
 
-let emergencias: EmergenciaEvento[] = [];
-let nextEmergenciaId = 1;
+let emergencias: EmergenciaEvento[] = [
+  {
+    id: 1,
+    code: 'EMG-2026-0007',
+    nivel: 1,
+    estado: 'activa',
+    tipo: 'Amago de incendio en generador',
+    ubicacion: 'Pozo Beta-9',
+    descripcion: 'Humo y chispas en el generador auxiliar; se activó extintor portátil y se cortó el suministro.',
+    activadoPorNombre: 'Iván Torres',
+    activadoAt: hace(25),
+    timeline: [{ timestamp: hace(25), evento: 'Emergencia activada por trabajador' }],
+    conteoPersonal: { totalEnLocacion: 14, evacuados: 14, completadoAt: hace(20) },
+    heridos: [],
+    notificaciones: DEFAULT_EMERGENCIA_NOTIFICACIONES.map((n, idx) => ({ ...n, notificadoAt: idx === 0 ? hace(24) : undefined })),
+    reporteFlash: { resumenEjecutivo: '', personalAfectado: '', accionesTomadas: '', estadoActual: '', proximosPasos: '' },
+  },
+  {
+    id: 2,
+    code: 'EMG-2026-0006',
+    nivel: 2,
+    estado: 'cerrada',
+    tipo: 'Derrame mayor escalado a emergencia',
+    ubicacion: 'Pozo Delta-7',
+    descripcion: 'Derrame mayor de crudo con riesgo ambiental significativo, escalado según HSE-MASTER-001.',
+    activadoPorNombre: 'Marco Vera',
+    activadoAt: '2026-08-12T14:05:00.000Z',
+    origenDerrameId: 1,
+    timeline: [
+      { timestamp: '2026-08-12T14:05:00.000Z', evento: 'Emergencia activada por escalamiento de derrame mayor' },
+      { timestamp: '2026-08-12T14:20:00.000Z', evento: 'Derrame contenido' },
+      { timestamp: '2026-08-13T09:00:00.000Z', evento: 'Emergencia cerrada' },
+    ],
+    conteoPersonal: { totalEnLocacion: 8, evacuados: 8, completadoAt: '2026-08-12T14:15:00.000Z' },
+    heridos: [],
+    notificaciones: DEFAULT_EMERGENCIA_NOTIFICACIONES.map((n, idx) => ({ ...n, notificadoAt: `2026-08-12T14:${10 + idx * 5}:00.000Z` })),
+    reporteFlash: {
+      resumenEjecutivo: 'Derrame mayor de crudo contenido dentro de la primera hora, sin heridos.',
+      personalAfectado: 'Ninguno',
+      accionesTomadas: 'Contención según checklist HSE-AMBIENTAL-002, notificación al MAE, aislamiento del área.',
+      estadoActual: 'Controlado; en proceso de investigación de causa raíz.',
+      proximosPasos: 'Cierre de investigación HSE-TRIAGE-002 y actualización de la matriz IPERC afectada.',
+      emitidoAt: '2026-08-12T15:30:00.000Z',
+    },
+    controladaAt: '2026-08-12T14:20:00.000Z',
+    cerradaAt: '2026-08-13T09:00:00.000Z',
+    investigacionId: 2,
+  },
+];
+let nextEmergenciaId = 3;
 
 function nextEmergenciaCode(): string {
   const year = new Date().getFullYear();
   return `EMG-${year}-${String(nextEmergenciaId).padStart(4, '0')}`;
 }
 
-let investigaciones: Investigacion[] = [];
-let nextInvestigacionId = 1;
+let investigaciones: Investigacion[] = [
+  {
+    id: 1,
+    code: 'INV-2026-0009',
+    estado: 'abierta',
+    resultado: 'leve',
+    descripcionEvento: 'Trabajador sufrió corte superficial en la mano al manipular una herramienta sin guante anticorte.',
+    fechaIncidente: '2026-08-23T10:00:00.000Z',
+    ubicacion: 'Pozo Alfa-3',
+    escenaAseguradaAt: '2026-08-23T10:30:00.000Z',
+    liderInvestigacionNombre: 'Jorge Hidalgo',
+    equipoInvestigador: ['Jorge Hidalgo (Coordinador HSE)', 'Ana Torres (Técnico HSE)'],
+    evidenciasRecopiladas: 'Fotografías de la herramienta y del EPP utilizado.',
+    testimoniosResumen: 'El trabajador reconoce no haber usado el guante anticorte asignado por incomodidad.',
+    cincoPorques: [{ pregunta: '¿Por qué se cortó la mano?', respuesta: 'No usaba el guante anticorte asignado.' }],
+    ishikawa: { ...DEFAULT_ISHIKAWA },
+    causasRaiz: '',
+    acciones: [],
+    notificacionLegal: { requerida: false },
+    leccionesAprendidas: '',
+    createdAt: '2026-08-23T10:35:00.000Z',
+  },
+  {
+    id: 2,
+    code: 'INV-2026-0008',
+    estado: 'cerrada',
+    resultado: 'incidente_ambiental',
+    descripcionEvento: 'Derrame mayor de crudo por falla de empaque, contenido y notificado al MAE; sin heridos.',
+    fechaIncidente: '2026-08-12T14:05:00.000Z',
+    ubicacion: 'Pozo Delta-7',
+    origenEmergenciaId: 2,
+    escenaAseguradaAt: '2026-08-12T14:30:00.000Z',
+    liderInvestigacionNombre: 'Jorge Hidalgo',
+    equipoInvestigador: ['Jorge Hidalgo (Coordinador HSE)', 'Marco Vera (Operaciones)', 'Luis Vega (Mantenimiento)'],
+    evidenciasRecopiladas: 'Fotografías del empaque fallado, muestras de suelo, bitácora de mantenimiento de la línea.',
+    testimoniosResumen: 'El operador reporta ruido inusual en la línea minutos antes del derrame.',
+    cincoPorques: [
+      { pregunta: '¿Por qué se derramó el crudo?', respuesta: 'Falló el empaque de la línea de transferencia.' },
+      { pregunta: '¿Por qué falló el empaque?', respuesta: 'Superó su vida útil sin reemplazo programado.' },
+      { pregunta: '¿Por qué no se reemplazó a tiempo?', respuesta: 'No existe un plan de reemplazo preventivo para ese componente.' },
+      { pregunta: '¿Por qué no existe ese plan?', respuesta: 'El plan de mantenimiento no incluye empaques como ítem crítico.' },
+      { pregunta: '¿Por qué no se incluyó como ítem crítico?', respuesta: 'No se había registrado una falla previa que lo justificara.' },
+    ],
+    ishikawa: {
+      ...DEFAULT_ISHIKAWA,
+      Método: 'Sin plan de reemplazo preventivo para empaques críticos.',
+      Máquina: 'Empaque de línea de transferencia al final de su vida útil.',
+    },
+    causasRaiz: 'Empaque de la línea de transferencia superó su vida útil sin reemplazo programado.',
+    acciones: [
+      {
+        id: 1,
+        descripcion: 'Establecer plan de reemplazo preventivo de empaques críticos en líneas de transferencia',
+        tipo: 'preventiva',
+        responsable: 'Luis Vega',
+        plazo: '2026-09-15',
+        estado: 'pendiente',
+      },
+    ],
+    notificacionLegal: { requerida: false },
+    leccionesAprendidas: 'Incorporar inspección periódica de empaques de líneas críticas en el plan de mantenimiento preventivo.',
+    ipercActualizadoId: 1,
+    informeAprobadoPorNombre: 'Jorge Hidalgo',
+    informeAprobadoAt: '2026-08-14T09:00:00.000Z',
+    createdAt: '2026-08-12T15:00:00.000Z',
+    cerradaAt: '2026-08-14T09:00:00.000Z',
+  },
+];
+let nextInvestigacionId = 3;
 
 function nextInvestigacionCode(): string {
   const year = new Date().getFullYear();

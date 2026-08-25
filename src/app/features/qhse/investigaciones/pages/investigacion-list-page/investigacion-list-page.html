@@ -27,5 +27,7 @@
 
       <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(i.id)">Ver detalle</dynadrill-button>
     </dynadrill-card>
+  } @empty {
+    <dynadrill-banner variant="info" message="Todavía no hay investigaciones registradas. Se abren desde un incidente o al cerrar una Emergencia Nivel 2/3." />
   }
 </div>

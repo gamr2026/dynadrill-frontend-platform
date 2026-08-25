@@ -33,5 +33,7 @@
 
       <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(e.id)">Ver detalle</dynadrill-button>
     </dynadrill-card>
+  } @empty {
+    <dynadrill-banner variant="info" message="Todavía no hay emergencias registradas. Se activan desde el botón 'Reportar' del encabezado." />
   }
 </div>

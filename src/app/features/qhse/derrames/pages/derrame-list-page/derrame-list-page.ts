@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
+  DynadrillBannerComponent,
   DynadrillButtonComponent,
   DynadrillCardAccent,
   DynadrillCardComponent,
@@ -27,7 +28,14 @@ const ESTADO_TONE: Record<DerrameEvento['estado'], DynadrillTagVariant & Dynadri
 /** HSE-AMBIENTAL-002 — bandeja de eventos de derrame. */
 @Component({
   selector: 'app-derrame-list-page',
-  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillCardComponent, DynadrillTagComponent, DynadrillButtonComponent],
+  imports: [
+    DynadrillScreenHeaderComponent,
+    DynadrillKpiRowComponent,
+    DynadrillCardComponent,
+    DynadrillTagComponent,
+    DynadrillButtonComponent,
+    DynadrillBannerComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './derrame-list-page.html',
   styleUrl: './derrame-list-page.scss',

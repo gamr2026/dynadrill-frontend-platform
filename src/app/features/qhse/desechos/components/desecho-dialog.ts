@@ -26,6 +26,9 @@ const CONTENEDOR_OPTIONS: DynadrillSelectOption[] = (Object.entries(CONTENEDOR_C
   ([value, label]) => ({ label, value }),
 );
 
+/** Ubicaciones ya usadas en el resto de QHSE (IPERC/PTW/Inspecciones/STOP) — precargadas para no repetir texto libre a mano; el modo creatable permite agregar una nueva si no está en la lista. */
+const UBICACIONES_BASE = ['Pozo Alfa-3', 'Pozo Beta-9', 'Pozo Delta-7'];
+
 /** "Personal Operativo: Genera y clasifica desechos en campo" (HSE-AMBIENTAL-001) — abre desde "Reportar", sin roleGuard de QHSE. */
 @Component({
   selector: 'app-desecho-dialog',
@@ -55,6 +58,7 @@ export class DesechoDialog {
   protected readonly contenedorColor = signal<ContenedorColor>('gris');
   protected readonly descripcion = signal('');
   protected readonly pesoKg = signal('');
+  protected readonly ubicacionOptions = signal<DynadrillSelectOption[]>(UBICACIONES_BASE.map(v => ({ label: v, value: v })));
   protected readonly ubicacion = signal('');
   protected readonly generadoPorNombre = signal(this.auth.currentUser()?.name ?? '');
   protected readonly submitting = signal(false);
@@ -64,6 +68,15 @@ export class DesechoDialog {
   protected readonly puedeGuardar = computed(
     () => this.descripcion().trim().length > 0 && Number(this.pesoKg()) > 0 && (!this.esPeligroso() || this.cretib().length > 0),
   );
+
+  protected agregarUbicacion(nombre: string): void {
+    const value = nombre.trim();
+    if (!value) return;
+    if (!this.ubicacionOptions().some(o => o.value === value)) {
+      this.ubicacionOptions.update(opts => [...opts, { label: value, value }]);
+    }
+    this.ubicacion.set(value);
+  }
 
   protected cancelar(): void {
     this.modalRef.close();

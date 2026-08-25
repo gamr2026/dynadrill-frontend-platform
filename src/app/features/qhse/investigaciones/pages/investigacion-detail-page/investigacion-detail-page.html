@@ -108,7 +108,7 @@
       @if (i.notificacionLegal.ministerioTrabajoNotificadoAt) {
         <dynadrill-tag [label]="'Ministerio del Trabajo notificado ' + (i.notificacionLegal.ministerioTrabajoNotificadoAt | date: 'short')" variant="success" />
       } @else {
-        <dynadrill-button variant="secondary" size="small" (click)="marcarNotificadoMinisterio()">Marcar Ministerio del Trabajo notificado</dynadrill-button>
+        <dynadrill-button variant="secondary" size="small" (click)="marcarNotificadoMinisterio()">Notificar Min. Trabajo</dynadrill-button>
       }
       @if (i.notificacionLegal.iessNotificadoAt) {
         <dynadrill-tag [label]="'IESS notificado ' + (i.notificacionLegal.iessNotificadoAt | date: 'short')" variant="success" />

@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
-  DynadrillButtonComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
+  DynadrillIconButtonComponent,
   DynadrillKpiRowComponent,
   DynadrillPhaseTrackComponent,
   DynadrillScreenHeaderComponent,
@@ -13,6 +13,7 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { IPERC_STATUS_LABELS, IpercMatrix, IpercStatus } from '../../models/iperc.model';
 import { IpercService } from '../../services/iperc.service';
+import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
 
@@ -34,6 +35,7 @@ const STATUS_FILTERS = Object.entries(IPERC_STATUS_LABELS).map(([value, text]) =
 
 /** HSE-PLAN-001: Preparación → Identificación/Evaluación → Controles/Reevaluación → Documentación y aprobación. */
 const FASE_STEPS = 4;
+const FASE_LABELS = ['Preparación', 'Identificación/Evaluación', 'Controles/Reevaluación', 'Documentación y aprobación'];
 const STATUS_INDEX: Record<IpercStatus, number> = {
   borrador: 0,
   en_evaluacion: 1,
@@ -45,7 +47,13 @@ const STATUS_INDEX: Record<IpercStatus, number> = {
 @Component({
   selector: 'app-iperc-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillDataTableComponent, DynadrillButtonComponent, DynadrillPhaseTrackComponent],
+  imports: [
+    DynadrillScreenHeaderComponent,
+    DynadrillKpiRowComponent,
+    DynadrillDataTableComponent,
+    DynadrillIconButtonComponent,
+    DynadrillPhaseTrackComponent,
+  ],
   templateUrl: './iperc-list-page.html',
   styleUrl: './iperc-list-page.scss',
 })
@@ -67,16 +75,21 @@ export class IpercListPage {
     ];
   });
 
-  protected readonly columns: DynadrillDataTableColumn[] = [
-    { key: 'code', header: 'Código', sortable: true, searchable: true },
+  protected readonly narrowViewport = injectNarrowViewport();
+
+  protected readonly columns = computed<DynadrillDataTableColumn[]>(() => [
+    { key: 'code', header: 'Código', sortable: true, searchable: true, fixed: this.narrowViewport() ? 'left' : undefined },
     { key: 'actividad', header: 'Actividad', searchable: true },
     { key: 'ubicacion', header: 'Ubicación', searchable: true },
     { key: 'statusBadge', header: 'Fase', type: 'badge', filters: STATUS_FILTERS },
-    { key: 'riesgoBadge', header: 'Riesgo residual más alto', type: 'badge' },
+    { key: 'riesgoBadge', header: 'Riesgo residual más alto', type: 'badge', fixed: this.narrowViewport() ? 'right' : undefined },
     { key: 'leccionBadge', header: 'Lección aprendida', type: 'badge' },
-  ];
+  ]);
+
+  protected readonly tableScrollX = computed(() => (this.narrowViewport() ? '760px' : undefined));
 
   protected readonly faseSteps = FASE_STEPS;
+  protected readonly faseLabels = FASE_LABELS;
 
   protected readonly rows = computed(() =>
     this.matrices().map(m => ({

@@ -80,16 +80,16 @@
       <tbody>
         @for (gas of gasKeys; track gas) {
           <tr>
-            <td>{{ gasLimites[gas].label }}</td>
-            <td>
+            <td data-label="Gas">{{ gasLimites[gas].label }}</td>
+            <td data-label="Lectura">
               @if (latestGasByType()[gas]; as r) {
                 {{ r.lectura }} {{ gasLimites[gas].unidad }}
               } @else {
                 Sin lectura
               }
             </td>
-            <td>{{ limiteLabel(gas) }}</td>
-            <td><dynadrill-tag [label]="gasEstadoLabel(gas)" [variant]="gasEstadoVariant(gas)" /></td>
+            <td data-label="Límite">{{ limiteLabel(gas) }}</td>
+            <td data-label="Estado"><dynadrill-tag [label]="gasEstadoLabel(gas)" [variant]="gasEstadoVariant(gas)" /></td>
           </tr>
         }
       </tbody>

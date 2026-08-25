@@ -1,3 +1,5 @@
-// Sin estilos propios por ahora: dynadrill-screen-header, dynadrill-kpi-row y
-// dynadrill-data-table ya resuelven layout y espaciado (mismo patrón que
-// iperc-list-page).
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}

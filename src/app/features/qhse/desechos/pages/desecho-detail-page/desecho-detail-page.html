@@ -5,7 +5,7 @@
 
   <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a Gestión de Desechos</dynadrill-button>
 
-  <dynadrill-context-card [items]="contextItems()" />
+  <dynadrill-context-card [items]="contextItems()" layout="vertical" />
 
   @if (!d.manifiesto) {
     <section class="desecho-detail-page__section">

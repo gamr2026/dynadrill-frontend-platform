@@ -1,16 +1,17 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
-  DynadrillButtonComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
+  DynadrillIconButtonComponent,
   DynadrillKpiRowComponent,
   DynadrillPhaseTrackComponent,
   DynadrillScreenHeaderComponent,
   type DynadrillKpiRowItem,
 } from '@digitec-it-projects/dynadrill-ui';
-import { PTW_FASE_LABELS, PTW_FASE_ORDER, PtwFase, PtwMatrix, ptwCerrado } from '../../models/ptw.model';
+import { PTW_FASE_LABELS, PTW_FASE_ORDER, PTW_FASE_STEPS, PtwFase, PtwMatrix, ptwCerrado } from '../../models/ptw.model';
 import { PtwService } from '../../services/ptw.service';
+import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
 
@@ -28,7 +29,13 @@ const CERRADO_BADGE: { text: string; tone: BadgeTone } = { text: 'Cerrado', tone
 @Component({
   selector: 'app-ptw-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillDataTableComponent, DynadrillButtonComponent, DynadrillPhaseTrackComponent],
+  imports: [
+    DynadrillScreenHeaderComponent,
+    DynadrillKpiRowComponent,
+    DynadrillDataTableComponent,
+    DynadrillIconButtonComponent,
+    DynadrillPhaseTrackComponent,
+  ],
   templateUrl: './ptw-list-page.html',
   styleUrl: './ptw-list-page.scss',
 })
@@ -50,15 +57,20 @@ export class PtwListPage {
     ];
   });
 
-  protected readonly columns: DynadrillDataTableColumn[] = [
-    { key: 'code', header: 'Código', sortable: true, searchable: true },
+  protected readonly narrowViewport = injectNarrowViewport();
+
+  protected readonly columns = computed<DynadrillDataTableColumn[]>(() => [
+    { key: 'code', header: 'Código', sortable: true, searchable: true, fixed: this.narrowViewport() ? 'left' : undefined },
     { key: 'ipercCode', header: 'IPERC origen', searchable: true },
     { key: 'actividad', header: 'Actividad', searchable: true },
     { key: 'ubicacion', header: 'Ubicación', searchable: true },
-    { key: 'faseBadge', header: 'Fase actual', type: 'badge' },
-  ];
+    { key: 'faseBadge', header: 'Fase actual', type: 'badge', fixed: this.narrowViewport() ? 'right' : undefined },
+  ]);
+
+  protected readonly tableScrollX = computed(() => (this.narrowViewport() ? '640px' : undefined));
 
   protected readonly faseSteps = PTW_FASE_ORDER.length;
+  protected readonly faseLabels = PTW_FASE_STEPS;
 
   protected readonly rows = computed(() =>
     this.records().map(p => ({

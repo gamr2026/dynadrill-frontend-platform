@@ -7,6 +7,6 @@
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
     <dynadrill-kpi-row [items]="kpis()" />
-    <dynadrill-data-table [columns]="columns" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" />
+    <dynadrill-data-table [columns]="columns()" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" [scrollX]="tableScrollX() ?? ''" />
   </dynadrill-spinner>
 </div>

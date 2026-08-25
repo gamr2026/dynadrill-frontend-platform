@@ -36,6 +36,7 @@ export type PumpingStep =
   | 'en_ejecucion'
   | 'revisar_reportes_salida'
   | 'en_ejecucion_llegada'
+  | 'mantenimiento'
   | 'revisar_reportes_llegada'
   | 'en_revision';
 
@@ -45,6 +46,7 @@ export const PUMPING_STEP_LABELS: Record<PumpingStep, string> = {
   en_ejecucion: 'En ejecución (Salida)',
   revisar_reportes_salida: 'Revisar reportes de salida',
   en_ejecucion_llegada: 'En ejecución (Llegada)',
+  mantenimiento: 'Mantenimiento',
   revisar_reportes_llegada: 'Revisar reportes de llegada',
   en_revision: 'En revisión',
 };

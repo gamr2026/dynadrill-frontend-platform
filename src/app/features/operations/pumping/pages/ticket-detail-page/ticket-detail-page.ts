@@ -47,6 +47,10 @@ import {
 } from '../../../../maintenance/models/vehicle-inspection.model';
 import { VehicleInspectionDialog, VehicleInspectionDialogData } from '../../../../maintenance/components/vehicle-inspection-dialog';
 import { VehicleInspectionsService } from '../../../../maintenance/services/vehicle-inspections.service';
+import { ReviewArrivalReportDialog, ReviewArrivalReportDialogData, ReviewArrivalReportDialogResult } from '../../components/review-arrival-report-dialog';
+import { MaintenanceOrdersService } from '../../../../maintenance/services/maintenance-orders.service';
+import { MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../../../../maintenance/models/maintenance-order.model';
+import { SuborderDetailDialog, SuborderDetailDialogData } from '../../../../maintenance/components/suborder-detail-dialog';
 import { forkJoin, map } from 'rxjs';
 
 /** Genera una inspección mock de ejemplo para ver detalle en llegada */
@@ -87,7 +91,7 @@ function createMockCompletedInspection(operatorName: string, unitCode: string): 
   };
 }
 
-const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'revisar_reportes_salida', 'en_ejecucion_llegada', 'revisar_reportes_llegada', 'en_revision'];
+const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'revisar_reportes_salida', 'en_ejecucion_llegada', 'mantenimiento', 'revisar_reportes_llegada', 'en_revision'];
 
 @Component({
   selector: 'app-ticket-detail-page',
@@ -121,11 +125,13 @@ export class TicketDetailPage {
   private readonly unitReportsService = inject(UnitReportsService);
   private readonly unidadesService = inject(UnidadesService);
   private readonly vehicleInspectionsService = inject(VehicleInspectionsService);
+  private readonly maintenanceOrdersService = inject(MaintenanceOrdersService);
 
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
   protected readonly ticket = signal<PumpingTicket | null>(null);
   protected readonly viewMode = signal<string>(''); // 'asignar' | 'resumen' | ''
+  protected readonly maintenanceOrders = signal<MaintenanceOrderWithSubOrders[]>([]);
 
   // ── Stepper ──
 
@@ -320,26 +326,34 @@ export class TicketDetailPage {
     { key: 'name', header: 'Operador' },
     { key: 'role', header: 'Cargo/Rol' },
     { key: 'unitCode', header: 'Unidad asignada' },
-    { key: 'inspectionStatus', header: 'Inspección', type: 'badge' },
-    { key: 'reportStatus', header: 'Reporte de unidad', type: 'badge' },
+    { key: 'inspectionStatus', header: 'Inspección de Vehículos (DYN-SGI-RE-068)', type: 'badge' },
+    { key: 'reportStatus', header: 'Reporte de Unidad (DYN-MNT-RE-012)', type: 'badge' },
   ];
 
   protected readonly reviewSalidaRows = computed(() => {
     const t = this.ticket();
     if (!t) return [];
+    const rejected = this.rejectedSalidaOperators();
+    const approved = this.approvedSalidaOperators();
     return t.operators.map(op => ({
       id: op.id,
       name: op.name,
       role: op.role,
       unitCode: op.unitCode,
       inspectionStatus: { text: 'Realizada', tone: 'success' as const },
-      reportStatus: { text: 'Completado', tone: 'success' as const },
+      reportStatus: rejected.has(op.id)
+        ? { text: 'Rechazado', tone: 'error' as const }
+        : approved.has(op.id)
+          ? { text: 'Aprobado', tone: 'success' as const }
+          : { text: 'Completado', tone: 'success' as const },
       approved: false,
     }));
   });
 
   // Trackeo de aprobaciones por operador para salida
   protected readonly approvedSalidaOperators = signal<Set<number>>(new Set());
+  protected readonly rejectedSalidaOperators = signal<Set<number>>(new Set());
+  protected readonly salidaRejectionReasons = signal<Map<number, string>>(new Map());
 
   protected isOperatorSalidaApproved(row: Record<string, unknown>): boolean {
     return this.approvedSalidaOperators().has(row['id'] as number);
@@ -351,14 +365,65 @@ export class TicketDetailPage {
     return insp.text === 'Realizada' && report.text === 'Completado';
   }
 
-  protected approveSalidaOperator(row: Record<string, unknown>): void {
+  protected isOperatorSalidaRejected(row: Record<string, unknown>): boolean {
+    return this.rejectedSalidaOperators().has(row['id'] as number);
+  }
+
+  protected viewSalidaRejectionReason(row: Record<string, unknown>): void {
     const id = row['id'] as number;
-    this.approvedSalidaOperators.update(set => {
-      const updated = new Set(set);
-      updated.add(id);
-      return updated;
+    const reason = this.salidaRejectionReasons().get(id) || 'Sin motivo especificado.';
+    this.notify.error(`Motivo de rechazo — ${row['name']}`, reason);
+  }
+
+  protected approveSalidaOperator(row: Record<string, unknown>): void {
+    const t = this.ticket();
+    if (!t?.unitReport) {
+      this.notify.error('Sin reporte', 'No hay reporte de unidad disponible para revisar.');
+      return;
+    }
+
+    const operatorName = row['name'] as string;
+    const unitCode = row['unitCode'] as string;
+    const inspection = createMockCompletedInspection(operatorName, unitCode);
+
+    const ref = this.dialog.open<ReviewArrivalReportDialog, ReviewArrivalReportDialogData>({
+      title: 'Revisar inspección y reporte de salida',
+      content: ReviewArrivalReportDialog,
+      data: {
+        operatorName,
+        unitCode,
+        report: t.unitReport,
+        inspection,
+      },
+      size: 'large',
+      footer: false,
     });
-    this.notify.success('Aprobado', `Reporte de salida de ${row['name']} aprobado.`);
+
+    ref.afterClose.subscribe((result: ReviewArrivalReportDialogResult | undefined) => {
+      if (!result) return;
+
+      const id = row['id'] as number;
+      if (result.approved) {
+        this.approvedSalidaOperators.update(set => {
+          const updated = new Set(set);
+          updated.add(id);
+          return updated;
+        });
+        this.notify.success('Aprobado', `Reporte de salida de ${row['name']} aprobado.`);
+      } else {
+        this.rejectedSalidaOperators.update(set => {
+          const updated = new Set(set);
+          updated.add(id);
+          return updated;
+        });
+        this.salidaRejectionReasons.update(map => {
+          const updated = new Map(map);
+          updated.set(id, result.rejectionReason ?? '');
+          return updated;
+        });
+        this.notify.error('Rechazado', `Reporte de ${row['name']} rechazado.`);
+      }
+    });
   }
 
   protected readonly allSalidaApproved = computed(() => {
@@ -375,26 +440,44 @@ export class TicketDetailPage {
     { key: 'name', header: 'Operador' },
     { key: 'role', header: 'Cargo/Rol' },
     { key: 'unitCode', header: 'Unidad asignada' },
-    { key: 'reportStatus', header: 'Reporte de unidad', type: 'badge' },
+    { key: 'reportStatus', header: 'Reporte de Unidad (DYN-MNT-RE-012)', type: 'badge' },
   ];
 
   protected readonly reviewLlegadaRows = computed(() => {
     const t = this.ticket();
     if (!t) return [];
+    const rejected = this.rejectedLlegadaOperators();
+    const approved = this.approvedLlegadaOperators();
     return t.operators.map(op => ({
       id: op.id,
       name: op.name,
       role: op.role,
       unitCode: op.unitCode,
-      reportStatus: { text: 'Completado', tone: 'success' as const },
+      reportStatus: rejected.has(op.id)
+        ? { text: 'Rechazado', tone: 'error' as const }
+        : approved.has(op.id)
+          ? { text: 'Aprobado', tone: 'success' as const }
+          : { text: 'Completado', tone: 'success' as const },
     }));
   });
 
   // Trackeo de aprobaciones por operador para llegada
   protected readonly approvedLlegadaOperators = signal<Set<number>>(new Set());
+  protected readonly rejectedLlegadaOperators = signal<Set<number>>(new Set());
+  protected readonly rejectionReasons = signal<Map<number, string>>(new Map());
 
   protected isOperatorLlegadaApproved(row: Record<string, unknown>): boolean {
     return this.approvedLlegadaOperators().has(row['id'] as number);
+  }
+
+  protected isOperatorLlegadaRejected(row: Record<string, unknown>): boolean {
+    return this.rejectedLlegadaOperators().has(row['id'] as number);
+  }
+
+  protected viewRejectionReason(row: Record<string, unknown>): void {
+    const id = row['id'] as number;
+    const reason = this.rejectionReasons().get(id) || 'Sin motivo especificado.';
+    this.notify.error(`Motivo de rechazo — ${row['name']}`, reason);
   }
 
   protected canReviewLlegada(row: Record<string, unknown>): boolean {
@@ -403,13 +486,49 @@ export class TicketDetailPage {
   }
 
   protected approveLlegadaOperator(row: Record<string, unknown>): void {
-    const id = row['id'] as number;
-    this.approvedLlegadaOperators.update(set => {
-      const updated = new Set(set);
-      updated.add(id);
-      return updated;
+    const t = this.ticket();
+    if (!t?.unitReport) {
+      this.notify.error('Sin reporte', 'No hay reporte de unidad disponible para revisar.');
+      return;
+    }
+
+    const ref = this.dialog.open<ReviewArrivalReportDialog, ReviewArrivalReportDialogData>({
+      title: 'Revisar reporte de llegada',
+      content: ReviewArrivalReportDialog,
+      data: {
+        operatorName: row['name'] as string,
+        unitCode: row['unitCode'] as string,
+        report: t.unitReport,
+      },
+      size: 'large',
+      footer: false,
     });
-    this.notify.success('Aprobado', `Reporte de llegada de ${row['name']} aprobado.`);
+
+    ref.afterClose.subscribe((result: ReviewArrivalReportDialogResult | undefined) => {
+      if (!result) return;
+
+      const id = row['id'] as number;
+      if (result.approved) {
+        this.approvedLlegadaOperators.update(set => {
+          const updated = new Set(set);
+          updated.add(id);
+          return updated;
+        });
+        this.notify.success('Aprobado', `Reporte de llegada de ${row['name']} aprobado.`);
+      } else {
+        this.rejectedLlegadaOperators.update(set => {
+          const updated = new Set(set);
+          updated.add(id);
+          return updated;
+        });
+        this.rejectionReasons.update(map => {
+          const updated = new Map(map);
+          updated.set(id, result.rejectionReason ?? '');
+          return updated;
+        });
+        this.notify.error('Rechazado', `Reporte de ${row['name']} rechazado.`);
+      }
+    });
   }
 
   protected readonly allLlegadaApproved = computed(() => {
@@ -419,13 +538,37 @@ export class TicketDetailPage {
   });
 
   protected approveAllSalidaReports(): void {
-    this.notify.success('Aprobado', 'Todos los reportes de salida han sido aprobados.');
-    this.router.navigate(['..'], { relativeTo: this.route });
+    const t = this.ticket();
+    if (!t) return;
+    this.submitting.set(true);
+    this.pumpingService.advanceStep(t.id, 'en_ejecucion_llegada').subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        this.submitting.set(false);
+        this.notify.success('Aprobado', 'Todos los reportes de salida han sido aprobados. Avanza a En ejecución (Llegada).');
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.notify.error('Error', 'No se pudo avanzar el ticket.');
+      },
+    });
   }
 
   protected approveAllLlegadaReports(): void {
-    this.notify.success('Aprobado', 'Todos los reportes de llegada han sido aprobados.');
-    this.router.navigate(['..'], { relativeTo: this.route });
+    const t = this.ticket();
+    if (!t) return;
+    this.submitting.set(true);
+    this.pumpingService.advanceStep(t.id, 'en_revision').subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        this.submitting.set(false);
+        this.notify.success('Aprobado', 'Todos los reportes de llegada han sido aprobados.');
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.notify.error('Error', 'No se pudo avanzar el ticket.');
+      },
+    });
   }
 
   // ══════════════════════════════════════════════
@@ -659,6 +802,7 @@ export class TicketDetailPage {
         this.ticket.set(ticket);
         this.loading.set(false);
         this.initFromTicket(ticket);
+        this.loadMaintenanceOrders();
       },
       error: () => this.loading.set(false),
     });
@@ -667,9 +811,77 @@ export class TicketDetailPage {
   private canAccessStep(step: PumpingStep): boolean {
     const role = this.roleName();
     if (role === 'Jefe de Base') return step === 'revision_propuesta';
-    if (role === 'Supervisor') return step === 'asignacion' || step === 'revisar_reportes_salida' || step === 'revisar_reportes_llegada';
+    if (role === 'Supervisor') return step === 'asignacion' || step === 'revisar_reportes_salida' || step === 'mantenimiento' || step === 'revisar_reportes_llegada';
     if (role === 'Operador') return step === 'en_ejecucion' || step === 'en_ejecucion_llegada';
     return false;
+  }
+
+  // ══════════════════════════════════════════════
+  // Mantenimientos asociados a la unidad del ticket
+  // ══════════════════════════════════════════════
+
+  private loadMaintenanceOrders(): void {
+    this.maintenanceOrdersService.list().subscribe({
+      next: orders => this.maintenanceOrders.set(orders),
+    });
+  }
+
+  /** Texto resumen de mantenimientos para una unidad: "Mecánico — En Ejecución, Operativo — Pendiente" */
+  protected maintenanceStatusForUnit(unitCode: string): string {
+    const orders = this.maintenanceOrders().filter(o => o.unidad === unitCode);
+    if (orders.length === 0) return 'Sin mantenimientos';
+    const lines = orders.flatMap(o =>
+      o.subOrders.map(sub => `${sub.type} — ${sub.status}`),
+    );
+    return lines.join('\n');
+  }
+
+  /** Sub-órdenes Operativo de la unidad del ticket */
+  protected readonly operativoSubOrders = computed(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    return this.maintenanceOrders()
+      .filter(o => o.unidad === t.unitCode)
+      .flatMap(o => o.subOrders.filter(s => s.type === 'Operativo'));
+  });
+
+  /** Todas las sub-órdenes Operativo están cerradas o no hay ninguna */
+  protected readonly allOperativoResolved = computed(() => {
+    const subs = this.operativoSubOrders();
+    if (subs.length === 0) return true;
+    return subs.every(s => s.status === 'Cerrado');
+  });
+
+  protected reviewOperativoMaintenance(sub: SubOrder): void {
+    const order = this.maintenanceOrders().find(o => o.subOrders.some(s => s.id === sub.id));
+    const unitReports = this.unitReportsService.list();
+    unitReports.subscribe(reports => {
+      const report = order ? reports.find(r => r.id === order.unitReportId) : undefined;
+      const novedadOriginal = report?.problemasOperaciones || '';
+      this.dialog.open<SuborderDetailDialog, SuborderDetailDialogData>({
+        title: 'Revisar mantenimiento operativo — ' + sub.code,
+        content: SuborderDetailDialog,
+        data: { subOrder: sub, orderCode: order?.code ?? '', novedadOriginal },
+        footer: false,
+      });
+    });
+  }
+
+  protected approveMaintenanceStep(): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.submitting.set(true);
+    this.pumpingService.advanceStep(t.id, 'revisar_reportes_llegada').subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        this.submitting.set(false);
+        this.notify.success('Mantenimiento revisado', 'El ticket avanza a Revisar reportes de llegada.');
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.notify.error('Error', 'No se pudo avanzar el ticket.');
+      },
+    });
   }
 
   // ══════════════════════════════════════════════
@@ -840,8 +1052,10 @@ export class TicketDetailPage {
   private readonly NEXT_STEP: Partial<Record<PumpingStep, PumpingStep>> = {
     revision_propuesta: 'asignacion',
     asignacion: 'en_ejecucion',
-    en_ejecucion: 'en_ejecucion_llegada',
-    en_ejecucion_llegada: 'en_revision',
+    en_ejecucion: 'revisar_reportes_salida',
+    revisar_reportes_salida: 'en_ejecucion_llegada',
+    en_ejecucion_llegada: 'mantenimiento',
+    mantenimiento: 'revisar_reportes_llegada',
   };
 
   private advanceToNextStep(t: PumpingTicket): void {

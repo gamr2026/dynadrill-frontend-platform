@@ -31,10 +31,36 @@ export class Sidebar {
       return [dashboard, { label: 'Mis tareas', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/mis-tareas' }];
     }
 
+    if (roleName === 'Operador') {
+      return [
+        dashboard,
+        {
+          label: 'Módulos',
+          icon: 'modules',
+          children: [
+            {
+              label: 'Operativo',
+              icon: 'file-text',
+              children: [
+                { label: 'Pumping', link: '/modulos/operativo/pumping' },
+                { label: 'FCR', link: '/modulos/operativo/fcr' },
+              ],
+            },
+            {
+              label: 'Mantenimiento',
+              icon: 'tool' as DynadrillIconName,
+              children: [
+                { label: 'Mantenimiento Operativo', link: '/dashboard/mantenimiento/operativo' },
+              ],
+            },
+          ],
+        },
+      ];
+    }
+
     if (roleName === 'Supervisor') {
       return [
         dashboard,
-        { label: 'Aprobar Inspecciones', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/inspeccion-vehiculos' },
         {
           label: 'Módulos',
           icon: 'modules',

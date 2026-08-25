@@ -39,15 +39,60 @@
   }
 </ng-template>
 
+<!-- Template de fila expandida: detalle de sub-órdenes de mantenimiento -->
+<ng-template #maintenanceExpandTpl let-row>
+  @if (row['isMaintenanceStep']) {
+    @if (row['hasMaintenanceOrders']) {
+      <div class="maintenance-detail">
+        <h4 class="maintenance-detail__title">Detalle de Mantenimientos</h4>
+        <table class="maintenance-detail__table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Tipo de Mantenimiento</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (sub of row['maintenanceSubOrders']; track sub.code) {
+              <tr>
+                <td>{{ sub.code }}</td>
+                <td>{{ sub.type }}</td>
+                <td>
+                  <dynadrill-tag [label]="sub.status" [variant]="sub.statusTone" />
+                </td>
+                <td>
+                  @if (sub.canReview) {
+                    <dynadrill-button variant="primary" size="small" (click)="reviewMaintenance(sub.id)">
+                      Revisar Mantenimiento
+                    </dynadrill-button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="maintenance-detail maintenance-detail--empty">
+        <p>Sin mantenimientos asociados a este ticket.</p>
+      </div>
+    }
+  }
+</ng-template>
+
 @if (isInProcessTab()) {
   <dynadrill-data-table
-    [columns]="inProcessColumns"
+    [columns]="inProcessColumns()"
     [rows]="inProcessRows()"
     [loading]="loading()"
     [rowKey]="rowKeyFn"
     [pageSize]="10"
     actionsHeader="Acciones"
     [actionsTemplate]="actionsTpl"
+    [expandable]="isSupervisor()"
+    [expandedRowTemplate]="maintenanceExpandTpl"
   />
 } @else {
   <dynadrill-data-table

@@ -93,15 +93,22 @@
   <!-- ══════════════════════════════════════════════════════════════════ -->
   @if (currentStep() === 'revisar_reportes_salida') {
     <section class="ticket-detail__section">
-      <dynadrill-text variant="h2">Revisar reportes de salida</dynadrill-text>
-      <dynadrill-text variant="caption">Revise y apruebe la inspección y reporte de unidad de cada operador.</dynadrill-text>
+      <dynadrill-text variant="h1">Reporte de Unidad — Salida</dynadrill-text>
+      <dynadrill-text variant="caption">Documento: DYN-MNT-RE-012</dynadrill-text>
+      <dynadrill-text variant="body">Revise y apruebe la inspección y reporte de unidad de cada operador.</dynadrill-text>
     </section>
 
     <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
+
       <ng-template #reviewSalidaActionsTpl let-row>
         @if (isOperatorSalidaApproved(row)) {
           <dynadrill-button variant="success" size="small" [disabled]="true">
             Aprobado
+          </dynadrill-button>
+        } @else if (isOperatorSalidaRejected(row)) {
+          <dynadrill-button variant="error" size="small" (click)="viewSalidaRejectionReason(row)">
+            Rechazado — Ver motivo
           </dynadrill-button>
         } @else if (canReviewSalida(row)) {
           <dynadrill-button variant="primary" size="small" (click)="approveSalidaOperator(row)">
@@ -140,15 +147,22 @@
   <!-- ══════════════════════════════════════════════════════════════════ -->
   @if (currentStep() === 'revisar_reportes_llegada') {
     <section class="ticket-detail__section">
-      <dynadrill-text variant="h2">Revisar reportes de llegada</dynadrill-text>
-      <dynadrill-text variant="caption">Revise y apruebe el reporte de unidad de cada operador.</dynadrill-text>
+      <dynadrill-text variant="h1">Reporte de Unidad — Llegada</dynadrill-text>
+      <dynadrill-text variant="caption">Documento: DYN-MNT-RE-012</dynadrill-text>
+      <dynadrill-text variant="body">Revise y apruebe el reporte de unidad de cada operador.</dynadrill-text>
     </section>
 
     <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
+
       <ng-template #reviewLlegadaActionsTpl let-row>
         @if (isOperatorLlegadaApproved(row)) {
           <dynadrill-button variant="success" size="small" [disabled]="true">
             Aprobado
+          </dynadrill-button>
+        } @else if (isOperatorLlegadaRejected(row)) {
+          <dynadrill-button variant="error" size="small" (click)="viewRejectionReason(row)">
+            Rechazado — Ver motivo
           </dynadrill-button>
         } @else if (canReviewLlegada(row)) {
           <dynadrill-button variant="primary" size="small" (click)="approveLlegadaOperator(row)">
@@ -179,6 +193,46 @@
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
       <dynadrill-button variant="success" [disabled]="!allLlegadaApproved() || submitting()" (clicked)="approveAllLlegadaReports()">Aprobar reportes de llegada</dynadrill-button>
+    </footer>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- PASO: Mantenimiento — Supervisor revisa mantenimientos operativos -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  @if (currentStep() === 'mantenimiento') {
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h1">Mantenimiento</dynadrill-text>
+      <dynadrill-text variant="body">Revise los mantenimientos asociados a la unidad antes de continuar con la ejecución de llegada.</dynadrill-text>
+    </section>
+
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Mantenimientos operativos</dynadrill-text>
+
+      @if (operativoSubOrders().length === 0) {
+        <dynadrill-text variant="caption">No hay mantenimientos operativos asociados a esta unidad.</dynadrill-text>
+      } @else {
+        @for (sub of operativoSubOrders(); track sub.id) {
+          <div class="ticket-detail__maintenance-row">
+            <div class="ticket-detail__maintenance-info">
+              <dynadrill-text variant="body">{{ sub.code }} · {{ sub.type }}</dynadrill-text>
+              <dynadrill-text variant="caption">Estado: {{ sub.status }}</dynadrill-text>
+              @if (sub.deriveNote) {
+                <dynadrill-text variant="caption">Nota: {{ sub.deriveNote }}</dynadrill-text>
+              }
+            </div>
+            <dynadrill-button variant="primary" size="small" (clicked)="reviewOperativoMaintenance(sub)">
+              Revisar mantenimiento operativo
+            </dynadrill-button>
+          </div>
+        }
+      }
+    </section>
+
+    <footer class="ticket-detail__actions">
+      <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
+      <dynadrill-button variant="success" [disabled]="!allOperativoResolved() || submitting()" (clicked)="approveMaintenanceStep()">
+        Continuar a ejecución de llegada
+      </dynadrill-button>
     </footer>
   }
 
@@ -240,7 +294,6 @@
       </div>
     </section>
 
-    <!-- Neumáticos -->
     <section class="ticket-detail__section">
       <dynadrill-data-table [columns]="tireColumns" [rows]="tireRows()" [loading]="false" />
     </section>
@@ -330,7 +383,6 @@
       </div>
     </section>
 
-    <!-- Neumáticos (datos de salida ya llenos) -->
     <section class="ticket-detail__section">
       <dynadrill-data-table [columns]="tireColumns" [rows]="tireRows()" [loading]="false" />
     </section>

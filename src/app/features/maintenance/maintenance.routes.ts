@@ -17,20 +17,16 @@ export const maintenanceRoutes: Routes = [
     data: { allowedRoles: ['Operador de Mantenimiento'] },
   },
   {
+    path: 'operativo',
+    loadComponent: () => import('./pages/operator-maintenance-page').then(m => m.OperatorMaintenancePage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: ['Operador'] },
+  },
+  {
     path: 'kpis',
     loadComponent: () => import('./pages/maintenance-kpis-page').then(m => m.MaintenanceKpisPage),
     canActivate: [roleGuard],
     data: { allowedRoles: ['Jefe de Mantenimiento'] },
-    // Solo esta ruta paga el costo de ECharts — provideDynadrillCharts
-    // registrado a nivel de app.config.ts pondría el import estático de
-    // echarts/charts en main.js (bundle inicial de TODOS los usuarios).
-    // Con tree-shaking real: solo bar/line/gauge, lo que hoy usan los KPIs.
     providers: [provideDynadrillCharts([BarChart, LineChart, GaugeChart])],
-  },
-  {
-    path: 'inspeccion-vehiculos',
-    loadComponent: () => import('./pages/vehicle-inspection-page').then(m => m.VehicleInspectionPage),
-    canActivate: [roleGuard],
-    data: { allowedRoles: ['Operador', 'Supervisor'] },
   },
 ];

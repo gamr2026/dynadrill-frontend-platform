@@ -44,6 +44,7 @@ function formatDate(iso: string): string {
 
 const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
   Pendiente: 'warning',
+  'En Mantenimiento': 'info',
   'Requiere cambios': 'info',
   Aceptado: 'success',
   Rechazado: 'error',

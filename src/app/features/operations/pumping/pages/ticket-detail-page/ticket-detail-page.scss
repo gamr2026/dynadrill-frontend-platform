@@ -3,6 +3,10 @@
   padding: 1.5rem;
 }
 
+::ng-deep td {
+  white-space: pre-line;
+}
+
 .ticket-detail__section {
   margin-top: 2rem;
 
@@ -70,4 +74,21 @@
     color: var(--text-muted, #5c5870);
     text-align: center;
   }
+}
+
+.ticket-detail__maintenance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-default, #e0e0e0);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.ticket-detail__maintenance-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }

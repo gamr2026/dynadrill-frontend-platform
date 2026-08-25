@@ -1,0 +1,160 @@
+<div class="review-report">
+  <!-- Stepper cuando hay inspección (salida: 2 pasos) -->
+  @if (inspection) {
+    <dynadrill-stepper [steps]="reviewSteps" [currentIndex]="currentReviewStep()" />
+  }
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- PASO 1: Inspección de Vehículos (DYN-SGI-RE-068) — solo salida -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  @if (inspection && currentReviewStep() === 0) {
+    <section class="review-report__section">
+      <dynadrill-text variant="h1">Inspección de Vehículos — DYN-SGI-RE-068</dynadrill-text>
+      <dynadrill-text variant="caption">Operador: {{ operatorName }} · Unidad: {{ unitCode }}</dynadrill-text>
+    </section>
+
+    <section class="review-report__section">
+      <dynadrill-text variant="h2">Datos del vehículo</dynadrill-text>
+      <dynadrill-context-card [items]="inspectionInfoItems()" />
+    </section>
+
+    <section class="review-report__section">
+      <dynadrill-text variant="h2">Checklist — Vehículo</dynadrill-text>
+      <dynadrill-data-table [columns]="inspectionVehiculoColumns" [rows]="inspectionVehiculoRows()" [loading]="false" />
+    </section>
+
+    <section class="review-report__section">
+      <dynadrill-text variant="h2">Checklist — Equipo</dynadrill-text>
+      <dynadrill-data-table [columns]="inspectionVehiculoColumns" [rows]="inspectionEquipoRows()" [loading]="false" />
+    </section>
+
+    <section class="review-report__section">
+      <dynadrill-text variant="h2">Documentos del conductor</dynadrill-text>
+      <dynadrill-context-card [items]="inspectionConductorItems()" />
+    </section>
+
+    <!-- Rechazo inspección -->
+    @if (showRejectForm()) {
+      <section class="review-report__section review-report__reject-section">
+        <dynadrill-text variant="h2">Justificación del rechazo</dynadrill-text>
+        <dynadrill-textarea
+          label="Motivo del rechazo"
+          placeholder="Describa la razón por la cual se rechaza la inspección..."
+          [value]="rejectionReason()"
+          (valueChange)="rejectionReason.set($event)"
+        />
+      </section>
+    }
+
+    <footer class="review-report__actions">
+      <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+
+      @if (showRejectForm()) {
+        <dynadrill-button variant="error" [disabled]="rejectionReason().trim().length === 0" (clicked)="confirmReject()">Confirmar rechazo</dynadrill-button>
+      } @else {
+        <dynadrill-button variant="error" (clicked)="toggleReject()">Rechazar</dynadrill-button>
+        <dynadrill-button variant="success" (clicked)="approveInspectionStep()">Aprobar inspección</dynadrill-button>
+      }
+    </footer>
+  }
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- PASO 2 (salida) / ÚNICO (llegada): Reporte de Unidad          -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  @if (!inspection || currentReviewStep() === 1) {
+    <section class="review-report__section">
+      <dynadrill-text variant="h1">Reporte de Unidad — {{ isSalidaReview ? 'Salida' : 'Llegada' }}</dynadrill-text>
+      <dynadrill-text variant="caption">Documento: DYN-MNT-RE-012</dynadrill-text>
+    </section>
+
+    <!-- Información general -->
+    <section class="review-report__section">
+      <dynadrill-text variant="h2">Información general</dynadrill-text>
+      <dynadrill-context-card [items]="generalInfoItems()" />
+    </section>
+
+    <!-- Fechas y combustible -->
+    <section class="review-report__section">
+      <dynadrill-text variant="h2">Fecha y combustible</dynadrill-text>
+      <dynadrill-context-card [items]="datesFuelItems()" />
+    </section>
+
+    <section class="review-report__section">
+      <dynadrill-data-table [columns]="tireColumns" [rows]="tireRows()" [loading]="false" />
+    </section>
+
+    <!-- Hubodómetro -->
+    <section class="review-report__section">
+      <dynadrill-text variant="h2">Hubodómetro</dynadrill-text>
+      <dynadrill-data-table [columns]="hubodometroColumns" [rows]="hubodometroRows()" [loading]="false" />
+    </section>
+
+    <!-- Inspección -->
+    <section class="review-report__section">
+      <dynadrill-text variant="h2">Inspección</dynadrill-text>
+      <dynadrill-text variant="caption">Inspección: Indique con ✓ OK · ✕ defectuoso</dynadrill-text>
+    </section>
+
+    <section class="review-report__section">
+      <dynadrill-inspection-grid [mode]="inspectionMode" [items]="report.chassisInspection" />
+    </section>
+
+    <!-- Secciones adicionales solo para llegada -->
+    @if (!isSalidaReview) {
+      <section class="review-report__section">
+        <dynadrill-inspection-grid title="Chasis" mode="llegada" [items]="report.motorInspection" />
+      </section>
+
+      <section class="review-report__section">
+        <dynadrill-inspection-grid title="Plataforma" mode="llegada" [items]="report.arrivalEquipmentInspection" />
+      </section>
+
+      <section class="review-report__section">
+        <dynadrill-inspection-grid title="Instrumentación" mode="llegada" [items]="report.instrumentationInspection" />
+      </section>
+
+      <!-- Novedades -->
+      <section class="review-report__section">
+        <dynadrill-text variant="h2">Novedades — Describa en forma clara los problemas acontecidos</dynadrill-text>
+        <dynadrill-context-card [items]="noveltiesItems()" />
+      </section>
+
+      <!-- Operatividad -->
+      <section class="review-report__section">
+        <dynadrill-text variant="h2">¿La unidad está lista y operativa para la siguiente operación?</dynadrill-text>
+        <dynadrill-context-card [items]="operabilityItems()" />
+      </section>
+    }
+
+    <!-- Firmas -->
+    <section class="review-report__section">
+      <dynadrill-text variant="h2">Firmas</dynadrill-text>
+      <dynadrill-context-card [items]="signatureItems()" />
+    </section>
+
+    <!-- Rechazo: justificación -->
+    @if (showRejectForm()) {
+      <section class="review-report__section review-report__reject-section">
+        <dynadrill-text variant="h2">Justificación del rechazo</dynadrill-text>
+        <dynadrill-textarea
+          label="Motivo del rechazo"
+          placeholder="Describa la razón por la cual se rechaza este reporte..."
+          [value]="rejectionReason()"
+          (valueChange)="rejectionReason.set($event)"
+        />
+      </section>
+    }
+
+    <!-- Acciones -->
+    <footer class="review-report__actions">
+      <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+
+      @if (showRejectForm()) {
+        <dynadrill-button variant="error" [disabled]="rejectionReason().trim().length === 0" (clicked)="confirmReject()">Confirmar rechazo</dynadrill-button>
+      } @else {
+        <dynadrill-button variant="error" (clicked)="toggleReject()">Rechazar</dynadrill-button>
+        <dynadrill-button variant="success" (clicked)="approve()">Aprobar</dynadrill-button>
+      }
+    </footer>
+  }
+</div>

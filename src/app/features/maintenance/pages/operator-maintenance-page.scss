@@ -1,0 +1,9 @@
+.operator-maintenance-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__detail {
+    margin-top: 1rem;
+  }
+}

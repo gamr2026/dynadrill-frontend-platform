@@ -680,9 +680,6 @@ export const qhseMockInterceptor: HttpInterceptorFn = (req, next) => {
     ptwRecords = [...ptwRecords, created];
     nextPtwId += 1;
 
-    // El ATS base queda generado a partir de la matriz al abrir el PTW que lo consume (HSE-PLAN-001, campo atsGenerado).
-    matrices = matrices.map(m => (m.id === iperc.id ? { ...m, atsGenerado: true, updatedAt: now } : m));
-
     return of(new HttpResponse({ status: 201, body: created })).pipe(delay(400));
   }
 
@@ -703,6 +700,24 @@ export const qhseMockInterceptor: HttpInterceptorFn = (req, next) => {
         updatedAt: new Date().toISOString(),
       };
       ptwRecords = ptwRecords.map(p => (p.id === id ? updated : p));
+
+      /**
+       * HSE-SITIO-001: "Análisis de Riesgo en el Trabajo (ART)" es el
+       * mismo documento que HSE-PLAN-001 llama ATS ("formato propio del
+       * cliente, equivalente al ATS"), y ahí se carga (no se genera) —
+       * por eso atsGenerado en la matriz IPERC de origen se marca en
+       * el momento real en que ese documento queda cargado en el PTW,
+       * no antes (antes se marcaba al solo abrir el PTW, sin que el
+       * documento existiera todavía).
+       */
+      const art = updated.documentos.find(d => d.tipo === 'art');
+      if (art?.cargado) {
+        const iperc = matrices.find(m => m.id === updated.ipercMatrixId);
+        if (iperc && !iperc.atsGenerado) {
+          matrices = matrices.map(m => (m.id === iperc.id ? { ...m, atsGenerado: true, updatedAt: new Date().toISOString() } : m));
+        }
+      }
+
       return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(300));
     }
     return of(new HttpResponse({ status: 404 })).pipe(delay(300));

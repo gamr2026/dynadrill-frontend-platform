@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
+  DynadrillButtonComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
+  DynadrillDialogService,
   DynadrillIconButtonComponent,
   DynadrillKpiRowComponent,
   DynadrillPhaseTrackComponent,
@@ -14,6 +16,7 @@ import {
 import { IPERC_STATUS_LABELS, IpercMatrix, IpercStatus } from '../../models/iperc.model';
 import { IpercService } from '../../services/iperc.service';
 import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
+import { IpercMatrixDialog } from '../../components/iperc-matrix-dialog';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
 
@@ -52,6 +55,7 @@ const STATUS_INDEX: Record<IpercStatus, number> = {
     DynadrillKpiRowComponent,
     DynadrillDataTableComponent,
     DynadrillIconButtonComponent,
+    DynadrillButtonComponent,
     DynadrillPhaseTrackComponent,
   ],
   templateUrl: './iperc-list-page.html',
@@ -59,6 +63,7 @@ const STATUS_INDEX: Record<IpercStatus, number> = {
 })
 export class IpercListPage {
   private readonly ipercService = inject(IpercService);
+  private readonly dialogService = inject(DynadrillDialogService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -111,12 +116,23 @@ export class IpercListPage {
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   constructor() {
+    this.reload();
+  }
+
+  private reload(): void {
     this.ipercService.list().subscribe({
       next: matrices => {
         this.matrices.set(matrices);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
+    });
+  }
+
+  protected nuevaMatriz(): void {
+    const ref = this.dialogService.open<IpercMatrixDialog>({ title: 'Nueva matriz IPERC', content: IpercMatrixDialog, footer: false });
+    ref.afterClose.subscribe(created => {
+      if (created) this.router.navigate([created.id], { relativeTo: this.route });
     });
   }
 

@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { IpercMatrix } from '../models/iperc.model';
+import { CreateIpercMatrixInput, IpercMatrix } from '../models/iperc.model';
 
 @Injectable({ providedIn: 'root' })
 export class IpercService {
@@ -10,6 +10,10 @@ export class IpercService {
 
   list(): Observable<IpercMatrix[]> {
     return this.http.get<IpercMatrix[]>(this.baseUrl);
+  }
+
+  create(input: CreateIpercMatrixInput): Observable<IpercMatrix> {
+    return this.http.post<IpercMatrix>(this.baseUrl, input);
   }
 
   get(id: number): Observable<IpercMatrix> {

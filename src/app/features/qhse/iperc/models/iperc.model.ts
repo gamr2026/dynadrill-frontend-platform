@@ -92,3 +92,6 @@ export interface IpercMatrix {
   leccionAprendidaTexto?: string;
   leccionAprendidaInvestigacionCode?: string;
 }
+
+/** Fase 1 de HSE-PLAN-001 — lo mínimo para arrancar una matriz nueva en estado "borrador"; tasks/hazards se agregan después, dentro del detalle. */
+export type CreateIpercMatrixInput = Pick<IpercMatrix, 'actividad' | 'ubicacion' | 'equipoEvaluador'>;

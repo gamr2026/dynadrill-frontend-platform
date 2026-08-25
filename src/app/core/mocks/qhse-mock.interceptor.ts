@@ -1,6 +1,6 @@
 import { HttpInterceptorFn, HttpResponse } from '@angular/common/http';
 import { delay, of } from 'rxjs';
-import { IpercMatrix } from '../../features/qhse/iperc/models/iperc.model';
+import { CreateIpercMatrixInput, IpercMatrix } from '../../features/qhse/iperc/models/iperc.model';
 import { DEFAULT_LOTO_CHECKLIST, PTW_DOCUMENTOS_REQUERIDOS, PtwMatrix } from '../../features/qhse/ptw/models/ptw.model';
 import { CreateStopCardInput, StopCard } from '../../features/qhse/stop/models/stop-card.model';
 import { CreateSwaInput, DEFAULT_SWA_REANUDACION_CHECKLIST, SWA_NOTIFICATION_ROLES, SwaEvento } from '../../features/qhse/swa/models/swa.model';
@@ -154,6 +154,12 @@ let matrices: IpercMatrix[] = [
     ],
   },
 ];
+let nextMatrixId = 4;
+
+function nextMatrixCode(): string {
+  const year = new Date().getFullYear();
+  return `DYN-SGI-RE-087-${year}-${String(10 + nextMatrixId).padStart(3, '0')}`;
+}
 
 function nuevosDocumentosRequeridos() {
   return PTW_DOCUMENTOS_REQUERIDOS.map(d => ({ ...d, cargado: false }));
@@ -559,6 +565,27 @@ let dashboardMetas: Record<string, number> = {};
 export const qhseMockInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.url === '/api/qhse/iperc' && req.method === 'GET') {
     return of(new HttpResponse({ status: 200, body: matrices })).pipe(delay(400));
+  }
+
+  if (req.url === '/api/qhse/iperc' && req.method === 'POST') {
+    const input = req.body as CreateIpercMatrixInput;
+    const now = new Date().toISOString();
+    /** Fase 1 de HSE-PLAN-001: arranca en "borrador", sin tareas — se desglosan en el detalle. */
+    const created: IpercMatrix = {
+      id: nextMatrixId,
+      code: nextMatrixCode(),
+      status: 'borrador',
+      actividad: input.actividad,
+      ubicacion: input.ubicacion,
+      equipoEvaluador: input.equipoEvaluador,
+      tasks: [],
+      atsGenerado: false,
+      createdAt: now,
+      updatedAt: now,
+    };
+    nextMatrixId++;
+    matrices = [...matrices, created];
+    return of(new HttpResponse({ status: 201, body: created })).pipe(delay(300));
   }
 
   const approveMatch = req.url.match(/\/api\/qhse\/iperc\/(\d+)\/approve$/);

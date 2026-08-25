@@ -5,6 +5,11 @@
   padding: 1.5rem;
 }
 
+.iperc-list-page__toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
 // Los puntos de dynadrill-phase-track solo llevan color — la leyenda deja
 // explícito qué significa cada uno sin depender del tooltip al pasar el
 // mouse (poco descubrible, inútil en touch).

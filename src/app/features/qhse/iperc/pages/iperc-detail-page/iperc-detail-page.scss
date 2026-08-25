@@ -78,3 +78,43 @@
   color: var(--error, #c0392b);
   font-size: 0.85rem;
 }
+
+.iperc-detail-page__add-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border, #e5e4ea);
+
+  > dynadrill-input,
+  > dynadrill-select {
+    flex: 1 1 160px;
+    min-width: 0;
+  }
+}
+
+.iperc-detail-page__add-form--hazard {
+  margin-top: 1rem;
+  padding: 12px;
+  background: var(--surface-muted, #faf9fc);
+  border: 1px dashed var(--border, #e5e4ea);
+  border-radius: var(--radius-sm, 4px);
+}
+
+.iperc-detail-page__add-task {
+  background: var(--surface-muted, #faf9fc);
+}
+
+@media (max-width: 640px) {
+  .iperc-detail-page__add-form {
+    flex-direction: column;
+    align-items: stretch;
+
+    > dynadrill-input,
+    > dynadrill-select {
+      flex: none;
+    }
+  }
+}

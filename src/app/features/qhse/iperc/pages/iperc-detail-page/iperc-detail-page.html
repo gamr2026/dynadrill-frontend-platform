@@ -67,9 +67,36 @@
             } @else {
               <p class="iperc-detail-page__empty">Sin controles definidos todavía.</p>
             }
+
+            @if (canEditContent()) {
+              <div class="iperc-detail-page__add-form">
+                <dynadrill-select [options]="controlTypeOptions" [value]="controlDraft(hazard.id).type" (valueChange)="setControlDraftField(hazard.id, { type: $any($event) })" />
+                <dynadrill-input placeholder="Descripción del control" [value]="controlDraft(hazard.id).description" (valueChange)="setControlDraftField(hazard.id, { description: $event })" />
+                <dynadrill-button variant="secondary" size="small" (click)="agregarControl(hazard.id)">+ Agregar control</dynadrill-button>
+              </div>
+            }
           </div>
         </article>
       }
+
+      @if (canEditContent()) {
+        <div class="iperc-detail-page__add-form iperc-detail-page__add-form--hazard">
+          <dynadrill-input placeholder="Peligro identificado" [value]="hazardDraft(task.id).peligro" (valueChange)="setHazardDraftField(task.id, 'peligro', $event)" />
+          <dynadrill-input placeholder="Fuente del riesgo" [value]="hazardDraft(task.id).fuenteRiesgo" (valueChange)="setHazardDraftField(task.id, 'fuenteRiesgo', $event)" />
+          <dynadrill-input placeholder="Controles existentes (opcional)" [value]="hazardDraft(task.id).controlesExistentes" (valueChange)="setHazardDraftField(task.id, 'controlesExistentes', $event)" />
+          <dynadrill-button variant="secondary" size="small" (click)="agregarPeligro(task.id)">+ Agregar peligro</dynadrill-button>
+        </div>
+      }
+    </section>
+  }
+
+  @if (canAddTask()) {
+    <section class="iperc-detail-page__task iperc-detail-page__add-task">
+      <h3 class="iperc-detail-page__task-title">Agregar tarea</h3>
+      <div class="iperc-detail-page__add-form">
+        <dynadrill-input placeholder="Descripción de la tarea" [value]="nuevaTareaDescripcion()" (valueChange)="nuevaTareaDescripcion.set($event)" />
+        <dynadrill-button variant="secondary" size="small" (click)="agregarTarea()">+ Agregar tarea</dynadrill-button>
+      </div>
     </section>
   }
 

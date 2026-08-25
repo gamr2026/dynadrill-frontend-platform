@@ -5,6 +5,10 @@
   roleTag="HSE"
 />
 
+<div class="iperc-list-page__toolbar">
+  <dynadrill-button (clicked)="nuevaMatriz()">+ Nueva matriz IPERC</dynadrill-button>
+</div>
+
 <dynadrill-kpi-row [items]="kpis()" />
 
 <ng-template #actionsTpl let-row>

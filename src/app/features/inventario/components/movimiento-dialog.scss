@@ -1,0 +1,33 @@
+.movimiento-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  &__stock {
+    font-size: 13px;
+    color: var(--text-muted, #5c5870);
+    padding: 8px 12px;
+    background: var(--surface-muted, #faf9fc);
+    border-radius: var(--radius-sm, 4px);
+  }
+
+  &__tipo {
+    display: flex;
+    gap: 8px;
+  }
+
+  &__error {
+    color: var(--error, #ff4d4f);
+    font-size: 0.85rem;
+    margin: 0;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid var(--border, #e5e4ea);
+    padding-top: 16px;
+    margin-top: 4px;
+  }
+}

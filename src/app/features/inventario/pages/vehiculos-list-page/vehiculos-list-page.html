@@ -1,0 +1,19 @@
+<dynadrill-screen-header
+  eyebrow="Inventario"
+  title="Vehículos y Maquinaria"
+  subtitle="Mismo registro que Mantenimiento — datos patrimoniales (placa, marca, responsable)"
+/>
+
+<ng-template #actionsTpl let-row>
+  <dynadrill-button variant="secondary" size="small" (clicked)="editar(row)">Editar</dynadrill-button>
+</ng-template>
+
+<dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando vehículos…">
+  <dynadrill-data-table
+    [columns]="columns"
+    [rows]="rows()"
+    [rowKey]="rowKeyFn"
+    [pageSize]="10"
+    [actionsTemplate]="actionsTpl"
+  />
+</dynadrill-spinner>

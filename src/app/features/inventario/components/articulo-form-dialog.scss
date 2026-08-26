@@ -1,0 +1,30 @@
+.articulo-form-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  &__row {
+    display: flex;
+    gap: 12px;
+
+    > * {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid var(--border, #e5e4ea);
+    padding-top: 16px;
+    margin-top: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .articulo-form-dialog__row {
+    flex-direction: column;
+  }
+}

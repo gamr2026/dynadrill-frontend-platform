@@ -112,6 +112,23 @@ export class Sidebar {
         : [];
 
     /**
+     * Acceso provisional: mismo rol que ya administra Unidades en
+     * Mantenimiento (ver inventario.routes.ts) — a definir si más
+     * adelante existe un rol propio de Inventario.
+     */
+    const inventario: DynadrillMenuItem[] =
+      roleName === 'Jefe de Mantenimiento'
+        ? [{
+            label: 'Inventario',
+            icon: 'tool' as DynadrillIconName,
+            children: [
+              { label: 'Artículos', link: '/dashboard/inventario/articulos' },
+              { label: 'Vehículos', link: '/dashboard/inventario/vehiculos' },
+            ],
+          }]
+        : [];
+
+    /**
      * A diferencia de Operativo (visible para cualquier rol "de oficina"),
      * QHSE sí se gatea por rol desde el sidebar — igual que Mantenimiento.
      * Mismas 3 categorías funcionales que la propuesta de composición UI
@@ -180,6 +197,7 @@ export class Sidebar {
             ],
           },
           ...maintenance,
+          ...inventario,
           ...hse,
         ],
       },

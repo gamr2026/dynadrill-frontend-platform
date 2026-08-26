@@ -28,6 +28,10 @@ export const routes: Routes = [
         loadChildren: () => import('./features/qhse/qhse.routes').then(m => m.qhseRoutes),
       },
       {
+        path: 'dashboard/inventario',
+        loadChildren: () => import('./features/inventario/inventario.routes').then(m => m.inventarioRoutes),
+      },
+      {
         path: 'modulos/operativo',
         loadChildren: () => import('./features/operations/operations.routes').then(m => m.operationsRoutes),
       },

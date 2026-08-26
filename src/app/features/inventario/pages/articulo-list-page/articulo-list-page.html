@@ -1,0 +1,32 @@
+<dynadrill-screen-header
+  eyebrow="Inventario"
+  title="Artículos"
+  subtitle="Herramientas, químicos e insumos — catálogo y kardex de stock"
+/>
+
+<div class="articulo-list-page__toolbar">
+  <dynadrill-select
+    class="articulo-list-page__filter"
+    placeholder="Categoría"
+    [options]="categoriaOptions()"
+    [value]="filtroCategoria()"
+    (valueChange)="filtroCategoria.set($any($event))"
+  />
+  <dynadrill-button (clicked)="nuevoArticulo()">+ Nuevo artículo</dynadrill-button>
+</div>
+
+<dynadrill-kpi-row [items]="kpis()" />
+
+<ng-template #actionsTpl let-row>
+  <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(row)">Ver detalle</dynadrill-button>
+</ng-template>
+
+<dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando artículos…">
+  <dynadrill-data-table
+    [columns]="columns"
+    [rows]="rows()"
+    [rowKey]="rowKeyFn"
+    [pageSize]="10"
+    [actionsTemplate]="actionsTpl"
+  />
+</dynadrill-spinner>

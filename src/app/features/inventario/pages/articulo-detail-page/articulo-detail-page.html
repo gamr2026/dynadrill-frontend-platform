@@ -1,0 +1,23 @@
+@if (loading()) {
+  <p class="articulo-detail-page__loading">Cargando artículo…</p>
+} @else if (articulo(); as a) {
+  <dynadrill-screen-header [eyebrow]="a.codigo" [title]="a.nombre" [subtitle]="a.categoria + ' — ' + a.subcategoria" [roleTag]="a.activo ? 'Activo' : 'Inactivo'" />
+
+  <dynadrill-button variant="secondary" size="small" (clicked)="back()">← Volver a Artículos</dynadrill-button>
+
+  <dynadrill-context-card [items]="contextItems()" layout="vertical" />
+
+  <section class="articulo-detail-page__actions">
+    <dynadrill-button (clicked)="registrarMovimiento()">+ Registrar movimiento</dynadrill-button>
+    <dynadrill-button variant="secondary" (clicked)="editar()">Editar</dynadrill-button>
+  </section>
+
+  <section class="articulo-detail-page__kardex">
+    <h3 class="articulo-detail-page__kardex-title">Kardex de movimientos</h3>
+    @if (kardexRows().length > 0) {
+      <dynadrill-data-table [columns]="kardexColumns" [rows]="kardexRows()" [rowKey]="kardexRowKeyFn" [pageSize]="10" />
+    } @else {
+      <p class="articulo-detail-page__empty">Sin movimientos registrados todavía.</p>
+    }
+  </section>
+}

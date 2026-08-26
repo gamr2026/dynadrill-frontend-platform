@@ -1,0 +1,39 @@
+<div class="movimiento-dialog">
+  <div class="movimiento-dialog__stock">
+    Stock actual: <strong>{{ targetArticulo.stockActual }} {{ targetArticulo.unidadStock }}</strong>
+  </div>
+
+  <div class="movimiento-dialog__tipo">
+    <dynadrill-button [variant]="tipo() === 'entrada' ? 'primary' : 'secondary'" (clicked)="setTipo('entrada')">Entrada</dynadrill-button>
+    <dynadrill-button [variant]="tipo() === 'salida' ? 'primary' : 'secondary'" (clicked)="setTipo('salida')">Salida</dynadrill-button>
+  </div>
+
+  <dynadrill-input
+    label="Cantidad"
+    type="number"
+    [placeholder]="targetArticulo.unidadStock"
+    [value]="cantidad()"
+    (valueChange)="cantidad.set($event)"
+  />
+
+  <dynadrill-textarea
+    label="Motivo"
+    placeholder="Ej. Compra, consumo en Ticket #123, ajuste de inventario"
+    [value]="motivo()"
+    (valueChange)="motivo.set($event)"
+    [rows]="2"
+  />
+
+  <dynadrill-input label="Responsable" [value]="responsable()" (valueChange)="responsable.set($event)" />
+
+  @if (error()) {
+    <p class="movimiento-dialog__error">{{ error() }}</p>
+  }
+
+  <div class="movimiento-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!canSave() || submitting()" (clicked)="save()">
+      {{ submitting() ? 'Guardando…' : 'Registrar movimiento' }}
+    </dynadrill-button>
+  </div>
+</div>

@@ -1,0 +1,33 @@
+<div class="articulo-form-dialog">
+  <div class="articulo-form-dialog__row">
+    <dynadrill-input label="Código" placeholder="Ej. 0256822" [value]="codigo()" (valueChange)="codigo.set($event)" />
+    <dynadrill-input label="Código alterno" [value]="codigoAlterno()" (valueChange)="codigoAlterno.set($event)" />
+  </div>
+
+  <div class="articulo-form-dialog__row">
+    <dynadrill-input label="Código comercial" [value]="codigoComercial()" (valueChange)="codigoComercial.set($event)" />
+    <dynadrill-input label="Código de barras" [value]="codigoBarras()" (valueChange)="codigoBarras.set($event)" />
+  </div>
+
+  <dynadrill-input label="Nombre" placeholder="Nombre del artículo" [value]="nombre()" (valueChange)="nombre.set($event)" />
+  <dynadrill-input label="Nombre comercial" [value]="nombreComercial()" (valueChange)="nombreComercial.set($event)" />
+
+  <div class="articulo-form-dialog__row">
+    <dynadrill-input label="Categoría" placeholder="Ej. QUIMICA" [value]="categoria()" (valueChange)="categoria.set($event)" />
+    <dynadrill-input label="Subcategoría" placeholder="Ej. OTROS" [value]="subcategoria()" (valueChange)="subcategoria.set($event)" />
+  </div>
+
+  <dynadrill-input label="Unidad de stock" placeholder="Ej. GL, bbl, Unidad" [value]="unidadStock()" (valueChange)="unidadStock.set($event)" />
+
+  <dynadrill-textarea label="Nota" [value]="nota()" (valueChange)="nota.set($event)" [rows]="2" />
+  <dynadrill-textarea label="Información adicional" [value]="informacionAdicional()" (valueChange)="informacionAdicional.set($event)" [rows]="2" />
+
+  <dynadrill-checkbox label="Activo" [checked]="activo()" (checkedChange)="activo.set($event)" />
+
+  <div class="articulo-form-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!canSave() || submitting()" (clicked)="save()">
+      {{ submitting() ? 'Guardando…' : isEditMode ? 'Guardar cambios' : 'Crear artículo' }}
+    </dynadrill-button>
+  </div>
+</div>

@@ -59,7 +59,35 @@ export interface Unidad {
    * mantenimiento se asume interno (Dynadrill).
    */
   proveedorMantenimiento?: string;
+
+  /**
+   * ── Datos patrimoniales (módulo Inventario) ──
+   * Mismo registro que usa Mantenimiento (una sola fuente, no un
+   * "vehículo" duplicado) — Inventario solo agrega los campos de
+   * registro/activo fijo que a Mantenimiento no le hacían falta.
+   * Se editan aparte, vía PATCH /api/unidades/:id/patrimonio, sin tocar
+   * los campos operativos (horómetro/km/mantenimiento) de esta misma
+   * interfaz — esos siguen viviendo exclusivamente en el flujo de
+   * registrarMantenimiento().
+   */
+  placa?: string;
+  marca?: string;
+  modelo?: string;
+  anio?: string;
+  /** Responsable administrativo/patrimonial del activo — no es el operador que lo usa en campo. */
+  responsablePatrimonial?: string;
+  /** Unidad de referencia dentro de su categoría (informativo). */
+  predeterminado?: boolean;
+  /** false = dado de baja / fuera de servicio patrimonial. Por defecto true si no se ha registrado nada. */
+  activo?: boolean;
+  notaInventario?: string;
 }
+
+/** Campos patrimoniales editables desde Inventario — no incluye nada operativo de Mantenimiento. */
+export type UpdatePatrimonioInput = Pick<
+  Unidad,
+  'placa' | 'marca' | 'modelo' | 'anio' | 'responsablePatrimonial' | 'predeterminado' | 'activo' | 'notaInventario'
+>;
 
 /** Nivel de alerta del semáforo preventivo. */
 export type AlertaPreventivaNivel = 'rojo' | 'amarillo' | 'verde';

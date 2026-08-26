@@ -1,0 +1,29 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 1.5rem;
+}
+
+.articulo-detail-page__loading {
+  color: var(--text-muted, #5c5870);
+}
+
+.articulo-detail-page__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.articulo-detail-page__kardex-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 10px;
+  color: var(--dynadrill-navy, #131529);
+}
+
+.articulo-detail-page__empty {
+  color: var(--text-muted, #5c5870);
+  font-size: 0.85rem;
+  margin: 0;
+}

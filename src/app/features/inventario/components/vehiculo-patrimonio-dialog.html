@@ -1,0 +1,25 @@
+<div class="vehiculo-patrimonio-dialog">
+  <div class="vehiculo-patrimonio-dialog__row">
+    <dynadrill-input label="Placa" [value]="placa()" (valueChange)="placa.set($event)" />
+    <dynadrill-input label="Año" [value]="anio()" (valueChange)="anio.set($event)" />
+  </div>
+
+  <div class="vehiculo-patrimonio-dialog__row">
+    <dynadrill-input label="Marca" [value]="marca()" (valueChange)="marca.set($event)" />
+    <dynadrill-input label="Modelo" [value]="modelo()" (valueChange)="modelo.set($event)" />
+  </div>
+
+  <dynadrill-input label="Responsable" [value]="responsablePatrimonial()" (valueChange)="responsablePatrimonial.set($event)" />
+
+  <dynadrill-checkbox label="Unidad predeterminada de su categoría" [checked]="predeterminado()" (checkedChange)="predeterminado.set($event)" />
+  <dynadrill-checkbox label="Activo" [checked]="activo()" (checkedChange)="activo.set($event)" />
+
+  <dynadrill-textarea label="Nota" [value]="notaInventario()" (valueChange)="notaInventario.set($event)" [rows]="2" />
+
+  <div class="vehiculo-patrimonio-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="submitting()" (clicked)="save()">
+      {{ submitting() ? 'Guardando…' : 'Guardar cambios' }}
+    </dynadrill-button>
+  </div>
+</div>

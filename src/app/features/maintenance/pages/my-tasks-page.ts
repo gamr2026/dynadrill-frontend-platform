@@ -1,11 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import {
+  DynadrillButtonComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
-  DynadrillIconButtonComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
@@ -36,7 +36,7 @@ const SUB_ORDER_STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
  */
 @Component({
   selector: 'app-my-tasks-page',
-  imports: [CommonModule, DynadrillDataTableComponent, DynadrillIconButtonComponent, DynadrillSpinnerComponent, DynadrillScreenHeaderComponent],
+  imports: [CommonModule, DynadrillDataTableComponent, DynadrillButtonComponent, DynadrillSpinnerComponent, DynadrillScreenHeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './my-tasks-page.html',
   styleUrl: './my-tasks-page.scss',
@@ -54,18 +54,22 @@ export class MyTasksPage {
   protected readonly orders = signal<MaintenanceOrderWithSubOrders[]>([]);
   protected readonly unitReports = signal<UnitReport[]>([]);
 
-  // Mismo patrón que maintenance-list-page (bandeja del Jefe): solo fijamos
-  // la primera columna + acciones cuando la tabla realmente podría no
-  // entrar en pantalla.
-  private readonly narrowViewport = signal(window.matchMedia('(max-width: 840px)').matches);
+  /**
+   * Sin fixed/scrollX: nzScroll.x hace que nz-table mida el ancho "natural"
+   * de cada columna con un renglón oculto y lo fije en px vía colgroup —
+   * esa medición no espera a que dynadrill-button termine de renderizar
+   * dentro del actionsTemplate, así que la columna de Acciones quedaba
+   * fijada a un ancho absurdamente angosto sin importar su contenido real.
+   * El overflow-x horizontal en viewports angostos ahora lo da el wrapper
+   * CSS de la plantilla (.table-scroll), no nz-table.
+   */
   protected readonly columns = computed<DynadrillDataTableColumn[]>(() => [
-    { key: 'code', header: 'Sub-orden', sortable: true, searchable: true, fixed: this.narrowViewport() ? 'left' : undefined },
+    { key: 'code', header: 'Sub-orden', sortable: true, searchable: true },
     { key: 'orderCode', header: 'Orden', searchable: true },
     { key: 'unidad', header: 'Unidad', searchable: true },
     { key: 'type', header: 'Tipo' },
     { key: 'statusBadge', header: 'Estado', type: 'badge' },
   ]);
-  protected readonly tableScrollX = computed(() => (this.narrowViewport() ? '560px' : undefined));
 
   protected readonly rows = computed(() => {
     const userId = this.auth.currentUser()?.id;
@@ -86,11 +90,6 @@ export class MyTasksPage {
 
   constructor() {
     this.reload();
-
-    const mq = window.matchMedia('(max-width: 840px)');
-    const onChange = (e: MediaQueryListEvent): void => this.narrowViewport.set(e.matches);
-    mq.addEventListener('change', onChange);
-    inject(DestroyRef).onDestroy(() => mq.removeEventListener('change', onChange));
   }
 
   private reload(): void {

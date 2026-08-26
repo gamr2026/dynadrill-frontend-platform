@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import {
+  DynadrillButtonComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
-  DynadrillIconButtonComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
@@ -40,7 +40,7 @@ const STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
   imports: [
     DynadrillScreenHeaderComponent,
     DynadrillDataTableComponent,
-    DynadrillIconButtonComponent,
+    DynadrillButtonComponent,
     DynadrillSpinnerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

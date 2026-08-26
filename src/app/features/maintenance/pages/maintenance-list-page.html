@@ -16,20 +16,20 @@
   <!-- ── TAB CORRECTIVO — hidden en lugar de @if para no destruir/recrear ── -->
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando órdenes…">
   <div [hidden]="activeTab() !== 0">
-    <dynadrill-data-table
-      [columns]="columns()"
-      [rows]="rows()"
-      [rowKey]="rowKeyFn"
-      [pageSize]="10"
-      [actionsTemplate]="actionsTpl"
-      [actionsFixed]="!!tableScrollX()"
-      [scrollX]="tableScrollX() ?? ''"
-    />
+    <div class="table-scroll">
+      <dynadrill-data-table
+        [columns]="columns()"
+        [rows]="rows()"
+        [rowKey]="rowKeyFn"
+        [pageSize]="10"
+        [actionsTemplate]="actionsTpl"
+      />
+    </div>
 
     <ng-template #actionsTpl let-row>
-      <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
+      <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(row)">Ver detalle</dynadrill-button>
       @if (row['kind'] === 'order' && row['statusBadge']?.['text'] === 'Cerrado') {
-        <dynadrill-icon-button icon="file-pdf" tooltip="Ver informe DYN-MNT-RE-008" tooltipPlacement="top" (clicked)="openReport(row)" />
+        <dynadrill-button variant="secondary" size="small" (clicked)="openReport(row)">Ver informe DYN-MNT-RE-008</dynadrill-button>
       }
     </ng-template>
   </div>
@@ -67,31 +67,29 @@
       <span class="prev-toolbar__count">{{ alertasFiltradas().length }} registros</span>
     </div>
 
-    <!-- Tabla preventivo con columnas fijas -->
-    <dynadrill-data-table
-      [columns]="prevColumns"
-      [rows]="prevRows()"
-      [rowKey]="prevRowKeyFn"
-      [pageSize]="10"
-      scrollX="780px"
-      [actionsTemplate]="prevActionsTpl"
-      [actionsFixed]="true"
-    />
+    <!--
+      Sin scrollX: nzScroll.x hace que nz-table mida el ancho "natural" de
+      cada columna con un renglón oculto (ant-table-measure-now) y lo fije
+      en px vía colgroup — esa medición no esperaba a que dynadrill-button
+      terminara de renderizar dentro del actionsTemplate, midió esa columna
+      en ~15px y la dejó fija así aunque el contenido real fuera mucho más
+      ancho (de ahí el texto montado/el encabezado partido letra por letra).
+      Sin scrollX, table-layout vuelve a "auto": cada columna se dimensiona
+      según su contenido real, sin medición previa que se pueda desincronizar.
+    -->
+    <div class="table-scroll">
+      <dynadrill-data-table
+        [columns]="prevColumns"
+        [rows]="prevRows()"
+        [rowKey]="prevRowKeyFn"
+        [pageSize]="10"
+        [actionsTemplate]="prevActionsTpl"
+      />
+    </div>
 
     <ng-template #prevActionsTpl let-row>
-      <dynadrill-icon-button
-        icon="check-circle"
-        tooltip="Registrar mantenimiento"
-        tooltipPlacement="top"
-        (clicked)="openRegisterPM(row)"
-      />
-      <dynadrill-icon-button
-        icon="clock"
-        iconSource="dynadrill"
-        tooltip="Ver historial"
-        tooltipPlacement="top"
-        (clicked)="openHistorial(row)"
-      />
+      <dynadrill-button size="small" (clicked)="openRegisterPM(row)">Registrar mantenimiento</dynadrill-button>
+      <dynadrill-button variant="secondary" size="small" (clicked)="openHistorial(row)">Ver historial</dynadrill-button>
     </ng-template>
   </div>
 

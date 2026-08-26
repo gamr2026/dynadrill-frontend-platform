@@ -6,9 +6,9 @@
 
 <ng-template #actionsTpl let-row>
   @if (row['canEdit']) {
-    <dynadrill-icon-button icon="edit" tooltip="Editar inspección" tooltipPlacement="top" (clicked)="onEdit(row)" />
+    <dynadrill-button variant="secondary" size="small" (clicked)="onEdit(row)">Editar inspección</dynadrill-button>
   }
   @if (row['canApprove']) {
-    <dynadrill-icon-button icon="check-circle" tooltip="Aprobar inspección" tooltipPlacement="top" (clicked)="onApprove(row)" />
+    <dynadrill-button size="small" (clicked)="onApprove(row)">Aprobar inspección</dynadrill-button>
   }
 </ng-template>

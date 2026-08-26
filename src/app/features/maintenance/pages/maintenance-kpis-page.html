@@ -40,7 +40,7 @@
           [actionsTemplate]="fallasActionsTpl"
         />
         <ng-template #fallasActionsTpl let-row>
-          <dynadrill-icon-button icon="eye" tooltip="Ver orden más reciente" tooltipPlacement="top" (clicked)="openUnitOrder(row)" />
+          <dynadrill-button variant="secondary" size="small" (clicked)="openUnitOrder(row)">Ver orden más reciente</dynadrill-button>
         </ng-template>
       } @else {
         <dynadrill-text variant="caption">Ninguna unidad tiene más de una orden correctiva todavía.</dynadrill-text>

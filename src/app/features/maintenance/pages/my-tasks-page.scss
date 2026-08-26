@@ -3,6 +3,13 @@
   flex-direction: column;
   gap: 16px;
 
+  // Scroll horizontal propio en viewports angostos — no delegado a
+  // nzScroll.x (ver comentario en el .ts: su auto-medición de columnas no
+  // es confiable con dynadrill-button dentro del actionsTemplate).
+  .table-scroll {
+    overflow-x: auto;
+  }
+
   &__header {
     display: flex;
     flex-wrap: wrap;

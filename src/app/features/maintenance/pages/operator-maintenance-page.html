@@ -16,9 +16,9 @@
   </dynadrill-spinner>
 
   <ng-template #actionsTpl let-row>
-    <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
+    <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(row)">Ver detalle</dynadrill-button>
     @if (isActionable(row)) {
-      <dynadrill-icon-button icon="edit" tooltip="Diagnosticar / Ejecutar" tooltipPlacement="top" (clicked)="openExecution(row)" />
+      <dynadrill-button size="small" (clicked)="openExecution(row)">Diagnosticar / Ejecutar</dynadrill-button>
     }
   </ng-template>
 </div>

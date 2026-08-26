@@ -4,7 +4,6 @@ import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
-  DynadrillIconButtonComponent,
   DynadrillIconComponent,
   DynadrillNotificationService,
   DynadrillSpinnerComponent,
@@ -17,7 +16,7 @@ import { RolesService, UsersService } from '../services/users.service';
 
 @Component({
   selector: 'app-user-list-page',
-  imports: [DynadrillTextComponent, DynadrillButtonComponent, DynadrillDataTableComponent, DynadrillIconComponent, DynadrillIconButtonComponent, DynadrillSpinnerComponent],
+  imports: [DynadrillTextComponent, DynadrillButtonComponent, DynadrillDataTableComponent, DynadrillIconComponent, DynadrillSpinnerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './user-list-page.html',
   styleUrl: './user-list-page.scss',

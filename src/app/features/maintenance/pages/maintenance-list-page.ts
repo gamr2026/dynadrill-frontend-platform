@@ -7,7 +7,6 @@ import {
   DynadrillDataTableProgressCell,
   DynadrillDialogService,
   DynadrillDrawerService,
-  DynadrillIconButtonComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
@@ -53,7 +52,7 @@ const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
 
 @Component({
   selector: 'app-maintenance-list-page',
-  imports: [DynadrillButtonComponent, DynadrillDataTableComponent, DynadrillIconButtonComponent, DynadrillKpiRowComponent, DynadrillScreenHeaderComponent, DynadrillSelectComponent, DynadrillSpinnerComponent, DynadrillStatisticComponent, DynadrillTabsComponent, VehicleInspectionsTable],
+  imports: [DynadrillButtonComponent, DynadrillDataTableComponent, DynadrillKpiRowComponent, DynadrillScreenHeaderComponent, DynadrillSelectComponent, DynadrillSpinnerComponent, DynadrillStatisticComponent, DynadrillTabsComponent, VehicleInspectionsTable],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './maintenance-list-page.html',
   styleUrl: './maintenance-list-page.scss',
@@ -125,13 +124,24 @@ export class MaintenanceListPage {
     { label: 'Transporte', value: 'Transporte' },
   ];
 
+  /**
+   * Sin fixed:'left'/'right' — combinar columnas nzLeft/nzRight mete a
+   * nz-table en su modo interno "fixed-column", que le asigna un ancho en
+   * px calculado a TODAS las columnas (incluida Acciones), sin conocer el
+   * ancho real de los dynadrill-button con texto que trae ese template —
+   * eso era lo que desbordaba/superponía la columna de acciones (y en un
+   * intento de corregirlo solo por CSS, terminó rompiendo el offset
+   * sticky de "Unidad" en vez de arreglar el ancho). scrollX se mantiene
+   * para que la tabla completa siga haciendo scroll horizontal contenido
+   * en viewports angostos, ahora con layout normal (auto), no fijo.
+   */
   protected readonly prevColumns: DynadrillDataTableColumn[] = [
-    { key: 'unidadCode', header: 'Unidad', sortable: true, searchable: true, fixed: 'left' },
+    { key: 'unidadCode', header: 'Unidad', sortable: true, searchable: true },
     { key: 'descripcion', header: 'Mantenimiento', searchable: true },
     { key: 'progreso', header: 'Progreso', type: 'progress' },
     { key: 'actualLabel', header: 'Actual', sortable: true },
     { key: 'proximoEn', header: 'Próximo en', sortable: true },
-    { key: 'estadoBadge', header: 'Estado', type: 'badge', fixed: 'right' },
+    { key: 'estadoBadge', header: 'Estado', type: 'badge' },
   ];
 
   protected readonly prevRows = computed(() =>
@@ -215,19 +225,24 @@ export class MaintenanceListPage {
     return this.sortDir() === 'asc' ? '↑' : '↓';
   }
 
-  // Solo fijamos la columna de Orden + Acciones cuando la tabla realmente
-  // podría no entrar en pantalla — en desktop `fixed`/scrollX forzaban un
-  // scroll horizontal interno incluso sobrando espacio de sobra.
-  private readonly narrowViewport = signal(window.matchMedia('(max-width: 840px)').matches);
+  /**
+   * Sin fixed/scrollX: nzScroll.x hace que nz-table mida el ancho "natural"
+   * de cada columna con un renglón oculto y lo fije en px vía colgroup —
+   * esa medición no espera a que dynadrill-button termine de renderizar
+   * dentro del actionsTemplate, así que la columna de Acciones quedaba
+   * fijada a un ancho absurdamente angosto sin importar su contenido real
+   * (texto montado, encabezado partido letra por letra). El overflow-x
+   * horizontal en viewports angostos ahora lo da el wrapper CSS de la
+   * plantilla, no nz-table.
+   */
   protected readonly columns = computed<DynadrillDataTableColumn[]>(() => [
-    { key: 'code', header: 'Orden', sortable: true, searchable: true, fixed: this.narrowViewport() ? 'left' : undefined },
+    { key: 'code', header: 'Orden', sortable: true, searchable: true },
     { key: 'unidad', header: 'Unidad', searchable: true },
     { key: 'fecha', header: 'Fecha', sortable: true },
     { key: 'tipo', header: 'Tipo' },
     { key: 'origin', header: 'Origen' },
     { key: 'statusBadge', header: 'Estado', type: 'badge' },
   ]);
-  protected readonly tableScrollX = computed(() => (this.narrowViewport() ? '640px' : undefined));
 
   /**
    * Una sola tabla: reportes con novedad mezclados con las órdenes que ya
@@ -338,11 +353,6 @@ export class MaintenanceListPage {
 
   constructor() {
     this.reload();
-
-    const mq = window.matchMedia('(max-width: 840px)');
-    const onChange = (e: MediaQueryListEvent): void => this.narrowViewport.set(e.matches);
-    mq.addEventListener('change', onChange);
-    inject(DestroyRef).onDestroy(() => mq.removeEventListener('change', onChange));
 
     effect(() => this.notifications.setSource('maintenance', this.notificationItems()));
     inject(DestroyRef).onDestroy(() => this.notifications.clearSource('maintenance'));

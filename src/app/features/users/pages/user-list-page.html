@@ -20,7 +20,7 @@
   </dynadrill-spinner>
 
   <ng-template #actions let-row>
-    <dynadrill-icon-button icon="edit" iconSource="dynadrill" tooltip="Editar usuario" tooltipPlacement="top" (clicked)="editRow(row)" />
-    <dynadrill-icon-button icon="delete" iconSource="dynadrill" tooltip="Eliminar usuario" tooltipPlacement="top" class="btn-danger" (clicked)="deleteRow(row)" />
+    <dynadrill-button variant="secondary" size="small" (clicked)="editRow(row)">Editar</dynadrill-button>
+    <dynadrill-button variant="error" size="small" (clicked)="deleteRow(row)">Eliminar</dynadrill-button>
   </ng-template>
 </div>

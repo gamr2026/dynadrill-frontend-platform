@@ -17,15 +17,3 @@
     gap: 8px;
   }
 }
-
-// Variante peligro para el botón de eliminar
-::ng-deep .btn-danger .dynadrill-icon-btn {
-  color: var(--error, #ff4d4f) !important;
-  border-color: rgba(255, 77, 79, 0.3) !important;
-
-  &:hover:not([disabled]) {
-    background: rgba(255, 77, 79, 0.06) !important;
-    border-color: var(--error, #ff4d4f) !important;
-    color: var(--error, #ff4d4f) !important;
-  }
-}

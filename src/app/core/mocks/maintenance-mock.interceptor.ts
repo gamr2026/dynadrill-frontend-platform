@@ -3,7 +3,7 @@ import { delay, of } from 'rxjs';
 import { ClassifyOrderInput, ClassifyTypeAssignment, CloseOrderInput } from '../../features/maintenance/services/maintenance-orders.service';
 import { CreateUnitReportInput, UnitReport, unitReportCode } from '../../features/maintenance/models/unit-report.model';
 import { MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../../features/maintenance/models/maintenance-order.model';
-import { Unidad } from '../../features/maintenance/models/unidad.model';
+import { Unidad, UpdatePatrimonioInput } from '../../features/maintenance/models/unidad.model';
 import { RegistroMantenimiento } from '../../features/maintenance/models/historial-mantenimiento.model';
 import {
   CreateVehicleInspectionInput,
@@ -58,12 +58,16 @@ const unidades: Unidad[] = [
     kmActual: 87400,
     kmUltimoMantenimiento: 85000,
     fechaUltimoMantenimientoKm: '2026-07-10',
+    placa: 'PBA-1234', marca: 'Toyota', modelo: 'Hilux', anio: '2023',
+    responsablePatrimonial: 'Jorge Hidalgo', predeterminado: true, activo: true,
   },
   {
     id: 7, code: 'CAM-08', nombre: 'Camión CAM-08', tipo: 'Transporte',
     kmActual: 142800,
     kmUltimoMantenimiento: 138000,
     fechaUltimoMantenimientoKm: '2026-06-20',
+    placa: 'PCB-5678', marca: 'Kenworth', modelo: 'T800', anio: '2021',
+    responsablePatrimonial: 'Jorge Hidalgo', predeterminado: false, activo: true,
   },
   {
     id: 8, code: 'PMP-14', nombre: 'Unidad de Bombeo PMP-14', tipo: 'Servicio',
@@ -622,6 +626,16 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
     return of(new HttpResponse({ status: 200, body: unidades.map(u => ({ ...u })) })).pipe(delay(300));
   }
 
+  const unidadPatrimonioMatch = req.url.match(/\/api\/unidades\/(\d+)\/patrimonio$/);
+  if (unidadPatrimonioMatch && req.method === 'PATCH') {
+    const unidadId = Number(unidadPatrimonioMatch[1]);
+    const body = req.body as UpdatePatrimonioInput;
+    const idx = unidades.findIndex(u => u.id === unidadId);
+    if (idx === -1) return of(new HttpResponse({ status: 404 })).pipe(delay(300));
+    unidades[idx] = { ...unidades[idx], ...body };
+    return of(new HttpResponse({ status: 200, body: unidades[idx] })).pipe(delay(300));
+  }
+
   const unidadMantenimientoMatch = req.url.match(/\/api\/unidades\/(\d+)\/mantenimiento$/);
   if (unidadMantenimientoMatch && req.method === 'PATCH') {
     const unidadId = Number(unidadMantenimientoMatch[1]);
@@ -695,9 +709,15 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
     return of(new HttpResponse({ status: 404 })).pipe(delay(300));
   }
 
-  if (req.url.startsWith('/api/historial-mantenimiento') && req.method === 'GET') {
-    const params = new URLSearchParams(req.url.split('?')[1] ?? '');
-    const unidadIdParam = params.get('unidadId');
+  if (req.url === '/api/historial-mantenimiento' && req.method === 'GET') {
+    /**
+     * req.url NO trae el query string en un interceptor funcional — los
+     * params van aparte en req.params. Con req.url.split('?')[1], unidadId
+     * queda siempre null y "Ver historial" mostraba el historial de TODAS
+     * las unidades en vez de solo la unidad pedida (el bug no se notaba
+     * porque igual devolvía datos, solo que de más).
+     */
+    const unidadIdParam = req.params.get('unidadId');
     const filtered = unidadIdParam ? historial.filter(h => h.unidadId === Number(unidadIdParam)) : historial;
     return of(new HttpResponse({ status: 200, body: [...filtered].sort((a, b) => b.fecha.localeCompare(a.fecha)) })).pipe(delay(300));
   }

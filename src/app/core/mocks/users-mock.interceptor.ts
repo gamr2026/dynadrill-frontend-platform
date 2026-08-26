@@ -16,17 +16,6 @@ const roles: Role[] = [
   { id: 5, name: 'Jefe de Mantenimiento' },
   { id: 6, name: 'Operador de Mantenimiento' },
   /**
-   * Rol propio para quien llena la Inspección de Vehículos (DYN-SGI-RE-068)
-   * antes de salir con un vehículo de apoyo — Plan de Mantenimiento 2026,
-   * sección 5.4, lo llama explícitamente "conductor". Antes reusaba
-   * "Operador" (id 2), que en realidad es el rol de Pumping/FCR — se separó
-   * porque son módulos distintos y los "Documentos del conductor" del
-   * formato (licencia, manejo defensivo, examen médico) son atestación
-   * personal de quien maneja, no algo que el Jefe de Mantenimiento pueda
-   * llenar por él.
-   */
-  { id: 7, name: 'Conductor' },
-  /**
    * Roles del módulo QHSE (HSE-MASTER-001, sección "Roles y
    * Responsabilidades"). Los tres tienen login propio — a diferencia del
    * Company Man (cliente, queda fuera del sistema) y del personal

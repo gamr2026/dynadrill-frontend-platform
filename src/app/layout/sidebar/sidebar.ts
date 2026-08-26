@@ -36,8 +36,8 @@ export class Sidebar {
    * El módulo de Mantenimiento solo aparece para quien tiene un rol de ese
    * flujo. Por ahora, de los tres roles de Mantenimiento, solo el Jefe ve
    * el resto de la aplicación (Administración, Operativo, QHSE) — Operador
-   * de Mantenimiento y Conductor ven ÚNICAMENTE su propia pantalla: nada
-   * de otros módulos, ni Administración.
+   * de Mantenimiento ve ÚNICAMENTE su propia pantalla: nada de otros
+   * módulos, ni Administración.
    */
   protected readonly items = computed<DynadrillMenuItem[]>(() => {
     const roleName = this.auth.currentUser()?.roleName;
@@ -81,7 +81,6 @@ export class Sidebar {
        */
       return [
         dashboard,
-        { label: 'Aprobar Inspecciones', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/inspeccion-vehiculos' },
         { label: 'Recibimiento de Sitio (PTW)', icon: 'alert' as DynadrillIconName, link: '/dashboard/qhse/ptw' },
         {
           label: 'Módulos',

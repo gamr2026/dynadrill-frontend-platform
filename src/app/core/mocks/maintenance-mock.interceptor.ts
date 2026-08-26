@@ -1,11 +1,21 @@
 import { HttpInterceptorFn, HttpResponse } from '@angular/common/http';
 import { delay, of } from 'rxjs';
 import { ClassifyOrderInput, ClassifyTypeAssignment, CloseOrderInput } from '../../features/maintenance/services/maintenance-orders.service';
-import { CreateUnitReportInput, UnitReport } from '../../features/maintenance/models/unit-report.model';
+import { CreateUnitReportInput, UnitReport, unitReportCode } from '../../features/maintenance/models/unit-report.model';
 import { MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../../features/maintenance/models/maintenance-order.model';
 import { Unidad } from '../../features/maintenance/models/unidad.model';
 import { RegistroMantenimiento } from '../../features/maintenance/models/historial-mantenimiento.model';
-import { CreateVehicleInspectionInput, VehicleInspection } from '../../features/maintenance/models/vehicle-inspection.model';
+import {
+  CreateVehicleInspectionInput,
+  VehicleChecklistItem,
+  VehicleInspection,
+  VEHICLE_CHECKLIST_EQUIPO,
+  VEHICLE_CHECKLIST_VEHICULO,
+} from '../../features/maintenance/models/vehicle-inspection.model';
+
+function checklistOk(labels: string[]): VehicleChecklistItem[] {
+  return labels.map(label => ({ label, estado: 'C' as const }));
+}
 
 const unidades: Unidad[] = [
   {
@@ -93,8 +103,113 @@ let historial: RegistroMantenimiento[] = [
 ];
 let nextHistorialId = 4;
 
-let vehicleInspections: VehicleInspection[] = [];
-let nextInspectionId = 1;
+/**
+ * DYN-SGI-RE-068 — la llenan los Operadores del área de Pumping designados
+ * para el viaje (no un rol "Conductor": ese se absorbió hacia Pumping, ver
+ * cfa3c95). El Jefe de Mantenimiento solo la consulta — visibilidad de qué
+ * se inspeccionó y con qué resultado, sin acción propia sobre el registro.
+ */
+let vehicleInspections: VehicleInspection[] = [
+  {
+    id: 1,
+    unidadId: 6,
+    unidadCode: 'CAM-04',
+    fecha: '2026-08-20',
+    puntoPartida: 'Base Coca',
+    destino: 'Pozo Alfa-3',
+    inspeccionadoPor: 'Marco Ruiz',
+    marca: 'Toyota',
+    tipo: 'Camioneta',
+    modelo: 'Hilux',
+    anioFabricacion: '2023',
+    placa: 'PBA-1234',
+    fechaMatricula: '2026-01-10',
+    caducidadMatricula: '2027-01-10',
+    caducidadPoliza: '2027-03-01',
+    kmInicial: 87180,
+    kmFinal: 87400,
+    checklistVehiculo: checklistOk(VEHICLE_CHECKLIST_VEHICULO),
+    checklistEquipo: checklistOk(VEHICLE_CHECKLIST_EQUIPO),
+    licenciaVigente: true,
+    manejoDefensivoVigente: true,
+    examenMedicoVigente: true,
+    examenPsicosensometrico: true,
+    documentosClientes: true,
+    vacunasCertificado: true,
+    reuneCondicionesParaTrabajar: true,
+    supervisorNombre: 'Luis Vega',
+    supervisorApprovedBy: 'Luis Vega',
+    supervisorApprovedAt: '2026-08-20T13:30:00.000Z',
+    createdAt: '2026-08-20T07:15:00.000Z',
+  },
+  {
+    id: 2,
+    unidadId: 7,
+    unidadCode: 'CAM-08',
+    fecha: '2026-08-23',
+    puntoPartida: 'Base Coca',
+    destino: 'Pozo Beta-9',
+    inspeccionadoPor: 'Marco Ruiz',
+    marca: 'Kenworth',
+    tipo: 'Camión',
+    modelo: 'T800',
+    anioFabricacion: '2021',
+    placa: 'PCB-5678',
+    fechaMatricula: '2026-01-15',
+    caducidadMatricula: '2027-01-15',
+    caducidadPoliza: '2027-04-15',
+    kmInicial: 142500,
+    kmFinal: 142800,
+    checklistVehiculo: VEHICLE_CHECKLIST_VEHICULO.map(label => ({
+      label,
+      estado: label === 'Fugas — ausencia de fugas o liqueos' ? ('NC' as const) : ('C' as const),
+    })),
+    checklistEquipo: checklistOk(VEHICLE_CHECKLIST_EQUIPO),
+    licenciaVigente: true,
+    manejoDefensivoVigente: true,
+    examenMedicoVigente: true,
+    examenPsicosensometrico: true,
+    documentosClientes: true,
+    vacunasCertificado: true,
+    reuneCondicionesParaTrabajar: true,
+    observacionesConductor: 'Fuga leve visible bajo el motor — se reporta antes de salir.',
+    supervisorNombre: 'Luis Vega',
+    createdAt: '2026-08-23T07:20:00.000Z',
+  },
+  {
+    id: 3,
+    unidadId: 6,
+    unidadCode: 'CAM-04',
+    fecha: '2026-08-25',
+    puntoPartida: 'Base Coca',
+    destino: 'Pozo Delta-7',
+    inspeccionadoPor: 'Marco Ruiz',
+    marca: 'Toyota',
+    tipo: 'Camioneta',
+    modelo: 'Hilux',
+    anioFabricacion: '2023',
+    placa: 'PBA-1234',
+    fechaMatricula: '2026-01-10',
+    caducidadMatricula: '2027-01-10',
+    caducidadPoliza: '2027-03-01',
+    kmInicial: 87400,
+    kmFinal: 87620,
+    checklistVehiculo: checklistOk(VEHICLE_CHECKLIST_VEHICULO),
+    checklistEquipo: checklistOk(VEHICLE_CHECKLIST_EQUIPO),
+    licenciaVigente: true,
+    manejoDefensivoVigente: true,
+    examenMedicoVigente: true,
+    examenPsicosensometrico: true,
+    documentosClientes: true,
+    vacunasCertificado: true,
+    reuneCondicionesParaTrabajar: true,
+    supervisorNombre: 'Luis Vega',
+    supervisorApprovedBy: 'Luis Vega',
+    supervisorApprovedAt: '2026-08-25T13:10:00.000Z',
+    createdAt: '2026-08-25T07:05:00.000Z',
+  },
+];
+let nextInspectionId = 4;
 
 /**
  * Solo activo mientras no exista el backend real de Mantenimiento. Mismo
@@ -290,7 +405,7 @@ let orders: MaintenanceOrderWithSubOrders[] = [
   // y derivó la parte operativa al Operador de Pumping.
   {
     id: 1,
-    code: 'ORD-001',
+    code: 'R3104',
     unidad: '4-CTV-03',
     unitReportId: 1,
     origin: 'Reporte de Unidad #3104',
@@ -301,7 +416,7 @@ let orders: MaintenanceOrderWithSubOrders[] = [
       {
         id: 1,
         orderId: 1,
-        code: 'ORD-001-M',
+        code: 'R3104-M',
         type: 'Mecánico',
         status: 'En Ejecución',
         assignedUserId: 10,
@@ -314,7 +429,7 @@ let orders: MaintenanceOrderWithSubOrders[] = [
       {
         id: 2,
         orderId: 1,
-        code: 'ORD-001-I',
+        code: 'R3104-I',
         type: 'Instrumental',
         status: 'Pendiente',
         assignedUserId: 11,
@@ -324,7 +439,7 @@ let orders: MaintenanceOrderWithSubOrders[] = [
       {
         id: 3,
         orderId: 1,
-        code: 'ORD-001-O',
+        code: 'R3104-O',
         type: 'Operativo',
         status: 'Derivado a Pumping',
         deriveNote: 'Válvulas de 2" requieren mantenimiento por parte del equipo operativo antes de siguiente servicio.',
@@ -334,7 +449,7 @@ let orders: MaintenanceOrderWithSubOrders[] = [
   // ── Orden para PUM-07 con Operativo pendiente de ejecución ──
   {
     id: 2,
-    code: 'ORD-002',
+    code: 'R3110',
     unidad: 'PUM-07',
     unitReportId: 3,
     origin: 'Reporte de Unidad #3110',
@@ -345,7 +460,7 @@ let orders: MaintenanceOrderWithSubOrders[] = [
       {
         id: 4,
         orderId: 2,
-        code: 'ORD-002-M',
+        code: 'R3110-M',
         type: 'Mecánico',
         status: 'Cerrado',
         assignedUserId: 10,
@@ -361,7 +476,7 @@ let orders: MaintenanceOrderWithSubOrders[] = [
       {
         id: 5,
         orderId: 2,
-        code: 'ORD-002-I',
+        code: 'R3110-I',
         type: 'Instrumental',
         status: 'Cerrado',
         assignedUserId: 11,
@@ -377,7 +492,7 @@ let orders: MaintenanceOrderWithSubOrders[] = [
       {
         id: 6,
         orderId: 2,
-        code: 'ORD-002-O',
+        code: 'R3110-O',
         type: 'Operativo',
         status: 'Derivado a Pumping',
         deriveNote: 'Revisar estado de válvulas de presión después de intervención mecánica. Operador debe verificar funcionamiento.',
@@ -387,7 +502,7 @@ let orders: MaintenanceOrderWithSubOrders[] = [
   // ── Orden EN MANTENIMIENTO — 4 sub-órdenes con estados representativos ──
   {
     id: 3,
-    code: 'ORD-003',
+    code: 'R3130',
     unidad: 'PUM-03',
     unitReportId: 6,
     origin: 'Reporte de Unidad #3130',
@@ -398,7 +513,7 @@ let orders: MaintenanceOrderWithSubOrders[] = [
       {
         id: 7,
         orderId: 3,
-        code: 'ORD-003-M1',
+        code: 'R3130-M1',
         type: 'Mecánico',
         status: 'En Ejecución',
         assignedUserId: 10,
@@ -411,7 +526,7 @@ let orders: MaintenanceOrderWithSubOrders[] = [
       {
         id: 8,
         orderId: 3,
-        code: 'ORD-003-I1',
+        code: 'R3130-I1',
         type: 'Instrumental',
         status: 'En Revisión de Cierre',
         assignedUserId: 11,
@@ -426,7 +541,7 @@ let orders: MaintenanceOrderWithSubOrders[] = [
       {
         id: 9,
         orderId: 3,
-        code: 'ORD-003-M2',
+        code: 'R3130-M2',
         type: 'Mecánico',
         status: 'Cerrado',
         assignedUserId: 10,
@@ -442,7 +557,7 @@ let orders: MaintenanceOrderWithSubOrders[] = [
       {
         id: 10,
         orderId: 3,
-        code: 'ORD-003-O1',
+        code: 'R3130-O1',
         type: 'Operativo',
         status: 'En Revisión de Cierre',
         assignedUserId: 12,
@@ -720,9 +835,11 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
     const input = req.body as ClassifyOrderInput;
     const orderId = nextOrderId++;
     // El correo del cliente pide mantener el mismo número del Reporte de
-    // Unidad para dar seguimiento — la orden no lleva correlativo propio.
+    // Unidad para dar seguimiento — la orden no lleva correlativo propio, y
+    // conserva el mismo código R#### del reporte incluso después de
+    // clasificarse (antes cambiaba a un prefijo OT-, lo que rompía el rastreo).
     const reportNo = unitReports.find(r => r.id === input.unitReportId)?.reportNo;
-    const code = reportNo ? `OT-${reportNo}` : `OT-${2000 + orderId}`;
+    const code = reportNo ? unitReportCode(reportNo) : `R${2000 + orderId}`;
     const subOrders: SubOrder[] = input.assignments.map(a => buildSubOrder(orderId, code, a, input.assignedByName));
     const created: MaintenanceOrderWithSubOrders = {
       id: orderId,

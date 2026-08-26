@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import {
+  DynadrillButtonComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
-  DynadrillIconButtonComponent,
   DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
 import { VehicleInspection, vehicleInspectionHasNoCumple } from '../models/vehicle-inspection.model';
@@ -29,13 +29,16 @@ interface InspectionState {
 const EDITABLE_STATES: InspectionStateKey[] = ['sinNovedad', 'conNovedad', 'reportadoSinClasificar'];
 
 /**
- * Tabla de inspecciones, compartida entre la vista del Conductor (con
- * "Editar", mientras el Jefe no haya actuado) y la del Jefe (solo lectura,
- * visibilidad de todo el historial — con y sin novedad).
+ * Tabla de inspecciones, compartida entre la vista de Pumping (con
+ * "Editar", mientras el Jefe no haya actuado) y la del Jefe de Mantenimiento
+ * (solo lectura, visibilidad de todo el historial — con y sin novedad). El
+ * rol "Conductor" que existía antes se absorbió hacia Pumping (ver cfa3c95):
+ * quien llena la inspección es el Operador de Pumping designado para el
+ * viaje, no un rol propio de Mantenimiento.
  */
 @Component({
   selector: 'app-vehicle-inspections-table',
-  imports: [DynadrillDataTableComponent, DynadrillIconButtonComponent],
+  imports: [DynadrillDataTableComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './vehicle-inspections-table.html',
 })
@@ -43,7 +46,7 @@ export class VehicleInspectionsTable {
   readonly inspections = input.required<VehicleInspection[]>();
   readonly orders = input.required<MaintenanceOrderWithSubOrders[]>();
   readonly unitReports = input.required<UnitReport[]>();
-  /** Solo el Conductor puede editar — el Jefe siempre ve la tabla de solo lectura. */
+  /** Solo Pumping puede editar — el Jefe de Mantenimiento siempre ve la tabla de solo lectura. */
   readonly editable = input(false);
   /** Solo el Supervisor puede aprobar (Plan 2026, 5.3 — "Firma del Supervisor"). */
   readonly approvable = input(false);

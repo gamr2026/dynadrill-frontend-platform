@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import {
-  DynadrillBannerComponent,
   DynadrillButtonComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
@@ -26,8 +26,9 @@ import {
   SemaforoColor,
 } from '../../models/dashboard-kpi.model';
 import { DashboardMetasService } from '../../services/dashboard-metas.service';
+import { IPERC_STATUS_LABELS, IpercMatrix, IpercStatus } from '../../../iperc/models/iperc.model';
 import { IpercService } from '../../../iperc/services/iperc.service';
-import { PtwMatrix, ptwCerrado } from '../../../ptw/models/ptw.model';
+import { PTW_FASE_LABELS, PTW_FASE_ORDER, PtwFase, PtwMatrix, ptwCerrado } from '../../../ptw/models/ptw.model';
 import { PtwService } from '../../../ptw/services/ptw.service';
 import { InspeccionEquipoService } from '../../../inspecciones/services/inspeccion-equipo.service';
 import { inspeccionVencida } from '../../../inspecciones/models/inspeccion-equipo.model';
@@ -58,12 +59,40 @@ function daysBetween(a: Date, b: Date): number {
   return Math.abs(a.getTime() - b.getTime()) / 86_400_000;
 }
 
+const IPERC_ESTADO_TONE: Record<IpercStatus, DynadrillTagVariant> = {
+  borrador: 'neutral',
+  en_evaluacion: 'info',
+  en_revision: 'warning',
+  aprobada: 'success',
+  rechazada: 'error',
+};
+
+/** Fases "abiertas" agrupadas de forma simple para el mini-resumen — el detalle fase por fase ya vive en la bandeja de PTW. */
+const PTW_FASE_TONE: Record<PtwFase, DynadrillTagVariant> = {
+  gabinete: 'neutral',
+  ingreso: 'info',
+  verificaciones: 'warning',
+  formalizacion: 'warning',
+  ejecucion: 'info',
+  gestion_documental: 'info',
+};
+
+/** A partir de cuántos días sin actualizarse un PTW abierto se considera "estancado" — no es un plazo legal, es un umbral de gestión para que alguien lo revise. */
+const PTW_DIAS_SIN_ACTIVIDAD_ALERTA = 3;
+
+interface AtencionItem {
+  id: number;
+  code: string;
+  titulo: string;
+  motivo: string;
+  tone: DynadrillTagVariant;
+}
+
 /** HSE-MASTER-001 — Dashboard Integrado del Sistema: cierra el ciclo PDCA agregando los 16 indicadores estratégicos de las 4 fases ya construidas, con semáforo de cumplimiento configurable por metas. */
 @Component({
   selector: 'app-qhse-dashboard-page',
   imports: [
     DynadrillScreenHeaderComponent,
-    DynadrillBannerComponent,
     DynadrillTagComponent,
     DynadrillStatisticComponent,
     DynadrillProgressComponent,
@@ -87,6 +116,7 @@ export class QhseDashboardPage {
   private readonly usersService = inject(UsersService);
   private readonly metasService = inject(DashboardMetasService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly router = inject(Router);
 
   protected readonly categorias = CATEGORIAS;
   protected readonly categoriaTabs: DynadrillTab[] = CATEGORIAS.map(label => ({ label }));
@@ -102,6 +132,78 @@ export class QhseDashboardPage {
   protected readonly incumplimientoDetalle = signal<string[]>([]);
 
   protected readonly metaEdits = signal<Record<string, string>>({});
+
+  // ── Estado operativo — IPERC y PTW (distinto del reporte por matriz: acá es agregado y accionable, no el detalle de un solo caso) ──
+  protected readonly ipercStatusLabels = IPERC_STATUS_LABELS;
+  protected readonly ptwFaseLabels = PTW_FASE_LABELS;
+  protected readonly ptwDiasSinActividadAlerta = PTW_DIAS_SIN_ACTIVIDAD_ALERTA;
+  private readonly matricesRaw = signal<IpercMatrix[]>([]);
+  private readonly ptwRaw = signal<PtwMatrix[]>([]);
+
+  protected readonly matricesRawTotal = computed(() => this.matricesRaw().length);
+
+  protected readonly matricesPorEstado = computed(() => {
+    const all = this.matricesRaw();
+    return (Object.keys(IPERC_STATUS_LABELS) as IpercStatus[]).map(estado => ({
+      estado,
+      label: IPERC_STATUS_LABELS[estado],
+      tone: IPERC_ESTADO_TONE[estado],
+      count: all.filter(m => m.status === estado).length,
+    }));
+  });
+
+  /** Matrices que alguien tiene que revisar hoy: rechazadas, esperando aprobación, o con una lección aprendida sin cerrar el ciclo. */
+  protected readonly matricesAtencion = computed<AtencionItem[]>(() => {
+    const items: AtencionItem[] = [];
+    for (const m of this.matricesRaw()) {
+      if (m.status === 'rechazada') {
+        items.push({ id: m.id, code: m.code, titulo: m.actividad, motivo: 'Rechazada — pendiente de corregir', tone: 'error' });
+      } else if (m.status === 'en_revision') {
+        items.push({ id: m.id, code: m.code, titulo: m.actividad, motivo: 'En revisión — pendiente de aprobar', tone: 'warning' });
+      }
+      if (m.leccionAprendidaPendiente) {
+        items.push({ id: m.id, code: m.code, titulo: m.actividad, motivo: 'Lección aprendida pendiente de revisar', tone: 'warning' });
+      }
+    }
+    return items;
+  });
+
+  protected readonly ptwAbiertosTotal = computed(() => this.ptwRaw().filter(p => !ptwCerrado(p)).length);
+
+  protected readonly ptwPorFase = computed(() => {
+    const abiertos = this.ptwRaw().filter(p => !ptwCerrado(p));
+    return PTW_FASE_ORDER.map(fase => ({
+      fase,
+      label: PTW_FASE_LABELS[fase],
+      tone: PTW_FASE_TONE[fase],
+      count: abiertos.filter(p => p.fase === fase).length,
+    }));
+  });
+
+  /** PTW abiertos sin ninguna actualización reciente — señal de gestión, no un plazo legal, para saber a cuáles hacerles seguimiento. */
+  protected readonly ptwAtencion = computed<AtencionItem[]>(() => {
+    const ahora = Date.now();
+    return this.ptwRaw()
+      .filter(p => !ptwCerrado(p))
+      .map(p => ({ p, dias: Math.floor((ahora - new Date(p.updatedAt).getTime()) / 86_400_000) }))
+      .filter(({ dias }) => dias >= PTW_DIAS_SIN_ACTIVIDAD_ALERTA)
+      .sort((a, b) => b.dias - a.dias)
+      .map(({ p, dias }) => ({
+        id: p.id,
+        code: p.code,
+        titulo: p.actividad,
+        motivo: `Sin actividad hace ${dias} días — Fase: ${PTW_FASE_LABELS[p.fase]}`,
+        tone: 'warning' as DynadrillTagVariant,
+      }));
+  });
+
+  protected verIperc(id: number): void {
+    this.router.navigate(['/dashboard/qhse/iperc', id]);
+  }
+
+  protected verPtw(id: number): void {
+    this.router.navigate(['/dashboard/qhse/ptw', id]);
+  }
 
   protected defsPorCategoria(categoria: DashboardKpiCategoria): DashboardKpiDef[] {
     return this.defs.filter(d => d.categoria === categoria);
@@ -259,6 +361,8 @@ export class QhseDashboardPage {
         this.incumplimientoLegal.set(detalleLegal.length > 0);
         this.incumplimientoDetalle.set(detalleLegal);
         this.metas.set(metas);
+        this.matricesRaw.set(matrices);
+        this.ptwRaw.set(ptw);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
@@ -274,6 +378,16 @@ export class QhseDashboardPage {
 
   protected setMetaEdit(id: string, value: string): void {
     this.metaEdits.set({ ...this.metaEdits(), [id]: value });
+  }
+
+  /** true mientras el campo tiene un valor sin guardar (distinto al último guardado) — habilita el "Cancelar". */
+  protected metaEditDirty(id: string): boolean {
+    return id in this.metaEdits();
+  }
+
+  protected cancelarMetaEdit(id: string): void {
+    const { [id]: _removed, ...rest } = this.metaEdits();
+    this.metaEdits.set(rest);
   }
 
   protected guardarMeta(id: string): void {

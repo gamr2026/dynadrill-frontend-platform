@@ -330,6 +330,6 @@ export class EmergenciaDetailPage {
   }
 
   protected back(): void {
-    this.router.navigate(['/dashboard/qhse/emergencias']);
+    this.router.navigate(['/dashboard/qhse/eventos']);
   }
 }

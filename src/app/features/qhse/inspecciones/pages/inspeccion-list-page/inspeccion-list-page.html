@@ -8,5 +8,16 @@
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
     <dynadrill-kpi-row [items]="kpis()" />
     <dynadrill-data-table [columns]="columns()" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" [scrollX]="tableScrollX() ?? ''" />
+
+    <section class="inspeccion-list-page__cronograma">
+      <h3>Cronograma — control periódico por equipo</h3>
+      <p class="inspeccion-list-page__cronograma-note">
+        Próxima inspección debida por equipo, calculada desde su último registro según la frecuencia que exige
+        HSE-SEGUIMIENTO-001 (diaria para grúas y detectores de gas, trimestral por código de colores para eslingas).
+        No sustituye la vigencia de 3 meses de arriba — es el control del día a día.
+      </p>
+      <dynadrill-kpi-row [items]="cronogramaKpis()" />
+      <dynadrill-data-table [columns]="cronogramaColumns" [rows]="cronograma()" [rowKey]="cronogramaRowKeyFn" [pageSize]="10" />
+    </section>
   </dynadrill-spinner>
 </div>

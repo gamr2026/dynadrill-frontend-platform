@@ -88,6 +88,34 @@ export interface PtwFirma {
   firmadoAt: string;
 }
 
+/**
+ * HSE-SITIO-001 describe el monitoreo de gases y el Toolbox Talk como
+ * control continuo, no un trámite único al abrir el PTW — un trabajo que
+ * dura varios días necesita su propio control cada día. Fase 3
+ * (Verificaciones) sigue siendo la verificación inicial que habilita
+ * avanzar a Formalización; este registro es el control del día a día
+ * durante Fase 5 (Ejecución), donde vive el trabajo real de campo.
+ */
+export interface PtwDailyLog {
+  id: number;
+  fecha: string;
+  registradoPorNombre: string;
+  toolboxTalkRealizado: boolean;
+  lotoVerificado: boolean;
+  gasReadings: PtwGasReading[];
+  observaciones?: string;
+}
+
+export function ptwDailyLogSeguro(log: Pick<PtwDailyLog, 'gasReadings'>): boolean {
+  return log.gasReadings.every(r => r.seguro);
+}
+
+/** true si hoy (fecha local) todavía no tiene un registro de control diario — para avisar que falta el de hoy, no para bloquear nada. */
+export function ptwControlDeHoyPendiente(logs: PtwDailyLog[], ahora = new Date()): boolean {
+  const hoy = ahora.toDateString();
+  return !logs.some(l => new Date(l.fecha).toDateString() === hoy);
+}
+
 /** DYN-SGI-RE-087 no aplica acá — HSE-SITIO-001 no tiene formato propio generado por el sistema (ver tabla de formatos del proceso). */
 export interface PtwMatrix {
   id: number;
@@ -124,6 +152,8 @@ export interface PtwMatrix {
   // Fase 5: Ejecución y devolución
   limpiezaCompletada: boolean;
   inspeccionFinalConforme: boolean;
+  /** Control diario mientras el trabajo dura varios días — ver PtwDailyLog. */
+  dailyLogs: PtwDailyLog[];
 
   // Fase 6: Gestión documental final
   ptwCerrado?: PtwFirma;

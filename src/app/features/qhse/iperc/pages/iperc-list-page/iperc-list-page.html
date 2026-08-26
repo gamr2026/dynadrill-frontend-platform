@@ -16,13 +16,7 @@
 </ng-template>
 
 <ng-template #faseTpl let-row>
-  <dynadrill-phase-track
-    [steps]="faseSteps"
-    [currentIndex]="row.faseIndex"
-    [blocked]="row.faseBlocked"
-    [blockedReason]="row.faseBlockedReason"
-    [stepLabels]="faseLabels"
-  />
+  <dynadrill-phase-track [steps]="faseSteps" [currentIndex]="row.faseIndex" [stepLabels]="faseLabels" />
 </ng-template>
 
 <div class="iperc-list-page__fase-legend">
@@ -38,8 +32,8 @@
   [rowKey]="rowKeyFn"
   [pageSize]="10"
   [scrollX]="tableScrollX() ?? ''"
-  actionsHeader="Ver"
+  actionsHeader="Acciones"
   [actionsFixed]="!!tableScrollX()"
   [actionsTemplate]="actionsTpl"
-  [columnTemplates]="{ statusBadge: faseTpl }"
+  [columnTemplates]="{ faseIndex: faseTpl }"
 />

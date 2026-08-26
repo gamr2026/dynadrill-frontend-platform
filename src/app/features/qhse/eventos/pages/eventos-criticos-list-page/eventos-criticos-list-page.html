@@ -1,0 +1,166 @@
+<dynadrill-screen-header
+  eyebrow="QHSE"
+  title="Incidentes y Emergencias"
+  subtitle="SWA · Derrames · Emergencias · Investigaciones — bandeja unificada"
+  roleTag="HSE"
+/>
+
+<dynadrill-tabs [tabs]="tabs" [activeIndex]="activeIndex()" (activeIndexChange)="selectTab($event)" />
+
+<div class="eventos-criticos-list-page__filtros">
+  <dynadrill-input placeholder="Buscar por código o ubicación" [value]="searchText()" (valueChange)="setSearchText($event)" />
+  <dynadrill-select [options]="estadoOptions()" [value]="estadoFiltro()" (valueChange)="setEstadoFiltro($any($event))" />
+</div>
+
+@switch (activeTipo()) {
+  @case ('swa') {
+    <dynadrill-kpi-row [items]="swaKpis()" />
+    <div class="eventos-criticos-list-page__grid">
+      @for (c of swaVisible(); track c.id) {
+        <dynadrill-card [accent]="c.accent">
+          <span card-title>{{ c.code }}</span>
+          <dynadrill-tag card-extra [label]="c.estadoLabel" [variant]="c.accent" />
+
+          <p class="eventos-criticos-list-page__linea">{{ c.tipoPeligro }}</p>
+          @if (c.heroeSeguridad) {
+            <div class="eventos-criticos-list-page__chips">
+              <dynadrill-tag label="Héroe de Seguridad" variant="brand" />
+            </div>
+          }
+          <dl class="eventos-criticos-list-page__meta">
+            <div><dt>Ubicación</dt><dd>{{ c.ubicacion }}</dd></div>
+            <div><dt>Activado por</dt><dd>{{ c.activadoPorNombre }}</dd></div>
+            <div><dt>Fecha/hora</dt><dd>{{ c.activadoAt }}</dd></div>
+          </dl>
+
+          <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(c.id)">Ver detalle</dynadrill-button>
+        </dynadrill-card>
+      } @empty {
+        @if (swaCards().length === 0) {
+          <dynadrill-banner variant="info" message="Todavía no hay eventos SWA registrados. Se activan desde el botón 'Reportar' del encabezado." />
+        } @else {
+          <dynadrill-banner variant="info" message="Ningún evento SWA coincide con la búsqueda o filtro actual." />
+        }
+      }
+    </div>
+    @if (!mostrandoTodo()) {
+      <dynadrill-button variant="secondary" (click)="mostrarMas()">Mostrar más</dynadrill-button>
+    }
+  }
+
+  @case ('derrames') {
+    <dynadrill-kpi-row [items]="derrameKpis()" />
+    <div class="eventos-criticos-list-page__grid">
+      @for (c of derrameVisible(); track c.id) {
+        <dynadrill-card [accent]="c.accent">
+          <span card-title>{{ c.code }}</span>
+          <dynadrill-tag card-extra [label]="c.estadoLabel" [variant]="c.accent" />
+
+          <p class="eventos-criticos-list-page__linea">{{ c.descripcion }}</p>
+          @if (c.esMayor || c.notificadoMae) {
+            <div class="eventos-criticos-list-page__chips">
+              @if (c.esMayor) {
+                <dynadrill-tag label="Mayor" variant="error" />
+              }
+              @if (c.notificadoMae) {
+                <dynadrill-tag label="MAE notificado" variant="info" />
+              }
+            </div>
+          }
+          <dl class="eventos-criticos-list-page__meta">
+            <div><dt>Volumen</dt><dd>{{ c.volumenLabel }}</dd></div>
+            <div><dt>Ubicación</dt><dd>{{ c.ubicacion }}</dd></div>
+            <div><dt>Fecha/hora</dt><dd>{{ c.activadoAt }}</dd></div>
+          </dl>
+
+          <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(c.id)">Ver detalle</dynadrill-button>
+        </dynadrill-card>
+      } @empty {
+        @if (derrameCards().length === 0) {
+          <dynadrill-banner variant="info" message="Todavía no hay derrames registrados. Se crean desde el botón 'Reportar' del encabezado." />
+        } @else {
+          <dynadrill-banner variant="info" message="Ningún derrame coincide con la búsqueda o filtro actual." />
+        }
+      }
+    </div>
+    @if (!mostrandoTodo()) {
+      <dynadrill-button variant="secondary" (click)="mostrarMas()">Mostrar más</dynadrill-button>
+    }
+  }
+
+  @case ('emergencias') {
+    <dynadrill-kpi-row [items]="emergenciaKpis()" />
+    <div class="eventos-criticos-list-page__grid">
+      @for (e of emergenciaVisible(); track e.id) {
+        <dynadrill-card [accent]="e.accent">
+          <span card-title>{{ e.code }}</span>
+          <dynadrill-tag card-extra [label]="e.estadoLabel" [variant]="e.accent" />
+
+          <p class="eventos-criticos-list-page__linea">{{ e.tipo }}</p>
+          <div class="eventos-criticos-list-page__chips">
+            <dynadrill-tag [label]="e.nivelLabel" variant="neutral" />
+          </div>
+          <dl class="eventos-criticos-list-page__meta">
+            <div><dt>Ubicación</dt><dd>{{ e.ubicacion }}</dd></div>
+            <div><dt>Fecha/hora</dt><dd>{{ e.activadoAt }}</dd></div>
+          </dl>
+
+          @if (e.flashSegundosRestantes !== null) {
+            <div class="eventos-criticos-list-page__flash">
+              <span>Reporte Flash vence en</span>
+              <dynadrill-timer [seconds]="e.flashSegundosRestantes" [critical]="e.flashSegundosRestantes < 900" />
+            </div>
+          } @else if (e.flashLabel) {
+            <dynadrill-tag [label]="e.flashLabel" [variant]="e.flashLabel.includes('vencido') ? 'error' : 'success'" />
+          }
+
+          <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(e.id)">Ver detalle</dynadrill-button>
+        </dynadrill-card>
+      } @empty {
+        @if (emergenciaCards().length === 0) {
+          <dynadrill-banner variant="info" message="Todavía no hay emergencias registradas. Se activan desde el botón 'Reportar' del encabezado." />
+        } @else {
+          <dynadrill-banner variant="info" message="Ninguna emergencia coincide con la búsqueda o filtro actual." />
+        }
+      }
+    </div>
+    @if (!mostrandoTodo()) {
+      <dynadrill-button variant="secondary" (click)="mostrarMas()">Mostrar más</dynadrill-button>
+    }
+  }
+
+  @case ('investigaciones') {
+    <dynadrill-kpi-row [items]="investigacionKpis()" />
+    <div class="eventos-criticos-list-page__grid">
+      @for (i of investigacionVisible(); track i.id) {
+        <dynadrill-card [accent]="i.accent">
+          <span card-title>{{ i.code }}</span>
+          <dynadrill-tag card-extra [label]="i.estadoLabel" variant="neutral" />
+
+          <p class="eventos-criticos-list-page__linea">{{ i.resultadoLabel }}</p>
+          <div class="eventos-criticos-list-page__chips">
+            @if (i.accionesPendientes > 0) {
+              <dynadrill-tag [label]="i.accionesPendientes + ' acciones pendientes'" variant="neutral" />
+            }
+            <dynadrill-tag [label]="i.plazoLabel" [variant]="i.accent" />
+          </div>
+          <dl class="eventos-criticos-list-page__meta">
+            <div><dt>Ubicación</dt><dd>{{ i.ubicacion }}</dd></div>
+            <div><dt>Fecha del incidente</dt><dd>{{ i.fechaIncidente }}</dd></div>
+          </dl>
+
+          <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(i.id)">Ver detalle</dynadrill-button>
+        </dynadrill-card>
+      } @empty {
+        @if (investigacionCards().length === 0) {
+          <dynadrill-banner variant="info" message="Todavía no hay investigaciones registradas. Se abren desde un incidente o al cerrar una Emergencia Nivel 2/3." />
+        } @else {
+          <dynadrill-banner variant="info" message="Ninguna investigación coincide con la búsqueda o filtro actual." />
+        }
+      }
+    </div>
+    @if (!mostrandoTodo()) {
+      <dynadrill-button variant="secondary" (click)="mostrarMas()">Mostrar más</dynadrill-button>
+    }
+  }
+}

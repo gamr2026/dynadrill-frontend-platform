@@ -84,6 +84,19 @@
   border-radius: var(--radius-sm, 4px);
 }
 
+.iperc-detail-page__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.iperc-detail-page__hazard-risks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: none;
+}
+
 .iperc-detail-page__hazard-info {
   display: flex;
   flex-direction: column;

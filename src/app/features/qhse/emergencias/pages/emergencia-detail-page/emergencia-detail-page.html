@@ -3,7 +3,7 @@
 } @else if (evento(); as e) {
   <dynadrill-screen-header [eyebrow]="e.code" [title]="e.tipo" [subtitle]="e.descripcion" [roleTag]="estadoLabels[e.estado]" />
 
-  <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a Emergencias</dynadrill-button>
+  <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a Incidentes y Emergencias</dynadrill-button>
 
   @if (e.origenSwaId) {
     <dynadrill-banner variant="info" [message]="'Escalada desde SWA #' + e.origenSwaId" />

@@ -3,7 +3,7 @@
 } @else if (evento(); as e) {
   <dynadrill-screen-header [eyebrow]="e.code" title="Evento de derrame" [subtitle]="e.descripcion" [roleTag]="estadoLabels[e.estado]" />
 
-  <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a Control de Derrames</dynadrill-button>
+  <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a Incidentes y Emergencias</dynadrill-button>
 
   @if (esEmergenciaMayor()) {
     <dynadrill-banner variant="critical" message="Derrame MAYOR — según HSE-MASTER-001 esto debe escalar a Emergencia Mayor (HSE-TRIAGE-001)." />

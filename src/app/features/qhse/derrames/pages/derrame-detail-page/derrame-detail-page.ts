@@ -164,6 +164,6 @@ export class DerrameDetailPage {
   }
 
   protected back(): void {
-    this.router.navigate(['/dashboard/qhse/derrames']);
+    this.router.navigate(['/dashboard/qhse/eventos']);
   }
 }

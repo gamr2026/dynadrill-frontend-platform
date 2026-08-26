@@ -126,7 +126,7 @@ export class Sidebar {
             label: 'QHSE',
             icon: 'alert' as DynadrillIconName,
             children: [
-              { label: 'Dashboard', link: '/dashboard/qhse/dashboard' },
+              { label: 'Indicadores', link: '/dashboard/qhse/dashboard' },
               {
                 label: 'Planificación',
                 children: [
@@ -142,13 +142,18 @@ export class Sidebar {
                 ],
               },
               {
+                /**
+                 * SWA, Derrames, Emergencias e Investigaciones compartían
+                 * exactamente el mismo diseño (header + KPIs + grilla de
+                 * tarjetas) — 4 entradas de sidebar para, en esencia, la
+                 * misma pantalla. Ahora es una sola bandeja con pestañas
+                 * (EventosCriticosListPage). STOP se queda aparte: es
+                 * observación preventiva, no un evento ya ocurrido.
+                 */
                 label: 'Eventos críticos',
                 children: [
                   { label: 'STOP', link: '/dashboard/qhse/stop' },
-                  { label: 'SWA', link: '/dashboard/qhse/swa' },
-                  { label: 'Derrames', link: '/dashboard/qhse/derrames' },
-                  { label: 'Emergencias', link: '/dashboard/qhse/emergencias' },
-                  { label: 'Investigaciones', link: '/dashboard/qhse/investigaciones' },
+                  { label: 'Incidentes y Emergencias', link: '/dashboard/qhse/eventos' },
                 ],
               },
             ],

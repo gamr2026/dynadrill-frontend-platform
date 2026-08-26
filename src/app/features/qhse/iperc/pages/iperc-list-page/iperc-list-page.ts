@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   DynadrillButtonComponent,
@@ -17,6 +17,8 @@ import { IPERC_STATUS_LABELS, IpercMatrix, IpercStatus } from '../../models/iper
 import { IpercService } from '../../services/iperc.service';
 import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
 import { IpercMatrixDialog } from '../../components/iperc-matrix-dialog';
+import { AuthService } from '../../../../../core/services/auth.service';
+import { AppNotificationItem, NotificationsService } from '../../../../../core/services/notifications.service';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
 
@@ -66,6 +68,8 @@ export class IpercListPage {
   private readonly dialogService = inject(DynadrillDialogService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly auth = inject(AuthService);
+  private readonly notifications = inject(NotificationsService);
 
   protected readonly loading = signal(true);
   protected readonly matrices = signal<IpercMatrix[]>([]);
@@ -86,9 +90,9 @@ export class IpercListPage {
     { key: 'code', header: 'Código', sortable: true, searchable: true, fixed: this.narrowViewport() ? 'left' : undefined },
     { key: 'actividad', header: 'Actividad', searchable: true },
     { key: 'ubicacion', header: 'Ubicación', searchable: true },
-    { key: 'statusBadge', header: 'Fase', type: 'badge', filters: STATUS_FILTERS },
+    { key: 'estadoBadge', header: 'Estado', type: 'badge', filters: STATUS_FILTERS },
+    { key: 'faseIndex', header: 'Fase' },
     { key: 'riesgoBadge', header: 'Riesgo residual más alto', type: 'badge', fixed: this.narrowViewport() ? 'right' : undefined },
-    { key: 'leccionBadge', header: 'Lección aprendida', type: 'badge' },
   ]);
 
   protected readonly tableScrollX = computed(() => (this.narrowViewport() ? '760px' : undefined));
@@ -102,21 +106,38 @@ export class IpercListPage {
       code: m.code,
       actividad: m.actividad,
       ubicacion: m.ubicacion,
-      statusBadge: STATUS_BADGES[m.status],
+      estadoBadge: STATUS_BADGES[m.status],
       faseIndex: STATUS_INDEX[m.status],
-      faseBlocked: m.status === 'rechazada',
-      faseBlockedReason: 'Rechazada',
       riesgoBadge: this.highestResidualBadge(m),
-      leccionBadge: m.leccionAprendidaPendiente
-        ? { text: 'Pendiente de revisar', tone: 'warning' as BadgeTone }
-        : { text: '—', tone: 'neutral' as BadgeTone },
     })),
   );
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
+  /**
+   * Avisa al Técnico HSE (quien la levantó) cuando una matriz vuelve
+   * rechazada — antes no había ninguna forma de que se enterara sin
+   * entrar a cada matriz por su cuenta. Coordinador/Gerente HSE no la
+   * necesitan: ellos mismos tomaron la decisión.
+   */
+  protected readonly notificationItems = computed<AppNotificationItem[]>(() => {
+    if (this.auth.currentUser()?.roleName !== 'Técnico HSE') return [];
+    return this.matrices()
+      .filter(m => m.status === 'rechazada')
+      .map(m => ({
+        id: `iperc-rechazada-${m.id}`,
+        title: `${m.code} rechazada`,
+        description: m.rejectedReason ? `Motivo: ${m.rejectedReason}` : `Rechazada por ${m.rejectedByName ?? '—'}`,
+        tone: 'error',
+        link: `/dashboard/qhse/iperc/${m.id}`,
+      }));
+  });
+
   constructor() {
     this.reload();
+
+    effect(() => this.notifications.setSource('iperc', this.notificationItems()));
+    inject(DestroyRef).onDestroy(() => this.notifications.clearSource('iperc'));
   }
 
   private reload(): void {
@@ -140,17 +161,20 @@ export class IpercListPage {
     this.router.navigate([String(row['id'])], { relativeTo: this.route });
   }
 
+  /**
+   * Si algún peligro todavía no tiene riesgo residual evaluado, no se
+   * calcula el máximo solo con los que sí lo tienen: eso podía mostrar
+   * "Bajo" en la bandeja mientras un peligro sin evaluar resultaba ser el
+   * más grave — un supervisor que aprueba mirando solo esta columna, sin
+   * abrir el detalle, se llevaría una falsa sensación de seguridad.
+   */
   private highestResidualBadge(matrix: IpercMatrix): { text: string; tone: BadgeTone } {
-    const values = matrix.tasks
-      .flatMap(t => t.hazards)
-      .map(h =>
-        h.probabilidadResidual != null && h.severidadResidual != null
-          ? h.probabilidadResidual * h.severidadResidual
-          : null,
-      )
-      .filter((v): v is number => v != null);
-
-    if (values.length === 0) return { text: 'Sin evaluar', tone: 'neutral' };
+    const hazards = matrix.tasks.flatMap(t => t.hazards);
+    if (hazards.length === 0) return { text: 'Sin evaluar', tone: 'neutral' };
+    if (hazards.some(h => h.probabilidadResidual == null || h.severidadResidual == null)) {
+      return { text: 'Evaluación incompleta', tone: 'warning' };
+    }
+    const values = hazards.map(h => h.probabilidadResidual! * h.severidadResidual!);
     return RISK_BADGES[dynadrillRiskLevel(Math.max(...values))];
   }
 }

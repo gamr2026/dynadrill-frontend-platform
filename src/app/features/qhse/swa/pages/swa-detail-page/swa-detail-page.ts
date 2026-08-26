@@ -138,6 +138,6 @@ export class SwaDetailPage {
   }
 
   protected back(): void {
-    this.router.navigate(['/dashboard/qhse/swa']);
+    this.router.navigate(['/dashboard/qhse/eventos']);
   }
 }

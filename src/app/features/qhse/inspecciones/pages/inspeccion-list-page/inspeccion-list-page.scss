@@ -7,4 +7,24 @@
     display: flex;
     justify-content: flex-end;
   }
+
+  &__cronograma {
+    margin-top: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      color: var(--dynadrill-navy, #131529);
+    }
+  }
+
+  &__cronograma-note {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted, #5c5870);
+    max-width: 760px;
+  }
 }

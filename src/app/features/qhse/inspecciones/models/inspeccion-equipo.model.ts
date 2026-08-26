@@ -74,3 +74,37 @@ export function inspeccionEnCuarentena(i: Pick<InspeccionEquipo, 'resultado'>): 
 export function inspeccionVencida(i: Pick<InspeccionEquipo, 'vigenciaHasta'>, ahora = new Date()): boolean {
   return new Date(i.vigenciaHasta).getTime() < ahora.getTime();
 }
+
+/**
+ * HSE-SEGUIMIENTO-001 no exige la misma cadencia para los 3 tipos: grúa y
+ * detector de gas son de control DIARIO (checklist pre-operacional / bump
+ * test), mientras que eslinga de cable sigue el código de colores
+ * TRIMESTRAL. `vigenciaHasta` (3 meses fijos, arriba) es el límite máximo
+ * antes de exigir una reinspección completa para cualquier tipo — esto es
+ * la cadencia real de control periódico, más corta para los dos tipos de
+ * uso diario. "Planificar inspecciones del período" (HSE-SEGUIMIENTO-001)
+ * se resuelve con esto: no hay inventario de equipos separado, así que el
+ * cronograma se deriva del propio historial de inspecciones por
+ * equipoCodigo — ver inspeccionesPorEquipo() en inspeccion-list-page.
+ */
+export const INSPECCION_FRECUENCIA_DIAS: Record<TipoEquipoInspeccion, number> = {
+  vehiculo_grua: 1,
+  detector_gas: 1,
+  eslinga_cable: 90,
+};
+
+export const INSPECCION_FRECUENCIA_LABEL: Record<TipoEquipoInspeccion, string> = {
+  vehiculo_grua: 'Diaria (checklist pre-operacional)',
+  detector_gas: 'Diaria (bump test antes del turno)',
+  eslinga_cable: 'Trimestral (código de colores)',
+};
+
+export function proximaInspeccionDebida(ultimaFechaIso: string, tipo: TipoEquipoInspeccion): string {
+  const d = new Date(ultimaFechaIso);
+  d.setDate(d.getDate() + INSPECCION_FRECUENCIA_DIAS[tipo]);
+  return d.toISOString();
+}
+
+export function inspeccionPeriodicaVencida(ultimaFechaIso: string, tipo: TipoEquipoInspeccion, ahora = new Date()): boolean {
+  return new Date(proximaInspeccionDebida(ultimaFechaIso, tipo)).getTime() < ahora.getTime();
+}

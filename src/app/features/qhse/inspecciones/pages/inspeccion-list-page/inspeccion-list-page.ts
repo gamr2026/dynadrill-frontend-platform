@@ -11,7 +11,15 @@ import {
   type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
-import { InspeccionEquipo, TIPO_EQUIPO_LABELS, inspeccionEnCuarentena, inspeccionVencida } from '../../models/inspeccion-equipo.model';
+import {
+  INSPECCION_FRECUENCIA_LABEL,
+  InspeccionEquipo,
+  TIPO_EQUIPO_LABELS,
+  inspeccionEnCuarentena,
+  inspeccionPeriodicaVencida,
+  inspeccionVencida,
+  proximaInspeccionDebida,
+} from '../../models/inspeccion-equipo.model';
 import { InspeccionEquipoService } from '../../services/inspeccion-equipo.service';
 import { InspeccionEquipoDialog } from '../../components/inspeccion-equipo-dialog';
 import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
@@ -98,6 +106,58 @@ export class InspeccionListPage {
   );
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
+
+  // ── Cronograma: control periódico por equipo (HSE-SEGUIMIENTO-001, "planificar inspecciones del período") ──
+
+  protected readonly cronogramaColumns: DynadrillDataTableColumn[] = [
+    { key: 'equipoCodigo', header: 'Equipo', sortable: true, searchable: true },
+    { key: 'tipoLabel', header: 'Tipo' },
+    { key: 'frecuenciaLabel', header: 'Frecuencia requerida' },
+    { key: 'ultimaFecha', header: 'Última inspección', sortable: true },
+    { key: 'proximaFecha', header: 'Próxima debida', sortable: true },
+    { key: 'cronogramaBadge', header: 'Estado', type: 'badge' },
+  ];
+
+  /** Último registro por equipoCodigo+tipo — no existe un inventario de equipos separado, así que el cronograma se deriva del propio historial. */
+  protected readonly cronograma = computed(() => {
+    const ultimoPorEquipo = new Map<string, InspeccionEquipo>();
+    for (const i of this.inspecciones()) {
+      const key = `${i.equipoCodigo}__${i.tipo}`;
+      const actual = ultimoPorEquipo.get(key);
+      if (!actual || new Date(i.fecha) > new Date(actual.fecha)) ultimoPorEquipo.set(key, i);
+    }
+    return [...ultimoPorEquipo.values()]
+      .map(i => {
+        const proxima = proximaInspeccionDebida(i.fecha, i.tipo);
+        const vencida = inspeccionPeriodicaVencida(i.fecha, i.tipo);
+        const diasParaVencer = Math.ceil((new Date(proxima).getTime() - Date.now()) / 86_400_000);
+        const badge: { text: string; tone: DynadrillTagVariant } = vencida
+          ? { text: 'Vencida', tone: 'error' }
+          : diasParaVencer <= 1
+            ? { text: 'Por vencer', tone: 'warning' }
+            : { text: 'Al día', tone: 'success' };
+        return {
+          equipoCodigo: i.equipoCodigo,
+          tipoLabel: TIPO_EQUIPO_LABELS[i.tipo],
+          frecuenciaLabel: INSPECCION_FRECUENCIA_LABEL[i.tipo],
+          ultimaFecha: formatDate(i.fecha),
+          proximaFecha: formatDate(proxima),
+          cronogramaBadge: badge,
+          _vencida: vencida,
+        };
+      })
+      .sort((a, b) => (a._vencida === b._vencida ? 0 : a._vencida ? -1 : 1));
+  });
+
+  protected readonly cronogramaRowKeyFn = (row: Record<string, unknown>): string => String(row['equipoCodigo']);
+
+  protected readonly cronogramaKpis = computed<DynadrillKpiRowItem[]>(() => {
+    const all = this.cronograma();
+    return [
+      { label: 'Equipos con historial', value: all.length },
+      { label: 'Vencidos según cronograma', value: all.filter(c => c._vencida).length },
+    ];
+  });
 
   constructor() {
     this.reload();

@@ -8,23 +8,102 @@
     roleTag="HSE"
   />
 
-  <div class="qhse-dashboard-page__semaforo">
-    <dynadrill-tag [label]="semaforoLabel[semaforo()]" [variant]="semaforoTone[semaforo()]" />
-    <span class="qhse-dashboard-page__note">{{ indicadoresFueraDeMeta() }} indicador(es) fuera de meta de los que tienen meta definida.</span>
-  </div>
+  <section class="qhse-dashboard-page__resumen qhse-dashboard-page__resumen--{{ semaforo() }}">
+    <div class="qhse-dashboard-page__resumen-head">
+      <span class="qhse-dashboard-page__resumen-dot"></span>
+      <div class="qhse-dashboard-page__resumen-texto">
+        <strong>{{ semaforoLabel[semaforo()] }}</strong>
+        <p>{{ indicadoresFueraDeMeta() }} indicador(es) fuera de meta de los que tienen meta definida.</p>
+      </div>
+    </div>
 
-  <p class="qhse-dashboard-page__intro">
-    Cada tarjeta compara el valor medido contra la meta que tu equipo define — sin meta no hay nada contra qué medir el progreso, así que la barra queda vacía hasta que asignes una. El semáforo de arriba cuenta cuántos indicadores (de los que sí tienen meta) están fuera de rango.
-  </p>
+    <p class="qhse-dashboard-page__resumen-desc">
+      Cada tarjeta compara el valor medido contra la meta que tu equipo define — sin meta no hay nada contra qué medir el
+      progreso, así que la barra queda vacía hasta que asignes una. El semáforo cuenta cuántos indicadores (de los que sí
+      tienen meta) están fuera de rango.
+    </p>
 
-  @if (incumplimientoLegal()) {
-    <dynadrill-banner variant="critical" message="Incumplimiento legal detectado — ver detalle abajo. Esto fuerza el semáforo a Rojo sin importar los demás indicadores." />
-    <ul class="qhse-dashboard-page__legal-list">
-      @for (d of incumplimientoDetalle(); track d) {
-        <li>{{ d }}</li>
-      }
-    </ul>
-  }
+    @if (incumplimientoLegal()) {
+      <div class="qhse-dashboard-page__resumen-legal">
+        <strong>⚠ Incumplimiento legal detectado — fuerza el semáforo a Rojo sin importar los demás indicadores.</strong>
+        <ul>
+          @for (d of incumplimientoDetalle(); track d) {
+            <li>{{ d }}</li>
+          }
+        </ul>
+      </div>
+    }
+  </section>
+
+  <section class="qhse-dashboard-page__operativo">
+    <h3>Estado operativo — IPERC y PTW</h3>
+    <p class="qhse-dashboard-page__operativo-note">
+      Lo que hay abierto ahora mismo y lo que necesita revisión primero — no reemplaza el reporte descargable de cada
+      matriz (peligros, PTW e inspecciones asociadas), es la vista agregada para saber dónde mirar primero.
+    </p>
+
+    <div class="qhse-dashboard-page__operativo-cols">
+      <div class="qhse-dashboard-page__operativo-col">
+        <h4>Matrices IPERC</h4>
+        <div class="qhse-dashboard-page__estado-chips">
+          @for (e of matricesPorEstado(); track e.estado) {
+            @if (e.count > 0) {
+              <dynadrill-tag [label]="e.count + ' ' + e.label" [variant]="e.tone" />
+            }
+          }
+          @if (matricesRawTotal() === 0) {
+            <span class="qhse-dashboard-page__operativo-empty">Sin matrices registradas todavía.</span>
+          }
+        </div>
+
+        @if (matricesAtencion().length > 0) {
+          <ul class="qhse-dashboard-page__atencion-list">
+            @for (item of matricesAtencion(); track item.id + item.motivo) {
+              <li>
+                <button type="button" (click)="verIperc(item.id)">
+                  <span class="qhse-dashboard-page__atencion-titulo"><strong>{{ item.code }}</strong> — {{ item.titulo }}</span>
+                  <dynadrill-tag [label]="item.motivo" [variant]="item.tone" />
+                </button>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="qhse-dashboard-page__operativo-empty">Nada pendiente de revisión en IPERC.</p>
+        }
+      </div>
+
+      <div class="qhse-dashboard-page__operativo-col">
+        <h4>PTW / Recibimientos de Sitio</h4>
+        <div class="qhse-dashboard-page__estado-chips">
+          @for (f of ptwPorFase(); track f.fase) {
+            @if (f.count > 0) {
+              <dynadrill-tag [label]="f.count + ' ' + f.label" [variant]="f.tone" />
+            }
+          }
+          @if (ptwAbiertosTotal() === 0) {
+            <span class="qhse-dashboard-page__operativo-empty">Ningún PTW abierto ahora mismo.</span>
+          }
+        </div>
+
+        @if (ptwAtencion().length > 0) {
+          <ul class="qhse-dashboard-page__atencion-list">
+            @for (item of ptwAtencion(); track item.id) {
+              <li>
+                <button type="button" (click)="verPtw(item.id)">
+                  <span class="qhse-dashboard-page__atencion-titulo"><strong>{{ item.code }}</strong> — {{ item.titulo }}</span>
+                  <dynadrill-tag [label]="item.motivo" [variant]="item.tone" />
+                </button>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="qhse-dashboard-page__operativo-empty">
+            Ningún PTW abierto lleva {{ ptwDiasSinActividadAlerta }} días o más sin actividad.
+          </p>
+        }
+      </div>
+    </div>
+  </section>
 
   <dynadrill-tabs
     [tabs]="categoriaTabs"
@@ -37,7 +116,6 @@
     <div class="qhse-dashboard-page__grid">
       @for (def of defsPorCategoria(categorias[index]); track def.id) {
         <article class="qhse-dashboard-page__card">
-          <span class="qhse-dashboard-page__valor-label">Valor actual</span>
           <dynadrill-statistic
             [title]="def.label"
             [value]="def.disponible ? (valores()[def.id] ?? '—') : ''"
@@ -48,31 +126,39 @@
           />
 
           @if (def.disponible) {
-            <dynadrill-tag [label]="estadoKpi(def).texto" [variant]="estadoKpi(def).tone" />
-
-            @if (metaProgressPercent(def); as pct) {
-              <div class="qhse-dashboard-page__progress">
-                <dynadrill-progress [value]="pct" [max]="100" [showInfo]="true" [statusOverride]="metaProgressStatus(def)" />
-                <span class="qhse-dashboard-page__progress-caption">
-                  {{ pct >= 100 ? 'Meta alcanzada' : 'de la meta (' + metas()[def.id] + ' ' + def.unidad + ')' }}
-                </span>
-              </div>
-            } @else {
-              <p class="qhse-dashboard-page__meta-hint">Sin meta definida todavía — no hay contra qué medir el progreso.</p>
-            }
-
-            <div class="qhse-dashboard-page__meta-form">
-              <dynadrill-input
-                label="Meta"
-                type="number"
-                placeholder="Definida por HSE"
-                [value]="metaEdit(def.id)"
-                (valueChange)="setMetaEdit(def.id, $event)"
+            <div class="qhse-dashboard-page__progress-row">
+              <dynadrill-progress
+                class="qhse-dashboard-page__progress-bar"
+                [value]="metaProgressPercent(def) ?? 0"
+                [max]="100"
+                [showInfo]="true"
+                [statusOverride]="metas()[def.id] != null ? metaProgressStatus(def) : 'normal'"
               />
-              <dynadrill-button variant="secondary" size="small" (click)="guardarMeta(def.id)">
-                {{ metas()[def.id] != null ? 'Actualizar meta' : 'Guardar meta' }}
-              </dynadrill-button>
+              <dynadrill-tag [label]="estadoKpi(def).texto" [variant]="estadoKpi(def).tone" />
             </div>
+
+            <div class="qhse-dashboard-page__meta-box">
+              <span class="qhse-dashboard-page__meta-box-title">
+                {{ metas()[def.id] != null ? 'Actualizar meta' : 'Establecer meta' }}
+              </span>
+              <div class="qhse-dashboard-page__meta-form">
+                <dynadrill-input
+                  type="number"
+                  placeholder="Definida por tu equipo HSE"
+                  [value]="metaEdit(def.id)"
+                  (valueChange)="setMetaEdit(def.id, $event)"
+                />
+                <dynadrill-button size="small" (click)="guardarMeta(def.id)">Guardar meta</dynadrill-button>
+              </div>
+              @if (metaEditDirty(def.id)) {
+                <button type="button" class="qhse-dashboard-page__meta-cancel" (click)="cancelarMetaEdit(def.id)">Cancelar</button>
+              }
+            </div>
+
+            <p class="qhse-dashboard-page__meta-hint">
+              Definir una meta te permite medir el avance de este indicador contra el objetivo de tu equipo — el semáforo de arriba solo
+              cuenta los indicadores que ya tienen una meta asignada.
+            </p>
           }
         </article>
       }

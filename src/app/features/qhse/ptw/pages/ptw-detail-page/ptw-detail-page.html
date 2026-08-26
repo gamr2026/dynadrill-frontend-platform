@@ -8,7 +8,10 @@
     [roleTag]="cerrado() ? 'Cerrado' : 'HSE'"
   />
 
-  <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a Recibimiento de Sitio</dynadrill-button>
+  <div class="ptw-detail-page__toolbar">
+    <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a Recibimiento de Sitio</dynadrill-button>
+    <dynadrill-button variant="secondary" size="small" (click)="descargarDocumentosHse()">⬇ Descargar documentos HSE</dynadrill-button>
+  </div>
 
   <section class="ptw-detail-page__meta">
     <p><strong>Orden de trabajo:</strong> {{ p.ordenTrabajo }}</p>
@@ -107,6 +110,10 @@
         }
         <dynadrill-button variant="secondary" size="small" (click)="registrarMonitoreo()">Registrar monitoreo</dynadrill-button>
       </div>
+    } @else {
+      <p class="ptw-detail-page__fase-note">
+        El registro de lecturas se habilita al llegar a esta fase (completa "2. Ingreso a locación" primero).
+      </p>
     }
 
     <h4 class="ptw-detail-page__subtitle">Verificación LOTO (Lock-out/Tag-out)</h4>
@@ -166,6 +173,71 @@
     <h3 class="ptw-detail-page__fase-title">5. Ejecución y devolución</h3>
     <p class="ptw-detail-page__fase-note">Monitoreo HSE continuo durante el trabajo. Al finalizar: limpieza total e inspección conjunta final.</p>
 
+    <h4 class="ptw-detail-page__subtitle">Registro diario de control</h4>
+    <p class="ptw-detail-page__fase-note">
+      Un registro por cada día que dure el trabajo — Toolbox Talk, verificación LOTO y monitoreo de gases no son un
+      trámite único al abrir el PTW.
+    </p>
+
+    @if (controlDeHoyPendiente()) {
+      <dynadrill-banner variant="warning" message="Todavía no se registró el control diario de hoy." />
+    }
+
+    @if (p.dailyLogs.length > 0) {
+      <div class="ptw-detail-page__daily-log">
+        @for (log of p.dailyLogs; track log.id) {
+          <div class="ptw-detail-page__daily-log-item">
+            <div class="ptw-detail-page__daily-log-head">
+              <strong>{{ log.fecha | date: 'short' }}</strong>
+              <dynadrill-tag [label]="dailyLogSeguro(log) ? 'Gases seguros' : 'Gas fuera de rango'" [variant]="dailyLogSeguro(log) ? 'success' : 'error'" />
+            </div>
+            <span class="ptw-detail-page__fase-note">
+              Registrado por {{ log.registradoPorNombre }} — Toolbox Talk: {{ log.toolboxTalkRealizado ? 'Sí' : 'No' }} · LOTO
+              verificado: {{ log.lotoVerificado ? 'Sí' : 'No' }}
+              @if (log.gasReadings.length > 0) {
+                · Gases:
+                @for (r of log.gasReadings; track r.gas) {
+                  {{ r.gas }} {{ r.lectura }} ({{ r.seguro ? 'seguro' : 'fuera de rango' }})
+                }
+              }
+              @if (log.observaciones) {
+                — {{ log.observaciones }}
+              }
+            </span>
+          </div>
+        }
+      </div>
+    }
+
+    @if (p.fase === 'ejecucion') {
+      <div class="ptw-detail-page__gas-form">
+        @for (gas of gasKeys; track gas) {
+          <dynadrill-input
+            [label]="gas + ' (' + gasLimites[gas].unidad + ')'"
+            type="number"
+            [value]="dailyGasDraft()[gas]"
+            (valueChange)="onDailyGasDraftChange(gas, $event)"
+          />
+        }
+      </div>
+      <div class="ptw-detail-page__firma">
+        <p>Toolbox Talk realizado hoy</p>
+        <dynadrill-button size="small" variant="secondary" (click)="dailyToolboxTalk.set(!dailyToolboxTalk())">
+          {{ dailyToolboxTalk() ? 'Sí ✓' : 'Marcar como realizado' }}
+        </dynadrill-button>
+      </div>
+      <div class="ptw-detail-page__firma">
+        <p>LOTO reverificado hoy</p>
+        <dynadrill-button size="small" variant="secondary" (click)="dailyLoto.set(!dailyLoto())">
+          {{ dailyLoto() ? 'Sí ✓' : 'Marcar como verificado' }}
+        </dynadrill-button>
+      </div>
+      <dynadrill-textarea label="Observaciones (opcional)" [value]="dailyObservaciones()" (valueChange)="dailyObservaciones.set($event)" [rows]="2" />
+      <dynadrill-button variant="secondary" size="small" (click)="registrarControlDiario()">Registrar control de hoy</dynadrill-button>
+    }
+
+    <h4 class="ptw-detail-page__subtitle">Cierre de la ejecución</h4>
+
     <div class="ptw-detail-page__firma">
       <p>Limpieza total del área (housekeeping)</p>
       <dynadrill-button size="small" variant="secondary" (click)="toggleLimpieza()">
@@ -218,6 +290,11 @@
 
     @if (cerrado()) {
       <dynadrill-tag label="Sitio devuelto — PTW cerrado" variant="success" />
+      <p class="ptw-detail-page__fase-note">
+        Este PTW quedó cerrado y archivado. No requiere ninguna acción adicional aquí — para un nuevo trabajo en esta
+        actividad se abre un PTW nuevo desde una Matriz IPERC aprobada.
+      </p>
+      <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a Recibimiento de Sitio</dynadrill-button>
     }
   </section>
 }

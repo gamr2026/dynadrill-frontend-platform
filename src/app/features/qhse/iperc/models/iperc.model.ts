@@ -1,7 +1,10 @@
 /**
  * Fases de HSE-PLAN-001: Preparación → Identificación/Evaluación inicial →
  * Controles/Reevaluación → Documentación y aprobación. "borrador" cubre la
- * Fase 1 (desglose de actividad en tareas, todavía sin evaluar peligros).
+ * Fase 1 (desglose de actividad en tareas); los peligros se pueden
+ * identificar desde ahí mismo, a la par de cada tarea — solo la
+ * evaluación de riesgo (probabilidad x severidad) y los controles quedan
+ * para cuando la matriz pasa a "en_evaluacion".
  */
 export type IpercStatus = 'borrador' | 'en_evaluacion' | 'en_revision' | 'aprobada' | 'rechazada';
 
@@ -92,6 +95,15 @@ export interface IpercMatrix {
    */
   approvedByName?: string;
   approvedAt?: string;
+  /**
+   * Al rechazar, la matriz queda en "rechazada" (en vez de saltar
+   * directo a "en_evaluacion") para que quien la levantó vea con claridad
+   * que hubo un rechazo y por qué, antes de retomarla — ver
+   * IpercDetailPage.resumeEvaluation().
+   */
+  rejectedByName?: string;
+  rejectedAt?: string;
+  rejectedReason?: string;
   /**
    * HSE-MASTER-001 — ciclo de mejora continua: al cerrar una Investigación
    * (HSE-TRIAGE-002) que involucra esta actividad, se marca la matriz para

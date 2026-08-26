@@ -10,31 +10,80 @@
     color: var(--text-muted, #5c5870);
   }
 
-  &__note {
-    color: var(--text-muted, #5c5870);
-    font-size: 13px;
-    margin: 0;
+  // Tarjeta de resumen: estado del semáforo + explicación + alertas legales,
+  // todo en un solo bloque con el color del semáforo como acento — antes
+  // era un tag suelto, un párrafo aparte y un banner con lista, sin
+  // relación visual entre sí a pesar de ser la misma idea ("así estamos y
+  // por qué").
+  &__resumen {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 18px;
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #e5e4ea);
+    border-left-width: 5px;
+    border-radius: var(--radius-md, 6px);
+
+    &--verde { border-left-color: var(--success, #52c41a); }
+    &--amarillo { border-left-color: var(--warning, #faad14); }
+    &--rojo { border-left-color: var(--error, #ff4d4f); }
   }
 
-  &__semaforo {
+  &__resumen-head {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
   }
 
-  &__intro {
+  &__resumen-dot {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    margin-top: 4px;
+    border-radius: 50%;
+
+    .qhse-dashboard-page__resumen--verde & { background: var(--success, #52c41a); }
+    .qhse-dashboard-page__resumen--amarillo & { background: var(--warning, #faad14); }
+    .qhse-dashboard-page__resumen--rojo & { background: var(--error, #ff4d4f); }
+  }
+
+  &__resumen-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    strong {
+      font-size: 15px;
+      color: var(--dynadrill-navy, #131529);
+    }
+
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--text-muted, #5c5870);
+    }
+  }
+
+  &__resumen-desc {
     margin: 0;
     font-size: 12.5px;
     line-height: 1.5;
     color: var(--text-muted, #5c5870);
-    max-width: 720px;
+    max-width: 760px;
   }
 
-  &__legal-list {
-    margin: 0;
-    padding-left: 20px;
+  &__resumen-legal {
+    padding: 10px 12px;
+    background: var(--surface-muted, #fbeaea);
+    border-radius: var(--radius-sm, 4px);
     font-size: 13px;
-    color: var(--text-muted, #5c5870);
+    color: #9c2d2d;
+
+    ul {
+      margin: 6px 0 0;
+      padding-left: 20px;
+    }
   }
 
   &__section {
@@ -45,6 +94,97 @@
     h3 {
       margin: 0;
       font-size: 15px;
+    }
+  }
+
+  &__operativo {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 18px;
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-md, 6px);
+
+    h3 {
+      margin: 0;
+      font-size: 15px;
+      color: var(--dynadrill-navy, #131529);
+    }
+  }
+
+  &__operativo-note {
+    margin: 0 0 4px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--text-muted, #5c5870);
+    max-width: 760px;
+  }
+
+  &__operativo-cols {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+  }
+
+  &__operativo-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    h4 {
+      margin: 0;
+      font-size: 13px;
+      color: var(--dynadrill-navy, #131529);
+    }
+  }
+
+  &__estado-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  &__operativo-empty {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__atencion-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    button {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 10px;
+      background: var(--surface-muted, #faf9fc);
+      border: 1px solid var(--border, #e5e4ea);
+      border-radius: var(--radius-sm, 4px);
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+
+      &:hover {
+        border-color: var(--dynadrill-purple, #662e9b);
+      }
+    }
+  }
+
+  &__atencion-titulo {
+    font-size: 12.5px;
+    color: var(--ink, #10202f);
+
+    strong {
+      color: var(--dynadrill-navy, #131529);
     }
   }
 
@@ -75,24 +215,41 @@
     }
   }
 
-  &__valor {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 600;
-  }
-
-  &__valor-label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    color: var(--text-muted, #5c5870);
-  }
-
   &__unidad {
     font-size: 12px;
     font-weight: 400;
     color: var(--text-muted, #5c5870);
+  }
+
+  &__progress-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    dynadrill-tag {
+      flex: none;
+    }
+  }
+
+  &__progress-bar {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__meta-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    background: var(--surface-muted, #faf9fc);
+    border: 1px dashed var(--border, #d8d6e3);
+    border-radius: var(--radius-md, 6px);
+  }
+
+  &__meta-box-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--dynadrill-navy, #131529);
   }
 
   &__meta-form {
@@ -103,20 +260,25 @@
     > *:first-child { flex: 1; }
   }
 
+  &__meta-cancel {
+    align-self: flex-start;
+    padding: 0;
+    border: none;
+    background: none;
+    font-size: 12px;
+    color: var(--text-muted, #5c5870);
+    text-decoration: underline;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--dynadrill-navy, #131529);
+    }
+  }
+
   &__meta-hint {
     margin: 0;
-    font-size: 11px;
-    color: var(--text-muted, #5c5870);
-  }
-
-  &__progress {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  &__progress-caption {
-    font-size: 11px;
+    font-size: 11.5px;
+    line-height: 1.5;
     color: var(--text-muted, #5c5870);
   }
 }

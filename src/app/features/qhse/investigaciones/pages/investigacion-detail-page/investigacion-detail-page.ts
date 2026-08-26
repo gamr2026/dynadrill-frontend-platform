@@ -279,6 +279,6 @@ export class InvestigacionDetailPage {
   }
 
   protected back(): void {
-    this.router.navigate(['/dashboard/qhse/investigaciones']);
+    this.router.navigate(['/dashboard/qhse/eventos']);
   }
 }

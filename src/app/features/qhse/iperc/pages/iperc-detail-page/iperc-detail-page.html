@@ -3,7 +3,12 @@
 } @else if (matrix(); as m) {
   <dynadrill-screen-header [eyebrow]="m.code" [title]="m.actividad" [subtitle]="m.ubicacion" [roleTag]="statusLabel()" />
 
-  <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a IPERC</dynadrill-button>
+  <div class="iperc-detail-page__toolbar">
+    <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a IPERC</dynadrill-button>
+    <dynadrill-button variant="secondary" size="small" [disabled]="descargandoSeguimiento()" (click)="descargarSeguimiento()">
+      {{ descargandoSeguimiento() ? 'Generando…' : '⬇ Descargar seguimiento' }}
+    </dynadrill-button>
+  </div>
 
   @if (m.leccionAprendidaPendiente) {
     <dynadrill-banner
@@ -11,6 +16,13 @@
       [message]="'Lección aprendida de ' + (m.leccionAprendidaInvestigacionCode ?? 'una investigación') + ': ' + m.leccionAprendidaTexto"
     />
     <dynadrill-button variant="secondary" size="small" (click)="marcarLeccionRevisada()">Marcar lección revisada</dynadrill-button>
+  }
+
+  @if (m.status === 'rechazada') {
+    <dynadrill-banner
+      variant="critical"
+      [message]="'Rechazada por ' + (m.rejectedByName ?? '—') + (m.rejectedAt ? (' el ' + (m.rejectedAt | date: 'short')) : '') + (m.rejectedReason ? ' — Motivo: ' + m.rejectedReason : ' — sin motivo registrado.')"
+    />
   }
 
   <section class="iperc-detail-page__stepper-card">
@@ -51,7 +63,10 @@
                   <span class="iperc-detail-page__hazard-name">{{ hazard.peligro }}</span>
                   <span class="iperc-detail-page__hazard-source">{{ hazard.fuenteRiesgo }}</span>
                 </div>
-                <dynadrill-tag [label]="hazardRiskTag(hazard).label" [variant]="hazardRiskTag(hazard).tone" />
+                <div class="iperc-detail-page__hazard-risks">
+                  <dynadrill-tag [label]="hazardRiskTagInicial(hazard).label" [variant]="hazardRiskTagInicial(hazard).tone" />
+                  <dynadrill-tag [label]="hazardRiskTag(hazard).label" [variant]="hazardRiskTag(hazard).tone" />
+                </div>
                 <dynadrill-icon-button icon="eye" tooltip="Ver detalle y controles" tooltipPlacement="top" (clicked)="verPeligro(task, hazard)" />
               </li>
             }
@@ -60,7 +75,7 @@
           <p class="iperc-detail-page__empty">Sin peligros identificados todavía.</p>
         }
 
-        @if (canEditContent()) {
+        @if (canIdentifyHazards()) {
           @if (addingHazardForTask() === task.id) {
             <div class="iperc-detail-page__add-form">
               <dynadrill-input placeholder="Peligro identificado" [value]="hazardDraft().peligro" (valueChange)="setHazardDraftField('peligro', $event)" />
@@ -122,10 +137,15 @@
       <dynadrill-button (click)="startEvaluation()">Iniciar evaluación</dynadrill-button>
     }
     @if (canSendToReview()) {
-      <dynadrill-button [disabled]="!documentacionCompleta()" (click)="sendToReview()">Enviar a revisión</dynadrill-button>
-      @if (!documentacionCompleta()) {
+      <dynadrill-button [disabled]="!documentacionCompleta() || !peligrosCompletos()" (click)="sendToReview()">Enviar a revisión</dynadrill-button>
+      @if (!peligrosCompletos()) {
+        <span class="iperc-detail-page__actions-hint">Identifica al menos un peligro y evalúa el riesgo residual de todos antes de enviar a revisión.</span>
+      } @else if (!documentacionCompleta()) {
         <span class="iperc-detail-page__actions-hint">Adjunta el ATS y el procedimiento operativo para poder enviar a revisión.</span>
       }
+    }
+    @if (canResumeEvaluation()) {
+      <dynadrill-button (click)="resumeEvaluation()">Reanudar evaluación</dynadrill-button>
     }
     @if (canOpenPtw()) {
       <dynadrill-button [disabled]="openingPtw()" (click)="abrirRecibimientoSitio()">
@@ -139,9 +159,15 @@
   }
 
   @if (canReviewNow() && canApprove()) {
+    <dynadrill-textarea
+      label="Motivo de rechazo (opcional — se muestra al equipo si rechazas)"
+      [value]="motivoRechazo()"
+      (valueChange)="motivoRechazo.set($event)"
+      [rows]="2"
+    />
     <dynadrill-approval-actions
       consequenceApprove="La matriz queda aprobada y disponible para abrir el Recibimiento de Sitio (PTW) de HSE-SITIO-001."
-      consequenceReject="La matriz vuelve a evaluación para que el equipo la corrija."
+      consequenceReject="La matriz queda marcada como Rechazada, visible para el equipo evaluador junto con el motivo, hasta que retomen la evaluación."
       (decisionChange)="onDecision($event)"
     />
   } @else if (canReviewNow()) {

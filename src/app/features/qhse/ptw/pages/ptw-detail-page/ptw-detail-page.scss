@@ -5,6 +5,12 @@
   padding: 1.5rem;
 }
 
+.ptw-detail-page__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .ptw-detail-page__meta {
   margin: 1rem 0;
   display: flex;
@@ -138,4 +144,35 @@
 .ptw-detail-page__firma p {
   margin: 0;
   font-size: 0.85rem;
+}
+
+.ptw-detail-page__daily-log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+
+.ptw-detail-page__daily-log-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--surface-muted, #faf9fc);
+  border-radius: var(--radius-sm, 4px);
+}
+
+.ptw-detail-page__daily-log-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+// Los botones de avance de fase y las notas van pegados a lo que viene
+// justo antes (grilla de documentos, checklist, tabla) sin este margen —
+// se leían como si formaran parte del mismo bloque.
+.ptw-detail-page__fase > dynadrill-button,
+.ptw-detail-page__fase > dynadrill-banner {
+  display: block;
+  margin-top: 1.25rem;
 }

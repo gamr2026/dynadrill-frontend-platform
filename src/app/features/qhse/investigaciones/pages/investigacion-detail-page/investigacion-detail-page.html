@@ -3,7 +3,7 @@
 } @else if (investigacion(); as i) {
   <dynadrill-screen-header [eyebrow]="i.code" [title]="resultadoLabels[i.resultado]" [subtitle]="i.descripcionEvento" [roleTag]="i.estado === 'abierta' ? 'Abierta' : 'Cerrada'" />
 
-  <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a Investigaciones</dynadrill-button>
+  <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a Incidentes y Emergencias</dynadrill-button>
 
   @if (i.origenEmergenciaId) {
     <dynadrill-banner variant="info" [message]="'Activada automáticamente desde Emergencia #' + i.origenEmergenciaId" />

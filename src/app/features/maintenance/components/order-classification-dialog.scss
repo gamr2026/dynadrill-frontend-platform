@@ -50,6 +50,17 @@
     &:last-of-type { border-bottom: none; padding-bottom: 0; }
   }
 
+  &__novedad-reclasificar {
+    max-width: 220px;
+    margin-top: 4px;
+  }
+
+  &__novedades-guardar {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 4px;
+  }
+
   &__flag {
     color: var(--warning, #faad14);
   }

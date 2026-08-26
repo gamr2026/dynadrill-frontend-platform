@@ -26,22 +26,24 @@
         }
       </div>
 
-      @if (data.unitReport.problemasMecanica) {
+      @for (row of novedadRows(); track row.cat) {
         <div class="order-classification-dialog__novedad-item">
-          <dynadrill-text variant="caption">Mecánica</dynadrill-text>
-          <dynadrill-text variant="body">{{ data.unitReport.problemasMecanica }}</dynadrill-text>
+          <dynadrill-text variant="caption">{{ row.label }}</dynadrill-text>
+          <dynadrill-text variant="body">{{ row.texto }}</dynadrill-text>
+          <dynadrill-select
+            class="order-classification-dialog__novedad-reclasificar"
+            label="Reclasificar como"
+            [options]="novedadCategoriaOptions"
+            [value]="row.cat"
+            (valueChange)="reclasificarNovedad(row.cat, $event)"
+          />
         </div>
       }
-      @if (data.unitReport.problemasInstrumentacion) {
-        <div class="order-classification-dialog__novedad-item">
-          <dynadrill-text variant="caption">Instrumentación</dynadrill-text>
-          <dynadrill-text variant="body">{{ data.unitReport.problemasInstrumentacion }}</dynadrill-text>
-        </div>
-      }
-      @if (data.unitReport.problemasOperaciones) {
-        <div class="order-classification-dialog__novedad-item">
-          <dynadrill-text variant="caption">Operaciones</dynadrill-text>
-          <dynadrill-text variant="body">{{ data.unitReport.problemasOperaciones }}</dynadrill-text>
+      @if (novedadesModificadas()) {
+        <div class="order-classification-dialog__novedades-guardar">
+          <dynadrill-button size="small" [disabled]="guardandoNovedades()" (clicked)="guardarNovedades()">
+            {{ guardandoNovedades() ? 'Guardando…' : 'Guardar cambios en novedades' }}
+          </dynadrill-button>
         </div>
       }
       @if (data.unitReport.interrumpioOperacion) {

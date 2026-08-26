@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, WritableSignal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import {
   DynadrillButtonComponent,
@@ -9,9 +9,9 @@ import {
   DynadrillTextareaComponent,
   DynadrillTextComponent,
 } from '@digitec-it-projects/dynadrill-ui';
-import type { DynadrillSelectOption, DynadrillTab } from '@digitec-it-projects/dynadrill-ui';
+import type { DynadrillSelectOption, DynadrillSelectValue, DynadrillTab } from '@digitec-it-projects/dynadrill-ui';
 import { MaintenanceOrderWithSubOrders, MaintenanceType } from '../models/maintenance-order.model';
-import { unitReportCode, UnitReport } from '../models/unit-report.model';
+import { CreateUnitReportInput, unitReportCode, UnitReport } from '../models/unit-report.model';
 import { ClassifyTypeAssignment, MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { UnitReportsService } from '../services/unit-reports.service';
 import { RolesService, UsersService } from '../../users/services/users.service';
@@ -28,6 +28,16 @@ export interface OrderClassificationDialogData {
 const ALL_TYPES: MaintenanceType[] = ['Mecánico', 'Instrumental', 'Operativo'];
 const OPERATOR_ROLE_NAME = 'Operador de Mantenimiento';
 
+type NovedadCategoria = 'mecanica' | 'instrumentacion' | 'operaciones';
+
+const NOVEDAD_LABELS: Record<NovedadCategoria, string> = {
+  mecanica: 'Mecánica',
+  instrumentacion: 'Instrumentación',
+  operaciones: 'Operaciones',
+};
+
+const NOVEDAD_ORDEN: NovedadCategoria[] = ['mecanica', 'instrumentacion', 'operaciones'];
+
 /**
  * MAN-001-A — Revisión y Clasificación. El Jefe de Mantenimiento decide si
  * el reporte requiere mantenimiento y, de ser así, qué tipo(s) — multi-select
@@ -40,6 +50,13 @@ const OPERATOR_ROLE_NAME = 'Operador de Mantenimiento';
  * Jefe puede haberse equivocado de tipo/operador y necesita corregirlo sin
  * perder el trabajo ya hecho en sub-órdenes Cerradas (ver mock: esas se
  * conservan intactas aunque el tipo se destilde).
+ *
+ * Reclasificación de novedades: el Operador de Pumping/FCR que llena el
+ * Reporte de Unidad a veces no distingue si un problema es Mecánico,
+ * Instrumental o solo Operativo, y lo escribe en el campo equivocado. Antes
+ * de fijar el tipo de sub-orden, el Jefe puede mover el texto de una
+ * categoría a otra (reclasificarNovedad()) y guardarlo aparte con
+ * guardarNovedades() — así el técnico correcto ve la descripción correcta.
  */
 @Component({
   selector: 'app-order-classification-dialog',
@@ -95,6 +112,65 @@ export class OrderClassificationDialog {
     ].filter(Boolean) as string[];
     return tipos[this.novedadTabIndex()] ?? null;
   });
+
+  // ── Reclasificación de novedades ──
+  protected readonly novedadCategoriaOptions: DynadrillSelectOption[] = NOVEDAD_ORDEN.map(cat => ({
+    label: NOVEDAD_LABELS[cat],
+    value: cat,
+  }));
+  private readonly novedadTexto: Record<NovedadCategoria, WritableSignal<string>> = {
+    mecanica: signal(this.data.unitReport.problemasMecanica),
+    instrumentacion: signal(this.data.unitReport.problemasInstrumentacion),
+    operaciones: signal(this.data.unitReport.problemasOperaciones),
+  };
+  protected readonly novedadesModificadas = signal(false);
+  protected readonly guardandoNovedades = signal(false);
+
+  protected readonly novedadRows = computed(() =>
+    NOVEDAD_ORDEN.filter(cat => this.novedadTexto[cat]().trim().length > 0).map(cat => ({
+      cat,
+      label: NOVEDAD_LABELS[cat],
+      texto: this.novedadTexto[cat](),
+    })),
+  );
+
+  /** Mueve todo el texto de una categoría a otra — si el destino ya tiene texto, se agrega a continuación. */
+  protected reclasificarNovedad(from: NovedadCategoria, value: DynadrillSelectValue): void {
+    const to = value as NovedadCategoria;
+    if (!to || to === from) return;
+    const texto = this.novedadTexto[from]().trim();
+    if (!texto) return;
+    const destinoActual = this.novedadTexto[to]().trim();
+    this.novedadTexto[to].set(destinoActual ? `${destinoActual}\n${texto}` : texto);
+    this.novedadTexto[from].set('');
+    this.novedadesModificadas.set(true);
+  }
+
+  protected guardarNovedades(): void {
+    if (!this.novedadesModificadas() || this.guardandoNovedades()) return;
+    this.guardandoNovedades.set(true);
+    const { id, createdAt, dismissed, dismissReason, ...rest } = this.data.unitReport;
+    const input: CreateUnitReportInput = {
+      ...rest,
+      problemasMecanica: this.novedadTexto.mecanica(),
+      problemasInstrumentacion: this.novedadTexto.instrumentacion(),
+      problemasOperaciones: this.novedadTexto.operaciones(),
+    };
+    this.unitReportsService.update(id, input).subscribe({
+      next: updated => {
+        this.data.unitReport.problemasMecanica = updated.problemasMecanica;
+        this.data.unitReport.problemasInstrumentacion = updated.problemasInstrumentacion;
+        this.data.unitReport.problemasOperaciones = updated.problemasOperaciones;
+        this.novedadesModificadas.set(false);
+        this.guardandoNovedades.set(false);
+        this.notify.success('Novedades reclasificadas', 'Los cambios de categoría quedaron guardados.');
+      },
+      error: () => {
+        this.guardandoNovedades.set(false);
+        this.notify.error('Error', 'No se pudo guardar la reclasificación de novedades.');
+      },
+    });
+  }
 
   protected readonly allTypes = ALL_TYPES;
   protected readonly canDismiss = computed(() => this.dismissReason().trim().length > 0);

@@ -35,6 +35,7 @@ export type PumpingStep =
   | 'asignacion'
   | 'en_ejecucion'
   | 'revisar_reportes_salida'
+  | 'ejecucion_operativa'
   | 'en_ejecucion_llegada'
   | 'mantenimiento'
   | 'revisar_reportes_llegada'
@@ -45,6 +46,7 @@ export const PUMPING_STEP_LABELS: Record<PumpingStep, string> = {
   asignacion: 'Asignación',
   en_ejecucion: 'En ejecución (Salida)',
   revisar_reportes_salida: 'Revisar reportes de salida',
+  ejecucion_operativa: 'Ejecución operativa',
   en_ejecucion_llegada: 'En ejecución (Llegada)',
   mantenimiento: 'Mantenimiento',
   revisar_reportes_llegada: 'Revisar reportes de llegada',
@@ -215,4 +217,233 @@ export function createInstrumentationItems(): DynadrillInspectionItem[] {
     { id: 'in-02', label: 'Controladores', salida: null, llegada: null },
     { id: 'in-03', label: 'Monitores, indicadores, etc.', salida: null, llegada: null },
   ];
+}
+
+// ── Gerenciamiento de Viaje (DYN-SGI-RE-049) ──
+
+export type TravelRiskLevel = 'ALTO' | 'MEDIO' | 'BAJO';
+
+export type VehicleType = 'Liviano' | 'Pesado';
+
+export interface TravelRiskQuestion {
+  id: number;
+  question: string;
+  options: TravelRiskOption[];
+  selectedValue: number | null;
+}
+
+export interface TravelRiskOption {
+  label: string;
+  value: number;
+}
+
+export interface TravelRouteInfo {
+  location: string;
+  arrivalTime: string;
+  departureTime: string;
+  overnightDetails: string;
+}
+
+export interface TravelCommunicationDetail {
+  frequency: string;
+  contactPerson: string;
+  contactDetails: string;
+}
+
+export interface TravelManagement {
+  fecha: string;
+  motivoViaje: string;
+  lineaServicio: string;
+  origen: string;
+  destino: string;
+  gerenteSupervisor: string;
+  ticketNo: string;
+  conductores: string;
+  vehicleType: VehicleType;
+  placas: string;
+  riskQuestions: TravelRiskQuestion[];
+  totalPoints: number;
+  riskLevel: TravelRiskLevel;
+  passengers: string;
+  canCombineTrips: boolean | null;
+  routeInfo: TravelRouteInfo[];
+  communication: TravelCommunicationDetail[];
+  arrivalTime: string;
+  departureTime: string;
+  overnightData: string;
+  conductorNames: string;
+  approverName: string;
+  conductorSignature: string;
+  approverSignature: string;
+  phoneApprovalBy: string;
+  phoneApprovalTime: string;
+}
+
+export function createTravelRiskQuestions(): TravelRiskQuestion[] {
+  return [
+    {
+      id: 1,
+      question: '¿Realizó inspección Pre-viaje?',
+      options: [
+        { label: 'Sí: Continue', value: 0 },
+        { label: 'NO: Deténgase', value: 999 },
+      ],
+      selectedValue: null,
+    },
+    {
+      id: 2,
+      question: '¿Es la primera vez que el conductor viajará por esta ruta?',
+      options: [
+        { label: 'NO = 0', value: 0 },
+        { label: 'Sí = 15', value: 15 },
+      ],
+      selectedValue: null,
+    },
+    {
+      id: 3,
+      question: '¿Es un conductor nuevo?',
+      options: [
+        { label: 'NO = 0', value: 0 },
+        { label: '4m - 8m = 15', value: 15 },
+        { label: '0m - 3m = 40', value: 40 },
+      ],
+      selectedValue: null,
+    },
+    {
+      id: 4,
+      question: '¿Cuántas horas trabajó el conductor antes de iniciar el viaje?',
+      options: [
+        { label: '8 a 12 hs = 10', value: 10 },
+        { label: '> 12 <16 hs = 30', value: 30 },
+        { label: '> 16 hs', value: 999 },
+      ],
+      selectedValue: null,
+    },
+    {
+      id: 5,
+      question: '¿Cuántas horas de sueño (durmió) tuvo el conductor en las últimas 24 horas?',
+      options: [
+        { label: '< 4 hs = no conduce', value: 999 },
+        { label: '> 4 < 6 hs = 5', value: 5 },
+        { label: '> 6 hs = 0', value: 0 },
+      ],
+      selectedValue: null,
+    },
+    {
+      id: 6,
+      question: '¿Cuánto tiempo (horas) se estima que demandará el viaje?',
+      options: [
+        { label: '> 2 < 4 hs = 10', value: 10 },
+        { label: '> 4 < 6 hs = 15', value: 15 },
+        { label: '> 6 hs = 20', value: 20 },
+      ],
+      selectedValue: null,
+    },
+    {
+      id: 7,
+      question: '¿Hay un conductor de respaldo para los viajes de más de 10 horas?',
+      options: [
+        { label: 'NO = 5', value: 5 },
+        { label: 'Sí = 0', value: 0 },
+      ],
+      selectedValue: null,
+    },
+    {
+      id: 8,
+      question: '¿Parte del viaje se desarrollará en condiciones de oscuridad?',
+      options: [
+        { label: '< 4 hs = 0', value: 0 },
+        { label: '> 4 < 6 hs = 20', value: 20 },
+        { label: '> 6 hs = 40', value: 40 },
+      ],
+      selectedValue: null,
+    },
+    {
+      id: 9,
+      question: '¿Cuáles son las condiciones meteorológicas y de visibilidad durante el viaje (lluvia, vientos fuertes, niebla, etc.)?',
+      options: [
+        { label: 'Bueno = 0', value: 0 },
+        { label: 'Regular = 10', value: 10 },
+        { label: 'Deficiente = 25', value: 25 },
+      ],
+      selectedValue: null,
+    },
+    {
+      id: 10,
+      question: '¿Cuál es la condición del camino y la topografía?',
+      options: [
+        { label: 'Bueno = 0', value: 0 },
+        { label: 'Regular = 5', value: 5 },
+        { label: 'Deficiente = 15', value: 15 },
+      ],
+      selectedValue: null,
+    },
+    {
+      id: 11,
+      question: '¿Existen cuestiones de seguridad a tener en cuenta (alto riesgo de rapto, secuestro, disturbios sociales, robo de material peligroso, etc.)?',
+      options: [
+        { label: 'NO = 0', value: 0 },
+        { label: '**Sí, MITIGADO = 40', value: 40 },
+        { label: 'Sí = 75 No viaja', value: 75 },
+      ],
+      selectedValue: null,
+    },
+    {
+      id: 12,
+      question: '¿Los Materiales Peligrosos y/o Controlados son enviados con la documentación necesaria, en vehículos apropiados y el conductor es certificado?',
+      options: [
+        { label: 'NO = 50 no viaja', value: 50 },
+        { label: 'N/A = 0', value: 0 },
+        { label: 'Sí = 0', value: 0 },
+      ],
+      selectedValue: null,
+    },
+  ];
+}
+
+export function calculateTravelRiskLevel(totalPoints: number): TravelRiskLevel {
+  if (totalPoints > 75) return 'ALTO';
+  if (totalPoints >= 31) return 'MEDIO';
+  return 'BAJO';
+}
+
+export function getTravelRiskDescription(level: TravelRiskLevel): string {
+  switch (level) {
+    case 'ALTO': return 'Desde 23:00 pm hasta 05:00 am — Requiere aprobación de Director General (Quito)';
+    case 'MEDIO': return 'Desde 18:00 pm hasta 23:00 am — Requiere aprobación de Jefe de Base';
+    case 'BAJO': return 'Desde 05:00 pm hasta 18:00 am — Viajes de rutina con bajo riesgo: Supervisor directo/Jefe de Base';
+  }
+}
+
+// ── Reporte diario de actividades de operaciones (DYN-SGI-RE-047) ──
+
+export interface DailyActivityEntry {
+  inicio: string;
+  fin: string;
+  horas: number | null;
+  detalle: string;
+}
+
+export interface DailyActivityReport {
+  fecha: string;
+  numero: string;
+  cliente: string;
+  ordenContrato: string;
+  pozo: string;
+  representanteCliente: string;
+  campoBloque: string;
+  cargo: string;
+  taladro: string;
+  actividades: DailyActivityEntry[];
+  tiempoProductivo: number | null;
+  tiempoNoProductivo: number | null;
+  tiempoTotal: number | null;
+  observaciones: string;
+  nombreSupervisor: string;
+  nombreCliente: string;
+  firmaSupervisor: string;
+  firmaCliente: string;
+  ciSupervisor: string;
+  ciCliente: string;
+  archivoAdjunto: string | null;
 }

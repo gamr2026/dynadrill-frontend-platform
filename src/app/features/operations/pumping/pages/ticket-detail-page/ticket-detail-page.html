@@ -5,7 +5,30 @@
   [roleTag]="roleName()"
 />
 
-<dynadrill-stepper [steps]="stepLabels" [currentIndex]="currentStepIndex()" />
+<div class="ticket-detail__stepper">
+  @for (step of stepLabels; track $index; let last = $last) {
+    <div
+      class="ticket-detail__step"
+      [class.ticket-detail__step--active]="$index === currentStepIndex()"
+      [class.ticket-detail__step--completed]="$index < currentStepIndex()"
+    >
+      <div class="ticket-detail__step-circle">
+        @if ($index < currentStepIndex()) {
+          <span class="ticket-detail__step-check">✓</span>
+        } @else {
+          <span>{{ $index + 1 }}</span>
+        }
+      </div>
+      <div class="ticket-detail__step-tooltip">{{ step }}</div>
+    </div>
+    @if (!last) {
+      <div
+        class="ticket-detail__step-line"
+        [class.ticket-detail__step-line--completed]="$index < currentStepIndex()"
+      ></div>
+    }
+  }
+</div>
 
 @if (loading()) {
   <dynadrill-text variant="body">Cargando ticket...</dynadrill-text>
@@ -106,6 +129,19 @@
           <dynadrill-button variant="success" size="small" [disabled]="true">
             Aprobado
           </dynadrill-button>
+          @if (hasTravelManagement(row)) {
+            <dynadrill-button variant="success" size="small" [disabled]="true">
+              Gerenciamiento completado
+            </dynadrill-button>
+          } @else if (isTravelPendingApproval(row)) {
+            <dynadrill-button variant="warning" size="small" [disabled]="true">
+              Pendiente aprobación Jefe de Base
+            </dynadrill-button>
+          } @else {
+            <dynadrill-button variant="primary" size="small" (click)="openTravelManagement(row)">
+              Crear Gerenciamiento de Viaje
+            </dynadrill-button>
+          }
         } @else if (isOperatorSalidaRejected(row)) {
           <dynadrill-button variant="error" size="small" (click)="viewSalidaRejectionReason(row)">
             Rechazado — Ver motivo
@@ -134,11 +170,60 @@
       <section class="ticket-detail__section">
         <dynadrill-text variant="caption">Debe aprobar todos los reportes de salida antes de continuar.</dynadrill-text>
       </section>
+    } @else if (!allTravelManagementsCompleted()) {
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="caption">Debe completar el Gerenciamiento de Viaje (DYN-SGI-RE-049) para cada operador antes de continuar.</dynadrill-text>
+      </section>
     }
 
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="success" [disabled]="!allSalidaApproved() || submitting()" (clicked)="approveAllSalidaReports()">Aprobar reportes de salida</dynadrill-button>
+      <dynadrill-button variant="success" [disabled]="!allSalidaApproved() || !allTravelManagementsCompleted() || submitting()" (clicked)="approveAllSalidaReports()">Aprobar reportes de salida</dynadrill-button>
+    </footer>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Supervisor: Ejecución operativa — Reporte diario DYN-SGI-RE-047 -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  @if (currentStep() === 'ejecucion_operativa') {
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h1">Ejecución operativa</dynadrill-text>
+      <dynadrill-text variant="caption">Documento: DYN-SGI-RE-047 — Reporte diario de actividades de operaciones</dynadrill-text>
+      <dynadrill-text variant="body">Registre los reportes diarios de actividades de operaciones durante la ejecución del servicio.</dynadrill-text>
+    </section>
+
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Información del ticket</dynadrill-text>
+      <dynadrill-context-card [items]="contextItems()" />
+    </section>
+
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Reportes diarios de actividades</dynadrill-text>
+
+      <ng-template #dailyReportActionsTpl let-row>
+        @if (isDailyReportCompleted(row)) {
+          <dynadrill-button variant="success" size="small" [disabled]="true">
+            Completado
+          </dynadrill-button>
+        } @else {
+          <dynadrill-button variant="primary" size="small" (click)="openDailyActivityReportForDay(row)">
+            Llenar reporte diario
+          </dynadrill-button>
+        }
+      </ng-template>
+
+      <dynadrill-data-table
+        [columns]="dailyReportDayColumns"
+        [rows]="dailyReportDayRows()"
+        [loading]="false"
+        actionsHeader="Acciones"
+        [actionsTemplate]="dailyReportActionsTpl"
+      />
+    </section>
+
+    <footer class="ticket-detail__actions">
+      <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
+      <dynadrill-button variant="success" [disabled]="!allDailyReportsCompleted() || submitting()" (clicked)="advanceFromEjecucionOperativa()">Continuar a ejecución de llegada</dynadrill-button>
     </footer>
   }
 
@@ -160,6 +245,19 @@
           <dynadrill-button variant="success" size="small" [disabled]="true">
             Aprobado
           </dynadrill-button>
+          @if (hasReturnTravelManagement(row)) {
+            <dynadrill-button variant="success" size="small" [disabled]="true">
+              Gerenciamiento retorno completado
+            </dynadrill-button>
+          } @else if (isReturnTravelPendingApproval(row)) {
+            <dynadrill-button variant="warning" size="small" [disabled]="true">
+              Pendiente aprobación Jefe de Base
+            </dynadrill-button>
+          } @else {
+            <dynadrill-button variant="primary" size="small" (click)="openReturnTravelManagement(row)">
+              Crear Gerenciamiento de Retorno
+            </dynadrill-button>
+          }
         } @else if (isOperatorLlegadaRejected(row)) {
           <dynadrill-button variant="error" size="small" (click)="viewRejectionReason(row)">
             Rechazado — Ver motivo
@@ -188,11 +286,15 @@
       <section class="ticket-detail__section">
         <dynadrill-text variant="caption">Debe aprobar todos los reportes de llegada antes de continuar.</dynadrill-text>
       </section>
+    } @else if (!allReturnTravelManagementsCompleted()) {
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="caption">Debe completar el Gerenciamiento de Viaje de retorno (DYN-SGI-RE-049) para cada operador antes de continuar.</dynadrill-text>
+      </section>
     }
 
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="success" [disabled]="!allLlegadaApproved() || submitting()" (clicked)="approveAllLlegadaReports()">Aprobar reportes de llegada</dynadrill-button>
+      <dynadrill-button variant="success" [disabled]="!allLlegadaApproved() || !allReturnTravelManagementsCompleted() || submitting()" (clicked)="approveAllLlegadaReports()">Aprobar reportes de llegada</dynadrill-button>
     </footer>
   }
 

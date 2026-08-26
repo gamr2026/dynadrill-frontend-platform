@@ -14,7 +14,6 @@ import {
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSelectComponent,
-  DynadrillStepperComponent,
   DynadrillTextComponent,
   DynadrillTextareaComponent,
   type DynadrillApprovalDecision,
@@ -34,6 +33,8 @@ import {
   type PumpingStep,
   type HubodometroEntry,
   type TireEntry,
+  type TravelManagement,
+  type DailyActivityReport,
 } from '../../models/pumping.model';
 import { PumpingService } from '../../services/pumping.service';
 import { CreateUnitReportInput, unitReportHasNovedades } from '../../../../maintenance/models/unit-report.model';
@@ -48,6 +49,8 @@ import {
 import { VehicleInspectionDialog, VehicleInspectionDialogData } from '../../../../maintenance/components/vehicle-inspection-dialog';
 import { VehicleInspectionsService } from '../../../../maintenance/services/vehicle-inspections.service';
 import { ReviewArrivalReportDialog, ReviewArrivalReportDialogData, ReviewArrivalReportDialogResult } from '../../components/review-arrival-report-dialog';
+import { TravelManagementDialog, TravelManagementDialogData, TravelManagementDialogResult } from '../../components/travel-management-dialog';
+import { DailyActivityReportDialog, DailyActivityReportDialogData, DailyActivityReportDialogResult } from '../../components/daily-activity-report-dialog';
 import { MaintenanceOrdersService } from '../../../../maintenance/services/maintenance-orders.service';
 import { MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../../../../maintenance/models/maintenance-order.model';
 import { SuborderDetailDialog, SuborderDetailDialogData } from '../../../../maintenance/components/suborder-detail-dialog';
@@ -91,14 +94,13 @@ function createMockCompletedInspection(operatorName: string, unitCode: string): 
   };
 }
 
-const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'revisar_reportes_salida', 'en_ejecucion_llegada', 'mantenimiento', 'revisar_reportes_llegada', 'en_revision'];
+const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'revisar_reportes_salida', 'ejecucion_operativa', 'en_ejecucion_llegada', 'mantenimiento', 'revisar_reportes_llegada', 'en_revision'];
 
 @Component({
   selector: 'app-ticket-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DynadrillScreenHeaderComponent,
-    DynadrillStepperComponent,
     DynadrillContextCardComponent,
     DynadrillDataTableComponent,
     DynadrillButtonComponent,
@@ -354,6 +356,7 @@ export class TicketDetailPage {
   protected readonly approvedSalidaOperators = signal<Set<number>>(new Set());
   protected readonly rejectedSalidaOperators = signal<Set<number>>(new Set());
   protected readonly salidaRejectionReasons = signal<Map<number, string>>(new Map());
+  protected readonly travelManagements = signal<Map<number, TravelManagement>>(new Map());
 
   protected isOperatorSalidaApproved(row: Record<string, unknown>): boolean {
     return this.approvedSalidaOperators().has(row['id'] as number);
@@ -409,7 +412,7 @@ export class TicketDetailPage {
           updated.add(id);
           return updated;
         });
-        this.notify.success('Aprobado', `Reporte de salida de ${row['name']} aprobado.`);
+        this.notify.success('Aprobado', `Reporte de salida de ${row['name']} aprobado. Ahora debe crear el Gerenciamiento de Viaje.`);
       } else {
         this.rejectedSalidaOperators.update(set => {
           const updated = new Set(set);
@@ -422,6 +425,100 @@ export class TicketDetailPage {
           return updated;
         });
         this.notify.error('Rechazado', `Reporte de ${row['name']} rechazado.`);
+      }
+    });
+  }
+
+  // ── Travel Management (DYN-SGI-RE-049) ──
+
+  /** Tracks operators whose travel management is pending Jefe de Base approval */
+  protected readonly travelPendingApproval = signal<Set<number>>(new Set());
+
+  protected hasTravelManagement(row: Record<string, unknown>): boolean {
+    return this.travelManagements().has(row['id'] as number);
+  }
+
+  protected isTravelPendingApproval(row: Record<string, unknown>): boolean {
+    return this.travelPendingApproval().has(row['id'] as number);
+  }
+
+  protected readonly allTravelManagementsCompleted = computed(() => {
+    const rows = this.reviewSalidaRows();
+    const approved = this.approvedSalidaOperators();
+    const travels = this.travelManagements();
+    const approvedRows = rows.filter(r => approved.has(r.id));
+    if (approvedRows.length === 0) return false;
+    return approvedRows.every(r => travels.has(r.id));
+  });
+
+  /**
+   * Abre el dialog de Gerenciamiento de Viaje (DYN-SGI-RE-049)
+   * como paso independiente después de aprobar el reporte.
+   * Según los puntos:
+   * - BAJO: el supervisor directo aprueba (se completa inmediatamente)
+   * - MEDIO/ALTO: requiere aprobación del Jefe de Base (queda pendiente)
+   */
+  protected openTravelManagement(row: Record<string, unknown>): void {
+    const t = this.ticket();
+    if (!t) return;
+    const operatorId = row['id'] as number;
+
+    const travelRef = this.dialog.open<TravelManagementDialog, TravelManagementDialogData>({
+      title: 'Gerenciamiento de Viaje — DYN-SGI-RE-049',
+      content: TravelManagementDialog,
+      data: {
+        operatorName: row['name'] as string,
+        unitCode: row['unitCode'] as string,
+        ticketCode: t.code,
+        origen: t.unitReport?.origin ?? '',
+        destino: t.unitReport?.destination ?? '',
+        lineaServicio: PUMPING_SERVICE_TYPE_LABELS[t.serviceType],
+        supervisor: t.assignedSupervisor ?? '',
+        conductores: row['name'] as string,
+        placas: '',
+      },
+      size: 'large',
+      footer: false,
+    });
+
+    travelRef.afterClose.subscribe((travelResult: TravelManagementDialogResult | undefined) => {
+      if (!travelResult?.completed || !travelResult.travelManagement) return;
+
+      const riskLevel = travelResult.travelManagement.riskLevel;
+
+      if (riskLevel === 'BAJO') {
+        // Supervisor directo aprueba — se completa inmediatamente
+        this.travelManagements.update(map => {
+          const updated = new Map(map);
+          updated.set(operatorId, travelResult.travelManagement!);
+          return updated;
+        });
+        this.notify.success('Gerenciamiento completado', `Riesgo BAJO — aprobado por supervisor directo.`);
+      } else {
+        // MEDIO o ALTO — requiere aprobación del Jefe de Base
+        this.travelPendingApproval.update(set => {
+          const updated = new Set(set);
+          updated.add(operatorId);
+          return updated;
+        });
+        this.notify.info(
+          'Pendiente de aprobación',
+          `Riesgo ${riskLevel} — requiere aprobación del ${riskLevel === 'ALTO' ? 'Director General' : 'Jefe de Base'}.`,
+        );
+        // Simulate Jefe de Base approval after a short delay (in real app, this would be async)
+        setTimeout(() => {
+          this.travelPendingApproval.update(set => {
+            const updated = new Set(set);
+            updated.delete(operatorId);
+            return updated;
+          });
+          this.travelManagements.update(map => {
+            const updated = new Map(map);
+            updated.set(operatorId, travelResult.travelManagement!);
+            return updated;
+          });
+          this.notify.success('Gerenciamiento aprobado', `El ${riskLevel === 'ALTO' ? 'Director General' : 'Jefe de Base'} ha aprobado el gerenciamiento de viaje.`);
+        }, 3000);
       }
     });
   }
@@ -537,6 +634,90 @@ export class TicketDetailPage {
     return rows.length > 0 && rows.every(r => approved.has(r.id));
   });
 
+  // ── Gerenciamiento de Viaje de Retorno (DYN-SGI-RE-049) ──
+
+  protected readonly returnTravelManagements = signal<Map<number, TravelManagement>>(new Map());
+  protected readonly returnTravelPendingApproval = signal<Set<number>>(new Set());
+
+  protected hasReturnTravelManagement(row: Record<string, unknown>): boolean {
+    return this.returnTravelManagements().has(row['id'] as number);
+  }
+
+  protected isReturnTravelPendingApproval(row: Record<string, unknown>): boolean {
+    return this.returnTravelPendingApproval().has(row['id'] as number);
+  }
+
+  protected readonly allReturnTravelManagementsCompleted = computed(() => {
+    const rows = this.reviewLlegadaRows();
+    const approved = this.approvedLlegadaOperators();
+    const travels = this.returnTravelManagements();
+    const approvedRows = rows.filter(r => approved.has(r.id));
+    if (approvedRows.length === 0) return false;
+    return approvedRows.every(r => travels.has(r.id));
+  });
+
+  protected openReturnTravelManagement(row: Record<string, unknown>): void {
+    const t = this.ticket();
+    if (!t) return;
+    const operatorId = row['id'] as number;
+
+    const travelRef = this.dialog.open<TravelManagementDialog, TravelManagementDialogData>({
+      title: 'Gerenciamiento de Viaje de Retorno — DYN-SGI-RE-049',
+      content: TravelManagementDialog,
+      data: {
+        operatorName: row['name'] as string,
+        unitCode: row['unitCode'] as string,
+        ticketCode: t.code,
+        origen: t.unitReport?.destination ?? '',
+        destino: t.unitReport?.origin ?? '',
+        lineaServicio: PUMPING_SERVICE_TYPE_LABELS[t.serviceType],
+        supervisor: t.assignedSupervisor ?? '',
+        conductores: row['name'] as string,
+        placas: '',
+      },
+      size: 'large',
+      footer: false,
+    });
+
+    travelRef.afterClose.subscribe((travelResult: TravelManagementDialogResult | undefined) => {
+      if (!travelResult?.completed || !travelResult.travelManagement) return;
+
+      const riskLevel = travelResult.travelManagement.riskLevel;
+
+      if (riskLevel === 'BAJO') {
+        this.returnTravelManagements.update(map => {
+          const updated = new Map(map);
+          updated.set(operatorId, travelResult.travelManagement!);
+          return updated;
+        });
+        this.notify.success('Gerenciamiento de retorno completado', 'Riesgo BAJO — aprobado por supervisor directo.');
+      } else {
+        this.returnTravelPendingApproval.update(set => {
+          const updated = new Set(set);
+          updated.add(operatorId);
+          return updated;
+        });
+        this.notify.info(
+          'Pendiente de aprobación',
+          `Riesgo ${riskLevel} — requiere aprobación del ${riskLevel === 'ALTO' ? 'Director General' : 'Jefe de Base'}.`,
+        );
+        setTimeout(() => {
+          this.returnTravelPendingApproval.update(set => {
+            const updated = new Set(set);
+            updated.delete(operatorId);
+            return updated;
+          });
+          this.returnTravelManagements.update(map => {
+            const updated = new Map(map);
+            updated.set(operatorId, travelResult.travelManagement!);
+            return updated;
+          });
+          this.notify.success('Gerenciamiento de retorno aprobado', `El ${riskLevel === 'ALTO' ? 'Director General' : 'Jefe de Base'} ha aprobado el gerenciamiento de viaje de retorno.`);
+        }, 3000);
+      }
+    });
+  }
+
   protected approveAllSalidaReports(): void {
     const t = this.ticket();
     if (!t) return;
@@ -563,6 +744,110 @@ export class TicketDetailPage {
         this.ticket.set(updated);
         this.submitting.set(false);
         this.notify.success('Aprobado', 'Todos los reportes de llegada han sido aprobados.');
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.notify.error('Error', 'No se pudo avanzar el ticket.');
+      },
+    });
+  }
+
+  // ══════════════════════════════════════════════
+  // Ejecución operativa — Reporte diario DYN-SGI-RE-047
+  // ══════════════════════════════════════════════
+
+  protected readonly dailyActivityReports = signal<Map<string, DailyActivityReport>>(new Map());
+
+  protected readonly dailyReportDayColumns: DynadrillDataTableColumn[] = [
+    { key: 'dia', header: 'Día' },
+    { key: 'fecha', header: 'Fecha' },
+    { key: 'statusBadge', header: 'Estado', type: 'badge' },
+  ];
+
+  /** Generates rows for each day from departure date to today */
+  protected readonly dailyReportDayRows = computed(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    const reports = this.dailyActivityReports();
+    const startDate = t.unitReport?.departureDate || t.estimatedDate;
+    if (!startDate) return [];
+
+    const start = new Date(startDate + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const days: { id: number; dia: string; fecha: string; statusBadge: { text: string; tone: 'success' | 'warning' } }[] = [];
+
+    let current = new Date(start);
+    let dayNum = 1;
+    while (current <= today) {
+      const dateStr = current.toISOString().split('T')[0];
+      const hasReport = reports.has(dateStr);
+      days.push({
+        id: dayNum,
+        dia: `Día ${dayNum}`,
+        fecha: dateStr,
+        statusBadge: hasReport
+          ? { text: 'Completado', tone: 'success' }
+          : { text: 'Pendiente', tone: 'warning' },
+      });
+      current.setDate(current.getDate() + 1);
+      dayNum++;
+    }
+    return days;
+  });
+
+  protected isDailyReportCompleted(row: Record<string, unknown>): boolean {
+    return this.dailyActivityReports().has(row['fecha'] as string);
+  }
+
+  protected readonly allDailyReportsCompleted = computed(() => {
+    const rows = this.dailyReportDayRows();
+    if (rows.length === 0) return false;
+    const reports = this.dailyActivityReports();
+    return rows.every(r => reports.has(r.fecha));
+  });
+
+  protected openDailyActivityReportForDay(row: Record<string, unknown>): void {
+    const t = this.ticket();
+    if (!t) return;
+    const fecha = row['fecha'] as string;
+
+    const ref = this.dialog.open<DailyActivityReportDialog, DailyActivityReportDialogData>({
+      title: `Reporte diario — ${row['dia']} (${fecha})`,
+      content: DailyActivityReportDialog,
+      data: {
+        ticketCode: t.code,
+        cliente: t.clientName,
+        pozo: t.wellName,
+        campoBloque: t.unitReport?.blockName ?? '',
+        supervisor: t.assignedSupervisor ?? '',
+        existing: undefined,
+      },
+      size: 'large',
+      footer: false,
+    });
+
+    ref.afterClose.subscribe((result: DailyActivityReportDialogResult | undefined) => {
+      if (result?.saved && result.report) {
+        this.dailyActivityReports.update(map => {
+          const updated = new Map(map);
+          updated.set(fecha, { ...result.report!, fecha });
+          return updated;
+        });
+        this.notify.success('Reporte guardado', `Reporte del ${fecha} guardado correctamente.`);
+      }
+    });
+  }
+
+  protected advanceFromEjecucionOperativa(): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.submitting.set(true);
+    this.pumpingService.advanceStep(t.id, 'en_ejecucion_llegada').subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        this.submitting.set(false);
+        this.notify.success('Avanzado', 'El ticket avanza a En ejecución (Llegada).');
       },
       error: () => {
         this.submitting.set(false);
@@ -811,7 +1096,7 @@ export class TicketDetailPage {
   private canAccessStep(step: PumpingStep): boolean {
     const role = this.roleName();
     if (role === 'Jefe de Base') return step === 'revision_propuesta';
-    if (role === 'Supervisor') return step === 'asignacion' || step === 'revisar_reportes_salida' || step === 'mantenimiento' || step === 'revisar_reportes_llegada';
+    if (role === 'Supervisor') return step === 'asignacion' || step === 'revisar_reportes_salida' || step === 'ejecucion_operativa' || step === 'mantenimiento' || step === 'revisar_reportes_llegada';
     if (role === 'Operador') return step === 'en_ejecucion' || step === 'en_ejecucion_llegada';
     return false;
   }
@@ -1053,7 +1338,8 @@ export class TicketDetailPage {
     revision_propuesta: 'asignacion',
     asignacion: 'en_ejecucion',
     en_ejecucion: 'revisar_reportes_salida',
-    revisar_reportes_salida: 'en_ejecucion_llegada',
+    revisar_reportes_salida: 'ejecucion_operativa',
+    ejecucion_operativa: 'en_ejecucion_llegada',
     en_ejecucion_llegada: 'mantenimiento',
     mantenimiento: 'revisar_reportes_llegada',
   };

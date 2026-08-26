@@ -1,0 +1,115 @@
+<section class="daily-report__header">
+  <dynadrill-text variant="h1">Reporte diario de actividades de operaciones</dynadrill-text>
+  <dynadrill-text variant="caption">Documento: DYN-SGI-RE-047 — Versión 11</dynadrill-text>
+  <dynadrill-context-card [items]="headerItems()" />
+</section>
+
+<!-- ═══ Subir documento ═══ -->
+<section class="daily-report__section">
+  <dynadrill-text variant="h2">Cargar documento</dynadrill-text>
+  <dynadrill-text variant="caption">Suba el reporte diario escaneado o en formato digital para llenar los datos automáticamente.</dynadrill-text>
+  <dynadrill-upload-zone
+    [state]="uploadState()"
+    [fileName]="uploadFileName()"
+    (fileSelected)="onFileSelected($event)"
+  />
+</section>
+
+<!-- ═══ Información general ═══ -->
+<section class="daily-report__section">
+  <dynadrill-text variant="h2">Información general</dynadrill-text>
+  <div class="daily-report__form-grid">
+    <dynadrill-input label="Fecha" [value]="fecha()" (valueChange)="fecha.set($event)" />
+    <dynadrill-input label="N°" [value]="numero()" (valueChange)="numero.set($event)" />
+    <dynadrill-input label="Cliente" [value]="cliente()" (valueChange)="cliente.set($event)" />
+    <dynadrill-input label="Orden/Contrato N°" [value]="ordenContrato()" (valueChange)="ordenContrato.set($event)" />
+    <dynadrill-input label="Pozo" [value]="pozo()" (valueChange)="pozo.set($event)" />
+    <dynadrill-input label="Representante del Cliente" [value]="representanteCliente()" (valueChange)="representanteCliente.set($event)" />
+    <dynadrill-input label="Campo/Bloque" [value]="campoBloque()" (valueChange)="campoBloque.set($event)" />
+    <dynadrill-input label="Cargo" [value]="cargo()" (valueChange)="cargo.set($event)" />
+    <dynadrill-input label="Taladro" [value]="taladro()" (valueChange)="taladro.set($event)" />
+  </div>
+</section>
+
+<!-- ═══ Detalle de actividades ═══ -->
+<section class="daily-report__section">
+  <dynadrill-text variant="h2">Detalle de actividades</dynadrill-text>
+  <dynadrill-text variant="caption">Registre las actividades realizadas con hora de inicio y fin.</dynadrill-text>
+
+  <div class="daily-report__activities-header">
+    <span class="daily-report__col-time">Inicio</span>
+    <span class="daily-report__col-time">Fin</span>
+    <span class="daily-report__col-hours">Horas</span>
+    <span class="daily-report__col-detail">Detalle de actividades</span>
+    <span class="daily-report__col-action"></span>
+  </div>
+
+  @for (activity of actividades(); track $index) {
+    <div class="daily-report__activity-row">
+      <div class="daily-report__col-time">
+        <input type="time" class="daily-report__time-input" [value]="activity.inicio" (input)="onActivityChange($index, 'inicio', $any($event.target).value)" />
+      </div>
+      <div class="daily-report__col-time">
+        <input type="time" class="daily-report__time-input" [value]="activity.fin" (input)="onActivityChange($index, 'fin', $any($event.target).value)" />
+      </div>
+      <div class="daily-report__col-hours">
+        <dynadrill-text variant="body">{{ activity.horas ?? '—' }}</dynadrill-text>
+      </div>
+      <div class="daily-report__col-detail">
+        <dynadrill-textarea label="" placeholder="Describa la actividad..." [value]="activity.detalle" (valueChange)="onActivityChange($index, 'detalle', $event)" />
+      </div>
+      <div class="daily-report__col-action">
+        <dynadrill-button variant="error" size="small" (clicked)="removeActivity($index)">✕</dynadrill-button>
+      </div>
+    </div>
+  }
+
+  <dynadrill-button variant="secondary" size="small" (clicked)="addActivity()">+ Agregar actividad</dynadrill-button>
+</section>
+
+<!-- ═══ Tiempos ═══ -->
+<section class="daily-report__section">
+  <dynadrill-text variant="h2">Resumen de tiempos</dynadrill-text>
+  <div class="daily-report__times-grid">
+    <dynadrill-input label="Tiempo productivo (hrs)" [value]="tiempoProductivo()" (valueChange)="tiempoProductivo.set($event)" />
+    <dynadrill-input label="Tiempo no productivo (hrs)" [value]="tiempoNoProductivo()" (valueChange)="tiempoNoProductivo.set($event)" />
+    <div class="daily-report__time-total">
+      <dynadrill-text variant="body"><strong>Tiempo Total:</strong> {{ tiempoTotal() }} hrs</dynadrill-text>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Observaciones ═══ -->
+<section class="daily-report__section">
+  <dynadrill-text variant="h2">Observaciones</dynadrill-text>
+  <dynadrill-textarea label="Observaciones" placeholder="Ingrese observaciones generales del día..." [value]="observaciones()" (valueChange)="observaciones.set($event)" />
+</section>
+
+<!-- ═══ Firmas ═══ -->
+<section class="daily-report__section">
+  <dynadrill-text variant="h2">Firmas</dynadrill-text>
+  <div class="daily-report__signatures">
+    <div class="daily-report__signature-col">
+      <dynadrill-input label="Nombre (Supervisor Dynadrill)" [value]="nombreSupervisor()" (valueChange)="nombreSupervisor.set($event)" />
+      <dynadrill-input label="C.I." [value]="ciSupervisor()" (valueChange)="ciSupervisor.set($event)" />
+      <div class="daily-report__signature-line">
+        <dynadrill-text variant="caption">Firma:</dynadrill-text>
+        <div class="daily-report__line"></div>
+      </div>
+    </div>
+    <div class="daily-report__signature-col">
+      <dynadrill-input label="Nombre (Representante Cliente)" [value]="nombreCliente()" (valueChange)="nombreCliente.set($event)" />
+      <dynadrill-input label="C.I." [value]="ciCliente()" (valueChange)="ciCliente.set($event)" />
+      <div class="daily-report__signature-line">
+        <dynadrill-text variant="caption">Firma:</dynadrill-text>
+        <div class="daily-report__line"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Footer ═══ -->
+<footer class="daily-report__actions">
+  <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+  <dynadrill-button variant="success" [disabled]="!canSave()" (clicked)="save()">Guardar reporte diario</dynadrill-button>
+</footer>

@@ -32,6 +32,7 @@ const STEP_BADGES: Record<PumpingStep, { text: string; tone: BadgeTone }> = {
   asignacion: { text: 'Asignación', tone: 'info' },
   en_ejecucion: { text: 'En ejecución (Salida)', tone: 'brand' },
   revisar_reportes_salida: { text: 'Revisar reportes de salida', tone: 'warning' },
+  ejecucion_operativa: { text: 'Ejecución operativa', tone: 'brand' },
   en_ejecucion_llegada: { text: 'En ejecución (Llegada)', tone: 'brand' },
   mantenimiento: { text: 'Mantenimiento', tone: 'info' },
   revisar_reportes_llegada: { text: 'Revisar reportes de llegada', tone: 'warning' },
@@ -291,7 +292,7 @@ export class TicketListPage {
   protected canViewDetail(row: Record<string, unknown>): boolean {
     const step = row['step'] as string;
     if (this.isJefeBase()) return step === 'revision_propuesta';
-    if (this.isSupervisor()) return step === 'asignacion' || step === 'revisar_reportes_salida' || step === 'revisar_reportes_llegada';
+    if (this.isSupervisor()) return step === 'asignacion' || step === 'revisar_reportes_salida' || step === 'ejecucion_operativa' || step === 'revisar_reportes_llegada';
     if (this.isOperador()) return step === 'en_ejecucion' || step === 'en_ejecucion_llegada';
     return false;
   }

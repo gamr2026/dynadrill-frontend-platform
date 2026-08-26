@@ -14,7 +14,6 @@ import {
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSelectComponent,
-  DynadrillStepperComponent,
   DynadrillTextComponent,
   DynadrillTextareaComponent,
   type DynadrillApprovalDecision,
@@ -102,7 +101,6 @@ const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecuc
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DynadrillScreenHeaderComponent,
-    DynadrillStepperComponent,
     DynadrillContextCardComponent,
     DynadrillDataTableComponent,
     DynadrillButtonComponent,
@@ -635,6 +633,90 @@ export class TicketDetailPage {
     const approved = this.approvedLlegadaOperators();
     return rows.length > 0 && rows.every(r => approved.has(r.id));
   });
+
+  // ── Gerenciamiento de Viaje de Retorno (DYN-SGI-RE-049) ──
+
+  protected readonly returnTravelManagements = signal<Map<number, TravelManagement>>(new Map());
+  protected readonly returnTravelPendingApproval = signal<Set<number>>(new Set());
+
+  protected hasReturnTravelManagement(row: Record<string, unknown>): boolean {
+    return this.returnTravelManagements().has(row['id'] as number);
+  }
+
+  protected isReturnTravelPendingApproval(row: Record<string, unknown>): boolean {
+    return this.returnTravelPendingApproval().has(row['id'] as number);
+  }
+
+  protected readonly allReturnTravelManagementsCompleted = computed(() => {
+    const rows = this.reviewLlegadaRows();
+    const approved = this.approvedLlegadaOperators();
+    const travels = this.returnTravelManagements();
+    const approvedRows = rows.filter(r => approved.has(r.id));
+    if (approvedRows.length === 0) return false;
+    return approvedRows.every(r => travels.has(r.id));
+  });
+
+  protected openReturnTravelManagement(row: Record<string, unknown>): void {
+    const t = this.ticket();
+    if (!t) return;
+    const operatorId = row['id'] as number;
+
+    const travelRef = this.dialog.open<TravelManagementDialog, TravelManagementDialogData>({
+      title: 'Gerenciamiento de Viaje de Retorno — DYN-SGI-RE-049',
+      content: TravelManagementDialog,
+      data: {
+        operatorName: row['name'] as string,
+        unitCode: row['unitCode'] as string,
+        ticketCode: t.code,
+        origen: t.unitReport?.destination ?? '',
+        destino: t.unitReport?.origin ?? '',
+        lineaServicio: PUMPING_SERVICE_TYPE_LABELS[t.serviceType],
+        supervisor: t.assignedSupervisor ?? '',
+        conductores: row['name'] as string,
+        placas: '',
+      },
+      size: 'large',
+      footer: false,
+    });
+
+    travelRef.afterClose.subscribe((travelResult: TravelManagementDialogResult | undefined) => {
+      if (!travelResult?.completed || !travelResult.travelManagement) return;
+
+      const riskLevel = travelResult.travelManagement.riskLevel;
+
+      if (riskLevel === 'BAJO') {
+        this.returnTravelManagements.update(map => {
+          const updated = new Map(map);
+          updated.set(operatorId, travelResult.travelManagement!);
+          return updated;
+        });
+        this.notify.success('Gerenciamiento de retorno completado', 'Riesgo BAJO — aprobado por supervisor directo.');
+      } else {
+        this.returnTravelPendingApproval.update(set => {
+          const updated = new Set(set);
+          updated.add(operatorId);
+          return updated;
+        });
+        this.notify.info(
+          'Pendiente de aprobación',
+          `Riesgo ${riskLevel} — requiere aprobación del ${riskLevel === 'ALTO' ? 'Director General' : 'Jefe de Base'}.`,
+        );
+        setTimeout(() => {
+          this.returnTravelPendingApproval.update(set => {
+            const updated = new Set(set);
+            updated.delete(operatorId);
+            return updated;
+          });
+          this.returnTravelManagements.update(map => {
+            const updated = new Map(map);
+            updated.set(operatorId, travelResult.travelManagement!);
+            return updated;
+          });
+          this.notify.success('Gerenciamiento de retorno aprobado', `El ${riskLevel === 'ALTO' ? 'Director General' : 'Jefe de Base'} ha aprobado el gerenciamiento de viaje de retorno.`);
+        }, 3000);
+      }
+    });
+  }
 
   protected approveAllSalidaReports(): void {
     const t = this.ticket();

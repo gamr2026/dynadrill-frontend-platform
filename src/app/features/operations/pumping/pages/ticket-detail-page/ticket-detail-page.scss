@@ -7,6 +7,103 @@
   white-space: pre-line;
 }
 
+// ── Stepper custom con tooltip ──
+
+.ticket-detail__stepper {
+  display: flex;
+  align-items: center;
+  margin: 1.5rem 0 0.5rem;
+  padding: 0;
+}
+
+.ticket-detail__step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+
+  &:hover .ticket-detail__step-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.ticket-detail__step-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border, #d9d9d9);
+  background: #fff;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 12px;
+  font-family: var(--font-body, sans-serif);
+  transition: all 0.2s;
+
+  .ticket-detail__step--active & {
+    background: var(--dynadrill-purple, #662e9b);
+    border-color: var(--dynadrill-purple, #662e9b);
+    color: #fff;
+  }
+
+  .ticket-detail__step--completed & {
+    border-color: var(--dynadrill-purple, #662e9b);
+    background: #fff;
+    color: var(--dynadrill-purple, #662e9b);
+  }
+}
+
+.ticket-detail__step-check {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ticket-detail__step-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  font-size: 12px;
+  font-family: var(--font-body, sans-serif);
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 1000;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-bottom-color: rgba(0, 0, 0, 0.85);
+  }
+}
+
+.ticket-detail__step-line {
+  flex: 1;
+  height: 1px;
+  min-width: 20px;
+  background: var(--color-border, #d9d9d9);
+  transition: background 0.2s;
+  margin: 0 2px;
+
+  &--completed {
+    background: var(--dynadrill-purple, #662e9b);
+  }
+}
+
 .ticket-detail__section {
   margin-top: 2rem;
 

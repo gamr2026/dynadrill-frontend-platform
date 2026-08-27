@@ -1,0 +1,54 @@
+<div class="entrega-epi-dialog">
+  <div class="entrega-epi-dialog__grid">
+    <dynadrill-input label="Lugar" [value]="lugar()" (valueChange)="lugar.set($event)" />
+    <dynadrill-input label="Nombre y apellido del trabajador" [value]="trabajadorNombre()" (valueChange)="trabajadorNombre.set($event)" />
+    <dynadrill-input label="Cargo" [value]="trabajadorCargo()" (valueChange)="trabajadorCargo.set($event)" />
+  </div>
+
+  <dynadrill-text variant="h2">Elementos entregados</dynadrill-text>
+
+  @if (items().length > 0) {
+    <ul class="entrega-epi-dialog__items">
+      @for (i of items(); track i.id) {
+        <li>
+          <div>
+            <strong>{{ i.elemento }}</strong>
+            <span>{{ i.cantidad }} unidad(es){{ i.talla ? ' — talla ' + i.talla : '' }}{{ i.codigoOCedula ? ' — ' + i.codigoOCedula : '' }}</span>
+            <span>{{ i.recibioCapacitacion ? 'Con capacitación en uso y manejo' : 'Sin capacitación registrada' }}</span>
+            @if (i.observaciones) {
+              <span>{{ i.observaciones }}</span>
+            }
+          </div>
+          <dynadrill-button variant="secondary" size="small" (clicked)="quitarItem(i.id)">Quitar</dynadrill-button>
+        </li>
+      }
+    </ul>
+  } @else {
+    <dynadrill-text variant="caption">Sin elementos agregados todavía.</dynadrill-text>
+  }
+
+  <div class="entrega-epi-dialog__item-form">
+    <dynadrill-input label="Elemento de protección individual" [value]="itemDraft().elemento" (valueChange)="setItemDraftField('elemento', $event)" />
+    <dynadrill-input label="Cantidad" type="number" [value]="itemDraft().cantidad" (valueChange)="setItemDraftField('cantidad', $event)" />
+    <dynadrill-input label="Talla (opcional)" [value]="itemDraft().talla" (valueChange)="setItemDraftField('talla', $event)" />
+    <dynadrill-input label="Código o cédula (opcional)" [value]="itemDraft().codigoOCedula" (valueChange)="setItemDraftField('codigoOCedula', $event)" />
+    <dynadrill-input label="Observaciones (opcional)" [value]="itemDraft().observaciones" (valueChange)="setItemDraftField('observaciones', $event)" />
+    <dynadrill-checkbox label="Recibió capacitación en uso y manejo del EPI" [checked]="itemDraft().recibioCapacitacion" (checkedChange)="setItemDraftField('recibioCapacitacion', $event)" />
+    <dynadrill-button variant="secondary" size="small" [disabled]="!puedeAgregarItem()" (clicked)="agregarItem()">+ Agregar elemento</dynadrill-button>
+  </div>
+
+  <div class="entrega-epi-dialog__declaracion">
+    <dynadrill-checkbox
+      label="Firmo y acepto ser responsable por los elementos de protección individual y ropa de trabajo que me están entregando, y me comprometo a dar uso adecuado de dichos elementos de acuerdo a las indicaciones recibidas."
+      [checked]="firmaAceptada()"
+      (checkedChange)="firmaAceptada.set($event)"
+    />
+  </div>
+
+  <div class="entrega-epi-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">
+      {{ submitting() ? 'Guardando…' : 'Registrar entrega' }}
+    </dynadrill-button>
+  </div>
+</div>

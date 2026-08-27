@@ -2,7 +2,7 @@ import { HttpInterceptorFn, HttpResponse } from '@angular/common/http';
 import { delay, of } from 'rxjs';
 import { CreateIpercMatrixInput, IpercMatrix } from '../../features/qhse/iperc/models/iperc.model';
 import { DEFAULT_LOTO_CHECKLIST, PTW_DOCUMENTOS_REQUERIDOS, PtwMatrix } from '../../features/qhse/ptw/models/ptw.model';
-import { CreateStopCardInput, StopCard } from '../../features/qhse/stop/models/stop-card.model';
+import { CreateStopCardInput, StopCard, StopChecklistItem, crearStopChecklist } from '../../features/qhse/stop/models/stop-card.model';
 import { CreateSwaInput, DEFAULT_SWA_REANUDACION_CHECKLIST, SWA_NOTIFICATION_ROLES, SwaEvento } from '../../features/qhse/swa/models/swa.model';
 import { CreateInspeccionInput, InspeccionEquipo, inspeccionVigenciaHasta } from '../../features/qhse/inspecciones/models/inspeccion-equipo.model';
 import { CreateDesechoInput, Desecho, desechoLimiteAlmacenamiento } from '../../features/qhse/desechos/models/desecho.model';
@@ -16,7 +16,8 @@ import {
   DEFAULT_EMERGENCIA_NOTIFICACIONES,
   EmergenciaEvento,
 } from '../../features/qhse/emergencias/models/emergencia.model';
-import { CreateInvestigacionInput, DEFAULT_ISHIKAWA, Investigacion } from '../../features/qhse/investigaciones/models/investigacion.model';
+import { CreateInvestigacionInput, DEFAULT_CAUSAS, DEFAULT_ISHIKAWA, Investigacion } from '../../features/qhse/investigaciones/models/investigacion.model';
+import { CreateEntregaEpiInput, EntregaEpi } from '../../features/qhse/epi/models/entrega-epi.model';
 
 /**
  * Solo activo mientras no exista el backend real de QHSE — mismo patrón
@@ -55,16 +56,18 @@ let matrices: IpercMatrix[] = [
           {
             id: 1,
             peligro: 'Contacto con partes en movimiento',
+            clasificacionPeligro: 'Mecánico',
             fuenteRiesgo: 'Acople y eje de la bomba sin bloqueo verificado',
             controlesExistentes: 'Procedimiento LOTO general de la empresa',
-            probabilidadInicial: 3,
-            severidadInicial: 4,
-            probabilidadResidual: 2,
-            severidadResidual: 4,
+            numeroExpuestos: 2,
+            peorConsecuencia: 'Amputación o atrapamiento de extremidad',
+            requisitoLegal: true,
+            riesgoInicial: { nd: 6, ne: 2, nc: 25 },
             controles: [
               { id: 1, type: 'administrativo', description: 'Verificación de cero energía con dos personas antes de intervenir' },
               { id: 2, type: 'epp', description: 'Guantes anticorte y gafas de seguridad' },
             ],
+            riesgoResidual: { nd: 2, ne: 2, nc: 25 },
           },
         ],
       },
@@ -75,16 +78,16 @@ let matrices: IpercMatrix[] = [
           {
             id: 2,
             peligro: 'Exposición a hidrocarburo residual',
+            clasificacionPeligro: 'Químico',
             fuenteRiesgo: 'Fluido remanente en carcasa de la bomba',
             controlesExistentes: 'Ninguno',
-            probabilidadInicial: 4,
-            severidadInicial: 3,
-            probabilidadResidual: 2,
-            severidadResidual: 3,
+            numeroExpuestos: 2,
+            riesgoInicial: { nd: 6, ne: 3, nc: 25 },
             controles: [
               { id: 3, type: 'ingenieria', description: 'Drenaje a contenedor cerrado antes de abrir la carcasa' },
               { id: 4, type: 'epp', description: 'Traje Tyvek y respirador con filtro para vapores orgánicos' },
             ],
+            riesgoResidual: { nd: 2, ne: 2, nc: 10 },
           },
         ],
       },
@@ -109,11 +112,9 @@ let matrices: IpercMatrix[] = [
             peligro: 'Golpes y atrapamiento durante el izaje de tubería',
             fuenteRiesgo: 'Manipulación manual de tramos de tubería',
             controlesExistentes: '',
-            probabilidadInicial: null,
-            severidadInicial: null,
-            probabilidadResidual: null,
-            severidadResidual: null,
+            riesgoInicial: { nd: null, ne: null, nc: null },
             controles: [],
+            riesgoResidual: { nd: null, ne: null, nc: null },
           },
         ],
       },
@@ -142,17 +143,28 @@ let matrices: IpercMatrix[] = [
           {
             id: 4,
             peligro: 'Presencia de H2S en purga',
+            clasificacionPeligro: 'Químico',
             fuenteRiesgo: 'Gas asociado remanente en el separador',
             controlesExistentes: 'Monitoreo con detector personal',
-            probabilidadInicial: 3,
-            severidadInicial: 5,
-            probabilidadResidual: 1,
-            severidadResidual: 5,
+            numeroExpuestos: 3,
+            peorConsecuencia: 'Muerte por intoxicación aguda',
+            requisitoLegal: true,
+            /**
+             * NC se mantiene en 100 (Mortal) en inicial y residual — GTC 45:
+             * los controles bajan ND/NE (probabilidad), no la severidad
+             * inherente del peligro. Aun con controles fuertes, H2S sigue
+             * potencialmente mortal, así que el NR residual queda en banda
+             * II ("No aceptable o aceptable con control específico"), no en
+             * III/IV — exige seguimiento continuo, no solo controles
+             * puntuales.
+             */
+            riesgoInicial: { nd: 10, ne: 2, nc: 100 },
             controles: [
               { id: 5, type: 'ingenieria', description: 'Purga dirigida a antorcha, nunca a la atmósfera del área de trabajo' },
               { id: 6, type: 'administrativo', description: 'Monitoreo continuo de H2S durante toda la purga' },
               { id: 7, type: 'epp', description: 'SCBA disponible en sitio para respuesta inmediata' },
             ],
+            riesgoResidual: { nd: 2, ne: 1, nc: 100 },
           },
         ],
       },
@@ -206,9 +218,106 @@ let ptwRecords: PtwMatrix[] = [
     createdAt: '2026-08-22T08:00:00.000Z',
     updatedAt: '2026-08-22T13:00:00.000Z',
   },
+  {
+    // Segundo PTW sobre la misma matriz IPERC ya aprobada (id 3) — un
+    // trabajo distinto puede reutilizar una matriz vigente. Sirve para ver
+    // precargado el registro diario de la Fase 5, que el otro PTW
+    // sembrado (bloqueado en Verificaciones) todavía no alcanza.
+    id: 2,
+    code: 'PTW-2026-0032',
+    fase: 'ejecucion',
+    ordenTrabajo: 'OT-2026-0305',
+    actividad: 'Purga programada de separador de producción — turno 2',
+    ubicacion: 'Pozo Beta-9',
+    ipercMatrixId: 3,
+    ipercCode: 'DYN-SGI-RE-087-2026-009',
+    documentos: PTW_DOCUMENTOS_REQUERIDOS.map(d => ({
+      ...d,
+      cargado: true,
+      fileName: `${d.tipo}.pdf`,
+      cargadoAt: '2026-08-24T08:00:00.000Z',
+    })),
+    toolboxTalkRealizado: true,
+    walkaroundCompletado: true,
+    lineaBaseAmbientalDocumentada: true,
+    rutasEmergenciaVerificadas: true,
+    simopsConfirmado: true,
+    gasReadings: [
+      { gas: 'H2S', lectura: 1, seguro: true, medidoAt: '2026-08-24T09:00:00.000Z' },
+      { gas: 'LEL', lectura: 2, seguro: true, medidoAt: '2026-08-24T09:00:00.000Z' },
+      { gas: 'O2', lectura: 20.8, seguro: true, medidoAt: '2026-08-24T09:00:00.000Z' },
+      { gas: 'CO', lectura: 5, seguro: true, medidoAt: '2026-08-24T09:00:00.000Z' },
+    ],
+    lotoChecklist: DEFAULT_LOTO_CHECKLIST.map(i => ({ ...i, checked: true })),
+    ptwFirmadoSitio: { nombre: 'Luis Vega', firmadoAt: '2026-08-24T09:30:00.000Z' },
+    actaRecibimientoFirmada: { nombre: 'Luis Vega', firmadoAt: '2026-08-24T09:35:00.000Z' },
+    barricadasInstaladas: true,
+    limpiezaCompletada: false,
+    inspeccionFinalConforme: false,
+    dailyLogs: [
+      {
+        id: 1,
+        fecha: '2026-08-24T17:00:00.000Z',
+        registradoPorNombre: 'Ana Torres',
+        toolboxTalkRealizado: true,
+        lotoVerificado: true,
+        gasReadings: [
+          { gas: 'H2S', lectura: 1, seguro: true, medidoAt: '2026-08-24T17:00:00.000Z' },
+          { gas: 'CO', lectura: 6, seguro: true, medidoAt: '2026-08-24T17:00:00.000Z' },
+        ],
+        observaciones: 'Sin novedades. Turno completo sin incidentes.',
+      },
+      {
+        id: 2,
+        fecha: '2026-08-25T17:15:00.000Z',
+        registradoPorNombre: 'Ana Torres',
+        toolboxTalkRealizado: true,
+        lotoVerificado: true,
+        gasReadings: [
+          { gas: 'H2S', lectura: 2, seguro: true, medidoAt: '2026-08-25T17:15:00.000Z' },
+          { gas: 'CO', lectura: 28, seguro: false, medidoAt: '2026-08-25T17:15:00.000Z' },
+        ],
+        observaciones: 'CO fuera de rango al final del turno — se ventiló el área y se remonitoreó antes de retirarse.',
+      },
+    ],
+    respaldosEnviados: false,
+    createdAt: '2026-08-24T08:00:00.000Z',
+    updatedAt: '2026-08-25T17:15:00.000Z',
+  },
+  {
+    // Todavía en Gabinete con 2 de 4 documentos cargados — para que la
+    // alerta de "documentos pendientes" (campanita del header) se vea
+    // activa desde el arranque, no solo después de que alguien la dispare
+    // a mano.
+    id: 3,
+    code: 'PTW-2026-0033',
+    fase: 'gabinete',
+    ordenTrabajo: 'OT-2026-0310',
+    actividad: 'Mantenimiento de bomba de transferencia de crudo',
+    ubicacion: 'Pozo Delta-7',
+    ipercMatrixId: 3,
+    ipercCode: 'DYN-SGI-RE-087-2026-009',
+    documentos: PTW_DOCUMENTOS_REQUERIDOS.map((d, i) =>
+      i < 2 ? { ...d, cargado: true, fileName: `${d.tipo}.pdf`, cargadoAt: '2026-08-26T08:00:00.000Z' } : { ...d, cargado: false },
+    ),
+    toolboxTalkRealizado: false,
+    walkaroundCompletado: false,
+    lineaBaseAmbientalDocumentada: false,
+    rutasEmergenciaVerificadas: false,
+    simopsConfirmado: false,
+    gasReadings: [],
+    lotoChecklist: DEFAULT_LOTO_CHECKLIST.map(i => ({ ...i, checked: false })),
+    barricadasInstaladas: false,
+    limpiezaCompletada: false,
+    inspeccionFinalConforme: false,
+    dailyLogs: [],
+    respaldosEnviados: false,
+    createdAt: '2026-08-26T08:00:00.000Z',
+    updatedAt: '2026-08-26T08:00:00.000Z',
+  },
 ];
 
-let nextPtwId = 2;
+let nextPtwId = 4;
 
 function nextPtwCode(): string {
   const year = new Date().getFullYear();
@@ -216,18 +325,29 @@ function nextPtwCode(): string {
   return `PTW-${year}-${seq}`;
 }
 
+/** Marca estado sobre un checklist recién creado — para armar semillas legibles sin escribir los ~55 ítems a mano. */
+function marcarStopItems(marcas: { subcategoria: string; label: string; estado: 'seguro' | 'inseguro' }[]): StopChecklistItem[] {
+  const checklist = crearStopChecklist();
+  return checklist.map(item => {
+    const marca = marcas.find(m => m.subcategoria === item.subcategoria && m.label === item.label);
+    return marca ? { ...item, estado: marca.estado } : item;
+  });
+}
+
 let stopCards: StopCard[] = [
   {
     id: 1,
     code: 'STOP-2026-0089',
-    tipo: 'condicion_insegura',
-    categorias: ['Orden y limpieza', 'EPP'],
-    descripcion: 'Cables de extensión sobre el paso peatonal de la locación, sin protección.',
-    riesgoPotencial: 'Tropiezo/caída de personal en tránsito.',
-    accionCorrectivaInmediata: 'Se reubicaron los cables y se instaló canaleta pasacables.',
+    checklist: marcarStopItems([
+      { subcategoria: 'Orden y limpieza', label: 'Orden y limpieza en el sitio de trabajo', estado: 'inseguro' },
+      { subcategoria: 'Uso de EPP', label: 'Protección de los pies', estado: 'seguro' },
+    ]),
+    queObservaCondiciones: 'Cables de extensión sobre el paso peatonal de la locación, sin protección.',
+    accionesCondiciones: 'Se reubicaron los cables y se instaló canaleta pasacables.',
     observadorNombre: 'Ana Torres',
-    observadoNombre: 'Cuadrilla de electricidad',
-    ubicacion: 'Pozo Beta-9',
+    fecha: '2026-08-20',
+    locacion: 'Pozo Beta-9',
+    operadora: 'Petroecuador',
     createdAt: '2026-08-20T10:15:00.000Z',
   },
 ];
@@ -722,11 +842,37 @@ let investigaciones: Investigacion[] = [
     escenaAseguradaAt: '2026-08-23T10:30:00.000Z',
     liderInvestigacionNombre: 'Jorge Hidalgo',
     equipoInvestigador: ['Jorge Hidalgo (Coordinador HSE)', 'Ana Torres (Técnico HSE)'],
+    trabajador: {
+      apellidosNombres: 'Diego Salazar',
+      cedula: '1712345678',
+      direccion: 'Coca, vía a Auca km 4',
+      telefono: '0992223344',
+      cargo: 'Operador de Mantenimiento',
+      tipoVinculacion: 'Directo',
+      oficioDesempenaba: 'Mantenimiento mecánico',
+      jornadaHabitual: 'Ordinaria diurna',
+      tiempoExperienciaMeses: 18,
+    },
+    detalle: {
+      empresaDondeOcurrio: 'Dynadrill Ecuador C.A.',
+      jornadaSuceso: 'ordinaria',
+      zona: 'rural',
+      centroMedico: 'Enfermería de campo',
+      parteCuerpoAfectada: 'Mano derecha',
+      tipoLesionSufrida: 'Corte superficial',
+      factorQueOrigino: 'No uso de guante anticorte asignado',
+      totalDiasIncapacidad: 0,
+      continuaIncapacitado: false,
+      seInformoOportunamente: true,
+      oficioEraPropioDeCargo: true,
+    },
     evidenciasRecopiladas: 'Fotografías de la herramienta y del EPP utilizado.',
     testimoniosResumen: 'El trabajador reconoce no haber usado el guante anticorte asignado por incomodidad.',
+    testigos: [],
+    entornoTrabajo: [],
     cincoPorques: [{ pregunta: '¿Por qué se cortó la mano?', respuesta: 'No usaba el guante anticorte asignado.' }],
     ishikawa: { ...DEFAULT_ISHIKAWA },
-    causasRaiz: '',
+    causas: { ...DEFAULT_CAUSAS },
     acciones: [],
     notificacionLegal: { requerida: false },
     leccionesAprendidas: '',
@@ -744,8 +890,20 @@ let investigaciones: Investigacion[] = [
     escenaAseguradaAt: '2026-08-12T14:30:00.000Z',
     liderInvestigacionNombre: 'Jorge Hidalgo',
     equipoInvestigador: ['Jorge Hidalgo (Coordinador HSE)', 'Marco Vera (Operaciones)', 'Luis Vega (Mantenimiento)'],
+    detalle: {
+      empresaDondeOcurrio: 'Dynadrill Ecuador C.A.',
+      jornadaSuceso: 'ordinaria',
+      zona: 'rural',
+      danosMedioAmbiente: 'Suelo contaminado en un radio de 8m, contenido con barreras.',
+      danosMateriales: 'Empaque y tramo de línea de transferencia.',
+      totalPerdidasEconomicas: 1200,
+    },
     evidenciasRecopiladas: 'Fotografías del empaque fallado, muestras de suelo, bitácora de mantenimiento de la línea.',
     testimoniosResumen: 'El operador reporta ruido inusual en la línea minutos antes del derrame.',
+    testigos: [{ id: 1, nombresApellidos: 'Marco Vera', cedula: '1798765432', version: 'Escuchó un ruido metálico antes del derrame y notificó de inmediato.' }],
+    entornoTrabajo: [
+      { id: 1, tipo: 'Mecánico', fuente: 'Línea de transferencia de crudo', existeControl: 'Inspección visual periódica', contribuyoAlSuceso: 'Sí — sin reemplazo programado de empaques' },
+    ],
     cincoPorques: [
       { pregunta: '¿Por qué se derramó el crudo?', respuesta: 'Falló el empaque de la línea de transferencia.' },
       { pregunta: '¿Por qué falló el empaque?', respuesta: 'Superó su vida útil sin reemplazo programado.' },
@@ -758,7 +916,13 @@ let investigaciones: Investigacion[] = [
       Método: 'Sin plan de reemplazo preventivo para empaques críticos.',
       Máquina: 'Empaque de línea de transferencia al final de su vida útil.',
     },
-    causasRaiz: 'Empaque de la línea de transferencia superó su vida útil sin reemplazo programado.',
+    causas: {
+      actosInseguros: '',
+      condicionesInseguras: 'Empaque de línea con desgaste visible no reportado.',
+      factoresPersonales: '',
+      factoresTrabajo: 'Ausencia de plan de reemplazo preventivo para empaques críticos.',
+      causasFuenteGestion: 'El plan de mantenimiento no clasifica empaques como ítem crítico.',
+    },
     acciones: [
       {
         id: 1,
@@ -766,12 +930,17 @@ let investigaciones: Investigacion[] = [
         tipo: 'preventiva',
         responsable: 'Luis Vega',
         plazo: '2026-09-15',
-        estado: 'pendiente',
+        estado: 'verificada',
+        controlAplicadoA: { planeacionDiseno: true, fuente: true, medio: false, trabajador: false },
+        fueEficaz: true,
+        fechaVerificacion: '2026-11-20T09:00:00.000Z',
+        verificadoPor: 'Jorge Hidalgo',
       },
     ],
     notificacionLegal: { requerida: false },
     leccionesAprendidas: 'Incorporar inspección periódica de empaques de líneas críticas en el plan de mantenimiento preventivo.',
     ipercActualizadoId: 1,
+    conclusion: 'incidente',
     informeAprobadoPorNombre: 'Jorge Hidalgo',
     informeAprobadoAt: '2026-08-14T09:00:00.000Z',
     createdAt: '2026-08-12T15:00:00.000Z',
@@ -783,6 +952,43 @@ let nextInvestigacionId = 3;
 function nextInvestigacionCode(): string {
   const year = new Date().getFullYear();
   return `INV-${year}-${String(nextInvestigacionId).padStart(4, '0')}`;
+}
+
+let entregasEpi: EntregaEpi[] = [
+  {
+    id: 1,
+    code: 'EPI-2026-0021',
+    lugar: 'Base Coca',
+    trabajadorNombre: 'Diego Salazar',
+    trabajadorCargo: 'Operador de Mantenimiento',
+    items: [
+      { id: 1, elemento: 'Casco de seguridad', cantidad: 1, talla: 'Único', recibioCapacitacion: true, entregadoAt: '2026-08-20T09:00:00.000Z' },
+      { id: 2, elemento: 'Guantes anticorte', cantidad: 2, talla: 'M', recibioCapacitacion: true, entregadoAt: '2026-08-20T09:00:00.000Z' },
+      { id: 3, elemento: 'Botas punta de acero', cantidad: 1, talla: '42', recibioCapacitacion: false, observaciones: 'Pendiente charla de uso — próxima capacitación programada.', entregadoAt: '2026-08-20T09:00:00.000Z' },
+    ],
+    firmaTrabajador: { nombre: 'Diego Salazar', firmadoAt: '2026-08-20T09:05:00.000Z' },
+    createdAt: '2026-08-20T09:00:00.000Z',
+  },
+  {
+    id: 2,
+    code: 'EPI-2026-0022',
+    lugar: 'Pozo Beta-9',
+    trabajadorNombre: 'Natalia Castro',
+    trabajadorCargo: 'Operadora de Mantenimiento — Instrumental',
+    items: [
+      { id: 1, elemento: 'Protección auditiva (tapones)', cantidad: 5, recibioCapacitacion: true, entregadoAt: '2026-08-21T08:30:00.000Z' },
+      { id: 2, elemento: 'Gafas de seguridad', cantidad: 1, recibioCapacitacion: true, entregadoAt: '2026-08-21T08:30:00.000Z' },
+    ],
+    firmaTrabajador: { nombre: 'Natalia Castro', firmadoAt: '2026-08-21T08:35:00.000Z' },
+    firmaTalentoHumano: { nombre: 'Jorge Hidalgo', firmadoAt: '2026-08-22T10:00:00.000Z' },
+    createdAt: '2026-08-21T08:30:00.000Z',
+  },
+];
+let nextEpiId = 3;
+
+function nextEpiCode(): string {
+  const year = new Date().getFullYear();
+  return `EPI-${year}-${String(nextEpiId).padStart(4, '0')}`;
 }
 
 /** HSE-MASTER-001 — metas por KPI que el staff HSE define para el semáforo del Dashboard Integrado; sin persistencia real detrás, solo en memoria como el resto del mock. */
@@ -1177,11 +1383,14 @@ export const qhseMockInterceptor: HttpInterceptorFn = (req, next) => {
       code: nextInvestigacionCode(),
       estado: 'abierta',
       equipoInvestigador: [],
+      detalle: {},
       evidenciasRecopiladas: '',
       testimoniosResumen: '',
+      testigos: [],
+      entornoTrabajo: [],
       cincoPorques: [],
       ishikawa: { ...DEFAULT_ISHIKAWA },
-      causasRaiz: '',
+      causas: { ...DEFAULT_CAUSAS },
       acciones: [],
       notificacionLegal: { requerida: false },
       leccionesAprendidas: '',
@@ -1235,6 +1444,32 @@ export const qhseMockInterceptor: HttpInterceptorFn = (req, next) => {
         }
       }
 
+      return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(300));
+    }
+    return of(new HttpResponse({ status: 404 })).pipe(delay(300));
+  }
+
+  // --- DYN-SGI-RE-032: Entrega de EPI ---
+
+  if (req.url === '/api/qhse/epi' && req.method === 'GET') {
+    return of(new HttpResponse({ status: 200, body: entregasEpi })).pipe(delay(400));
+  }
+
+  if (req.url === '/api/qhse/epi' && req.method === 'POST') {
+    const input = req.body as CreateEntregaEpiInput;
+    const created: EntregaEpi = { ...input, id: nextEpiId, code: nextEpiCode(), createdAt: new Date().toISOString() };
+    entregasEpi = [...entregasEpi, created];
+    nextEpiId += 1;
+    return of(new HttpResponse({ status: 201, body: created })).pipe(delay(400));
+  }
+
+  const epiDetailMatch = req.url.match(/\/api\/qhse\/epi\/(\d+)$/);
+  if (epiDetailMatch && req.method === 'PATCH') {
+    const id = Number(epiDetailMatch[1]);
+    const idx = entregasEpi.findIndex(e => e.id === id);
+    if (idx !== -1) {
+      const updated: EntregaEpi = { ...entregasEpi[idx], ...(req.body as Partial<EntregaEpi>) };
+      entregasEpi = entregasEpi.map(e => (e.id === id ? updated : e));
       return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(300));
     }
     return of(new HttpResponse({ status: 404 })).pipe(delay(300));

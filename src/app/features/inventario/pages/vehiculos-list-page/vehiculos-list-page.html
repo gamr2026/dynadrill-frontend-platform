@@ -4,7 +4,12 @@
   subtitle="Mismo registro que Mantenimiento — datos patrimoniales (placa, marca, responsable)"
 />
 
+<div class="vehiculos-list-page__toolbar">
+  <dynadrill-button (clicked)="nuevaUnidad()">+ Nueva unidad</dynadrill-button>
+</div>
+
 <ng-template #actionsTpl let-row>
+  <dynadrill-button variant="secondary" size="small" (clicked)="verHistorial(row)">Ver historial</dynadrill-button>
   <dynadrill-button variant="secondary" size="small" (clicked)="editar(row)">Editar</dynadrill-button>
 </ng-template>
 

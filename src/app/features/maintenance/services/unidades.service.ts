@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { TipoServicio, Unidad, UpdatePatrimonioInput } from '../models/unidad.model';
+import { CreateUnidadInput, TipoServicio, Unidad, UpdatePatrimonioInput } from '../models/unidad.model';
 
 export interface RegistrarPMInput {
   tipoServicio?: TipoServicio;
@@ -23,6 +23,10 @@ export class UnidadesService {
 
   list(): Observable<Unidad[]> {
     return this.http.get<Unidad[]>('/api/unidades');
+  }
+
+  create(input: CreateUnidadInput): Observable<Unidad> {
+    return this.http.post<Unidad>('/api/unidades', input);
   }
 
   registrarMantenimiento(unidadId: number, input: RegistrarPMInput): Observable<Unidad> {

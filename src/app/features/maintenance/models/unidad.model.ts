@@ -89,6 +89,35 @@ export type UpdatePatrimonioInput = Pick<
   'placa' | 'marca' | 'modelo' | 'anio' | 'responsablePatrimonial' | 'predeterminado' | 'activo' | 'notaInventario'
 >;
 
+/**
+ * Alta de una unidad nueva — a diferencia de UpdatePatrimonioInput (solo
+ * patrimonial) o RegistrarPMInput (solo un mantenimiento puntual), esto sí
+ * necesita capturar la línea base operativa (horómetro/km de arranque)
+ * junto con los datos patrimoniales, porque calcularAlertas() no tiene de
+ * dónde más sacarla — una unidad creada sin esto no generaría ninguna
+ * alerta preventiva hasta el primer registrarMantenimiento().
+ */
+export type CreateUnidadInput = Pick<
+  Unidad,
+  | 'code'
+  | 'nombre'
+  | 'tipo'
+  | 'horometroActual'
+  | 'fechaUltimoMantenimiento'
+  | 'kmActual'
+  | 'kmUltimoMantenimiento'
+  | 'fechaUltimoMantenimientoAux'
+  | 'proveedorMantenimiento'
+  | 'placa'
+  | 'marca'
+  | 'modelo'
+  | 'anio'
+  | 'responsablePatrimonial'
+  | 'predeterminado'
+  | 'activo'
+  | 'notaInventario'
+>;
+
 /** Nivel de alerta del semáforo preventivo. */
 export type AlertaPreventivaNivel = 'rojo' | 'amarillo' | 'verde';
 

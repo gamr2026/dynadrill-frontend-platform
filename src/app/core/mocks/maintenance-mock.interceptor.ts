@@ -3,7 +3,7 @@ import { delay, of } from 'rxjs';
 import { ClassifyOrderInput, ClassifyTypeAssignment, CloseOrderInput } from '../../features/maintenance/services/maintenance-orders.service';
 import { CreateUnitReportInput, UnitReport, unitReportCode } from '../../features/maintenance/models/unit-report.model';
 import { MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../../features/maintenance/models/maintenance-order.model';
-import { Unidad, UpdatePatrimonioInput } from '../../features/maintenance/models/unidad.model';
+import { CreateUnidadInput, Unidad, UpdatePatrimonioInput } from '../../features/maintenance/models/unidad.model';
 import { RegistroMantenimiento } from '../../features/maintenance/models/historial-mantenimiento.model';
 import {
   CreateVehicleInspectionInput,
@@ -624,6 +624,20 @@ function matchId(url: string, base: string): number | null {
 export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.url === '/api/unidades' && req.method === 'GET') {
     return of(new HttpResponse({ status: 200, body: unidades.map(u => ({ ...u })) })).pipe(delay(300));
+  }
+
+  if (req.url === '/api/unidades' && req.method === 'POST') {
+    const input = req.body as CreateUnidadInput;
+    const nextId = unidades.reduce((max, u) => Math.max(max, u.id), 0) + 1;
+    const created: Unidad = {
+      ...input,
+      id: nextId,
+      code: input.code.trim(),
+      nombre: input.nombre.trim(),
+      activo: input.activo ?? true,
+    };
+    unidades.push(created);
+    return of(new HttpResponse({ status: 201, body: created })).pipe(delay(400));
   }
 
   const unidadPatrimonioMatch = req.url.match(/\/api\/unidades\/(\d+)\/patrimonio$/);

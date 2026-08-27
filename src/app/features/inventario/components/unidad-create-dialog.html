@@ -1,0 +1,74 @@
+<div class="unidad-create-dialog">
+  <div class="unidad-create-dialog__row">
+    <dynadrill-input label="Código" placeholder="Ej: CAM-09" [value]="code()" (valueChange)="code.set($event)" />
+    <dynadrill-select label="Tipo" [options]="tipoOptions" [value]="tipo()" (valueChange)="setTipo($any($event))" />
+  </div>
+
+  <dynadrill-input label="Nombre" [value]="nombre()" (valueChange)="nombre.set($event)" />
+
+  @if (esServicio()) {
+    <p class="unidad-create-dialog__section-title">Línea base — control por horómetro</p>
+    <div class="unidad-create-dialog__row">
+      <dynadrill-input label="Horómetro actual (h)" type="number" [value]="horometroActual()" (valueChange)="horometroActual.set($event)" />
+      <dynadrill-input
+        label="Fecha del último mantenimiento (AAAA-MM-DD)"
+        [value]="fechaUltimoMantenimiento()"
+        (valueChange)="fechaUltimoMantenimiento.set($event)"
+      />
+    </div>
+  }
+
+  @if (esTransporte()) {
+    <p class="unidad-create-dialog__section-title">Línea base — control por kilometraje</p>
+    <div class="unidad-create-dialog__row">
+      <dynadrill-input label="Kilometraje actual" type="number" [value]="kmActual()" (valueChange)="kmActual.set($event)" />
+      <dynadrill-input
+        label="Km del último mantenimiento"
+        type="number"
+        [value]="kmUltimoMantenimiento()"
+        (valueChange)="kmUltimoMantenimiento.set($event)"
+      />
+    </div>
+  }
+
+  @if (esAuxiliar()) {
+    <p class="unidad-create-dialog__section-title">Línea base — control por tiempo</p>
+    <dynadrill-input
+      label="Fecha del último mantenimiento (AAAA-MM-DD)"
+      [value]="fechaUltimoMantenimientoAux()"
+      (valueChange)="fechaUltimoMantenimientoAux.set($event)"
+    />
+  }
+
+  <dynadrill-input
+    label="Proveedor de mantenimiento externo (opcional — vacío = interno)"
+    [value]="proveedorMantenimiento()"
+    (valueChange)="proveedorMantenimiento.set($event)"
+  />
+
+  <p class="unidad-create-dialog__section-title">Datos patrimoniales (opcional)</p>
+
+  <div class="unidad-create-dialog__row">
+    <dynadrill-input label="Placa" [value]="placa()" (valueChange)="placa.set($event)" />
+    <dynadrill-input label="Año" [value]="anio()" (valueChange)="anio.set($event)" />
+  </div>
+
+  <div class="unidad-create-dialog__row">
+    <dynadrill-input label="Marca" [value]="marca()" (valueChange)="marca.set($event)" />
+    <dynadrill-input label="Modelo" [value]="modelo()" (valueChange)="modelo.set($event)" />
+  </div>
+
+  <dynadrill-input label="Responsable" [value]="responsablePatrimonial()" (valueChange)="responsablePatrimonial.set($event)" />
+
+  <dynadrill-checkbox label="Unidad predeterminada de su categoría" [checked]="predeterminado()" (checkedChange)="predeterminado.set($event)" />
+  <dynadrill-checkbox label="Activo" [checked]="activo()" (checkedChange)="activo.set($event)" />
+
+  <dynadrill-textarea label="Nota" [value]="notaInventario()" (valueChange)="notaInventario.set($event)" [rows]="2" />
+
+  <div class="unidad-create-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!canSave() || submitting()" (clicked)="save()">
+      {{ submitting() ? 'Creando…' : 'Crear unidad' }}
+    </dynadrill-button>
+  </div>
+</div>

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   DynadrillDataTableColumn,
@@ -12,6 +12,7 @@ import {
 import { PTW_FASE_LABELS, PTW_FASE_ORDER, PTW_FASE_STEPS, PtwFase, PtwMatrix, ptwCerrado } from '../../models/ptw.model';
 import { PtwService } from '../../services/ptw.service';
 import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
+import { AppNotificationItem, NotificationsService } from '../../../../../core/services/notifications.service';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
 
@@ -43,6 +44,7 @@ export class PtwListPage {
   private readonly ptwService = inject(PtwService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly notifications = inject(NotificationsService);
 
   protected readonly loading = signal(true);
   protected readonly records = signal<PtwMatrix[]>([]);
@@ -86,6 +88,28 @@ export class PtwListPage {
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
+  /**
+   * HSE-SITIO-001: "Sistema de alertas de documentos pendientes" — un PTW
+   * no puede avanzar de Fase 1 sin los 4 documentos cargados, así que
+   * "pendiente" solo puede darse mientras sigue en 'gabinete'. Va al
+   * mismo mecanismo de notificación global que ya usa IPERC (campanita
+   * del header), no solo un aviso dentro de esta pantalla.
+   */
+  protected readonly notificationItems = computed<AppNotificationItem[]>(() =>
+    this.records()
+      .filter(p => p.fase === 'gabinete' && p.documentos.some(d => !d.cargado))
+      .map(p => {
+        const faltantes = p.documentos.filter(d => !d.cargado);
+        return {
+          id: `ptw-documentos-pendientes-${p.id}`,
+          title: `${p.code} — documentos pendientes`,
+          description: `Falta cargar: ${faltantes.map(d => d.label).join(', ')}`,
+          tone: 'warning',
+          link: `/dashboard/qhse/ptw/${p.id}`,
+        };
+      }),
+  );
+
   constructor() {
     this.ptwService.list().subscribe({
       next: records => {
@@ -94,6 +118,9 @@ export class PtwListPage {
       },
       error: () => this.loading.set(false),
     });
+
+    effect(() => this.notifications.setSource('ptw', this.notificationItems()));
+    inject(DestroyRef).onDestroy(() => this.notifications.clearSource('ptw'));
   }
 
   protected viewDetail(row: Record<string, unknown>): void {

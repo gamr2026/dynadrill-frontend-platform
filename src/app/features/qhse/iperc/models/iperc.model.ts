@@ -16,12 +16,20 @@ export const IPERC_STATUS_LABELS: Record<IpercStatus, string> = {
   rechazada: 'Rechazada',
 };
 
-export type ControlType = 'ingenieria' | 'administrativo' | 'epp';
+/**
+ * Jerarquía de controles GTC 45 completa (5 niveles) — antes solo 3
+ * (ingeniería/administrativo/EPP), confirmado insuficiente al leer el
+ * Excel real DYN-SGI-RE-087 (columnas "Eliminación/Sustitución/Control de
+ * ingeniería/Señalización.../EPI o colectivo").
+ */
+export type ControlType = 'eliminacion' | 'sustitucion' | 'ingenieria' | 'administrativo' | 'epp';
 
 export const CONTROL_TYPE_LABELS: Record<ControlType, string> = {
-  ingenieria: 'Ingeniería',
-  administrativo: 'Administrativo',
-  epp: 'EPP',
+  eliminacion: 'Eliminación',
+  sustitucion: 'Sustitución',
+  ingenieria: 'Control de ingeniería',
+  administrativo: 'Señalización, advertencias, controles administrativos',
+  epp: 'Equipos / elementos de protección personal',
 };
 
 export interface IpercControl {
@@ -31,30 +39,106 @@ export interface IpercControl {
 }
 
 /**
- * El formato DYN-SGI-RE-087 describe su ficha con notación GTC 45
- * (ND/NE/NP/NC/NR), pero el cuerpo de HSE-PLAN-001 define la evaluación
- * real con la matriz simple Probabilidad x Severidad (1-5 cada eje) — es
- * la que implementa dynadrill-risk-matrix en dynadrill-ui, y la que se
- * sigue acá. Si más adelante se exige el desglose GTC 45 completo (ND x NE
- * por separado, NC por separado), este es el modelo a extender sin romper
- * la matriz visual ni el resto del módulo.
+ * GTC 45 real (confirmado leyendo DYN-SGI-RE-087) — reemplaza la matriz
+ * simple Probabilidad x Severidad (1-5 cada eje) que se usaba antes.
+ * Nivel de Deficiencia (ND) x Nivel de Exposición (NE) = Nivel de
+ * Probabilidad (NP); NP x Nivel de Consecuencia (NC) = Nivel de Riesgo
+ * (NR). Los 4 valores posibles de cada eje (0/2/6/10 para ND; 1/2/3/4
+ * para NE; 10/25/60/100 para NC) y las bandas de interpretación de NP/NR
+ * son los oficiales de la norma, confirmados contra las tablas del propio
+ * Excel — no son un ajuste propio de Dynadrill.
  */
+export type NivelDeficiencia = 0 | 2 | 6 | 10;
+export type NivelExposicion = 1 | 2 | 3 | 4;
+export type NivelConsecuencia = 10 | 25 | 60 | 100;
+
+export interface GtcOpcion<T extends number> {
+  valor: T;
+  label: string;
+  descripcion: string;
+}
+
+export const ND_OPCIONES: GtcOpcion<NivelDeficiencia>[] = [
+  { valor: 10, label: 'Muy Alto', descripcion: 'Se ha(n) detectado peligro(s) que determina(n) como posible la generación de incidentes o consecuencias muy significativas, o la eficacia del conjunto de medidas preventivas existentes respecto al riesgo es nula o no existe, o ambos.' },
+  { valor: 6, label: 'Alto', descripcion: 'Se ha(n) detectado algún(os) peligro(s) que pueden dar lugar a consecuencias significativa(s), o la eficacia del conjunto de medidas preventivas existentes es baja, o ambos.' },
+  { valor: 2, label: 'Medio', descripcion: 'Se han detectado peligros que pueden dar lugar a consecuencias poco significativa(s) o de menor importancia, o la eficacia del conjunto de medidas preventivas existentes es moderada, o ambos.' },
+  { valor: 0, label: 'Bajo — riesgo controlado', descripcion: 'No se ha detectado consecuencia alguna, o la eficacia del conjunto de medidas preventivas existentes es alta, o ambos. El riesgo está controlado.' },
+];
+
+export const NE_OPCIONES: GtcOpcion<NivelExposicion>[] = [
+  { valor: 4, label: 'Continua', descripcion: 'La situación de exposición se presenta sin interrupción o varias veces con tiempo prolongado durante la jornada laboral.' },
+  { valor: 3, label: 'Frecuente', descripcion: 'La situación de exposición se presenta varias veces durante la jornada laboral por tiempos cortos.' },
+  { valor: 2, label: 'Ocasional', descripcion: 'La situación de exposición se presenta alguna vez durante la jornada laboral y por un periodo de tiempo corto.' },
+  { valor: 1, label: 'Esporádica', descripcion: 'La situación de exposición se presenta de manera eventual.' },
+];
+
+export const NC_OPCIONES: GtcOpcion<NivelConsecuencia>[] = [
+  { valor: 100, label: 'Mortal / Catastrófico', descripcion: 'Muerte(s).' },
+  { valor: 60, label: 'Muy Grave', descripcion: 'Lesiones o enfermedades graves irreparables (incapacidad permanente parcial o invalidez).' },
+  { valor: 25, label: 'Grave', descripcion: 'Lesiones o enfermedades con incapacidad laboral temporal (ILT).' },
+  { valor: 10, label: 'Leve', descripcion: 'Lesiones o enfermedades que no requieren incapacidad.' },
+];
+
+export type NivelProbabilidad = 'bajo' | 'medio' | 'alto' | 'muy_alto';
+
+/** NP = ND x NE — bandas oficiales GTC 45. */
+export function calcularNP(nd: NivelDeficiencia | null, ne: NivelExposicion | null): number | null {
+  return nd != null && ne != null ? nd * ne : null;
+}
+
+export function interpretarNP(np: number): { nivel: NivelProbabilidad; label: string } {
+  if (np >= 24) return { nivel: 'muy_alto', label: 'Muy Alto (24-40)' };
+  if (np >= 10) return { nivel: 'alto', label: 'Alto (10-20)' };
+  if (np >= 6) return { nivel: 'medio', label: 'Medio (6-8)' };
+  return { nivel: 'bajo', label: 'Bajo (2-4)' };
+}
+
+export type NivelRiesgo = 'I' | 'II' | 'III' | 'IV';
+
+/** NR = NP x NC — 4 bandas oficiales GTC 45 (I más grave, IV más leve). */
+export function calcularNR(nd: NivelDeficiencia | null, ne: NivelExposicion | null, nc: NivelConsecuencia | null): number | null {
+  const np = calcularNP(nd, ne);
+  return np != null && nc != null ? np * nc : null;
+}
+
+export function interpretarNR(nr: number): { nivel: NivelRiesgo; label: string; aceptabilidad: string } {
+  if (nr >= 600) return { nivel: 'I', label: 'I (600-4000)', aceptabilidad: 'No aceptable' };
+  if (nr >= 150) return { nivel: 'II', label: 'II (150-599)', aceptabilidad: 'No aceptable o aceptable con control específico' };
+  if (nr >= 40) return { nivel: 'III', label: 'III (40-149)', aceptabilidad: 'Mejorable' };
+  return { nivel: 'IV', label: 'IV (menos de 40)', aceptabilidad: 'Aceptable' };
+}
+
+/** Evaluación GTC 45 de un peligro en un momento dado (inicial o residual) — los 3 ejes, sin marcar hasta que se evalúan. */
+export interface GtcEvaluacion {
+  nd: NivelDeficiencia | null;
+  ne: NivelExposicion | null;
+  nc: NivelConsecuencia | null;
+}
+
+export const GTC_EVALUACION_VACIA: GtcEvaluacion = { nd: null, ne: null, nc: null };
+
 export interface IpercHazard {
   id: number;
   /** Peligro identificado. */
   peligro: string;
+  /** Clasificación del peligro — Físico/Químico/Biológico/Ergonómico/Psicosocial/Condiciones de seguridad/Fenómenos naturales (columna "Clasificación" del Excel real). */
+  clasificacionPeligro?: string;
   /** Fuente/origen del riesgo. */
   fuenteRiesgo: string;
   /** Controles que ya existían antes de esta evaluación (texto libre, Fase 1-2). */
   controlesExistentes: string;
+  /** N° de personas expuestas (columna del Excel real). */
+  numeroExpuestos?: number;
+  /** Peor consecuencia posible en texto libre (columna del Excel real, distinta de la banda NC). */
+  peorConsecuencia?: string;
+  /** ¿Existe requisito legal específico asociado? (columna del Excel real). */
+  requisitoLegal?: boolean;
   /** Riesgo inicial — Fase 2, sin los controles nuevos definidos en Fase 3. */
-  probabilidadInicial: number | null;
-  severidadInicial: number | null;
-  /** Controles nuevos definidos en Fase 3 (ingeniería/administrativos/EPP). */
+  riesgoInicial: GtcEvaluacion;
+  /** Controles nuevos definidos en Fase 3, jerarquía completa de 5 niveles. */
   controles: IpercControl[];
   /** Riesgo residual — Fase 3, con los controles de arriba ya aplicados. */
-  probabilidadResidual: number | null;
-  severidadResidual: number | null;
+  riesgoResidual: GtcEvaluacion;
 }
 
 export interface IpercTask {

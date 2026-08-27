@@ -21,11 +21,66 @@
     gap: 2px;
   }
 
-  &__matrices {
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 4px;
+
+    @media (max-width: 560px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__gtc-axis {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    margin-top: 8px;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  &__gtc-axis-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__gtc-opcion {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: left;
+    padding: 8px 10px;
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-sm, 4px);
+    cursor: pointer;
+    font-family: inherit;
+
+    strong {
+      font-size: 13px;
+      color: var(--text, #2c2b35);
+    }
+
+    span {
+      font-size: 12px;
+      color: var(--text-muted, #5c5870);
+    }
+
+    &:disabled {
+      cursor: default;
+    }
+
+    &--selected {
+      border-color: var(--brand, #6a4fd0);
+      background: var(--brand-soft, #f1edfc);
+
+      strong {
+        color: var(--brand, #6a4fd0);
+      }
+    }
   }
 
   &__controls {

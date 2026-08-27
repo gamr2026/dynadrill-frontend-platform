@@ -6,6 +6,7 @@ import {
   DynadrillButtonComponent,
   DynadrillCardAccent,
   DynadrillCardComponent,
+  DynadrillDialogService,
   DynadrillInputComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
@@ -34,6 +35,7 @@ import {
   plazoInicioVencido,
 } from '../../../investigaciones/models/investigacion.model';
 import { InvestigacionService } from '../../../investigaciones/services/investigacion.service';
+import { InvestigacionDialog } from '../../../investigaciones/components/investigacion-dialog';
 
 type EventoTipo = 'swa' | 'derrames' | 'emergencias' | 'investigaciones';
 
@@ -132,6 +134,7 @@ export class EventosCriticosListPage {
   private readonly emergenciaService = inject(EmergenciaService);
   private readonly investigacionService = inject(InvestigacionService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly dialogService = inject(DynadrillDialogService);
   private readonly router = inject(Router);
 
   protected readonly tabs = TABS;
@@ -370,5 +373,19 @@ export class EventosCriticosListPage {
 
   protected viewDetail(id: number): void {
     this.router.navigate(['/dashboard/qhse', this.activeTipo(), id]);
+  }
+
+  /**
+   * Única vía de creación directa — hasta ahora solo existía
+   * abrirInvestigacion() en Emergencia Nivel 2/3 (emergencia-detail-page.ts),
+   * así que sin una Emergencia formal era imposible abrir una investigación
+   * (HSE-TRIAGE-002 sí lo permite: daño material significativo o Near Miss
+   * de alto potencial).
+   */
+  protected nuevaInvestigacion(): void {
+    const ref = this.dialogService.open<InvestigacionDialog>({ title: 'Nueva investigación', content: InvestigacionDialog, footer: false });
+    ref.afterClose.subscribe(inv => {
+      if (inv) this.router.navigate(['/dashboard/qhse/investigaciones', inv.id]);
+    });
   }
 }

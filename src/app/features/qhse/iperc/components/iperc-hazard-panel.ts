@@ -2,16 +2,28 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { NZ_DRAWER_DATA, NzDrawerRef } from 'ng-zorro-antd/drawer';
 import {
   DynadrillButtonComponent,
+  DynadrillCheckboxComponent,
   DynadrillInputComponent,
-  DynadrillRiskMatrixComponent,
   DynadrillSelectComponent,
   DynadrillTagComponent,
   DynadrillTextComponent,
-  dynadrillRiskLevel,
-  type DynadrillRiskMatrixValue,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
-import { CONTROL_TYPE_LABELS, ControlType, IpercControl, IpercHazard, IpercMatrix } from '../models/iperc.model';
+import {
+  calcularNP,
+  calcularNR,
+  CONTROL_TYPE_LABELS,
+  ControlType,
+  GtcEvaluacion,
+  interpretarNP,
+  interpretarNR,
+  IpercControl,
+  IpercHazard,
+  IpercMatrix,
+  NC_OPCIONES,
+  ND_OPCIONES,
+  NE_OPCIONES,
+} from '../models/iperc.model';
 import { IpercService } from '../services/iperc.service';
 
 export interface IpercHazardPanelData {
@@ -25,15 +37,32 @@ const CONTROL_TYPE_OPTIONS: DynadrillSelectOption[] = (Object.entries(CONTROL_TY
   ([value, label]) => ({ label, value }),
 );
 
+type MomentoGtc = 'riesgoInicial' | 'riesgoResidual';
+
 /**
  * Detalle de un peligro dentro de la Matriz IPERC — se abre desde el panel
  * lateral (mismo patrón que order-detail-panel en Mantenimiento) en vez de
- * expandir todo inline en la página principal, que quedaba como una pared
- * de matrices de riesgo repetidas por cada peligro.
+ * expandir todo inline en la página principal.
+ *
+ * La evaluación de riesgo sigue GTC 45 completo (confirmado leyendo el
+ * Excel real DYN-SGI-RE-087): se eligen ND (deficiencia) y NE (exposición)
+ * — el sistema calcula NP = ND×NE — y NC (consecuencia) — el sistema
+ * calcula NR = NP×NC y su banda I-IV. Ya no es la matriz visual
+ * Probabilidad×Severidad de antes (dynadrill-risk-matrix, en dynadrill-ui)
+ * — esa solo modelaba un eje 1-5 por lado, no la jerarquía real de la
+ * norma. Se abandona ese componente compartido acá (nadie más lo usaba en
+ * todo el frontend) en vez de generalizarlo para un único consumidor.
  */
 @Component({
   selector: 'app-iperc-hazard-panel',
-  imports: [DynadrillTextComponent, DynadrillTagComponent, DynadrillRiskMatrixComponent, DynadrillInputComponent, DynadrillSelectComponent, DynadrillButtonComponent],
+  imports: [
+    DynadrillTextComponent,
+    DynadrillTagComponent,
+    DynadrillInputComponent,
+    DynadrillSelectComponent,
+    DynadrillButtonComponent,
+    DynadrillCheckboxComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './iperc-hazard-panel.html',
   styleUrl: './iperc-hazard-panel.scss',
@@ -46,6 +75,11 @@ export class IpercHazardPanel {
   protected readonly isEditable = this.data.editable;
   protected readonly controlTypeLabels = CONTROL_TYPE_LABELS;
   protected readonly controlTypeOptions = CONTROL_TYPE_OPTIONS;
+  protected readonly ndOpciones = ND_OPCIONES;
+  protected readonly neOpciones = NE_OPCIONES;
+  protected readonly ncOpciones = NC_OPCIONES;
+  protected readonly interpretarNP = interpretarNP;
+  protected readonly interpretarNR = interpretarNR;
 
   /**
    * OJO: NzDrawerService copia las propiedades de nzData directamente sobre
@@ -62,22 +96,46 @@ export class IpercHazardPanel {
     return task?.hazards.find(h => h.id === this.data.hazardId) ?? this.data.matrix.tasks[0].hazards[0];
   });
 
+  protected readonly npInicial = computed(() => calcularNP(this.hazard().riesgoInicial.nd, this.hazard().riesgoInicial.ne));
+  protected readonly nrInicial = computed(() => calcularNR(this.hazard().riesgoInicial.nd, this.hazard().riesgoInicial.ne, this.hazard().riesgoInicial.nc));
+  protected readonly npResidual = computed(() => calcularNP(this.hazard().riesgoResidual.nd, this.hazard().riesgoResidual.ne));
+  protected readonly nrResidual = computed(() =>
+    calcularNR(this.hazard().riesgoResidual.nd, this.hazard().riesgoResidual.ne, this.hazard().riesgoResidual.nc),
+  );
+
   protected readonly residualTone = computed<'success' | 'warning' | 'error' | null>(() => {
-    const h = this.hazard();
-    if (h.probabilidadResidual == null || h.severidadResidual == null) return null;
-    const nivel = dynadrillRiskLevel(h.probabilidadResidual * h.severidadResidual);
-    return nivel === 'bajo' ? 'success' : nivel === 'medio' ? 'warning' : 'error';
+    const nr = this.nrResidual();
+    if (nr == null) return null;
+    const { nivel } = interpretarNR(nr);
+    // I/II = No aceptable (crítico); III = Mejorable (advertencia); IV = Aceptable.
+    return nivel === 'IV' ? 'success' : nivel === 'III' ? 'warning' : 'error';
   });
 
   protected readonly controlType = signal<ControlType>('administrativo');
   protected readonly controlDescription = signal('');
 
-  protected onInitialRiskChange(value: DynadrillRiskMatrixValue): void {
-    this.patchHazard({ probabilidadInicial: value.probabilidad, severidadInicial: value.severidad });
+  protected seleccionarEje(momento: MomentoGtc, campo: keyof GtcEvaluacion, valor: number): void {
+    if (!this.isEditable) return;
+    const actual = this.hazard()[momento];
+    // Clic sobre el mismo valor ya marcado lo limpia — permite corregir sin un botón "quitar" aparte.
+    const nuevoValor = actual[campo] === valor ? null : valor;
+    this.patchHazard({ [momento]: { ...actual, [campo]: nuevoValor } } as Partial<IpercHazard>);
   }
 
-  protected onResidualRiskChange(value: DynadrillRiskMatrixValue): void {
-    this.patchHazard({ probabilidadResidual: value.probabilidad, severidadResidual: value.severidad });
+  protected setClasificacionPeligro(valor: string): void {
+    this.patchHazard({ clasificacionPeligro: valor || undefined });
+  }
+
+  protected setNumeroExpuestos(valor: string): void {
+    this.patchHazard({ numeroExpuestos: valor ? +valor : undefined });
+  }
+
+  protected setPeorConsecuencia(valor: string): void {
+    this.patchHazard({ peorConsecuencia: valor || undefined });
+  }
+
+  protected setRequisitoLegal(valor: boolean): void {
+    this.patchHazard({ requisitoLegal: valor });
   }
 
   protected agregarControl(): void {

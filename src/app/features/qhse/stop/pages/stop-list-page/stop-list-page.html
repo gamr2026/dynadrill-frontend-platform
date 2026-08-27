@@ -9,11 +9,11 @@
     <dynadrill-kpi-row [items]="kpis()" />
 
     <div class="stop-list-page__card">
-      <dynadrill-text variant="h2">Tendencia por categoría (Pareto)</dynadrill-text>
-      @if (paretoCategorias().length) {
+      <dynadrill-text variant="h2">Tendencia por subcategoría (Pareto de ítems inseguros)</dynadrill-text>
+      @if (paretoSubcategorias().length) {
         <dynadrill-chart type="bar" [categories]="paretoChartCategories()" [series]="paretoChartSeries()" height="260px" />
       } @else {
-        <dynadrill-text variant="caption">Todavía no hay tarjetas registradas.</dynadrill-text>
+        <dynadrill-text variant="caption">Todavía no hay ítems marcados como inseguros.</dynadrill-text>
       }
     </div>
 
@@ -21,14 +21,15 @@
       @for (c of viewCards(); track c.id) {
         <dynadrill-card [accent]="c.accent">
           <span card-title>{{ c.code }}</span>
-          <dynadrill-tag card-extra [label]="c.tipoLabel" [variant]="c.accent" />
+          <dynadrill-tag card-extra [label]="c.resumenLabel" [variant]="c.accent" />
 
-          <p class="stop-list-page__categorias">{{ c.categoriasLabel }}</p>
           <dl class="stop-list-page__meta">
-            <div><dt>Ubicación</dt><dd>{{ c.ubicacion }}</dd></div>
+            <div><dt>Locación</dt><dd>{{ c.locacion }}</dd></div>
             <div><dt>Observador</dt><dd>{{ c.observadorNombre }}</dd></div>
             <div><dt>Fecha</dt><dd>{{ c.fecha }}</dd></div>
           </dl>
+
+          <dynadrill-button variant="secondary" size="small" (clicked)="verDetalle(c.id)">Ver detalle</dynadrill-button>
         </dynadrill-card>
       } @empty {
         <dynadrill-banner variant="info" message="Todavía no hay tarjetas STOP registradas. Se crean desde el botón 'Reportar' del encabezado." />

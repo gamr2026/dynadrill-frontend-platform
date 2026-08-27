@@ -1,0 +1,40 @@
+<div class="epi-list-page">
+  <dynadrill-screen-header title="Entrega de EPI" subtitle="DYN-SGI-RE-032 — registro de entrega de equipo de protección individual" />
+
+  <div class="epi-list-page__toolbar">
+    <dynadrill-button (clicked)="nuevaEntrega()">+ Nueva entrega de EPI</dynadrill-button>
+  </div>
+
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
+    <dynadrill-kpi-row [items]="kpis()" />
+
+    <div class="epi-list-page__grid">
+      @for (c of viewCards(); track c.id) {
+        <dynadrill-card [accent]="c.completa ? 'success' : 'neutral'">
+          <span card-title>{{ c.code }}</span>
+          <dynadrill-tag card-extra [label]="c.completa ? 'Expediente cerrado' : 'Pendiente de cierre'" [variant]="c.completa ? 'success' : 'warning'" />
+
+          <dl class="epi-list-page__meta">
+            <div><dt>Trabajador</dt><dd>{{ c.trabajadorNombre }} — {{ c.trabajadorCargo }}</dd></div>
+            <div><dt>Lugar</dt><dd>{{ c.lugar }}</dd></div>
+            <div><dt>Fecha</dt><dd>{{ c.fecha }}</dd></div>
+            <div><dt>Elementos entregados</dt><dd>{{ c.itemsCount }}</dd></div>
+          </dl>
+
+          @if (c.sinCapacitacion > 0) {
+            <dynadrill-tag [label]="c.sinCapacitacion + ' ítem(s) sin capacitación'" variant="warning" />
+          }
+
+          <div class="epi-list-page__actions">
+            <dynadrill-button variant="secondary" size="small" (clicked)="verDetalle(c.id)">Ver detalle</dynadrill-button>
+            @if (!c.completa) {
+              <dynadrill-button size="small" (clicked)="cerrarExpediente(c.id)">Recibe conforme (Talento Humano)</dynadrill-button>
+            }
+          </div>
+        </dynadrill-card>
+      } @empty {
+        <dynadrill-banner variant="info" message="Todavía no hay entregas de EPI registradas." />
+      }
+    </div>
+  </dynadrill-spinner>
+</div>

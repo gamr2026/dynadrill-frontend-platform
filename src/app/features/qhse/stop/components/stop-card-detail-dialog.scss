@@ -1,0 +1,40 @@
+.stop-card-detail-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  &__bloque {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      padding: 6px 8px;
+      background: var(--surface-muted, #faf9fc);
+      border-radius: var(--radius-sm, 4px);
+    }
+  }
+
+  &__nota {
+    margin-top: 4px;
+
+    p {
+      margin: 2px 0 0;
+      font-size: 13px;
+      color: var(--text, #2c2b35);
+    }
+  }
+}

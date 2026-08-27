@@ -13,6 +13,83 @@ import { AuthService } from '../../core/services/auth.service';
 import { SidebarStateService } from '../sidebar-state.service';
 import { ReportarDialog } from '../../features/qhse/shared/components/reportar-dialog';
 
+const OPERATIVO_ITEM: DynadrillMenuItem = {
+  label: 'Operativo',
+  icon: 'file-text',
+  children: [
+    { label: 'Pumping', link: '/modulos/operativo/pumping' },
+    { label: 'FCR', link: '/modulos/operativo/fcr' },
+  ],
+};
+
+const MANTENIMIENTO_ITEM: DynadrillMenuItem = {
+  label: 'Mantenimiento',
+  icon: 'tool' as DynadrillIconName,
+  children: [
+    { label: 'Bandeja', link: '/dashboard/mantenimiento' },
+    { label: 'Indicadores', link: '/dashboard/mantenimiento/kpis' },
+  ],
+};
+
+const INVENTARIO_ITEM: DynadrillMenuItem = {
+  label: 'Inventario',
+  icon: 'tool' as DynadrillIconName,
+  children: [
+    { label: 'Artículos', link: '/dashboard/inventario/articulos' },
+    { label: 'Vehículos', link: '/dashboard/inventario/vehiculos' },
+  ],
+};
+
+/**
+ * Mismas 3 categorías funcionales que la propuesta de composición UI ya
+ * validada con el equipo de diseño (Registros/Bitácora, Flujos por fases,
+ * Eventos críticos) — 10 ítems planos eran difíciles de escanear. Labels
+ * acortados a propósito: el sidebar es angosto y cada nivel de anidamiento
+ * le resta espacio horizontal al texto.
+ */
+const QHSE_ITEM: DynadrillMenuItem = {
+  label: 'QHSE',
+  icon: 'alert' as DynadrillIconName,
+  children: [
+    { label: 'Indicadores', link: '/dashboard/qhse/dashboard' },
+    {
+      label: 'Planificación',
+      children: [
+        { label: 'IPERC', link: '/dashboard/qhse/iperc' },
+        { label: 'PTW / Recibimiento', link: '/dashboard/qhse/ptw' },
+      ],
+    },
+    {
+      label: 'Registros de campo',
+      children: [
+        { label: 'Inspecciones', link: '/dashboard/qhse/inspecciones' },
+        { label: 'Desechos', link: '/dashboard/qhse/desechos' },
+        { label: 'Entrega de EPI', link: '/dashboard/qhse/epi' },
+      ],
+    },
+    {
+      /**
+       * SWA, Derrames, Emergencias e Investigaciones compartían exactamente
+       * el mismo diseño (header + KPIs + grilla de tarjetas) — 4 entradas
+       * de sidebar para, en esencia, la misma pantalla. Ahora es una sola
+       * bandeja con pestañas (EventosCriticosListPage). STOP se queda
+       * aparte: es observación preventiva, no un evento ya ocurrido.
+       */
+      label: 'Eventos críticos',
+      children: [
+        { label: 'STOP', link: '/dashboard/qhse/stop' },
+        { label: 'Incidentes y Emergencias', link: '/dashboard/qhse/eventos' },
+      ],
+    },
+  ],
+};
+
+const ADMINISTRACION_ITEM: DynadrillMenuItem = {
+  label: 'Administración',
+  icon: 'settings',
+  children: [{ label: 'Usuarios', icon: 'users', link: '/dashboard/usuarios' }],
+};
+
 @Component({
   selector: 'app-sidebar',
   imports: [DynadrillMenuComponent, DynadrillButtonComponent, DynadrillIconComponent, DynadrillSpinnerComponent],
@@ -33,11 +110,11 @@ export class Sidebar {
   }
 
   /**
-   * El módulo de Mantenimiento solo aparece para quien tiene un rol de ese
-   * flujo. Por ahora, de los tres roles de Mantenimiento, solo el Jefe ve
-   * el resto de la aplicación (Administración, Operativo, QHSE) — Operador
-   * de Mantenimiento ve ÚNICAMENTE su propia pantalla: nada de otros
-   * módulos, ni Administración.
+   * Cada rol arma su propia lista de forma explícita — a propósito, sin
+   * una rama "por defecto" que agregue módulos que nadie pidió. Un rol que
+   * no calza con ninguna rama de abajo (o sin roleName todavía, mientras
+   * carga la sesión) solo ve Dashboard: es la opción segura, nunca la de
+   * "mostrar todo hasta que alguien se queje".
    */
   protected readonly items = computed<DynadrillMenuItem[]>(() => {
     const roleName = this.auth.currentUser()?.roleName;
@@ -53,155 +130,48 @@ export class Sidebar {
         {
           label: 'Módulos',
           icon: 'modules',
-          children: [
-            {
-              label: 'Operativo',
-              icon: 'file-text',
-              children: [
-                { label: 'Pumping', link: '/modulos/operativo/pumping' },
-                { label: 'FCR', link: '/modulos/operativo/fcr' },
-              ],
-            },
-            {
-              label: 'Mantenimiento',
-              icon: 'tool' as DynadrillIconName,
-              link: '/dashboard/mantenimiento/operativo',
-            },
-          ],
+          children: [OPERATIVO_ITEM, { label: 'Mantenimiento', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/operativo' }],
         },
       ];
     }
 
     if (roleName === 'Supervisor') {
-      /**
-       * HSE-SITIO-001 asigna "Firmar PTW y Actas" al Supervisor Operativo
-       * (a diferencia de IPERC, donde el Supervisor solo participa de
-       * forma informativa) — por eso entra a Recibimiento de Sitio pero no
-       * a Matrices IPERC.
-       */
+      // Sin PTW: "Firmar PTW y Actas" quedó mal asignado a este rol en una
+      // iteración anterior (corregido también en qhse.routes.ts).
+      return [dashboard, { label: 'Módulos', icon: 'modules', children: [OPERATIVO_ITEM] }];
+    }
+
+    if (roleName === 'Jefe de Mantenimiento') {
+      return [dashboard, MANTENIMIENTO_ITEM];
+    }
+
+    if (roleName === 'Bodeguero') {
+      return [dashboard, INVENTARIO_ITEM];
+    }
+
+    if (roleName === 'Técnico HSE' || roleName === 'Coordinador HSE' || roleName === 'Gerente HSE') {
+      return [dashboard, QHSE_ITEM];
+    }
+
+    /**
+     * Único caso con acceso completo — el único que ve Administración.
+     * "Jefe de Base" se trata igual que Superadmin: ya se comportaba como
+     * acceso total antes de que este sidebar pasara a listas explícitas
+     * por rol, y nadie pidió restringirlo.
+     */
+    if (roleName === 'Superadmin' || roleName === 'Jefe de Base') {
       return [
         dashboard,
-        { label: 'Recibimiento de Sitio (PTW)', icon: 'alert' as DynadrillIconName, link: '/dashboard/qhse/ptw' },
+        ADMINISTRACION_ITEM,
         {
           label: 'Módulos',
           icon: 'modules',
-          children: [
-            {
-              label: 'Operativo',
-              icon: 'file-text',
-              children: [
-                { label: 'Pumping', link: '/modulos/operativo/pumping' },
-                { label: 'FCR', link: '/modulos/operativo/fcr' },
-              ],
-            },
-          ],
+          children: [OPERATIVO_ITEM, MANTENIMIENTO_ITEM, INVENTARIO_ITEM, QHSE_ITEM],
         },
       ];
     }
 
-    const maintenance: DynadrillMenuItem[] =
-      roleName === 'Jefe de Mantenimiento'
-        ? [{
-            label: 'Mantenimiento',
-            icon: 'tool' as DynadrillIconName,
-            children: [
-              { label: 'Bandeja', link: '/dashboard/mantenimiento' },
-              { label: 'Indicadores', link: '/dashboard/mantenimiento/kpis' },
-            ],
-          }]
-        : [];
-
-    /**
-     * Acceso provisional: mismo rol que ya administra Unidades en
-     * Mantenimiento (ver inventario.routes.ts) — a definir si más
-     * adelante existe un rol propio de Inventario.
-     */
-    const inventario: DynadrillMenuItem[] =
-      roleName === 'Jefe de Mantenimiento'
-        ? [{
-            label: 'Inventario',
-            icon: 'tool' as DynadrillIconName,
-            children: [
-              { label: 'Artículos', link: '/dashboard/inventario/articulos' },
-              { label: 'Vehículos', link: '/dashboard/inventario/vehiculos' },
-            ],
-          }]
-        : [];
-
-    /**
-     * A diferencia de Operativo (visible para cualquier rol "de oficina"),
-     * QHSE sí se gatea por rol desde el sidebar — igual que Mantenimiento.
-     * Mismas 3 categorías funcionales que la propuesta de composición UI
-     * ya validada con el equipo de diseño (Registros/Bitácora, Flujos por
-     * fases, Eventos críticos) — 10 ítems planos eran difíciles de escanear.
-     * Labels acortados a propósito: el sidebar es angosto y cada nivel de
-     * anidamiento le resta espacio horizontal al texto.
-     */
-    const hse: DynadrillMenuItem[] =
-      roleName === 'Técnico HSE' || roleName === 'Coordinador HSE' || roleName === 'Gerente HSE'
-        ? [{
-            label: 'QHSE',
-            icon: 'alert' as DynadrillIconName,
-            children: [
-              { label: 'Indicadores', link: '/dashboard/qhse/dashboard' },
-              {
-                label: 'Planificación',
-                children: [
-                  { label: 'IPERC', link: '/dashboard/qhse/iperc' },
-                  { label: 'PTW / Recibimiento', link: '/dashboard/qhse/ptw' },
-                ],
-              },
-              {
-                label: 'Registros de campo',
-                children: [
-                  { label: 'Inspecciones', link: '/dashboard/qhse/inspecciones' },
-                  { label: 'Desechos', link: '/dashboard/qhse/desechos' },
-                ],
-              },
-              {
-                /**
-                 * SWA, Derrames, Emergencias e Investigaciones compartían
-                 * exactamente el mismo diseño (header + KPIs + grilla de
-                 * tarjetas) — 4 entradas de sidebar para, en esencia, la
-                 * misma pantalla. Ahora es una sola bandeja con pestañas
-                 * (EventosCriticosListPage). STOP se queda aparte: es
-                 * observación preventiva, no un evento ya ocurrido.
-                 */
-                label: 'Eventos críticos',
-                children: [
-                  { label: 'STOP', link: '/dashboard/qhse/stop' },
-                  { label: 'Incidentes y Emergencias', link: '/dashboard/qhse/eventos' },
-                ],
-              },
-            ],
-          }]
-        : [];
-
-    return [
-      dashboard,
-      {
-        label: 'Administración',
-        icon: 'settings',
-        children: [{ label: 'Usuarios', icon: 'users', link: '/dashboard/usuarios' }],
-      },
-      {
-        label: 'Módulos',
-        icon: 'modules',
-        children: [
-          {
-            label: 'Operativo',
-            icon: 'file-text',
-            children: [
-              { label: 'Pumping', link: '/modulos/operativo/pumping' },
-              { label: 'FCR', link: '/modulos/operativo/fcr' },
-            ],
-          },
-          ...maintenance,
-          ...inventario,
-          ...hse,
-        ],
-      },
-    ];
+    return [dashboard];
   });
 
   protected readonly loggingOut = signal(false);

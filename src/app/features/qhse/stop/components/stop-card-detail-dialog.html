@@ -1,0 +1,47 @@
+<div class="stop-card-detail-dialog">
+  <dynadrill-context-card [items]="reporteItems()" layout="vertical" />
+
+  <section class="stop-card-detail-dialog__bloque">
+    <dynadrill-text variant="h2">Acciones</dynadrill-text>
+    @if (accionesMarcados().length > 0) {
+      <ul class="stop-card-detail-dialog__list">
+        @for (i of accionesMarcados(); track i.subcategoria + i.label) {
+          <li>
+            <dynadrill-tag [label]="i.estado === 'seguro' ? 'Seguro' : 'Inseguro'" [variant]="i.estado === 'seguro' ? 'success' : 'error'" />
+            <span><strong>{{ i.subcategoria }}</strong> — {{ i.label }}</span>
+          </li>
+        }
+      </ul>
+    } @else {
+      <dynadrill-text variant="caption">Sin ítems marcados en este bloque.</dynadrill-text>
+    }
+    @if (card.queObservaAcciones) {
+      <div class="stop-card-detail-dialog__nota"><dynadrill-text variant="caption">Qué observa</dynadrill-text><p>{{ card.queObservaAcciones }}</p></div>
+    }
+    @if (card.accionesAcciones) {
+      <div class="stop-card-detail-dialog__nota"><dynadrill-text variant="caption">Acciones</dynadrill-text><p>{{ card.accionesAcciones }}</p></div>
+    }
+  </section>
+
+  <section class="stop-card-detail-dialog__bloque">
+    <dynadrill-text variant="h2">Condiciones</dynadrill-text>
+    @if (condicionesMarcados().length > 0) {
+      <ul class="stop-card-detail-dialog__list">
+        @for (i of condicionesMarcados(); track i.subcategoria + i.label) {
+          <li>
+            <dynadrill-tag [label]="i.estado === 'seguro' ? 'Seguro' : 'Inseguro'" [variant]="i.estado === 'seguro' ? 'success' : 'error'" />
+            <span><strong>{{ i.subcategoria }}</strong> — {{ i.label }}</span>
+          </li>
+        }
+      </ul>
+    } @else {
+      <dynadrill-text variant="caption">Sin ítems marcados en este bloque.</dynadrill-text>
+    }
+    @if (card.queObservaCondiciones) {
+      <div class="stop-card-detail-dialog__nota"><dynadrill-text variant="caption">Qué observa</dynadrill-text><p>{{ card.queObservaCondiciones }}</p></div>
+    }
+    @if (card.accionesCondiciones) {
+      <div class="stop-card-detail-dialog__nota"><dynadrill-text variant="caption">Acciones</dynadrill-text><p>{{ card.accionesCondiciones }}</p></div>
+    }
+  </section>
+</div>

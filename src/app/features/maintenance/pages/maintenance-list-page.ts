@@ -35,6 +35,7 @@ import { HistorialDialog, HistorialDialogData } from '../components/historial-di
 import { VehicleInspectionsTable } from '../components/vehicle-inspections-table';
 import { VehicleInspectionsService } from '../services/vehicle-inspections.service';
 import { VehicleInspection } from '../models/vehicle-inspection.model';
+import { VehicleInspectionDetailDialog, VehicleInspectionDetailDialogData } from '../components/vehicle-inspection-detail-dialog';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -158,6 +159,17 @@ export class MaintenanceListPage {
   );
 
   protected readonly prevRowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
+
+  /** Pestaña Inspecciones — el Jefe solo tiene visibilidad, sin acción sobre el registro. */
+  protected viewInspection(inspection: VehicleInspection): void {
+    this.dialogService.open<VehicleInspectionDetailDialog, VehicleInspectionDetailDialogData>({
+      title: `Inspección de Vehículos — ${inspection.unidadCode}`,
+      content: VehicleInspectionDetailDialog,
+      data: { inspection },
+      footer: false,
+      width: '640px',
+    });
+  }
 
   /** Historial de una unidad — accesible desde cualquier alerta de Preventivo que le pertenezca. */
   openHistorial(row: Record<string, unknown>): void {

@@ -9,6 +9,7 @@ import {
   createInstrumentationItems,
   type TireEntry,
 } from '../../features/operations/pumping/models/pumping.model';
+import { registrarLlegadaPumping } from './maintenance-mock.interceptor';
 
 const defaultTires: TireEntry[] = [
   { axle: 'A', salida: '', llegada: '' },
@@ -533,8 +534,16 @@ export const pumpingMockInterceptor: HttpInterceptorFn = (req, next) => {
     const id = Number(unitReportMatch[1]);
     const idx = tickets.findIndex(t => t.id === id);
     if (idx !== -1) {
-      const updated: PumpingTicket = { ...tickets[idx], unitReport: req.body as PumpingUnitReport };
+      const report = req.body as PumpingUnitReport;
+      const updated: PumpingTicket = { ...tickets[idx], unitReport: report };
       tickets = tickets.map(t => (t.id === id ? updated : t));
+
+      // Puente a Mantenimiento — solo cuando este guardado ya representa la
+      // llegada (arrivalDate lleno), no el guardado parcial de salida.
+      if (report.arrivalDate) {
+        registrarLlegadaPumping(id, report);
+      }
+
       return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(300));
     }
     return of(new HttpResponse({ status: 404 })).pipe(delay(300));

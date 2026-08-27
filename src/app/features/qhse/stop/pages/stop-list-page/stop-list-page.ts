@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
-  DynadrillCardAccent,
   DynadrillCardComponent,
   DynadrillChartComponent,
   DynadrillChartSeries,
@@ -16,20 +15,16 @@ import {
   type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
-import { StopCard, StopTipo, STOP_TIPO_LABELS } from '../../models/stop-card.model';
+import { StopCard, stopCardInseguros, stopCardTieneInseguroEn } from '../../models/stop-card.model';
 import { StopCardService } from '../../services/stop-card.service';
 import { StopCardDialog } from '../../components/stop-card-dialog';
+import { StopCardDetailDialog, StopCardDetailDialogData } from '../../components/stop-card-detail-dialog';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-const TIPO_ACCENT: Record<StopTipo, DynadrillTagVariant & DynadrillCardAccent> = {
-  acto_inseguro: 'warning',
-  condicion_insegura: 'error',
-};
-
-/** HSE-SEGUIMIENTO-002 — bandeja + dashboard de tendencias (Pareto por categoría). */
+/** HSE-SEGUIMIENTO-002 — bandeja + dashboard de tendencias (Pareto por subcategoría). */
 @Component({
   selector: 'app-stop-list-page',
   imports: [
@@ -62,36 +57,39 @@ export class StopListPage {
     return [
       { label: 'Total registradas', value: all.length },
       { label: 'Este mes', value: esteMes },
-      { label: 'Actos inseguros', value: all.filter(c => c.tipo === 'acto_inseguro').length },
-      { label: 'Condiciones inseguras', value: all.filter(c => c.tipo === 'condicion_insegura').length },
+      { label: 'Con hallazgos en Acciones', value: all.filter(c => stopCardTieneInseguroEn(c, 'acciones')).length },
+      { label: 'Con hallazgos en Condiciones', value: all.filter(c => stopCardTieneInseguroEn(c, 'condiciones')).length },
     ];
   });
 
-  /** Pareto — categorías más observadas, ordenadas de mayor a menor. */
-  protected readonly paretoCategorias = computed(() => {
+  /** Pareto — subcategorías con más ítems marcados "Inseguro", ordenadas de mayor a menor. */
+  protected readonly paretoSubcategorias = computed(() => {
     const counts = new Map<string, number>();
     for (const c of this.cards()) {
-      for (const cat of c.categorias) counts.set(cat, (counts.get(cat) ?? 0) + 1);
+      for (const item of stopCardInseguros(c)) counts.set(item.subcategoria, (counts.get(item.subcategoria) ?? 0) + 1);
     }
     return [...counts.entries()].sort((a, b) => b[1] - a[1]);
   });
 
-  protected readonly paretoChartCategories = computed(() => this.paretoCategorias().map(([cat]) => cat));
+  protected readonly paretoChartCategories = computed(() => this.paretoSubcategorias().map(([sub]) => sub));
   protected readonly paretoChartSeries = computed<DynadrillChartSeries[]>(() => [
-    { name: 'Observaciones', data: this.paretoCategorias().map(([, count]) => count) },
+    { name: 'Ítems inseguros', data: this.paretoSubcategorias().map(([, count]) => count) },
   ]);
 
   protected readonly viewCards = computed(() =>
-    this.cards().map(c => ({
-      id: c.id,
-      code: c.code,
-      fecha: formatDate(c.createdAt),
-      tipoLabel: STOP_TIPO_LABELS[c.tipo],
-      accent: TIPO_ACCENT[c.tipo],
-      categoriasLabel: c.categorias.join(', '),
-      ubicacion: c.ubicacion || '—',
-      observadorNombre: c.observadorNombre,
-    })),
+    this.cards().map(c => {
+      const inseguros = stopCardInseguros(c);
+      const accent: DynadrillTagVariant = inseguros.length === 0 ? 'success' : stopCardTieneInseguroEn(c, 'condiciones') ? 'error' : 'warning';
+      return {
+        id: c.id,
+        code: c.code,
+        fecha: formatDate(c.createdAt),
+        accent,
+        resumenLabel: inseguros.length === 0 ? 'Sin hallazgos' : `${inseguros.length} ítem(s) inseguro(s)`,
+        locacion: c.locacion,
+        observadorNombre: c.observadorNombre,
+      };
+    }),
   );
 
   constructor() {
@@ -113,9 +111,21 @@ export class StopListPage {
   }
 
   protected nuevaTarjeta(): void {
-    const ref = this.dialogService.open<StopCardDialog>({ title: 'Nueva Tarjeta STOP', content: StopCardDialog, footer: false });
+    const ref = this.dialogService.open<StopCardDialog>({ title: 'Nueva Tarjeta STOP', content: StopCardDialog, footer: false, width: '640px' });
     ref.afterClose.subscribe(result => {
       if (result) this.reload();
+    });
+  }
+
+  protected verDetalle(id: number): void {
+    const card = this.cards().find(c => c.id === id);
+    if (!card) return;
+    this.dialogService.open<StopCardDetailDialog, StopCardDetailDialogData>({
+      title: `Tarjeta STOP — ${card.code}`,
+      content: StopCardDetailDialog,
+      data: { card },
+      footer: false,
+      width: '640px',
     });
   }
 }

@@ -1,0 +1,29 @@
+.vehicle-inspection-detail-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted, #5c5870);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  &__observaciones {
+    margin: 4px 0 0;
+    font-size: 0.85rem;
+    color: var(--text, #2c2b35);
+    background: var(--surface-muted, #faf9fc);
+    border-radius: var(--radius-sm, 4px);
+    padding: 10px 12px;
+  }
+}

@@ -3,12 +3,15 @@ import { provideDynadrillCharts } from '@digitec-it-projects/dynadrill-ui';
 import { BarChart, GaugeChart, LineChart } from 'echarts/charts';
 import { roleGuard } from '../../core/guards/role.guard';
 
+/** Superadmin/Jefe de Base ven todos los módulos (ver sidebar.ts). */
+const JEFE_MANTENIMIENTO_ROLES = ['Jefe de Mantenimiento', 'Superadmin', 'Jefe de Base'];
+
 export const maintenanceRoutes: Routes = [
   {
     path: '',
     loadComponent: () => import('./pages/maintenance-list-page').then(m => m.MaintenanceListPage),
     canActivate: [roleGuard],
-    data: { allowedRoles: ['Jefe de Mantenimiento'] },
+    data: { allowedRoles: JEFE_MANTENIMIENTO_ROLES },
   },
   {
     path: 'mis-tareas',
@@ -26,7 +29,7 @@ export const maintenanceRoutes: Routes = [
     path: 'kpis',
     loadComponent: () => import('./pages/maintenance-kpis-page').then(m => m.MaintenanceKpisPage),
     canActivate: [roleGuard],
-    data: { allowedRoles: ['Jefe de Mantenimiento'] },
+    data: { allowedRoles: JEFE_MANTENIMIENTO_ROLES },
     providers: [provideDynadrillCharts([BarChart, LineChart, GaugeChart])],
   },
 ];

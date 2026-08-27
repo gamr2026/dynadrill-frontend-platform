@@ -1,35 +1,44 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NzModalRef } from 'ng-zorro-antd/modal';
-import type { NzUploadFile } from 'ng-zorro-antd/upload';
 import {
   DynadrillButtonComponent,
-  DynadrillChipGroupComponent,
+  DynadrillDatetimePickerComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
   DynadrillTextareaComponent,
   DynadrillTextComponent,
-  DynadrillUploadZoneComponent,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../../core/services/auth.service';
-import { CreateStopCardInput, STOP_CATEGORIAS, STOP_TIPO_LABELS, StopCard, StopCategoria, StopTipo } from '../models/stop-card.model';
+import {
+  CreateStopCardInput,
+  StopBloque,
+  StopCard,
+  StopChecklistItem,
+  StopItemEstado,
+  STOP_ACCIONES,
+  STOP_CONDICIONES,
+  crearStopChecklist,
+} from '../models/stop-card.model';
 import { StopCardService } from '../services/stop-card.service';
+
+interface StopGrupo {
+  subcategoria: string;
+  filas: { index: number; item: StopChecklistItem }[];
+}
 
 /**
  * "Cualquier Trabajador... tiene autoridad y obligación de observar"
  * (HSE-SEGUIMIENTO-002) — este diálogo se abre tanto desde la bandeja de
  * STOP (staff HSE) como desde "Reportar" en el header (cualquier usuario
  * autenticado), sin pasar por el roleGuard de QHSE.
+ *
+ * Checklist fiel al formato físico DYN-SGI-RE-008: ~55 ítems agrupados en
+ * 10 subcategorías (5 de Acciones, 5 de Condiciones) — el observador solo
+ * marca los que realmente vio, el resto queda sin marcar.
  */
 @Component({
   selector: 'app-stop-card-dialog',
-  imports: [
-    DynadrillTextComponent,
-    DynadrillChipGroupComponent,
-    DynadrillInputComponent,
-    DynadrillTextareaComponent,
-    DynadrillUploadZoneComponent,
-    DynadrillButtonComponent,
-  ],
+  imports: [DynadrillTextComponent, DynadrillInputComponent, DynadrillTextareaComponent, DynadrillDatetimePickerComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './stop-card-dialog.html',
   styleUrl: './stop-card-dialog.scss',
@@ -40,31 +49,47 @@ export class StopCardDialog {
   private readonly auth = inject(AuthService);
   private readonly modalRef = inject(NzModalRef<StopCardDialog, StopCard | undefined>);
 
-  protected readonly tipoOptions = Object.values(STOP_TIPO_LABELS);
-  protected readonly categoriaOptions = [...STOP_CATEGORIAS];
+  protected readonly checklist = signal<StopChecklistItem[]>(crearStopChecklist());
 
-  protected readonly tipoLabel = signal<string[]>([STOP_TIPO_LABELS.condicion_insegura]);
-  protected readonly categorias = signal<string[]>([]);
-  protected readonly descripcion = signal('');
-  protected readonly riesgoPotencial = signal('');
-  protected readonly accionCorrectivaInmediata = signal('');
+  private agrupar(bloque: StopBloque): StopGrupo[] {
+    const orden = Object.keys(bloque === 'acciones' ? STOP_ACCIONES : STOP_CONDICIONES);
+    const list = this.checklist();
+    return orden.map(subcategoria => ({
+      subcategoria,
+      filas: list.map((item, index) => ({ item, index })).filter(({ item }) => item.bloque === bloque && item.subcategoria === subcategoria),
+    }));
+  }
+
+  protected readonly accionesGrupos = computed(() => this.agrupar('acciones'));
+  protected readonly condicionesGrupos = computed(() => this.agrupar('condiciones'));
+
+  /** Clic sobre el mismo estado ya marcado lo limpia — permite corregir sin un botón "quitar" aparte. */
+  protected marcar(index: number, estado: Exclude<StopItemEstado, null>): void {
+    this.checklist.update(list => list.map((item, i) => (i === index ? { ...item, estado: item.estado === estado ? null : estado } : item)));
+  }
+
+  protected readonly queObservaAcciones = signal('');
+  protected readonly accionesAcciones = signal('');
+  protected readonly queObservaCondiciones = signal('');
+  protected readonly accionesCondiciones = signal('');
+
   protected readonly observadorNombre = signal(this.auth.currentUser()?.name ?? '');
-  protected readonly observadoNombre = signal('');
-  protected readonly ubicacion = signal('');
-  protected readonly fotoFileName = signal('');
+  protected readonly fecha = signal<Date | null>(new Date());
+  protected readonly locacion = signal('');
+  protected readonly operadora = signal('');
+  protected readonly contacto = signal('');
   protected readonly submitting = signal(false);
 
-  protected readonly puedeGuardar = computed(
-    () => this.categorias().length > 0 && this.descripcion().trim().length > 0 && this.riesgoPotencial().trim().length > 0,
-  );
-
-  protected marcarAnonimo(): void {
-    this.observadoNombre.set('Anónimo');
-  }
-
-  protected onFotoUpload(file: NzUploadFile): void {
-    this.fotoFileName.set(file.name ?? 'foto.jpg');
-  }
+  protected readonly puedeGuardar = computed(() => {
+    const algunItemMarcado = this.checklist().some(i => i.estado !== null);
+    return (
+      algunItemMarcado &&
+      this.observadorNombre().trim().length > 0 &&
+      this.fecha() !== null &&
+      this.locacion().trim().length > 0 &&
+      this.operadora().trim().length > 0
+    );
+  });
 
   protected cancelar(): void {
     this.modalRef.close();
@@ -74,17 +99,17 @@ export class StopCardDialog {
     if (!this.puedeGuardar() || this.submitting()) return;
     this.submitting.set(true);
 
-    const tipo: StopTipo = this.tipoLabel()[0] === STOP_TIPO_LABELS.acto_inseguro ? 'acto_inseguro' : 'condicion_insegura';
     const input: CreateStopCardInput = {
-      tipo,
-      categorias: this.categorias() as StopCategoria[],
-      descripcion: this.descripcion(),
-      riesgoPotencial: this.riesgoPotencial(),
-      accionCorrectivaInmediata: this.accionCorrectivaInmediata(),
-      observadorNombre: this.observadorNombre(),
-      observadoNombre: this.observadoNombre() || undefined,
-      ubicacion: this.ubicacion() || undefined,
-      fotoFileName: this.fotoFileName() || undefined,
+      checklist: this.checklist(),
+      queObservaAcciones: this.queObservaAcciones().trim() || undefined,
+      accionesAcciones: this.accionesAcciones().trim() || undefined,
+      queObservaCondiciones: this.queObservaCondiciones().trim() || undefined,
+      accionesCondiciones: this.accionesCondiciones().trim() || undefined,
+      observadorNombre: this.observadorNombre().trim(),
+      fecha: this.fecha()!.toISOString().slice(0, 10),
+      locacion: this.locacion().trim(),
+      operadora: this.operadora().trim(),
+      contacto: this.contacto().trim() || undefined,
     };
 
     this.stopService.create(input).subscribe({

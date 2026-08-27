@@ -16,6 +16,7 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../../../core/services/auth.service';
 import {
+  PTW_DOCUMENTOS_REQUERIDOS,
   PTW_FASE_ORDER,
   PTW_FASE_STEPS,
   PTW_GAS_LIMITES,
@@ -84,6 +85,15 @@ export class PtwDetailPage {
     const p = this.ptw();
     return !!p && ptwCerrado(p);
   });
+
+  /**
+   * Un PTW no es de un solo día — la Fase 5 ("Ejecución y devolución") dura
+   * lo que dure el trabajo, con un registro diario propio (dailyLogs) que
+   * antes solo se notaba si se bajaba hasta esa fase. Este contador va
+   * arriba, junto al resto de metadatos, para que quede claro desde que se
+   * abre la pantalla que esto puede llevar varios días.
+   */
+  protected readonly diasEjecucionRegistrados = computed(() => this.ptw()?.dailyLogs.length ?? 0);
 
   protected readonly latestGasByType = computed<Partial<Record<PtwGas, PtwGasReading>>>(() => {
     const p = this.ptw();
@@ -222,6 +232,41 @@ export class PtwDetailPage {
     this.notify.success('Documento guardado', 'Se guardó al instante — puedes continuar con el resto cuando estén disponibles.');
   }
 
+  /**
+   * Simulación de descarga del formato en blanco — Formato de Recepción,
+   * ART y PTW pre-llenado son formatos del cliente/externos que hoy el
+   * sistema no genera de verdad (ver nota de la Fase 1: "el sistema los
+   * carga, valida y archiva, no los construye como formulario propio").
+   * No hay un archivo real detrás — se genera un placeholder .html
+   * claramente marcado como plantilla, con el mismo mecanismo de descarga
+   * (Blob + <a download>) que ya usa downloadQhseReport(), para que quien
+   * necesite el formato tenga algo que llenar e imprimir/adjuntar sin
+   * salir del sistema. Carnet de Vacunas queda afuera a propósito: es un
+   * documento personal del trabajador, no una plantilla que Dynadrill
+   * provea.
+   */
+  protected descargarFormatoBlanco(tipo: Exclude<PtwDocumentoTipo, 'carnet_vacunas'>): void {
+    const doc = PTW_DOCUMENTOS_REQUERIDOS.find(d => d.tipo === tipo);
+    if (!doc) return;
+
+    const camposPorTipo: Record<typeof tipo, string[]> = {
+      formato_recepcion: ['Fecha de recepción', 'Locación / pozo', 'Empresa operadora', 'Company Man', 'Responsable Dynadrill', 'Observaciones de la locación', 'Firma de recepción'],
+      art: ['Fecha', 'Actividad a realizar', 'Peligros identificados', 'Medidas de control', 'Personal involucrado', 'Firma de quien elabora', 'Firma de quien aprueba'],
+      ptw_prellenado: ['N° de permiso', 'Descripción del trabajo', 'Ubicación exacta', 'Fecha y hora de inicio', 'Fecha y hora de fin estimada', 'Riesgos asociados', 'Firma del solicitante'],
+    };
+
+    const camposHtml = camposPorTipo[tipo].map(campo => `<tr><td>${campo}</td><td>&nbsp;</td></tr>`).join('');
+    const section: QhseReportSection = {
+      title: doc.label,
+      bodyHtml: `
+        <p class="qr-meta"><strong>Formato en blanco — plantilla para completar y volver a cargar en el sistema.</strong></p>
+        <p class="qr-meta">Simulación: este es un documento de ejemplo generado por el sistema, no el formato real proporcionado por el cliente/MSP. Sirve para tener una referencia de los campos esperados mientras no exista integración con el archivo original.</p>
+        <table><tr><th>Campo</th><th>Completar</th></tr>${camposHtml}</table>`,
+    };
+
+    downloadQhseReport(`${doc.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-formato-en-blanco.html`, doc.label, 'HSE-SITIO-001 — Recibimiento de Sitio (PTW)', [section]);
+  }
+
   protected onIngresoToggle(index: number): void {
     const p = this.ptw();
     if (!p) return;
@@ -244,11 +289,25 @@ export class PtwDetailPage {
     }
   }
 
+  /**
+   * HSE-SITIO-001: "Notificación al cliente cuando se completa LOTO" — se
+   * dispara sola en el instante en que el checklist pasa a estar 100%
+   * marcado (no hace falta un botón aparte, y no se re-dispara si ya se
+   * había notificado antes en esta misma sesión de marcado).
+   */
   protected onLotoToggle(index: number): void {
     const p = this.ptw();
     if (!p) return;
     const lotoChecklist = p.lotoChecklist.map((item, i) => (i === index ? { ...item, checked: !item.checked } : item));
-    this.patch({ lotoChecklist });
+    const yaCompleto = p.lotoChecklist.every(i => i.checked);
+    const ahoraCompleto = lotoChecklist.every(i => i.checked);
+
+    if (ahoraCompleto && !yaCompleto && !p.lotoNotificadoClienteAt) {
+      this.patch({ lotoChecklist, lotoNotificadoClienteAt: new Date().toISOString() });
+      this.notify.success('Cliente notificado', 'Se notificó al cliente que el bloqueo y etiquetado (LOTO) quedó completo.');
+    } else {
+      this.patch({ lotoChecklist });
+    }
   }
 
   protected onGasDraftChange(gas: PtwGas, value: string): void {
@@ -401,23 +460,28 @@ export class PtwDetailPage {
     );
   }
 
+  /**
+   * HSE-SITIO-001: "Envío automático de respaldos a stakeholders" — apenas
+   * quedan firmadas las dos actas de cierre (Cerrar PTW + Acta de
+   * Devolución), no hace falta un tercer clic manual: se simula el envío
+   * a HSE Base + Operaciones + Facturación en el acto.
+   */
   protected firmar(campo: FirmaCampo): void {
+    const p = this.ptw();
+    if (!p) return;
     const nombre = this.auth.currentUser()?.name ?? '';
     const firma: PtwFirma = { nombre, firmadoAt: new Date().toISOString() };
-    switch (campo) {
-      case 'ptwFirmadoSitio':
-        this.patch({ ptwFirmadoSitio: firma });
-        break;
-      case 'actaRecibimientoFirmada':
-        this.patch({ actaRecibimientoFirmada: firma });
-        break;
-      case 'ptwCerrado':
-        this.patch({ ptwCerrado: firma });
-        break;
-      case 'actaDevolucionFirmada':
-        this.patch({ actaDevolucionFirmada: firma });
-        break;
+
+    const cambios: Partial<PtwMatrix> = { [campo]: firma };
+    const quedaCerradoConEsto =
+      (campo === 'ptwCerrado' && !!p.actaDevolucionFirmada) || (campo === 'actaDevolucionFirmada' && !!p.ptwCerrado);
+
+    if (quedaCerradoConEsto && !p.respaldosEnviados) {
+      cambios.respaldosEnviados = true;
+      this.notify.success('Respaldos enviados', 'Se enviaron automáticamente los respaldos digitales a HSE Base, Operaciones y Facturación.');
     }
+
+    this.patch(cambios);
   }
 
   protected toggleBarricadas(): void {
@@ -433,11 +497,6 @@ export class PtwDetailPage {
   protected toggleInspeccionFinal(): void {
     const p = this.ptw();
     if (p) this.patch({ inspeccionFinalConforme: !p.inspeccionFinalConforme });
-  }
-
-  protected toggleRespaldos(): void {
-    const p = this.ptw();
-    if (p) this.patch({ respaldosEnviados: !p.respaldosEnviados });
   }
 
   protected avanzarFase(): void {

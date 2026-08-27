@@ -402,6 +402,8 @@ let unitReports: UnitReport[] = [
   },
 ];
 let nextReportId = 7;
+/** Numeración de reportes sintetizados desde Pumping — sigue la misma vecindad que los reportNo sembrados arriba (3104-3130), pero en su propio rango para no chocar con los que el Jefe crea a mano. */
+let nextPumpingReportNo = 3200;
 
 let orders: MaintenanceOrderWithSubOrders[] = [
   // ── Orden pre-sembrada con sub-orden Operativo derivado a Pumping ──
@@ -619,6 +621,97 @@ function applyAssignment(sub: SubOrder, assignment: ClassifyTypeAssignment | und
 function matchId(url: string, base: string): number | null {
   const match = url.match(new RegExp(`${base}/(\\d+)$`));
   return match ? Number(match[1]) : null;
+}
+
+/**
+ * Puente Pumping → Mantenimiento: se llama al guardar el Reporte de Unidad
+ * de LLEGADA de un ticket de Pumping (pumping-mock.interceptor.ts, PATCH
+ * .../unit-report — solo cuando `arrivalDate` ya viene lleno, o si no se
+ * dispararía también con el guardado parcial de salida).
+ *
+ * Dos efectos, igual criterio que ya usa /api/unit-reports (POST/PUT) para
+ * la Inspección de Vehículos — no se reinventa nada, se reutiliza:
+ *
+ * 1. Hubodómetro → Unidad.kmActual (solo si la unidad es 'Transporte' — las
+ *    de tipo 'Servicio' se controlan por horómetro, que este reporte no
+ *    captura). Se toma el máximo de las lecturas de llegada entre las 4
+ *    entradas del hubodómetro, y siempre con Math.max contra lo que ya
+ *    había — un reporte cargado tarde nunca hace retroceder el contador.
+ * 2. Si trae alguna novedad (mecánica/instrumentación/operaciones), genera
+ *    un UnitReport para que entre a la bandeja de clasificación de
+ *    Mantenimiento (Correctivo) — antes de esto, una novedad reportada
+ *    desde Pumping se quedaba encerrada en el propio ticket, sin que
+ *    Mantenimiento se enterara. `originTicketId` evita duplicados si el
+ *    reporte de llegada se vuelve a guardar (edición) más de una vez.
+ */
+export function registrarLlegadaPumping(
+  ticketId: number,
+  report: {
+    unitCode: string;
+    wellName: string;
+    clientName: string;
+    baseName: string;
+    blockName: string;
+    headerCode: string;
+    departureDate: string;
+    arrivalDate: string;
+    origin: string;
+    destination: string;
+    hubodometro: { salida: number | null; llegada: number | null }[];
+    novelties: { mecanica: string; instrumentacion: string; operaciones: string };
+    operationInterrupted: boolean | null;
+    interruptionDetail: string;
+    unitReady: boolean | null;
+    departureOperatorName: string;
+    arrivalOperatorName: string;
+  },
+): void {
+  const unidadIdx = unidades.findIndex(u => u.code === report.unitCode);
+  if (unidadIdx === -1) return;
+  const unidad = unidades[unidadIdx];
+
+  const llegadas = report.hubodometro.map(h => h.llegada).filter((v): v is number => v != null);
+  const maxLlegada = llegadas.length > 0 ? Math.max(...llegadas) : undefined;
+  if (unidad.tipo === 'Transporte' && maxLlegada !== undefined) {
+    unidades[unidadIdx] = { ...unidad, kmActual: Math.max(unidad.kmActual ?? 0, maxLlegada) };
+  }
+
+  const hayNovedad = !!(report.novelties.mecanica.trim() || report.novelties.instrumentacion.trim() || report.novelties.operaciones.trim());
+  const yaExiste = unitReports.some(r => r.originTicketId === ticketId);
+  if (hayNovedad && !yaExiste) {
+    const created: UnitReport = {
+      id: nextReportId++,
+      reportNo: String(nextPumpingReportNo++),
+      sourceModule: 'Pumping',
+      pozo: report.wellName,
+      bloque: report.blockName,
+      cliente: report.clientName,
+      base: report.baseName,
+      unidadId: unidad.id,
+      unidad: unidad.code,
+      originTicketId: ticketId,
+      fechaSalida: report.departureDate,
+      fechaLlegada: report.arrivalDate,
+      odometroLlegada: unidad.tipo === 'Transporte' ? maxLlegada : undefined,
+      origen: report.origin,
+      destino: report.destination,
+      inspeccionChasis: [],
+      inspeccionPlataforma: [],
+      inspeccionInstrumentacion: [],
+      problemasMecanica: report.novelties.mecanica,
+      problemasInstrumentacion: report.novelties.instrumentacion,
+      problemasOperaciones: report.novelties.operaciones,
+      interrumpioOperacion: !!report.operationInterrupted,
+      detalleInterrupcion: report.interruptionDetail || undefined,
+      listaParaSiguienteOperacion: report.unitReady ?? false,
+      operadorSalida: report.departureOperatorName,
+      supervisorSalida: '',
+      operadorLlegada: report.arrivalOperatorName,
+      dismissed: false,
+      createdAt: new Date().toISOString(),
+    };
+    unitReports = [...unitReports, created];
+  }
 }
 
 export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {

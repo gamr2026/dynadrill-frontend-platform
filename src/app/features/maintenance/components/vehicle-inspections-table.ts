@@ -51,6 +51,7 @@ export class VehicleInspectionsTable {
   /** Solo el Supervisor puede aprobar (Plan 2026, 5.3 — "Firma del Supervisor"). */
   readonly approvable = input(false);
 
+  readonly view = output<VehicleInspection>();
   readonly edit = output<VehicleInspection>();
   readonly approve = output<VehicleInspection>();
 
@@ -104,6 +105,11 @@ export class VehicleInspectionsTable {
   );
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
+
+  protected onView(row: Record<string, unknown>): void {
+    const inspection = this.inspections().find(i => i.id === row['id']);
+    if (inspection) this.view.emit(inspection);
+  }
 
   protected onEdit(row: Record<string, unknown>): void {
     const inspection = this.inspections().find(i => i.id === row['id']);

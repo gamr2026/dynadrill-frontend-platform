@@ -1,10 +1,7 @@
-@if (editable() || approvable()) {
-  <dynadrill-data-table [columns]="columns()" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" [actionsTemplate]="actionsTpl" />
-} @else {
-  <dynadrill-data-table [columns]="columns()" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" />
-}
+<dynadrill-data-table [columns]="columns()" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" [actionsTemplate]="actionsTpl" />
 
 <ng-template #actionsTpl let-row>
+  <dynadrill-button variant="secondary" size="small" (clicked)="onView(row)">Ver detalle</dynadrill-button>
   @if (row['canEdit']) {
     <dynadrill-button variant="secondary" size="small" (clicked)="onEdit(row)">Editar inspección</dynadrill-button>
   }

@@ -19,45 +19,18 @@ const defaultTires: TireEntry[] = [
 ];
 
 let tickets: PumpingTicket[] = [
+  // ── Ticket principal de demo: empieza en revision_propuesta ──
   {
     id: 1,
     code: 'PUMP-2026-00456',
-    status: 'en_ejecucion',
+    status: 'en_revision',
     wellName: 'Pozo Delta-7',
     clientName: 'Petroandina',
     estimatedDate: '2026-08-08',
-    assignedSupervisor: 'Luis Vega',
-    assignedOperator: 'Jorge Salinas',
-    unitCode: 'PUM-07',
-    serviceType: 'coiled_tubing',
-    proposalOrigin: 'AS2',
-    currentStep: 'en_ejecucion',
-    operators: [
-      { id: 1, name: 'Jorge Salinas', role: 'Operador Mecánico', unitCode: 'PUM-07' },
-      { id: 2, name: 'David Cevallos', role: 'Operador Instrumental', unitCode: 'PUM-07' },
-      { id: 10, name: 'Marco Ruiz', role: 'Operador', unitCode: 'PUM-07' },
-    ],
-    unitReport: null,
-    chemicals: [
-      { id: 1, name: 'Biocida QX-12', quantityAssigned: 40, quantityUsed: 32, quantityReturned: 8, unit: 'gal' },
-      { id: 2, name: 'Inhibidor de corrosión', quantityAssigned: 20, quantityUsed: 20, quantityReturned: 0, unit: 'gal' },
-    ],
-    tools: [
-      { id: 1, name: 'Broca tricónica', serialCode: 'DG-0452', status: 'instalada' },
-      { id: 2, name: 'Estabilizador', serialCode: 'DG-0780', status: 'instalada' },
-    ],
-  },
-  {
-    id: 2,
-    code: 'PUMP-2026-00457',
-    status: 'en_revision',
-    wellName: 'Pozo Alfa-3',
-    clientName: 'Operadora XYZ S.A.',
-    estimatedDate: '2026-08-15',
     assignedSupervisor: '',
     assignedOperator: '',
     unitCode: '',
-    serviceType: 'fluidos_control',
+    serviceType: 'coiled_tubing',
     proposalOrigin: 'AS2',
     currentStep: 'revision_propuesta',
     operators: [],
@@ -65,6 +38,7 @@ let tickets: PumpingTicket[] = [
     chemicals: [],
     tools: [],
   },
+  // ── Ticket aprobado (para pestaña "Aprobados") ──
   {
     id: 3,
     code: 'PUMP-2026-00458',
@@ -106,11 +80,7 @@ let tickets: PumpingTicket[] = [
       motorInspection: createMotorInspectionItems().map(i => ({ ...i, salida: 'ok' as const, llegada: 'ok' as const })),
       arrivalEquipmentInspection: createArrivalEquipmentItems().map(i => ({ ...i, llegada: 'ok' as const })),
       instrumentationInspection: createInstrumentationItems().map(i => ({ ...i, salida: 'ok' as const, llegada: 'ok' as const })),
-      novelties: {
-        mecanica: '',
-        instrumentacion: '',
-        operaciones: '',
-      },
+      novelties: { mecanica: '', instrumentacion: '', operaciones: '' },
       unitReady: true,
       operationInterrupted: false,
       interruptionDetail: '',
@@ -125,42 +95,6 @@ let tickets: PumpingTicket[] = [
     tools: [
       { id: 4, name: 'Válvulas de 2"', serialCode: 'VL-2034', status: 'devuelta' },
     ],
-  },
-  {
-    id: 4,
-    code: 'PUMP-2026-00459',
-    status: 'en_ejecucion',
-    wellName: 'Pozo Gamma-2',
-    clientName: 'Operadora A',
-    estimatedDate: '2026-08-12',
-    assignedSupervisor: 'Luis Vega',
-    assignedOperator: 'David Cevallos',
-    unitCode: '4-CTV-03',
-    serviceType: 'estimulaciones',
-    proposalOrigin: 'AS2',
-    currentStep: 'asignacion',
-    operators: [],
-    unitReport: null,
-    chemicals: [],
-    tools: [],
-  },
-  {
-    id: 5,
-    code: 'PUMP-2026-00460',
-    status: 'en_revision',
-    wellName: 'Pozo ABC-15',
-    clientName: 'Operadora B',
-    estimatedDate: '2026-09-01',
-    assignedSupervisor: '',
-    assignedOperator: '',
-    unitCode: '',
-    serviceType: 'servicios_nitrogeno',
-    proposalOrigin: 'AS2',
-    currentStep: 'revision_propuesta',
-    operators: [],
-    unitReport: null,
-    chemicals: [],
-    tools: [],
   },
   {
     id: 6,
@@ -225,231 +159,11 @@ let tickets: PumpingTicket[] = [
     ],
     tools: [],
   },
-  {
-    id: 7,
-    code: 'PUMP-2026-00462',
-    status: 'en_ejecucion',
-    wellName: 'Pozo Alfa-3',
-    clientName: 'Operadora C',
-    estimatedDate: '2026-09-05',
-    assignedSupervisor: 'Luis Vega',
-    assignedOperator: '',
-    unitCode: '',
-    serviceType: 'fluidos_control',
-    proposalOrigin: 'AS2',
-    currentStep: 'asignacion',
-    operators: [],
-    unitReport: null,
-    chemicals: [],
-    tools: [],
-  },
-  {
-    id: 8,
-    code: 'PUMP-2026-00463',
-    status: 'en_ejecucion',
-    wellName: 'Pozo Beta-9',
-    clientName: 'Petroecuador',
-    estimatedDate: '2026-08-18',
-    assignedSupervisor: 'Ana Ruiz',
-    assignedOperator: 'Carla Fiallos',
-    unitCode: 'PUM-15',
-    serviceType: 'cementacion_remedial',
-    proposalOrigin: 'AS2',
-    currentStep: 'en_ejecucion_llegada',
-    operators: [
-      { id: 5, name: 'Carla Fiallos', role: 'Operador Instrumental', unitCode: 'PUM-15' },
-      { id: 6, name: 'Carlos Vega', role: 'Operador Mecánico', unitCode: 'PUM-15' },
-      { id: 10, name: 'Marco Ruiz', role: 'Operador', unitCode: 'PUM-15' },
-    ],
-    unitReport: {
-      reportCode: 'RU-2026-00463',
-      unitCode: 'PUM-15',
-      wellName: 'Pozo Beta-9',
-      baseName: 'Coco',
-      blockName: '56',
-      headerCode: 'DY-CTV-03',
-      clientName: 'Petroecuador',
-      departureDate: '2026-08-16',
-      arrivalDate: '2026-08-18',
-      fuelDeparture: 75,
-      fuelArrival: 40,
-      hubodometro: [
-        { label: 'A', salida: null, llegada: null },
-        { label: 'B', salida: null, llegada: null },
-        { label: 'C', salida: null, llegada: null },
-        { label: 'D', salida: null, llegada: null },
-      ],
-      tires: defaultTires,
-      origin: 'Base Coco',
-      destination: 'Pozo Beta-9',
-      chassisInspection: createChassisInspectionItems().map(i => ({ ...i, salida: 'ok' as const, llegada: 'ok' as const })),
-      motorInspection: createMotorInspectionItems().map(i => ({ ...i, salida: 'ok' as const, llegada: 'ok' as const })),
-      arrivalEquipmentInspection: createArrivalEquipmentItems().map(i => ({ ...i, llegada: 'ok' as const })),
-      instrumentationInspection: createInstrumentationItems().map(i => ({ ...i, salida: 'ok' as const, llegada: 'ok' as const })),
-      novelties: {
-        mecanica: '',
-        instrumentacion: '',
-        operaciones: '',
-      },
-      unitReady: true,
-      operationInterrupted: false,
-      interruptionDetail: '',
-      departureOperatorName: 'Carla Fiallos',
-      departureApprovalDate: '2026-08-10',
-      arrivalOperatorName: 'Carlos Vega',
-      arrivalApprovalDate: '2026-08-11',
-    },
-    chemicals: [
-      { id: 5, name: 'Amonio', quantityAssigned: 25, quantityUsed: 20, quantityReturned: 5, unit: 'gal' },
-    ],
-    tools: [],
-  },
-  {
-    id: 9,
-    code: 'PUMP-2026-00464',
-    status: 'en_ejecucion',
-    wellName: 'Pozo Gamma-5',
-    clientName: 'Petroandina',
-    estimatedDate: '2026-09-10',
-    assignedSupervisor: 'Luis Vega',
-    assignedOperator: 'Marco Ruiz',
-    unitCode: 'PUM-07',
-    serviceType: 'coiled_tubing',
-    proposalOrigin: 'AS2',
-    currentStep: 'revisar_reportes_salida',
-    operators: [
-      { id: 1, name: 'Jorge Salinas', role: 'Operador Mecánico', unitCode: 'PUM-07' },
-      { id: 2, name: 'David Cevallos', role: 'Operador Instrumental', unitCode: 'PUM-07' },
-      { id: 10, name: 'Marco Ruiz', role: 'Operador', unitCode: 'PUM-07' },
-    ],
-    unitReport: {
-      reportCode: 'RU-2026-00464',
-      unitCode: 'PUM-07',
-      wellName: 'Pozo Gamma-5',
-      baseName: 'Coco',
-      blockName: '43',
-      headerCode: 'DY-PUM-07',
-      clientName: 'Petroandina',
-      departureDate: '2026-09-08',
-      arrivalDate: '',
-      fuelDeparture: 92,
-      fuelArrival: null,
-      hubodometro: [
-        { label: 'A', salida: 7200, llegada: null },
-        { label: 'B', salida: 4100, llegada: null },
-        { label: 'C', salida: null, llegada: null },
-        { label: 'D', salida: null, llegada: null },
-      ],
-      tires: defaultTires,
-      origin: 'Base Coco',
-      destination: 'Pozo Gamma-5',
-      chassisInspection: createChassisInspectionItems().map(i => ({ ...i, salida: 'ok' as const, llegada: null })),
-      motorInspection: createMotorInspectionItems().map(i => ({ ...i, salida: 'ok' as const, llegada: null })),
-      arrivalEquipmentInspection: createArrivalEquipmentItems().map(i => ({ ...i, llegada: null })),
-      instrumentationInspection: createInstrumentationItems().map(i => ({ ...i, salida: 'ok' as const, llegada: null })),
-      novelties: {
-        mecanica: '',
-        instrumentacion: '',
-        operaciones: '',
-      },
-      unitReady: null,
-      operationInterrupted: null,
-      interruptionDetail: '',
-      departureOperatorName: 'Jorge Salinas',
-      departureApprovalDate: '2026-09-08',
-      arrivalOperatorName: '',
-      arrivalApprovalDate: '',
-    },
-    chemicals: [
-      { id: 1, name: 'Biocida QX-12', quantityAssigned: 40, quantityUsed: 0, quantityReturned: 0, unit: 'gal' },
-      { id: 2, name: 'Inhibidor de corrosión', quantityAssigned: 20, quantityUsed: 0, quantityReturned: 0, unit: 'gal' },
-    ],
-    tools: [],
-  },
-  {
-    id: 10,
-    code: 'PUMP-2026-00465',
-    status: 'en_ejecucion',
-    wellName: 'Pozo Delta-12',
-    clientName: 'Operadora XYZ S.A.',
-    estimatedDate: '2026-09-12',
-    assignedSupervisor: 'Luis Vega',
-    assignedOperator: 'Marco Ruiz',
-    unitCode: 'PUM-15',
-    serviceType: 'estimulaciones',
-    proposalOrigin: 'AS2',
-    currentStep: 'revisar_reportes_llegada',
-    operators: [
-      { id: 4, name: 'Marcos Torres', role: 'Operador Mecánico', unitCode: 'PUM-15' },
-      { id: 10, name: 'Marco Ruiz', role: 'Operador', unitCode: 'PUM-15' },
-    ],
-    unitReport: {
-      reportCode: 'RU-2026-00465',
-      unitCode: 'PUM-15',
-      wellName: 'Pozo Delta-12',
-      baseName: 'Lago Agrio',
-      blockName: '18',
-      headerCode: 'DY-PUM-15',
-      clientName: 'Operadora XYZ S.A.',
-      departureDate: '2026-09-10',
-      arrivalDate: '2026-09-12',
-      fuelDeparture: 85,
-      fuelArrival: 42,
-      hubodometro: [
-        { label: 'A', salida: 6100, llegada: 6350 },
-        { label: 'B', salida: 3200, llegada: 3410 },
-        { label: 'C', salida: null, llegada: null },
-        { label: 'D', salida: null, llegada: null },
-      ],
-      tires: defaultTires,
-      origin: 'Base Lago Agrio',
-      destination: 'Pozo Delta-12',
-      chassisInspection: createChassisInspectionItems().map(i => ({ ...i, salida: 'ok' as const, llegada: 'ok' as const })),
-      motorInspection: createMotorInspectionItems().map(i => ({ ...i, salida: 'ok' as const, llegada: 'ok' as const })),
-      arrivalEquipmentInspection: createArrivalEquipmentItems().map(i => ({ ...i, llegada: 'ok' as const })),
-      instrumentationInspection: createInstrumentationItems().map(i => ({ ...i, salida: 'ok' as const, llegada: 'ok' as const })),
-      novelties: {
-        mecanica: 'Ruido anormal en transmisión al cambiar de marcha.',
-        instrumentacion: '',
-        operaciones: 'Válvula de alivio presentó goteo intermitente.',
-      },
-      unitReady: true,
-      operationInterrupted: false,
-      interruptionDetail: '',
-      departureOperatorName: 'Marcos Torres',
-      departureApprovalDate: '2026-09-10',
-      arrivalOperatorName: 'Marco Ruiz',
-      arrivalApprovalDate: '2026-09-12',
-    },
-    chemicals: [
-      { id: 3, name: 'Surfactante SF-3', quantityAssigned: 15, quantityUsed: 0, quantityReturned: 0, unit: 'gal' },
-    ],
-    tools: [],
-  },
-  {
-    id: 11,
-    code: 'PUMP-2026-00466',
-    status: 'en_ejecucion',
-    wellName: 'Pozo Epsilon-3',
-    clientName: 'PetroAmazonas EP',
-    estimatedDate: '2026-09-15',
-    assignedSupervisor: 'Luis Vega',
-    assignedOperator: 'Jorge Salinas',
-    unitCode: 'PUM-03',
-    serviceType: 'fluidos_control',
-    proposalOrigin: 'AS2',
-    currentStep: 'mantenimiento',
-    operators: [
-      { id: 1, name: 'Jorge Salinas', role: 'Operador Mecánico', unitCode: 'PUM-03' },
-    ],
-    unitReport: null,
-    chemicals: [],
-    tools: [],
-  },
+  // ── Dummy — mantiene el array con id 12 para no romper refs ──
   {
     id: 12,
     code: 'PUMP-2026-00467',
-    status: 'en_ejecucion',
+    status: 'aprobado',
     wellName: 'Pozo Sigma-4',
     clientName: 'Petroandina',
     estimatedDate: '2026-09-18',
@@ -458,7 +172,7 @@ let tickets: PumpingTicket[] = [
     unitCode: 'PUM-07',
     serviceType: 'coiled_tubing',
     proposalOrigin: 'AS2',
-    currentStep: 'ejecucion_operativa',
+    currentStep: 'en_revision',
     operators: [
       { id: 1, name: 'Jorge Salinas', role: 'Operador Mecánico', unitCode: 'PUM-07' },
       { id: 2, name: 'David Cevallos', role: 'Operador Instrumental', unitCode: 'PUM-07' },
@@ -552,10 +266,82 @@ export const pumpingMockInterceptor: HttpInterceptorFn = (req, next) => {
   const patchMatch = req.url.match(/\/api\/operations\/pumping\/tickets\/(\d+)\//);
   if (patchMatch && req.method === 'PATCH') {
     const id = Number(patchMatch[1]);
-    const found = tickets.find(t => t.id === id);
-    if (found) {
-      return of(new HttpResponse({ status: 200, body: found })).pipe(delay(300));
+    const idx = tickets.findIndex(t => t.id === id);
+    if (idx === -1) {
+      return of(new HttpResponse({ status: 404 })).pipe(delay(300));
     }
+
+    // ── assign-supervisor ──
+    if (req.url.includes('/assign-supervisor')) {
+      const { supervisorId } = req.body as { supervisorId: number };
+      const supervisorNames: Record<number, string> = { 1: 'Luis Vega', 2: 'Ana Ruiz', 3: 'Marcos Torres' };
+      const updated: PumpingTicket = {
+        ...tickets[idx],
+        assignedSupervisor: supervisorNames[supervisorId] ?? '',
+      };
+      tickets = tickets.map(t => (t.id === id ? updated : t));
+      return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(300));
+    }
+
+    // ── assign-resources ──
+    if (req.url.includes('/assign-resources')) {
+      const { operatorIds, unitIds, chemicalIds } = req.body as {
+        operatorIds: number[];
+        unitIds: number[];
+        chemicalIds: number[];
+      };
+
+      const operatorData: Record<number, { name: string; role: string }> = {
+        1: { name: 'Álvarez Díaz Arturo Salomón', role: 'Operador I CTU' },
+        2: { name: 'Auquilla Salcán Luis Hernán', role: 'Operador de Fluidos' },
+        3: { name: 'Benítez Intriago Danny Orlando', role: 'Operador II Fishing' },
+        4: { name: 'Bravo Rosas Omar Alfredo', role: 'Operador II CTU' },
+      };
+
+      const unitData: Record<number, string> = {
+        1: 'PUM-07', 2: 'PUM-15', 3: '4-CTV-03', 4: 'CAM-04', 5: 'CAM-08',
+      };
+
+      const chemicalData: Record<number, { name: string; unit: string }> = {
+        1: { name: 'Biocida QX-12', unit: 'gal' },
+        2: { name: 'Inhibidor de corrosión', unit: 'gal' },
+        3: { name: 'Surfactante SF-3', unit: 'gal' },
+        4: { name: 'Fosfato', unit: 'gal' },
+        5: { name: 'Amonio', unit: 'gal' },
+      };
+
+      // Build operators with their assigned units
+      // Use operatorAssignments from the request body if available, otherwise pair them
+      const operators = operatorIds.map((opId, i) => ({
+        id: opId,
+        name: operatorData[opId]?.name ?? `Operador ${opId}`,
+        role: operatorData[opId]?.role ?? 'Operador',
+        unitCode: unitData[unitIds[i]] ?? unitData[unitIds[0]] ?? '',
+      }));
+
+      const chemicals = chemicalIds.map(cId => ({
+        id: cId,
+        name: chemicalData[cId]?.name ?? `Químico ${cId}`,
+        quantityAssigned: 20,
+        quantityUsed: 0,
+        quantityReturned: 0,
+        unit: chemicalData[cId]?.unit ?? 'gal',
+      }));
+
+      const unitCode = unitData[unitIds[0]] ?? '';
+      const updated: PumpingTicket = {
+        ...tickets[idx],
+        operators,
+        chemicals,
+        unitCode,
+        assignedOperator: operators[0]?.name ?? '',
+      };
+      tickets = tickets.map(t => (t.id === id ? updated : t));
+      return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(300));
+    }
+
+    // ── fallback: return found ticket unchanged ──
+    return of(new HttpResponse({ status: 200, body: tickets[idx] })).pipe(delay(300));
   }
 
   return next(req);

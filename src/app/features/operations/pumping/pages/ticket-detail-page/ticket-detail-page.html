@@ -396,15 +396,57 @@
       </div>
     </section>
 
+    <!-- Neumáticos -->
     <section class="ticket-detail__section">
-      <dynadrill-data-table [columns]="tireColumns" [rows]="tireRows()" [loading]="false" />
+      <div class="ticket-detail__editable-table">
+        <div class="ticket-detail__editable-table-header">
+          <span></span>
+          @for (tire of tires(); track tire.axle) {
+            <span>{{ tire.axle }}</span>
+          }
+        </div>
+        <div class="ticket-detail__editable-table-row">
+          <span class="ticket-detail__editable-table-label">Salida</span>
+          @for (tire of tires(); track tire.axle; let i = $index) {
+            <dynadrill-input [value]="tire.salida" placeholder="PSI" (valueChange)="updateTire(i, 'salida', $event)" />
+          }
+        </div>
+        <div class="ticket-detail__editable-table-row">
+          <span class="ticket-detail__editable-table-label">Llegada</span>
+          @for (tire of tires(); track tire.axle; let i = $index) {
+            <dynadrill-input [value]="tire.llegada" placeholder="PSI" (valueChange)="updateTire(i, 'llegada', $event)" />
+          }
+        </div>
+      </div>
     </section>
 
     <!-- Hubodómetro -->
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Hubodómetro</dynadrill-text>
-      <div class="ticket-detail__hubodometro">
-        <dynadrill-data-table [columns]="hubodometroColumns" [rows]="hubodometroRows()" [loading]="false" />
+      <div class="ticket-detail__hubodometro-grid">
+        <div class="ticket-detail__hubodometro-header">
+          <span>SALIDA</span>
+          <span></span>
+          <span>LLEGADA</span>
+        </div>
+        <div class="ticket-detail__hubodometro-row">
+          <div class="ticket-detail__hubodometro-cell">
+            <dynadrill-input [value]="hubodometroSalidaText()" placeholder="Ej: 5570 / 4550036 / — / —" (valueChange)="parseHubodometroText('salida', $event)" />
+          </div>
+          <div class="ticket-detail__hubodometro-center">Origen</div>
+          <div class="ticket-detail__hubodometro-cell">
+            <dynadrill-input [value]="hubodometroLlegadaText()" placeholder="Ej: 5720 / 4550190 / — / —" (valueChange)="parseHubodometroText('llegada', $event)" />
+          </div>
+        </div>
+        <div class="ticket-detail__hubodometro-row">
+          <div class="ticket-detail__hubodometro-cell">
+            <dynadrill-input [value]="hubodometroDestinoSalida()" placeholder="" (valueChange)="hubodometroDestinoSalida.set($event)" />
+          </div>
+          <div class="ticket-detail__hubodometro-center">Destino</div>
+          <div class="ticket-detail__hubodometro-cell">
+            <dynadrill-input [value]="hubodometroDestinoLlegada()" placeholder="" (valueChange)="hubodometroDestinoLlegada.set($event)" />
+          </div>
+        </div>
       </div>
     </section>
 
@@ -485,15 +527,57 @@
       </div>
     </section>
 
+    <!-- Neumáticos (salida solo lectura, llegada editable) -->
     <section class="ticket-detail__section">
-      <dynadrill-data-table [columns]="tireColumns" [rows]="tireRows()" [loading]="false" />
+      <div class="ticket-detail__editable-table">
+        <div class="ticket-detail__editable-table-header">
+          <span></span>
+          @for (tire of tires(); track tire.axle) {
+            <span>{{ tire.axle }}</span>
+          }
+        </div>
+        <div class="ticket-detail__editable-table-row">
+          <span class="ticket-detail__editable-table-label">Salida</span>
+          @for (tire of tires(); track tire.axle) {
+            <span class="ticket-detail__editable-table-readonly">{{ tire.salida || '—' }}</span>
+          }
+        </div>
+        <div class="ticket-detail__editable-table-row">
+          <span class="ticket-detail__editable-table-label">Llegada</span>
+          @for (tire of tires(); track tire.axle; let i = $index) {
+            <dynadrill-input [value]="tire.llegada" placeholder="PSI" (valueChange)="updateTire(i, 'llegada', $event)" />
+          }
+        </div>
+      </div>
     </section>
 
-    <!-- Hubodómetro (datos de salida ya llenos) -->
+    <!-- Hubodómetro (salida solo lectura, llegada editable) -->
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Hubodómetro</dynadrill-text>
-      <div class="ticket-detail__hubodometro">
-        <dynadrill-data-table [columns]="hubodometroColumns" [rows]="hubodometroRows()" [loading]="false" />
+      <div class="ticket-detail__hubodometro-grid">
+        <div class="ticket-detail__hubodometro-header">
+          <span>SALIDA</span>
+          <span></span>
+          <span>LLEGADA</span>
+        </div>
+        <div class="ticket-detail__hubodometro-row">
+          <div class="ticket-detail__hubodometro-cell">
+            <span class="ticket-detail__hubodometro-readonly">{{ hubodometroSalidaText() || '— / — / — / —' }}</span>
+          </div>
+          <div class="ticket-detail__hubodometro-center">Origen</div>
+          <div class="ticket-detail__hubodometro-cell">
+            <dynadrill-input [value]="hubodometroLlegadaText()" placeholder="Ej: 5720 / 4550190 / — / —" (valueChange)="parseHubodometroText('llegada', $event)" />
+          </div>
+        </div>
+        <div class="ticket-detail__hubodometro-row">
+          <div class="ticket-detail__hubodometro-cell">
+            <span class="ticket-detail__hubodometro-readonly">{{ hubodometroDestinoSalida() || '—' }}</span>
+          </div>
+          <div class="ticket-detail__hubodometro-center">Destino</div>
+          <div class="ticket-detail__hubodometro-cell">
+            <dynadrill-input [value]="hubodometroDestinoLlegada()" placeholder="" (valueChange)="hubodometroDestinoLlegada.set($event)" />
+          </div>
+        </div>
       </div>
     </section>
 

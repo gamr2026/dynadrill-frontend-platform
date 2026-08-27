@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   DynadrillButtonComponent,
   DynadrillDataTableColumn,
@@ -16,6 +18,7 @@ import {
   PumpingTicket,
   PUMPING_SERVICE_TYPE_LABELS,
   PUMPING_STEP_LABELS,
+  PUMPING_STEP_ROLE,
   type PumpingStep,
 } from '../../models/pumping.model';
 import { PumpingService } from '../../services/pumping.service';
@@ -150,36 +153,43 @@ export class TicketListPage {
 
   // ── Filas ──
 
-  protected readonly inProcessRows = computed(() =>
-    this.inProcessTickets().map(t => {
-      const orders = this.maintenanceOrders().filter(o => o.unidad === t.unitCode);
-      const isMaintenanceRelevant = TicketListPage.MAINTENANCE_RELEVANT_STEPS.has(t.currentStep);
-      return {
-        id: t.id,
-        code: t.code,
-        wellName: t.wellName,
-        clientName: t.clientName,
-        serviceType: { text: PUMPING_SERVICE_TYPE_LABELS[t.serviceType], tone: 'brand' as const },
-        statusBadge: STEP_BADGES[t.currentStep] ?? { text: t.currentStep, tone: 'neutral' as const },
-        step: t.currentStep,
-        isMaintenanceStep: isMaintenanceRelevant,
-        hasMaintenanceOrders: isMaintenanceRelevant && orders.length > 0,
-        maintenanceSubOrders: isMaintenanceRelevant
-          ? orders.flatMap(o => o.subOrders.map(s => {
-              const displayStatus = this.mapSubOrderDisplayStatus(s.status, s.type);
-              return {
-                id: s.id,
-                code: s.code,
-                type: s.type,
-                status: displayStatus,
-                statusTone: TicketListPage.SUB_ORDER_STATUS_TONES[displayStatus] ?? ('neutral' as BadgeTone),
-                canReview: displayStatus === 'En Revisión',
-              };
-            }))
-          : [],
-      };
-    }),
-  );
+  protected readonly inProcessRows = computed(() => {
+    const seenSteps = new Set<PumpingStep>();
+    return this.inProcessTickets()
+      .filter(t => {
+        if (seenSteps.has(t.currentStep)) return false;
+        seenSteps.add(t.currentStep);
+        return true;
+      })
+      .map(t => {
+        const orders = this.maintenanceOrders().filter(o => o.unidad === t.unitCode);
+        const isMaintenanceRelevant = TicketListPage.MAINTENANCE_RELEVANT_STEPS.has(t.currentStep);
+        return {
+          id: t.id,
+          code: t.code,
+          wellName: t.wellName,
+          clientName: t.clientName,
+          serviceType: { text: PUMPING_SERVICE_TYPE_LABELS[t.serviceType], tone: 'brand' as const },
+          statusBadge: STEP_BADGES[t.currentStep] ?? { text: t.currentStep, tone: 'neutral' as const },
+          step: t.currentStep,
+          isMaintenanceStep: isMaintenanceRelevant,
+          hasMaintenanceOrders: isMaintenanceRelevant && orders.length > 0,
+          maintenanceSubOrders: isMaintenanceRelevant
+            ? orders.flatMap(o => o.subOrders.map(s => {
+                const displayStatus = this.mapSubOrderDisplayStatus(s.status, s.type);
+                return {
+                  id: s.id,
+                  code: s.code,
+                  type: s.type,
+                  status: displayStatus,
+                  statusTone: TicketListPage.SUB_ORDER_STATUS_TONES[displayStatus] ?? ('neutral' as BadgeTone),
+                  canReview: displayStatus === 'En Revisión',
+                };
+              }))
+            : [],
+        };
+      });
+  });
 
   protected readonly approvedRows = computed(() =>
     this.approvedTickets().map(t => ({
@@ -196,6 +206,17 @@ export class TicketListPage {
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   constructor() {
+    this.reload();
+
+    // Reload data when navigating back from detail page
+    this.router.events.pipe(
+      filter(e => e instanceof NavigationEnd),
+      takeUntilDestroyed(),
+    ).subscribe(() => this.reload());
+  }
+
+  private reload(): void {
+    this.loading.set(true);
     this.pumpingService.listTickets().subscribe({
       next: tickets => {
         this.tickets.set(tickets);
@@ -281,19 +302,12 @@ export class TicketListPage {
   /**
    * Determina si el usuario puede acceder al detalle de un ticket
    * según su rol y el estado (step) del ticket.
-   *
-   * - Jefe de Base → revision_propuesta
-   * - Supervisor → asignacion, en_ejecucion, en_ejecucion_llegada
-   * - Operador → en_ejecucion, en_ejecucion_llegada
-   *
-   * Todos ven los tickets, pero solo pueden entrar al detalle
-   * de los estados que les corresponden.
+   * Usa el mapa PUMPING_STEP_ROLE para verificar si el rol actual
+   * coincide con el rol responsable del paso.
    */
   protected canViewDetail(row: Record<string, unknown>): boolean {
-    const step = row['step'] as string;
-    if (this.isJefeBase()) return step === 'revision_propuesta';
-    if (this.isSupervisor()) return step === 'asignacion' || step === 'revisar_reportes_salida' || step === 'ejecucion_operativa' || step === 'revisar_reportes_llegada';
-    if (this.isOperador()) return step === 'en_ejecucion' || step === 'en_ejecucion_llegada';
-    return false;
+    const step = row['step'] as PumpingStep;
+    const expectedRole = PUMPING_STEP_ROLE[step];
+    return expectedRole?.roleName === this.roleName();
   }
 }

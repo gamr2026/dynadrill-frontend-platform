@@ -40,17 +40,130 @@
     </div>
   </section>
 
-  <!-- 2. Evidencias y testimonios -->
+  <!-- 2. Datos del trabajador involucrado -->
   <section class="investigacion-detail-page__section">
-    <h3>2. Evidencias y testimonios</h3>
-    <dynadrill-textarea label="Evidencias recopiladas" [value]="evidencias()" (valueChange)="evidencias.set($event)" [rows]="3" />
-    <dynadrill-textarea label="Declaraciones de testigos (resumen)" [value]="testimonios()" (valueChange)="testimonios.set($event)" [rows]="3" />
-    <dynadrill-button variant="secondary" size="small" (click)="guardarEvidencias()">Guardar</dynadrill-button>
+    <h3>2. Datos del trabajador involucrado</h3>
+    <p class="investigacion-detail-page__note">Solo aplica si hubo una persona lesionada — omite esta sección en Near Miss o daño material puro.</p>
+
+    @if (!mostrarTrabajador()) {
+      <dynadrill-button variant="secondary" size="small" (click)="activarTrabajador()">+ Registrar trabajador involucrado</dynadrill-button>
+    } @else {
+      <div class="investigacion-detail-page__grid">
+        <dynadrill-input label="Apellidos y nombres" [value]="trabajador().apellidosNombres" (valueChange)="setTrabajadorField('apellidosNombres', $event)" />
+        <dynadrill-input label="N° de cédula" [value]="trabajador().cedula" (valueChange)="setTrabajadorField('cedula', $event)" />
+        <dynadrill-input label="Dirección" [value]="trabajador().direccion" (valueChange)="setTrabajadorField('direccion', $event)" />
+        <dynadrill-input label="Teléfono" [value]="trabajador().telefono" (valueChange)="setTrabajadorField('telefono', $event)" />
+        <dynadrill-input label="Sexo" [value]="trabajador().sexo ?? ''" (valueChange)="setTrabajadorField('sexo', $event)" />
+        <dynadrill-input label="Cargo" [value]="trabajador().cargo" (valueChange)="setTrabajadorField('cargo', $event)" />
+        <dynadrill-input label="Tipo de vinculación" [value]="trabajador().tipoVinculacion" (valueChange)="setTrabajadorField('tipoVinculacion', $event)" />
+        <dynadrill-input label="Oficio que desempeñaba" [value]="trabajador().oficioDesempenaba" (valueChange)="setTrabajadorField('oficioDesempenaba', $event)" />
+        <dynadrill-input label="Jornada de trabajo habitual" [value]="trabajador().jornadaHabitual" (valueChange)="setTrabajadorField('jornadaHabitual', $event)" />
+        <dynadrill-input
+          label="Tiempo de experiencia en el oficio (meses)"
+          [value]="numToStr(trabajador().tiempoExperienciaMeses)"
+          (valueChange)="setTrabajadorField('tiempoExperienciaMeses', $event ? +$event : undefined)"
+        />
+      </div>
+      <dynadrill-button variant="secondary" size="small" (click)="guardarTrabajador()">Guardar datos del trabajador</dynadrill-button>
+    }
   </section>
 
-  <!-- 3. 5 Porqués -->
+  <!-- 3. Información sobre el incidente -->
   <section class="investigacion-detail-page__section">
-    <h3>3. Metodología 5 Porqués {{ porquesCompleto() ? '✓' : '(mínimo 5 niveles)' }}</h3>
+    <h3>3. Información sobre el incidente o accidente</h3>
+    <div class="investigacion-detail-page__grid">
+      <dynadrill-input label="Empresa donde ocurrió" [value]="detalle().empresaDondeOcurrio ?? ''" (valueChange)="setDetalleField('empresaDondeOcurrio', $event)" />
+      <dynadrill-input label="Dirección donde ocurrió" [value]="detalle().direccionOcurrencia ?? ''" (valueChange)="setDetalleField('direccionOcurrencia', $event)" />
+      <dynadrill-select label="Jornada en que sucede" [options]="jornadaOptions" [value]="detalle().jornadaSuceso ?? null" (valueChange)="setDetalleField('jornadaSuceso', $any($event))" />
+      <dynadrill-select label="Zona" [options]="zonaOptions" [value]="detalle().zona ?? null" (valueChange)="setDetalleField('zona', $any($event))" />
+      <dynadrill-input label="Hora de inicio de la jornada laboral" [value]="detalle().horaInicioJornada ?? ''" (valueChange)="setDetalleField('horaInicioJornada', $event)" />
+      <dynadrill-input label="Tiempo que tardó en recibir atención médica" [value]="detalle().tiempoAtencionMedica ?? ''" (valueChange)="setDetalleField('tiempoAtencionMedica', $event)" />
+      <dynadrill-input label="Centro médico donde recibió la atención" [value]="detalle().centroMedico ?? ''" (valueChange)="setDetalleField('centroMedico', $event)" />
+      <dynadrill-input label="Parte del cuerpo afectada" [value]="detalle().parteCuerpoAfectada ?? ''" (valueChange)="setDetalleField('parteCuerpoAfectada', $event)" />
+      <dynadrill-input label="Tipo de lesión sufrida" [value]="detalle().tipoLesionSufrida ?? ''" (valueChange)="setDetalleField('tipoLesionSufrida', $event)" />
+      <dynadrill-input label="Factor que originó el suceso" [value]="detalle().factorQueOrigino ?? ''" (valueChange)="setDetalleField('factorQueOrigino', $event)" />
+      <dynadrill-input
+        label="Total días de incapacidad"
+        [value]="numToStr(detalle().totalDiasIncapacidad)"
+        (valueChange)="setDetalleField('totalDiasIncapacidad', $event ? +$event : undefined)"
+      />
+      <dynadrill-input label="Daños materiales" [value]="detalle().danosMateriales ?? ''" (valueChange)="setDetalleField('danosMateriales', $event)" />
+      <dynadrill-input
+        label="Total pérdidas económicas ($)"
+        [value]="numToStr(detalle().totalPerdidasEconomicas)"
+        (valueChange)="setDetalleField('totalPerdidasEconomicas', $event ? +$event : undefined)"
+      />
+      <dynadrill-input label="Daños al medio ambiente" [value]="detalle().danosMedioAmbiente ?? ''" (valueChange)="setDetalleField('danosMedioAmbiente', $event)" />
+    </div>
+
+    <div class="investigacion-detail-page__checks">
+      <dynadrill-checkbox label="Causó muerte el accidente" [checked]="!!detalle().causoMuerte" (checkedChange)="setDetalleField('causoMuerte', $event)" />
+      <dynadrill-checkbox label="El oficio ejecutado era propio de su cargo habitual" [checked]="!!detalle().oficioEraPropioDeCargo" (checkedChange)="setDetalleField('oficioEraPropioDeCargo', $event)" />
+      <dynadrill-checkbox label="Se informó oportunamente del suceso" [checked]="!!detalle().seInformoOportunamente" (checkedChange)="setDetalleField('seInformoOportunamente', $event)" />
+      <dynadrill-checkbox label="Continúa incapacitado" [checked]="!!detalle().continuaIncapacitado" (checkedChange)="setDetalleField('continuaIncapacitado', $event)" />
+      <dynadrill-checkbox label="Han ocurrido sucesos similares previos" [checked]="!!detalle().sucesosSimilaresPrevios" (checkedChange)="setDetalleField('sucesosSimilaresPrevios', $event)" />
+    </div>
+    @if (detalle().sucesosSimilaresPrevios) {
+      <dynadrill-textarea label="Detalle de sucesos similares" [value]="detalle().sucesosSimilaresDetalle ?? ''" (valueChange)="setDetalleField('sucesosSimilaresDetalle', $event)" [rows]="2" />
+    }
+
+    <dynadrill-button variant="secondary" size="small" (click)="guardarDetalle()">Guardar información del incidente</dynadrill-button>
+  </section>
+
+  <!-- 4. Evidencias, testimonios y testigos -->
+  <section class="investigacion-detail-page__section">
+    <h3>4. Evidencias, testimonios y testigos</h3>
+    <dynadrill-textarea label="Evidencias recopiladas" [value]="evidencias()" (valueChange)="evidencias.set($event)" [rows]="3" />
+    <dynadrill-textarea label="Descripción detallada del lugar y cómo ocurrió el suceso" [value]="testimonios()" (valueChange)="testimonios.set($event)" [rows]="3" />
+    <dynadrill-button variant="secondary" size="small" (click)="guardarEvidencias()">Guardar</dynadrill-button>
+
+    <div class="investigacion-detail-page__list">
+      @for (t of i.testigos; track t.id) {
+        <div class="investigacion-detail-page__testigo">
+          <strong>{{ t.nombresApellidos }}</strong>
+          <span class="investigacion-detail-page__note">{{ t.cedula || 'sin cédula' }} — {{ t.version || 'sin versión registrada' }}</span>
+        </div>
+      }
+      @if (!i.testigos.length) {
+        <p class="investigacion-detail-page__note">Sin testigos registrados.</p>
+      }
+    </div>
+    @if (i.testigos.length < 3) {
+      <div class="investigacion-detail-page__inline-form">
+        <dynadrill-input label="Testigo — nombres y apellidos" [value]="nuevoTestigo().nombresApellidos" (valueChange)="nuevoTestigo.set({ ...nuevoTestigo(), nombresApellidos: $event })" />
+        <dynadrill-input label="C.C." [value]="nuevoTestigo().cedula" (valueChange)="nuevoTestigo.set({ ...nuevoTestigo(), cedula: $event })" />
+        <dynadrill-input label="Versión" [value]="nuevoTestigo().version" (valueChange)="nuevoTestigo.set({ ...nuevoTestigo(), version: $event })" />
+        <dynadrill-button variant="secondary" [disabled]="!puedeAgregarTestigo()" (click)="agregarTestigo()">+ Agregar testigo</dynadrill-button>
+      </div>
+    }
+  </section>
+
+  <!-- 5. Entorno de trabajo -->
+  <section class="investigacion-detail-page__section">
+    <h3>5. Entorno de trabajo — factores de riesgo presentes en la estación de trabajo</h3>
+    <div class="investigacion-detail-page__list">
+      @for (f of i.entornoTrabajo; track f.id) {
+        <div class="investigacion-detail-page__factor">
+          <strong>{{ f.tipo }}</strong>
+          <span class="investigacion-detail-page__note">Fuente: {{ f.fuente || '—' }} · Control: {{ f.existeControl || '—' }} · Contribuyó al suceso: {{ f.contribuyoAlSuceso || '—' }}</span>
+        </div>
+      }
+      @if (!i.entornoTrabajo.length) {
+        <p class="investigacion-detail-page__note">Sin factores registrados.</p>
+      }
+    </div>
+    <div class="investigacion-detail-page__inline-form">
+      <dynadrill-input label="Tipo" [value]="nuevoFactor().tipo" (valueChange)="nuevoFactor.set({ ...nuevoFactor(), tipo: $event })" />
+      <dynadrill-input label="Fuente" [value]="nuevoFactor().fuente" (valueChange)="nuevoFactor.set({ ...nuevoFactor(), fuente: $event })" />
+      <dynadrill-input label="Existe control (describir)" [value]="nuevoFactor().existeControl" (valueChange)="nuevoFactor.set({ ...nuevoFactor(), existeControl: $event })" />
+      <dynadrill-input label="Contribuyó al suceso" [value]="nuevoFactor().contribuyoAlSuceso" (valueChange)="nuevoFactor.set({ ...nuevoFactor(), contribuyoAlSuceso: $event })" />
+      <dynadrill-button variant="secondary" [disabled]="!puedeAgregarFactor()" (click)="agregarFactor()">+ Agregar factor</dynadrill-button>
+    </div>
+  </section>
+
+  <!-- 6. 5 Porqués -->
+  <section class="investigacion-detail-page__section">
+    <h3>6. Metodología 5 Porqués {{ porquesCompleto() ? '✓' : '(mínimo 5 niveles)' }}</h3>
     @for (p of i.cincoPorques; track $index) {
       <p class="investigacion-detail-page__porque">{{ $index + 1 }}. <strong>{{ p.pregunta }}</strong> — {{ p.respuesta }}</p>
     }
@@ -61,32 +174,61 @@
     </div>
   </section>
 
-  <!-- 4. Ishikawa -->
+  <!-- 7. Ishikawa -->
   <section class="investigacion-detail-page__section">
-    <h3>4. Diagrama de Ishikawa (espina de pescado)</h3>
+    <h3>7. Diagrama de Ishikawa (espina de pescado)</h3>
     @for (cat of ishikawaCategorias; track cat) {
       <dynadrill-textarea [label]="cat" [value]="i.ishikawa[cat]" (valueChange)="actualizarIshikawa(cat, $event)" [rows]="2" />
     }
   </section>
 
-  <!-- 5. Causas raíz y lecciones aprendidas -->
+  <!-- 8. Causas inmediatas, básicas y fuente de gestión -->
   <section class="investigacion-detail-page__section">
-    <h3>5. Causas raíz y lecciones aprendidas</h3>
-    <dynadrill-textarea label="Causas raíz identificadas" [value]="causasRaiz()" (valueChange)="causasRaiz.set($event)" [rows]="3" />
+    <h3>8. Causas inmediatas, básicas y fuente de gestión</h3>
+    <div class="investigacion-detail-page__grid">
+      <dynadrill-textarea label="Actos inseguros" [value]="causas().actosInseguros" (valueChange)="causas.set({ ...causas(), actosInseguros: $event })" [rows]="2" />
+      <dynadrill-textarea label="Condiciones inseguras" [value]="causas().condicionesInseguras" (valueChange)="causas.set({ ...causas(), condicionesInseguras: $event })" [rows]="2" />
+      <dynadrill-textarea label="Factores personales" [value]="causas().factoresPersonales" (valueChange)="causas.set({ ...causas(), factoresPersonales: $event })" [rows]="2" />
+      <dynadrill-textarea label="Factores de trabajo" [value]="causas().factoresTrabajo" (valueChange)="causas.set({ ...causas(), factoresTrabajo: $event })" [rows]="2" />
+    </div>
+    <dynadrill-textarea label="Causas fuente o de gestión" [value]="causas().causasFuenteGestion" (valueChange)="causas.set({ ...causas(), causasFuenteGestion: $event })" [rows]="2" />
     <dynadrill-textarea label="Lecciones aprendidas" [value]="leccionesAprendidas()" (valueChange)="leccionesAprendidas.set($event)" [rows]="3" />
     <dynadrill-button variant="secondary" size="small" (click)="guardarCausas()">Guardar</dynadrill-button>
   </section>
 
-  <!-- 6. Acciones correctivas y preventivas -->
+  <!-- 9. Medidas de intervención -->
   <section class="investigacion-detail-page__section">
-    <h3>6. Acciones correctivas y preventivas</h3>
+    <h3>9. Medidas de intervención (correctivas y preventivas)</h3>
     @for (a of i.acciones; track a.id) {
       <div class="investigacion-detail-page__accion">
-        <div>
+        <div class="investigacion-detail-page__accion-head">
           <strong>{{ a.descripcion }}</strong>
           <span class="investigacion-detail-page__note">{{ accionTipoLabels[a.tipo] }} — {{ a.responsable }} — plazo {{ a.plazo }}</span>
+          <dynadrill-select [options]="accionEstadoOptions" [value]="a.estado" (valueChange)="actualizarEstadoAccion(a, $any($event))" />
         </div>
-        <dynadrill-select [options]="accionEstadoOptions" [value]="a.estado" (valueChange)="actualizarEstadoAccion(a, $any($event))" />
+
+        <div class="investigacion-detail-page__checks investigacion-detail-page__checks--inline">
+          <span class="investigacion-detail-page__note">Control aplicado a:</span>
+          <dynadrill-checkbox label="P/D" [checked]="a.controlAplicadoA.planeacionDiseno" (checkedChange)="toggleControlAplicadoA(a, 'planeacionDiseno')" />
+          <dynadrill-checkbox label="Fuente" [checked]="a.controlAplicadoA.fuente" (checkedChange)="toggleControlAplicadoA(a, 'fuente')" />
+          <dynadrill-checkbox label="Medio" [checked]="a.controlAplicadoA.medio" (checkedChange)="toggleControlAplicadoA(a, 'medio')" />
+          <dynadrill-checkbox label="Trabajador" [checked]="a.controlAplicadoA.trabajador" (checkedChange)="toggleControlAplicadoA(a, 'trabajador')" />
+        </div>
+
+        @if (a.estado === 'implementada' || a.estado === 'verificada') {
+          @if (a.fueEficaz == null) {
+            <div class="investigacion-detail-page__inline-form">
+              <span class="investigacion-detail-page__note">Verificación de eficacia (a los 3 meses):</span>
+              <dynadrill-button variant="success" size="small" (click)="verificarAccion(a, true)">Fue eficaz</dynadrill-button>
+              <dynadrill-button variant="error" size="small" (click)="verificarAccion(a, false)">No fue eficaz</dynadrill-button>
+            </div>
+          } @else {
+            <dynadrill-tag
+              [label]="(a.fueEficaz ? 'Eficaz' : 'No eficaz') + ' — verificado por ' + a.verificadoPor"
+              [variant]="a.fueEficaz ? 'success' : 'error'"
+            />
+          }
+        }
       </div>
     }
     <div class="investigacion-detail-page__inline-form">
@@ -98,9 +240,9 @@
     </div>
   </section>
 
-  <!-- 7. Notificación legal -->
+  <!-- 10. Notificación legal -->
   <section class="investigacion-detail-page__section">
-    <h3>7. Notificación legal (Ministerio del Trabajo / IESS — plazo 24h)</h3>
+    <h3>10. Notificación legal (Ministerio del Trabajo / IESS — plazo 24h)</h3>
     @if (sugiereLegal()) {
       <dynadrill-banner variant="warning" message="Clasificación sugiere notificación obligatoria — confirma con el equipo legal si aplica." />
     }
@@ -118,9 +260,9 @@
     </div>
   </section>
 
-  <!-- 8. Retroalimentación a IPERC -->
+  <!-- 11. Retroalimentación a IPERC -->
   <section class="investigacion-detail-page__section">
-    <h3>8. Retroalimentación a IPERC (HSE-MASTER-001)</h3>
+    <h3>11. Retroalimentación a IPERC (HSE-MASTER-001)</h3>
     @if (i.ipercActualizadoId) {
       <dynadrill-tag label="Matriz IPERC marcada para revisión" variant="info" />
     } @else {
@@ -128,15 +270,25 @@
     }
   </section>
 
-  <!-- 9. Cierre -->
+  <!-- 12. Conclusión -->
   <section class="investigacion-detail-page__section">
-    <h3>9. Cierre del informe</h3>
+    <h3>12. Conclusión del evento</h3>
+    @if (i.conclusion) {
+      <dynadrill-tag [label]="conclusionLabels[i.conclusion]" [variant]="i.conclusion === 'accidente' ? 'warning' : 'success'" />
+    } @else {
+      <dynadrill-select label="¿Incidente o accidente?" [options]="conclusionOptions" (valueChange)="seleccionarConclusion($any($event))" />
+    }
+  </section>
+
+  <!-- 13. Cierre -->
+  <section class="investigacion-detail-page__section">
+    <h3>13. Cierre del informe</h3>
     @if (i.estado === 'cerrada') {
       <dynadrill-tag [label]="'Cerrada por ' + i.informeAprobadoPorNombre + ' — ' + (i.cerradaAt | date: 'short')" variant="success" />
     } @else {
       @if (!puedeCerrar()) {
         <p class="investigacion-detail-page__note">
-          Para cerrar: completa 5 Porqués (mín. 5 niveles), causas raíz, al menos una acción y que todas estén verificadas, y lecciones aprendidas.
+          Para cerrar: completa 5 Porqués (mín. 5 niveles), al menos una causa, al menos una acción y que todas estén verificadas, lecciones aprendidas, y la conclusión (incidente/accidente).
         </p>
       }
       <dynadrill-button variant="error" [disabled]="!puedeCerrar()" (click)="cerrar()">Cerrar investigación</dynadrill-button>

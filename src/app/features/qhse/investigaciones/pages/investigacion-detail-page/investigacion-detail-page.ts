@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
+  DynadrillCheckboxComponent,
   DynadrillContextCardComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
@@ -23,20 +24,34 @@ import {
   AccionTipo,
   accionesPendientes,
   cincoPorquesCompleto,
+  CONCLUSION_LABELS,
+  DEFAULT_CAUSAS,
+  DetalleIncidente,
+  EntornoTrabajoFactor,
   INCIDENTE_RESULTADO_LABELS,
   Investigacion,
+  InvestigacionConclusion,
   ISHIKAWA_CATEGORIAS,
   IshikawaCategoria,
   plazoFinalVencido,
   plazoInicioVencido,
   PorQueEntry,
   sugiereNotificacionLegal,
+  Testigo,
+  TrabajadorInvolucrado,
 } from '../../models/investigacion.model';
 import { InvestigacionService } from '../../services/investigacion.service';
 import { IpercMatrix } from '../../../iperc/models/iperc.model';
 import { IpercService } from '../../../iperc/services/iperc.service';
 
-/** HSE-TRIAGE-002 — investigación completa: clasificación, 5 Porqués, Ishikawa, acciones correctivas, notificación legal y retroalimentación a IPERC. */
+/**
+ * HSE-TRIAGE-002 — investigación completa, alineada al formato físico
+ * DYN-SGI-RE-034: datos del trabajador, información del incidente,
+ * testigos, entorno de trabajo, 5 Porqués, Ishikawa, causas (inmediatas/
+ * básicas/fuente), acciones con jerarquía de control (P/D-F-M-T) y
+ * verificación de eficacia, notificación legal, conclusión
+ * (incidente/accidente) y retroalimentación a IPERC.
+ */
 @Component({
   selector: 'app-investigacion-detail-page',
   imports: [
@@ -49,6 +64,7 @@ import { IpercService } from '../../../iperc/services/iperc.service';
     DynadrillTextareaComponent,
     DynadrillSelectComponent,
     DynadrillTagComponent,
+    DynadrillCheckboxComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './investigacion-detail-page.html',
@@ -66,6 +82,7 @@ export class InvestigacionDetailPage {
   protected readonly accionTipoLabels = ACCION_TIPO_LABELS;
   protected readonly accionEstadoLabels = ACCION_ESTADO_LABELS;
   protected readonly ishikawaCategorias = ISHIKAWA_CATEGORIAS;
+  protected readonly conclusionLabels = CONCLUSION_LABELS;
 
   protected readonly accionTipoOptions: DynadrillSelectOption[] = (['correctiva', 'preventiva'] as AccionTipo[]).map(t => ({
     label: ACCION_TIPO_LABELS[t],
@@ -75,6 +92,22 @@ export class InvestigacionDetailPage {
   protected readonly accionEstadoOptions: DynadrillSelectOption[] = (['pendiente', 'implementada', 'verificada'] as AccionEstado[]).map(e => ({
     label: ACCION_ESTADO_LABELS[e],
     value: e,
+  }));
+
+  protected readonly jornadaOptions: DynadrillSelectOption[] = [
+    { label: 'Ordinaria', value: 'ordinaria' },
+    { label: 'Extra', value: 'extra' },
+    { label: 'Suplementaria', value: 'suplementaria' },
+  ];
+
+  protected readonly zonaOptions: DynadrillSelectOption[] = [
+    { label: 'Rural', value: 'rural' },
+    { label: 'Urbana', value: 'urbana' },
+  ];
+
+  protected readonly conclusionOptions: DynadrillSelectOption[] = (['incidente', 'accidente'] as InvestigacionConclusion[]).map(c => ({
+    label: CONCLUSION_LABELS[c],
+    value: c,
   }));
 
   protected readonly loading = signal(true);
@@ -87,11 +120,25 @@ export class InvestigacionDetailPage {
 
   // ── Formularios locales ──
   protected readonly nuevoIntegrante = signal('');
+  protected readonly mostrarTrabajador = signal(false);
+  protected readonly trabajador = signal<TrabajadorInvolucrado>({
+    apellidosNombres: '',
+    cedula: '',
+    direccion: '',
+    telefono: '',
+    cargo: '',
+    tipoVinculacion: '',
+    oficioDesempenaba: '',
+    jornadaHabitual: '',
+  });
+  protected readonly detalle = signal<DetalleIncidente>({});
   protected readonly evidencias = signal('');
   protected readonly testimonios = signal('');
+  protected readonly nuevoTestigo = signal<Omit<Testigo, 'id'>>({ nombresApellidos: '', cedula: '', version: '' });
+  protected readonly nuevoFactor = signal<Omit<EntornoTrabajoFactor, 'id'>>({ tipo: '', fuente: '', existeControl: '', contribuyoAlSuceso: '' });
   protected readonly nuevaPregunta = signal('');
   protected readonly nuevaRespuesta = signal('');
-  protected readonly causasRaiz = signal('');
+  protected readonly causas = signal(DEFAULT_CAUSAS);
   protected readonly leccionesAprendidas = signal('');
   protected readonly nuevaAccionDescripcion = signal('');
   protected readonly nuevaAccionTipo = signal<AccionTipo>('correctiva');
@@ -125,15 +172,22 @@ export class InvestigacionDetailPage {
     return !!i && cincoPorquesCompleto(i.cincoPorques);
   });
 
+  private causasCompleto(): boolean {
+    const c = this.investigacion()?.causas;
+    if (!c) return false;
+    return !!(c.actosInseguros.trim() || c.condicionesInseguras.trim() || c.factoresPersonales.trim() || c.factoresTrabajo.trim() || c.causasFuenteGestion.trim());
+  }
+
   protected readonly puedeCerrar = computed(() => {
     const i = this.investigacion();
     if (!i) return false;
     return (
       this.porquesCompleto() &&
-      i.causasRaiz.trim().length > 0 &&
+      this.causasCompleto() &&
       i.acciones.length > 0 &&
       accionesPendientes(i.acciones) === 0 &&
-      i.leccionesAprendidas.trim().length > 0
+      i.leccionesAprendidas.trim().length > 0 &&
+      i.conclusion != null
     );
   });
 
@@ -144,8 +198,13 @@ export class InvestigacionDetailPage {
         this.investigacion.set(inv);
         this.evidencias.set(inv.evidenciasRecopiladas);
         this.testimonios.set(inv.testimoniosResumen);
-        this.causasRaiz.set(inv.causasRaiz);
+        this.causas.set(inv.causas);
         this.leccionesAprendidas.set(inv.leccionesAprendidas);
+        this.detalle.set(inv.detalle);
+        if (inv.trabajador) {
+          this.trabajador.set(inv.trabajador);
+          this.mostrarTrabajador.set(true);
+        }
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
@@ -174,11 +233,67 @@ export class InvestigacionDetailPage {
     this.nuevoIntegrante.set('');
   }
 
-  // ── Evidencias y testimonios ──
+  // ── Datos del trabajador involucrado ──
+
+  protected activarTrabajador(): void {
+    this.mostrarTrabajador.set(true);
+  }
+
+  protected guardarTrabajador(): void {
+    this.patch({ trabajador: this.trabajador() });
+    this.notify.success('Guardado', 'Datos del trabajador involucrado actualizados.');
+  }
+
+  protected setTrabajadorField<K extends keyof TrabajadorInvolucrado>(field: K, value: TrabajadorInvolucrado[K]): void {
+    this.trabajador.update(t => ({ ...t, [field]: value }));
+  }
+
+  /** Los templates de Angular no resuelven `String(...)` como global — de acá salen los inputs numéricos opcionales. */
+  protected numToStr(n: number | undefined): string {
+    return n != null ? String(n) : '';
+  }
+
+  // ── Información sobre el incidente ──
+
+  protected setDetalleField<K extends keyof DetalleIncidente>(field: K, value: DetalleIncidente[K]): void {
+    this.detalle.update(d => ({ ...d, [field]: value }));
+  }
+
+  protected guardarDetalle(): void {
+    this.patch({ detalle: this.detalle() });
+    this.notify.success('Guardado', 'Información del incidente actualizada.');
+  }
+
+  // ── Evidencias, testimonios y testigos ──
 
   protected guardarEvidencias(): void {
     this.patch({ evidenciasRecopiladas: this.evidencias(), testimoniosResumen: this.testimonios() });
     this.notify.success('Guardado', 'Evidencias y testimonios actualizados.');
+  }
+
+  protected readonly puedeAgregarTestigo = computed(() => {
+    const t = this.nuevoTestigo();
+    return t.nombresApellidos.trim().length > 0 && (this.investigacion()?.testigos.length ?? 0) < 3;
+  });
+
+  protected agregarTestigo(): void {
+    const i = this.investigacion();
+    if (!i || !this.puedeAgregarTestigo()) return;
+    const testigo: Testigo = { id: Date.now(), ...this.nuevoTestigo() };
+    this.patch({ testigos: [...i.testigos, testigo] });
+    this.nuevoTestigo.set({ nombresApellidos: '', cedula: '', version: '' });
+  }
+
+  // ── Entorno de trabajo ──
+
+  protected readonly puedeAgregarFactor = computed(() => this.nuevoFactor().tipo.trim().length > 0);
+
+  protected agregarFactor(): void {
+    const i = this.investigacion();
+    if (!i || !this.puedeAgregarFactor()) return;
+    const factor: EntornoTrabajoFactor = { id: Date.now(), ...this.nuevoFactor() };
+    this.patch({ entornoTrabajo: [...i.entornoTrabajo, factor] });
+    this.nuevoFactor.set({ tipo: '', fuente: '', existeControl: '', contribuyoAlSuceso: '' });
   }
 
   // ── 5 Porqués ──
@@ -202,11 +317,11 @@ export class InvestigacionDetailPage {
     this.patch({ ishikawa: { ...i.ishikawa, [categoria]: valor } });
   }
 
-  // ── Causas raíz y lecciones aprendidas ──
+  // ── Causas (inmediatas/básicas/fuente) y lecciones aprendidas ──
 
   protected guardarCausas(): void {
-    this.patch({ causasRaiz: this.causasRaiz(), leccionesAprendidas: this.leccionesAprendidas() });
-    this.notify.success('Guardado', 'Causas raíz y lecciones aprendidas actualizadas.');
+    this.patch({ causas: this.causas(), leccionesAprendidas: this.leccionesAprendidas() });
+    this.notify.success('Guardado', 'Causas y lecciones aprendidas actualizadas.');
   }
 
   // ── Acciones correctivas/preventivas ──
@@ -225,6 +340,7 @@ export class InvestigacionDetailPage {
       responsable: this.nuevaAccionResponsable().trim(),
       plazo: this.nuevaAccionPlazo(),
       estado: 'pendiente',
+      controlAplicadoA: { planeacionDiseno: false, fuente: false, medio: false, trabajador: false },
     };
     this.patch({ acciones: [...i.acciones, nueva] });
     this.nuevaAccionDescripcion.set('');
@@ -236,6 +352,26 @@ export class InvestigacionDetailPage {
     const i = this.investigacion();
     if (!i) return;
     const acciones = i.acciones.map(a => (a.id === accion.id ? { ...a, estado } : a));
+    this.patch({ acciones });
+  }
+
+  protected toggleControlAplicadoA(accion: AccionCorrectiva, campo: keyof AccionCorrectiva['controlAplicadoA']): void {
+    const i = this.investigacion();
+    if (!i) return;
+    const acciones = i.acciones.map(a =>
+      a.id === accion.id ? { ...a, controlAplicadoA: { ...a.controlAplicadoA, [campo]: !a.controlAplicadoA[campo] } } : a,
+    );
+    this.patch({ acciones });
+  }
+
+  protected verificarAccion(accion: AccionCorrectiva, fueEficaz: boolean): void {
+    const i = this.investigacion();
+    if (!i) return;
+    const acciones = i.acciones.map(a =>
+      a.id === accion.id
+        ? { ...a, fueEficaz, fechaVerificacion: new Date().toISOString(), verificadoPor: this.auth.currentUser()?.name ?? '' }
+        : a,
+    );
     this.patch({ acciones });
   }
 
@@ -262,6 +398,12 @@ export class InvestigacionDetailPage {
 
   protected seleccionarIperc(ipercActualizadoId: number): void {
     this.patch({ ipercActualizadoId });
+  }
+
+  // ── Conclusión ──
+
+  protected seleccionarConclusion(conclusion: InvestigacionConclusion): void {
+    this.patch({ conclusion });
   }
 
   // ── Cierre ──

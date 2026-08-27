@@ -1,0 +1,13 @@
+<div class="investigacion-dialog">
+  <dynadrill-select label="Clasificación" placeholder="Selecciona una clasificación" [options]="resultadoOptions" (valueChange)="resultado.set($any($event))" />
+  <dynadrill-textarea label="Descripción del evento" [value]="descripcionEvento()" (valueChange)="descripcionEvento.set($event)" [rows]="3" />
+  <dynadrill-datetime-picker label="Fecha del incidente" placeholder="Selecciona la fecha" [value]="$any(fechaIncidente())" [showToday]="true" (valueChange)="fechaIncidente.set($event)" />
+  <dynadrill-input label="Ubicación" [value]="ubicacion()" (valueChange)="ubicacion.set($event)" />
+
+  <div class="investigacion-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">
+      {{ submitting() ? 'Abriendo…' : 'Abrir investigación' }}
+    </dynadrill-button>
+  </div>
+</div>

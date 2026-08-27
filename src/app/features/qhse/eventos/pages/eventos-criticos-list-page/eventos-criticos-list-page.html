@@ -130,6 +130,9 @@
   }
 
   @case ('investigaciones') {
+    <div class="eventos-criticos-list-page__toolbar">
+      <dynadrill-button (clicked)="nuevaInvestigacion()">+ Nueva investigación</dynadrill-button>
+    </div>
     <dynadrill-kpi-row [items]="investigacionKpis()" />
     <div class="eventos-criticos-list-page__grid">
       @for (i of investigacionVisible(); track i.id) {

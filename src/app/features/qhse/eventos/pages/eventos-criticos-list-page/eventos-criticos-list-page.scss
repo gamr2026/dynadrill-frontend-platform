@@ -4,6 +4,11 @@
   gap: 16px;
 }
 
+.eventos-criticos-list-page__toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .eventos-criticos-list-page__filtros {
   display: flex;
   flex-wrap: wrap;

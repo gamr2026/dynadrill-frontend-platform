@@ -94,6 +94,9 @@
   }
 
   dt {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     color: var(--text-muted, #5c5870);
   }
 

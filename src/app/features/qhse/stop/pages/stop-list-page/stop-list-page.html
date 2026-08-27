@@ -24,9 +24,9 @@
           <dynadrill-tag card-extra [label]="c.resumenLabel" [variant]="c.accent" />
 
           <dl class="stop-list-page__meta">
-            <div><dt>Locación</dt><dd>{{ c.locacion }}</dd></div>
-            <div><dt>Observador</dt><dd>{{ c.observadorNombre }}</dd></div>
-            <div><dt>Fecha</dt><dd>{{ c.fecha }}</dd></div>
+            <div><dt><dynadrill-icon name="location" [size]="14" />Locación</dt><dd>{{ c.locacion }}</dd></div>
+            <div><dt><dynadrill-icon name="users" [size]="14" />Observador</dt><dd>{{ c.observadorNombre }}</dd></div>
+            <div><dt><dynadrill-icon name="calendar" [size]="14" />Fecha</dt><dd>{{ c.fecha }}</dd></div>
           </dl>
 
           <dynadrill-button variant="secondary" size="small" (clicked)="verDetalle(c.id)">Ver detalle</dynadrill-button>

@@ -28,9 +28,9 @@
             </div>
           }
           <dl class="eventos-criticos-list-page__meta">
-            <div><dt>Ubicación</dt><dd>{{ c.ubicacion }}</dd></div>
-            <div><dt>Activado por</dt><dd>{{ c.activadoPorNombre }}</dd></div>
-            <div><dt>Fecha/hora</dt><dd>{{ c.activadoAt }}</dd></div>
+            <div><dt><dynadrill-icon name="location" [size]="14" />Ubicación</dt><dd>{{ c.ubicacion }}</dd></div>
+            <div><dt><dynadrill-icon name="users" [size]="14" />Activado por</dt><dd>{{ c.activadoPorNombre }}</dd></div>
+            <div><dt><dynadrill-icon name="calendar" [size]="14" />Fecha/hora</dt><dd>{{ c.activadoAt }}</dd></div>
           </dl>
 
           <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(c.id)">Ver detalle</dynadrill-button>
@@ -68,9 +68,9 @@
             </div>
           }
           <dl class="eventos-criticos-list-page__meta">
-            <div><dt>Volumen</dt><dd>{{ c.volumenLabel }}</dd></div>
-            <div><dt>Ubicación</dt><dd>{{ c.ubicacion }}</dd></div>
-            <div><dt>Fecha/hora</dt><dd>{{ c.activadoAt }}</dd></div>
+            <div><dt><dynadrill-icon name="box" [size]="14" />Volumen</dt><dd>{{ c.volumenLabel }}</dd></div>
+            <div><dt><dynadrill-icon name="location" [size]="14" />Ubicación</dt><dd>{{ c.ubicacion }}</dd></div>
+            <div><dt><dynadrill-icon name="calendar" [size]="14" />Fecha/hora</dt><dd>{{ c.activadoAt }}</dd></div>
           </dl>
 
           <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(c.id)">Ver detalle</dynadrill-button>
@@ -101,8 +101,8 @@
             <dynadrill-tag [label]="e.nivelLabel" variant="neutral" />
           </div>
           <dl class="eventos-criticos-list-page__meta">
-            <div><dt>Ubicación</dt><dd>{{ e.ubicacion }}</dd></div>
-            <div><dt>Fecha/hora</dt><dd>{{ e.activadoAt }}</dd></div>
+            <div><dt><dynadrill-icon name="location" [size]="14" />Ubicación</dt><dd>{{ e.ubicacion }}</dd></div>
+            <div><dt><dynadrill-icon name="calendar" [size]="14" />Fecha/hora</dt><dd>{{ e.activadoAt }}</dd></div>
           </dl>
 
           @if (e.flashSegundosRestantes !== null) {
@@ -148,8 +148,8 @@
             <dynadrill-tag [label]="i.plazoLabel" [variant]="i.accent" />
           </div>
           <dl class="eventos-criticos-list-page__meta">
-            <div><dt>Ubicación</dt><dd>{{ i.ubicacion }}</dd></div>
-            <div><dt>Fecha del incidente</dt><dd>{{ i.fechaIncidente }}</dd></div>
+            <div><dt><dynadrill-icon name="location" [size]="14" />Ubicación</dt><dd>{{ i.ubicacion }}</dd></div>
+            <div><dt><dynadrill-icon name="calendar" [size]="14" />Fecha del incidente</dt><dd>{{ i.fechaIncidente }}</dd></div>
           </dl>
 
           <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(i.id)">Ver detalle</dynadrill-button>

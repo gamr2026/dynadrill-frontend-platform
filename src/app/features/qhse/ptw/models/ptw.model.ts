@@ -143,6 +143,13 @@ export interface PtwMatrix {
   // Fase 3: Verificaciones
   gasReadings: PtwGasReading[];
   lotoChecklist: { label: string; checked: boolean }[];
+  /**
+   * HSE-SITIO-001, "Funcionalidades Requeridas": "Notificación al cliente
+   * cuando se completa LOTO". Se dispara sola apenas el checklist queda
+   * 100% marcado — no hay integración real de envío, así que esto solo
+   * deja constancia de que la notificación (simulada) se disparó.
+   */
+  lotoNotificadoClienteAt?: string;
 
   // Fase 4: Formalización
   ptwFirmadoSitio?: PtwFirma;
@@ -158,6 +165,12 @@ export interface PtwMatrix {
   // Fase 6: Gestión documental final
   ptwCerrado?: PtwFirma;
   actaDevolucionFirmada?: PtwFirma;
+  /**
+   * HSE-SITIO-001: "Envío automático de respaldos a stakeholders" — ya no
+   * es un botón manual. Se dispara solo apenas quedan las dos firmas de
+   * cierre (ptwCerrado + actaDevolucionFirmada), simulando el envío a HSE
+   * Base + Operaciones + Facturación.
+   */
   respaldosEnviados: boolean;
 
   createdAt: string;

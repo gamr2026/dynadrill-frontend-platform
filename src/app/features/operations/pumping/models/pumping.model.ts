@@ -53,6 +53,22 @@ export const PUMPING_STEP_LABELS: Record<PumpingStep, string> = {
   en_revision: 'En revisión',
 };
 
+/**
+ * Mapeo de cada paso del ticket al rol responsable y su roleId.
+ * Usado para cambiar automáticamente de rol en la demo al avanzar el paso.
+ */
+export const PUMPING_STEP_ROLE: Record<PumpingStep, { roleName: string; roleId: number }> = {
+  revision_propuesta: { roleName: 'Jefe de Base', roleId: 4 },
+  asignacion: { roleName: 'Supervisor', roleId: 1 },
+  en_ejecucion: { roleName: 'Operador', roleId: 2 },
+  revisar_reportes_salida: { roleName: 'Supervisor', roleId: 1 },
+  ejecucion_operativa: { roleName: 'Supervisor', roleId: 1 },
+  en_ejecucion_llegada: { roleName: 'Operador', roleId: 2 },
+  mantenimiento: { roleName: 'Supervisor', roleId: 1 },
+  revisar_reportes_llegada: { roleName: 'Supervisor', roleId: 1 },
+  en_revision: { roleName: 'Supervisor', roleId: 1 },
+};
+
 // ── Entidades del dominio ──
 
 export interface PumpingChemical {

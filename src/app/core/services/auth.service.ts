@@ -38,6 +38,19 @@ export class AuthService {
     this.setSession(null, null);
   }
 
+  /**
+   * Cambia el rol del usuario actual sin cerrar sesión ni recargar.
+   * Usado para demo: al avanzar un paso en pumping, se cambia al rol
+   * que corresponde al siguiente paso.
+   */
+  switchRole(roleName: string, roleId: number): void {
+    const current = this.user();
+    if (!current) return;
+    const updated: AuthenticatedUser = { ...current, roleName, roleId };
+    this.user.set(updated);
+    localStorage.setItem(USER_KEY, JSON.stringify(updated));
+  }
+
   getToken(): string | null {
     return this.token();
   }

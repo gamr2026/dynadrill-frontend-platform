@@ -26,6 +26,7 @@ import {
   PumpingUnitReport,
   PUMPING_SERVICE_TYPE_LABELS,
   PUMPING_STEP_LABELS,
+  PUMPING_STEP_ROLE,
   createChassisInspectionItems,
   createMotorInspectionItems,
   createArrivalEquipmentItems,
@@ -54,6 +55,7 @@ import { DailyActivityReportDialog, DailyActivityReportDialogData, DailyActivity
 import { MaintenanceOrdersService } from '../../../../maintenance/services/maintenance-orders.service';
 import { MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../../../../maintenance/models/maintenance-order.model';
 import { SuborderDetailDialog, SuborderDetailDialogData } from '../../../../maintenance/components/suborder-detail-dialog';
+import { SuborderReviewDialog, SuborderReviewDialogData } from '../../../../maintenance/components/suborder-review-dialog';
 import { forkJoin, map } from 'rxjs';
 
 /** Genera una inspección mock de ejemplo para ver detalle en llegada */
@@ -722,11 +724,15 @@ export class TicketDetailPage {
     const t = this.ticket();
     if (!t) return;
     this.submitting.set(true);
-    this.pumpingService.advanceStep(t.id, 'en_ejecucion_llegada').subscribe({
+    const nextStep: PumpingStep = 'ejecucion_operativa';
+    this.pumpingService.advanceStep(t.id, nextStep).subscribe({
       next: updated => {
         this.ticket.set(updated);
         this.submitting.set(false);
-        this.notify.success('Aprobado', 'Todos los reportes de salida han sido aprobados. Avanza a En ejecución (Llegada).');
+        const nextRole = PUMPING_STEP_ROLE[nextStep];
+        this.auth.switchRole(nextRole.roleName, nextRole.roleId);
+        this.notify.success('Aprobado', `Reportes de salida aprobados. Ahora actúa como ${nextRole.roleName}.`);
+        this.router.navigate(['..'], { relativeTo: this.route });
       },
       error: () => {
         this.submitting.set(false);
@@ -739,11 +745,15 @@ export class TicketDetailPage {
     const t = this.ticket();
     if (!t) return;
     this.submitting.set(true);
-    this.pumpingService.advanceStep(t.id, 'en_revision').subscribe({
+    const nextStep: PumpingStep = 'en_revision';
+    this.pumpingService.advanceStep(t.id, nextStep).subscribe({
       next: updated => {
         this.ticket.set(updated);
         this.submitting.set(false);
-        this.notify.success('Aprobado', 'Todos los reportes de llegada han sido aprobados.');
+        const nextRole = PUMPING_STEP_ROLE[nextStep];
+        this.auth.switchRole(nextRole.roleName, nextRole.roleId);
+        this.notify.success('Aprobado', `Reportes de llegada aprobados. Ahora actúa como ${nextRole.roleName}.`);
+        this.router.navigate(['..'], { relativeTo: this.route });
       },
       error: () => {
         this.submitting.set(false);
@@ -764,7 +774,7 @@ export class TicketDetailPage {
     { key: 'statusBadge', header: 'Estado', type: 'badge' },
   ];
 
-  /** Generates rows for each day from departure date to today */
+  /** Generates rows for each day from departure date to today (max 3 days for demo) */
   protected readonly dailyReportDayRows = computed(() => {
     const t = this.ticket();
     if (!t) return [];
@@ -772,9 +782,15 @@ export class TicketDetailPage {
     const startDate = t.unitReport?.departureDate || t.estimatedDate;
     if (!startDate) return [];
 
-    const start = new Date(startDate + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    // Use the later of: departure date or 2 days ago (keeps demo manageable)
+    const departure = new Date(startDate + 'T00:00:00');
+    const twoDaysAgo = new Date(today);
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    const start = departure > twoDaysAgo ? departure : twoDaysAgo;
+
     const days: { id: number; dia: string; fecha: string; statusBadge: { text: string; tone: 'success' | 'warning' } }[] = [];
 
     let current = new Date(start);
@@ -843,11 +859,15 @@ export class TicketDetailPage {
     const t = this.ticket();
     if (!t) return;
     this.submitting.set(true);
-    this.pumpingService.advanceStep(t.id, 'en_ejecucion_llegada').subscribe({
+    const nextStep: PumpingStep = 'en_ejecucion_llegada';
+    this.pumpingService.advanceStep(t.id, nextStep).subscribe({
       next: updated => {
         this.ticket.set(updated);
         this.submitting.set(false);
-        this.notify.success('Avanzado', 'El ticket avanza a En ejecución (Llegada).');
+        const nextRole = PUMPING_STEP_ROLE[nextStep];
+        this.auth.switchRole(nextRole.roleName, nextRole.roleId);
+        this.notify.success('Avanzado', `El ticket avanza a En ejecución (Llegada). Ahora actúa como ${nextRole.roleName}.`);
+        this.router.navigate(['..'], { relativeTo: this.route });
       },
       error: () => {
         this.submitting.set(false);
@@ -871,18 +891,12 @@ export class TicketDetailPage {
   protected readonly personnelRows = computed(() => {
     const t = this.ticket();
     if (!t) return [];
-    const currentUser = this.auth.currentUser();
-    const rows = t.operators.map(op => ({
+    return t.operators.map(op => ({
       id: op.id,
       name: op.name,
       role: op.role,
       unitCode: op.unitCode,
     }));
-    // Si es operador, solo muestra su propia fila
-    if (this.isOperador() && currentUser) {
-      return rows.filter(r => r.name === currentUser.name);
-    }
-    return rows;
   });
 
   // Trackeo de inspecciones realizadas por operador (id -> VehicleInspection)
@@ -913,6 +927,8 @@ export class TicketDetailPage {
   protected readonly reportFuelArrival = signal('');
   protected readonly reportOrigin = signal('');
   protected readonly reportDestination = signal('');
+  protected readonly hubodometroDestinoSalida = signal('');
+  protected readonly hubodometroDestinoLlegada = signal('');
 
   // Neumáticos (encabezados A/B/C/D, filas Salida/Llegada)
   protected readonly tires = signal<TireEntry[]>([
@@ -922,21 +938,11 @@ export class TicketDetailPage {
     { axle: 'D', salida: '', llegada: '' },
   ]);
 
-  protected readonly tireColumns: DynadrillDataTableColumn[] = [
-    { key: 'rowLabel', header: '' },
-    { key: 'A', header: 'A' },
-    { key: 'B', header: 'B' },
-    { key: 'C', header: 'C' },
-    { key: 'D', header: 'D' },
-  ];
-
-  protected readonly tireRows = computed(() => {
-    const t = this.tires();
-    return [
-      { rowLabel: 'Salida', A: t[0].salida || '—', B: t[1].salida || '—', C: t[2].salida || '—', D: t[3].salida || '—' },
-      { rowLabel: 'Llegada', A: t[0].llegada || '—', B: t[1].llegada || '—', C: t[2].llegada || '—', D: t[3].llegada || '—' },
-    ];
-  });
+  protected updateTire(index: number, field: 'salida' | 'llegada', value: string): void {
+    this.tires.update(tires =>
+      tires.map((t, i) => i === index ? { ...t, [field]: value } : t),
+    );
+  }
 
   // Hubodómetro (con Origen/Destino en la mitad)
   protected readonly hubodometro = signal<HubodometroEntry[]>([
@@ -946,24 +952,30 @@ export class TicketDetailPage {
     { label: 'D', salida: null, llegada: null },
   ]);
 
-  protected readonly hubodometroColumns: DynadrillDataTableColumn[] = [
-    { key: 'salida', header: 'Salida' },
-    { key: 'centro', header: '' },
-    { key: 'llegada', header: 'Llegada' },
-  ];
+  protected updateHubodometro(index: number, field: 'salida' | 'llegada', value: string): void {
+    this.hubodometro.update(entries =>
+      entries.map((h, i) => i === index ? { ...h, [field]: value ? Number(value) : null } : h),
+    );
+  }
 
-  protected readonly hubodometroRows = computed(() => [
-    {
-      salida: this.hubodometro().map(h => h.salida ?? '—').join(' / '),
-      centro: 'Origen',
-      llegada: this.hubodometro().map(h => h.llegada ?? '—').join(' / '),
-    },
-    {
-      salida: '',
-      centro: 'Destino',
-      llegada: '',
-    },
-  ]);
+  protected readonly hubodometroSalidaText = computed(() =>
+    this.hubodometro().map(h => h.salida ?? '—').join(' / '),
+  );
+
+  protected readonly hubodometroLlegadaText = computed(() =>
+    this.hubodometro().map(h => h.llegada ?? '—').join(' / '),
+  );
+
+  protected parseHubodometroText(field: 'salida' | 'llegada', text: string): void {
+    const parts = text.split('/').map(s => s.trim());
+    this.hubodometro.update(entries =>
+      entries.map((h, i) => {
+        const raw = parts[i];
+        const val = raw && raw !== '—' && raw !== '' ? Number(raw) : null;
+        return { ...h, [field]: isNaN(val as number) ? null : val };
+      }),
+    );
+  }
 
   // Secciones de inspección
   protected readonly chassisItems = signal<DynadrillInspectionItem[]>(createChassisInspectionItems());
@@ -1095,10 +1107,10 @@ export class TicketDetailPage {
 
   private canAccessStep(step: PumpingStep): boolean {
     const role = this.roleName();
-    if (role === 'Jefe de Base') return step === 'revision_propuesta';
-    if (role === 'Supervisor') return step === 'asignacion' || step === 'revisar_reportes_salida' || step === 'ejecucion_operativa' || step === 'mantenimiento' || step === 'revisar_reportes_llegada';
-    if (role === 'Operador') return step === 'en_ejecucion' || step === 'en_ejecucion_llegada';
-    return false;
+    const expectedRole = PUMPING_STEP_ROLE[step];
+    // Allow access if the user has the correct role for this step
+    // (auto-switching ensures this in the demo flow)
+    return role === expectedRole.roleName;
   }
 
   // ══════════════════════════════════════════════
@@ -1139,15 +1151,17 @@ export class TicketDetailPage {
 
   protected reviewOperativoMaintenance(sub: SubOrder): void {
     const order = this.maintenanceOrders().find(o => o.subOrders.some(s => s.id === sub.id));
-    const unitReports = this.unitReportsService.list();
-    unitReports.subscribe(reports => {
+    this.unitReportsService.list().subscribe(reports => {
       const report = order ? reports.find(r => r.id === order.unitReportId) : undefined;
       const novedadOriginal = report?.problemasOperaciones || '';
-      this.dialog.open<SuborderDetailDialog, SuborderDetailDialogData>({
+      const ref = this.dialog.open<SuborderReviewDialog, SuborderReviewDialogData>({
         title: 'Revisar mantenimiento operativo — ' + sub.code,
-        content: SuborderDetailDialog,
-        data: { subOrder: sub, orderCode: order?.code ?? '', novedadOriginal },
+        content: SuborderReviewDialog,
+        data: { subOrder: sub, novedadOriginal },
         footer: false,
+      });
+      ref.afterClose.subscribe(changed => {
+        if (changed) this.loadMaintenanceOrders();
       });
     });
   }
@@ -1156,11 +1170,15 @@ export class TicketDetailPage {
     const t = this.ticket();
     if (!t) return;
     this.submitting.set(true);
-    this.pumpingService.advanceStep(t.id, 'revisar_reportes_llegada').subscribe({
+    const nextStep: PumpingStep = 'revisar_reportes_llegada';
+    this.pumpingService.advanceStep(t.id, nextStep).subscribe({
       next: updated => {
         this.ticket.set(updated);
         this.submitting.set(false);
-        this.notify.success('Mantenimiento revisado', 'El ticket avanza a Revisar reportes de llegada.');
+        const nextRole = PUMPING_STEP_ROLE[nextStep];
+        this.auth.switchRole(nextRole.roleName, nextRole.roleId);
+        this.notify.success('Mantenimiento revisado', `Avanza a Revisar reportes de llegada. Ahora actúa como ${nextRole.roleName}.`);
+        this.router.navigate(['..'], { relativeTo: this.route });
       },
       error: () => {
         this.submitting.set(false);
@@ -1349,7 +1367,15 @@ export class TicketDetailPage {
     if (!nextStep) return;
 
     this.pumpingService.advanceStep(t.id, nextStep).subscribe({
-      next: updated => this.ticket.set(updated),
+      next: updated => {
+        this.ticket.set(updated);
+        // Auto-switch role to the one responsible for the next step
+        const nextRole = PUMPING_STEP_ROLE[nextStep];
+        this.auth.switchRole(nextRole.roleName, nextRole.roleId);
+        this.notify.success('Rol cambiado', `Ahora actúa como ${nextRole.roleName} para el paso: ${PUMPING_STEP_LABELS[nextStep]}.`);
+        // Navigate back to the ticket list so the user sees the updated state
+        this.router.navigate(['..'], { relativeTo: this.route });
+      },
       error: () => this.notify.error('Error', 'No se pudo avanzar el ticket al siguiente paso.'),
     });
   }

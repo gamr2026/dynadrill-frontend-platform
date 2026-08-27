@@ -189,3 +189,113 @@
   flex-direction: column;
   gap: 0.25rem;
 }
+
+// ── Editable table grid (tires, hubodometro) ──
+
+.ticket-detail__editable-table {
+  border: 1px solid var(--border-default, #e0e0e0);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ticket-detail__editable-table-header {
+  display: grid;
+  grid-template-columns: 100px repeat(4, 1fr);
+  background: var(--dynadrill-purple, #662e9b);
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  text-align: center;
+
+  > span {
+    padding: 8px 12px;
+  }
+}
+
+.ticket-detail__editable-table-row {
+  display: grid;
+  grid-template-columns: 100px repeat(4, 1fr);
+  align-items: center;
+  border-top: 1px solid var(--border-default, #e0e0e0);
+
+  dynadrill-input {
+    margin: 0;
+    padding: 4px 8px;
+  }
+}
+
+.ticket-detail__editable-table-label {
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary, #1a1a2e);
+}
+
+.ticket-detail__editable-table-readonly {
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted, #5c5870);
+}
+
+// ── Hubodómetro grid (3 columnas: Salida | Centro | Llegada) ──
+
+.ticket-detail__hubodometro-grid {
+  border: 1px solid var(--border-default, #e0e0e0);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ticket-detail__hubodometro-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  background: var(--dynadrill-purple, #662e9b);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+
+  > span {
+    padding: 8px 16px;
+    text-align: center;
+  }
+}
+
+.ticket-detail__hubodometro-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  border-top: 1px solid var(--border-default, #e0e0e0);
+}
+
+.ticket-detail__hubodometro-cell {
+  padding: 4px 8px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+
+  dynadrill-input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.ticket-detail__hubodometro-readonly {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-muted, #5c5870);
+}
+
+.ticket-detail__hubodometro-center {
+  background: #000;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  text-align: center;
+  padding: 8px 24px;
+  min-width: 120px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

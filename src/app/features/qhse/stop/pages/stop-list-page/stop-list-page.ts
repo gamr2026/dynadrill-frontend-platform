@@ -55,10 +55,10 @@ export class StopListPage {
     const mesActual = new Date().getMonth();
     const esteMes = all.filter(c => new Date(c.createdAt).getMonth() === mesActual).length;
     return [
-      { label: 'Total registradas', value: all.length },
-      { label: 'Este mes', value: esteMes },
-      { label: 'Con hallazgos en Acciones', value: all.filter(c => stopCardTieneInseguroEn(c, 'acciones')).length },
-      { label: 'Con hallazgos en Condiciones', value: all.filter(c => stopCardTieneInseguroEn(c, 'condiciones')).length },
+      { label: 'Total registradas', value: all.length, tone: 'neutral' },
+      { label: 'Este mes', value: esteMes, tone: 'brand' },
+      { label: 'Con hallazgos en Acciones', value: all.filter(c => stopCardTieneInseguroEn(c, 'acciones')).length, tone: 'warning' },
+      { label: 'Con hallazgos en Condiciones', value: all.filter(c => stopCardTieneInseguroEn(c, 'condiciones')).length, tone: 'error' },
     ];
   });
 

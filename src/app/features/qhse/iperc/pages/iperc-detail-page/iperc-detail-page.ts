@@ -18,13 +18,21 @@ import {
   DynadrillTagComponent,
   DynadrillTextareaComponent,
   DynadrillUploadZoneComponent,
-  dynadrillRiskLevel,
   type DynadrillApprovalDecision,
   type DynadrillContextCardItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../../../core/services/auth.service';
-import { IPERC_STATUS_LABELS, IpercHazard, IpercMatrix, IpercStatus, IpercTask } from '../../models/iperc.model';
+import {
+  calcularNR,
+  GTC_EVALUACION_VACIA,
+  interpretarNR,
+  IPERC_STATUS_LABELS,
+  IpercHazard,
+  IpercMatrix,
+  IpercStatus,
+  IpercTask,
+} from '../../models/iperc.model';
 import { IpercService } from '../../services/iperc.service';
 import { PTW_FASE_LABELS, ptwCerrado } from '../../../ptw/models/ptw.model';
 import { PtwService } from '../../../ptw/services/ptw.service';
@@ -163,7 +171,7 @@ export class IpercDetailPage {
   /** No se puede enviar a revisión sin peligros identificados, y ninguno puede quedar sin su riesgo residual evaluado — si no, el Coordinador/Gerente HSE aprobaría a ciegas. */
   protected readonly peligrosCompletos = computed(() => {
     const hazards = this.matrix()?.tasks.flatMap(t => t.hazards) ?? [];
-    return hazards.length > 0 && hazards.every(h => h.probabilidadResidual != null && h.severidadResidual != null);
+    return hazards.length > 0 && hazards.every(h => calcularNR(h.riesgoResidual.nd, h.riesgoResidual.ne, h.riesgoResidual.nc) != null);
   });
 
   protected readonly canSendToReview = this.isEnEvaluacion;
@@ -209,12 +217,14 @@ export class IpercDetailPage {
    */
   protected taskRiskTone(task: IpercTask): { label: string; tone: DynadrillTagVariant } {
     if (task.hazards.length === 0) return { label: 'Sin peligros', tone: 'neutral' };
-    if (task.hazards.some(h => h.probabilidadResidual == null || h.severidadResidual == null)) {
+    const nrs = task.hazards.map(h => calcularNR(h.riesgoResidual.nd, h.riesgoResidual.ne, h.riesgoResidual.nc));
+    if (nrs.some(nr => nr == null)) {
       return { label: 'Evaluación incompleta', tone: 'warning' };
     }
-    const valores = task.hazards.map(h => h.probabilidadResidual! * h.severidadResidual!);
-    const nivel = dynadrillRiskLevel(Math.max(...valores));
-    return nivel === 'bajo' ? { label: 'Riesgo bajo', tone: 'success' } : nivel === 'medio' ? { label: 'Riesgo medio', tone: 'warning' } : { label: 'Riesgo alto', tone: 'error' };
+    const { nivel, label } = interpretarNR(Math.max(...(nrs as number[])));
+    // I/II = No aceptable (crítico); III = Mejorable (advertencia); IV = Aceptable.
+    const tone: DynadrillTagVariant = nivel === 'IV' ? 'success' : nivel === 'III' ? 'warning' : 'error';
+    return { label: `Riesgo ${label}`, tone };
   }
 
   /**
@@ -227,17 +237,19 @@ export class IpercDetailPage {
    * sin depender de abrir cada peligro uno por uno.
    */
   protected hazardRiskTagInicial(hazard: IpercHazard): { label: string; tone: DynadrillTagVariant } {
-    if (hazard.probabilidadInicial == null || hazard.severidadInicial == null) return { label: 'Inicial: sin evaluar', tone: 'neutral' };
-    const nivel = dynadrillRiskLevel(hazard.probabilidadInicial * hazard.severidadInicial);
-    const texto = nivel === 'bajo' ? 'Bajo' : nivel === 'medio' ? 'Medio' : 'Alto';
-    return { label: `Inicial: ${texto}`, tone: nivel === 'bajo' ? 'success' : nivel === 'medio' ? 'warning' : 'error' };
+    const nr = calcularNR(hazard.riesgoInicial.nd, hazard.riesgoInicial.ne, hazard.riesgoInicial.nc);
+    if (nr == null) return { label: 'Inicial: sin evaluar', tone: 'neutral' };
+    const { nivel, label } = interpretarNR(nr);
+    const tone: DynadrillTagVariant = nivel === 'IV' ? 'success' : nivel === 'III' ? 'warning' : 'error';
+    return { label: `Inicial: ${label}`, tone };
   }
 
   protected hazardRiskTag(hazard: IpercHazard): { label: string; tone: DynadrillTagVariant } {
-    if (hazard.probabilidadResidual == null || hazard.severidadResidual == null) return { label: 'Residual: sin evaluar', tone: 'neutral' };
-    const nivel = dynadrillRiskLevel(hazard.probabilidadResidual * hazard.severidadResidual);
-    const texto = nivel === 'bajo' ? 'Bajo' : nivel === 'medio' ? 'Medio' : 'Alto';
-    return { label: `Residual: ${texto}`, tone: nivel === 'bajo' ? 'success' : nivel === 'medio' ? 'warning' : 'error' };
+    const nr = calcularNR(hazard.riesgoResidual.nd, hazard.riesgoResidual.ne, hazard.riesgoResidual.nc);
+    if (nr == null) return { label: 'Residual: sin evaluar', tone: 'neutral' };
+    const { nivel, label } = interpretarNR(nr);
+    const tone: DynadrillTagVariant = nivel === 'IV' ? 'success' : nivel === 'III' ? 'warning' : 'error';
+    return { label: `Residual: ${label}`, tone };
   }
 
   protected verPeligro(task: IpercTask, hazard: IpercHazard): void {
@@ -371,17 +383,19 @@ export class IpercDetailPage {
 
         const peligrosRows = m.tasks
           .flatMap(t => t.hazards.map(h => ({ tarea: t.descripcion, hazard: h })))
-          .map(
-            ({ tarea, hazard: h }) => `
+          .map(({ tarea, hazard: h }) => {
+            const nrInicial = calcularNR(h.riesgoInicial.nd, h.riesgoInicial.ne, h.riesgoInicial.nc);
+            const nrResidual = calcularNR(h.riesgoResidual.nd, h.riesgoResidual.ne, h.riesgoResidual.nc);
+            return `
               <tr>
                 <td>${tarea}</td>
                 <td>${h.peligro}</td>
                 <td>${h.fuenteRiesgo}</td>
-                <td>${h.probabilidadInicial != null && h.severidadInicial != null ? h.probabilidadInicial * h.severidadInicial : 'Sin evaluar'}</td>
+                <td>${nrInicial != null ? `NR ${nrInicial} — ${interpretarNR(nrInicial).label}` : 'Sin evaluar'}</td>
                 <td>${h.controles.map(c => c.description).join('; ') || '—'}</td>
-                <td>${h.probabilidadResidual != null && h.severidadResidual != null ? h.probabilidadResidual * h.severidadResidual : 'Sin evaluar'}</td>
-              </tr>`,
-          )
+                <td>${nrResidual != null ? `NR ${nrResidual} — ${interpretarNR(nrResidual).label}` : 'Sin evaluar'}</td>
+              </tr>`;
+          })
           .join('');
         const peligrosSection: QhseReportSection = {
           title: 'Peligros identificados y evaluación de riesgo',
@@ -509,11 +523,9 @@ export class IpercDetailPage {
       peligro: draft.peligro.trim(),
       fuenteRiesgo: draft.fuenteRiesgo.trim(),
       controlesExistentes: draft.controlesExistentes.trim(),
-      probabilidadInicial: null,
-      severidadInicial: null,
+      riesgoInicial: { ...GTC_EVALUACION_VACIA },
       controles: [],
-      probabilidadResidual: null,
-      severidadResidual: null,
+      riesgoResidual: { ...GTC_EVALUACION_VACIA },
     };
     const tasks = current.tasks.map(t => (t.id === taskId ? { ...t, hazards: [...t.hazards, nuevoPeligro] } : t));
     this.persistTasks(current, tasks);

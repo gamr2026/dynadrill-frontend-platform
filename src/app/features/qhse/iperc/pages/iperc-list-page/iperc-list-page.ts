@@ -9,11 +9,9 @@ import {
   DynadrillKpiRowComponent,
   DynadrillPhaseTrackComponent,
   DynadrillScreenHeaderComponent,
-  dynadrillRiskLevel,
   type DynadrillKpiRowItem,
-  type DynadrillRiskLevel,
 } from '@digitec-it-projects/dynadrill-ui';
-import { IPERC_STATUS_LABELS, IpercMatrix, IpercStatus } from '../../models/iperc.model';
+import { calcularNR, interpretarNR, IPERC_STATUS_LABELS, IpercMatrix, IpercStatus, NivelRiesgo } from '../../models/iperc.model';
 import { IpercService } from '../../services/iperc.service';
 import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
 import { IpercMatrixDialog } from '../../components/iperc-matrix-dialog';
@@ -30,10 +28,12 @@ const STATUS_BADGES: Record<IpercStatus, { text: string; tone: BadgeTone }> = {
   rechazada: { text: 'Rechazada', tone: 'error' },
 };
 
-const RISK_BADGES: Record<DynadrillRiskLevel, { text: string; tone: BadgeTone }> = {
-  bajo: { text: 'Bajo', tone: 'success' },
-  medio: { text: 'Medio', tone: 'warning' },
-  alto: { text: 'Alto', tone: 'error' },
+/** I/II = No aceptable (crítico); III = Mejorable (advertencia); IV = Aceptable. */
+const RISK_TONE: Record<NivelRiesgo, BadgeTone> = {
+  I: 'error',
+  II: 'error',
+  III: 'warning',
+  IV: 'success',
 };
 
 const STATUS_FILTERS = Object.entries(IPERC_STATUS_LABELS).map(([value, text]) => ({ text, value }));
@@ -171,10 +171,11 @@ export class IpercListPage {
   private highestResidualBadge(matrix: IpercMatrix): { text: string; tone: BadgeTone } {
     const hazards = matrix.tasks.flatMap(t => t.hazards);
     if (hazards.length === 0) return { text: 'Sin evaluar', tone: 'neutral' };
-    if (hazards.some(h => h.probabilidadResidual == null || h.severidadResidual == null)) {
+    const nrs = hazards.map(h => calcularNR(h.riesgoResidual.nd, h.riesgoResidual.ne, h.riesgoResidual.nc));
+    if (nrs.some(nr => nr == null)) {
       return { text: 'Evaluación incompleta', tone: 'warning' };
     }
-    const values = hazards.map(h => h.probabilidadResidual! * h.severidadResidual!);
-    return RISK_BADGES[dynadrillRiskLevel(Math.max(...values))];
+    const { nivel, label } = interpretarNR(Math.max(...(nrs as number[])));
+    return { text: `Nivel ${label}`, tone: RISK_TONE[nivel] };
   }
 }

@@ -1,29 +1,71 @@
 <div class="stop-card-dialog">
-  <dynadrill-text variant="caption">Tipo de observación</dynadrill-text>
-  <dynadrill-chip-group mode="single" [options]="tipoOptions" [selected]="tipoLabel()" (selectedChange)="tipoLabel.set($event)" />
+  <section class="stop-card-dialog__bloque">
+    <dynadrill-text variant="h2">Acciones</dynadrill-text>
 
-  <dynadrill-text variant="caption">Categoría (elige una o más)</dynadrill-text>
-  <dynadrill-chip-group mode="multiple" [options]="categoriaOptions" [selected]="categorias()" (selectedChange)="categorias.set($event)" />
+    @for (grupo of accionesGrupos(); track grupo.subcategoria) {
+      <div class="stop-card-dialog__subcategoria">
+        <span class="stop-card-dialog__subcategoria-title">{{ grupo.subcategoria }}</span>
+        @for (fila of grupo.filas; track fila.index) {
+          <div class="stop-card-dialog__item">
+            <span class="stop-card-dialog__item-label">{{ fila.item.label }}</span>
+            <div class="stop-card-dialog__item-toggle">
+              <dynadrill-button size="small" [variant]="fila.item.estado === 'seguro' ? 'success' : 'secondary'" (clicked)="marcar(fila.index, 'seguro')">
+                Seguro
+              </dynadrill-button>
+              <dynadrill-button size="small" [variant]="fila.item.estado === 'inseguro' ? 'error' : 'secondary'" (clicked)="marcar(fila.index, 'inseguro')">
+                Inseguro
+              </dynadrill-button>
+            </div>
+          </div>
+        }
+      </div>
+    }
 
-  <dynadrill-textarea label="Descripción" [value]="descripcion()" (valueChange)="descripcion.set($event)" [rows]="2" />
-  <dynadrill-textarea label="Riesgo potencial" [value]="riesgoPotencial()" (valueChange)="riesgoPotencial.set($event)" [rows]="2" />
-  <dynadrill-textarea label="Acción correctiva inmediata" [value]="accionCorrectivaInmediata()" (valueChange)="accionCorrectivaInmediata.set($event)" [rows]="2" />
+    <dynadrill-textarea label="Qué observa" [value]="queObservaAcciones()" (valueChange)="queObservaAcciones.set($event)" [rows]="2" />
+    <dynadrill-textarea label="Acciones" [value]="accionesAcciones()" (valueChange)="accionesAcciones.set($event)" [rows]="2" />
+  </section>
 
-  <div class="stop-card-dialog__grid">
-    <dynadrill-input label="Ubicación" [value]="ubicacion()" (valueChange)="ubicacion.set($event)" />
-    <dynadrill-input label="Observador (quien reporta)" [value]="observadorNombre()" (valueChange)="observadorNombre.set($event)" />
-  </div>
+  <section class="stop-card-dialog__bloque">
+    <dynadrill-text variant="h2">Condiciones</dynadrill-text>
 
-  <div class="stop-card-dialog__observado">
-    <dynadrill-input label="Observado (opcional)" [value]="observadoNombre()" (valueChange)="observadoNombre.set($event)" />
-    <dynadrill-button variant="secondary" size="small" (clicked)="marcarAnonimo()">Anónimo</dynadrill-button>
-  </div>
+    @for (grupo of condicionesGrupos(); track grupo.subcategoria) {
+      <div class="stop-card-dialog__subcategoria">
+        <span class="stop-card-dialog__subcategoria-title">{{ grupo.subcategoria }}</span>
+        @for (fila of grupo.filas; track fila.index) {
+          <div class="stop-card-dialog__item">
+            <span class="stop-card-dialog__item-label">{{ fila.item.label }}</span>
+            <div class="stop-card-dialog__item-toggle">
+              <dynadrill-button size="small" [variant]="fila.item.estado === 'seguro' ? 'success' : 'secondary'" (clicked)="marcar(fila.index, 'seguro')">
+                Seguro
+              </dynadrill-button>
+              <dynadrill-button size="small" [variant]="fila.item.estado === 'inseguro' ? 'error' : 'secondary'" (clicked)="marcar(fila.index, 'inseguro')">
+                Inseguro
+              </dynadrill-button>
+            </div>
+          </div>
+        }
+      </div>
+    }
 
-  <dynadrill-text variant="caption">Fotografía (opcional)</dynadrill-text>
-  <dynadrill-upload-zone [state]="fotoFileName() ? 'uploaded' : 'idle'" [fileName]="fotoFileName()" (fileSelected)="onFotoUpload($event)" />
+    <dynadrill-textarea label="Qué observa" [value]="queObservaCondiciones()" (valueChange)="queObservaCondiciones.set($event)" [rows]="2" />
+    <dynadrill-textarea label="Acciones" [value]="accionesCondiciones()" (valueChange)="accionesCondiciones.set($event)" [rows]="2" />
+  </section>
+
+  <section class="stop-card-dialog__bloque">
+    <dynadrill-text variant="h2">Quién reporta</dynadrill-text>
+    <div class="stop-card-dialog__grid">
+      <dynadrill-input label="Nombre" [value]="observadorNombre()" (valueChange)="observadorNombre.set($event)" />
+      <dynadrill-datetime-picker label="Fecha" placeholder="Selecciona la fecha" [value]="$any(fecha())" [showToday]="true" (valueChange)="fecha.set($event)" />
+      <dynadrill-input label="Locación" [value]="locacion()" (valueChange)="locacion.set($event)" />
+      <dynadrill-input label="Operadora" [value]="operadora()" (valueChange)="operadora.set($event)" />
+      <dynadrill-input label="Contacto (opcional)" [value]="contacto()" (valueChange)="contacto.set($event)" />
+    </div>
+  </section>
 
   <div class="stop-card-dialog__actions">
     <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
-    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">{{ submitting() ? 'Guardando…' : 'Registrar tarjeta STOP' }}</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">
+      {{ submitting() ? 'Guardando…' : 'Registrar tarjeta STOP' }}
+    </dynadrill-button>
   </div>
 </div>

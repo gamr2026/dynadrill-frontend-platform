@@ -4,6 +4,7 @@ import {
   DynadrillButtonComponent,
   DynadrillCardComponent,
   DynadrillDialogService,
+  DynadrillIconComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
@@ -30,6 +31,7 @@ function formatDate(iso: string): string {
     DynadrillButtonComponent,
     DynadrillCardComponent,
     DynadrillTagComponent,
+    DynadrillIconComponent,
     DynadrillSpinnerComponent,
     DynadrillBannerComponent,
   ],
@@ -51,10 +53,10 @@ export class EpiListPage {
     const mesActual = new Date().getMonth();
     const esteMes = all.filter(e => new Date(e.createdAt).getMonth() === mesActual).length;
     return [
-      { label: 'Total registradas', value: all.length },
-      { label: 'Este mes', value: esteMes },
-      { label: 'Expedientes cerrados', value: all.filter(entregaEpiCompleta).length },
-      { label: 'Con ítems sin capacitación', value: all.filter(e => entregaEpiSinCapacitacion(e).length > 0).length },
+      { label: 'Total registradas', value: all.length, tone: 'neutral' },
+      { label: 'Este mes', value: esteMes, tone: 'brand' },
+      { label: 'Expedientes cerrados', value: all.filter(entregaEpiCompleta).length, tone: 'success' },
+      { label: 'Con ítems sin capacitación', value: all.filter(e => entregaEpiSinCapacitacion(e).length > 0).length, tone: 'warning' },
     ];
   });
 

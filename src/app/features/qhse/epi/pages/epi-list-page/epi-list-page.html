@@ -14,11 +14,21 @@
           <span card-title>{{ c.code }}</span>
           <dynadrill-tag card-extra [label]="c.completa ? 'Expediente cerrado' : 'Pendiente de cierre'" [variant]="c.completa ? 'success' : 'warning'" />
 
+          <div class="epi-list-page__heading">
+            <p class="epi-list-page__nombre">{{ c.trabajadorNombre }}</p>
+            <p class="epi-list-page__cargo">{{ c.trabajadorCargo }}</p>
+          </div>
+
           <dl class="epi-list-page__meta">
-            <div><dt>Trabajador</dt><dd>{{ c.trabajadorNombre }} — {{ c.trabajadorCargo }}</dd></div>
-            <div><dt>Lugar</dt><dd>{{ c.lugar }}</dd></div>
-            <div><dt>Fecha</dt><dd>{{ c.fecha }}</dd></div>
-            <div><dt>Elementos entregados</dt><dd>{{ c.itemsCount }}</dd></div>
+            <div><dt><dynadrill-icon name="location" [size]="14" />Lugar</dt><dd>{{ c.lugar }}</dd></div>
+            <div><dt><dynadrill-icon name="calendar" [size]="14" />Fecha</dt><dd>{{ c.fecha }}</dd></div>
+            <div><dt><dynadrill-icon name="box" [size]="14" />Elementos entregados</dt><dd>{{ c.itemsCount }}</dd></div>
+            @if (c.sinCapacitacion === 0) {
+              <div class="epi-list-page__capacitacion-ok">
+                <dt><dynadrill-icon name="success" [size]="14" />Capacitación</dt>
+                <dd>Completa</dd>
+              </div>
+            }
           </dl>
 
           @if (c.sinCapacitacion > 0) {

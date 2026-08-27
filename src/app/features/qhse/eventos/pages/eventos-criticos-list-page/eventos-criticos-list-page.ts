@@ -7,6 +7,7 @@ import {
   DynadrillCardAccent,
   DynadrillCardComponent,
   DynadrillDialogService,
+  DynadrillIconComponent,
   DynadrillInputComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
@@ -119,6 +120,7 @@ function filtrar<T extends { code: string; ubicacion: string; estadoLabel: strin
     DynadrillCardComponent,
     DynadrillTagComponent,
     DynadrillTimerComponent,
+    DynadrillIconComponent,
     DynadrillButtonComponent,
     DynadrillBannerComponent,
     DynadrillInputComponent,
@@ -157,10 +159,10 @@ export class EventosCriticosListPage {
   protected readonly swaKpis = computed<DynadrillKpiRowItem[]>(() => {
     const all = this.swaEventos();
     return [
-      { label: 'Total eventos', value: all.length },
-      { label: 'Trabajo detenido', value: all.filter(e => e.estado === 'activo').length },
-      { label: 'En evaluación', value: all.filter(e => e.estado === 'evaluado').length },
-      { label: 'Reconocidos "Héroe de Seguridad"', value: all.filter(e => e.heroeSeguridad).length },
+      { label: 'Total eventos', value: all.length, tone: 'neutral' },
+      { label: 'Trabajo detenido', value: all.filter(e => e.estado === 'activo').length, tone: 'error' },
+      { label: 'En evaluación', value: all.filter(e => e.estado === 'evaluado').length, tone: 'warning' },
+      { label: 'Reconocidos "Héroe de Seguridad"', value: all.filter(e => e.heroeSeguridad).length, tone: 'success' },
     ];
   });
 
@@ -182,10 +184,10 @@ export class EventosCriticosListPage {
   protected readonly derrameKpis = computed<DynadrillKpiRowItem[]>(() => {
     const all = this.derrameEventos();
     return [
-      { label: 'Total eventos', value: all.length },
-      { label: 'Activos', value: all.filter(e => e.estado === 'activo').length },
-      { label: 'Mayores', value: all.filter(e => e.volumen === 'mayor').length },
-      { label: 'Notificados a MAE', value: all.filter(e => e.notificadoMae).length },
+      { label: 'Total eventos', value: all.length, tone: 'neutral' },
+      { label: 'Activos', value: all.filter(e => e.estado === 'activo').length, tone: 'error' },
+      { label: 'Mayores', value: all.filter(e => e.volumen === 'mayor').length, tone: 'warning' },
+      { label: 'Notificados a MAE', value: all.filter(e => e.notificadoMae).length, tone: 'info' },
     ];
   });
 
@@ -208,10 +210,10 @@ export class EventosCriticosListPage {
   protected readonly emergenciaKpis = computed<DynadrillKpiRowItem[]>(() => {
     const all = this.emergenciaEventos();
     return [
-      { label: 'Total emergencias', value: all.length },
-      { label: 'Activas', value: all.filter(e => e.estado === 'activa').length },
-      { label: 'Nivel 3 (mayor)', value: all.filter(e => e.nivel === 3).length },
-      { label: 'Reporte Flash vencido', value: all.filter(e => reporteFlashVencido(e)).length },
+      { label: 'Total emergencias', value: all.length, tone: 'neutral' },
+      { label: 'Activas', value: all.filter(e => e.estado === 'activa').length, tone: 'error' },
+      { label: 'Nivel 3 (mayor)', value: all.filter(e => e.nivel === 3).length, tone: 'error' },
+      { label: 'Reporte Flash vencido', value: all.filter(e => reporteFlashVencido(e)).length, tone: 'warning' },
     ];
   });
 
@@ -244,10 +246,10 @@ export class EventosCriticosListPage {
   protected readonly investigacionKpis = computed<DynadrillKpiRowItem[]>(() => {
     const all = this.investigaciones();
     return [
-      { label: 'Total', value: all.length },
-      { label: 'Abiertas', value: all.filter(i => i.estado === 'abierta').length },
-      { label: 'Plazo vencido', value: all.filter(i => plazoInicioVencido(i) || plazoFinalVencido(i)).length },
-      { label: 'Acciones pendientes', value: all.reduce((sum, i) => sum + accionesPendientes(i.acciones), 0) },
+      { label: 'Total', value: all.length, tone: 'neutral' },
+      { label: 'Abiertas', value: all.filter(i => i.estado === 'abierta').length, tone: 'brand' },
+      { label: 'Plazo vencido', value: all.filter(i => plazoInicioVencido(i) || plazoFinalVencido(i)).length, tone: 'error' },
+      { label: 'Acciones pendientes', value: all.reduce((sum, i) => sum + accionesPendientes(i.acciones), 0), tone: 'warning' },
     ];
   });
 

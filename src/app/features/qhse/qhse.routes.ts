@@ -10,15 +10,19 @@ import { roleGuard } from '../../core/guards/role.guard';
  * desarrollo del proyecto. El resto de fases se agrega como rutas
  * hermanas a medida que se construyen.
  */
-const HSE_STAFF_ROLES = ['Técnico HSE', 'Coordinador HSE', 'Gerente HSE'];
+/**
+ * Superadmin/Jefe de Base ven todos los módulos (ver sidebar.ts) — sin
+ * esto acá, el enlace de QHSE que sí les aparece en el sidebar los
+ * mandaría de vuelta a /dashboard al hacer clic (roleGuard).
+ */
+const HSE_STAFF_ROLES = ['Técnico HSE', 'Coordinador HSE', 'Gerente HSE', 'Superadmin', 'Jefe de Base'];
 
 /**
- * HSE-SITIO-001 asigna explícitamente "Firmar PTW y Actas" al Supervisor
- * Operativo (sección Responsabilidades) — a diferencia de IPERC, donde el
- * Supervisor solo "conoce la viabilidad operativa" sin firmar nada, PTW sí
- * necesita que el rol Supervisor entre al módulo.
+ * El Supervisor NO entra a QHSE — "Firmar PTW y Actas" quedó mal asignado
+ * acá en una iteración anterior (HSE-SITIO-001 lo asigna al staff HSE, no
+ * al Supervisor Operativo); corregido a pedido del cliente.
  */
-const PTW_ROLES = [...HSE_STAFF_ROLES, 'Supervisor'];
+const PTW_ROLES = [...HSE_STAFF_ROLES];
 
 export const qhseRoutes: Routes = [
   { path: '', redirectTo: 'iperc', pathMatch: 'full' },
@@ -107,6 +111,12 @@ export const qhseRoutes: Routes = [
   {
     path: 'dashboard',
     loadComponent: () => import('./dashboard/pages/qhse-dashboard-page/qhse-dashboard-page').then(m => m.QhseDashboardPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES },
+  },
+  {
+    path: 'epi',
+    loadComponent: () => import('./epi/pages/epi-list-page/epi-list-page').then(m => m.EpiListPage),
     canActivate: [roleGuard],
     data: { allowedRoles: HSE_STAFF_ROLES },
   },

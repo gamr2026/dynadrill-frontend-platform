@@ -2,12 +2,11 @@ import { Routes } from '@angular/router';
 import { roleGuard } from '../../core/guards/role.guard';
 
 /**
- * Acceso provisional: solo Jefe de Mantenimiento, el mismo rol que ya
- * administra Unidades en Mantenimiento. Si más adelante se define un rol
- * propio de Inventario (ej. "Encargado de Bodega"), es un cambio de una
- * línea acá.
+ * Bodeguero es el rol dedicado; Jefe de Mantenimiento conserva acceso
+ * porque ya administraba Unidades acá antes de que existiera Bodeguero.
+ * Superadmin/Jefe de Base ven todos los módulos (ver sidebar.ts).
  */
-const INVENTARIO_ROLES = ['Jefe de Mantenimiento'];
+const INVENTARIO_ROLES = ['Bodeguero', 'Jefe de Mantenimiento', 'Superadmin', 'Jefe de Base'];
 
 export const inventarioRoutes: Routes = [
   { path: '', redirectTo: 'articulos', pathMatch: 'full' },

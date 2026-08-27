@@ -25,6 +25,15 @@ const roles: Role[] = [
   { id: 8, name: 'Técnico HSE' },
   { id: 9, name: 'Coordinador HSE' },
   { id: 10, name: 'Gerente HSE' },
+  /** Encargado del módulo Inventario (Artículos + Vehículos) — sin acceso a ningún otro módulo. */
+  { id: 11, name: 'Bodeguero' },
+  /**
+   * Acceso total (todos los módulos, incluida Administración) — el único
+   * rol que ve Administración. "Jefe de Base" se trata igual (ver
+   * sidebar.ts): ya se comportaba como acceso completo antes de que el
+   * sidebar pasara a listas explícitas por rol.
+   */
+  { id: 12, name: 'Superadmin' },
 ];
 
 let users: User[] = [
@@ -174,6 +183,30 @@ let users: User[] = [
     createdAt: '2026-08-15T08:10:00.000Z',
     updatedAt: '2026-08-15T08:10:00.000Z',
   },
+  {
+    id: 14,
+    email: 'bodega@dynadrill.com',
+    username: 'bodega',
+    name: 'Patricia Sánchez',
+    code: 'EMP-014',
+    phone: '0998889900',
+    roleId: 11,
+    status: true,
+    createdAt: '2026-08-27T08:00:00.000Z',
+    updatedAt: '2026-08-27T08:00:00.000Z',
+  },
+  {
+    id: 15,
+    email: 'superadmin@dynadrill.com',
+    username: 'superadmin',
+    name: 'Root Dynadrill',
+    code: 'EMP-015',
+    phone: '0999990000',
+    roleId: 12,
+    status: true,
+    createdAt: '2026-08-27T08:00:00.000Z',
+    updatedAt: '2026-08-27T08:00:00.000Z',
+  },
 ];
 
 /** Compartido con auth-mock.interceptor.ts: solo el login los necesita fuera de este archivo. */
@@ -185,7 +218,7 @@ export function getMockRoles(): Role[] {
   return roles;
 }
 
-let nextId = 14;
+let nextId = 16;
 
 function matchUsersId(url: string): number | null {
   const match = url.match(/\/api\/users\/(\d+)$/);

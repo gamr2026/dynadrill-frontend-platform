@@ -32,6 +32,7 @@
       <dynadrill-text variant="h2">Unidades con fallas repetitivas</dynadrill-text>
       @if (fallasRepetitivas().length) {
         <dynadrill-chart type="bar" [categories]="fallasChartCategories()" [series]="fallasChartSeries()" height="260px" />
+        <dynadrill-text variant="caption">Detalle por unidad — para ir directo a su orden correctiva más reciente:</dynadrill-text>
         <dynadrill-data-table
           [columns]="fallasColumns"
           [rows]="fallasRepetitivas()"

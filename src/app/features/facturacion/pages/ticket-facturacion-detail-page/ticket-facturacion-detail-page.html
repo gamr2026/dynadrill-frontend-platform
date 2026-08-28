@@ -1,0 +1,57 @@
+<div class="ticket-facturacion-detail-page">
+  @if (ticket(); as t) {
+    <dynadrill-screen-header eyebrow="FACTURACIÓN" [title]="t.code" subtitle="FACT-004 — cierre del Pedido" />
+
+    <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
+      <div class="ticket-facturacion-detail-page__status">
+        <dynadrill-tag [label]="t.estado === 'facturado' ? 'Facturado' : 'Cerrado — pendiente de facturar'" [variant]="t.estado === 'facturado' ? 'success' : 'warning'" />
+      </div>
+
+      <table class="ticket-facturacion-detail-page__table">
+        <thead><tr><th>Código</th><th>Descripción</th><th>Cantidad</th><th>Precio unit.</th><th>Tipo</th><th>Total</th></tr></thead>
+        <tbody>
+          @for (item of t.items; track item.id) {
+            <tr>
+              <td>{{ item.codigo }}</td>
+              <td>{{ item.descripcion }}</td>
+              <td>{{ item.cantidad }} {{ item.unidad }}</td>
+              <td>${{ item.precioUnitario | number: '1.2-2' }}</td>
+              <td>{{ item.tipo }}</td>
+              <td>${{ item.precioTotal | number: '1.2-2' }}</td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr><td colspan="5">Subtotal Servicios</td><td>${{ t.subtotalServicios | number: '1.2-2' }}</td></tr>
+          <tr><td colspan="5">Subtotal Materiales</td><td>${{ t.subtotalMateriales | number: '1.2-2' }}</td></tr>
+          <tr><td colspan="5"><strong>Total</strong></td><td><strong>${{ t.subtotal | number: '1.2-2' }}</strong></td></tr>
+        </tfoot>
+      </table>
+
+      @if (t.firmaAutorizadoDynadrill && t.firmaCompanyMan) {
+        <div class="ticket-facturacion-detail-page__firmas">
+          <div>
+            <dynadrill-text variant="caption">Autorizado Dynadrill</dynadrill-text>
+            <p>{{ t.firmaAutorizadoDynadrill.nombre }}</p>
+          </div>
+          <div>
+            <dynadrill-text variant="caption">Company Man</dynadrill-text>
+            <p>{{ t.firmaCompanyMan.nombre }} — C.I. {{ t.firmaCompanyMan.cedula }}</p>
+          </div>
+        </div>
+      }
+
+      @if (t.estado === 'cerrado') {
+        <dynadrill-banner
+          variant="info"
+          message="La emisión real de la factura ante el SRI la hace AS2 — este botón simula el envío hasta que exista esa integración."
+        />
+        <dynadrill-button (clicked)="marcarFacturado()">Marcar como facturado (simulado)</dynadrill-button>
+      } @else if (t.facturaAs2Ref) {
+        <p>Referencia AS2: {{ t.facturaAs2Ref }}</p>
+      }
+    </dynadrill-spinner>
+  } @else if (!loading()) {
+    <dynadrill-banner variant="critical" message="No se encontró el Ticket." />
+  }
+</div>

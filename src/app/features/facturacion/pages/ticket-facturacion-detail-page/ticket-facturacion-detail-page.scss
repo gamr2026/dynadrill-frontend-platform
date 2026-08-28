@@ -1,0 +1,39 @@
+.ticket-facturacion-detail-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__status {
+    display: flex;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+
+    th, td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border, #e5e4ea);
+    }
+
+    tfoot td {
+      border-bottom: none;
+      padding-top: 10px;
+    }
+  }
+
+  &__firmas {
+    display: flex;
+    gap: 24px;
+    padding: 12px 16px;
+    background: var(--surface-muted, #faf9fc);
+    border-radius: var(--radius-sm, 4px);
+
+    p {
+      margin: 2px 0 0;
+      font-weight: 600;
+    }
+  }
+}

@@ -1,0 +1,39 @@
+<div class="pedido-facturacion-list-page">
+  <dynadrill-screen-header
+    eyebrow="FACTURACIÓN"
+    title="Pedidos en Facturación"
+    subtitle="FACT-002 — Prefactura en vivo por pedido, homologación y excepciones"
+  />
+
+  <div class="pedido-facturacion-list-page__toolbar">
+    <dynadrill-button (clicked)="nuevaOtq()">+ Nueva OTQ</dynadrill-button>
+  </div>
+
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
+    <dynadrill-kpi-row [items]="kpis()" />
+
+    <div class="pedido-facturacion-list-page__grid">
+      @for (c of viewCards(); track c.otqId) {
+        <dynadrill-card [accent]="c.tono">
+          <span card-title>{{ c.numero }}</span>
+          <dynadrill-tag card-extra [label]="c.porcentaje + '% consumido'" [variant]="c.tono" />
+
+          <dl class="pedido-facturacion-list-page__meta">
+            <div><dt>Cliente</dt><dd>{{ c.cliente }}</dd></div>
+            <div><dt>Campo / Pozo</dt><dd>{{ c.campo }} — {{ c.pozo }}</dd></div>
+            <div><dt>Presupuesto</dt><dd>${{ c.presupuesto | number: '1.2-2' }}</dd></div>
+            <div><dt>Acumulado</dt><dd>${{ c.acumulado | number: '1.2-2' }}</dd></div>
+          </dl>
+
+          @if (c.conExcepcion) {
+            <dynadrill-tag label="Excepción en negociación" variant="warning" />
+          }
+
+          <dynadrill-button variant="secondary" size="small" (clicked)="verDetalle(c.pedidoId)">Ver Prefactura</dynadrill-button>
+        </dynadrill-card>
+      } @empty {
+        <dynadrill-banner variant="info" message="Todavía no hay pedidos con OTQ registrada." />
+      }
+    </div>
+  </dynadrill-spinner>
+</div>

@@ -1,0 +1,43 @@
+.pedido-facturacion-detail-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-md, 6px);
+  }
+
+  &__card--warning {
+    border-left: 4px solid var(--warning, #faad14);
+  }
+
+  &__card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+
+    th, td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border, #e5e4ea);
+    }
+  }
+
+  &__row-actions {
+    display: flex;
+    gap: 6px;
+  }
+}

@@ -1,0 +1,39 @@
+<div class="documentacion-diaria-dialog">
+  <dynadrill-datetime-picker label="Fecha" placeholder="Selecciona la fecha" [value]="$any(fecha())" [showToday]="true" (valueChange)="fecha.set($event)" />
+
+  <div class="documentacion-diaria-dialog__row-pair">
+    <dynadrill-select label="Código (OTQ)" placeholder="Selecciona un código" [options]="codigoOptions" [value]="codigoDraft()" (valueChange)="codigoDraft.set($any($event))" />
+    <dynadrill-input label="Cantidad ejecutada" type="number" placeholder="0" [value]="cantidadDraft()" (valueChange)="cantidadDraft.set($any($event))" />
+    <dynadrill-select
+      label="Tipo"
+      [options]="[{ label: 'Servicio', value: 'Servicio' }, { label: 'Material', value: 'Material' }]"
+      [value]="tipoDraft()"
+      (valueChange)="tipoDraft.set($any($event))"
+    />
+  </div>
+  <dynadrill-button variant="secondary" size="small" (clicked)="agregarItem()">+ Agregar ítem</dynadrill-button>
+
+  @if (items().length) {
+    <table class="documentacion-diaria-dialog__items">
+      <thead><tr><th>Código</th><th>Descripción</th><th>Cantidad</th><th>Tipo</th><th></th></tr></thead>
+      <tbody>
+        @for (item of items(); track $index) {
+          <tr>
+            <td>{{ item.codigo }}</td>
+            <td>{{ descripcionDe(item.codigo) }}</td>
+            <td>{{ item.cantidad }} {{ unidadDe(item.codigo) }}</td>
+            <td>{{ item.tipo }}</td>
+            <td><dynadrill-button variant="secondary" size="small" (clicked)="quitarItem($index)">Quitar</dynadrill-button></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+
+  <div class="documentacion-diaria-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">
+      {{ submitting() ? 'Guardando…' : 'Registrar' }}
+    </dynadrill-button>
+  </div>
+</div>

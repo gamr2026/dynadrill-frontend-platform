@@ -1,0 +1,91 @@
+<div class="pedido-facturacion-detail-page">
+  @if (otq(); as o) {
+    <dynadrill-screen-header eyebrow="FACTURACIÓN" [title]="o.numero" [subtitle]="o.cliente + ' — ' + o.campo + ' / ' + o.pozo" />
+
+    <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
+      @if (yaFacturado()) {
+        <dynadrill-banner variant="info" message="Este pedido ya generó su Ticket y quedó facturado." />
+      }
+
+      <dynadrill-kpi-row [items]="kpis()" />
+
+      @if (excepcionActiva(); as exc) {
+        <div class="pedido-facturacion-detail-page__card pedido-facturacion-detail-page__card--warning">
+          <dynadrill-text variant="h2">Excepción activa — {{ exc.tipo === 'sobrepaso' ? 'Sobrepaso de presupuesto' : 'Cambio de alcance' }}</dynadrill-text>
+          <p>Excedente estimado: ${{ exc.montoExcedente | number: '1.2-2' }} — {{ exc.justificacion }}</p>
+          <dynadrill-tag [label]="exc.estado === 'en_negociacion' ? 'En negociación' : exc.estado" [variant]="exc.estado === 'aprobada' ? 'success' : 'warning'" />
+          @if (exc.estado === 'en_negociacion') {
+            <dynadrill-button size="small" (clicked)="aprobarExcepcionCliente(exc)">Registrar aprobación del cliente</dynadrill-button>
+          }
+        </div>
+      } @else if (tono() === 'error') {
+        <div class="pedido-facturacion-detail-page__card pedido-facturacion-detail-page__card--warning">
+          <dynadrill-text variant="h2">Presupuesto sobrepasado</dynadrill-text>
+          <p>La documentación se sigue registrando con normalidad — hay que gestionar el excedente con el cliente.</p>
+          <dynadrill-button size="small" (clicked)="registrarExcepcion()">Registrar excepción</dynadrill-button>
+        </div>
+      }
+
+      <div class="pedido-facturacion-detail-page__card">
+        <div class="pedido-facturacion-detail-page__card-head">
+          <dynadrill-text variant="h2">Documentación diaria</dynadrill-text>
+          <dynadrill-button size="small" (clicked)="nuevaDocumentacion()">+ Registrar día</dynadrill-button>
+        </div>
+
+        @if (documentacion().length) {
+          <table class="pedido-facturacion-detail-page__table">
+            <thead><tr><th>Fecha</th><th>Ítems</th><th>Registrado por</th><th>Estado</th><th></th></tr></thead>
+            <tbody>
+              @for (d of documentacion(); track d.id) {
+                <tr>
+                  <td>{{ d.fecha }}</td>
+                  <td>{{ d.items.length }}</td>
+                  <td>{{ d.registradoPor }}</td>
+                  <td>
+                    <dynadrill-tag
+                      [label]="d.estado === 'homologado' ? 'Homologado' : d.estado === 'rechazado' ? 'Rechazado' : 'Pendiente'"
+                      [variant]="d.estado === 'homologado' ? 'success' : d.estado === 'rechazado' ? 'error' : 'warning'"
+                    />
+                  </td>
+                  <td>
+                    @if (d.estado === 'pendiente') {
+                      <div class="pedido-facturacion-detail-page__row-actions">
+                        <dynadrill-button variant="secondary" size="small" (clicked)="homologar(d)">Homologar</dynadrill-button>
+                        <dynadrill-button variant="secondary" size="small" (clicked)="rechazar(d)">Rechazar</dynadrill-button>
+                      </div>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        } @else {
+          <dynadrill-banner variant="info" message="Todavía no hay documentación registrada para este pedido." />
+        }
+      </div>
+
+      <div class="pedido-facturacion-detail-page__card">
+        <dynadrill-text variant="h2">Cierre</dynadrill-text>
+        <p>
+          Acta de entrega-recepción:
+          @if (acta()?.firmaSupervisor && acta()?.firmaCompanyMan) {
+            <dynadrill-tag label="Firmada por ambas partes" variant="success" />
+          } @else {
+            <dynadrill-tag label="Pendiente de firma" variant="warning" />
+          }
+        </p>
+        @if (!yaFacturado() && !(acta()?.firmaSupervisor && acta()?.firmaCompanyMan)) {
+          <dynadrill-button variant="secondary" size="small" (clicked)="firmarActaSupervisor()">Firmar acta (Supervisor + Company Man)</dynadrill-button>
+        }
+        @if (!yaFacturado()) {
+          <dynadrill-button [disabled]="!listoParaCierre()" (clicked)="cerrarYGenerarTicket()">Cerrar y generar Ticket</dynadrill-button>
+          @if (!listoParaCierre()) {
+            <dynadrill-text variant="caption">Falta el acta firmada y al menos un día de documentación homologada.</dynadrill-text>
+          }
+        }
+      </div>
+    </dynadrill-spinner>
+  } @else if (!loading()) {
+    <dynadrill-banner variant="critical" message="Este pedido todavía no tiene una OTQ registrada en Facturación." />
+  }
+</div>

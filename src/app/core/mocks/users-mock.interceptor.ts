@@ -27,6 +27,8 @@ const roles: Role[] = [
   { id: 10, name: 'Gerente HSE' },
   /** Encargado del módulo Inventario (Artículos + Vehículos) — sin acceso a ningún otro módulo. */
   { id: 11, name: 'Bodeguero' },
+  /** Encargado del módulo Facturación (FACT-001 a FACT-005) — sin acceso a ningún otro módulo. */
+  { id: 13, name: 'Facturación' },
   /**
    * Acceso total (todos los módulos, incluida Administración) — el único
    * rol que ve Administración. "Jefe de Base" se trata igual (ver
@@ -226,6 +228,17 @@ const BASE_USERS: Omit<User, keyof DatosEmpleado>[] = [
     status: true,
     createdAt: '2026-08-27T08:00:00.000Z',
     updatedAt: '2026-08-27T08:00:00.000Z',
+  },
+  {
+    id: 16,
+    email: 'facturacion@dynadrill.com',
+    username: 'facturacion',
+    name: 'Ricardo Vallejo',
+    phone: '0991239876',
+    roleId: 13,
+    status: true,
+    createdAt: '2026-08-28T08:00:00.000Z',
+    updatedAt: '2026-08-28T08:00:00.000Z',
   },
 ];
 

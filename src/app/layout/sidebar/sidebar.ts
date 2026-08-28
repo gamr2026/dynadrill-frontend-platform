@@ -84,6 +84,15 @@ const QHSE_ITEM: DynadrillMenuItem = {
   ],
 };
 
+const FACTURACION_ITEM: DynadrillMenuItem = {
+  label: 'Facturación',
+  icon: 'file-text' as DynadrillIconName,
+  children: [
+    { label: 'Pedidos', link: '/dashboard/facturacion/pedidos' },
+    { label: 'Tickets', link: '/dashboard/facturacion/tickets' },
+  ],
+};
+
 const ADMINISTRACION_ITEM: DynadrillMenuItem = {
   label: 'Administración',
   icon: 'settings',
@@ -153,6 +162,10 @@ export class Sidebar {
       return [dashboard, QHSE_ITEM];
     }
 
+    if (roleName === 'Facturación') {
+      return [dashboard, FACTURACION_ITEM];
+    }
+
     /**
      * Único caso con acceso completo — el único que ve Administración.
      * "Jefe de Base" se trata igual que Superadmin: ya se comportaba como
@@ -166,7 +179,7 @@ export class Sidebar {
         {
           label: 'Módulos',
           icon: 'modules',
-          children: [OPERATIVO_ITEM, MANTENIMIENTO_ITEM, INVENTARIO_ITEM, QHSE_ITEM],
+          children: [OPERATIVO_ITEM, MANTENIMIENTO_ITEM, INVENTARIO_ITEM, QHSE_ITEM, FACTURACION_ITEM],
         },
       ];
     }

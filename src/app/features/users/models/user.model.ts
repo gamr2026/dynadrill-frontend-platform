@@ -15,12 +15,46 @@ export interface Role {
 /** Solo aplica a usuarios con rol "Operador de Mantenimiento" — decide a qué sub-órdenes puede asignarse. */
 export type OperatorSpecialty = 'Mecánico' | 'Instrumental';
 
-export interface User {
+/**
+ * Datos de RRHH (campos_empleado.xlsx) — todos opcionales a propósito:
+ * enriquecen el perfil de un usuario existente sin exigir que cada alta
+ * los complete, y ningún flujo actual (login, roles, asignación de
+ * sub-órdenes) depende de ellos. `empleadoActivo` es DELIBERADAMENTE
+ * distinto de `status`: `status` es acceso al sistema (¿puede iniciar
+ * sesión?), `empleadoActivo` es situación laboral real (¿sigue
+ * contratado?) — un empleado que salió de la empresa puede seguir
+ * "Activo" en el sistema por un tiempo mientras se procesa la baja, y
+ * viceversa, un usuario puede estar desactivado en el sistema sin que
+ * eso signifique que dejó la empresa.
+ */
+export interface DatosEmpleado {
+  cedula?: string;
+  tipoIdentificacion?: string;
+  nacionalidad?: string;
+  apellidos?: string;
+  nombres?: string;
+  cargo?: string;
+  departamento?: string;
+  area?: string;
+  /** ISO. */
+  fechaIngreso?: string;
+  /** ISO, null = sigue activo. */
+  fechaSalida?: string | null;
+  causaSalidaEmpleado?: string;
+  tipoContrato?: string;
+  sucursal?: string;
+  tipoDiscapacidad?: string;
+  cargasActivas?: number;
+  categoria?: string;
+  centroCosto?: string;
+  empleadoActivo?: boolean;
+}
+
+export interface User extends DatosEmpleado {
   id: number;
   email: string;
   username: string;
   name: string;
-  code: string;
   phone: string;
   roleId: number;
   status: boolean;
@@ -29,12 +63,11 @@ export interface User {
   updatedAt: string;
 }
 
-export interface CreateUserInput {
+export interface CreateUserInput extends DatosEmpleado {
   email: string;
   username: string;
   password: string;
   name: string;
-  code: string;
   phone: string;
   roleId: number;
   status: boolean;

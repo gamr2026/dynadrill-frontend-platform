@@ -52,10 +52,10 @@
     <div class="user-form-dialog__row-pair">
       <div class="user-form-dialog__row">
         <dynadrill-input
-          label="Código de empleado"
-          placeholder="EMP-004"
-          [value]="form.controls.code.value"
-          (valueChange)="updateField('code', $event)"
+          label="Cédula"
+          placeholder="0601234567"
+          [value]="form.controls.cedula.value"
+          (valueChange)="updateField('cedula', $event)"
         />
       </div>
       <div class="user-form-dialog__row">
@@ -97,9 +97,94 @@
     }
 
     <dynadrill-checkbox
-      label="Usuario activo"
+      label="Usuario activo (acceso al sistema)"
       [checked]="form.controls.status.value"
       (checkedChange)="updateStatus($event)"
+    />
+
+    <dynadrill-text variant="h2" class="user-form-dialog__section-title">Datos del empleado</dynadrill-text>
+
+    <div class="user-form-dialog__row-pair">
+      <div class="user-form-dialog__row">
+        <dynadrill-input
+          label="Cargo"
+          placeholder="Mecánico Senior"
+          [value]="form.controls.cargo.value"
+          (valueChange)="updateField('cargo', $event)"
+        />
+      </div>
+      <div class="user-form-dialog__row">
+        <dynadrill-input
+          label="Departamento"
+          placeholder="Operaciones"
+          [value]="form.controls.departamento.value"
+          (valueChange)="updateField('departamento', $event)"
+        />
+      </div>
+    </div>
+
+    <div class="user-form-dialog__row-pair">
+      <div class="user-form-dialog__row">
+        <dynadrill-input
+          label="Tipo de contrato"
+          placeholder="Contrato productivo continuo"
+          [value]="form.controls.tipoContrato.value"
+          (valueChange)="updateField('tipoContrato', $event)"
+        />
+      </div>
+      <div class="user-form-dialog__row">
+        <dynadrill-input
+          label="Sucursal"
+          placeholder="Coca"
+          [value]="form.controls.sucursal.value"
+          (valueChange)="updateField('sucursal', $event)"
+        />
+      </div>
+    </div>
+
+    <div class="user-form-dialog__row-pair">
+      <div class="user-form-dialog__row">
+        <dynadrill-input
+          label="Categoría"
+          placeholder="Categoria Empleado Asistencial"
+          [value]="form.controls.categoria.value"
+          (valueChange)="updateField('categoria', $event)"
+        />
+      </div>
+      <div class="user-form-dialog__row">
+        <dynadrill-input
+          label="Centro de costo"
+          placeholder="Sistemas Químicos"
+          [value]="form.controls.centroCosto.value"
+          (valueChange)="updateField('centroCosto', $event)"
+        />
+      </div>
+    </div>
+
+    <div class="user-form-dialog__row-pair">
+      <div class="user-form-dialog__row">
+        <dynadrill-datetime-picker
+          label="Fecha de ingreso"
+          placeholder="Selecciona la fecha"
+          [value]="$any(fechaIngreso())"
+          (valueChange)="fechaIngreso.set($event)"
+        />
+      </div>
+      <div class="user-form-dialog__row">
+        <dynadrill-input
+          label="Cargas activas"
+          type="number"
+          placeholder="0"
+          [value]="form.controls.cargasActivas.value ?? ''"
+          (valueChange)="updateCargasActivas($event)"
+        />
+      </div>
+    </div>
+
+    <dynadrill-checkbox
+      label="Empleado activo (situación laboral)"
+      [checked]="form.controls.empleadoActivo.value"
+      (checkedChange)="updateEmpleadoActivo($event)"
     />
 
     <div class="user-form-dialog__actions">

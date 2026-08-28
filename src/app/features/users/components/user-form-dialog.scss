@@ -23,6 +23,12 @@
     color: var(--error, #ff4d4f);
   }
 
+  &__section-title {
+    margin-top: 4px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border, #e5e4ea);
+  }
+
   &__actions {
     display: flex;
     justify-content: flex-end;

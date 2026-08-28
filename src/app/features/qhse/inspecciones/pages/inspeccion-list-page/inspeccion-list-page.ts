@@ -22,7 +22,6 @@ import {
 } from '../../models/inspeccion-equipo.model';
 import { InspeccionEquipoService } from '../../services/inspeccion-equipo.service';
 import { InspeccionEquipoDialog } from '../../components/inspeccion-equipo-dialog';
-import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -59,11 +58,10 @@ export class InspeccionListPage {
     ];
   });
 
-  protected readonly narrowViewport = injectNarrowViewport();
-
+  /** Sin fixed:'left'/'right' ni scrollX — ver nota en iperc-list-page.ts (mismo criterio contra el pipeline de columnas fijas de nz-table). */
   protected readonly columns = computed<DynadrillDataTableColumn[]>(() => [
-    { key: 'code', header: 'Código', sortable: true, searchable: true, fixed: this.narrowViewport() ? 'left' : undefined },
-    { key: 'equipoCodigo', header: 'Equipo', searchable: true, fixed: this.narrowViewport() ? 'left' : undefined },
+    { key: 'code', header: 'Código', sortable: true, searchable: true },
+    { key: 'equipoCodigo', header: 'Equipo', searchable: true },
     {
       key: 'tipoLabel',
       header: 'Tipo',
@@ -75,7 +73,6 @@ export class InspeccionListPage {
       key: 'estadoBadge',
       header: 'Estado',
       type: 'badge',
-      fixed: this.narrowViewport() ? 'right' : undefined,
       filters: [
         { text: 'Vigente', value: 'Vigente' },
         { text: 'Vencida', value: 'Vencida' },
@@ -83,8 +80,6 @@ export class InspeccionListPage {
       ],
     },
   ]);
-
-  protected readonly tableScrollX = computed(() => (this.narrowViewport() ? '640px' : undefined));
 
   protected readonly rows = computed(() =>
     this.inspecciones().map(i => {

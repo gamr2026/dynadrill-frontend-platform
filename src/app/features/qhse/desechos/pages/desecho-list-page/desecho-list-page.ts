@@ -15,7 +15,6 @@ import {
 import { DESECHO_ESTADO_LABELS, Desecho } from '../../models/desecho.model';
 import { DesechoService } from '../../services/desecho.service';
 import { DesechoDialog } from '../../components/desecho-dialog';
-import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -60,10 +59,9 @@ export class DesechoListPage {
     ];
   });
 
-  protected readonly narrowViewport = injectNarrowViewport();
-
+  /** Sin fixed:'left'/'right' ni scrollX — ver nota en iperc-list-page.ts (mismo criterio contra el pipeline de columnas fijas de nz-table). */
   protected readonly columns = computed<DynadrillDataTableColumn[]>(() => [
-    { key: 'code', header: 'Código', sortable: true, searchable: true, fixed: this.narrowViewport() ? 'left' : undefined },
+    { key: 'code', header: 'Código', sortable: true, searchable: true },
     { key: 'descripcion', header: 'Descripción', searchable: true },
     {
       key: 'clasificacionLabel',
@@ -79,12 +77,9 @@ export class DesechoListPage {
       key: 'estadoBadge',
       header: 'Estado',
       type: 'badge',
-      fixed: this.narrowViewport() ? 'right' : undefined,
       filters: Object.entries(DESECHO_ESTADO_LABELS).map(([, text]) => ({ text, value: text })),
     },
   ]);
-
-  protected readonly tableScrollX = computed(() => (this.narrowViewport() ? '680px' : undefined));
 
   protected readonly rows = computed(() =>
     this.desechos().map(d => ({

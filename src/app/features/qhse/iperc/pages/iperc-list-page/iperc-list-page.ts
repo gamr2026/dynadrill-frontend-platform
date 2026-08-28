@@ -13,7 +13,6 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { calcularNR, interpretarNR, IPERC_STATUS_LABELS, IpercMatrix, IpercStatus, NivelRiesgo } from '../../models/iperc.model';
 import { IpercService } from '../../services/iperc.service';
-import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
 import { IpercMatrixDialog } from '../../components/iperc-matrix-dialog';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { AppNotificationItem, NotificationsService } from '../../../../../core/services/notifications.service';
@@ -84,18 +83,24 @@ export class IpercListPage {
     ];
   });
 
-  protected readonly narrowViewport = injectNarrowViewport();
-
+  /**
+   * Sin fixed:'left'/'right' ni scrollX — mismo criterio que
+   * maintenance-list-page.ts: nzScroll.x mide columnas con un renglón
+   * oculto antes de que los componentes Angular (íconos, badges) terminen
+   * de renderizar, y activa el pipeline de columnas fijas de nz-table
+   * (NzResizeObserver + mergeMap interno) en cada tabla montada — con
+   * cards/tablas en casi toda la app, eso es carga real que se acumula al
+   * navegar. table-layout vuelve a "auto" y el scroll horizontal en móvil
+   * lo da el wrapper .table-scroll en el HTML.
+   */
   protected readonly columns = computed<DynadrillDataTableColumn[]>(() => [
-    { key: 'code', header: 'Código', sortable: true, searchable: true, fixed: this.narrowViewport() ? 'left' : undefined },
+    { key: 'code', header: 'Código', sortable: true, searchable: true },
     { key: 'actividad', header: 'Actividad', searchable: true },
     { key: 'ubicacion', header: 'Ubicación', searchable: true },
     { key: 'estadoBadge', header: 'Estado', type: 'badge', filters: STATUS_FILTERS },
     { key: 'faseIndex', header: 'Fase' },
-    { key: 'riesgoBadge', header: 'Riesgo residual más alto', type: 'badge', fixed: this.narrowViewport() ? 'right' : undefined },
+    { key: 'riesgoBadge', header: 'Riesgo residual más alto', type: 'badge' },
   ]);
-
-  protected readonly tableScrollX = computed(() => (this.narrowViewport() ? '760px' : undefined));
 
   protected readonly faseSteps = FASE_STEPS;
   protected readonly faseLabels = FASE_LABELS;

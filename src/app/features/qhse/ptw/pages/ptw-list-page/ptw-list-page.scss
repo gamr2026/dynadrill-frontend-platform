@@ -4,6 +4,10 @@
   gap: 16px;
 }
 
+.table-scroll {
+  overflow-x: auto;
+}
+
 .ptw-list-page__fase-legend {
   display: flex;
   flex-wrap: wrap;

@@ -7,7 +7,9 @@
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
     <dynadrill-kpi-row [items]="kpis()" />
-    <dynadrill-data-table [columns]="columns()" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" [scrollX]="tableScrollX() ?? ''" />
+    <div class="table-scroll">
+      <dynadrill-data-table [columns]="columns()" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" />
+    </div>
 
     <section class="inspeccion-list-page__cronograma">
       <h3>Cronograma — control periódico por equipo</h3>

@@ -109,6 +109,7 @@ export class OperatorMaintenancePage {
     effect(() => {
       this.notifications.setSource('operator-maintenance', this.notificationItems());
     });
+    inject(DestroyRef).onDestroy(() => this.notifications.clearSource('operator-maintenance'));
   }
 
   private reload(): void {

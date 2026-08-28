@@ -29,7 +29,7 @@
     <ng-template #actionsTpl let-row>
       <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(row)">Ver detalle</dynadrill-button>
       @if (row['kind'] === 'order' && row['statusBadge']?.['text'] === 'Cerrado') {
-        <dynadrill-button variant="secondary" size="small" (clicked)="openReport(row)">Ver informe DYN-MNT-RE-008</dynadrill-button>
+        <dynadrill-button variant="secondary" size="small" (clicked)="openReport(row)">Ver informe</dynadrill-button>
       }
     </ng-template>
   </div>

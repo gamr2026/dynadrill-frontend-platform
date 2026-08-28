@@ -4,23 +4,12 @@
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
     <dynadrill-kpi-row [items]="kpis()" />
 
-    <div class="ticket-facturacion-list-page__grid">
-      @for (t of tickets(); track t.id) {
-        <dynadrill-card [accent]="t.estado === 'facturado' ? 'success' : 'warning'">
-          <span card-title>{{ t.code }}</span>
-          <dynadrill-tag card-extra [label]="t.estado === 'facturado' ? 'Facturado' : 'Cerrado'" [variant]="t.estado === 'facturado' ? 'success' : 'warning'" />
+    <ng-template #actionsTpl let-row>
+      <dynadrill-button variant="secondary" size="small" (clicked)="verDetalle(row)">Ver detalle</dynadrill-button>
+    </ng-template>
 
-          <dl class="ticket-facturacion-list-page__meta">
-            <div><dt>Servicios</dt><dd>${{ t.subtotalServicios | number: '1.2-2' }}</dd></div>
-            <div><dt>Materiales</dt><dd>${{ t.subtotalMateriales | number: '1.2-2' }}</dd></div>
-            <div><dt>Subtotal</dt><dd>${{ t.subtotal | number: '1.2-2' }}</dd></div>
-          </dl>
-
-          <dynadrill-button variant="secondary" size="small" (clicked)="verDetalle(t.id)">Ver detalle</dynadrill-button>
-        </dynadrill-card>
-      } @empty {
-        <dynadrill-banner variant="info" message="Todavía no hay Tickets generados." />
-      }
+    <div class="table-scroll">
+      <dynadrill-data-table [columns]="columns" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" [actionsTemplate]="actionsTpl" />
     </div>
   </dynadrill-spinner>
 </div>

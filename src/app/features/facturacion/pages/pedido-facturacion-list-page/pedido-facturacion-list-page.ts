@@ -1,17 +1,15 @@
-import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import {
-  DynadrillBannerComponent,
   DynadrillButtonComponent,
-  DynadrillCardComponent,
-  DynadrillKpiRowComponent,
+  DynadrillDataTableColumn,
+  DynadrillDataTableComponent,
   DynadrillDialogService,
+  DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
-  DynadrillTagComponent,
   type DynadrillKpiRowItem,
 } from '@digitec-it-projects/dynadrill-ui';
 import { calcularPrefactura, DocumentacionDiaria, Otq } from '../../models/facturacion.model';
@@ -26,16 +24,7 @@ function presupuestoDe(otq: Otq): number {
 
 @Component({
   selector: 'app-pedido-facturacion-list-page',
-  imports: [
-    DecimalPipe,
-    DynadrillScreenHeaderComponent,
-    DynadrillKpiRowComponent,
-    DynadrillCardComponent,
-    DynadrillTagComponent,
-    DynadrillButtonComponent,
-    DynadrillSpinnerComponent,
-    DynadrillBannerComponent,
-  ],
+  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillDataTableComponent, DynadrillButtonComponent, DynadrillSpinnerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pedido-facturacion-list-page.html',
   styleUrl: './pedido-facturacion-list-page.scss',
@@ -51,51 +40,62 @@ export class PedidoFacturacionListPage {
 
   protected readonly loading = signal(true);
   protected readonly otqs = signal<Otq[]>([]);
+  protected readonly docsSignal = signal<DocumentacionDiaria[]>([]);
   protected readonly excepcionesActivas = signal<Set<number>>(new Set());
 
-  protected readonly viewCards = computed(() => {
+  protected readonly columns: DynadrillDataTableColumn[] = [
+    { key: 'numero', header: 'OTQ', sortable: true, searchable: true },
+    { key: 'cliente', header: 'Cliente', sortable: true, searchable: true },
+    { key: 'ubicacion', header: 'Campo / Pozo', searchable: true },
+    { key: 'presupuesto', header: 'Presupuesto' },
+    { key: 'acumulado', header: 'Acumulado' },
+    { key: 'porcentajeBadge', header: '% Consumido', type: 'badge' },
+    { key: 'excepcionBadge', header: 'Excepción', type: 'badge' },
+  ];
+
+  protected readonly rows = computed(() => {
     const docs = this.docsSignal();
     return this.otqs().map(otq => {
       const pre = calcularPrefactura(otq.pedidoId, presupuestoDe(otq), docs, otq.items);
       const tono: 'success' | 'warning' | 'error' = pre.porcentajeConsumido >= 100 ? 'error' : pre.porcentajeConsumido >= 80 ? 'warning' : 'success';
       return {
-        otqId: otq.id,
+        id: otq.id,
         pedidoId: otq.pedidoId,
         numero: otq.numero,
         cliente: otq.cliente,
-        pozo: otq.pozo,
-        campo: otq.campo,
-        presupuesto: presupuestoDe(otq),
-        acumulado: pre.acumulado,
-        porcentaje: pre.porcentajeConsumido,
-        tono,
-        conExcepcion: this.excepcionesActivas().has(otq.pedidoId),
+        ubicacion: `${otq.campo} — ${otq.pozo}`,
+        presupuesto: '$' + presupuestoDe(otq).toFixed(2),
+        acumulado: '$' + pre.acumulado.toFixed(2),
+        porcentajeBadge: { text: pre.porcentajeConsumido + '%', tone: tono },
+        excepcionBadge: this.excepcionesActivas().has(otq.pedidoId)
+          ? { text: 'En negociación', tone: 'warning' as const }
+          : { text: 'Sin excepción', tone: 'neutral' as const },
       };
     });
   });
 
-  private readonly docsSignal = signal<DocumentacionDiaria[]>([]);
+  protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
-    const cards = this.viewCards();
+    const rows = this.rows();
     return [
-      { label: 'Pedidos con Prefactura activa', value: cards.length, tone: 'neutral' },
-      { label: 'Cerca del límite (≥80%)', value: cards.filter(c => c.tono === 'warning').length, tone: 'warning' },
-      { label: 'Sobrepasados', value: cards.filter(c => c.tono === 'error').length, tone: 'error' },
-      { label: 'Con excepción activa', value: cards.filter(c => c.conExcepcion).length, tone: 'brand' },
+      { label: 'Pedidos con Prefactura activa', value: rows.length, tone: 'neutral' },
+      { label: 'Cerca del límite (≥80%)', value: rows.filter(r => r.porcentajeBadge.tone === 'warning').length, tone: 'warning' },
+      { label: 'Sobrepasados', value: rows.filter(r => r.porcentajeBadge.tone === 'error').length, tone: 'error' },
+      { label: 'Con excepción activa', value: rows.filter(r => r.excepcionBadge.tone === 'warning').length, tone: 'brand' },
     ];
   });
 
   /** FACT-002 — alertas 80/95/100% de presupuesto consumido, vía la campanita ya existente. */
   private readonly notificationItems = computed<AppNotificationItem[]>(() =>
-    this.viewCards()
-      .filter(c => c.porcentaje >= 80)
-      .map(c => ({
-        id: `facturacion-${c.otqId}`,
-        title: c.porcentaje >= 100 ? `${c.numero} sobrepasó el presupuesto` : `${c.numero} cerca del límite de presupuesto`,
-        description: `${c.cliente} — ${c.porcentaje}% consumido ($${c.acumulado.toFixed(2)} de $${c.presupuesto.toFixed(2)})`,
-        tone: c.porcentaje >= 100 ? 'error' : 'warning',
-        link: '/dashboard/facturacion/pedidos/' + c.pedidoId,
+    this.rows()
+      .filter(r => r.porcentajeBadge.tone !== 'success')
+      .map(r => ({
+        id: `facturacion-${r.id}`,
+        title: r.porcentajeBadge.tone === 'error' ? `${r.numero} sobrepasó el presupuesto` : `${r.numero} cerca del límite de presupuesto`,
+        description: `${r.cliente} — ${r.porcentajeBadge.text} consumido (${r.acumulado} de ${r.presupuesto})`,
+        tone: r.porcentajeBadge.tone === 'error' ? 'error' : 'warning',
+        link: '/dashboard/facturacion/pedidos/' + r.pedidoId,
       })),
   );
 
@@ -122,8 +122,8 @@ export class PedidoFacturacionListPage {
     });
   }
 
-  protected verDetalle(pedidoId: number): void {
-    this.router.navigate(['/dashboard/facturacion/pedidos', pedidoId]);
+  protected verDetalle(row: Record<string, unknown>): void {
+    this.router.navigate(['/dashboard/facturacion/pedidos', row['pedidoId']]);
   }
 
   protected nuevaOtq(): void {

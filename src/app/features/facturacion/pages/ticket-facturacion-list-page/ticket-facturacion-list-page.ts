@@ -1,15 +1,13 @@
-import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
-  DynadrillBannerComponent,
-  DynadrillCardComponent,
+  DynadrillButtonComponent,
+  DynadrillDataTableColumn,
+  DynadrillDataTableComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
-  DynadrillTagComponent,
-  DynadrillButtonComponent,
   type DynadrillKpiRowItem,
 } from '@digitec-it-projects/dynadrill-ui';
 import { FacturacionTicket } from '../../models/facturacion.model';
@@ -17,16 +15,7 @@ import { FacturacionTicketService } from '../../services/facturacion.service';
 
 @Component({
   selector: 'app-ticket-facturacion-list-page',
-  imports: [
-    DecimalPipe,
-    DynadrillScreenHeaderComponent,
-    DynadrillKpiRowComponent,
-    DynadrillCardComponent,
-    DynadrillTagComponent,
-    DynadrillButtonComponent,
-    DynadrillSpinnerComponent,
-    DynadrillBannerComponent,
-  ],
+  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillDataTableComponent, DynadrillButtonComponent, DynadrillSpinnerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './ticket-facturacion-list-page.html',
   styleUrl: './ticket-facturacion-list-page.scss',
@@ -38,6 +27,27 @@ export class TicketFacturacionListPage {
 
   protected readonly loading = signal(true);
   protected readonly tickets = signal<FacturacionTicket[]>([]);
+
+  protected readonly columns: DynadrillDataTableColumn[] = [
+    { key: 'code', header: 'Ticket', sortable: true, searchable: true },
+    { key: 'servicios', header: 'Servicios' },
+    { key: 'materiales', header: 'Materiales' },
+    { key: 'subtotal', header: 'Subtotal' },
+    { key: 'estadoBadge', header: 'Estado', type: 'badge' },
+  ];
+
+  protected readonly rows = computed(() =>
+    this.tickets().map(t => ({
+      id: t.id,
+      code: t.code,
+      servicios: '$' + t.subtotalServicios.toFixed(2),
+      materiales: '$' + t.subtotalMateriales.toFixed(2),
+      subtotal: '$' + t.subtotal.toFixed(2),
+      estadoBadge: t.estado === 'facturado' ? { text: 'Facturado', tone: 'success' as const } : { text: 'Cerrado', tone: 'warning' as const },
+    })),
+  );
+
+  protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
     const all = this.tickets();
@@ -67,7 +77,7 @@ export class TicketFacturacionListPage {
     });
   }
 
-  protected verDetalle(id: number): void {
-    this.router.navigate(['/dashboard/facturacion/tickets', id]);
+  protected verDetalle(row: Record<string, unknown>): void {
+    this.router.navigate(['/dashboard/facturacion/tickets', row['id']]);
   }
 }

@@ -4,6 +4,7 @@ import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import {
   DynadrillButtonComponent,
   DynadrillCheckboxComponent,
+  DynadrillDatetimePickerComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
   DynadrillSelectComponent,
@@ -38,6 +39,7 @@ const SPECIALTY_OPTIONS: DynadrillSelectOption[] = [
     DynadrillInputComponent,
     DynadrillSelectComponent,
     DynadrillCheckboxComponent,
+    DynadrillDatetimePickerComponent,
     DynadrillButtonComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -72,12 +74,24 @@ export class UserFormDialog {
     username: ['', [Validators.required]],
     email: ['', [Validators.required, Validators.email]],
     password: [''],
-    code: [''],
+    cedula: [''],
     phone: [''],
     roleId: this.fb.control<number | null>(null, [Validators.required]),
     specialty: this.fb.control<OperatorSpecialty | null>(null),
     status: [true],
+    // ── Datos de RRHH (campos_empleado.xlsx) — todos opcionales ──
+    cargo: [''],
+    departamento: [''],
+    tipoContrato: [''],
+    sucursal: [''],
+    categoria: [''],
+    centroCosto: [''],
+    cargasActivas: this.fb.control<number | null>(null),
+    empleadoActivo: [true],
   });
+
+  /** Fuera del form group, mismo patrón que investigacion-dialog.ts: dynadrill-datetime-picker trabaja con Date, no con el string ISO que guarda el modelo. */
+  protected readonly fechaIngreso = signal<Date | null>(null);
 
   constructor() {
     if (!this.isEditMode) {
@@ -93,12 +107,21 @@ export class UserFormDialog {
             name: user.name,
             username: user.username,
             email: user.email,
-            code: user.code,
+            cedula: user.cedula ?? '',
             phone: user.phone,
             roleId: user.roleId,
             specialty: user.specialty ?? null,
             status: user.status,
+            cargo: user.cargo ?? '',
+            departamento: user.departamento ?? '',
+            tipoContrato: user.tipoContrato ?? '',
+            sucursal: user.sucursal ?? '',
+            categoria: user.categoria ?? '',
+            centroCosto: user.centroCosto ?? '',
+            cargasActivas: user.cargasActivas ?? null,
+            empleadoActivo: user.empleadoActivo ?? true,
           });
+          this.fechaIngreso.set(user.fechaIngreso ? new Date(user.fechaIngreso) : null);
           this.selectedRoleId.set(user.roleId);
           if (this.isOperatorRole()) {
             this.form.controls.specialty.addValidators([Validators.required]);
@@ -115,8 +138,20 @@ export class UserFormDialog {
     }
   }
 
-  updateField(field: 'name' | 'username' | 'email' | 'password' | 'code' | 'phone', value: string): void {
+  updateField(
+    field: 'name' | 'username' | 'email' | 'password' | 'cedula' | 'phone' | 'cargo' | 'departamento' | 'tipoContrato' | 'sucursal' | 'categoria' | 'centroCosto',
+    value: string,
+  ): void {
     this.form.controls[field].setValue(value);
+  }
+
+  updateCargasActivas(value: string): void {
+    const n = Number(value);
+    this.form.controls.cargasActivas.setValue(value.trim() === '' || Number.isNaN(n) ? null : n);
+  }
+
+  updateEmpleadoActivo(checked: boolean): void {
+    this.form.controls.empleadoActivo.setValue(checked);
   }
 
   updateRole(value: unknown): void {
@@ -147,18 +182,21 @@ export class UserFormDialog {
     }
 
     this.submitting.set(true);
-    const { password, ...rest } = this.form.getRawValue();
+    const { password, cargasActivas, ...rest } = this.form.getRawValue();
     const roleId = rest.roleId as number;
     const specialty = rest.specialty ?? undefined;
+    const fechaIngreso = this.fechaIngreso()?.toISOString();
 
     const request$ = this.isEditMode
       ? this.usersService.update(this.data.userId!, {
           ...rest,
           roleId,
           specialty,
+          cargasActivas: cargasActivas ?? undefined,
+          fechaIngreso,
           ...(password ? { password } : {}),
         })
-      : this.usersService.create({ ...rest, roleId, specialty, password });
+      : this.usersService.create({ ...rest, roleId, specialty, cargasActivas: cargasActivas ?? undefined, fechaIngreso, password });
 
     request$.subscribe({
       next: () => {

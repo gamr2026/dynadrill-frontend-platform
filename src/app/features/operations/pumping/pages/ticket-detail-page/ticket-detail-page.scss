@@ -299,3 +299,33 @@
   align-items: center;
   justify-content: center;
 }
+
+.ticket-detail__inspection-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  justify-content: flex-end;
+}
+
+.ticket-detail__inspection-status {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.ticket-detail__inspection-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+
+  &--done {
+    background: #e6f7e6;
+    color: #1a7a1a;
+    border: 1px solid #b2e0b2;
+  }
+}

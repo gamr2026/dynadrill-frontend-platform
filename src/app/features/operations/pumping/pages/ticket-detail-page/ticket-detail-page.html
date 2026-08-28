@@ -282,6 +282,34 @@
       />
     </section>
 
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Inspección de salida</dynadrill-text>
+      <dynadrill-text variant="caption">Revise la inspección de salida realizada por cada operador.</dynadrill-text>
+
+      <ng-template #inspectionSalidaReviewTpl let-row>
+        @if (hasCompletedInspection(row)) {
+          <dynadrill-button variant="success" size="small" [disabled]="true">
+            Inspección realizada
+          </dynadrill-button>
+          <dynadrill-button variant="secondary" size="small" (click)="viewInspection(row)">
+            Ver detalle
+          </dynadrill-button>
+        } @else {
+          <dynadrill-button variant="warning" size="small" [disabled]="true">
+            Sin inspección
+          </dynadrill-button>
+        }
+      </ng-template>
+
+      <dynadrill-data-table
+        [columns]="personnelColumns"
+        [rows]="personnelRows()"
+        [loading]="false"
+        actionsHeader="Acciones"
+        [actionsTemplate]="inspectionSalidaReviewTpl"
+      />
+    </section>
+
     @if (!allLlegadaApproved()) {
       <section class="ticket-detail__section">
         <dynadrill-text variant="caption">Debe aprobar todos los reportes de llegada antes de continuar.</dynadrill-text>
@@ -458,6 +486,10 @@
     </section>
 
     <section class="ticket-detail__section">
+      <div class="ticket-detail__inspection-actions">
+        <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('chassisItems', 'salida', 'ok')">Marcar todos: OK</dynadrill-button>
+        <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('chassisItems', 'salida', 'defectuoso')">Marcar todos: Defectuoso</dynadrill-button>
+      </div>
       <dynadrill-inspection-grid
         mode="salida"
         [items]="chassisItems()"
@@ -489,12 +521,30 @@
       <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
 
       <ng-template #inspectionActionsLlegadaTpl let-row>
-        <dynadrill-button variant="success" size="small" [disabled]="true">
-          Inspección realizada
-        </dynadrill-button>
-        <dynadrill-button variant="secondary" size="small" (click)="viewInspection(row)">
-          Ver detalle
-        </dynadrill-button>
+        @if (hasCompletedInspection(row)) {
+          <dynadrill-button variant="success" size="small" [disabled]="true">
+            Inspección de salida realizada
+          </dynadrill-button>
+          <dynadrill-button variant="secondary" size="small" (click)="viewInspection(row)">
+            Ver detalle
+          </dynadrill-button>
+        } @else {
+          <dynadrill-button variant="secondary" size="small" [disabled]="true">
+            Inspección de salida pendiente
+          </dynadrill-button>
+        }
+        @if (hasCompletedLlegadaInspection(row)) {
+          <dynadrill-button variant="success" size="small" [disabled]="true">
+            Inspección de llegada realizada
+          </dynadrill-button>
+          <dynadrill-button variant="secondary" size="small" (click)="viewLlegadaInspection(row)">
+            Ver detalle
+          </dynadrill-button>
+        } @else {
+          <dynadrill-button variant="primary" size="small" (click)="openInspection(row, 'llegada')">
+            Realizar inspección de llegada
+          </dynadrill-button>
+        }
       </ng-template>
 
       <dynadrill-data-table
@@ -589,6 +639,10 @@
 
     <!-- Inspección de salida (lectura, sin título) + Llegada (editable) -->
     <section class="ticket-detail__section">
+      <div class="ticket-detail__inspection-actions">
+        <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('chassisItems', 'llegada', 'ok')">Marcar todos: OK</dynadrill-button>
+        <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('chassisItems', 'llegada', 'defectuoso')">Marcar todos: Defectuoso</dynadrill-button>
+      </div>
       <dynadrill-inspection-grid
         mode="llegada"
         [items]="chassisItems()"
@@ -598,6 +652,10 @@
 
     <!-- Chasis (era Motor / Transmisión) -->
     <section class="ticket-detail__section">
+      <div class="ticket-detail__inspection-actions">
+        <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('motorItems', 'llegada', 'ok')">Marcar todos: OK</dynadrill-button>
+        <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('motorItems', 'llegada', 'defectuoso')">Marcar todos: Defectuoso</dynadrill-button>
+      </div>
       <dynadrill-inspection-grid
         title="Chasis"
         mode="llegada"
@@ -608,6 +666,10 @@
 
     <!-- Plataforma (era Equipos) -->
     <section class="ticket-detail__section">
+      <div class="ticket-detail__inspection-actions">
+        <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('arrivalEquipmentItems', 'llegada', 'ok')">Marcar todos: OK</dynadrill-button>
+        <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('arrivalEquipmentItems', 'llegada', 'defectuoso')">Marcar todos: Defectuoso</dynadrill-button>
+      </div>
       <dynadrill-inspection-grid
         title="Plataforma"
         mode="llegada"
@@ -618,6 +680,10 @@
 
     <!-- Instrumentación -->
     <section class="ticket-detail__section">
+      <div class="ticket-detail__inspection-actions">
+        <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('instrumentationItems', 'llegada', 'ok')">Marcar todos: OK</dynadrill-button>
+        <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('instrumentationItems', 'llegada', 'defectuoso')">Marcar todos: Defectuoso</dynadrill-button>
+      </div>
       <dynadrill-inspection-grid
         title="Instrumentación"
         mode="llegada"
@@ -670,7 +736,7 @@
 
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="primary" [disabled]="submitting()" (clicked)="saveUnitReport()">Enviar reporte de unidad de llegada</dynadrill-button>
+      <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || !allLlegadaInspectionsCompleted() || submitting()" (clicked)="saveUnitReport()">Enviar reporte de unidad de llegada</dynadrill-button>
     </footer>
   }
 

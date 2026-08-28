@@ -906,10 +906,25 @@ export class TicketDetailPage {
     return this.completedInspections().has(row['id'] as number);
   }
 
-  /** Verifica si todos los operadores de la tabla tienen inspección realizada */
+  /** Inspecciones de llegada realizadas por operador (id -> VehicleInspection) */
+  protected readonly completedLlegadaInspections = signal<Map<number, unknown>>(new Map());
+
+  protected hasCompletedLlegadaInspection(row: Record<string, unknown>): boolean {
+    return this.completedLlegadaInspections().has(row['id'] as number);
+  }
+
+  /** Verifica si todos los operadores de la tabla tienen inspección de salida realizada */
   protected readonly allInspectionsCompleted = computed(() => {
     const rows = this.personnelRows();
     const completed = this.completedInspections();
+    if (rows.length === 0) return false;
+    return rows.every(r => completed.has(r.id));
+  });
+
+  /** Verifica si todos los operadores tienen inspección de llegada realizada */
+  protected readonly allLlegadaInspectionsCompleted = computed(() => {
+    const rows = this.personnelRows();
+    const completed = this.completedLlegadaInspections();
     if (rows.length === 0) return false;
     return rows.every(r => completed.has(r.id));
   });
@@ -1494,6 +1509,16 @@ export class TicketDetailPage {
     );
   }
 
+  protected markAllInspectionItems(
+    section: 'chassisItems' | 'motorItems' | 'arrivalEquipmentItems' | 'instrumentationItems',
+    mode: 'salida' | 'llegada',
+    value: 'ok' | 'defectuoso',
+  ): void {
+    this[section].update(items =>
+      items.map(item => ({ ...item, [mode]: value })),
+    );
+  }
+
   protected goBack(): void {
     this.router.navigate(['..'], { relativeTo: this.route });
   }
@@ -1501,10 +1526,13 @@ export class TicketDetailPage {
   /**
    * Abre el dialog de inspección de vehículos (DYN-SGI-RE-068)
    * para el operador seleccionado en la tabla de personal asignado.
+   * mode 'salida' guarda en completedInspections, 'llegada' en completedLlegadaInspections.
    */
-  protected openInspection(row: Record<string, unknown>): void {
+  protected openInspection(row: Record<string, unknown>, mode: 'salida' | 'llegada' = 'salida'): void {
     const ref = this.dialog.open<VehicleInspectionDialog>({
-      title: 'Inspección de Vehículos — DYN-SGI-RE-068',
+      title: mode === 'llegada'
+        ? 'Inspección de Vehículos (Llegada) — DYN-SGI-RE-068'
+        : 'Inspección de Vehículos — DYN-SGI-RE-068',
       content: VehicleInspectionDialog,
       size: 'large',
       footer: false,
@@ -1512,12 +1540,20 @@ export class TicketDetailPage {
     ref.afterClose.subscribe(result => {
       if (result) {
         const operatorId = row['id'] as number;
-        this.completedInspections.update(map => {
-          const updated = new Map(map);
-          updated.set(operatorId, result);
-          return updated;
-        });
-        this.notify.success('Inspección guardada', `Inspección realizada por ${row['name']}.`);
+        if (mode === 'llegada') {
+          this.completedLlegadaInspections.update(map => {
+            const updated = new Map(map);
+            updated.set(operatorId, result);
+            return updated;
+          });
+        } else {
+          this.completedInspections.update(map => {
+            const updated = new Map(map);
+            updated.set(operatorId, result);
+            return updated;
+          });
+        }
+        this.notify.success('Inspección guardada', `Inspección de ${mode} realizada por ${row['name']}.`);
       }
     });
   }
@@ -1532,6 +1568,20 @@ export class TicketDetailPage {
     if (!existing) return;
     this.dialog.open<VehicleInspectionDialog, VehicleInspectionDialogData>({
       title: 'Detalle de Inspección — DYN-SGI-RE-068',
+      content: VehicleInspectionDialog,
+      data: { existing },
+      size: 'large',
+      footer: false,
+    });
+  }
+
+  /** Abre el dialog de inspección de llegada en modo lectura */
+  protected viewLlegadaInspection(row: Record<string, unknown>): void {
+    const operatorId = row['id'] as number;
+    const existing = this.completedLlegadaInspections().get(operatorId) as VehicleInspection | undefined;
+    if (!existing) return;
+    this.dialog.open<VehicleInspectionDialog, VehicleInspectionDialogData>({
+      title: 'Detalle de Inspección (Llegada) — DYN-SGI-RE-068',
       content: VehicleInspectionDialog,
       data: { existing },
       size: 'large',
@@ -1554,7 +1604,7 @@ export class TicketDetailPage {
     this.reportClientName.set(ticket.clientName);
     this.reportUnitCode.set(ticket.unitCode || '');
 
-    // En llegada, las inspecciones ya se realizaron en salida
+    // En llegada, la inspección de salida ya fue realizada y aprobada por el supervisor
     if (ticket.currentStep === 'en_ejecucion_llegada') {
       const inspMap = new Map<number, VehicleInspection>();
       for (const op of ticket.operators) {

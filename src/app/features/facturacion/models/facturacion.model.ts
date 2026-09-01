@@ -41,6 +41,7 @@ export interface OtqItem {
   total: number;
 }
 
+/** 'borrador' = registrada en el Portal, sin activar. 'aprobada' = ACTIVADA (FACT-001, Fase 3) — visible/distribuida al resto de áreas. */
 export type OtqEstado = 'borrador' | 'aprobada';
 
 export interface Otq {
@@ -62,14 +63,46 @@ export interface Otq {
   fechaFinEstimada?: string;
   supervisorOperativo?: string;
   tecnicoHse?: string;
+  /** FACT-001, Fase 2 — nombres de archivo simulados (presupuesto firmado, alcance/contrato marco). Sin almacenamiento real de binarios todavía. */
+  documentosAdjuntos?: string[];
+  /** FACT-001, Fase 3 — quién activó la OTQ y cuándo. */
+  activadaPor?: string;
+  activadaAt?: string;
 }
 
-export type CreateOtqInput = Omit<Otq, 'id' | 'estado' | 'createdAt'>;
+export type CreateOtqInput = Omit<Otq, 'id' | 'estado' | 'createdAt' | 'activadaPor' | 'activadaAt'>;
 
 export type OtqItemDraft = Omit<OtqItem, 'id' | 'total'>;
 
 export function otqTotal(otq: Otq): number {
   return otq.items.reduce((sum, i) => sum + i.total, 0);
+}
+
+// ── Simulación de AS2 (FACT-001) — hasta que exista el API key real, el
+// Portal Interno consulta este "espejo" en vez del sistema externo. La
+// forma de los datos (pedido anclado a un contrato + lista de precios +
+// responsables ya asignados) es deliberadamente la misma que tendría la
+// respuesta real, para que el día que se conecte la API solo cambie el
+// origen del dato, no las pantallas que lo consumen. ──
+
+export interface As2PedidoInfo {
+  pedidoId: number;
+  cliente: string;
+  numeroContrato: string;
+  campo: string;
+  bloque: string;
+  pozo: string;
+  taladro?: string;
+  /** Ya asignados en AS2 — el Portal Interno los muestra, no los define. */
+  supervisorOperativo: string;
+  tecnicoHse: string;
+}
+
+export interface As2CatalogoItem {
+  codigo: string;
+  descripcion: string;
+  unidad: string;
+  tarifaUnitaria: number;
 }
 
 // ── Documentación diaria (FACT-002) — homologación → alimenta la Prefactura ──

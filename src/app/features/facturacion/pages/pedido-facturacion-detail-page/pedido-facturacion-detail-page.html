@@ -31,6 +31,25 @@
         </dl>
       </section>
 
+      <section class="fact-card" [class.fact-card--warning]="!otqActivada()" [class.fact-card--success]="otqActivada()">
+        <header class="pedido-detail__head">
+          <h2>Activación de la OTQ</h2>
+          <dynadrill-tag [label]="otqActivada() ? 'Activada' : 'Borrador'" [variant]="otqActivada() ? 'success' : 'warning'" />
+        </header>
+        @if (!otqActivada()) {
+          <p class="pedido-detail__lead">Mientras la OTQ esté en borrador no se puede registrar documentación diaria, guías de campo ni cambios de alcance — actívala para distribuirla a Operativo y HSE.</p>
+          <div class="pedido-detail__actions">
+            <dynadrill-button size="small" (clicked)="activarOtq()">Activar OTQ</dynadrill-button>
+            <dynadrill-button variant="secondary" size="small" (clicked)="verPdfOtq()">Ver / Imprimir PDF</dynadrill-button>
+          </div>
+        } @else {
+          <p class="pedido-detail__muted">Activada por {{ o.activadaPor }} — {{ o.activadaAt }}</p>
+          <div class="pedido-detail__actions">
+            <dynadrill-button variant="secondary" size="small" (clicked)="verPdfOtq()">Ver / Imprimir PDF</dynadrill-button>
+          </div>
+        }
+      </section>
+
       @if (excepcionActiva(); as exc) {
         <section class="fact-card" [class.fact-card--success]="exc.estado === 'aprobada'" [class.fact-card--warning]="exc.estado !== 'aprobada'">
           <header class="pedido-detail__head">
@@ -71,7 +90,7 @@
         </section>
       }
 
-      @if (!yaFacturado()) {
+      @if (!yaFacturado() && otqActivada()) {
         <section class="fact-card">
           <header class="pedido-detail__head">
             <h2>Cambio de alcance</h2>
@@ -84,7 +103,7 @@
       <section class="fact-card">
         <header class="pedido-detail__head">
           <h2>Documentación diaria</h2>
-          @if (!yaFacturado()) {
+          @if (!yaFacturado() && otqActivada()) {
             <dynadrill-button size="small" (clicked)="nuevaDocumentacion()">+ Registrar día</dynadrill-button>
           }
         </header>
@@ -92,11 +111,12 @@
         @if (documentacion().length) {
           <table class="pedido-detail__table">
             <thead>
-              <tr><th>Fecha</th><th class="num">Ítems</th><th>Registrado por</th><th>Estado</th><th aria-label="Acciones"></th></tr>
+              <tr><th aria-label="Expandir"></th><th>Fecha</th><th class="num">Ítems</th><th>Registrado por</th><th>Estado</th><th aria-label="Acciones"></th></tr>
             </thead>
             <tbody>
               @for (d of documentacion(); track d.id) {
-                <tr>
+                <tr class="pedido-detail__table-row--clickable" (click)="toggleDocDetalle(d.id)">
+                  <td class="pedido-detail__expand-cell">{{ docsExpandidos().has(d.id) ? '▾' : '▸' }}</td>
                   <td>{{ d.fecha }}</td>
                   <td class="num">{{ d.items.length }}</td>
                   <td>{{ d.registradoPor }}</td>
@@ -108,13 +128,41 @@
                   </td>
                   <td>
                     @if (d.estado === 'pendiente' && !yaFacturado()) {
-                      <div class="pedido-detail__row-actions">
+                      <div class="pedido-detail__row-actions" (click)="$event.stopPropagation()">
                         <dynadrill-button variant="secondary" size="small" (clicked)="homologar(d)">Homologar</dynadrill-button>
                         <dynadrill-button variant="secondary" size="small" (clicked)="rechazar(d)">Rechazar</dynadrill-button>
                       </div>
                     }
                   </td>
                 </tr>
+                @if (docsExpandidos().has(d.id)) {
+                  <tr class="pedido-detail__detail-row">
+                    <td [attr.colspan]="6">
+                      @if (d.estado === 'rechazado' && d.observacionesHomologacion) {
+                        <p class="pedido-detail__muted">Motivo de rechazo: {{ d.observacionesHomologacion }}</p>
+                      }
+                      <table class="pedido-detail__subtable">
+                        <thead><tr><th>Código</th><th>Descripción</th><th class="num">Cantidad</th><th>Tipo</th></tr></thead>
+                        <tbody>
+                          @for (item of d.items; track item.codigo) {
+                            <tr>
+                              <td>{{ item.codigo }}</td>
+                              <td>{{ item.descripcion }}</td>
+                              <td class="num">{{ item.cantidad }} {{ item.unidad }}</td>
+                              <td>{{ item.tipo }}</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                      @if (d.usoEquipos.length) {
+                        <p class="pedido-detail__muted">Equipos: {{ d.usoEquipos.length }} unidad(es) reportada(s) — ver reporte de uso en Mantenimiento.</p>
+                      }
+                      @if (d.hojasTiempo.length) {
+                        <p class="pedido-detail__muted">Personal: {{ d.hojasTiempo.length }} hoja(s) de tiempo registrada(s).</p>
+                      }
+                    </td>
+                  </tr>
+                }
               }
             </tbody>
           </table>
@@ -126,7 +174,7 @@
       <section class="fact-card">
         <header class="pedido-detail__head">
           <h2>Guías de campo</h2>
-          @if (!yaFacturado()) {
+          @if (!yaFacturado() && otqActivada()) {
             <dynadrill-button size="small" (clicked)="nuevaGuiaCampo()">+ Nueva guía</dynadrill-button>
           }
         </header>

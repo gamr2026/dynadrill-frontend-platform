@@ -2,6 +2,8 @@ import { HttpInterceptorFn, HttpResponse } from '@angular/common/http';
 import { delay, of } from 'rxjs';
 import {
   ActaEntregaRecepcion,
+  As2CatalogoItem,
+  As2PedidoInfo,
   CreateActaEntregaInput,
   CreateDocumentacionDiariaInput,
   CreateExcepcionInput,
@@ -15,6 +17,84 @@ import {
   Otq,
   ticketSubtotales,
 } from '../../features/facturacion/models/facturacion.model';
+
+/**
+ * Simulación de AS2 (FACT-001) — "espejo" de lo que el Portal Interno
+ * consultaría vía API real cuando exista el API key. pedidoId=3 y 6 son
+ * los mismos PumpingTicket ya sembrados en pumping-mock.interceptor.ts —
+ * cualquier otro pedidoId (ej. 4, que no existe como ticket real de
+ * Pumping) simula correctamente el caso "no existe en AS2".
+ */
+const as2Pedidos: As2PedidoInfo[] = [
+  {
+    pedidoId: 3,
+    cliente: 'Petroecuador',
+    numeroContrato: '2025201',
+    campo: 'SACHA',
+    bloque: 'BLOQUE 60',
+    pozo: 'BETA-9',
+    taladro: 'VICTORIA 01',
+    supervisorOperativo: 'Luis Vega',
+    tecnicoHse: 'Ana Torres',
+  },
+  {
+    pedidoId: 6,
+    cliente: 'Petroandina',
+    numeroContrato: '2025201',
+    campo: 'AUCA',
+    bloque: 'BLOQUE 61',
+    pozo: 'DELTA-7',
+    supervisorOperativo: 'Luis Vega',
+    tecnicoHse: 'Ana Torres',
+  },
+];
+
+/**
+ * Subconjunto real (~40 de 1300+ ítems) de "Lista de precios contrato
+ * 2025201.xlsx" — el contrato que ya usan los OTQ sembrados. Representa el
+ * catálogo que en producción vendría anclado al contrato en AS2; el Portal
+ * Interno solo lo consulta, no lo crea ni lo edita.
+ */
+const as2Catalogo: As2CatalogoItem[] = [
+  { codigo: 'SB3201', descripcion: 'Viaje por unidad de bombeo para estimulación', unidad: 'km', tarifaUnitaria: 3.15 },
+  { codigo: 'SB3205', descripcion: 'Unidad de bombeo para estimulación por hora adicional o fracción', unidad: 'hr', tarifaUnitaria: 26.78 },
+  { codigo: 'SB3208', descripcion: 'Bombeo de ácido primeros 2.000 galones', unidad: 'gls', tarifaUnitaria: 0.33 },
+  { codigo: 'SB3209', descripcion: 'Bombeo de ácido de 2.001 a 4.000 galones', unidad: 'gls', tarifaUnitaria: 0.33 },
+  { codigo: 'SB3211', descripcion: 'Bombeo de fluidos no corrosivos primeros 2.000 galones', unidad: 'gls', tarifaUnitaria: 0.25 },
+  { codigo: 'SB3214', descripcion: 'Tanque para tratamiento de 100 barriles', unidad: 'unidad', tarifaUnitaria: 257.1 },
+  { codigo: 'SB3216', descripcion: 'Cargo por monitoreo standard de presión, caudal y densidad', unidad: 'unidad', tarifaUnitaria: 373.8 },
+  { codigo: 'SB3219', descripcion: 'Registrador de presión tipo Martín Decker por trabajo', unidad: 'unidad', tarifaUnitaria: 91.67 },
+  { codigo: 'SB3226', descripcion: 'Supervisor para estimulación día o fracción', unidad: 'día', tarifaUnitaria: 437.23 },
+  { codigo: 'SB3227', descripcion: 'Operador para estimulación día o fracción', unidad: 'día', tarifaUnitaria: 349.78 },
+  { codigo: 'SB3228', descripcion: 'Asistente de Operaciones para estimulación día o fracción', unidad: 'día', tarifaUnitaria: 109.31 },
+  { codigo: 'SB3229', descripcion: 'Tanque para fluidos de estimulación 500 bbls', unidad: 'unidad', tarifaUnitaria: 678.36 },
+  { codigo: 'SB3230', descripcion: 'Servicio de Winche para bajar o subir tanques y silos', unidad: 'día', tarifaUnitaria: 1539.21 },
+  { codigo: 'SB3232', descripcion: 'Unidad de Monitoreo parámetros de Operación en camper', unidad: 'unidad', tarifaUnitaria: 2121.62 },
+  { codigo: 'SB3233', descripcion: 'Movilización unidades livianas para personal', unidad: 'km', tarifaUnitaria: 2.66 },
+  { codigo: 'SB3235', descripcion: 'Cargo Básico Vacuum para transporte agua limpia 4 hr, capacidad 180 bbls', unidad: 'unidad', tarifaUnitaria: 350.32 },
+  { codigo: 'SB3239', descripcion: 'Ingeniero de Operaciones de estimulación', unidad: 'día', tarifaUnitaria: 721.64 },
+  { codigo: 'SB3240', descripcion: 'Cargo básico, primeras 4 horas o fracción de bombeo unidad de estimulación (700 HP)', unidad: 'unidad', tarifaUnitaria: 3180.54 },
+  { codigo: 'SB3242', descripcion: 'Supervisor Senior para estimulación día o fracción', unidad: 'día', tarifaUnitaria: 749.46 },
+  { codigo: 'SFC33001', descripcion: 'Viaje por unidad de bombeo para tratamientos en superficie', unidad: 'km', tarifaUnitaria: 3.15 },
+  { codigo: 'SFC33032', descripcion: 'Supervisor Senior para fluidos de completación día o fracción', unidad: 'día', tarifaUnitaria: 833.41 },
+  { codigo: 'DYFCE-70', descripcion: 'Fluido Completación Especial Tipo 7', unidad: 'bbl', tarifaUnitaria: 34.9 },
+  { codigo: 'CT5134', descripcion: 'Supervisor Coiled Tubing día o fracción', unidad: 'día', tarifaUnitaria: 806.54 },
+  { codigo: 'CT5135', descripcion: 'Operador Coiled Tubing día o fracción', unidad: 'día', tarifaUnitaria: 349.78 },
+  { codigo: 'CT5146', descripcion: 'Ingeniero de Operaciones Coiled tubing', unidad: 'día', tarifaUnitaria: 721.64 },
+  { codigo: 'CT5147', descripcion: 'Grúa 30 Tons', unidad: 'día', tarifaUnitaria: 1640.64 },
+  { codigo: 'SB3602', descripcion: 'Líneas de acero de descarga de 2" 15000PSI WP, por día para Bombeo de nitrógeno 80 ft min', unidad: 'día', tarifaUnitaria: 1242.62 },
+  { codigo: 'SB3604', descripcion: 'Cargo básico primeras 4 horas o fracción unidad de nitrógeno, hasta 5000 psi', unidad: 'unidad', tarifaUnitaria: 1650.52 },
+  { codigo: 'SB3611', descripcion: 'Tanque criogénico de 6200 gal por trabajo', unidad: 'día', tarifaUnitaria: 545.31 },
+  { codigo: 'SB3616', descripcion: 'Supervisor operaciones Nitrógeno día o fracción', unidad: 'día', tarifaUnitaria: 806.54 },
+  { codigo: 'SB3617', descripcion: 'Operador operaciones Nitrógeno día o fracción', unidad: 'día', tarifaUnitaria: 349.78 },
+  { codigo: 'QP21301', descripcion: 'Dispersante de parafinas crudos livianos', unidad: 'gls', tarifaUnitaria: 33.29 },
+  { codigo: 'QP21305', descripcion: 'Bactericida base gluther aldéhido', unidad: 'gls', tarifaUnitaria: 128.97 },
+  { codigo: 'QP21319', descripcion: 'Secuestrante de sulfhídrico', unidad: 'gls', tarifaUnitaria: 70.72 },
+  { codigo: 'STQ223801', descripcion: 'Supervisor para tratamientos químicos día o fracción', unidad: 'día', tarifaUnitaria: 423.42 },
+  { codigo: 'STQ223802', descripcion: 'Operador para tratamientos químicos día o fracción', unidad: 'día', tarifaUnitaria: 352.85 },
+  { codigo: 'F10080', descripcion: 'Geomembrana PVC negra 750 micras, rollos de 1.4 m x 50 m', unidad: 'M2', tarifaUnitaria: 4.94 },
+  { codigo: 'QA21403', descripcion: 'Paño absorbente orgánico en paquete de 50 unidades. Tipo 1', unidad: 'unidad', tarifaUnitaria: 66.73 },
+];
 
 /**
  * Solo activo mientras no exista el backend real de Facturación (mismo
@@ -188,6 +268,16 @@ function matchAction(url: string, resource: string, action: string): number | nu
 }
 
 export const facturacionMockInterceptor: HttpInterceptorFn = (req, next) => {
+  // ── AS2 (simulado) ──
+  if (req.url.startsWith('/api/facturacion/as2/catalogo') && req.method === 'GET') {
+    return of(new HttpResponse({ status: 200, body: as2Catalogo })).pipe(delay(350));
+  }
+  const as2PedidoId = matchId(req.url, 'as2/pedido');
+  if (as2PedidoId !== null && req.method === 'GET') {
+    const found = as2Pedidos.find(p => p.pedidoId === as2PedidoId);
+    return of(new HttpResponse({ status: found ? 200 : 404, body: found ?? null })).pipe(delay(500));
+  }
+
   // ── OTQ ──
   if (req.url === '/api/facturacion/otq' && req.method === 'GET') {
     return of(new HttpResponse({ status: 200, body: otqs })).pipe(delay(300));
@@ -210,6 +300,17 @@ export const facturacionMockInterceptor: HttpInterceptorFn = (req, next) => {
     otqs = otqs.map(o => {
       if (o.id !== otqItemsId) return o;
       updated = { ...o, items: items.map((it, idx) => ({ ...it, id: idx + 1, total: Math.round(it.tarifaUnitaria * it.cantidadEstimada * 100) / 100 })) };
+      return updated;
+    });
+    return of(new HttpResponse({ status: updated ? 200 : 404, body: updated ?? null })).pipe(delay(400));
+  }
+  const otqActivarId = matchAction(req.url, 'otq', 'activar');
+  if (otqActivarId !== null && req.method === 'PATCH') {
+    const { activadaPor } = req.body as { activadaPor: string };
+    let updated: Otq | undefined;
+    otqs = otqs.map(o => {
+      if (o.id !== otqActivarId) return o;
+      updated = { ...o, estado: 'aprobada', activadaPor, activadaAt: new Date().toISOString() };
       return updated;
     });
     return of(new HttpResponse({ status: updated ? 200 : 404, body: updated ?? null })).pipe(delay(400));

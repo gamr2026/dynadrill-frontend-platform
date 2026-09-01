@@ -10,6 +10,34 @@
   &__table { @include f.table; }
   &__row-actions { @include f.row-actions; }
 
+  &__table-row--clickable {
+    cursor: pointer;
+  }
+
+  &__expand-cell {
+    width: 22px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__detail-row td {
+    background: var(--surface-muted, #faf9fc);
+    padding: 12px 16px;
+  }
+
+  &__subtable {
+    @include f.table;
+    background: var(--surface, #fff);
+    border: 1px solid #ecebf1;
+    border-radius: 8px;
+    overflow: hidden;
+
+    thead th { background: var(--surface, #fff); }
+  }
+
+  &__muted + &__subtable {
+    margin-top: 8px;
+  }
+
   &__actions {
     display: flex;
     flex-wrap: wrap;

@@ -11,12 +11,31 @@
     color: var(--text-muted, #5c5870);
   }
 
-  &__row-pair {
-    @include f.field-grid(150px);
-  }
-
   &__items-form {
     @include f.subform;
+  }
+
+  &__items-form-title {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted, #5c5870);
+  }
+
+  // Fila de campos cortos con ancho intencional — no estirar "Código"/"Unidad"/
+  // "Tarifa"/"Cantidad" a lo ancho del diálogo solo porque el grid tiene espacio.
+  &__item-row {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  &__field--sm {
+    flex: 0 0 130px;
+  }
+
+  &__field--grow {
+    flex: 1 1 220px;
   }
 
   &__items {
@@ -28,10 +47,19 @@
     background: var(--success-bg, rgba(82, 196, 26, 0.12));
   }
 
+  &__qty-cell {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
   &__qty-input {
-    width: 68px;
+    width: 56px;
     padding: 5px 7px;
     font: inherit;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
     border: 1px solid var(--border, #e5e4ea);
     border-radius: var(--radius-sm, 4px);
     background: var(--surface, #fff);
@@ -40,6 +68,10 @@
       outline: 2px solid var(--dynadrill-purple, #662e9b);
       outline-offset: 1px;
     }
+  }
+
+  &__qty-unit {
+    color: var(--text-muted, #5c5870);
   }
 
   &__summary {

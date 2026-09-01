@@ -43,6 +43,7 @@ import { DocumentacionDiariaDialog, DocumentacionDiariaDialogData } from '../../
 import { ExcepcionDialog, ExcepcionDialogData } from '../../components/excepcion-dialog';
 import { CambioAlcanceDialog, CambioAlcanceDialogData } from '../../components/cambio-alcance-dialog';
 import { GuiaCampoDialog, GuiaCampoDialogData } from '../../components/guia-campo-dialog';
+import { OtqPdfDialog, OtqPdfDialogData } from '../../components/otq-pdf-dialog';
 
 function presupuestoDe(otq: Otq): number {
   return otq.items.reduce((sum, i) => sum + i.total, 0);
@@ -127,7 +128,21 @@ export class PedidoFacturacionDetailPage {
   });
 
   protected readonly pendientesHomologacion = computed(() => this.documentacion().filter(d => d.estado === 'pendiente'));
+
+  protected readonly docsExpandidos = signal<ReadonlySet<number>>(new Set());
+
+  protected toggleDocDetalle(docId: number): void {
+    this.docsExpandidos.update(set => {
+      const next = new Set(set);
+      if (next.has(docId)) next.delete(docId);
+      else next.add(docId);
+      return next;
+    });
+  }
   protected readonly excepcionActiva = computed(() => this.excepciones().find(e => e.estado === 'en_negociacion') ?? null);
+
+  /** FACT-001, Fase 3 — mientras la OTQ no esté ACTIVADA, no hay movilización: se bloquean las acciones de campo/cierre. */
+  protected readonly otqActivada = computed(() => this.otq()?.estado === 'aprobada');
 
   protected readonly listoParaCierre = computed(() => pedidoListoParaCierre(this.acta() ?? undefined, this.documentacion(), this.pedidoId));
 
@@ -159,6 +174,26 @@ export class PedidoFacturacionDetailPage {
         this.notify.error('Error', 'No se pudo cargar el detalle del pedido.');
       },
     });
+  }
+
+  /** FACT-001, Fase 3 — activa la OTQ y la "distribuye" (aparece en la campana de Operativo/HSE vía NotificationsService). */
+  protected activarOtq(): void {
+    const otq = this.otq();
+    if (!otq) return;
+    const nombre = this.auth.currentUser()?.name ?? '';
+    this.otqService.activar(otq.id, nombre).subscribe({
+      next: () => {
+        this.notify.success('OTQ activada', `${otq.numero} quedó activa y distribuida a ${otq.supervisorOperativo} y ${otq.tecnicoHse}.`);
+        this.reload();
+      },
+      error: () => this.notify.error('Error', 'No se pudo activar la OTQ.'),
+    });
+  }
+
+  protected verPdfOtq(): void {
+    const otq = this.otq();
+    if (!otq) return;
+    this.dialog.open<OtqPdfDialog, OtqPdfDialogData>({ title: 'OTQ — Vista de impresión', content: OtqPdfDialog, data: { otq }, footer: false, width: '760px' });
   }
 
   protected nuevaDocumentacion(): void {

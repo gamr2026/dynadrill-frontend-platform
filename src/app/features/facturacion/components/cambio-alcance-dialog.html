@@ -9,14 +9,16 @@
           <td>{{ item.codigo }}</td>
           <td>{{ item.descripcion }}</td>
           <td class="num">
-            <input
-              class="cambio-alcance-dialog__qty-input"
-              type="number"
-              [attr.aria-label]="'Cantidad estimada de ' + item.codigo"
-              [value]="item.cantidadEstimada"
-              (change)="setCantidad(item.id, +$any($event.target).value)"
-            />
-            {{ item.unidad }}
+            <div class="cambio-alcance-dialog__qty-cell">
+              <input
+                class="cambio-alcance-dialog__qty-input"
+                type="number"
+                [attr.aria-label]="'Cantidad estimada de ' + item.codigo"
+                [value]="item.cantidadEstimada"
+                (change)="setCantidad(item.id, +$any($event.target).value)"
+              />
+              <span class="cambio-alcance-dialog__qty-unit">{{ item.unidad }}</span>
+            </div>
           </td>
           <td class="num">${{ item.tarifaUnitaria | number: '1.2-2' }}</td>
           <td class="num">${{ item.tarifaUnitaria * item.cantidadEstimada | number: '1.2-2' }}</td>
@@ -37,16 +39,17 @@
   </table>
 
   <div class="cambio-alcance-dialog__items-form">
-    <div class="cambio-alcance-dialog__row-pair">
-      <dynadrill-input label="Código" [value]="draft().codigo" (valueChange)="updateDraft('codigo', $event)" />
-      <dynadrill-input label="Descripción" [value]="draft().descripcion" (valueChange)="updateDraft('descripcion', $event)" />
-      <dynadrill-input label="Unidad" [value]="draft().unidad" (valueChange)="updateDraft('unidad', $event)" />
+    <dynadrill-text variant="caption" class="cambio-alcance-dialog__items-form-title">Agregar ítem nuevo</dynadrill-text>
+    <div class="cambio-alcance-dialog__item-row">
+      <dynadrill-input class="cambio-alcance-dialog__field--sm" label="Código" [value]="draft().codigo" (valueChange)="updateDraft('codigo', $event)" />
+      <dynadrill-input class="cambio-alcance-dialog__field--grow" label="Descripción" [value]="draft().descripcion" (valueChange)="updateDraft('descripcion', $event)" />
+      <dynadrill-input class="cambio-alcance-dialog__field--sm" label="Unidad" [value]="draft().unidad" (valueChange)="updateDraft('unidad', $event)" />
     </div>
-    <div class="cambio-alcance-dialog__row-pair">
-      <dynadrill-input label="Tarifa unitaria" type="number" [value]="draft().tarifaUnitaria" (valueChange)="updateDraft('tarifaUnitaria', +$event)" />
-      <dynadrill-input label="Cantidad estimada" type="number" [value]="draft().cantidadEstimada" (valueChange)="updateDraft('cantidadEstimada', +$event)" />
+    <div class="cambio-alcance-dialog__item-row">
+      <dynadrill-input class="cambio-alcance-dialog__field--sm" label="Tarifa unitaria" type="number" [value]="draft().tarifaUnitaria" (valueChange)="updateDraft('tarifaUnitaria', +$event)" />
+      <dynadrill-input class="cambio-alcance-dialog__field--sm" label="Cantidad estimada" type="number" [value]="draft().cantidadEstimada" (valueChange)="updateDraft('cantidadEstimada', +$event)" />
+      <dynadrill-button variant="secondary" size="small" (clicked)="agregarItem()">+ Agregar ítem nuevo</dynadrill-button>
     </div>
-    <dynadrill-button variant="secondary" size="small" (clicked)="agregarItem()">+ Agregar ítem nuevo</dynadrill-button>
   </div>
 
   <div class="cambio-alcance-dialog__summary">

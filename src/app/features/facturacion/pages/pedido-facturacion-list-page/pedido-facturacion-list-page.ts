@@ -86,18 +86,50 @@ export class PedidoFacturacionListPage {
     ];
   });
 
-  /** FACT-002 — alertas 80/95/100% de presupuesto consumido, vía la campanita ya existente. */
-  private readonly notificationItems = computed<AppNotificationItem[]>(() =>
-    this.rows()
-      .filter(r => r.porcentajeBadge.tone !== 'success')
-      .map(r => ({
+  /**
+   * FACT-002 (alertas 80/95/100%) + FACT-001 Fase 3 (OTQ pendiente de
+   * activar / recién activada), vía la campanita ya existente. Sin
+   * distinción por destinatario todavía — la campana es la misma para
+   * todo el que tenga sesión, así que "notificar a Operativo/HSE" hoy
+   * significa que la alerta aparece apenas alguien de esas áreas entra
+   * al sistema, no un push dirigido a esa persona en particular.
+   */
+  private readonly notificationItems = computed<AppNotificationItem[]>(() => {
+    const items: AppNotificationItem[] = [];
+
+    for (const r of this.rows().filter(r => r.porcentajeBadge.tone !== 'success')) {
+      items.push({
         id: `facturacion-${r.id}`,
         title: r.porcentajeBadge.tone === 'error' ? `${r.numero} sobrepasó el presupuesto` : `${r.numero} cerca del límite de presupuesto`,
         description: `${r.cliente} — ${r.porcentajeBadge.text} consumido (${r.acumulado} de ${r.presupuesto})`,
         tone: r.porcentajeBadge.tone === 'error' ? 'error' : 'warning',
         link: '/dashboard/facturacion/pedidos/' + r.pedidoId,
-      })),
-  );
+      });
+    }
+
+    const hace48h = Date.now() - 48 * 60 * 60 * 1000;
+    for (const otq of this.otqs()) {
+      if (otq.estado === 'borrador') {
+        items.push({
+          id: `facturacion-otq-borrador-${otq.id}`,
+          title: `${otq.numero} pendiente de activar`,
+          description: `${otq.cliente} — actívala desde el detalle del pedido para distribuirla a Operativo y HSE`,
+          tone: 'info',
+          link: '/dashboard/facturacion/pedidos/' + otq.pedidoId,
+        });
+      } else if (otq.activadaAt && new Date(otq.activadaAt).getTime() >= hace48h) {
+        items.push({
+          id: `facturacion-otq-activada-${otq.id}`,
+          title: `${otq.numero} activada`,
+          description: `Distribuida a ${otq.supervisorOperativo} (Supervisor) y ${otq.tecnicoHse} (Técnico HSE)`,
+          tone: 'success',
+          link: '/dashboard/facturacion/pedidos/' + otq.pedidoId,
+        });
+      }
+    }
+
+    return items;
+  });
 
   constructor() {
     this.reload();

@@ -8,6 +8,19 @@
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
     <dynadrill-kpi-row [items]="kpis()" />
 
+    <section class="fact-card">
+      <header class="reporteria-page__head"><h2>Filtros</h2></header>
+      <div class="reporteria-page__filters">
+        <dynadrill-input label="Cliente" placeholder="Buscar por cliente…" [value]="filtroCliente()" (valueChange)="filtroCliente.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Cierre desde" [value]="filtroFechaDesde()!" (valueChange)="filtroFechaDesde.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Cierre hasta" [value]="filtroFechaHasta()!" (valueChange)="filtroFechaHasta.set($event)" />
+        @if (hayFiltrosActivos()) {
+          <dynadrill-button variant="secondary" size="small" (clicked)="limpiarFiltros()">Limpiar filtros</dynadrill-button>
+        }
+      </div>
+      <dynadrill-text variant="caption">El rango de fechas aplica sobre la fecha de cierre — solo afecta la pestaña "Cerrados y facturados".</dynadrill-text>
+    </section>
+
     <ng-template #activosActionsTpl let-row>
       <dynadrill-button variant="secondary" size="small" (clicked)="verPedido(row)">Ver Prefactura</dynadrill-button>
     </ng-template>
@@ -24,11 +37,18 @@
       />
       <ng-template #tabContent let-index="index">
         @if (index === 0) {
-          <p class="reporteria-page__hint">% ejecutado vs. presupuestado de cada pedido en ejecución.</p>
+          <div class="reporteria-page__table-head">
+            <p class="reporteria-page__hint">% ejecutado vs. presupuestado de cada pedido en ejecución.</p>
+            <dynadrill-button variant="secondary" size="small" (clicked)="exportarActivos()">Exportar a CSV</dynadrill-button>
+          </div>
           <div class="reporteria-page__table">
             <dynadrill-data-table [columns]="activosColumns" [rows]="ticketsActivosRows()" [rowKey]="rowKeyFn" [pageSize]="10" [actionsTemplate]="activosActionsTpl" />
           </div>
         } @else {
+          <div class="reporteria-page__table-head">
+            <p class="reporteria-page__hint">Tickets ya cerrados por Facturación, facturados o pendientes de facturar.</p>
+            <dynadrill-button variant="secondary" size="small" (clicked)="exportarCerrados()">Exportar a CSV</dynadrill-button>
+          </div>
           <div class="reporteria-page__table">
             <dynadrill-data-table [columns]="ticketsColumns" [rows]="ticketsRows()" [rowKey]="rowKeyFn" [pageSize]="10" [actionsTemplate]="ticketsActionsTpl" />
           </div>

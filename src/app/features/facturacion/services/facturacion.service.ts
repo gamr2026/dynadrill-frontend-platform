@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   ActaEntregaRecepcion,
+  As2CatalogoItem,
+  As2PedidoInfo,
   CreateActaEntregaInput,
   CreateDocumentacionDiariaInput,
   CreateExcepcionInput,
@@ -16,6 +18,21 @@ import {
   Otq,
   OtqItemDraft,
 } from '../models/facturacion.model';
+
+/** FACT-001 — simula la consulta al Sistema AS2 (pedido anclado a contrato + lista de precios). */
+@Injectable({ providedIn: 'root' })
+export class As2Service {
+  private readonly http = inject(HttpClient);
+
+  /** 404 si el pedido no existe/no está sincronizado desde AS2 — el Portal no debe dejar continuar sin esta validación. */
+  buscarPedido(pedidoId: number): Observable<As2PedidoInfo> {
+    return this.http.get<As2PedidoInfo>(`/api/facturacion/as2/pedido/${pedidoId}`);
+  }
+
+  catalogoPrecios(numeroContrato: string): Observable<As2CatalogoItem[]> {
+    return this.http.get<As2CatalogoItem[]>(`/api/facturacion/as2/catalogo`, { params: { contrato: numeroContrato } });
+  }
+}
 
 @Injectable({ providedIn: 'root' })
 export class OtqService {
@@ -36,6 +53,11 @@ export class OtqService {
   /** FACT-003, Escenario B — reemplaza los ítems de la OTQ tras un cambio de alcance aprobado. */
   actualizarItems(id: number, items: OtqItemDraft[]): Observable<Otq> {
     return this.http.patch<Otq>(`/api/facturacion/otq/${id}/items`, { items });
+  }
+
+  /** FACT-001, Fase 3 — activa la OTQ y la distribuye al resto de áreas. */
+  activar(id: number, activadaPor: string): Observable<Otq> {
+    return this.http.patch<Otq>(`/api/facturacion/otq/${id}/activar`, { activadaPor });
   }
 }
 

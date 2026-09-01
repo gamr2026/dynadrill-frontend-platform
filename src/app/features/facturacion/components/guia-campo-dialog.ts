@@ -6,6 +6,7 @@ import {
   DynadrillInputComponent,
   DynadrillNotificationService,
   DynadrillSelectComponent,
+  DynadrillTextComponent,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import { UnidadesService } from '../../maintenance/services/unidades.service';
@@ -31,7 +32,7 @@ interface ItemDraft {
 /** FACT-004 — evidencia de despacho en sitio (placas/pozo/firmas). No reemplaza la Guía de Remisión SRI de AS2: solo referencia su número cuando exista. */
 @Component({
   selector: 'app-guia-campo-dialog',
-  imports: [DynadrillDatetimePickerComponent, DynadrillSelectComponent, DynadrillInputComponent, DynadrillButtonComponent],
+  imports: [DynadrillDatetimePickerComponent, DynadrillSelectComponent, DynadrillInputComponent, DynadrillButtonComponent, DynadrillTextComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './guia-campo-dialog.html',
   styleUrl: './guia-campo-dialog.scss',

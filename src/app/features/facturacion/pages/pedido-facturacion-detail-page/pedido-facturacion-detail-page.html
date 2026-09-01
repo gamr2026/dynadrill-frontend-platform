@@ -7,40 +7,19 @@
         <dynadrill-banner variant="info" message="Este pedido ya generó su Ticket y quedó facturado." />
       }
 
-      <!-- Héroe: estado financiero del pedido -->
+      <!-- Estado financiero del pedido — dynadrill-kpi-row + dynadrill-progress, no CSS a medida -->
       @if (prefactura(); as p) {
-        <div class="pedido-detail__hero">
-          <div class="pedido-detail__hero__top">
-            <span class="pedido-detail__hero__eyebrow">Prefactura en vivo</span>
+        <section class="fact-card">
+          <header class="pedido-detail__head">
+            <h2>Prefactura en vivo</h2>
             <dynadrill-tag [label]="p.porcentajeConsumido + '% del presupuesto'" [variant]="tono()" />
-          </div>
-          <div class="pedido-detail__hero__body">
-            <div class="pedido-detail__hero__stats">
-              <div>
-                <div class="pedido-detail__hero__stat-label">Presupuesto aprobado</div>
-                <div class="pedido-detail__hero__stat-value"><small>$</small>{{ p.presupuestoAprobado | number: '1.2-2' }}</div>
-              </div>
-              <div>
-                <div class="pedido-detail__hero__stat-label">Ejecutado a la fecha</div>
-                <div class="pedido-detail__hero__stat-value pedido-detail__hero__stat-value--accent"><small>$</small>{{ p.acumulado | number: '1.2-2' }}</div>
-              </div>
-              <div>
-                <div class="pedido-detail__hero__stat-label">Saldo disponible</div>
-                <div class="pedido-detail__hero__stat-value"><small>$</small>{{ saldoDisponible() | number: '1.2-2' }}</div>
-              </div>
-            </div>
-            <div
-              class="pedido-detail__hero__meter"
-              [class.pedido-detail__hero__meter--warning]="tono() === 'warning'"
-              [class.pedido-detail__hero__meter--error]="tono() === 'error'"
-            >
-              <span [style.width.%]="meterPct()"></span>
-            </div>
-            <div class="pedido-detail__hero__caption">
-              {{ p.dias.length }} {{ p.dias.length === 1 ? 'día homologado' : 'días homologados' }} · el acumulado solo cuenta documentación homologada
-            </div>
-          </div>
-        </div>
+          </header>
+          <dynadrill-kpi-row [items]="prefacturaKpis()" />
+          <dynadrill-progress [value]="p.acumulado" [max]="p.presupuestoAprobado" [showInfo]="true" />
+          <dynadrill-text variant="caption">
+            {{ p.dias.length }} {{ p.dias.length === 1 ? 'día homologado' : 'días homologados' }} · el acumulado solo cuenta documentación homologada
+          </dynadrill-text>
+        </section>
       }
 
       <section class="fact-card">

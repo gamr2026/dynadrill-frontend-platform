@@ -1,9 +1,10 @@
 import { DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
+  DynadrillKpiCardComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
@@ -18,6 +19,7 @@ import { FacturacionTicketService } from '../../services/facturacion.service';
   imports: [
     DecimalPipe,
     DynadrillScreenHeaderComponent,
+    DynadrillKpiCardComponent,
     DynadrillTagComponent,
     DynadrillButtonComponent,
     DynadrillSpinnerComponent,
@@ -37,6 +39,11 @@ export class TicketFacturacionDetailPage {
 
   protected readonly loading = signal(true);
   protected readonly ticket = signal<FacturacionTicket | null>(null);
+
+  protected readonly netoCobrarFormateado = computed(() => {
+    const t = this.ticket();
+    return t ? '$' + t.netoCobrar.toFixed(2) : '';
+  });
 
   constructor() {
     this.reload();

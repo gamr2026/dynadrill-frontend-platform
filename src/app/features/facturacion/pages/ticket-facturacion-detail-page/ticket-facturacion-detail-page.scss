@@ -47,39 +47,6 @@
 
   &__totals-deduction dd { color: var(--error, #ff4d4f); }
 
-  &__neto {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 16px 22px;
-    border-radius: 12px;
-    background:
-      radial-gradient(120% 160% at 100% 0%, rgba(var(--dynadrill-purple-rgb, 102, 46, 155), 0.5) 0%, transparent 60%),
-      linear-gradient(135deg, #1c1e38 0%, var(--dynadrill-navy, #131529) 65%);
-    color: var(--dynadrill-white, #fff);
-  }
-
-  &__neto-label {
-    font-family: var(--font-subheading, 'Oswald', sans-serif);
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.6);
-  }
-
-  &__neto-value {
-    font-family: var(--font-heading, 'D-DIN', sans-serif);
-    font-size: 32px;
-    line-height: 1.05;
-    color: #d9b8ff;
-
-    small {
-      font-size: 18px;
-      opacity: 0.7;
-      margin-right: 2px;
-    }
-  }
-
   &__actions {
     display: flex;
     flex-wrap: wrap;

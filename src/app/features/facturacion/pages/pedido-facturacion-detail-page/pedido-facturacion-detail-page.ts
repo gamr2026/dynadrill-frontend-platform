@@ -6,11 +6,14 @@ import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
   DynadrillDialogService,
+  DynadrillKpiRowComponent,
   DynadrillNotificationService,
+  DynadrillProgressComponent,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
   DynadrillTagComponent,
   DynadrillTextComponent,
+  type DynadrillKpiRowItem,
 } from '@digitec-it-projects/dynadrill-ui';
 
 interface DatoProyecto {
@@ -50,6 +53,8 @@ function presupuestoDe(otq: Otq): number {
   imports: [
     DecimalPipe,
     DynadrillScreenHeaderComponent,
+    DynadrillKpiRowComponent,
+    DynadrillProgressComponent,
     DynadrillTagComponent,
     DynadrillButtonComponent,
     DynadrillSpinnerComponent,
@@ -100,10 +105,14 @@ export class PedidoFacturacionDetailPage {
     return p ? Math.max(0, p.presupuestoAprobado - p.acumulado) : 0;
   });
 
-  protected readonly meterPct = computed(() => {
+  protected readonly prefacturaKpis = computed<DynadrillKpiRowItem[]>(() => {
     const p = this.prefactura();
-    if (!p || !p.presupuestoAprobado) return 0;
-    return Math.min(100, Math.round((p.acumulado / p.presupuestoAprobado) * 100));
+    if (!p) return [];
+    return [
+      { label: 'Presupuesto aprobado', value: '$' + p.presupuestoAprobado.toFixed(2) },
+      { label: 'Ejecutado a la fecha', value: '$' + p.acumulado.toFixed(2), tone: this.tono() },
+      { label: 'Saldo disponible', value: '$' + this.saldoDisponible().toFixed(2) },
+    ];
   });
 
   protected readonly proyectoItems = computed<DatoProyecto[]>(() => {

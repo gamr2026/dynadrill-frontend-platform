@@ -5,10 +5,6 @@
 
   .fact-card { @include f.card; }
 
-  // El mixin emite &__top / &__stat-value / &__meter … bajo esta clase,
-  // que es justo lo que usa el template (pedido-detail__hero__top, etc.).
-  &__hero { @include f.hero; }
-
   &__head { @include f.card-head; }
   &__defs { @include f.defs; }
   &__table { @include f.table; }

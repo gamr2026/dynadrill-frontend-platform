@@ -55,95 +55,6 @@ $fact-shadow: 0 1px 2px rgba(19, 21, 41, 0.04), 0 12px 32px -16px rgba(19, 21, 4
   }
 }
 
-// Héroe financiero: banda con degradado de marca, cifras grandes en D-DIN.
-@mixin hero {
-  border-radius: $fact-radius;
-  overflow: hidden;
-  box-shadow: $fact-shadow;
-  color: var(--dynadrill-white, #fff);
-  background:
-    radial-gradient(120% 140% at 100% 0%, rgba(var(--dynadrill-purple-rgb, 102, 46, 155), 0.55) 0%, transparent 55%),
-    linear-gradient(135deg, #1c1e38 0%, var(--dynadrill-navy, #131529) 60%);
-
-  &__top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-    padding: 16px 22px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  &__eyebrow {
-    font-family: var(--font-subheading, 'Oswald', sans-serif);
-    font-size: 12px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.65);
-  }
-
-  &__body {
-    padding: 22px;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-  }
-
-  &__stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 8px 28px;
-  }
-
-  &__stat-label {
-    font-family: var(--font-subheading, 'Oswald', sans-serif);
-    font-size: 11px;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 4px;
-  }
-
-  &__stat-value {
-    font-family: var(--font-heading, 'D-DIN', sans-serif);
-    font-size: 30px;
-    line-height: 1.1;
-    letter-spacing: 0.01em;
-
-    small {
-      font-size: 16px;
-      opacity: 0.7;
-      margin-right: 2px;
-    }
-  }
-
-  &__stat-value--accent { color: #d9b8ff; }
-
-  &__meter {
-    height: 8px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.14);
-    overflow: hidden;
-
-    span {
-      display: block;
-      height: 100%;
-      border-radius: inherit;
-      background: linear-gradient(90deg, #a970e0, #d9b8ff);
-      transition: width 0.4s ease;
-    }
-
-    &--warning span { background: linear-gradient(90deg, #f5b544, #ffd98a); }
-    &--error span { background: linear-gradient(90deg, #ff6b6d, #ffa8a9); }
-  }
-
-  &__caption {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.55);
-  }
-}
-
 // Rejilla de pares dato:valor, sin bordes ni dos puntos.
 @mixin defs {
   display: grid;
@@ -202,7 +113,12 @@ $fact-shadow: 0 1px 2px rgba(19, 21, 41, 0.04), 0 12px 32px -16px rgba(19, 21, 4
   tbody tr:last-child td { border-bottom: none; }
   tbody tr:hover td { background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.05)); }
 
-  .num {
+  // Selectores compuestos (thead th.num / tbody td.num), no ".num" suelto:
+  // ".num" solo tiene la misma especificidad que "thead th"/"tbody td" y
+  // pierde el desempate por orden de declaración — el encabezado quedaba
+  // alineado a la izquierda mientras el dato quedaba a la derecha.
+  thead th.num,
+  tbody td.num {
     text-align: right;
     font-variant-numeric: tabular-nums;
   }

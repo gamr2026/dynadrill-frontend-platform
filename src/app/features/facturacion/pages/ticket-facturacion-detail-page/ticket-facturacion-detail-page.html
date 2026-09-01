@@ -45,10 +45,7 @@
             <div class="ticket-detail__totals-deduction"><dt>Retención IR (1%)</dt><dd>−${{ t.retencionIR | number: '1.2-2' }}</dd></div>
             <div class="ticket-detail__totals-deduction"><dt>Retención IVA (30%)</dt><dd>−${{ t.retencionIVA | number: '1.2-2' }}</dd></div>
           </dl>
-          <div class="ticket-detail__neto">
-            <span class="ticket-detail__neto-label">Neto a cobrar</span>
-            <span class="ticket-detail__neto-value"><small>$</small>{{ t.netoCobrar | number: '1.2-2' }}</span>
-          </div>
+          <dynadrill-kpi-card [value]="netoCobrarFormateado()" label="Neto a cobrar" tone="brand" />
         </div>
       </section>
 

@@ -1,0 +1,8 @@
+<div class="rechazar-documentacion-dialog">
+  <p class="rechazar-documentacion-dialog__hint">Explica qué corregir en la documentación del {{ data.fecha }} — el supervisor de campo la recibirá con este motivo.</p>
+  <dynadrill-textarea label="Motivo del rechazo" placeholder="Ej. Falta el horómetro de llegada de la unidad PUM-15…" [value]="observaciones()" (valueChange)="observaciones.set($event)" [rows]="4" />
+  <div class="rechazar-documentacion-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeRechazar()" (clicked)="confirmar()">Rechazar</dynadrill-button>
+  </div>
+</div>

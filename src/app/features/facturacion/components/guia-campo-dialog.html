@@ -5,16 +5,18 @@
   </div>
 
   <div class="guia-campo-dialog__items-form">
-    <div class="guia-campo-dialog__row-pair">
+    <dynadrill-text variant="caption" class="guia-campo-dialog__items-form-title">Agregar ítem despachado</dynadrill-text>
+
+    <div class="guia-campo-dialog__row-triple">
       <dynadrill-input label="Código" [value]="draft().codigo" (valueChange)="updateDraft('codigo', $event)" />
-      <dynadrill-input label="Descripción" [value]="draft().descripcion" (valueChange)="updateDraft('descripcion', $event)" />
       <dynadrill-input label="Unidad de medida" [value]="draft().unidad" (valueChange)="updateDraft('unidad', $event)" />
-    </div>
-    <div class="guia-campo-dialog__row-pair">
-      <dynadrill-input label="Cantidad" type="number" [value]="draft().cantidad" (valueChange)="updateDraft('cantidad', +$event)" />
       <dynadrill-select label="Tipo" [options]="tipoOptions" [value]="draft().tipo" (valueChange)="updateDraft('tipo', $any($event))" />
     </div>
-    <dynadrill-button variant="secondary" size="small" (clicked)="agregarItem()">+ Agregar ítem</dynadrill-button>
+    <dynadrill-input label="Descripción" [value]="draft().descripcion" (valueChange)="updateDraft('descripcion', $event)" />
+    <div class="guia-campo-dialog__row-cantidad">
+      <dynadrill-input label="Cantidad" type="number" [value]="draft().cantidad" (valueChange)="updateDraft('cantidad', +$event)" />
+      <dynadrill-button variant="secondary" size="small" (clicked)="agregarItem()">+ Agregar ítem</dynadrill-button>
+    </div>
   </div>
 
   @if (items().length) {

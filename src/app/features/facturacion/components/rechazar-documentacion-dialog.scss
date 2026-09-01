@@ -1,0 +1,17 @@
+@use '../facturacion-ui' as f;
+
+.rechazar-documentacion-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  &__hint {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__actions {
+    @include f.dialog-actions;
+  }
+}

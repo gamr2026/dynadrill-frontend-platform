@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   ActaEntregaRecepcion,
+  As2CatalogoItem,
+  As2PedidoInfo,
   CreateActaEntregaInput,
   CreateDocumentacionDiariaInput,
   CreateExcepcionInput,
@@ -16,6 +18,21 @@ import {
   Otq,
   OtqItemDraft,
 } from '../models/facturacion.model';
+
+/** FACT-001 — simula la consulta al Sistema AS2 (pedido anclado a contrato + lista de precios). */
+@Injectable({ providedIn: 'root' })
+export class As2Service {
+  private readonly http = inject(HttpClient);
+
+  /** 404 si el pedido no existe/no está sincronizado desde AS2 — el Portal no debe dejar continuar sin esta validación. */
+  buscarPedido(pedidoId: number): Observable<As2PedidoInfo> {
+    return this.http.get<As2PedidoInfo>(`/api/facturacion/as2/pedido/${pedidoId}`);
+  }
+
+  catalogoPrecios(numeroContrato: string): Observable<As2CatalogoItem[]> {
+    return this.http.get<As2CatalogoItem[]>(`/api/facturacion/as2/catalogo`, { params: { contrato: numeroContrato } });
+  }
+}
 
 @Injectable({ providedIn: 'root' })
 export class OtqService {
@@ -33,9 +50,14 @@ export class OtqService {
     return this.http.post<Otq>('/api/facturacion/otq', input);
   }
 
-  /** FACT-003, Escenario B — reemplaza los ítems de la OTQ tras un cambio de alcance aprobado. */
-  actualizarItems(id: number, items: OtqItemDraft[]): Observable<Otq> {
-    return this.http.patch<Otq>(`/api/facturacion/otq/${id}/items`, { items });
+  /** FACT-003, Escenario B — reemplaza los ítems de la OTQ tras un cambio de alcance; archiva la versión anterior (FACT-003 "Control de Versiones"). */
+  actualizarItems(id: number, items: OtqItemDraft[], motivo: string): Observable<Otq> {
+    return this.http.patch<Otq>(`/api/facturacion/otq/${id}/items`, { items, motivo });
+  }
+
+  /** FACT-001, Fase 3 — activa la OTQ y la distribuye al resto de áreas. */
+  activar(id: number, activadaPor: string): Observable<Otq> {
+    return this.http.patch<Otq>(`/api/facturacion/otq/${id}/activar`, { activadaPor });
   }
 }
 
@@ -49,6 +71,11 @@ export class DocumentacionDiariaService {
 
   create(input: CreateDocumentacionDiariaInput): Observable<DocumentacionDiaria> {
     return this.http.post<DocumentacionDiaria>('/api/facturacion/documentacion', input);
+  }
+
+  /** FACT-002, Fase 1 — el Supervisor de Campo revisa y firma antes de que pase a la cola de homologación de Facturación. */
+  firmarSupervisor(id: number, nombreSupervisor: string): Observable<DocumentacionDiaria> {
+    return this.http.patch<DocumentacionDiaria>(`/api/facturacion/documentacion/${id}/firmar-supervisor`, { nombreSupervisor });
   }
 
   homologar(id: number, homologadoPor: string, observaciones?: string): Observable<DocumentacionDiaria> {

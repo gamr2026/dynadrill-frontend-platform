@@ -2,7 +2,13 @@ import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
-import { DynadrillButtonComponent, DynadrillInputComponent, DynadrillNotificationService, DynadrillTextareaComponent } from '@digitec-it-projects/dynadrill-ui';
+import {
+  DynadrillButtonComponent,
+  DynadrillInputComponent,
+  DynadrillNotificationService,
+  DynadrillTextComponent,
+  DynadrillTextareaComponent,
+} from '@digitec-it-projects/dynadrill-ui';
 import { Excepcion, OtqItem, OtqItemDraft } from '../models/facturacion.model';
 import { ExcepcionService, OtqService } from '../services/facturacion.service';
 
@@ -29,7 +35,7 @@ interface ItemDraft {
  */
 @Component({
   selector: 'app-cambio-alcance-dialog',
-  imports: [DecimalPipe, DynadrillInputComponent, DynadrillTextareaComponent, DynadrillButtonComponent],
+  imports: [DecimalPipe, DynadrillInputComponent, DynadrillTextareaComponent, DynadrillButtonComponent, DynadrillTextComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './cambio-alcance-dialog.html',
   styleUrl: './cambio-alcance-dialog.scss',
@@ -113,7 +119,7 @@ export class CambioAlcanceDialog {
     ];
 
     forkJoin({
-      otq: this.otqService.actualizarItems(this.data.otqId, itemsFinales),
+      otq: this.otqService.actualizarItems(this.data.otqId, itemsFinales, this.justificacion().trim()),
       excepcion: this.excepcionService.create({
         pedidoId: this.data.pedidoId,
         tipo: 'cambio_alcance',

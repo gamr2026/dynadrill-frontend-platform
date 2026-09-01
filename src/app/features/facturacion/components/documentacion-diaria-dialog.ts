@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
+import type { NzUploadFile } from 'ng-zorro-antd/upload';
 import {
   DynadrillButtonComponent,
   DynadrillDatetimePickerComponent,
@@ -7,6 +8,7 @@ import {
   DynadrillNotificationService,
   DynadrillSelectComponent,
   DynadrillTextComponent,
+  DynadrillUploadZoneComponent,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../core/services/auth.service';
@@ -36,7 +38,14 @@ interface EquipoDraft {
 /** FACT-002 — registro diario: ítems que alimentan la Prefactura (código/cantidad/tipo, validados contra la OTQ) más los respaldos operativos del día (hojas de tiempo, uso de equipos, consumo de materiales). */
 @Component({
   selector: 'app-documentacion-diaria-dialog',
-  imports: [DynadrillDatetimePickerComponent, DynadrillSelectComponent, DynadrillInputComponent, DynadrillButtonComponent, DynadrillTextComponent],
+  imports: [
+    DynadrillDatetimePickerComponent,
+    DynadrillSelectComponent,
+    DynadrillInputComponent,
+    DynadrillButtonComponent,
+    DynadrillTextComponent,
+    DynadrillUploadZoneComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './documentacion-diaria-dialog.html',
   styleUrl: './documentacion-diaria-dialog.scss',
@@ -71,6 +80,17 @@ export class DocumentacionDiariaDialog {
 
   protected readonly consumoMateriales = signal<ConsumoMaterialEntry[]>([]);
   protected readonly materialDraft = signal<ConsumoMaterialEntry>({ codigo: '', descripcion: '', cantidad: 0, unidad: '' });
+
+  /** FACT-002 — "mínimo 3 fotos por trabajo principal". Solo se guarda el nombre de archivo (simulado, sin almacenamiento real). */
+  protected readonly fotos = signal<string[]>([]);
+
+  protected onFotoSeleccionada(file: NzUploadFile): void {
+    this.fotos.update(list => [...list, file.name]);
+  }
+
+  protected quitarFoto(index: number): void {
+    this.fotos.update(list => list.filter((_, i) => i !== index));
+  }
 
   protected readonly puedeGuardar = computed(() => this.fecha() !== null && this.items().length > 0);
 
@@ -170,11 +190,12 @@ export class DocumentacionDiariaDialog {
         usoEquipos: this.usoEquipos(),
         consumoMateriales: this.consumoMateriales(),
         items,
+        fotos: this.fotos().length ? this.fotos() : undefined,
         registradoPor: this.auth.currentUser()?.name ?? '',
       })
       .subscribe({
         next: doc => {
-          this.notify.success('Registrado', 'Documentación del día registrada — pendiente de homologación.');
+          this.notify.success('Registrado', 'Documentación del día registrada — pendiente de revisión y firma del supervisor.');
           this.modalRef.close(doc);
         },
         error: () => {

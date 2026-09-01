@@ -5,6 +5,10 @@
   padding: 1.5rem;
 }
 
+.table-scroll {
+  overflow-x: auto;
+}
+
 .iperc-list-page__toolbar {
   display: flex;
   justify-content: flex-end;

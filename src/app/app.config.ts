@@ -18,6 +18,7 @@ import { pumpingMockInterceptor } from './core/mocks/pumping-mock.interceptor';
 import { maintenanceMockInterceptor } from './core/mocks/maintenance-mock.interceptor';
 import { qhseMockInterceptor } from './core/mocks/qhse-mock.interceptor';
 import { inventarioMockInterceptor } from './core/mocks/inventario-mock.interceptor';
+import { facturacionMockInterceptor } from './core/mocks/facturacion-mock.interceptor';
 
 // provideNzI18n(es_ES) cambia el LOCALE_ID de Angular a 'es', pero Angular
 // no trae los datos de ese locale por defecto — sin este registro,
@@ -29,7 +30,7 @@ registerLocaleData(localeEs);
 // junto con core/mocks/auth-mock.interceptor.ts cuando el backend NestJS
 // de auth exista de verdad.
 const interceptors: HttpInterceptorFn[] = isDevMode()
-  ? [authMockInterceptor, usersMockInterceptor, pumpingMockInterceptor, maintenanceMockInterceptor, qhseMockInterceptor, inventarioMockInterceptor, authInterceptor]
+  ? [authMockInterceptor, usersMockInterceptor, pumpingMockInterceptor, maintenanceMockInterceptor, qhseMockInterceptor, inventarioMockInterceptor, facturacionMockInterceptor, authInterceptor]
   : [authInterceptor];
 
 export const appConfig: ApplicationConfig = {

@@ -32,6 +32,10 @@ export const routes: Routes = [
         loadChildren: () => import('./features/inventario/inventario.routes').then(m => m.inventarioRoutes),
       },
       {
+        path: 'dashboard/facturacion',
+        loadChildren: () => import('./features/facturacion/facturacion.routes').then(m => m.facturacionRoutes),
+      },
+      {
         path: 'modulos/operativo',
         loadChildren: () => import('./features/operations/operations.routes').then(m => m.operationsRoutes),
       },

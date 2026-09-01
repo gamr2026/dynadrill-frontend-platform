@@ -1,0 +1,28 @@
+@use '../facturacion-ui' as f;
+
+.documentacion-diaria-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  &__row-pair {
+    @include f.field-grid(160px);
+  }
+
+  &__items {
+    @include f.table;
+    border-top: 1px solid var(--border, #e5e4ea);
+  }
+
+  &__section {
+    @include f.subform;
+
+    dynadrill-text {
+      display: block;
+    }
+  }
+
+  &__actions {
+    @include f.dialog-actions;
+  }
+}

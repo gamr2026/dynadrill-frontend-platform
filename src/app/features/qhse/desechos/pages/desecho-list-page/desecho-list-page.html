@@ -10,14 +10,14 @@
   <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
 </ng-template>
 
-<dynadrill-data-table
-  [columns]="columns()"
-  [rows]="rows()"
-  [loading]="loading()"
-  [rowKey]="rowKeyFn"
-  [pageSize]="10"
-  [scrollX]="tableScrollX() ?? ''"
-  actionsHeader="Acciones"
-  [actionsFixed]="!!tableScrollX()"
-  [actionsTemplate]="actionsTpl"
-/>
+<div class="table-scroll">
+  <dynadrill-data-table
+    [columns]="columns()"
+    [rows]="rows()"
+    [loading]="loading()"
+    [rowKey]="rowKeyFn"
+    [pageSize]="10"
+    actionsHeader="Acciones"
+    [actionsTemplate]="actionsTpl"
+  />
+</div>

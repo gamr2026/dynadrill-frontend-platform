@@ -11,7 +11,6 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { PTW_FASE_LABELS, PTW_FASE_ORDER, PTW_FASE_STEPS, PtwFase, PtwMatrix, ptwCerrado } from '../../models/ptw.model';
 import { PtwService } from '../../services/ptw.service';
-import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
 import { AppNotificationItem, NotificationsService } from '../../../../../core/services/notifications.service';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
@@ -59,17 +58,14 @@ export class PtwListPage {
     ];
   });
 
-  protected readonly narrowViewport = injectNarrowViewport();
-
+  /** Sin fixed:'left'/'right' ni scrollX — ver nota en iperc-list-page.ts (mismo criterio contra el pipeline de columnas fijas de nz-table). */
   protected readonly columns = computed<DynadrillDataTableColumn[]>(() => [
-    { key: 'code', header: 'Código', sortable: true, searchable: true, fixed: this.narrowViewport() ? 'left' : undefined },
+    { key: 'code', header: 'Código', sortable: true, searchable: true },
     { key: 'ipercCode', header: 'IPERC origen', searchable: true },
     { key: 'actividad', header: 'Actividad', searchable: true },
     { key: 'ubicacion', header: 'Ubicación', searchable: true },
-    { key: 'faseBadge', header: 'Fase actual', type: 'badge', fixed: this.narrowViewport() ? 'right' : undefined },
+    { key: 'faseBadge', header: 'Fase actual', type: 'badge' },
   ]);
-
-  protected readonly tableScrollX = computed(() => (this.narrowViewport() ? '640px' : undefined));
 
   protected readonly faseSteps = PTW_FASE_ORDER.length;
   protected readonly faseLabels = PTW_FASE_STEPS;

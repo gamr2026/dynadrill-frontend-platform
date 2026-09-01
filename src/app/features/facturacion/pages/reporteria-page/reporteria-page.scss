@@ -1,0 +1,20 @@
+@use '../../facturacion-ui' as f;
+
+.reporteria-page {
+  @include f.page;
+
+  .fact-card { @include f.card; }
+
+  &__head { @include f.card-head; }
+
+  &__hint {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__table {
+    overflow-x: auto;
+    margin-top: 12px;
+  }
+}

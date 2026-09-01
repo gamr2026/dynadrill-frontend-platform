@@ -25,15 +25,15 @@
   <span><i class="iperc-list-page__dot iperc-list-page__dot--pending"></i>Pendiente</span>
 </div>
 
-<dynadrill-data-table
-  [columns]="columns()"
-  [rows]="rows()"
-  [loading]="loading()"
-  [rowKey]="rowKeyFn"
-  [pageSize]="10"
-  [scrollX]="tableScrollX() ?? ''"
-  actionsHeader="Acciones"
-  [actionsFixed]="!!tableScrollX()"
-  [actionsTemplate]="actionsTpl"
-  [columnTemplates]="{ faseIndex: faseTpl }"
-/>
+<div class="table-scroll">
+  <dynadrill-data-table
+    [columns]="columns()"
+    [rows]="rows()"
+    [loading]="loading()"
+    [rowKey]="rowKeyFn"
+    [pageSize]="10"
+    actionsHeader="Acciones"
+    [actionsTemplate]="actionsTpl"
+    [columnTemplates]="{ faseIndex: faseTpl }"
+  />
+</div>

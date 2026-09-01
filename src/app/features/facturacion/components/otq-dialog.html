@@ -1,0 +1,63 @@
+<div class="otq-dialog">
+  <div class="otq-dialog__row-pair">
+    <dynadrill-input label="Nº de Pedido (Pumping)" type="number" placeholder="1" [value]="pedidoId()" (valueChange)="pedidoId.set(+$event)" />
+    <dynadrill-input label="Número de OTQ" placeholder="OTQ-2026-0001" [value]="numero()" (valueChange)="numero.set($event)" />
+  </div>
+  <div class="otq-dialog__row-pair">
+    <dynadrill-input label="Cliente" [value]="cliente()" (valueChange)="cliente.set($event)" />
+    <dynadrill-input label="Número de contrato" [value]="numeroContrato()" (valueChange)="numeroContrato.set($event)" />
+  </div>
+  <div class="otq-dialog__row-pair">
+    <dynadrill-input label="Campo" [value]="campo()" (valueChange)="campo.set($event)" />
+    <dynadrill-input label="Bloque" [value]="bloque()" (valueChange)="bloque.set($event)" />
+    <dynadrill-input label="Pozo" [value]="pozo()" (valueChange)="pozo.set($event)" />
+  </div>
+  <dynadrill-input label="Representante legal" [value]="representanteLegal()" (valueChange)="representanteLegal.set($event)" />
+
+  <div class="otq-dialog__row-pair">
+    <dynadrill-datetime-picker mode="date" label="Fecha de inicio estimada" [value]="fechaInicioEstimada()!" (valueChange)="fechaInicioEstimada.set($event)" />
+    <dynadrill-datetime-picker mode="date" label="Fecha de fin estimada" [value]="fechaFinEstimada()!" (valueChange)="fechaFinEstimada.set($event)" />
+  </div>
+  <div class="otq-dialog__row-pair">
+    <dynadrill-input label="Supervisor Operativo" [value]="supervisorOperativo()" (valueChange)="supervisorOperativo.set($event)" />
+    <dynadrill-input label="Técnico HSE" [value]="tecnicoHse()" (valueChange)="tecnicoHse.set($event)" />
+  </div>
+
+  <div class="otq-dialog__items-form">
+    <div class="otq-dialog__row-pair">
+      <dynadrill-input label="Código" [value]="draft().codigo" (valueChange)="updateDraft('codigo', $event)" />
+      <dynadrill-input label="Descripción" [value]="draft().descripcion" (valueChange)="updateDraft('descripcion', $event)" />
+      <dynadrill-input label="Unidad" [value]="draft().unidad" (valueChange)="updateDraft('unidad', $event)" />
+    </div>
+    <div class="otq-dialog__row-pair">
+      <dynadrill-input label="Tarifa unitaria" type="number" [value]="draft().tarifaUnitaria" (valueChange)="updateDraft('tarifaUnitaria', +$event)" />
+      <dynadrill-input label="Cantidad estimada" type="number" [value]="draft().cantidadEstimada" (valueChange)="updateDraft('cantidadEstimada', +$event)" />
+    </div>
+    <dynadrill-button variant="secondary" size="small" (clicked)="agregarItem()">+ Agregar ítem</dynadrill-button>
+  </div>
+
+  @if (items().length) {
+    <table class="otq-dialog__items">
+      <thead><tr><th>Código</th><th>Descripción</th><th class="num">Cant. est.</th><th class="num">Tarifa</th><th class="num">Total</th><th aria-label="Acciones"></th></tr></thead>
+      <tbody>
+        @for (item of items(); track $index) {
+          <tr>
+            <td>{{ item.codigo }}</td>
+            <td>{{ item.descripcion }}</td>
+            <td class="num">{{ item.cantidadEstimada }} {{ item.unidad }}</td>
+            <td class="num">${{ item.tarifaUnitaria | number: '1.2-2' }}</td>
+            <td class="num">${{ item.tarifaUnitaria * item.cantidadEstimada | number: '1.2-2' }}</td>
+            <td><dynadrill-button variant="secondary" size="small" (clicked)="quitarItem($index)">Quitar</dynadrill-button></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+
+  <div class="otq-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">
+      {{ submitting() ? 'Guardando…' : 'Crear OTQ' }}
+    </dynadrill-button>
+  </div>
+</div>

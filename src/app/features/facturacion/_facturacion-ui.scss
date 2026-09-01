@@ -1,0 +1,165 @@
+// Sistema visual del módulo Facturación.
+//
+// Los componentes dynadrill-* (statistic, progress, tag, button, banner,
+// data-table) se siguen usando tal cual. Lo que esto define es el
+// "contenedor": cards con sombra, el héroe financiero, las rejillas de
+// datos y las tablas embebidas — para que el módulo tenga una lectura
+// propia, más contemporánea, sin salirse de la marca (morado #662e9b,
+// navy #131529, D-DIN / Oswald / Lato).
+
+$fact-radius: 12px;
+$fact-shadow: 0 1px 2px rgba(19, 21, 41, 0.04), 0 12px 32px -16px rgba(19, 21, 41, 0.18);
+
+// Ritmo de página.
+@mixin page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// Card base del módulo. Se usa sobre <section class="fact-card">.
+@mixin card {
+  background: var(--surface, #fff);
+  border: 1px solid #ecebf1;
+  border-radius: $fact-radius;
+  box-shadow: $fact-shadow;
+  padding: 20px 22px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  // Barra de acento por estado: <section class="fact-card fact-card--warning">
+  &.fact-card--brand { border-left: 3px solid var(--dynadrill-purple, #662e9b); }
+  &.fact-card--success { border-left: 3px solid var(--success, #52c41a); }
+  &.fact-card--warning { border-left: 3px solid var(--warning, #faad14); }
+  &.fact-card--error { border-left: 3px solid var(--error, #ff4d4f); }
+}
+
+// Cabecera de card: título Oswald + acción opcional a la derecha.
+@mixin card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  h2,
+  h3 {
+    margin: 0;
+    font-family: var(--font-subheading, 'Oswald', sans-serif);
+    font-weight: 500;
+    font-size: 15px;
+    letter-spacing: 0.02em;
+    color: var(--dynadrill-navy, #131529);
+  }
+}
+
+// Rejilla de pares dato:valor, sin bordes ni dos puntos.
+@mixin defs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px 28px;
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  dt {
+    font-family: var(--font-subheading, 'Oswald', sans-serif);
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted, #5c5870);
+  }
+
+  dd {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text, #2c2b35);
+  }
+}
+
+// Tabla semántica embebida.
+@mixin table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-body, sans-serif);
+  font-size: 13px;
+
+  thead th {
+    padding: 9px 12px;
+    text-align: left;
+    font-family: var(--font-subheading, 'Oswald', sans-serif);
+    font-weight: 500;
+    font-size: 10.5px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted, #5c5870);
+    background: var(--surface-muted, #faf9fc);
+    border-bottom: 1px solid #ecebf1;
+    white-space: nowrap;
+  }
+
+  tbody td {
+    padding: 11px 12px;
+    border-bottom: 1px solid #f1f0f4;
+    color: var(--text, #2c2b35);
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.05)); }
+
+  // Selectores compuestos (thead th.num / tbody td.num), no ".num" suelto:
+  // ".num" solo tiene la misma especificidad que "thead th"/"tbody td" y
+  // pierde el desempate por orden de declaración — el encabezado quedaba
+  // alineado a la izquierda mientras el dato quedaba a la derecha.
+  thead th.num,
+  tbody td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// Tabla con marco redondeado propio (fuera de una card).
+@mixin table-framed {
+  border: 1px solid #ecebf1;
+  border-radius: 10px;
+  overflow: hidden;
+
+  table { @include table; }
+}
+
+@mixin dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid #ecebf1;
+}
+
+@mixin field-grid($min: 160px) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax($min, 1fr));
+  gap: 12px;
+}
+
+@mixin subform {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--surface-muted, #faf9fc);
+  border: 1px solid #ecebf1;
+  border-radius: 10px;
+}
+
+@mixin row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

@@ -1,0 +1,14 @@
+@use '../../facturacion-ui' as f;
+
+.ticket-facturacion-list-page {
+  @include f.page;
+
+  .fact-card {
+    @include f.card;
+    padding: 6px;
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
+}

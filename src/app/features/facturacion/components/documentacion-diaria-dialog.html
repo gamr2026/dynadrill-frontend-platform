@@ -1,0 +1,128 @@
+<div class="documentacion-diaria-dialog">
+  <dynadrill-datetime-picker label="Fecha" placeholder="Selecciona la fecha" [value]="$any(fecha())" [showToday]="true" (valueChange)="fecha.set($event)" />
+
+  <div class="documentacion-diaria-dialog__row-pair">
+    <dynadrill-select label="Código (OTQ)" placeholder="Selecciona un código" [options]="codigoOptions" [value]="codigoDraft()" (valueChange)="codigoDraft.set($any($event))" />
+    <dynadrill-input label="Cantidad ejecutada" type="number" placeholder="0" [value]="cantidadDraft()" (valueChange)="cantidadDraft.set($any($event))" />
+    <dynadrill-select
+      label="Tipo"
+      [options]="[{ label: 'Servicio', value: 'Servicio' }, { label: 'Material', value: 'Material' }]"
+      [value]="tipoDraft()"
+      (valueChange)="tipoDraft.set($any($event))"
+    />
+  </div>
+  <dynadrill-button variant="secondary" size="small" (clicked)="agregarItem()">+ Agregar ítem</dynadrill-button>
+
+  @if (items().length) {
+    <table class="documentacion-diaria-dialog__items">
+      <thead><tr><th>Código</th><th>Descripción</th><th>Cantidad</th><th>Tipo</th><th></th></tr></thead>
+      <tbody>
+        @for (item of items(); track $index) {
+          <tr>
+            <td>{{ item.codigo }}</td>
+            <td>{{ descripcionDe(item.codigo) }}</td>
+            <td>{{ item.cantidad }} {{ unidadDe(item.codigo) }}</td>
+            <td>{{ item.tipo }}</td>
+            <td><dynadrill-button variant="secondary" size="small" (clicked)="quitarItem($index)">Quitar</dynadrill-button></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+
+  <div class="documentacion-diaria-dialog__section">
+    <dynadrill-text variant="subtitle">Hojas de tiempo</dynadrill-text>
+    <div class="documentacion-diaria-dialog__row-pair">
+      <dynadrill-input label="Nombre" [value]="hojaDraft().nombre" (valueChange)="updateHojaDraft('nombre', $event)" />
+      <dynadrill-input label="Cargo" [value]="hojaDraft().cargo" (valueChange)="updateHojaDraft('cargo', $event)" />
+    </div>
+    <div class="documentacion-diaria-dialog__row-pair">
+      <dynadrill-input label="Horas normales" type="number" [value]="hojaDraft().horasNormales" (valueChange)="updateHojaDraft('horasNormales', +$event)" />
+      <dynadrill-input label="Horas extras" type="number" [value]="hojaDraft().horasExtras" (valueChange)="updateHojaDraft('horasExtras', +$event)" />
+      <dynadrill-input label="Horas nocturnas" type="number" [value]="hojaDraft().horasNocturnas" (valueChange)="updateHojaDraft('horasNocturnas', +$event)" />
+    </div>
+    <dynadrill-button variant="secondary" size="small" (clicked)="agregarHoja()">+ Agregar persona</dynadrill-button>
+    @if (hojasTiempo().length) {
+      <table class="documentacion-diaria-dialog__items">
+        <thead><tr><th>Nombre</th><th>Cargo</th><th>Normales</th><th>Extras</th><th>Nocturnas</th><th></th></tr></thead>
+        <tbody>
+          @for (h of hojasTiempo(); track $index) {
+            <tr>
+              <td>{{ h.nombre }}</td>
+              <td>{{ h.cargo }}</td>
+              <td>{{ h.horasNormales }}</td>
+              <td>{{ h.horasExtras }}</td>
+              <td>{{ h.horasNocturnas }}</td>
+              <td><dynadrill-button variant="secondary" size="small" (clicked)="quitarHoja($index)">Quitar</dynadrill-button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+
+  <div class="documentacion-diaria-dialog__section">
+    <dynadrill-text variant="subtitle">Uso de equipos</dynadrill-text>
+    <div class="documentacion-diaria-dialog__row-pair">
+      <dynadrill-select label="Unidad" placeholder="Selecciona la unidad" [options]="unidadOptions()" [value]="equipoUnidadId()" (valueChange)="equipoUnidadId.set($any($event))" />
+      <dynadrill-input label="Operador" [value]="equipoDraft().operador" (valueChange)="updateEquipoDraft('operador', $event)" />
+    </div>
+    <div class="documentacion-diaria-dialog__row-pair">
+      <dynadrill-input label="Horómetro inicial" type="number" [value]="equipoDraft().horometroInicial" (valueChange)="updateEquipoDraft('horometroInicial', +$event)" />
+      <dynadrill-input label="Horómetro final" type="number" [value]="equipoDraft().horometroFinal" (valueChange)="updateEquipoDraft('horometroFinal', +$event)" />
+      <dynadrill-input label="Combustible consumido" type="number" [value]="equipoDraft().combustibleConsumido ?? 0" (valueChange)="updateEquipoDraft('combustibleConsumido', +$event)" />
+    </div>
+    <dynadrill-button variant="secondary" size="small" (clicked)="agregarEquipo()">+ Agregar equipo</dynadrill-button>
+    @if (usoEquipos().length) {
+      <table class="documentacion-diaria-dialog__items">
+        <thead><tr><th>Unidad</th><th>Horómetro</th><th>Combustible</th><th>Operador</th><th></th></tr></thead>
+        <tbody>
+          @for (u of usoEquipos(); track $index) {
+            <tr>
+              <td>{{ u.unidadCode }}</td>
+              <td>{{ u.horometroInicial }} → {{ u.horometroFinal }}</td>
+              <td>{{ u.combustibleConsumido ?? '—' }}</td>
+              <td>{{ u.operador }}</td>
+              <td><dynadrill-button variant="secondary" size="small" (clicked)="quitarEquipo($index)">Quitar</dynadrill-button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+
+  <div class="documentacion-diaria-dialog__section">
+    <dynadrill-text variant="subtitle">Consumo de materiales</dynadrill-text>
+    <div class="documentacion-diaria-dialog__row-pair">
+      <dynadrill-input label="Código" [value]="materialDraft().codigo" (valueChange)="updateMaterialDraft('codigo', $event)" />
+      <dynadrill-input label="Descripción" [value]="materialDraft().descripcion" (valueChange)="updateMaterialDraft('descripcion', $event)" />
+    </div>
+    <div class="documentacion-diaria-dialog__row-pair">
+      <dynadrill-input label="Cantidad" type="number" [value]="materialDraft().cantidad" (valueChange)="updateMaterialDraft('cantidad', +$event)" />
+      <dynadrill-input label="Unidad" [value]="materialDraft().unidad" (valueChange)="updateMaterialDraft('unidad', $event)" />
+    </div>
+    <dynadrill-button variant="secondary" size="small" (clicked)="agregarMaterial()">+ Agregar material</dynadrill-button>
+    @if (consumoMateriales().length) {
+      <table class="documentacion-diaria-dialog__items">
+        <thead><tr><th>Código</th><th>Descripción</th><th>Cantidad</th><th></th></tr></thead>
+        <tbody>
+          @for (m of consumoMateriales(); track $index) {
+            <tr>
+              <td>{{ m.codigo }}</td>
+              <td>{{ m.descripcion }}</td>
+              <td>{{ m.cantidad }} {{ m.unidad }}</td>
+              <td><dynadrill-button variant="secondary" size="small" (clicked)="quitarMaterial($index)">Quitar</dynadrill-button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+
+  <div class="documentacion-diaria-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">
+      {{ submitting() ? 'Guardando…' : 'Registrar' }}
+    </dynadrill-button>
+  </div>
+</div>

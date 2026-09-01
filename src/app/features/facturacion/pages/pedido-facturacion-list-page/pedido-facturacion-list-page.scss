@@ -1,0 +1,19 @@
+@use '../../facturacion-ui' as f;
+
+.pedido-facturacion-list-page {
+  @include f.page;
+
+  .fact-card {
+    @include f.card;
+    padding: 6px;
+  }
+
+  &__toolbar {
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
+}

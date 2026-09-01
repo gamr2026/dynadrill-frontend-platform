@@ -1,0 +1,35 @@
+@use '../../facturacion-ui' as f;
+
+.pedido-detail {
+  @include f.page;
+
+  .fact-card { @include f.card; }
+
+  &__head { @include f.card-head; }
+  &__defs { @include f.defs; }
+  &__table { @include f.table; }
+  &__row-actions { @include f.row-actions; }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 2px;
+  }
+
+  &__lead { margin: 0; color: var(--text, #2c2b35); }
+  &__muted { margin: 0; font-size: 13px; color: var(--text-muted, #5c5870); }
+
+  &__closing {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  &__closing-label {
+    font-family: var(--font-subheading, 'Oswald', sans-serif);
+    font-size: 13px;
+    color: var(--text-muted, #5c5870);
+  }
+}

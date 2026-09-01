@@ -50,9 +50,9 @@ export class OtqService {
     return this.http.post<Otq>('/api/facturacion/otq', input);
   }
 
-  /** FACT-003, Escenario B — reemplaza los ítems de la OTQ tras un cambio de alcance aprobado. */
-  actualizarItems(id: number, items: OtqItemDraft[]): Observable<Otq> {
-    return this.http.patch<Otq>(`/api/facturacion/otq/${id}/items`, { items });
+  /** FACT-003, Escenario B — reemplaza los ítems de la OTQ tras un cambio de alcance; archiva la versión anterior (FACT-003 "Control de Versiones"). */
+  actualizarItems(id: number, items: OtqItemDraft[], motivo: string): Observable<Otq> {
+    return this.http.patch<Otq>(`/api/facturacion/otq/${id}/items`, { items, motivo });
   }
 
   /** FACT-001, Fase 3 — activa la OTQ y la distribuye al resto de áreas. */
@@ -71,6 +71,11 @@ export class DocumentacionDiariaService {
 
   create(input: CreateDocumentacionDiariaInput): Observable<DocumentacionDiaria> {
     return this.http.post<DocumentacionDiaria>('/api/facturacion/documentacion', input);
+  }
+
+  /** FACT-002, Fase 1 — el Supervisor de Campo revisa y firma antes de que pase a la cola de homologación de Facturación. */
+  firmarSupervisor(id: number, nombreSupervisor: string): Observable<DocumentacionDiaria> {
+    return this.http.patch<DocumentacionDiaria>(`/api/facturacion/documentacion/${id}/firmar-supervisor`, { nombreSupervisor });
   }
 
   homologar(id: number, homologadoPor: string, observaciones?: string): Observable<DocumentacionDiaria> {

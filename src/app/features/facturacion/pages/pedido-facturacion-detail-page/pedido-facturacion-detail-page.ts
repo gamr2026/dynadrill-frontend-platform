@@ -1,4 +1,4 @@
-import { DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
@@ -25,8 +25,10 @@ import {
   ActaEntregaRecepcion,
   calcularPrefactura,
   DocumentacionDiaria,
+  documentacionVencida,
   Excepcion,
   GuiaCampo,
+  motivoNoListoParaCierre,
   Otq,
   pedidoListoParaCierre,
   ticketSubtotales,
@@ -44,6 +46,7 @@ import { ExcepcionDialog, ExcepcionDialogData } from '../../components/excepcion
 import { CambioAlcanceDialog, CambioAlcanceDialogData } from '../../components/cambio-alcance-dialog';
 import { GuiaCampoDialog, GuiaCampoDialogData } from '../../components/guia-campo-dialog';
 import { OtqPdfDialog, OtqPdfDialogData } from '../../components/otq-pdf-dialog';
+import { RechazarDocumentacionDialog, RechazarDocumentacionDialogData } from '../../components/rechazar-documentacion-dialog';
 
 function presupuestoDe(otq: Otq): number {
   return otq.items.reduce((sum, i) => sum + i.total, 0);
@@ -53,6 +56,7 @@ function presupuestoDe(otq: Otq): number {
   selector: 'app-pedido-facturacion-detail-page',
   imports: [
     DecimalPipe,
+    DatePipe,
     DynadrillScreenHeaderComponent,
     DynadrillKpiRowComponent,
     DynadrillProgressComponent,
@@ -124,10 +128,13 @@ export class PedidoFacturacionDetailPage {
       { label: 'Fechas estimadas', value: `${o.fechaInicioEstimada || 'Sin definir'} — ${o.fechaFinEstimada || 'Sin definir'}` },
       { label: 'Supervisor Operativo', value: o.supervisorOperativo || 'Sin asignar' },
       { label: 'Técnico HSE', value: o.tecnicoHse || 'Sin asignar' },
+      { label: 'Versión de la OTQ', value: 'v' + o.version + (o.historialVersiones?.length ? ` (${o.historialVersiones.length} cambio(s) de alcance aplicado(s))` : '') },
     ];
   });
 
   protected readonly pendientesHomologacion = computed(() => this.documentacion().filter(d => d.estado === 'pendiente'));
+
+  protected readonly documentacionVencida = documentacionVencida;
 
   protected readonly docsExpandidos = signal<ReadonlySet<number>>(new Set());
 
@@ -144,7 +151,13 @@ export class PedidoFacturacionDetailPage {
   /** FACT-001, Fase 3 — mientras la OTQ no esté ACTIVADA, no hay movilización: se bloquean las acciones de campo/cierre. */
   protected readonly otqActivada = computed(() => this.otq()?.estado === 'aprobada');
 
-  protected readonly listoParaCierre = computed(() => pedidoListoParaCierre(this.acta() ?? undefined, this.documentacion(), this.pedidoId));
+  protected readonly listoParaCierre = computed(() =>
+    pedidoListoParaCierre(this.acta() ?? undefined, this.documentacion(), this.pedidoId, this.prefactura(), this.excepciones()),
+  );
+
+  protected readonly motivoBloqueado = computed(() =>
+    motivoNoListoParaCierre(this.acta() ?? undefined, this.documentacion(), this.pedidoId, this.prefactura(), this.excepciones()),
+  );
 
   constructor() {
     this.reload();
@@ -211,6 +224,18 @@ export class PedidoFacturacionDetailPage {
     });
   }
 
+  /** FACT-002, Fase 1 — el Supervisor de Campo revisa y firma antes de que la documentación pase a la cola de Facturación. */
+  protected firmarSupervisor(doc: DocumentacionDiaria): void {
+    const nombre = this.auth.currentUser()?.name ?? '';
+    this.docService.firmarSupervisor(doc.id, nombre).subscribe({
+      next: () => {
+        this.notify.success('Firmada', `Documentación del ${doc.fecha} firmada y enviada a Facturación.`);
+        this.reload();
+      },
+      error: () => this.notify.error('Error', 'No se pudo firmar la documentación.'),
+    });
+  }
+
   protected homologar(doc: DocumentacionDiaria): void {
     const nombre = this.auth.currentUser()?.name ?? '';
     this.docService.homologar(doc.id, nombre).subscribe({
@@ -223,12 +248,22 @@ export class PedidoFacturacionDetailPage {
   }
 
   protected rechazar(doc: DocumentacionDiaria): void {
-    this.docService.rechazar(doc.id, 'Datos inconsistentes contra la OTQ — revisar con supervisor de campo.').subscribe({
-      next: () => {
-        this.notify.info('Rechazado', `Documentación del ${doc.fecha} devuelta.`);
-        this.reload();
-      },
-      error: () => this.notify.error('Error', 'No se pudo rechazar la documentación.'),
+    const ref = this.dialog.open<RechazarDocumentacionDialog, RechazarDocumentacionDialogData>({
+      title: 'Rechazar documentación',
+      content: RechazarDocumentacionDialog,
+      data: { fecha: doc.fecha },
+      footer: false,
+      width: '480px',
+    });
+    ref.afterClose.subscribe(observaciones => {
+      if (!observaciones) return;
+      this.docService.rechazar(doc.id, observaciones).subscribe({
+        next: () => {
+          this.notify.info('Rechazado', `Documentación del ${doc.fecha} devuelta.`);
+          this.reload();
+        },
+        error: () => this.notify.error('Error', 'No se pudo rechazar la documentación.'),
+      });
     });
   }
 

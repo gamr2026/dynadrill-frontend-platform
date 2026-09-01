@@ -119,6 +119,22 @@
     }
   </div>
 
+  <div class="documentacion-diaria-dialog__section">
+    <dynadrill-text variant="subtitle">Fotografías de evidencia</dynadrill-text>
+    <dynadrill-text variant="caption">Mínimo 3 fotos por trabajo principal, con fecha/hora visible — ver DYN convención de nomenclatura.</dynadrill-text>
+    <dynadrill-upload-zone state="idle" (fileSelected)="onFotoSeleccionada($event)" />
+    @if (fotos().length) {
+      <ul class="documentacion-diaria-dialog__fotos">
+        @for (f of fotos(); track $index) {
+          <li>
+            {{ f }}
+            <dynadrill-button variant="secondary" size="small" (clicked)="quitarFoto($index)">Quitar</dynadrill-button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
   <div class="documentacion-diaria-dialog__actions">
     <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
     <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">

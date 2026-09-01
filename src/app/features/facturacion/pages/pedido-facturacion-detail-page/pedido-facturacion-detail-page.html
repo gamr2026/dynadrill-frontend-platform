@@ -122,11 +122,23 @@
                   <td>{{ d.registradoPor }}</td>
                   <td>
                     <dynadrill-tag
-                      [label]="d.estado === 'homologado' ? 'Homologado' : d.estado === 'rechazado' ? 'Rechazado' : 'Pendiente'"
+                      [label]="
+                        d.estado === 'homologado' ? 'Homologado' :
+                        d.estado === 'rechazado' ? 'Rechazado' :
+                        d.estado === 'pendiente_supervisor' ? 'Pendiente de firma (Supervisor)' : 'Pendiente de homologar'
+                      "
                       [variant]="d.estado === 'homologado' ? 'success' : d.estado === 'rechazado' ? 'error' : 'warning'"
                     />
+                    @if (documentacionVencida(d)) {
+                      <dynadrill-tag label="&gt; 48h sin homologar" variant="error" />
+                    }
                   </td>
                   <td>
+                    @if (d.estado === 'pendiente_supervisor' && !yaFacturado()) {
+                      <div class="pedido-detail__row-actions" (click)="$event.stopPropagation()">
+                        <dynadrill-button size="small" (clicked)="firmarSupervisor(d)">Firmar y enviar a Facturación</dynadrill-button>
+                      </div>
+                    }
                     @if (d.estado === 'pendiente' && !yaFacturado()) {
                       <div class="pedido-detail__row-actions" (click)="$event.stopPropagation()">
                         <dynadrill-button variant="secondary" size="small" (clicked)="homologar(d)">Homologar</dynadrill-button>
@@ -138,6 +150,9 @@
                 @if (docsExpandidos().has(d.id)) {
                   <tr class="pedido-detail__detail-row">
                     <td [attr.colspan]="6">
+                      @if (d.firmaSupervisor) {
+                        <p class="pedido-detail__muted">Firmado por {{ d.firmaSupervisor.nombre }} — {{ d.firmaSupervisor.firmadoAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+                      }
                       @if (d.estado === 'rechazado' && d.observacionesHomologacion) {
                         <p class="pedido-detail__muted">Motivo de rechazo: {{ d.observacionesHomologacion }}</p>
                       }
@@ -159,6 +174,9 @@
                       }
                       @if (d.hojasTiempo.length) {
                         <p class="pedido-detail__muted">Personal: {{ d.hojasTiempo.length }} hoja(s) de tiempo registrada(s).</p>
+                      }
+                      @if (d.fotos?.length) {
+                        <p class="pedido-detail__muted">Evidencia fotográfica: {{ d.fotos?.length }} archivo(s).</p>
                       }
                     </td>
                   </tr>
@@ -227,8 +245,8 @@
             }
             <dynadrill-button [disabled]="!listoParaCierre()" (clicked)="cerrarYGenerarTicket()">Cerrar y generar Ticket</dynadrill-button>
           </div>
-          @if (!listoParaCierre()) {
-            <dynadrill-text variant="caption">Falta el acta firmada por ambas partes y al menos un día de documentación homologada.</dynadrill-text>
+          @if (motivoBloqueado(); as motivo) {
+            <dynadrill-text variant="caption">{{ motivo }}</dynadrill-text>
           }
         }
       </section>

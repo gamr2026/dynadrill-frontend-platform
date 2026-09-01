@@ -119,7 +119,7 @@ export class CambioAlcanceDialog {
     ];
 
     forkJoin({
-      otq: this.otqService.actualizarItems(this.data.otqId, itemsFinales),
+      otq: this.otqService.actualizarItems(this.data.otqId, itemsFinales, this.justificacion().trim()),
       excepcion: this.excepcionService.create({
         pedidoId: this.data.pedidoId,
         tipo: 'cambio_alcance',

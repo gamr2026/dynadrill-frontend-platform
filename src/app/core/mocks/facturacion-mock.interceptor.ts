@@ -15,6 +15,7 @@ import {
   FacturacionTicket,
   GuiaCampo,
   Otq,
+  OtqVersion,
   ticketSubtotales,
 } from '../../features/facturacion/models/facturacion.model';
 
@@ -128,6 +129,8 @@ let otqs: Otq[] = [
     representanteLegal: 'Ab. Mónica Rojas',
     estado: 'aprobada',
     createdAt: '2026-08-15T08:00:00.000Z',
+    version: 1,
+    historialVersiones: [],
   },
   {
     id: 2,
@@ -145,6 +148,8 @@ let otqs: Otq[] = [
     representanteLegal: 'Ab. Mónica Rojas',
     estado: 'aprobada',
     createdAt: '2026-08-01T08:00:00.000Z',
+    version: 1,
+    historialVersiones: [],
   },
 ];
 
@@ -161,7 +166,9 @@ let documentacion: DocumentacionDiaria[] = [
       { codigo: 'DYFCE-70', descripcion: 'Fluido Completación Especial Tipo 7', unidad: 'bbl', cantidad: 150, tipo: 'Material' },
     ],
     estado: 'homologado',
+    firmaSupervisor: { nombre: 'Hermes Páez', firmadoAt: '2026-08-20T19:30:00.000Z' },
     registradoPor: 'Hermes Páez',
+    registradoAt: '2026-08-20T18:30:00.000Z',
     homologadoPor: 'Ricardo Vallejo',
     homologadoAt: '2026-08-20T20:00:00.000Z',
   },
@@ -177,8 +184,9 @@ let documentacion: DocumentacionDiaria[] = [
       { codigo: 'SFC33001', descripcion: 'Viaje por unidad de bombeo para tratamientos en superficie', unidad: 'km', cantidad: 67.4, tipo: 'Servicio' },
       { codigo: 'DYFCE-70', descripcion: 'Fluido Completación Especial Tipo 7', unidad: 'bbl', cantidad: 150, tipo: 'Material' },
     ],
-    estado: 'pendiente',
+    estado: 'pendiente_supervisor',
     registradoPor: 'Hermes Páez',
+    registradoAt: '2026-08-21T19:00:00.000Z',
   },
 ];
 
@@ -284,7 +292,7 @@ export const facturacionMockInterceptor: HttpInterceptorFn = (req, next) => {
   }
   if (req.url === '/api/facturacion/otq' && req.method === 'POST') {
     const input = req.body as CreateOtqInput;
-    const created: Otq = { ...input, id: nextOtqId++, estado: 'borrador', createdAt: new Date().toISOString() };
+    const created: Otq = { ...input, id: nextOtqId++, estado: 'borrador', createdAt: new Date().toISOString(), version: 1, historialVersiones: [] };
     otqs = [...otqs, created];
     return of(new HttpResponse({ status: 201, body: created })).pipe(delay(400));
   }
@@ -295,11 +303,18 @@ export const facturacionMockInterceptor: HttpInterceptorFn = (req, next) => {
   }
   const otqItemsId = matchAction(req.url, 'otq', 'items');
   if (otqItemsId !== null && req.method === 'PATCH') {
-    const { items } = req.body as { items: Omit<Otq['items'][number], 'id' | 'total'>[] };
+    const { items, motivo } = req.body as { items: Omit<Otq['items'][number], 'id' | 'total'>[]; motivo?: string };
     let updated: Otq | undefined;
     otqs = otqs.map(o => {
       if (o.id !== otqItemsId) return o;
-      updated = { ...o, items: items.map((it, idx) => ({ ...it, id: idx + 1, total: Math.round(it.tarifaUnitaria * it.cantidadEstimada * 100) / 100 })) };
+      // FACT-003 — archiva la versión vigente antes de sobrescribir los ítems.
+      const snapshot: OtqVersion = { version: o.version, items: o.items, motivo: motivo ?? 'Cambio de alcance', fecha: new Date().toISOString() };
+      updated = {
+        ...o,
+        items: items.map((it, idx) => ({ ...it, id: idx + 1, total: Math.round(it.tarifaUnitaria * it.cantidadEstimada * 100) / 100 })),
+        version: o.version + 1,
+        historialVersiones: [...(o.historialVersiones ?? []), snapshot],
+      };
       return updated;
     });
     return of(new HttpResponse({ status: updated ? 200 : 404, body: updated ?? null })).pipe(delay(400));
@@ -322,9 +337,20 @@ export const facturacionMockInterceptor: HttpInterceptorFn = (req, next) => {
   }
   if (req.url === '/api/facturacion/documentacion' && req.method === 'POST') {
     const input = req.body as CreateDocumentacionDiariaInput;
-    const created: DocumentacionDiaria = { ...input, id: nextDocId++, estado: 'pendiente' };
+    const created: DocumentacionDiaria = { ...input, id: nextDocId++, estado: 'pendiente_supervisor', registradoAt: new Date().toISOString() };
     documentacion = [...documentacion, created];
     return of(new HttpResponse({ status: 201, body: created })).pipe(delay(400));
+  }
+  const firmarSupervisorId = matchAction(req.url, 'documentacion', 'firmar-supervisor');
+  if (firmarSupervisorId !== null && req.method === 'PATCH') {
+    const { nombreSupervisor } = req.body as { nombreSupervisor: string };
+    let updated: DocumentacionDiaria | undefined;
+    documentacion = documentacion.map(d => {
+      if (d.id !== firmarSupervisorId) return d;
+      updated = { ...d, estado: 'pendiente', firmaSupervisor: { nombre: nombreSupervisor, firmadoAt: new Date().toISOString() } };
+      return updated;
+    });
+    return of(new HttpResponse({ status: updated ? 200 : 404, body: updated ?? null })).pipe(delay(400));
   }
   const homologarId = matchAction(req.url, 'documentacion', 'homologar');
   if (homologarId !== null && req.method === 'PATCH') {

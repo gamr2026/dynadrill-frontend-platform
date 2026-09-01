@@ -22,6 +22,27 @@
     }
   }
 
+  &__fotos {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 6px 10px;
+      background: var(--surface, #fff);
+      border: 1px solid var(--border, #e5e4ea);
+      border-radius: var(--radius-sm, 4px);
+      font-size: 13px;
+    }
+  }
+
   &__actions {
     @include f.dialog-actions;
   }

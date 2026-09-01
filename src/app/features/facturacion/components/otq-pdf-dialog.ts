@@ -2,7 +2,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import { DynadrillButtonComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
-import { Otq, otqTotal } from '../models/facturacion.model';
+import { Otq, OtqVersion, otqTotal } from '../models/facturacion.model';
 
 export interface OtqPdfDialogData {
   otq: Otq;
@@ -28,6 +28,10 @@ export class OtqPdfDialog {
   protected readonly otqTotal = otqTotal;
 
   protected readonly printDate = new Date().toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  protected totalVersion(v: OtqVersion): number {
+    return v.items.reduce((sum, i) => sum + i.total, 0);
+  }
 
   print(): void {
     window.print();

@@ -68,9 +68,20 @@ export interface Otq {
   /** FACT-001, Fase 3 — quién activó la OTQ y cuándo. */
   activadaPor?: string;
   activadaAt?: string;
+  /** FACT-003, Escenario B — "el Ticket original se archiva como Versión 1.0, el actualizado como Versión 2.0". Empieza en 1; cada cambio de alcance aplicado la incrementa y archiva la versión anterior. */
+  version: number;
+  historialVersiones?: OtqVersion[];
 }
 
-export type CreateOtqInput = Omit<Otq, 'id' | 'estado' | 'createdAt' | 'activadaPor' | 'activadaAt'>;
+/** Snapshot de una versión anterior de la OTQ, archivada al aplicar un cambio de alcance — FACT-003 "Control de Versiones". */
+export interface OtqVersion {
+  version: number;
+  items: OtqItem[];
+  motivo: string;
+  fecha: string;
+}
+
+export type CreateOtqInput = Omit<Otq, 'id' | 'estado' | 'createdAt' | 'activadaPor' | 'activadaAt' | 'version' | 'historialVersiones'>;
 
 export type OtqItemDraft = Omit<OtqItem, 'id' | 'total'>;
 
@@ -142,7 +153,8 @@ export interface DocumentacionItem {
   tipo: 'Material' | 'Servicio';
 }
 
-export type DocumentacionEstado = 'pendiente' | 'homologado' | 'rechazado';
+/** 'pendiente_supervisor' — recién registrada, esperando revisión y firma del Supervisor de Campo (FACT-002, Fase 1) antes de llegar a la cola de Facturación. */
+export type DocumentacionEstado = 'pendiente_supervisor' | 'pendiente' | 'homologado' | 'rechazado';
 
 export interface DocumentacionDiaria {
   id: number;
@@ -153,16 +165,29 @@ export interface DocumentacionDiaria {
   consumoMateriales: ConsumoMaterialEntry[];
   /** Ítems ya homologados (código/unidad/tarifa validados contra la OTQ) — lo que realmente alimenta la Prefactura. */
   items: DocumentacionItem[];
+  /** FACT-002 — evidencia fotográfica del día (mínimo 3 por trabajo principal según el documento). Solo nombres de archivo simulados, sin almacenamiento real todavía. */
+  fotos?: string[];
   estado: DocumentacionEstado;
+  /** FACT-002, Fase 1 — "Supervisor: Revisa Documentación Antes de Enviar" + "Firmar Documentación". */
+  firmaSupervisor?: Firma;
   observacionesHomologacion?: string;
   registradoPor: string;
+  /** Momento real de registro (no confundir con `fecha`, que es el día operativo reportado) — de aquí sale la antigüedad "> 48h sin homologar" de FACT-002. */
+  registradoAt: string;
   homologadoPor?: string;
   homologadoAt?: string;
 }
 
+/** FACT-002 — "Indicador de antigüedad (doc con > 48 hrs sin homologar se marca rojo)". */
+export function documentacionVencida(doc: DocumentacionDiaria): boolean {
+  if (doc.estado === 'homologado' || doc.estado === 'rechazado') return false;
+  const horas = (Date.now() - new Date(doc.registradoAt).getTime()) / (1000 * 60 * 60);
+  return horas > 48;
+}
+
 export type CreateDocumentacionDiariaInput = Pick<
   DocumentacionDiaria,
-  'pedidoId' | 'fecha' | 'hojasTiempo' | 'usoEquipos' | 'consumoMateriales' | 'items' | 'registradoPor'
+  'pedidoId' | 'fecha' | 'hojasTiempo' | 'usoEquipos' | 'consumoMateriales' | 'items' | 'registradoPor' | 'fotos'
 >;
 
 // ── Prefactura — NO se persiste directo, se calcula sumando documentación homologada ──
@@ -334,9 +359,44 @@ export function ticketSubtotales(
   return { servicios, materiales, subtotal, iva, retencionIR, retencionIVA, netoCobrar };
 }
 
-/** Cierre habilitado solo con acta firmada por ambas partes y al menos un día de documentación homologada — mismo criterio de "no facturar sin respaldo" de FACT-004. */
-export function pedidoListoParaCierre(acta: ActaEntregaRecepcion | undefined, documentacion: DocumentacionDiaria[], pedidoId: number): boolean {
+/**
+ * Cierre habilitado solo con: acta firmada por ambas partes, al menos un
+ * día de documentación homologada, y — FACT-004, Validación 1 ("Si Total
+ * > Presupuesto → NO FACTURAR, activar FACT-003") — sin sobrepaso de
+ * presupuesto sin resolver. Si está sobrepasado, se exige que exista una
+ * Excepción de tipo 'sobrepaso' ya aprobada para ese pedido antes de
+ * dejar generar el Ticket.
+ */
+export function pedidoListoParaCierre(
+  acta: ActaEntregaRecepcion | undefined,
+  documentacion: DocumentacionDiaria[],
+  pedidoId: number,
+  prefactura: Prefactura | null,
+  excepciones: Excepcion[],
+): boolean {
+  return motivoNoListoParaCierre(acta, documentacion, pedidoId, prefactura, excepciones) === null;
+}
+
+/** Igual criterio que pedidoListoParaCierre(), pero devuelve por qué no está listo — para mostrarlo en pantalla. */
+export function motivoNoListoParaCierre(
+  acta: ActaEntregaRecepcion | undefined,
+  documentacion: DocumentacionDiaria[],
+  pedidoId: number,
+  prefactura: Prefactura | null,
+  excepciones: Excepcion[],
+): string | null {
   const actaCompleta = !!acta?.firmaSupervisor && !!acta?.firmaCompanyMan;
-  const tieneHomologacion = documentacion.some(d => d.pedidoId === pedidoId && d.estado === 'homologado');
-  return actaCompleta && tieneHomologacion;
+  const docsDelPedido = documentacion.filter(d => d.pedidoId === pedidoId);
+  const tieneHomologacion = docsDelPedido.some(d => d.estado === 'homologado');
+  const sobrepasado = (prefactura?.porcentajeConsumido ?? 0) > 100;
+  const excepcionAprobada = excepciones.some(e => e.pedidoId === pedidoId && e.tipo === 'sobrepaso' && e.estado === 'aprobada');
+  // FACT-004, Validación 3 ("Respaldos Completos") — nada de documentación diaria puede quedar a medias antes de facturar.
+  const hayDocsSinResolver = docsDelPedido.some(d => d.estado === 'pendiente_supervisor' || d.estado === 'pendiente');
+
+  if (!actaCompleta && !tieneHomologacion) return 'Falta el acta firmada por ambas partes y al menos un día de documentación homologada.';
+  if (!actaCompleta) return 'Falta el acta firmada por ambas partes.';
+  if (!tieneHomologacion) return 'Falta al menos un día de documentación homologada.';
+  if (hayDocsSinResolver) return 'Hay documentación diaria sin resolver (pendiente de firma del supervisor u homologación) — resuélvela antes de cerrar.';
+  if (sobrepasado && !excepcionAprobada) return 'El acumulado supera el presupuesto aprobado — se necesita una excepción de sobrepaso aprobada antes de cerrar (FACT-003).';
+  return null;
 }

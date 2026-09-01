@@ -1,43 +1,24 @@
+@use '../facturacion-ui' as f;
+
 .otq-dialog {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 
   &__row-pair {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-
-    > * {
-      flex: 1 1 140px;
-    }
+    @include f.field-grid(150px);
   }
 
   &__items-form {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 10px;
-    background: var(--surface-muted, #faf9fc);
-    border-radius: var(--radius-sm, 4px);
+    @include f.subform;
   }
 
   &__items {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-
-    th, td {
-      text-align: left;
-      padding: 6px 8px;
-      border-bottom: 1px solid var(--border, #e5e4ea);
-    }
+    @include f.table;
+    border-top: 1px solid var(--border, #e5e4ea);
   }
 
   &__actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-top: 8px;
+    @include f.dialog-actions;
   }
 }

@@ -1,7 +1,7 @@
 import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NzModalRef } from 'ng-zorro-antd/modal';
-import { DynadrillButtonComponent, DynadrillInputComponent, DynadrillNotificationService } from '@digitec-it-projects/dynadrill-ui';
+import { DynadrillButtonComponent, DynadrillDatetimePickerComponent, DynadrillInputComponent, DynadrillNotificationService } from '@digitec-it-projects/dynadrill-ui';
 import { Otq, OtqItem } from '../models/facturacion.model';
 import { OtqService } from '../services/facturacion.service';
 
@@ -20,7 +20,7 @@ interface ItemDraft {
  */
 @Component({
   selector: 'app-otq-dialog',
-  imports: [DecimalPipe, DynadrillInputComponent, DynadrillButtonComponent],
+  imports: [DecimalPipe, DynadrillInputComponent, DynadrillDatetimePickerComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './otq-dialog.html',
   styleUrl: './otq-dialog.scss',
@@ -38,6 +38,10 @@ export class OtqDialog {
   protected readonly bloque = signal('');
   protected readonly pozo = signal('');
   protected readonly representanteLegal = signal('');
+  protected readonly fechaInicioEstimada = signal<Date | null>(null);
+  protected readonly fechaFinEstimada = signal<Date | null>(null);
+  protected readonly supervisorOperativo = signal('');
+  protected readonly tecnicoHse = signal('');
 
   protected readonly items = signal<ItemDraft[]>([]);
   protected readonly draft = signal<ItemDraft>({ codigo: '', descripcion: '', unidad: '', tarifaUnitaria: 0, cantidadEstimada: 0 });
@@ -90,6 +94,10 @@ export class OtqDialog {
         bloque: this.bloque().trim(),
         pozo: this.pozo().trim(),
         representanteLegal: this.representanteLegal().trim() || undefined,
+        fechaInicioEstimada: this.fechaInicioEstimada()?.toISOString().slice(0, 10),
+        fechaFinEstimada: this.fechaFinEstimada()?.toISOString().slice(0, 10),
+        supervisorOperativo: this.supervisorOperativo().trim() || undefined,
+        tecnicoHse: this.tecnicoHse().trim() || undefined,
         items,
       })
       .subscribe({

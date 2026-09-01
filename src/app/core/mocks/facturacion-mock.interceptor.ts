@@ -147,7 +147,7 @@ let tickets: FacturacionTicket[] = (() => {
     { id: 1, codigo: 'SB3226', descripcion: 'Supervisor para estimulación día o fracción', unidad: 'día', cantidad: 2, precioUnitario: 437.23, precioTotal: 874.46, tipo: 'Servicio' as const },
     { id: 2, codigo: 'SB3208', descripcion: 'Bombeo de ácido primeros 2.000 galones', unidad: 'gls', cantidad: 2000, precioUnitario: 0.33, precioTotal: 660, tipo: 'Material' as const },
   ];
-  const { servicios, materiales, subtotal } = ticketSubtotales(items);
+  const { servicios, materiales, subtotal, iva, retencionIR, retencionIVA, netoCobrar } = ticketSubtotales(items);
   return [
     {
       id: 1,
@@ -158,6 +158,10 @@ let tickets: FacturacionTicket[] = (() => {
       subtotalServicios: servicios,
       subtotalMateriales: materiales,
       subtotal,
+      iva,
+      retencionIR,
+      retencionIVA,
+      netoCobrar,
       estado: 'cerrado',
       firmaAutorizadoDynadrill: { nombre: 'Ricardo Vallejo', firmadoAt: '2026-08-03T18:10:00.000Z' },
       firmaCompanyMan: { nombre: 'Ing. Alex Fabara', cedula: '1720193281', cargo: 'Company man', firmadoAt: '2026-08-03T18:10:00.000Z' },
@@ -198,6 +202,17 @@ export const facturacionMockInterceptor: HttpInterceptorFn = (req, next) => {
   if (otqId !== null && req.method === 'GET') {
     const found = otqs.find(o => o.id === otqId);
     return of(new HttpResponse({ status: found ? 200 : 404, body: found ?? null })).pipe(delay(300));
+  }
+  const otqItemsId = matchAction(req.url, 'otq', 'items');
+  if (otqItemsId !== null && req.method === 'PATCH') {
+    const { items } = req.body as { items: Omit<Otq['items'][number], 'id' | 'total'>[] };
+    let updated: Otq | undefined;
+    otqs = otqs.map(o => {
+      if (o.id !== otqItemsId) return o;
+      updated = { ...o, items: items.map((it, idx) => ({ ...it, id: idx + 1, total: Math.round(it.tarifaUnitaria * it.cantidadEstimada * 100) / 100 })) };
+      return updated;
+    });
+    return of(new HttpResponse({ status: updated ? 200 : 404, body: updated ?? null })).pipe(delay(400));
   }
 
   // ── Documentación diaria ──
@@ -326,7 +341,7 @@ export const facturacionMockInterceptor: HttpInterceptorFn = (req, next) => {
   }
   if (req.url === '/api/facturacion/tickets' && req.method === 'POST') {
     const input = req.body as CreateFacturacionTicketInput;
-    const { servicios, materiales, subtotal } = ticketSubtotales(input.items);
+    const { servicios, materiales, subtotal, iva, retencionIR, retencionIVA, netoCobrar } = ticketSubtotales(input.items);
     const created: FacturacionTicket = {
       ...input,
       id: nextTicketId,
@@ -334,6 +349,10 @@ export const facturacionMockInterceptor: HttpInterceptorFn = (req, next) => {
       subtotalServicios: servicios,
       subtotalMateriales: materiales,
       subtotal,
+      iva,
+      retencionIR,
+      retencionIVA,
+      netoCobrar,
       estado: 'cerrado',
       fechaCierre: new Date().toISOString(),
     };

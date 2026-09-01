@@ -1,0 +1,43 @@
+<div class="guia-campo-dialog">
+  <div class="guia-campo-dialog__row-pair">
+    <dynadrill-datetime-picker mode="date" label="Fecha" [value]="fecha()!" (valueChange)="fecha.set($event)" />
+    <dynadrill-select label="Unidad" placeholder="Selecciona la unidad" [options]="unidadOptions()" [value]="unidadId()" (valueChange)="unidadId.set($any($event))" />
+  </div>
+
+  <div class="guia-campo-dialog__items-form">
+    <div class="guia-campo-dialog__row-pair">
+      <dynadrill-input label="Código" [value]="draft().codigo" (valueChange)="updateDraft('codigo', $event)" />
+      <dynadrill-input label="Descripción" [value]="draft().descripcion" (valueChange)="updateDraft('descripcion', $event)" />
+      <dynadrill-input label="Unidad de medida" [value]="draft().unidad" (valueChange)="updateDraft('unidad', $event)" />
+    </div>
+    <div class="guia-campo-dialog__row-pair">
+      <dynadrill-input label="Cantidad" type="number" [value]="draft().cantidad" (valueChange)="updateDraft('cantidad', +$event)" />
+      <dynadrill-select label="Tipo" [options]="tipoOptions" [value]="draft().tipo" (valueChange)="updateDraft('tipo', $any($event))" />
+    </div>
+    <dynadrill-button variant="secondary" size="small" (clicked)="agregarItem()">+ Agregar ítem</dynadrill-button>
+  </div>
+
+  @if (items().length) {
+    <table class="guia-campo-dialog__items">
+      <thead><tr><th>Código</th><th>Descripción</th><th>Cantidad</th><th>Tipo</th><th></th></tr></thead>
+      <tbody>
+        @for (item of items(); track $index) {
+          <tr>
+            <td>{{ item.codigo }}</td>
+            <td>{{ item.descripcion }}</td>
+            <td>{{ item.cantidad }} {{ item.unidad }}</td>
+            <td>{{ item.tipo }}</td>
+            <td><dynadrill-button variant="secondary" size="small" (clicked)="quitarItem($index)">Quitar</dynadrill-button></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+
+  <div class="guia-campo-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">
+      {{ submitting() ? 'Guardando…' : 'Registrar guía de campo' }}
+    </dynadrill-button>
+  </div>
+</div>

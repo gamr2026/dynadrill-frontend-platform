@@ -57,9 +57,16 @@ export interface Otq {
   representanteLegal?: string;
   estado: OtqEstado;
   createdAt: string;
+  /** FACT-001 — información complementaria que AS2 no gestiona. */
+  fechaInicioEstimada?: string;
+  fechaFinEstimada?: string;
+  supervisorOperativo?: string;
+  tecnicoHse?: string;
 }
 
 export type CreateOtqInput = Omit<Otq, 'id' | 'estado' | 'createdAt'>;
+
+export type OtqItemDraft = Omit<OtqItem, 'id' | 'total'>;
 
 export function otqTotal(otq: Otq): number {
   return otq.items.reduce((sum, i) => sum + i.total, 0);
@@ -260,6 +267,11 @@ export interface FacturacionTicket {
   subtotalServicios: number;
   subtotalMateriales: number;
   subtotal: number;
+  /** FACT-004 — IVA 12% y retenciones aplicadas por el cliente (IR 1%, IVA 30%). */
+  iva: number;
+  retencionIR: number;
+  retencionIVA: number;
+  netoCobrar: number;
   estado: FacturacionTicketEstado;
   firmaAutorizadoDynadrill?: Firma;
   firmaCompanyMan?: CompanyMan & { firmadoAt: string };
@@ -270,10 +282,23 @@ export interface FacturacionTicket {
 
 export type CreateFacturacionTicketInput = Pick<FacturacionTicket, 'pedidoId' | 'otqId' | 'items'>;
 
-export function ticketSubtotales(items: TicketItem[]): { servicios: number; materiales: number; subtotal: number } {
+const IVA_RATE = 0.12;
+const RETENCION_IR_RATE = 0.01;
+/** Retención de IVA — 30% es lo usual para servicios entre contribuyentes especiales (mismo % usado en la plantilla real de FACT-004). */
+const RETENCION_IVA_RATE = 0.3;
+
+export function ticketSubtotales(
+  items: TicketItem[],
+): { servicios: number; materiales: number; subtotal: number; iva: number; retencionIR: number; retencionIVA: number; netoCobrar: number } {
+  const round2 = (n: number) => Math.round(n * 100) / 100;
   const servicios = items.filter(i => i.tipo === 'Servicio').reduce((sum, i) => sum + i.precioTotal, 0);
   const materiales = items.filter(i => i.tipo === 'Material').reduce((sum, i) => sum + i.precioTotal, 0);
-  return { servicios, materiales, subtotal: servicios + materiales };
+  const subtotal = servicios + materiales;
+  const iva = round2(subtotal * IVA_RATE);
+  const retencionIR = round2(subtotal * RETENCION_IR_RATE);
+  const retencionIVA = round2(iva * RETENCION_IVA_RATE);
+  const netoCobrar = round2(subtotal + iva - retencionIR - retencionIVA);
+  return { servicios, materiales, subtotal, iva, retencionIR, retencionIVA, netoCobrar };
 }
 
 /** Cierre habilitado solo con acta firmada por ambas partes y al menos un día de documentación homologada — mismo criterio de "no facturar sin respaldo" de FACT-004. */

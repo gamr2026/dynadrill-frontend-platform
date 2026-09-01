@@ -15,7 +15,15 @@ import { FacturacionTicketService } from '../../services/facturacion.service';
 
 @Component({
   selector: 'app-ticket-facturacion-detail-page',
-  imports: [DecimalPipe, DynadrillScreenHeaderComponent, DynadrillTagComponent, DynadrillButtonComponent, DynadrillSpinnerComponent, DynadrillBannerComponent, DynadrillTextComponent],
+  imports: [
+    DecimalPipe,
+    DynadrillScreenHeaderComponent,
+    DynadrillTagComponent,
+    DynadrillButtonComponent,
+    DynadrillSpinnerComponent,
+    DynadrillBannerComponent,
+    DynadrillTextComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './ticket-facturacion-detail-page.html',
   styleUrl: './ticket-facturacion-detail-page.scss',

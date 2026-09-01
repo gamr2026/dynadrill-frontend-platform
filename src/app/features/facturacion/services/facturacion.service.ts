@@ -14,6 +14,7 @@ import {
   FacturacionTicket,
   GuiaCampo,
   Otq,
+  OtqItemDraft,
 } from '../models/facturacion.model';
 
 @Injectable({ providedIn: 'root' })
@@ -30,6 +31,11 @@ export class OtqService {
 
   create(input: CreateOtqInput): Observable<Otq> {
     return this.http.post<Otq>('/api/facturacion/otq', input);
+  }
+
+  /** FACT-003, Escenario B — reemplaza los ítems de la OTQ tras un cambio de alcance aprobado. */
+  actualizarItems(id: number, items: OtqItemDraft[]): Observable<Otq> {
+    return this.http.patch<Otq>(`/api/facturacion/otq/${id}/items`, { items });
   }
 }
 

@@ -6,10 +6,13 @@ import {
   DynadrillInputComponent,
   DynadrillNotificationService,
   DynadrillSelectComponent,
+  DynadrillTextComponent,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../core/services/auth.service';
-import { DocumentacionDiaria, DocumentacionItem, OtqItem } from '../models/facturacion.model';
+import { Unidad } from '../../maintenance/models/unidad.model';
+import { UnidadesService } from '../../maintenance/services/unidades.service';
+import { ConsumoMaterialEntry, DocumentacionDiaria, DocumentacionItem, HojaTiempoEntry, OtqItem, UsoEquipoEntry } from '../models/facturacion.model';
 import { DocumentacionDiariaService } from '../services/facturacion.service';
 
 export interface DocumentacionDiariaDialogData {
@@ -23,21 +26,24 @@ interface ItemDraft {
   tipo: 'Material' | 'Servicio';
 }
 
-/**
- * Cubre solo el registro de ítems ejecutados en el día (lo que alimenta la
- * Prefactura) — hojas de tiempo/uso de equipos/consumo de materiales
- * quedan en el modelo (`DocumentacionDiaria`) pero sin UI propia todavía
- * en esta primera fase; se agregan cuando el flujo de campo lo necesite.
- */
+interface EquipoDraft {
+  horometroInicial: number;
+  horometroFinal: number;
+  combustibleConsumido?: number;
+  operador: string;
+}
+
+/** FACT-002 — registro diario: ítems que alimentan la Prefactura (código/cantidad/tipo, validados contra la OTQ) más los respaldos operativos del día (hojas de tiempo, uso de equipos, consumo de materiales). */
 @Component({
   selector: 'app-documentacion-diaria-dialog',
-  imports: [DynadrillDatetimePickerComponent, DynadrillSelectComponent, DynadrillInputComponent, DynadrillButtonComponent],
+  imports: [DynadrillDatetimePickerComponent, DynadrillSelectComponent, DynadrillInputComponent, DynadrillButtonComponent, DynadrillTextComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './documentacion-diaria-dialog.html',
   styleUrl: './documentacion-diaria-dialog.scss',
 })
 export class DocumentacionDiariaDialog {
   private readonly docService = inject(DocumentacionDiariaService);
+  private readonly unidadesService = inject(UnidadesService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
   private readonly modalRef = inject(NzModalRef<DocumentacionDiariaDialog, DocumentacionDiaria | undefined>);
@@ -52,7 +58,73 @@ export class DocumentacionDiariaDialog {
   protected readonly tipoDraft = signal<'Material' | 'Servicio'>('Servicio');
   protected readonly submitting = signal(false);
 
+  // ── FACT-002 — respaldos operativos del día ──
+  protected readonly unidades = signal<Unidad[]>([]);
+  protected readonly unidadOptions = computed<DynadrillSelectOption[]>(() => this.unidades().map(u => ({ label: `${u.code} — ${u.nombre}`, value: u.id })));
+
+  protected readonly hojasTiempo = signal<HojaTiempoEntry[]>([]);
+  protected readonly hojaDraft = signal<HojaTiempoEntry>({ nombre: '', cargo: '', horasNormales: 0, horasExtras: 0, horasNocturnas: 0 });
+
+  protected readonly usoEquipos = signal<UsoEquipoEntry[]>([]);
+  protected readonly equipoUnidadId = signal<number | null>(null);
+  protected readonly equipoDraft = signal<EquipoDraft>({ horometroInicial: 0, horometroFinal: 0, operador: '' });
+
+  protected readonly consumoMateriales = signal<ConsumoMaterialEntry[]>([]);
+  protected readonly materialDraft = signal<ConsumoMaterialEntry>({ codigo: '', descripcion: '', cantidad: 0, unidad: '' });
+
   protected readonly puedeGuardar = computed(() => this.fecha() !== null && this.items().length > 0);
+
+  constructor() {
+    this.unidadesService.list().subscribe(unidades => this.unidades.set(unidades));
+  }
+
+  protected updateHojaDraft<K extends keyof HojaTiempoEntry>(field: K, value: HojaTiempoEntry[K]): void {
+    this.hojaDraft.update(d => ({ ...d, [field]: value }));
+  }
+
+  protected agregarHoja(): void {
+    const h = this.hojaDraft();
+    if (!h.nombre.trim() || !h.cargo.trim()) return;
+    this.hojasTiempo.update(list => [...list, h]);
+    this.hojaDraft.set({ nombre: '', cargo: '', horasNormales: 0, horasExtras: 0, horasNocturnas: 0 });
+  }
+
+  protected quitarHoja(index: number): void {
+    this.hojasTiempo.update(list => list.filter((_, i) => i !== index));
+  }
+
+  protected updateEquipoDraft<K extends keyof EquipoDraft>(field: K, value: EquipoDraft[K]): void {
+    this.equipoDraft.update(d => ({ ...d, [field]: value }));
+  }
+
+  protected agregarEquipo(): void {
+    const unidadId = this.equipoUnidadId();
+    const unidad = this.unidades().find(u => u.id === unidadId);
+    const d = this.equipoDraft();
+    if (!unidad || d.horometroFinal < d.horometroInicial || !d.operador.trim()) return;
+    this.usoEquipos.update(list => [...list, { unidadId: unidad.id, unidadCode: unidad.code, ...d }]);
+    this.equipoUnidadId.set(null);
+    this.equipoDraft.set({ horometroInicial: 0, horometroFinal: 0, operador: '' });
+  }
+
+  protected quitarEquipo(index: number): void {
+    this.usoEquipos.update(list => list.filter((_, i) => i !== index));
+  }
+
+  protected updateMaterialDraft<K extends keyof ConsumoMaterialEntry>(field: K, value: ConsumoMaterialEntry[K]): void {
+    this.materialDraft.update(d => ({ ...d, [field]: value }));
+  }
+
+  protected agregarMaterial(): void {
+    const m = this.materialDraft();
+    if (!m.codigo.trim() || !m.descripcion.trim() || m.cantidad <= 0) return;
+    this.consumoMateriales.update(list => [...list, m]);
+    this.materialDraft.set({ codigo: '', descripcion: '', cantidad: 0, unidad: '' });
+  }
+
+  protected quitarMaterial(index: number): void {
+    this.consumoMateriales.update(list => list.filter((_, i) => i !== index));
+  }
 
   protected agregarItem(): void {
     const codigo = this.codigoDraft();
@@ -94,9 +166,9 @@ export class DocumentacionDiariaDialog {
       .create({
         pedidoId: this.data.pedidoId,
         fecha: this.fecha()!.toISOString().slice(0, 10),
-        hojasTiempo: [],
-        usoEquipos: [],
-        consumoMateriales: [],
+        hojasTiempo: this.hojasTiempo(),
+        usoEquipos: this.usoEquipos(),
+        consumoMateriales: this.consumoMateriales(),
         items,
         registradoPor: this.auth.currentUser()?.name ?? '',
       })

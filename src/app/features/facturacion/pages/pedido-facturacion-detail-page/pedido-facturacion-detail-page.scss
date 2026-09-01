@@ -1,43 +1,39 @@
-.pedido-facturacion-detail-page {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+@use '../../facturacion-ui' as f;
 
-  &__card {
+.pedido-detail {
+  @include f.page;
+
+  .fact-card { @include f.card; }
+
+  // El mixin emite &__top / &__stat-value / &__meter … bajo esta clase,
+  // que es justo lo que usa el template (pedido-detail__hero__top, etc.).
+  &__hero { @include f.hero; }
+
+  &__head { @include f.card-head; }
+  &__defs { @include f.defs; }
+  &__table { @include f.table; }
+  &__row-actions { @include f.row-actions; }
+
+  &__actions {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 16px;
-    background: var(--surface, #ffffff);
-    border: 1px solid var(--border, #e5e4ea);
-    border-radius: var(--radius-md, 6px);
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 2px;
   }
 
-  &__card--warning {
-    border-left: 4px solid var(--warning, #faad14);
-  }
+  &__lead { margin: 0; color: var(--text, #2c2b35); }
+  &__muted { margin: 0; font-size: 13px; color: var(--text-muted, #5c5870); }
 
-  &__card-head {
+  &__closing {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    gap: 12px;
+    flex-wrap: wrap;
   }
 
-  &__table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13.5px;
-
-    th, td {
-      text-align: left;
-      padding: 8px 10px;
-      border-bottom: 1px solid var(--border, #e5e4ea);
-    }
-  }
-
-  &__row-actions {
-    display: flex;
-    gap: 6px;
+  &__closing-label {
+    font-family: var(--font-subheading, 'Oswald', sans-serif);
+    font-size: 13px;
+    color: var(--text-muted, #5c5870);
   }
 }

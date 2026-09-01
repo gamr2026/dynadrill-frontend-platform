@@ -1,54 +1,91 @@
-<div class="ticket-facturacion-detail-page">
+<div class="ticket-detail">
   @if (ticket(); as t) {
     <dynadrill-screen-header eyebrow="FACTURACIÓN" [title]="t.code" subtitle="FACT-004 — cierre del Pedido" />
 
     <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
-      <div class="ticket-facturacion-detail-page__status">
-        <dynadrill-tag [label]="t.estado === 'facturado' ? 'Facturado' : 'Cerrado — pendiente de facturar'" [variant]="t.estado === 'facturado' ? 'success' : 'warning'" />
-      </div>
+      <section class="fact-card" [class.fact-card--success]="t.estado === 'facturado'" [class.fact-card--warning]="t.estado !== 'facturado'">
+        <header class="ticket-detail__head">
+          <h2>Ítems del cierre</h2>
+          <dynadrill-tag
+            [label]="t.estado === 'facturado' ? 'Facturado' : 'Cerrado — pendiente de facturar'"
+            [variant]="t.estado === 'facturado' ? 'success' : 'warning'"
+          />
+        </header>
 
-      <table class="ticket-facturacion-detail-page__table">
-        <thead><tr><th>Código</th><th>Descripción</th><th>Cantidad</th><th>Precio unit.</th><th>Tipo</th><th>Total</th></tr></thead>
-        <tbody>
-          @for (item of t.items; track item.id) {
+        <table class="ticket-detail__table">
+          <thead>
             <tr>
-              <td>{{ item.codigo }}</td>
-              <td>{{ item.descripcion }}</td>
-              <td>{{ item.cantidad }} {{ item.unidad }}</td>
-              <td>${{ item.precioUnitario | number: '1.2-2' }}</td>
-              <td>{{ item.tipo }}</td>
-              <td>${{ item.precioTotal | number: '1.2-2' }}</td>
+              <th>Código</th><th>Descripción</th><th class="num">Cantidad</th>
+              <th class="num">Precio unit.</th><th>Tipo</th><th class="num">Total</th>
             </tr>
-          }
-        </tbody>
-        <tfoot>
-          <tr><td colspan="5">Subtotal Servicios</td><td>${{ t.subtotalServicios | number: '1.2-2' }}</td></tr>
-          <tr><td colspan="5">Subtotal Materiales</td><td>${{ t.subtotalMateriales | number: '1.2-2' }}</td></tr>
-          <tr><td colspan="5"><strong>Total</strong></td><td><strong>${{ t.subtotal | number: '1.2-2' }}</strong></td></tr>
-        </tfoot>
-      </table>
+          </thead>
+          <tbody>
+            @for (item of t.items; track item.id) {
+              <tr>
+                <td>{{ item.codigo }}</td>
+                <td>{{ item.descripcion }}</td>
+                <td class="num">{{ item.cantidad }} {{ item.unidad }}</td>
+                <td class="num">${{ item.precioUnitario | number: '1.2-2' }}</td>
+                <td>{{ item.tipo }}</td>
+                <td class="num">${{ item.precioTotal | number: '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
 
-      @if (t.firmaAutorizadoDynadrill && t.firmaCompanyMan) {
-        <div class="ticket-facturacion-detail-page__firmas">
-          <div>
-            <dynadrill-text variant="caption">Autorizado Dynadrill</dynadrill-text>
-            <p>{{ t.firmaAutorizadoDynadrill.nombre }}</p>
-          </div>
-          <div>
-            <dynadrill-text variant="caption">Company Man</dynadrill-text>
-            <p>{{ t.firmaCompanyMan.nombre }} — C.I. {{ t.firmaCompanyMan.cedula }}</p>
+      <section class="fact-card">
+        <header class="ticket-detail__head"><h2>Liquidación</h2></header>
+        <div class="ticket-detail__liquidacion">
+          <dl class="ticket-detail__totals">
+            <div><dt>Subtotal Servicios</dt><dd>${{ t.subtotalServicios | number: '1.2-2' }}</dd></div>
+            <div><dt>Subtotal Materiales</dt><dd>${{ t.subtotalMateriales | number: '1.2-2' }}</dd></div>
+            <div class="ticket-detail__totals-sum"><dt>Subtotal</dt><dd>${{ t.subtotal | number: '1.2-2' }}</dd></div>
+            <div><dt>IVA (12%)</dt><dd>${{ t.iva | number: '1.2-2' }}</dd></div>
+            <div class="ticket-detail__totals-deduction"><dt>Retención IR (1%)</dt><dd>−${{ t.retencionIR | number: '1.2-2' }}</dd></div>
+            <div class="ticket-detail__totals-deduction"><dt>Retención IVA (30%)</dt><dd>−${{ t.retencionIVA | number: '1.2-2' }}</dd></div>
+          </dl>
+          <div class="ticket-detail__neto">
+            <span class="ticket-detail__neto-label">Neto a cobrar</span>
+            <span class="ticket-detail__neto-value"><small>$</small>{{ t.netoCobrar | number: '1.2-2' }}</span>
           </div>
         </div>
+      </section>
+
+      @if (t.firmaAutorizadoDynadrill && t.firmaCompanyMan) {
+        <section class="fact-card">
+          <header class="ticket-detail__head"><h2>Firmas</h2></header>
+          <div class="ticket-detail__firmas">
+            <div class="ticket-detail__firma">
+              <span class="ticket-detail__firma-line"></span>
+              <p class="ticket-detail__firma-name">{{ t.firmaAutorizadoDynadrill.nombre }}</p>
+              <dynadrill-text variant="caption">Autorizado Dynadrill</dynadrill-text>
+            </div>
+            <div class="ticket-detail__firma">
+              <span class="ticket-detail__firma-line"></span>
+              <p class="ticket-detail__firma-name">{{ t.firmaCompanyMan.nombre }}</p>
+              <dynadrill-text variant="caption">Company Man — C.I. {{ t.firmaCompanyMan.cedula }}</dynadrill-text>
+            </div>
+          </div>
+        </section>
       }
 
       @if (t.estado === 'cerrado') {
-        <dynadrill-banner
-          variant="info"
-          message="La emisión real de la factura ante el SRI la hace AS2 — este botón simula el envío hasta que exista esa integración."
-        />
-        <dynadrill-button (clicked)="marcarFacturado()">Marcar como facturado (simulado)</dynadrill-button>
+        <section class="fact-card">
+          <header class="ticket-detail__head"><h2>Emisión</h2></header>
+          <dynadrill-banner
+            variant="info"
+            message="La emisión real de la factura ante el SRI la hace AS2 — este botón simula el envío hasta que exista esa integración."
+          />
+          <div class="ticket-detail__actions">
+            <dynadrill-button (clicked)="marcarFacturado()">Marcar como facturado (simulado)</dynadrill-button>
+          </div>
+        </section>
       } @else if (t.facturaAs2Ref) {
-        <p>Referencia AS2: {{ t.facturaAs2Ref }}</p>
+        <section class="fact-card">
+          <header class="ticket-detail__head"><h2>Emisión</h2></header>
+          <p class="ticket-detail__ref">Referencia AS2: <strong>{{ t.facturaAs2Ref }}</strong></p>
+        </section>
       }
     </dynadrill-spinner>
   } @else if (!loading()) {

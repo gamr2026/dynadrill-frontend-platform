@@ -1,34 +1,28 @@
+@use '../facturacion-ui' as f;
+
 .documentacion-diaria-dialog {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 
   &__row-pair {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-
-    > * {
-      flex: 1 1 160px;
-    }
+    @include f.field-grid(160px);
   }
 
   &__items {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
+    @include f.table;
+    border-top: 1px solid var(--border, #e5e4ea);
+  }
 
-    th, td {
-      text-align: left;
-      padding: 6px 8px;
-      border-bottom: 1px solid var(--border, #e5e4ea);
+  &__section {
+    @include f.subform;
+
+    dynadrill-text {
+      display: block;
     }
   }
 
   &__actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-top: 8px;
+    @include f.dialog-actions;
   }
 }

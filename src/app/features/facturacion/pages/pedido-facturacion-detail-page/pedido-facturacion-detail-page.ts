@@ -6,14 +6,17 @@ import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
   DynadrillDialogService,
-  DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
   DynadrillTagComponent,
   DynadrillTextComponent,
-  type DynadrillKpiRowItem,
 } from '@digitec-it-projects/dynadrill-ui';
+
+interface DatoProyecto {
+  label: string;
+  value: string;
+}
 import { AuthService } from '../../../../core/services/auth.service';
 import {
   ActaEntregaRecepcion,
@@ -35,6 +38,8 @@ import {
 } from '../../services/facturacion.service';
 import { DocumentacionDiariaDialog, DocumentacionDiariaDialogData } from '../../components/documentacion-diaria-dialog';
 import { ExcepcionDialog, ExcepcionDialogData } from '../../components/excepcion-dialog';
+import { CambioAlcanceDialog, CambioAlcanceDialogData } from '../../components/cambio-alcance-dialog';
+import { GuiaCampoDialog, GuiaCampoDialogData } from '../../components/guia-campo-dialog';
 
 function presupuestoDe(otq: Otq): number {
   return otq.items.reduce((sum, i) => sum + i.total, 0);
@@ -45,7 +50,6 @@ function presupuestoDe(otq: Otq): number {
   imports: [
     DecimalPipe,
     DynadrillScreenHeaderComponent,
-    DynadrillKpiRowComponent,
     DynadrillTagComponent,
     DynadrillButtonComponent,
     DynadrillSpinnerComponent,
@@ -91,14 +95,25 @@ export class PedidoFacturacionDetailPage {
     return p.porcentajeConsumido >= 100 ? 'error' : p.porcentajeConsumido >= 80 ? 'warning' : 'success';
   });
 
-  protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
+  protected readonly saldoDisponible = computed(() => {
     const p = this.prefactura();
-    if (!p) return [];
+    return p ? Math.max(0, p.presupuestoAprobado - p.acumulado) : 0;
+  });
+
+  protected readonly meterPct = computed(() => {
+    const p = this.prefactura();
+    if (!p || !p.presupuestoAprobado) return 0;
+    return Math.min(100, Math.round((p.acumulado / p.presupuestoAprobado) * 100));
+  });
+
+  protected readonly proyectoItems = computed<DatoProyecto[]>(() => {
+    const o = this.otq();
+    if (!o) return [];
     return [
-      { label: 'Presupuesto aprobado', value: '$' + p.presupuestoAprobado.toFixed(2), tone: 'neutral' },
-      { label: 'Acumulado a la fecha', value: '$' + p.acumulado.toFixed(2), tone: this.tono() },
-      { label: 'Saldo disponible', value: '$' + Math.max(0, p.presupuestoAprobado - p.acumulado).toFixed(2), tone: 'brand' },
-      { label: '% Consumido', value: p.porcentajeConsumido + '%', tone: this.tono() },
+      { label: 'Locación', value: `${o.campo} / ${o.pozo}${o.bloque ? ' — ' + o.bloque : ''}` },
+      { label: 'Fechas estimadas', value: `${o.fechaInicioEstimada || 'Sin definir'} — ${o.fechaFinEstimada || 'Sin definir'}` },
+      { label: 'Supervisor Operativo', value: o.supervisorOperativo || 'Sin asignar' },
+      { label: 'Técnico HSE', value: o.tecnicoHse || 'Sin asignar' },
     ];
   });
 
@@ -195,6 +210,70 @@ export class PedidoFacturacionDetailPage {
         this.reload();
       },
       error: () => this.notify.error('Error', 'No se pudo registrar la aprobación.'),
+    });
+  }
+
+  /** FACT-003, Escenario A — el cliente rechaza el excedente; Gerencia evalúa y aprueba un descuento. */
+  protected aprobarExcepcionGerencia(e: Excepcion): void {
+    this.excepcionService.aprobarGerencia(e.id).subscribe({
+      next: () => {
+        this.notify.success('Descuento aprobado', 'Gerencia aprobó ajustar el excedente — la excepción queda resuelta.');
+        this.reload();
+      },
+      error: () => this.notify.error('Error', 'No se pudo registrar la aprobación de Gerencia.'),
+    });
+  }
+
+  protected rechazarExcepcion(e: Excepcion): void {
+    this.excepcionService.rechazar(e.id).subscribe({
+      next: () => {
+        this.notify.info('Excepción rechazada', 'Renegociar con el cliente o suspender el trabajo pendiente.');
+        this.reload();
+      },
+      error: () => this.notify.error('Error', 'No se pudo rechazar la excepción.'),
+    });
+  }
+
+  /** FACT-003, Escenario B — cambio de alcance: agrega/quita/modifica ítems de la OTQ. */
+  protected registrarCambioAlcance(): void {
+    const otq = this.otq();
+    if (!otq) return;
+    const ref = this.dialog.open<CambioAlcanceDialog, CambioAlcanceDialogData>({
+      title: 'Cambio de alcance',
+      content: CambioAlcanceDialog,
+      data: { pedidoId: this.pedidoId, otqId: otq.id, items: otq.items },
+      footer: false,
+      width: '720px',
+    });
+    ref.afterClose.subscribe(result => {
+      if (result) this.reload();
+    });
+  }
+
+  /** FACT-004 — evidencia de despacho en sitio. */
+  protected nuevaGuiaCampo(): void {
+    const otq = this.otq();
+    if (!otq) return;
+    const ref = this.dialog.open<GuiaCampoDialog, GuiaCampoDialogData>({
+      title: 'Registrar guía de campo',
+      content: GuiaCampoDialog,
+      data: { pedidoId: this.pedidoId, cliente: otq.cliente, campo: otq.campo, pozo: otq.pozo },
+      footer: false,
+      width: '640px',
+    });
+    ref.afterClose.subscribe(result => {
+      if (result) this.reload();
+    });
+  }
+
+  protected firmarGuia(guia: GuiaCampo): void {
+    const nombre = this.auth.currentUser()?.name ?? '';
+    this.guiaService.firmar(guia.id, nombre, this.companyManDemo).subscribe({
+      next: () => {
+        this.notify.success('Guía firmada', 'Guía de campo firmada por ambas partes.');
+        this.reload();
+      },
+      error: () => this.notify.error('Error', 'No se pudo firmar la guía de campo.'),
     });
   }
 

@@ -1,39 +1,122 @@
-.ticket-facturacion-detail-page {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+@use '../../facturacion-ui' as f;
 
-  &__status {
+.ticket-detail {
+  @include f.page;
+
+  .fact-card { @include f.card; }
+
+  &__head { @include f.card-head; }
+  &__table { @include f.table; }
+
+  &__liquidacion {
     display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px 40px;
   }
 
-  &__table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13.5px;
+  &__totals {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 300px;
+    flex: 1 1 320px;
+    max-width: 460px;
 
-    th, td {
-      text-align: left;
-      padding: 8px 10px;
-      border-bottom: 1px solid var(--border, #e5e4ea);
+    div {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      font-size: 13.5px;
+      color: var(--text-muted, #5c5870);
     }
 
-    tfoot td {
-      border-bottom: none;
-      padding-top: 10px;
+    dt,
+    dd { margin: 0; }
+    dd { font-variant-numeric: tabular-nums; }
+  }
+
+  &__totals-sum {
+    padding-top: 7px;
+    border-top: 1px solid #ecebf1;
+    color: var(--text, #2c2b35) !important;
+    font-weight: 600;
+  }
+
+  &__totals-deduction dd { color: var(--error, #ff4d4f); }
+
+  &__neto {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px 22px;
+    border-radius: 12px;
+    background:
+      radial-gradient(120% 160% at 100% 0%, rgba(var(--dynadrill-purple-rgb, 102, 46, 155), 0.5) 0%, transparent 60%),
+      linear-gradient(135deg, #1c1e38 0%, var(--dynadrill-navy, #131529) 65%);
+    color: var(--dynadrill-white, #fff);
+  }
+
+  &__neto-label {
+    font-family: var(--font-subheading, 'Oswald', sans-serif);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  &__neto-value {
+    font-family: var(--font-heading, 'D-DIN', sans-serif);
+    font-size: 32px;
+    line-height: 1.05;
+    color: #d9b8ff;
+
+    small {
+      font-size: 18px;
+      opacity: 0.7;
+      margin-right: 2px;
     }
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 2px;
   }
 
   &__firmas {
     display: flex;
-    gap: 24px;
-    padding: 12px 16px;
-    background: var(--surface-muted, #faf9fc);
-    border-radius: var(--radius-sm, 4px);
+    flex-wrap: wrap;
+    gap: 32px;
+    margin-top: 8px;
+  }
 
-    p {
-      margin: 2px 0 0;
-      font-weight: 600;
-    }
+  &__firma {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    min-width: 220px;
+    max-width: 280px;
+  }
+
+  &__firma-line {
+    width: 100%;
+    height: 1px;
+    background: var(--text, #2c2b35);
+    margin-bottom: 8px;
+  }
+
+  &__firma-name {
+    margin: 0 0 2px;
+    font-weight: 600;
+  }
+
+  &__ref {
+    margin: 0;
+    color: var(--text-muted, #5c5870);
   }
 }

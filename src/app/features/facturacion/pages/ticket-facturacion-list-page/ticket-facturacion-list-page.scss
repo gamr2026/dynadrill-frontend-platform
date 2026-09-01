@@ -1,7 +1,12 @@
+@use '../../facturacion-ui' as f;
+
 .ticket-facturacion-list-page {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  @include f.page;
+
+  .fact-card {
+    @include f.card;
+    padding: 6px;
+  }
 }
 
 .table-scroll {

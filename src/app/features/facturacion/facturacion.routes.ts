@@ -29,4 +29,10 @@ export const facturacionRoutes: Routes = [
     canActivate: [roleGuard],
     data: { allowedRoles: FACTURACION_ROLES },
   },
+  {
+    path: 'reporteria',
+    loadComponent: () => import('./pages/reporteria-page/reporteria-page').then(m => m.ReporteriaPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: FACTURACION_ROLES },
+  },
 ];

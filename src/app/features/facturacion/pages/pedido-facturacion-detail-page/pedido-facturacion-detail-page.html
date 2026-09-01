@@ -1,4 +1,4 @@
-<div class="pedido-facturacion-detail-page">
+<div class="pedido-detail">
   @if (otq(); as o) {
     <dynadrill-screen-header eyebrow="FACTURACIÓN" [title]="o.numero" [subtitle]="o.cliente + ' — ' + o.campo + ' / ' + o.pozo" />
 
@@ -7,39 +7,119 @@
         <dynadrill-banner variant="info" message="Este pedido ya generó su Ticket y quedó facturado." />
       }
 
-      <dynadrill-kpi-row [items]="kpis()" />
-
-      @if (excepcionActiva(); as exc) {
-        <div class="pedido-facturacion-detail-page__card pedido-facturacion-detail-page__card--warning">
-          <dynadrill-text variant="h2">Excepción activa — {{ exc.tipo === 'sobrepaso' ? 'Sobrepaso de presupuesto' : 'Cambio de alcance' }}</dynadrill-text>
-          <p>Excedente estimado: ${{ exc.montoExcedente | number: '1.2-2' }} — {{ exc.justificacion }}</p>
-          <dynadrill-tag [label]="exc.estado === 'en_negociacion' ? 'En negociación' : exc.estado" [variant]="exc.estado === 'aprobada' ? 'success' : 'warning'" />
-          @if (exc.estado === 'en_negociacion') {
-            <dynadrill-button size="small" (clicked)="aprobarExcepcionCliente(exc)">Registrar aprobación del cliente</dynadrill-button>
-          }
-        </div>
-      } @else if (tono() === 'error') {
-        <div class="pedido-facturacion-detail-page__card pedido-facturacion-detail-page__card--warning">
-          <dynadrill-text variant="h2">Presupuesto sobrepasado</dynadrill-text>
-          <p>La documentación se sigue registrando con normalidad — hay que gestionar el excedente con el cliente.</p>
-          <dynadrill-button size="small" (clicked)="registrarExcepcion()">Registrar excepción</dynadrill-button>
+      <!-- Héroe: estado financiero del pedido -->
+      @if (prefactura(); as p) {
+        <div class="pedido-detail__hero">
+          <div class="pedido-detail__hero__top">
+            <span class="pedido-detail__hero__eyebrow">Prefactura en vivo</span>
+            <dynadrill-tag [label]="p.porcentajeConsumido + '% del presupuesto'" [variant]="tono()" />
+          </div>
+          <div class="pedido-detail__hero__body">
+            <div class="pedido-detail__hero__stats">
+              <div>
+                <div class="pedido-detail__hero__stat-label">Presupuesto aprobado</div>
+                <div class="pedido-detail__hero__stat-value"><small>$</small>{{ p.presupuestoAprobado | number: '1.2-2' }}</div>
+              </div>
+              <div>
+                <div class="pedido-detail__hero__stat-label">Ejecutado a la fecha</div>
+                <div class="pedido-detail__hero__stat-value pedido-detail__hero__stat-value--accent"><small>$</small>{{ p.acumulado | number: '1.2-2' }}</div>
+              </div>
+              <div>
+                <div class="pedido-detail__hero__stat-label">Saldo disponible</div>
+                <div class="pedido-detail__hero__stat-value"><small>$</small>{{ saldoDisponible() | number: '1.2-2' }}</div>
+              </div>
+            </div>
+            <div
+              class="pedido-detail__hero__meter"
+              [class.pedido-detail__hero__meter--warning]="tono() === 'warning'"
+              [class.pedido-detail__hero__meter--error]="tono() === 'error'"
+            >
+              <span [style.width.%]="meterPct()"></span>
+            </div>
+            <div class="pedido-detail__hero__caption">
+              {{ p.dias.length }} {{ p.dias.length === 1 ? 'día homologado' : 'días homologados' }} · el acumulado solo cuenta documentación homologada
+            </div>
+          </div>
         </div>
       }
 
-      <div class="pedido-facturacion-detail-page__card">
-        <div class="pedido-facturacion-detail-page__card-head">
-          <dynadrill-text variant="h2">Documentación diaria</dynadrill-text>
-          <dynadrill-button size="small" (clicked)="nuevaDocumentacion()">+ Registrar día</dynadrill-button>
-        </div>
+      <section class="fact-card">
+        <header class="pedido-detail__head"><h2>Datos del proyecto</h2></header>
+        <dl class="pedido-detail__defs">
+          @for (it of proyectoItems(); track it.label) {
+            <div><dt>{{ it.label }}</dt><dd>{{ it.value }}</dd></div>
+          }
+        </dl>
+      </section>
+
+      @if (excepcionActiva(); as exc) {
+        <section class="fact-card" [class.fact-card--success]="exc.estado === 'aprobada'" [class.fact-card--warning]="exc.estado !== 'aprobada'">
+          <header class="pedido-detail__head">
+            <h2>Excepción activa — {{ exc.tipo === 'sobrepaso' ? 'Sobrepaso de presupuesto' : 'Cambio de alcance' }}</h2>
+            <dynadrill-tag
+              [label]="exc.estado === 'en_negociacion' ? 'En negociación' : exc.estado"
+              [variant]="exc.estado === 'aprobada' ? 'success' : 'warning'"
+            />
+          </header>
+
+          @if (exc.tipo === 'sobrepaso') {
+            <p class="pedido-detail__lead">Excedente estimado: ${{ exc.montoExcedente | number: '1.2-2' }}</p>
+          } @else {
+            <p class="pedido-detail__lead">
+              Diferencia de presupuesto: {{ (exc.montoExcedente ?? 0) >= 0 ? '+' : '' }}${{ exc.montoExcedente | number: '1.2-2' }}
+            </p>
+            <p class="pedido-detail__muted">{{ exc.descripcionCambio }}</p>
+          }
+          <p class="pedido-detail__muted">{{ exc.justificacion }}</p>
+
+          @if (exc.estado === 'en_negociacion') {
+            <div class="pedido-detail__actions">
+              <dynadrill-button size="small" (clicked)="aprobarExcepcionCliente(exc)">Registrar aprobación del cliente</dynadrill-button>
+              <dynadrill-button variant="secondary" size="small" (clicked)="aprobarExcepcionGerencia(exc)">Escalar a Gerencia (aprobar descuento)</dynadrill-button>
+              <dynadrill-button variant="secondary" size="small" (clicked)="rechazarExcepcion(exc)">Rechazar</dynadrill-button>
+            </div>
+          }
+        </section>
+      } @else if (tono() === 'error') {
+        <section class="fact-card fact-card--error">
+          <header class="pedido-detail__head"><h2>Presupuesto sobrepasado</h2></header>
+          <p class="pedido-detail__lead">La documentación se sigue registrando con normalidad — hay que gestionar el excedente con el cliente.</p>
+          @if (!yaFacturado()) {
+            <div class="pedido-detail__actions">
+              <dynadrill-button size="small" (clicked)="registrarExcepcion()">Registrar excepción</dynadrill-button>
+            </div>
+          }
+        </section>
+      }
+
+      @if (!yaFacturado()) {
+        <section class="fact-card">
+          <header class="pedido-detail__head">
+            <h2>Cambio de alcance</h2>
+            <dynadrill-button variant="secondary" size="small" (clicked)="registrarCambioAlcance()">Solicitar cambio de alcance</dynadrill-button>
+          </header>
+          <p class="pedido-detail__muted">Agrega, quita o modifica ítems de la OTQ cuando el cliente solicite un cambio en el trabajo cotizado.</p>
+        </section>
+      }
+
+      <section class="fact-card">
+        <header class="pedido-detail__head">
+          <h2>Documentación diaria</h2>
+          @if (!yaFacturado()) {
+            <dynadrill-button size="small" (clicked)="nuevaDocumentacion()">+ Registrar día</dynadrill-button>
+          }
+        </header>
 
         @if (documentacion().length) {
-          <table class="pedido-facturacion-detail-page__table">
-            <thead><tr><th>Fecha</th><th>Ítems</th><th>Registrado por</th><th>Estado</th><th></th></tr></thead>
+          <table class="pedido-detail__table">
+            <thead>
+              <tr><th>Fecha</th><th class="num">Ítems</th><th>Registrado por</th><th>Estado</th><th aria-label="Acciones"></th></tr>
+            </thead>
             <tbody>
               @for (d of documentacion(); track d.id) {
                 <tr>
                   <td>{{ d.fecha }}</td>
-                  <td>{{ d.items.length }}</td>
+                  <td class="num">{{ d.items.length }}</td>
                   <td>{{ d.registradoPor }}</td>
                   <td>
                     <dynadrill-tag
@@ -48,8 +128,8 @@
                     />
                   </td>
                   <td>
-                    @if (d.estado === 'pendiente') {
-                      <div class="pedido-facturacion-detail-page__row-actions">
+                    @if (d.estado === 'pendiente' && !yaFacturado()) {
+                      <div class="pedido-detail__row-actions">
                         <dynadrill-button variant="secondary" size="small" (clicked)="homologar(d)">Homologar</dynadrill-button>
                         <dynadrill-button variant="secondary" size="small" (clicked)="rechazar(d)">Rechazar</dynadrill-button>
                       </div>
@@ -62,28 +142,69 @@
         } @else {
           <dynadrill-banner variant="info" message="Todavía no hay documentación registrada para este pedido." />
         }
-      </div>
+      </section>
 
-      <div class="pedido-facturacion-detail-page__card">
-        <dynadrill-text variant="h2">Cierre</dynadrill-text>
-        <p>
-          Acta de entrega-recepción:
+      <section class="fact-card">
+        <header class="pedido-detail__head">
+          <h2>Guías de campo</h2>
+          @if (!yaFacturado()) {
+            <dynadrill-button size="small" (clicked)="nuevaGuiaCampo()">+ Nueva guía</dynadrill-button>
+          }
+        </header>
+        @if (guias().length) {
+          <table class="pedido-detail__table">
+            <thead>
+              <tr><th>Fecha</th><th>Unidad</th><th class="num">Ítems</th><th>Estado</th><th aria-label="Acciones"></th></tr>
+            </thead>
+            <tbody>
+              @for (g of guias(); track g.id) {
+                <tr>
+                  <td>{{ g.fecha }}</td>
+                  <td>{{ g.unidadCode }}</td>
+                  <td class="num">{{ g.items.length }}</td>
+                  <td>
+                    <dynadrill-tag
+                      [label]="g.firmaDynadrill && g.firmaCompanyMan ? 'Firmada' : 'Pendiente de firma'"
+                      [variant]="g.firmaDynadrill && g.firmaCompanyMan ? 'success' : 'warning'"
+                    />
+                  </td>
+                  <td>
+                    @if (!(g.firmaDynadrill && g.firmaCompanyMan)) {
+                      <dynadrill-button variant="secondary" size="small" (clicked)="firmarGuia(g)">Firmar</dynadrill-button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        } @else {
+          <dynadrill-banner variant="info" message="Todavía no hay guías de campo registradas para este pedido." />
+        }
+      </section>
+
+      <section class="fact-card" [class.fact-card--brand]="listoParaCierre()">
+        <header class="pedido-detail__head"><h2>Cierre</h2></header>
+        <div class="pedido-detail__closing">
+          <span class="pedido-detail__closing-label">Acta de entrega-recepción</span>
           @if (acta()?.firmaSupervisor && acta()?.firmaCompanyMan) {
             <dynadrill-tag label="Firmada por ambas partes" variant="success" />
           } @else {
             <dynadrill-tag label="Pendiente de firma" variant="warning" />
           }
-        </p>
-        @if (!yaFacturado() && !(acta()?.firmaSupervisor && acta()?.firmaCompanyMan)) {
-          <dynadrill-button variant="secondary" size="small" (clicked)="firmarActaSupervisor()">Firmar acta (Supervisor + Company Man)</dynadrill-button>
-        }
+        </div>
+
         @if (!yaFacturado()) {
-          <dynadrill-button [disabled]="!listoParaCierre()" (clicked)="cerrarYGenerarTicket()">Cerrar y generar Ticket</dynadrill-button>
+          <div class="pedido-detail__actions">
+            @if (!(acta()?.firmaSupervisor && acta()?.firmaCompanyMan)) {
+              <dynadrill-button variant="secondary" size="small" (clicked)="firmarActaSupervisor()">Firmar acta (Supervisor + Company Man)</dynadrill-button>
+            }
+            <dynadrill-button [disabled]="!listoParaCierre()" (clicked)="cerrarYGenerarTicket()">Cerrar y generar Ticket</dynadrill-button>
+          </div>
           @if (!listoParaCierre()) {
-            <dynadrill-text variant="caption">Falta el acta firmada y al menos un día de documentación homologada.</dynadrill-text>
+            <dynadrill-text variant="caption">Falta el acta firmada por ambas partes y al menos un día de documentación homologada.</dynadrill-text>
           }
         }
-      </div>
+      </section>
     </dynadrill-spinner>
   } @else if (!loading()) {
     <dynadrill-banner variant="critical" message="Este pedido todavía no tiene una OTQ registrada en Facturación." />

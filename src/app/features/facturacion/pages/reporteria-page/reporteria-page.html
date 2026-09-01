@@ -1,0 +1,39 @@
+<div class="reporteria-page">
+  <dynadrill-screen-header
+    eyebrow="FACTURACIÓN"
+    title="Reportería y Control de Gestión"
+    subtitle="FACT-005 — calculado sobre los registros actuales del interceptor de mocks"
+  />
+
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
+    <dynadrill-kpi-row [items]="kpis()" />
+
+    <ng-template #activosActionsTpl let-row>
+      <dynadrill-button variant="secondary" size="small" (clicked)="verPedido(row)">Ver Prefactura</dynadrill-button>
+    </ng-template>
+    <ng-template #ticketsActionsTpl let-row>
+      <dynadrill-button variant="secondary" size="small" (clicked)="verTicket(row)">Ver Ticket</dynadrill-button>
+    </ng-template>
+
+    <section class="fact-card">
+      <dynadrill-tabs
+        [tabs]="tabs()"
+        [activeIndex]="activeTab()"
+        (activeIndexChange)="activeTab.set($event)"
+        [contentTemplate]="tabContent"
+      />
+      <ng-template #tabContent let-index="index">
+        @if (index === 0) {
+          <p class="reporteria-page__hint">% ejecutado vs. presupuestado de cada pedido en ejecución.</p>
+          <div class="reporteria-page__table">
+            <dynadrill-data-table [columns]="activosColumns" [rows]="ticketsActivosRows()" [rowKey]="rowKeyFn" [pageSize]="10" [actionsTemplate]="activosActionsTpl" />
+          </div>
+        } @else {
+          <div class="reporteria-page__table">
+            <dynadrill-data-table [columns]="ticketsColumns" [rows]="ticketsRows()" [rowKey]="rowKeyFn" [pageSize]="10" [actionsTemplate]="ticketsActionsTpl" />
+          </div>
+        }
+      </ng-template>
+    </section>
+  </dynadrill-spinner>
+</div>

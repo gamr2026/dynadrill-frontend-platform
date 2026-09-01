@@ -16,8 +16,10 @@
       <dynadrill-button variant="secondary" size="small" (clicked)="verDetalle(row)">Ver Prefactura</dynadrill-button>
     </ng-template>
 
-    <div class="table-scroll">
-      <dynadrill-data-table [columns]="columns" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" [actionsTemplate]="actionsTpl" />
-    </div>
+    <section class="fact-card">
+      <div class="table-scroll">
+        <dynadrill-data-table [columns]="columns" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" [actionsTemplate]="actionsTpl" />
+      </div>
+    </section>
   </dynadrill-spinner>
 </div>

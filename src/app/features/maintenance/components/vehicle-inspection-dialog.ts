@@ -3,7 +3,6 @@ import { ChangeDetectionStrategy, Component, WritableSignal, computed, inject, s
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import {
   DynadrillButtonComponent,
-  DynadrillCheckboxComponent,
   DynadrillDatetimePickerComponent,
   DynadrillDialogService,
   DynadrillInputComponent,
@@ -16,6 +15,9 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import {
   ChecklistEstado,
+  ConductorPermisos,
+  conductorPermisosPorVencer,
+  conductorReuneCondiciones,
   CreateVehicleInspectionInput,
   VEHICLE_CHECKLIST_EQUIPO,
   VEHICLE_CHECKLIST_VEHICULO,
@@ -57,7 +59,6 @@ function toChecklistItems(labels: string[]): VehicleChecklistItem[] {
     DynadrillSelectComponent,
     DynadrillDatetimePickerComponent,
     DynadrillTextareaComponent,
-    DynadrillCheckboxComponent,
     DynadrillButtonComponent,
     DynadrillStepperComponent,
   ],
@@ -110,18 +111,33 @@ export class VehicleInspectionDialog {
   protected readonly checklistEquipo = signal<VehicleChecklistItem[]>(toChecklistItems(VEHICLE_CHECKLIST_EQUIPO));
   protected readonly seatbeltBlocked = computed(() => vehicleInspectionBlockedBySeatbelt({ checklistVehiculo: this.checklistVehiculo() }));
 
-  protected readonly licenciaVigente = signal(false);
-  protected readonly manejoDefensivoVigente = signal(false);
-  protected readonly examenMedicoVigente = signal(false);
-  protected readonly examenPsicosensometrico = signal(false);
-  protected readonly documentosClientes = signal(false);
-  protected readonly vacunasCertificado = signal(false);
-  protected readonly reuneCondicionesParaTrabajar = signal(true);
+  /**
+   * FACT del cliente (presentación del módulo, 2026-09-01): los 6
+   * documentos del conductor ya no se marcan a mano — vienen de una base
+   * de RRHH/QHSE simulada (todavía no existe una real) y determinan solas
+   * si se puede guardar la inspección.
+   */
+  protected readonly conductoresPermisos = signal<ConductorPermisos[]>([]);
+  protected readonly conductorOptions = computed<DynadrillSelectOption[]>(() => this.conductoresPermisos().map(c => ({ label: c.nombre, value: c.nombre })));
+  protected readonly conductorSeleccionado = computed<ConductorPermisos | null>(
+    () => this.conductoresPermisos().find(c => c.nombre === this.inspeccionadoPor()) ?? null,
+  );
+  protected readonly reuneCondicionesParaTrabajar = computed(() => {
+    const c = this.conductorSeleccionado();
+    return !!c && conductorReuneCondiciones(c);
+  });
+  protected readonly permisosPorVencer = computed(() => {
+    const c = this.conductorSeleccionado();
+    return c ? conductorPermisosPorVencer(c) : [];
+  });
   protected readonly observacionesConductor = signal('');
   protected readonly supervisorNombre = signal('');
 
+  protected readonly puedeGuardar = computed(() => !!this.unidadId() && !!this.conductorSeleccionado() && this.reuneCondicionesParaTrabajar());
+
   constructor() {
     this.unidadesService.list().subscribe(unidades => this.unidades.set(unidades));
+    this.inspectionsService.listConductoresPermisos().subscribe(permisos => this.conductoresPermisos.set(permisos));
 
     const existing = this.data?.existing;
     if (existing) {
@@ -144,13 +160,8 @@ export class VehicleInspectionDialog {
       this.proximoMantenimiento.set(existing.proximoMantenimiento ? new Date(existing.proximoMantenimiento) : null);
       this.checklistVehiculo.set(existing.checklistVehiculo);
       this.checklistEquipo.set(existing.checklistEquipo);
-      this.licenciaVigente.set(existing.licenciaVigente);
-      this.manejoDefensivoVigente.set(existing.manejoDefensivoVigente);
-      this.examenMedicoVigente.set(existing.examenMedicoVigente);
-      this.examenPsicosensometrico.set(existing.examenPsicosensometrico);
-      this.documentosClientes.set(existing.documentosClientes);
-      this.vacunasCertificado.set(existing.vacunasCertificado);
-      this.reuneCondicionesParaTrabajar.set(existing.reuneCondicionesParaTrabajar);
+      // Los 6 documentos del conductor y "reúne condiciones" ya no se restauran del registro guardado:
+      // se derivan en vivo de conductorSeleccionado() (inspeccionadoPor, seteado arriba) contra la base simulada.
       this.observacionesConductor.set(existing.observacionesConductor ?? '');
       this.supervisorNombre.set(existing.supervisorNombre ?? '');
     }
@@ -171,8 +182,8 @@ export class VehicleInspectionDialog {
   }
 
   next(): void {
-    if (this.currentStep() === 0 && (!this.unidadId() || !this.fecha() || !this.puntoPartida().trim())) {
-      this.notify.error('Falta información', 'Completa Unidad, Fecha y Punto de partida antes de continuar.');
+    if (this.currentStep() === 0 && (!this.unidadId() || !this.fecha() || !this.puntoPartida().trim() || !this.inspeccionadoPor())) {
+      this.notify.error('Falta información', 'Completa Unidad, Fecha, Punto de partida y Conductor antes de continuar.');
       return;
     }
     this.currentStep.update(i => Math.min(i + 1, STEPS.length - 1));
@@ -188,6 +199,7 @@ export class VehicleInspectionDialog {
 
   private buildInput(): CreateVehicleInspectionInput {
     const unidad = this.unidades().find(u => u.id === this.unidadId());
+    const conductor = this.conductorSeleccionado();
     return {
       unidadId: this.unidadId()!,
       unidadCode: unidad?.code ?? '',
@@ -209,12 +221,12 @@ export class VehicleInspectionDialog {
       proximoMantenimiento: this.proximoMantenimiento()?.toISOString(),
       checklistVehiculo: this.checklistVehiculo(),
       checklistEquipo: this.checklistEquipo(),
-      licenciaVigente: this.licenciaVigente(),
-      manejoDefensivoVigente: this.manejoDefensivoVigente(),
-      examenMedicoVigente: this.examenMedicoVigente(),
-      examenPsicosensometrico: this.examenPsicosensometrico(),
-      documentosClientes: this.documentosClientes(),
-      vacunasCertificado: this.vacunasCertificado(),
+      licenciaVigente: conductor?.licenciaVigente ?? false,
+      manejoDefensivoVigente: conductor?.manejoDefensivoVigente ?? false,
+      examenMedicoVigente: conductor?.examenMedicoVigente ?? false,
+      examenPsicosensometrico: conductor?.examenPsicosensometrico ?? false,
+      documentosClientes: conductor?.documentosClientes ?? false,
+      vacunasCertificado: conductor?.vacunasCertificado ?? false,
       reuneCondicionesParaTrabajar: this.reuneCondicionesParaTrabajar(),
       observacionesConductor: this.observacionesConductor() || undefined,
       supervisorNombre: this.supervisorNombre() || undefined,
@@ -222,7 +234,7 @@ export class VehicleInspectionDialog {
   }
 
   async submit(): Promise<void> {
-    if (this.submitting()) return;
+    if (this.submitting() || !this.puedeGuardar()) return;
     this.submitting.set(true);
     const input = this.buildInput();
 

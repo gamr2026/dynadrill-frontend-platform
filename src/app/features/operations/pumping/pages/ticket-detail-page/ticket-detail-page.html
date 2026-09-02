@@ -124,35 +124,33 @@
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
 
+      <!-- Orden pedido por el cliente: primero el Gerenciamiento de Viaje (DYN-SGI-RE-049), recién después se habilita revisar/aprobar el Reporte de Unidad. -->
       <ng-template #reviewSalidaActionsTpl let-row>
-        @if (isOperatorSalidaApproved(row)) {
-          <dynadrill-button variant="success" size="small" [disabled]="true">
-            Aprobado
-          </dynadrill-button>
-          @if (hasTravelManagement(row)) {
-            <dynadrill-button variant="success" size="small" [disabled]="true">
-              Gerenciamiento completado
-            </dynadrill-button>
-          } @else if (isTravelPendingApproval(row)) {
-            <dynadrill-button variant="warning" size="small" [disabled]="true">
-              Pendiente aprobación Jefe de Base
-            </dynadrill-button>
-          } @else {
-            <dynadrill-button variant="primary" size="small" (click)="openTravelManagement(row)">
-              Crear Gerenciamiento de Viaje
-            </dynadrill-button>
-          }
-        } @else if (isOperatorSalidaRejected(row)) {
+        @if (isOperatorSalidaRejected(row)) {
           <dynadrill-button variant="error" size="small" (click)="viewSalidaRejectionReason(row)">
             Rechazado — Ver motivo
           </dynadrill-button>
-        } @else if (canReviewSalida(row)) {
+        } @else if (isOperatorSalidaApproved(row)) {
+          <dynadrill-button variant="success" size="small" [disabled]="true">
+            Gerenciamiento completado
+          </dynadrill-button>
+          <dynadrill-button variant="success" size="small" [disabled]="true">
+            Aprobado
+          </dynadrill-button>
+        } @else if (hasTravelManagement(row)) {
+          <dynadrill-button variant="success" size="small" [disabled]="true">
+            Gerenciamiento completado
+          </dynadrill-button>
           <dynadrill-button variant="primary" size="small" (click)="approveSalidaOperator(row)">
             Revisar y aprobar
           </dynadrill-button>
+        } @else if (isTravelPendingApproval(row)) {
+          <dynadrill-button variant="warning" size="small" [disabled]="true">
+            Pendiente aprobación Jefe de Base
+          </dynadrill-button>
         } @else {
-          <dynadrill-button variant="secondary" size="small" [disabled]="true">
-            Pendiente
+          <dynadrill-button variant="primary" size="small" (click)="openTravelManagement(row)">
+            Crear Gerenciamiento de Viaje
           </dynadrill-button>
         }
       </ng-template>
@@ -166,13 +164,13 @@
       />
     </section>
 
-    @if (!allSalidaApproved()) {
+    @if (!allTravelManagementsCompleted()) {
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="caption">Debe completar el Gerenciamiento de Viaje (DYN-SGI-RE-049) de cada operador antes de poder revisar sus reportes.</dynadrill-text>
+      </section>
+    } @else if (!allSalidaApproved()) {
       <section class="ticket-detail__section">
         <dynadrill-text variant="caption">Debe aprobar todos los reportes de salida antes de continuar.</dynadrill-text>
-      </section>
-    } @else if (!allTravelManagementsCompleted()) {
-      <section class="ticket-detail__section">
-        <dynadrill-text variant="caption">Debe completar el Gerenciamiento de Viaje (DYN-SGI-RE-049) para cada operador antes de continuar.</dynadrill-text>
       </section>
     }
 
@@ -240,35 +238,33 @@
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
 
+      <!-- Orden pedido por el cliente: primero el Gerenciamiento de Retorno (DYN-SGI-RE-049), recién después se habilita revisar/aprobar el Reporte de Unidad de llegada. -->
       <ng-template #reviewLlegadaActionsTpl let-row>
-        @if (isOperatorLlegadaApproved(row)) {
-          <dynadrill-button variant="success" size="small" [disabled]="true">
-            Aprobado
-          </dynadrill-button>
-          @if (hasReturnTravelManagement(row)) {
-            <dynadrill-button variant="success" size="small" [disabled]="true">
-              Gerenciamiento retorno completado
-            </dynadrill-button>
-          } @else if (isReturnTravelPendingApproval(row)) {
-            <dynadrill-button variant="warning" size="small" [disabled]="true">
-              Pendiente aprobación Jefe de Base
-            </dynadrill-button>
-          } @else {
-            <dynadrill-button variant="primary" size="small" (click)="openReturnTravelManagement(row)">
-              Crear Gerenciamiento de Retorno
-            </dynadrill-button>
-          }
-        } @else if (isOperatorLlegadaRejected(row)) {
+        @if (isOperatorLlegadaRejected(row)) {
           <dynadrill-button variant="error" size="small" (click)="viewRejectionReason(row)">
             Rechazado — Ver motivo
           </dynadrill-button>
-        } @else if (canReviewLlegada(row)) {
+        } @else if (isOperatorLlegadaApproved(row)) {
+          <dynadrill-button variant="success" size="small" [disabled]="true">
+            Gerenciamiento retorno completado
+          </dynadrill-button>
+          <dynadrill-button variant="success" size="small" [disabled]="true">
+            Aprobado
+          </dynadrill-button>
+        } @else if (hasReturnTravelManagement(row)) {
+          <dynadrill-button variant="success" size="small" [disabled]="true">
+            Gerenciamiento retorno completado
+          </dynadrill-button>
           <dynadrill-button variant="primary" size="small" (click)="approveLlegadaOperator(row)">
             Revisar y aprobar
           </dynadrill-button>
+        } @else if (isReturnTravelPendingApproval(row)) {
+          <dynadrill-button variant="warning" size="small" [disabled]="true">
+            Pendiente aprobación Jefe de Base
+          </dynadrill-button>
         } @else {
-          <dynadrill-button variant="secondary" size="small" [disabled]="true">
-            Pendiente
+          <dynadrill-button variant="primary" size="small" (click)="openReturnTravelManagement(row)">
+            Crear Gerenciamiento de Retorno
           </dynadrill-button>
         }
       </ng-template>
@@ -310,13 +306,13 @@
       />
     </section>
 
-    @if (!allLlegadaApproved()) {
+    @if (!allReturnTravelManagementsCompleted()) {
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="caption">Debe completar el Gerenciamiento de Retorno (DYN-SGI-RE-049) de cada operador antes de poder revisar sus reportes de llegada.</dynadrill-text>
+      </section>
+    } @else if (!allLlegadaApproved()) {
       <section class="ticket-detail__section">
         <dynadrill-text variant="caption">Debe aprobar todos los reportes de llegada antes de continuar.</dynadrill-text>
-      </section>
-    } @else if (!allReturnTravelManagementsCompleted()) {
-      <section class="ticket-detail__section">
-        <dynadrill-text variant="caption">Debe completar el Gerenciamiento de Viaje de retorno (DYN-SGI-RE-049) para cada operador antes de continuar.</dynadrill-text>
       </section>
     }
 

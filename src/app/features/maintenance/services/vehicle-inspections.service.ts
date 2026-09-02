@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { CreateVehicleInspectionInput, VehicleInspection } from '../models/vehicle-inspection.model';
+import { ConductorPermisos, CreateVehicleInspectionInput, VehicleInspection } from '../models/vehicle-inspection.model';
 
 @Injectable({ providedIn: 'root' })
 export class VehicleInspectionsService {
@@ -9,6 +9,11 @@ export class VehicleInspectionsService {
 
   list(): Observable<VehicleInspection[]> {
     return this.http.get<VehicleInspection[]>('/api/vehicle-inspections');
+  }
+
+  /** Simulación de la base de RRHH/QHSE — documentos del conductor ya cargados, no autodiligenciados en el formulario. */
+  listConductoresPermisos(): Observable<ConductorPermisos[]> {
+    return this.http.get<ConductorPermisos[]>('/api/conductores-permisos');
   }
 
   create(input: CreateVehicleInspectionInput): Observable<VehicleInspection> {

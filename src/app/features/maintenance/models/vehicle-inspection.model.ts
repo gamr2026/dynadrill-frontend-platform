@@ -119,3 +119,60 @@ export function vehicleInspectionBlockedBySeatbelt(insp: Pick<VehicleInspection,
 export function vehicleInspectionIsUsable(insp: Pick<VehicleInspection, 'checklistVehiculo' | 'supervisorApprovedBy'>): boolean {
   return !!insp.supervisorApprovedBy && !vehicleInspectionBlockedBySeatbelt(insp);
 }
+
+// ── Permisos del conductor — simulación de la base de datos de RRHH/QHSE
+// que todavía no existe. El cliente pidió (presentación del módulo,
+// 2026-09-01) que la sección "Conductor" del checklist deje de ser un
+// autodiligenciamiento manual: los 6 documentos deben venir ya cargados
+// por conductor, y si alguno no está vigente, la inspección no se puede
+// guardar. También se agrega una alerta de próximo vencimiento. ──
+
+export interface ConductorPermisos {
+  /** Nombre del conductor — clave simulada hasta que exista una identidad real en Usuarios/RRHH para este rol. */
+  nombre: string;
+  licenciaVigente: boolean;
+  licenciaVencimiento?: string;
+  manejoDefensivoVigente: boolean;
+  manejoDefensivoVencimiento?: string;
+  examenMedicoVigente: boolean;
+  examenMedicoVencimiento?: string;
+  examenPsicosensometrico: boolean;
+  examenPsicosensometricoVencimiento?: string;
+  documentosClientes: boolean;
+  vacunasCertificado: boolean;
+  vacunasVencimiento?: string;
+}
+
+/** "Reúne las condiciones para trabajar" ya no se marca a mano — se deriva de que los 6 documentos estén vigentes. */
+export function conductorReuneCondiciones(p: ConductorPermisos): boolean {
+  return (
+    p.licenciaVigente &&
+    p.manejoDefensivoVigente &&
+    p.examenMedicoVigente &&
+    p.examenPsicosensometrico &&
+    p.documentosClientes &&
+    p.vacunasCertificado
+  );
+}
+
+export interface PermisoPorVencer {
+  documento: string;
+  vencimiento: string;
+  diasRestantes: number;
+}
+
+/** Documentos vigentes hoy pero que vencen dentro de `dias` (30 por defecto) — la alerta preventiva que pidió el cliente. */
+export function conductorPermisosPorVencer(p: ConductorPermisos, dias = 30): PermisoPorVencer[] {
+  const ahora = Date.now();
+  const entradas: [string, string | undefined][] = [
+    ['Licencia de conducción', p.licenciaVencimiento],
+    ['Manejo defensivo', p.manejoDefensivoVencimiento],
+    ['Exámen médico', p.examenMedicoVencimiento],
+    ['Exámen psicosensométrico', p.examenPsicosensometricoVencimiento],
+    ['Vacunas', p.vacunasVencimiento],
+  ];
+  return entradas
+    .filter((e): e is [string, string] => !!e[1])
+    .map(([documento, vencimiento]) => ({ documento, vencimiento, diasRestantes: Math.ceil((new Date(vencimiento).getTime() - ahora) / 86_400_000) }))
+    .filter(e => e.diasRestantes >= 0 && e.diasRestantes <= dias);
+}

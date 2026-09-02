@@ -76,10 +76,11 @@
   }
 
   @if (!permiteTercero()) {
-    <dynadrill-checkbox
-      label="Check list de mantenimiento interno realizado"
-      [checked]="checklistRealizado()"
-      (checkedChange)="checklistRealizado.set($event)"
+    <dynadrill-text variant="caption">Checklist de fábrica — según el manual del fabricante de esta unidad</dynadrill-text>
+    <dynadrill-upload-zone
+      [state]="checklistFabricante() ? 'uploaded' : 'idle'"
+      [fileName]="checklistFabricante()?.name ?? ''"
+      (fileSelected)="onChecklistFabricanteSeleccionado($event)"
     />
   }
 

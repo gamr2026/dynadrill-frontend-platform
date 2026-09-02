@@ -34,7 +34,7 @@ import { RegisterPMDialog, RegisterPMDialogData } from '../components/register-p
 import { HistorialDialog, HistorialDialogData } from '../components/historial-dialog';
 import { VehicleInspectionsTable } from '../components/vehicle-inspections-table';
 import { VehicleInspectionsService } from '../services/vehicle-inspections.service';
-import { VehicleInspection } from '../models/vehicle-inspection.model';
+import { ConductorPermisos, VehicleInspection, conductorPermisosPorVencer } from '../models/vehicle-inspection.model';
 import { VehicleInspectionDetailDialog, VehicleInspectionDetailDialogData } from '../components/vehicle-inspection-detail-dialog';
 
 function formatDate(iso: string): string {
@@ -76,6 +76,8 @@ export class MaintenanceListPage {
   protected readonly unitReports = signal<UnitReport[]>([]);
   protected readonly unidades = signal<Unidad[]>([]);
   protected readonly inspections = signal<VehicleInspection[]>([]);
+  /** Base de RRHH/QHSE simulada (ver vehicle-inspection.model.ts) — se carga acá también para poder alimentar la campana sin que nadie tenga que abrir una inspección primero. */
+  protected readonly conductoresPermisos = signal<ConductorPermisos[]>([]);
 
   protected readonly alertas = computed<AlertaPreventiva[]>(() =>
     this.unidades().flatMap(u => calcularAlertas(u)).sort((a, b) => a.restante - b.restante)
@@ -360,6 +362,24 @@ export class MaintenanceListPage {
       }
     }
 
+    /**
+     * Permisos del conductor próximos a vencer (presentación del módulo,
+     * 2026-09-01) — antes esta alerta solo se veía si alguien abría el
+     * diálogo de Inspección de Vehículos con ese conductor seleccionado;
+     * ahora también avisa por la campana sin que nadie tenga que abrirlo.
+     */
+    for (const c of this.conductoresPermisos()) {
+      for (const p of conductorPermisosPorVencer(c)) {
+        items.push({
+          id: `permiso-${c.nombre}-${p.documento}`,
+          title: `${c.nombre} — ${p.documento} por vencer`,
+          description: `Vence en ${p.diasRestantes} ${p.diasRestantes === 1 ? 'día' : 'días'} (${p.vencimiento})`,
+          tone: 'warning',
+          link: '/dashboard/mantenimiento',
+        });
+      }
+    }
+
     return items;
   });
 
@@ -377,12 +397,14 @@ export class MaintenanceListPage {
       unitReports: this.unitReportsService.list(),
       unidades: this.unidadesService.list(),
       inspections: this.inspectionsService.list(),
+      conductoresPermisos: this.inspectionsService.listConductoresPermisos(),
     }).subscribe({
-      next: ({ orders, unitReports, unidades, inspections }) => {
+      next: ({ orders, unitReports, unidades, inspections, conductoresPermisos }) => {
         this.orders.set(orders);
         this.unitReports.set(unitReports);
         this.unidades.set(unidades);
         this.inspections.set(inspections);
+        this.conductoresPermisos.set(conductoresPermisos);
         this.loading.set(false);
       },
       error: () => {

@@ -444,18 +444,24 @@ export class TicketDetailPage {
     return this.travelPendingApproval().has(row['id'] as number);
   }
 
+  /**
+   * El cliente pidió invertir el orden (confirmado al revisar el código: el
+   * Gerenciamiento se creaba después de aprobar el reporte, cuando debe ser
+   * al revés) — ahora el Gerenciamiento de Viaje es requisito para TODOS
+   * los operadores del ticket, no solo para los ya aprobados, porque la
+   * aprobación del reporte ya no se habilita sin él primero.
+   */
   protected readonly allTravelManagementsCompleted = computed(() => {
     const rows = this.reviewSalidaRows();
-    const approved = this.approvedSalidaOperators();
     const travels = this.travelManagements();
-    const approvedRows = rows.filter(r => approved.has(r.id));
-    if (approvedRows.length === 0) return false;
-    return approvedRows.every(r => travels.has(r.id));
+    if (rows.length === 0) return false;
+    return rows.every(r => travels.has(r.id));
   });
 
   /**
-   * Abre el dialog de Gerenciamiento de Viaje (DYN-SGI-RE-049)
-   * como paso independiente después de aprobar el reporte.
+   * Abre el dialog de Gerenciamiento de Viaje (DYN-SGI-RE-049) — ahora es
+   * el PRIMER paso por operador; recién con esto completo se habilita
+   * "Revisar y aprobar" el Reporte de Unidad (ver reviewSalidaActionsTpl).
    * Según los puntos:
    * - BAJO: el supervisor directo aprueba (se completa inmediatamente)
    * - MEDIO/ALTO: requiere aprobación del Jefe de Base (queda pendiente)
@@ -649,13 +655,12 @@ export class TicketDetailPage {
     return this.returnTravelPendingApproval().has(row['id'] as number);
   }
 
+  /** Mismo cambio de orden que en salida — ver allTravelManagementsCompleted más arriba. */
   protected readonly allReturnTravelManagementsCompleted = computed(() => {
     const rows = this.reviewLlegadaRows();
-    const approved = this.approvedLlegadaOperators();
     const travels = this.returnTravelManagements();
-    const approvedRows = rows.filter(r => approved.has(r.id));
-    if (approvedRows.length === 0) return false;
-    return approvedRows.every(r => travels.has(r.id));
+    if (rows.length === 0) return false;
+    return rows.every(r => travels.has(r.id));
   });
 
   protected openReturnTravelManagement(row: Record<string, unknown>): void {

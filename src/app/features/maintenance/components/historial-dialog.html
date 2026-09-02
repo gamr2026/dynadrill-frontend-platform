@@ -52,10 +52,10 @@
                 <dynadrill-text variant="body">#{{ r.ordenId }}</dynadrill-text>
               </div>
             }
-            @if (r.checklistRealizado) {
+            @if (r.checklistFabricanteArchivo) {
               <div class="historial-dialog__field">
-                <dynadrill-text variant="caption">Check list interno</dynadrill-text>
-                <dynadrill-text variant="body">Realizado</dynadrill-text>
+                <dynadrill-text variant="caption">Checklist de fábrica</dynadrill-text>
+                <dynadrill-text variant="body">{{ r.checklistFabricanteArchivo }}</dynadrill-text>
               </div>
             }
             @if (r.observaciones) {

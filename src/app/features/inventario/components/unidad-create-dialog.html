@@ -29,6 +29,13 @@
         (valueChange)="kmUltimoMantenimiento.set($event)"
       />
     </div>
+    <dynadrill-select
+      label="Categoría"
+      placeholder="Selecciona pesado o liviano"
+      [options]="categoriaPesoOptions"
+      [value]="categoriaPeso()"
+      (valueChange)="setCategoriaPeso($any($event))"
+    />
   }
 
   @if (esAuxiliar()) {

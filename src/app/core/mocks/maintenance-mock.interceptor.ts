@@ -6,6 +6,7 @@ import { MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../../f
 import { CreateUnidadInput, Unidad, UpdatePatrimonioInput } from '../../features/maintenance/models/unidad.model';
 import { RegistroMantenimiento } from '../../features/maintenance/models/historial-mantenimiento.model';
 import {
+  ConductorPermisos,
   CreateVehicleInspectionInput,
   VehicleChecklistItem,
   VehicleInspection,
@@ -16,6 +17,47 @@ import {
 function checklistOk(labels: string[]): VehicleChecklistItem[] {
   return labels.map(label => ({ label, estado: 'C' as const }));
 }
+
+/**
+ * Simulación de la base de datos de RRHH/QHSE que todavía no existe —
+ * pedido del cliente en la presentación del módulo: los documentos del
+ * conductor (licencia, manejo defensivo, examen médico, etc.) deben venir
+ * ya cargados por persona, no autodiligenciarse en cada inspección.
+ * Semilla con 3 casos reales de la demo: uno sin novedad, uno con un
+ * documento vencido (bloquea guardar) y uno con un documento por vencer
+ * dentro de 30 días (dispara la alerta, pero no bloquea).
+ */
+const conductoresPermisos: ConductorPermisos[] = [
+  {
+    nombre: 'Carlos Vega',
+    licenciaVigente: true, licenciaVencimiento: '2027-03-01',
+    manejoDefensivoVigente: true, manejoDefensivoVencimiento: '2027-01-15',
+    examenMedicoVigente: true, examenMedicoVencimiento: '2027-02-10',
+    examenPsicosensometrico: true, examenPsicosensometricoVencimiento: '2027-02-10',
+    documentosClientes: true,
+    vacunasCertificado: true, vacunasVencimiento: '2027-06-01',
+  },
+  {
+    nombre: 'Diego Salazar',
+    licenciaVigente: true, licenciaVencimiento: '2027-01-01',
+    manejoDefensivoVigente: true, manejoDefensivoVencimiento: '2026-12-01',
+    // Examen médico ya vencido — este conductor no reúne las condiciones para trabajar hasta renovarlo.
+    examenMedicoVigente: false, examenMedicoVencimiento: '2026-08-15',
+    examenPsicosensometrico: true, examenPsicosensometricoVencimiento: '2027-01-01',
+    documentosClientes: true,
+    vacunasCertificado: true, vacunasVencimiento: '2027-04-01',
+  },
+  {
+    nombre: 'Marco Ruiz',
+    licenciaVigente: true, licenciaVencimiento: '2027-05-01',
+    // Vence dentro de menos de 30 días desde la fecha de la demo — dispara la alerta de "por vencer" sin bloquear.
+    manejoDefensivoVigente: true, manejoDefensivoVencimiento: '2026-09-20',
+    examenMedicoVigente: true, examenMedicoVencimiento: '2027-03-01',
+    examenPsicosensometrico: true, examenPsicosensometricoVencimiento: '2027-03-01',
+    documentosClientes: true,
+    vacunasCertificado: true, vacunasVencimiento: '2027-05-01',
+  },
+];
 
 const unidades: Unidad[] = [
   {
@@ -54,7 +96,7 @@ const unidades: Unidad[] = [
     fechaUltimoMantenimientoAux: '2025-12-01',
   },
   {
-    id: 6, code: 'CAM-04', nombre: 'Camioneta CAM-04', tipo: 'Transporte',
+    id: 6, code: 'CAM-04', nombre: 'Camioneta CAM-04', tipo: 'Transporte', categoriaPeso: 'Liviano',
     kmActual: 87400,
     kmUltimoMantenimiento: 85000,
     fechaUltimoMantenimientoKm: '2026-07-10',
@@ -62,7 +104,7 @@ const unidades: Unidad[] = [
     responsablePatrimonial: 'Jorge Hidalgo', predeterminado: true, activo: true,
   },
   {
-    id: 7, code: 'CAM-08', nombre: 'Camión CAM-08', tipo: 'Transporte',
+    id: 7, code: 'CAM-08', nombre: 'Camión CAM-08', tipo: 'Transporte', categoriaPeso: 'Pesado',
     kmActual: 142800,
     kmUltimoMantenimiento: 138000,
     fechaUltimoMantenimientoKm: '2026-06-20',
@@ -94,11 +136,11 @@ const unidades: Unidad[] = [
 let historial: RegistroMantenimiento[] = [
   {
     id: 1, unidadId: 1, unidadCode: 'PUM-07', clase: 'Preventivo', tipoServicio: 'A',
-    fecha: '2026-05-10', horometro: 1250, responsable: 'C. Vega', ejecutadoPor: 'Interno', checklistRealizado: true,
+    fecha: '2026-05-10', horometro: 1250, responsable: 'C. Vega', ejecutadoPor: 'Interno', checklistFabricanteArchivo: 'checklist-caterpillar-tipo-a.pdf',
   },
   {
     id: 2, unidadId: 3, unidadCode: '4-CTV-03', clase: 'Preventivo', tipoServicio: 'A',
-    fecha: '2026-08-01', horometro: 5500, responsable: 'C. Vega', ejecutadoPor: 'Interno', checklistRealizado: true,
+    fecha: '2026-08-01', horometro: 5500, responsable: 'C. Vega', ejecutadoPor: 'Interno', checklistFabricanteArchivo: 'checklist-nov-4ctv-tipo-a.pdf',
   },
   {
     id: 3, unidadId: 6, unidadCode: 'CAM-04', clase: 'Preventivo',
@@ -753,7 +795,7 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
       fecha: string;
       responsable: string;
       observaciones?: string;
-      checklistRealizado?: boolean;
+      checklistFabricanteArchivo?: string;
       ejecutadoPor: 'Interno' | 'Tercero';
       proveedor?: string;
     };
@@ -808,7 +850,7 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
         ejecutadoPor: body.ejecutadoPor,
         proveedor: body.proveedor,
         observaciones: body.observaciones,
-        checklistRealizado: body.checklistRealizado,
+        checklistFabricanteArchivo: body.checklistFabricanteArchivo,
       }];
 
       return of(new HttpResponse({ status: 200, body: unidades[idx] })).pipe(delay(400));
@@ -827,6 +869,10 @@ export const maintenanceMockInterceptor: HttpInterceptorFn = (req, next) => {
     const unidadIdParam = req.params.get('unidadId');
     const filtered = unidadIdParam ? historial.filter(h => h.unidadId === Number(unidadIdParam)) : historial;
     return of(new HttpResponse({ status: 200, body: [...filtered].sort((a, b) => b.fecha.localeCompare(a.fecha)) })).pipe(delay(300));
+  }
+
+  if (req.url === '/api/conductores-permisos' && req.method === 'GET') {
+    return of(new HttpResponse({ status: 200, body: conductoresPermisos })).pipe(delay(300));
   }
 
   if (req.url === '/api/vehicle-inspections' && req.method === 'GET') {

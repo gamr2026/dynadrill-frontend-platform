@@ -40,6 +40,26 @@
     gap: 4px;
   }
 
+  &__breakdown-title {
+    align-self: flex-start;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__breakdown {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    row-gap: 4px;
+    column-gap: 12px;
+    font-size: 13px;
+
+    span { color: var(--text-muted, #5c5870); }
+    strong { font-variant-numeric: tabular-nums; }
+  }
+
   &__note {
     color: var(--text-muted, #5c5870);
     padding-top: 4px;

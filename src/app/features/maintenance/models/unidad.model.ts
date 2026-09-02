@@ -6,6 +6,9 @@
  */
 export type UnidadTipo = 'Servicio' | 'Auxiliar' | 'Transporte';
 
+/** Subclasificación de tamaño/peso pedida por el cliente para Indicadores de Mantenimiento — solo aplica a unidades de Transporte (camiones vs. camionetas); Servicio y Auxiliar no la usan por ahora. */
+export type UnidadCategoriaPeso = 'Pesado' | 'Liviano';
+
 /**
  * Servicios de mantenimiento preventivo para unidades de Servicio (horas),
  * según el diagrama de flujo y el Plan de Mantenimiento 2026 del cliente —
@@ -48,6 +51,8 @@ export interface Unidad {
   kmActual?: number;
   kmUltimoMantenimiento?: number;
   fechaUltimoMantenimientoKm?: string;
+  /** Solo Transporte — camiones/cabezales = Pesado, camionetas = Liviano. Ver Indicadores de Mantenimiento. */
+  categoriaPeso?: UnidadCategoriaPeso;
 
   // ── Equipos Auxiliares ──
   fechaUltimoMantenimientoAux?: string;
@@ -106,6 +111,7 @@ export type CreateUnidadInput = Pick<
   | 'fechaUltimoMantenimiento'
   | 'kmActual'
   | 'kmUltimoMantenimiento'
+  | 'categoriaPeso'
   | 'fechaUltimoMantenimientoAux'
   | 'proveedorMantenimiento'
   | 'placa'

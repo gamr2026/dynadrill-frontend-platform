@@ -166,13 +166,28 @@ export class MaintenanceKpisPage {
     return average(gaps) / 24;
   });
 
-  protected readonly disponibilidadFlota = computed(() => {
-    const total = this.filteredUnidades().length;
+  private disponibilidadDe(unidades: Unidad[], orders: MaintenanceOrderWithSubOrders[]): number {
+    const total = unidades.length;
     if (!total) return 0;
-    const conOrdenAbierta = new Set(this.filteredOrders().filter(o => !o.returnedToOperation).map(o => o.unidad));
-    const disponibles = this.filteredUnidades().filter(u => !conOrdenAbierta.has(u.code)).length;
+    const conOrdenAbierta = new Set(orders.filter(o => !o.returnedToOperation).map(o => o.unidad));
+    const disponibles = unidades.filter(u => !conOrdenAbierta.has(u.code)).length;
     return Math.round((disponibles / total) * 100);
-  });
+  }
+
+  protected readonly disponibilidadFlota = computed(() => this.disponibilidadDe(this.filteredUnidades(), this.filteredOrders()));
+
+  /**
+   * Subclasificación pedida por el cliente en la presentación del módulo —
+   * "ver más allá de cuántas hay disponibles o no". Solo Transporte tiene
+   * categoriaPeso hoy, así que el desglose es independiente del filtro
+   * "Tipo de unidad" de arriba (que sí puede excluir Transporte por completo).
+   */
+  protected readonly transporteUnidades = computed(() => this.unidades().filter(u => u.tipo === 'Transporte'));
+  protected readonly transportePesados = computed(() => this.transporteUnidades().filter(u => u.categoriaPeso === 'Pesado'));
+  protected readonly transporteLivianos = computed(() => this.transporteUnidades().filter(u => u.categoriaPeso === 'Liviano'));
+
+  protected readonly disponibilidadPesados = computed(() => this.disponibilidadDe(this.transportePesados(), this.orders()));
+  protected readonly disponibilidadLivianos = computed(() => this.disponibilidadDe(this.transporteLivianos(), this.orders()));
 
   protected readonly fallasRepetitivas = computed(() => {
     const porUnidad = new Map<string, number>();
@@ -190,12 +205,16 @@ export class MaintenanceKpisPage {
 
   protected readonly alertas = computed(() => this.filteredUnidades().flatMap(u => calcularAlertas(u)));
 
-  protected readonly cumplimientoPreventivo = computed(() => {
-    const all = this.alertas();
+  private cumplimientoDe(unidades: Unidad[]): number {
+    const all = unidades.flatMap(u => calcularAlertas(u));
     if (!all.length) return 0;
     const noVencidas = all.filter(a => a.nivel !== 'rojo').length;
     return Math.round((noVencidas / all.length) * 100);
-  });
+  }
+
+  protected readonly cumplimientoPreventivo = computed(() => this.cumplimientoDe(this.filteredUnidades()));
+  protected readonly cumplimientoPesados = computed(() => this.cumplimientoDe(this.transportePesados()));
+  protected readonly cumplimientoLivianos = computed(() => this.cumplimientoDe(this.transporteLivianos()));
 
   protected readonly alertasGeneradas = computed(() => this.alertas().length);
 

@@ -220,10 +220,10 @@
             <dynadrill-text variant="body">{{ data.registro.km }} km</dynadrill-text>
           </div>
         }
-        @if (data.registro.checklistRealizado) {
+        @if (data.registro.checklistFabricanteArchivo) {
           <div class="mnt-report__field">
-            <dynadrill-text variant="caption">Check list interno</dynadrill-text>
-            <dynadrill-text variant="body">Realizado</dynadrill-text>
+            <dynadrill-text variant="caption">Checklist de fábrica</dynadrill-text>
+            <dynadrill-text variant="body">{{ data.registro.checklistFabricanteArchivo }}</dynadrill-text>
           </div>
         }
       </div>

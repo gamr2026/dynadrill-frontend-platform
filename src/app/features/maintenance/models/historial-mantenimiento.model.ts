@@ -23,8 +23,14 @@ export interface RegistroMantenimiento {
   observaciones?: string;
   /** Si el mantenimiento se originó en una orden correctiva (MAN-001). */
   ordenId?: number;
-  /** D2: solo se registra que el check list interno se completó, no su contenido — el cliente pidió mantenerlo fuera del sistema. */
-  checklistRealizado?: boolean;
+  /**
+   * Nombre del archivo del checklist de fábrica adjuntado (formato propio
+   * del fabricante de la unidad — no hay uno solo porque las unidades son
+   * de marcas distintas). Reemplaza la casilla simple que había antes
+   * (D2): el cliente pidió que ahora sí quede el documento, no solo la
+   * marca de "completado". Solo aplica a mantenimiento Interno.
+   */
+  checklistFabricanteArchivo?: string;
 }
 
 export type CreateRegistroMantenimientoInput = Omit<RegistroMantenimiento, 'id'>;

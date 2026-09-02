@@ -10,8 +10,8 @@ export interface RegistrarPMInput {
   fecha: string;
   responsable: string;
   observaciones?: string;
-  /** D2: solo se registra que el check list interno se completó — su contenido queda fuera del sistema. */
-  checklistRealizado?: boolean;
+  /** Nombre del checklist de fábrica adjuntado (formato propio del fabricante) — solo aplica a mantenimiento Interno. */
+  checklistFabricanteArchivo?: string;
   ejecutadoPor: 'Interno' | 'Tercero';
   /** Requerido cuando ejecutadoPor = 'Tercero'. */
   proveedor?: string;

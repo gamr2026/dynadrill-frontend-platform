@@ -3,7 +3,6 @@ import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import type { NzUploadFile } from 'ng-zorro-antd/upload';
 import {
   DynadrillButtonComponent,
-  DynadrillCheckboxComponent,
   DynadrillDatetimePickerComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
@@ -44,7 +43,6 @@ const NIVEL_LABEL: Record<AlertaPreventivaNivel, string> = {
     DynadrillTextareaComponent,
     DynadrillButtonComponent,
     DynadrillTagComponent,
-    DynadrillCheckboxComponent,
     DynadrillSelectComponent,
     DynadrillUploadZoneComponent,
   ],
@@ -76,7 +74,14 @@ export class RegisterPMDialog {
   protected readonly fecha = signal<Date | null>(new Date());
   protected readonly responsable = signal(this.auth.currentUser()?.name ?? '');
   protected readonly observaciones = signal('');
-  protected readonly checklistRealizado = signal(false);
+  /**
+   * Reemplaza la casilla simple de antes: el checklist de fábrica (propio
+   * de cada marca de unidad) se adjunta como documento. Obligatorio
+   * siempre — tanto si el mantenimiento lo ejecuta Dynadrill (Interno)
+   * como si lo ejecuta un Tercero, el checklist es aparte del informe que
+   * entrega el proveedor (informeExterno), no lo reemplaza.
+   */
+  protected readonly checklistFabricante = signal<NzUploadFile | null>(null);
   protected readonly ejecutadoPor = signal<'Interno' | 'Tercero'>('Interno');
   protected readonly proveedor = signal('');
   protected readonly informeExterno = signal<NzUploadFile | null>(null);
@@ -86,11 +91,16 @@ export class RegisterPMDialog {
     if (this.alerta.unidad === 'horas' && !this.valorMetrica().trim()) return false;
     if (this.alerta.unidad === 'km' && !this.valorMetrica().trim()) return false;
     if (this.ejecutadoPor() === 'Tercero' && !this.proveedor().trim()) return false;
+    if (!this.checklistFabricante()) return false;
     return this.fecha() !== null && !!this.responsable().trim();
   });
 
   onInformeSeleccionado(file: NzUploadFile): void {
     this.informeExterno.set(file);
+  }
+
+  onChecklistFabricanteSeleccionado(file: NzUploadFile): void {
+    this.checklistFabricante.set(file);
   }
 
   confirm(): void {
@@ -101,7 +111,7 @@ export class RegisterPMDialog {
       fecha: this.fecha()!.toISOString().slice(0, 10),
       responsable: this.responsable().trim(),
       observaciones: this.observaciones().trim() || undefined,
-      checklistRealizado: this.checklistRealizado(),
+      checklistFabricanteArchivo: this.checklistFabricante()?.name,
       ejecutadoPor: this.permiteTercero() ? this.ejecutadoPor() : 'Interno',
       proveedor: this.permiteTercero() && this.ejecutadoPor() === 'Tercero' ? this.proveedor().trim() : undefined,
     };

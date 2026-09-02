@@ -9,13 +9,18 @@ import {
   DynadrillTextareaComponent,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
-import { CreateUnidadInput, Unidad, UnidadTipo } from '../../maintenance/models/unidad.model';
+import { CreateUnidadInput, Unidad, UnidadCategoriaPeso, UnidadTipo } from '../../maintenance/models/unidad.model';
 import { UnidadesService } from '../../maintenance/services/unidades.service';
 
 const TIPO_OPTIONS: DynadrillSelectOption[] = [
   { label: 'Servicio (control por horómetro)', value: 'Servicio' },
   { label: 'Auxiliar (control por tiempo, cada 6 meses)', value: 'Auxiliar' },
   { label: 'Transporte (control por kilometraje)', value: 'Transporte' },
+];
+
+const CATEGORIA_PESO_OPTIONS: DynadrillSelectOption[] = [
+  { label: 'Pesado (camiones, cabezales)', value: 'Pesado' },
+  { label: 'Liviano (camionetas)', value: 'Liviano' },
 ];
 
 /**
@@ -42,10 +47,12 @@ export class UnidadCreateDialog {
   private readonly modalRef = inject(NzModalRef<UnidadCreateDialog, Unidad | undefined>);
 
   protected readonly tipoOptions = TIPO_OPTIONS;
+  protected readonly categoriaPesoOptions = CATEGORIA_PESO_OPTIONS;
 
   protected readonly code = signal('');
   protected readonly nombre = signal('');
   protected readonly tipo = signal<UnidadTipo | null>(null);
+  protected readonly categoriaPeso = signal<UnidadCategoriaPeso | null>(null);
 
   // ── Línea base operativa, según el tipo elegido ──
   protected readonly horometroActual = signal('');
@@ -79,6 +86,10 @@ export class UnidadCreateDialog {
     this.tipo.set((value as UnidadTipo) || null);
   }
 
+  protected setCategoriaPeso(value: string): void {
+    this.categoriaPeso.set((value as UnidadCategoriaPeso) || null);
+  }
+
   protected save(): void {
     const tipo = this.tipo();
     if (!this.canSave() || !tipo || this.submitting()) return;
@@ -99,6 +110,7 @@ export class UnidadCreateDialog {
       fechaUltimoMantenimiento: tipo === 'Servicio' ? this.fechaUltimoMantenimiento().trim() || undefined : undefined,
       kmActual: tipo === 'Transporte' ? numOrUndefined(this.kmActual()) : undefined,
       kmUltimoMantenimiento: tipo === 'Transporte' ? numOrUndefined(this.kmUltimoMantenimiento()) : undefined,
+      categoriaPeso: tipo === 'Transporte' ? this.categoriaPeso() ?? undefined : undefined,
       fechaUltimoMantenimientoAux: tipo === 'Auxiliar' ? this.fechaUltimoMantenimientoAux().trim() || undefined : undefined,
       proveedorMantenimiento: this.proveedorMantenimiento().trim() || undefined,
       placa: this.placa().trim() || undefined,

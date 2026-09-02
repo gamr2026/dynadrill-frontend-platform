@@ -8,7 +8,7 @@
         <dynadrill-datetime-picker label="Fecha" [value]="fecha()!" (valueChange)="fecha.set($event)" />
         <dynadrill-input label="Punto de partida" [value]="puntoPartida()" (valueChange)="puntoPartida.set($event)" />
         <dynadrill-input label="Destino" [value]="destino()" (valueChange)="destino.set($event)" />
-        <dynadrill-input label="Inspeccionado por" [value]="inspeccionadoPor()" (valueChange)="inspeccionadoPor.set($event)" />
+        <dynadrill-select label="Inspeccionado por (Conductor)" placeholder="Selecciona el conductor" [options]="conductorOptions()" [value]="inspeccionadoPor() || null" (valueChange)="inspeccionadoPor.set($any($event))" />
       </div>
 
       <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">Descripción del vehículo</dynadrill-text>
@@ -51,13 +51,51 @@
 
     @if (currentStep() === 3) {
       <div class="vehicle-inspection-dialog__stack">
-        <dynadrill-checkbox label="Licencia de conducción vigente" [checked]="licenciaVigente()" (checkedChange)="licenciaVigente.set($event)" />
-        <dynadrill-checkbox label="Manejo defensivo vigente" [checked]="manejoDefensivoVigente()" (checkedChange)="manejoDefensivoVigente.set($event)" />
-        <dynadrill-checkbox label="Exámen médico vigente (1 año)" [checked]="examenMedicoVigente()" (checkedChange)="examenMedicoVigente.set($event)" />
-        <dynadrill-checkbox label="Exámen psicosensométrico" [checked]="examenPsicosensometrico()" (checkedChange)="examenPsicosensometrico.set($event)" />
-        <dynadrill-checkbox label="Documentos requeridos por los clientes (carnets, etc.)" [checked]="documentosClientes()" (checkedChange)="documentosClientes.set($event)" />
-        <dynadrill-checkbox label="Vacunas — certificado" [checked]="vacunasCertificado()" (checkedChange)="vacunasCertificado.set($event)" />
-        <dynadrill-checkbox label="Reúne las condiciones para trabajar" [checked]="reuneCondicionesParaTrabajar()" (checkedChange)="reuneCondicionesParaTrabajar.set($event)" />
+        @if (!conductorSeleccionado()) {
+          <dynadrill-text variant="body">Selecciona un conductor en el paso "Datos" para ver sus documentos — ya están cargados, no se marcan a mano.</dynadrill-text>
+        } @else {
+          <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">Documentos del conductor — cargados desde RRHH/QHSE, solo lectura</dynadrill-text>
+
+          <div class="vehicle-inspection-dialog__permiso-row" [class.vehicle-inspection-dialog__permiso-row--bad]="!conductorSeleccionado()!.licenciaVigente">
+            <span>{{ conductorSeleccionado()!.licenciaVigente ? '✓' : '✕' }} Licencia de conducción vigente</span>
+            @if (conductorSeleccionado()!.licenciaVencimiento) { <span class="vehicle-inspection-dialog__permiso-fecha">vence {{ conductorSeleccionado()!.licenciaVencimiento }}</span> }
+          </div>
+          <div class="vehicle-inspection-dialog__permiso-row" [class.vehicle-inspection-dialog__permiso-row--bad]="!conductorSeleccionado()!.manejoDefensivoVigente">
+            <span>{{ conductorSeleccionado()!.manejoDefensivoVigente ? '✓' : '✕' }} Manejo defensivo vigente</span>
+            @if (conductorSeleccionado()!.manejoDefensivoVencimiento) { <span class="vehicle-inspection-dialog__permiso-fecha">vence {{ conductorSeleccionado()!.manejoDefensivoVencimiento }}</span> }
+          </div>
+          <div class="vehicle-inspection-dialog__permiso-row" [class.vehicle-inspection-dialog__permiso-row--bad]="!conductorSeleccionado()!.examenMedicoVigente">
+            <span>{{ conductorSeleccionado()!.examenMedicoVigente ? '✓' : '✕' }} Exámen médico vigente (1 año)</span>
+            @if (conductorSeleccionado()!.examenMedicoVencimiento) { <span class="vehicle-inspection-dialog__permiso-fecha">vence {{ conductorSeleccionado()!.examenMedicoVencimiento }}</span> }
+          </div>
+          <div class="vehicle-inspection-dialog__permiso-row" [class.vehicle-inspection-dialog__permiso-row--bad]="!conductorSeleccionado()!.examenPsicosensometrico">
+            <span>{{ conductorSeleccionado()!.examenPsicosensometrico ? '✓' : '✕' }} Exámen psicosensométrico</span>
+          </div>
+          <div class="vehicle-inspection-dialog__permiso-row" [class.vehicle-inspection-dialog__permiso-row--bad]="!conductorSeleccionado()!.documentosClientes">
+            <span>{{ conductorSeleccionado()!.documentosClientes ? '✓' : '✕' }} Documentos requeridos por los clientes (carnets, etc.)</span>
+          </div>
+          <div class="vehicle-inspection-dialog__permiso-row" [class.vehicle-inspection-dialog__permiso-row--bad]="!conductorSeleccionado()!.vacunasCertificado">
+            <span>{{ conductorSeleccionado()!.vacunasCertificado ? '✓' : '✕' }} Vacunas — certificado</span>
+            @if (conductorSeleccionado()!.vacunasVencimiento) { <span class="vehicle-inspection-dialog__permiso-fecha">vence {{ conductorSeleccionado()!.vacunasVencimiento }}</span> }
+          </div>
+
+          @if (permisosPorVencer().length) {
+            <div class="vehicle-inspection-dialog__blocking-warning vehicle-inspection-dialog__blocking-warning--alerta">
+              ⚠ {{ conductorSeleccionado()!.nombre }} tiene {{ permisosPorVencer().length === 1 ? 'un documento' : permisosPorVencer().length + ' documentos' }} por vencer pronto:
+              @for (p of permisosPorVencer(); track p.documento) {
+                <div>{{ p.documento }} — vence en {{ p.diasRestantes }} {{ p.diasRestantes === 1 ? 'día' : 'días' }} ({{ p.vencimiento }})</div>
+              }
+            </div>
+          }
+
+          @if (!reuneCondicionesParaTrabajar()) {
+            <div class="vehicle-inspection-dialog__blocking-warning">
+              ⚠ {{ conductorSeleccionado()!.nombre }} no reúne las condiciones para trabajar — hay al menos un documento vencido. No se puede guardar la inspección hasta que RRHH/QHSE actualice el registro.
+            </div>
+          } @else {
+            <dynadrill-text variant="body">✓ Reúne las condiciones para trabajar.</dynadrill-text>
+          }
+        }
 
         <dynadrill-textarea label="Observaciones" [value]="observacionesConductor()" (valueChange)="observacionesConductor.set($event)" [rows]="2" />
         <dynadrill-input label="Nombre del Supervisor" [value]="supervisorNombre()" (valueChange)="supervisorNombre.set($event)" />
@@ -74,7 +112,7 @@
       @if (currentStep() < steps.length - 1) {
         <dynadrill-button (clicked)="next()">Siguiente</dynadrill-button>
       } @else {
-        <dynadrill-button [disabled]="submitting()" (clicked)="submit()">{{ submitting() ? 'Guardando…' : (isEditMode ? 'Guardar cambios' : 'Guardar') }}</dynadrill-button>
+        <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="submit()">{{ submitting() ? 'Guardando…' : (isEditMode ? 'Guardar cambios' : 'Guardar') }}</dynadrill-button>
       }
     </div>
   </div>

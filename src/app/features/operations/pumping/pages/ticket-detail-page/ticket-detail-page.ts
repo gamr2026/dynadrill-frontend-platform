@@ -96,7 +96,7 @@ function createMockCompletedInspection(operatorName: string, unitCode: string): 
   };
 }
 
-const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'revisar_reportes_salida', 'ejecucion_operativa', 'en_ejecucion_llegada', 'mantenimiento', 'revisar_reportes_llegada', 'en_revision'];
+const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'revisar_reportes_salida', 'ejecucion_operativa', 'gerenciamiento_llegada', 'en_ejecucion_llegada', 'mantenimiento', 'revisar_reportes_llegada', 'en_revision'];
 
 @Component({
   selector: 'app-ticket-detail-page',
@@ -445,23 +445,24 @@ export class TicketDetailPage {
   }
 
   /**
-   * El cliente pidió invertir el orden (confirmado al revisar el código: el
-   * Gerenciamiento se creaba después de aprobar el reporte, cuando debe ser
-   * al revés) — ahora el Gerenciamiento de Viaje es requisito para TODOS
-   * los operadores del ticket, no solo para los ya aprobados, porque la
-   * aprobación del reporte ya no se habilita sin él primero.
+   * Orden final confirmado con el cliente: el Supervisor primero revisa y
+   * aprueba la inspección + reporte de unidad de cada operador; recién una
+   * vez aprobado crea el Gerenciamiento de Viaje de salida (ver
+   * reviewSalidaActionsTpl) — por eso solo cuenta el Gerenciamiento de los
+   * operadores ya aprobados, no de todos los del ticket.
    */
   protected readonly allTravelManagementsCompleted = computed(() => {
     const rows = this.reviewSalidaRows();
+    const approved = this.approvedSalidaOperators();
     const travels = this.travelManagements();
     if (rows.length === 0) return false;
-    return rows.every(r => travels.has(r.id));
+    return rows.every(r => approved.has(r.id) && travels.has(r.id));
   });
 
   /**
-   * Abre el dialog de Gerenciamiento de Viaje (DYN-SGI-RE-049) — ahora es
-   * el PRIMER paso por operador; recién con esto completo se habilita
-   * "Revisar y aprobar" el Reporte de Unidad (ver reviewSalidaActionsTpl).
+   * Abre el dialog de Gerenciamiento de Viaje (DYN-SGI-RE-049) — último
+   * paso por operador, solo disponible una vez aprobado su reporte de
+   * unidad (ver reviewSalidaActionsTpl).
    * Según los puntos:
    * - BAJO: el supervisor directo aprueba (se completa inmediatamente)
    * - MEDIO/ALTO: requiere aprobación del Jefe de Base (queda pendiente)
@@ -655,9 +656,16 @@ export class TicketDetailPage {
     return this.returnTravelPendingApproval().has(row['id'] as number);
   }
 
-  /** Mismo cambio de orden que en salida — ver allTravelManagementsCompleted más arriba. */
+  /**
+   * Orden final confirmado con el cliente: para la llegada el Gerenciamiento
+   * de Viaje va PRIMERO — antes de que el operador pueda siquiera crear la
+   * inspección y el reporte de unidad de llegada (paso `gerenciamiento_llegada`,
+   * ver advanceFromGerenciamientoLlegada). Por eso se basa en personnelRows
+   * (la asignación del ticket) y no en reviewLlegadaRows, que depende de un
+   * reporte que en este punto todavía no existe.
+   */
   protected readonly allReturnTravelManagementsCompleted = computed(() => {
-    const rows = this.reviewLlegadaRows();
+    const rows = this.personnelRows();
     const travels = this.returnTravelManagements();
     if (rows.length === 0) return false;
     return rows.every(r => travels.has(r.id));
@@ -861,6 +869,34 @@ export class TicketDetailPage {
   }
 
   protected advanceFromEjecucionOperativa(): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.submitting.set(true);
+    const nextStep: PumpingStep = 'gerenciamiento_llegada';
+    this.pumpingService.advanceStep(t.id, nextStep).subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        this.submitting.set(false);
+        const nextRole = PUMPING_STEP_ROLE[nextStep];
+        this.auth.switchRole(nextRole.roleName, nextRole.roleId);
+        this.notify.success('Avanzado', `El ticket avanza a Gerenciamiento de llegada. Ahora actúa como ${nextRole.roleName}.`);
+        this.router.navigate(['..'], { relativeTo: this.route });
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.notify.error('Error', 'No se pudo avanzar el ticket.');
+      },
+    });
+  }
+
+  /**
+   * Orden final confirmado con el cliente: el Gerenciamiento de Viaje de
+   * llegada lo crea el Supervisor ANTES de que el operador pueda crear la
+   * inspección y el reporte de unidad de llegada — ver
+   * allReturnTravelManagementsCompleted/openReturnTravelManagement más
+   * arriba, gated en el paso `gerenciamiento_llegada`.
+   */
+  protected advanceFromGerenciamientoLlegada(): void {
     const t = this.ticket();
     if (!t) return;
     this.submitting.set(true);

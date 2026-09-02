@@ -36,6 +36,7 @@ export type PumpingStep =
   | 'en_ejecucion'
   | 'revisar_reportes_salida'
   | 'ejecucion_operativa'
+  | 'gerenciamiento_llegada'
   | 'en_ejecucion_llegada'
   | 'mantenimiento'
   | 'revisar_reportes_llegada'
@@ -47,6 +48,7 @@ export const PUMPING_STEP_LABELS: Record<PumpingStep, string> = {
   en_ejecucion: 'En ejecución (Salida)',
   revisar_reportes_salida: 'Revisar reportes de salida',
   ejecucion_operativa: 'Ejecución operativa',
+  gerenciamiento_llegada: 'Gerenciamiento de llegada',
   en_ejecucion_llegada: 'En ejecución (Llegada)',
   mantenimiento: 'Mantenimiento',
   revisar_reportes_llegada: 'Revisar reportes de llegada',
@@ -63,6 +65,7 @@ export const PUMPING_STEP_ROLE: Record<PumpingStep, { roleName: string; roleId: 
   en_ejecucion: { roleName: 'Operador', roleId: 2 },
   revisar_reportes_salida: { roleName: 'Supervisor', roleId: 1 },
   ejecucion_operativa: { roleName: 'Supervisor', roleId: 1 },
+  gerenciamiento_llegada: { roleName: 'Supervisor', roleId: 1 },
   en_ejecucion_llegada: { roleName: 'Operador', roleId: 2 },
   mantenimiento: { roleName: 'Supervisor', roleId: 1 },
   revisar_reportes_llegada: { roleName: 'Supervisor', roleId: 1 },

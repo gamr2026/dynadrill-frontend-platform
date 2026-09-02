@@ -90,7 +90,7 @@ let tickets: PumpingTicket[] = [
       arrivalApprovalDate: '2026-07-21',
     },
     chemicals: [
-      { id: 3, name: 'Surfactante SF-3', quantityAssigned: 15, quantityUsed: 12, quantityReturned: 3, unit: 'gal' },
+      { id: 4, articuloId: 4, name: 'Inhibidor de Corrosión', quantityAssigned: 15, quantityUsed: 12, quantityReturned: 3, unit: 'GL', consumptionRegistered: true },
     ],
     tools: [
       { id: 4, name: 'Válvulas de 2"', serialCode: 'VL-2034', status: 'devuelta' },
@@ -155,7 +155,7 @@ let tickets: PumpingTicket[] = [
       arrivalApprovalDate: '2026-08-02',
     },
     chemicals: [
-      { id: 4, name: 'Fosfato', quantityAssigned: 10, quantityUsed: 8, quantityReturned: 2, unit: 'gal' },
+      { id: 2, articuloId: 2, name: 'Grasa Tubing/Casing Metal Free Thread Compound', quantityAssigned: 10, quantityUsed: 8, quantityReturned: 2, unit: 'GL', consumptionRegistered: true },
     ],
     tools: [],
   },
@@ -212,7 +212,7 @@ let tickets: PumpingTicket[] = [
       arrivalApprovalDate: '',
     },
     chemicals: [
-      { id: 1, name: 'Biocida QX-12', quantityAssigned: 35, quantityUsed: 0, quantityReturned: 0, unit: 'gal' },
+      { id: 9, articuloId: 9, name: 'Fluido de control con cloruro de calcio @ 8.4 ppg', quantityAssigned: 35, quantityUsed: 0, quantityReturned: 0, unit: 'bbl', consumptionRegistered: false },
     ],
     tools: [],
   },
@@ -285,10 +285,11 @@ export const pumpingMockInterceptor: HttpInterceptorFn = (req, next) => {
 
     // ── assign-resources ──
     if (req.url.includes('/assign-resources')) {
-      const { operatorIds, unitIds, chemicalIds } = req.body as {
+      const { operatorIds, unitIds, chemicals: chemicalsInput, chemicalMixtureDocument } = req.body as {
         operatorIds: number[];
         unitIds: number[];
-        chemicalIds: number[];
+        chemicals: { articuloId: number; name: string; unit: string; cantidad: number }[];
+        chemicalMixtureDocument?: string;
       };
 
       const operatorData: Record<number, { name: string; role: string }> = {
@@ -302,14 +303,6 @@ export const pumpingMockInterceptor: HttpInterceptorFn = (req, next) => {
         1: 'PUM-07', 2: 'PUM-15', 3: '4-CTV-03', 4: 'CAM-04', 5: 'CAM-08',
       };
 
-      const chemicalData: Record<number, { name: string; unit: string }> = {
-        1: { name: 'Biocida QX-12', unit: 'gal' },
-        2: { name: 'Inhibidor de corrosión', unit: 'gal' },
-        3: { name: 'Surfactante SF-3', unit: 'gal' },
-        4: { name: 'Fosfato', unit: 'gal' },
-        5: { name: 'Amonio', unit: 'gal' },
-      };
-
       // Build operators with their assigned units
       // Use operatorAssignments from the request body if available, otherwise pair them
       const operators = operatorIds.map((opId, i) => ({
@@ -319,13 +312,18 @@ export const pumpingMockInterceptor: HttpInterceptorFn = (req, next) => {
         unitCode: unitData[unitIds[i]] ?? unitData[unitIds[0]] ?? '',
       }));
 
-      const chemicals = chemicalIds.map(cId => ({
-        id: cId,
-        name: chemicalData[cId]?.name ?? `Químico ${cId}`,
-        quantityAssigned: 20,
+      // La salida de bodega (real, contra Inventario) ya se registró desde
+      // la página al momento de guardar — acá solo se persiste el detalle
+      // por químico contra este ticket, con su articuloId real.
+      const chemicals = (chemicalsInput ?? []).map(c => ({
+        id: c.articuloId,
+        articuloId: c.articuloId,
+        name: c.name,
+        quantityAssigned: c.cantidad,
         quantityUsed: 0,
         quantityReturned: 0,
-        unit: chemicalData[cId]?.unit ?? 'gal',
+        unit: c.unit,
+        consumptionRegistered: false,
       }));
 
       const unitCode = unitData[unitIds[0]] ?? '';
@@ -333,9 +331,23 @@ export const pumpingMockInterceptor: HttpInterceptorFn = (req, next) => {
         ...tickets[idx],
         operators,
         chemicals,
+        chemicalMixtureDocument: chemicalMixtureDocument || tickets[idx].chemicalMixtureDocument,
         unitCode,
         assignedOperator: operators[0]?.name ?? '',
       };
+      tickets = tickets.map(t => (t.id === id ? updated : t));
+      return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(300));
+    }
+
+    // ── chemical-consumption (cierre de químicos, Ejecución operativa) ──
+    if (req.url.includes('/chemical-consumption')) {
+      const { chemicalId, quantityUsed } = req.body as { chemicalId: number; quantityUsed: number };
+      const chemicals = tickets[idx].chemicals.map(c => {
+        if (c.id !== chemicalId) return c;
+        const usado = Math.min(Math.max(quantityUsed, 0), c.quantityAssigned);
+        return { ...c, quantityUsed: usado, quantityReturned: c.quantityAssigned - usado, consumptionRegistered: true };
+      });
+      const updated: PumpingTicket = { ...tickets[idx], chemicals };
       tickets = tickets.map(t => (t.id === id ? updated : t));
       return of(new HttpResponse({ status: 200, body: updated })).pipe(delay(300));
     }

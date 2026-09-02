@@ -14,7 +14,7 @@ import {
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import { RolesService, UsersService } from '../../users/services/users.service';
-import { As2CatalogoItem, Otq, OtqItem } from '../models/facturacion.model';
+import { As2CatalogoItem, As2PedidoInfo, Otq, OtqItem } from '../models/facturacion.model';
 import { As2Service, OtqService } from '../services/facturacion.service';
 
 interface ItemDraft {
@@ -54,8 +54,17 @@ export class OtqDialog {
   private readonly modalRef = inject(NzModalRef<OtqDialog, Otq | undefined>);
 
   protected readonly pedidoId = signal(0);
-  protected readonly numero = signal('');
   protected readonly representanteLegal = signal('');
+
+  /** Pedidos de AS2 que todavía no tienen OTQ — el usuario elige de acá, no teclea un número. */
+  protected readonly pedidosDisponibles = signal<As2PedidoInfo[]>([]);
+  protected readonly cargandoPedidos = signal(true);
+  protected readonly pedidoOptions = computed<DynadrillSelectOption[]>(() =>
+    this.pedidosDisponibles().map(p => ({
+      label: `#${p.pedidoId} — ${p.cliente} · ${p.campo} / ${p.pozo}${p.taladro ? ' · Taladro ' + p.taladro : ''}`,
+      value: p.pedidoId,
+    })),
+  );
   protected readonly fechaInicioEstimada = signal<Date | null>(null);
   protected readonly fechaFinEstimada = signal<Date | null>(null);
   protected readonly supervisorId = signal<number | null>(null);
@@ -88,7 +97,6 @@ export class OtqDialog {
   protected readonly puedeGuardar = computed(
     () =>
       this.as2Estado() === 'encontrado' &&
-      this.numero().trim().length > 0 &&
       this.supervisorId() !== null &&
       this.tecnicoHseId() !== null &&
       this.items().length > 0,
@@ -103,6 +111,26 @@ export class OtqDialog {
         this.tecnicosHse.set(users.filter(u => u.roleId === hseRoleId).map(u => ({ label: u.name, value: u.id })));
       });
     });
+
+    // Pedidos de AS2 sin OTQ — así el usuario elige por cliente/pozo en vez de adivinar el número.
+    this.cargandoPedidos.set(true);
+    this.as2Service.listarPedidos().subscribe({
+      next: pedidos => {
+        this.otqService.list().subscribe(otqs => {
+          const conOtq = new Set(otqs.map(o => o.pedidoId));
+          this.pedidosDisponibles.set(pedidos.filter(p => !conOtq.has(p.pedidoId)));
+          this.cargandoPedidos.set(false);
+        });
+      },
+      error: () => this.cargandoPedidos.set(false),
+    });
+  }
+
+  /** Al elegir un pedido del desplegable se dispara la validación contra AS2. */
+  protected seleccionarPedido(pedidoId: number | null): void {
+    this.pedidoId.set(pedidoId ?? 0);
+    if (pedidoId) this.buscarAs2();
+    else this.as2Estado.set('pendiente');
   }
 
   /** FACT-001, Fase 2 — "el sistema valida que el ticket exista en AS2 antes de permitir continuar". */
@@ -188,7 +216,6 @@ export class OtqDialog {
 
     this.otqService
       .create({
-        numero: this.numero().trim(),
         pedidoId: this.pedidoId(),
         cliente: this.cliente(),
         numeroContrato: this.numeroContrato(),

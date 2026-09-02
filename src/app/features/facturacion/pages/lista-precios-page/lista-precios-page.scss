@@ -1,0 +1,14 @@
+@use '../../facturacion-ui' as f;
+
+.lista-precios-page {
+  @include f.page;
+
+  .fact-card { @include f.card; }
+
+  &__head { @include f.card-head; }
+
+  &__table {
+    overflow-x: auto;
+    margin-top: 8px;
+  }
+}

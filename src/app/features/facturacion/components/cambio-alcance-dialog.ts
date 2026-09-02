@@ -6,15 +6,19 @@ import {
   DynadrillButtonComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
+  DynadrillSelectComponent,
   DynadrillTextComponent,
   DynadrillTextareaComponent,
+  type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
-import { Excepcion, OtqItem, OtqItemDraft } from '../models/facturacion.model';
-import { ExcepcionService, OtqService } from '../services/facturacion.service';
+import { As2CatalogoItem, Excepcion, OtqItem, OtqItemDraft } from '../models/facturacion.model';
+import { As2Service, ExcepcionService, OtqService } from '../services/facturacion.service';
 
 export interface CambioAlcanceDialogData {
   pedidoId: number;
   otqId: number;
+  /** Contrato de la OTQ — para consultar el catálogo de precios de AS2 al agregar ítems nuevos. */
+  numeroContrato: string;
   items: OtqItem[];
 }
 
@@ -35,13 +39,14 @@ interface ItemDraft {
  */
 @Component({
   selector: 'app-cambio-alcance-dialog',
-  imports: [DecimalPipe, DynadrillInputComponent, DynadrillTextareaComponent, DynadrillButtonComponent, DynadrillTextComponent],
+  imports: [DecimalPipe, DynadrillInputComponent, DynadrillSelectComponent, DynadrillTextareaComponent, DynadrillButtonComponent, DynadrillTextComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './cambio-alcance-dialog.html',
   styleUrl: './cambio-alcance-dialog.scss',
 })
 export class CambioAlcanceDialog {
   private readonly otqService = inject(OtqService);
+  private readonly as2Service = inject(As2Service);
   private readonly excepcionService = inject(ExcepcionService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<CambioAlcanceDialog, Excepcion | undefined>);
@@ -50,9 +55,21 @@ export class CambioAlcanceDialog {
   protected readonly itemsOriginales = this.data.items;
   protected readonly items = signal<OtqItem[]>(this.data.items.map(i => ({ ...i })));
   protected readonly nuevos = signal<ItemDraft[]>([]);
-  protected readonly draft = signal<ItemDraft>({ codigo: '', descripcion: '', unidad: '', tarifaUnitaria: 0, cantidadEstimada: 0 });
   protected readonly justificacion = signal('');
   protected readonly submitting = signal(false);
+
+  /** Catálogo de precios del contrato (AS2) — los ítems nuevos se eligen de acá, con su tarifa vigente. */
+  protected readonly catalogo = signal<As2CatalogoItem[]>([]);
+  protected readonly catalogoOptions = computed<DynadrillSelectOption[]>(() =>
+    this.catalogo().map(i => ({ label: `${i.codigo} — ${i.descripcion}`, value: i.codigo })),
+  );
+  protected readonly codigoDraft = signal<string | null>(null);
+  protected readonly cantidadDraft = signal(0);
+  protected readonly itemSeleccionado = computed(() => this.catalogo().find(i => i.codigo === this.codigoDraft()) ?? null);
+
+  constructor() {
+    this.as2Service.catalogoPrecios(this.data.numeroContrato).subscribe(cat => this.catalogo.set(cat));
+  }
 
   protected readonly totalOriginal = this.itemsOriginales.reduce((sum, i) => sum + i.total, 0);
 
@@ -78,15 +95,16 @@ export class CambioAlcanceDialog {
     this.items.update(list => list.filter(i => i.id !== itemId));
   }
 
-  protected updateDraft<K extends keyof ItemDraft>(field: K, value: ItemDraft[K]): void {
-    this.draft.update(d => ({ ...d, [field]: value }));
-  }
-
   protected agregarItem(): void {
-    const d = this.draft();
-    if (!d.codigo.trim() || !d.descripcion.trim() || d.cantidadEstimada <= 0) return;
-    this.nuevos.update(list => [...list, d]);
-    this.draft.set({ codigo: '', descripcion: '', unidad: '', tarifaUnitaria: 0, cantidadEstimada: 0 });
+    const sel = this.itemSeleccionado();
+    const cantidad = this.cantidadDraft();
+    if (!sel || cantidad <= 0) return;
+    this.nuevos.update(list => [
+      ...list,
+      { codigo: sel.codigo, descripcion: sel.descripcion, unidad: sel.unidad, tarifaUnitaria: sel.tarifaUnitaria, cantidadEstimada: cantidad },
+    ]);
+    this.codigoDraft.set(null);
+    this.cantidadDraft.set(0);
   }
 
   protected quitarNuevo(index: number): void {

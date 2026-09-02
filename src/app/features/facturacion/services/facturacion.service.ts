@@ -24,6 +24,11 @@ import {
 export class As2Service {
   private readonly http = inject(HttpClient);
 
+  /** Pedidos sincronizados desde AS2 disponibles para abrir una OTQ — evita que el usuario tenga que adivinar el número. */
+  listarPedidos(): Observable<As2PedidoInfo[]> {
+    return this.http.get<As2PedidoInfo[]>('/api/facturacion/as2/pedidos');
+  }
+
   /** 404 si el pedido no existe/no está sincronizado desde AS2 — el Portal no debe dejar continuar sin esta validación. */
   buscarPedido(pedidoId: number): Observable<As2PedidoInfo> {
     return this.http.get<As2PedidoInfo>(`/api/facturacion/as2/pedido/${pedidoId}`);

@@ -25,11 +25,12 @@
 
   &__row-cantidad {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-end;
     gap: 12px;
 
     dynadrill-input {
-      max-width: 160px;
+      max-width: 200px;
     }
   }
 

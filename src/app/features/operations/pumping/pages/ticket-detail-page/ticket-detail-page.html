@@ -101,8 +101,40 @@
 
       <section class="ticket-detail__section">
         <dynadrill-text variant="h2">Asignar químicos</dynadrill-text>
-        <dynadrill-select label="Químicos" placeholder="Seleccionar químicos" [options]="chemicalOptions" [value]="selectedChemicals()" [multiple]="true" (valueChange)="onChemicalsChange($event)" />
+        <dynadrill-text variant="caption">Catálogo real de Inventario (Bodeguero) — la cantidad retirada se descuenta de bodega al guardar.</dynadrill-text>
+        <dynadrill-select label="Químicos" placeholder="Seleccionar químicos" [options]="chemicalOptions()" [value]="selectedChemicals()" [multiple]="true" (valueChange)="onChemicalsChange($event)" />
       </section>
+
+      <!-- Cantidad a retirar de bodega, por cada químico seleccionado -->
+      @for (articulo of selectedChemicalRows(); track articulo.id) {
+        <section class="ticket-detail__section">
+          <dynadrill-input
+            [label]="'Cantidad a retirar — ' + articulo.nombre + ' (' + articulo.unidadStock + ', stock: ' + articulo.stockActual + ')'"
+            type="number"
+            placeholder="0"
+            [value]="chemicalQuantity(articulo.id)"
+            (valueChange)="onChemicalQuantityChange(articulo.id, $event)"
+          />
+        </section>
+      }
+
+      @if (selectedChemicals().length > 0) {
+        <section class="ticket-detail__section">
+          <dynadrill-text variant="h2">Documento de mezcla de químicos</dynadrill-text>
+          <dynadrill-text variant="caption">Adjunte el documento con el detalle de la mezcla preparada.</dynadrill-text>
+          <dynadrill-upload-zone
+            [state]="chemicalMixtureDocument() ? 'uploaded' : 'idle'"
+            [fileName]="chemicalMixtureDocument()?.name ?? ''"
+            (fileSelected)="onChemicalMixtureDocumentSelected($event)"
+          />
+        </section>
+
+        @if (chemicalStockError(); as error) {
+          <section class="ticket-detail__section">
+            <dynadrill-text variant="caption">{{ error }}</dynadrill-text>
+          </section>
+        }
+      }
 
       <footer class="ticket-detail__actions">
         <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
@@ -124,31 +156,34 @@
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
 
-      <!-- Orden pedido por el cliente: primero el Gerenciamiento de Viaje (DYN-SGI-RE-049), recién después se habilita revisar/aprobar el Reporte de Unidad. -->
+      <!-- Orden pedido por el cliente: primero se revisa/aprueba la inspección + reporte de unidad; recién con el reporte aprobado se habilita crear el Gerenciamiento de Viaje (DYN-SGI-RE-049). -->
       <ng-template #reviewSalidaActionsTpl let-row>
         @if (isOperatorSalidaRejected(row)) {
           <dynadrill-button variant="error" size="small" (click)="viewSalidaRejectionReason(row)">
             Rechazado — Ver motivo
           </dynadrill-button>
-        } @else if (isOperatorSalidaApproved(row)) {
-          <dynadrill-button variant="success" size="small" [disabled]="true">
-            Gerenciamiento completado
-          </dynadrill-button>
-          <dynadrill-button variant="success" size="small" [disabled]="true">
-            Aprobado
-          </dynadrill-button>
-        } @else if (hasTravelManagement(row)) {
-          <dynadrill-button variant="success" size="small" [disabled]="true">
-            Gerenciamiento completado
-          </dynadrill-button>
+        } @else if (!isOperatorSalidaApproved(row)) {
           <dynadrill-button variant="primary" size="small" (click)="approveSalidaOperator(row)">
             Revisar y aprobar
           </dynadrill-button>
+        } @else if (hasTravelManagement(row)) {
+          <dynadrill-button variant="success" size="small" [disabled]="true">
+            Aprobado
+          </dynadrill-button>
+          <dynadrill-button variant="success" size="small" [disabled]="true">
+            Gerenciamiento completado
+          </dynadrill-button>
         } @else if (isTravelPendingApproval(row)) {
+          <dynadrill-button variant="success" size="small" [disabled]="true">
+            Aprobado
+          </dynadrill-button>
           <dynadrill-button variant="warning" size="small" [disabled]="true">
             Pendiente aprobación Jefe de Base
           </dynadrill-button>
         } @else {
+          <dynadrill-button variant="success" size="small" [disabled]="true">
+            Aprobado
+          </dynadrill-button>
           <dynadrill-button variant="primary" size="small" (click)="openTravelManagement(row)">
             Crear Gerenciamiento de Viaje
           </dynadrill-button>
@@ -164,13 +199,13 @@
       />
     </section>
 
-    @if (!allTravelManagementsCompleted()) {
-      <section class="ticket-detail__section">
-        <dynadrill-text variant="caption">Debe completar el Gerenciamiento de Viaje (DYN-SGI-RE-049) de cada operador antes de poder revisar sus reportes.</dynadrill-text>
-      </section>
-    } @else if (!allSalidaApproved()) {
+    @if (!allSalidaApproved()) {
       <section class="ticket-detail__section">
         <dynadrill-text variant="caption">Debe aprobar todos los reportes de salida antes de continuar.</dynadrill-text>
+      </section>
+    } @else if (!allTravelManagementsCompleted()) {
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="caption">Debe completar el Gerenciamiento de Viaje (DYN-SGI-RE-049) de cada operador aprobado antes de continuar.</dynadrill-text>
       </section>
     }
 
@@ -219,9 +254,106 @@
       />
     </section>
 
+    @if (ticket()?.chemicals?.length) {
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="h2">Cierre de químicos</dynadrill-text>
+        <dynadrill-text variant="caption">Registre la cantidad realmente usada de cada químico — el sobrante se devuelve a bodega automáticamente (Inventario).</dynadrill-text>
+
+        @for (chemical of ticket()!.chemicals; track chemical.id) {
+          <div class="ticket-detail__chemical-close-row">
+            <dynadrill-text variant="body"><strong>{{ chemical.name }}</strong> — asignado: {{ chemical.quantityAssigned }} {{ chemical.unit }}</dynadrill-text>
+
+            @if (chemical.consumptionRegistered) {
+              <dynadrill-text variant="caption">
+                Usado: {{ chemical.quantityUsed }} {{ chemical.unit }} — Sobrante devuelto a bodega: {{ chemical.quantityReturned }} {{ chemical.unit }}
+              </dynadrill-text>
+            } @else {
+              <dynadrill-input
+                label="Cantidad usada"
+                type="number"
+                placeholder="0"
+                [value]="chemicalConsumptionInput(chemical.id)"
+                (valueChange)="onChemicalConsumptionInputChange(chemical.id, $event)"
+              />
+              @if (chemicalConsumptionPreviewSobrante(chemical); as sobrante) {
+                <dynadrill-text variant="caption">Sobrante a devolver a bodega: {{ sobrante }} {{ chemical.unit }}</dynadrill-text>
+              }
+              <dynadrill-button
+                variant="primary"
+                size="small"
+                [disabled]="!chemicalConsumptionValid(chemical)"
+                (click)="registerChemicalConsumption(chemical)"
+              >
+                Registrar consumo
+              </dynadrill-button>
+            }
+          </div>
+        }
+      </section>
+
+      @if (!allChemicalsClosed()) {
+        <section class="ticket-detail__section">
+          <dynadrill-text variant="caption">Debe registrar el consumo real de todos los químicos antes de continuar.</dynadrill-text>
+        </section>
+      }
+    }
+
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="success" [disabled]="!allDailyReportsCompleted() || submitting()" (clicked)="advanceFromEjecucionOperativa()">Continuar a ejecución de llegada</dynadrill-button>
+      <dynadrill-button variant="success" [disabled]="!allDailyReportsCompleted() || !allChemicalsClosed() || submitting()" (clicked)="advanceFromEjecucionOperativa()">Continuar a Gerenciamiento de llegada</dynadrill-button>
+    </footer>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Supervisor: Gerenciamiento de Viaje de llegada — DYN-SGI-RE-049   -->
+  <!-- Orden pedido por el cliente: el Gerenciamiento de llegada se crea -->
+  <!-- ANTES de que el operador pueda crear la inspección y el reporte  -->
+  <!-- de unidad de llegada.                                             -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  @if (currentStep() === 'gerenciamiento_llegada') {
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h1">Gerenciamiento de llegada</dynadrill-text>
+      <dynadrill-text variant="caption">Documento: DYN-SGI-RE-049 — Gerenciamiento de Viaje</dynadrill-text>
+      <dynadrill-text variant="body">Cree el Gerenciamiento de Viaje de retorno de cada operador antes de habilitar la inspección y el reporte de unidad de llegada.</dynadrill-text>
+    </section>
+
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
+
+      <ng-template #gerenciamientoLlegadaActionsTpl let-row>
+        @if (hasReturnTravelManagement(row)) {
+          <dynadrill-button variant="success" size="small" [disabled]="true">
+            Gerenciamiento completado
+          </dynadrill-button>
+        } @else if (isReturnTravelPendingApproval(row)) {
+          <dynadrill-button variant="warning" size="small" [disabled]="true">
+            Pendiente aprobación Jefe de Base
+          </dynadrill-button>
+        } @else {
+          <dynadrill-button variant="primary" size="small" (click)="openReturnTravelManagement(row)">
+            Crear Gerenciamiento de Viaje
+          </dynadrill-button>
+        }
+      </ng-template>
+
+      <dynadrill-data-table
+        [columns]="personnelColumns"
+        [rows]="personnelRows()"
+        [loading]="false"
+        actionsHeader="Acciones"
+        [actionsTemplate]="gerenciamientoLlegadaActionsTpl"
+      />
+    </section>
+
+    @if (!allReturnTravelManagementsCompleted()) {
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="caption">Debe completar el Gerenciamiento de Viaje de cada operador antes de continuar.</dynadrill-text>
+      </section>
+    }
+
+    <footer class="ticket-detail__actions">
+      <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
+      <dynadrill-button variant="success" [disabled]="!allReturnTravelManagementsCompleted() || submitting()" (clicked)="advanceFromGerenciamientoLlegada()">Continuar a inspección y reporte de llegada</dynadrill-button>
     </footer>
   }
 
@@ -238,7 +370,7 @@
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
 
-      <!-- Orden pedido por el cliente: primero el Gerenciamiento de Retorno (DYN-SGI-RE-049), recién después se habilita revisar/aprobar el Reporte de Unidad de llegada. -->
+      <!-- Orden pedido por el cliente: el Gerenciamiento de Retorno ya se creó antes, en el paso "Gerenciamiento de llegada" — acá el Supervisor solo revisa/aprueba la inspección + reporte de unidad de llegada. -->
       <ng-template #reviewLlegadaActionsTpl let-row>
         @if (isOperatorLlegadaRejected(row)) {
           <dynadrill-button variant="error" size="small" (click)="viewRejectionReason(row)">
@@ -246,25 +378,11 @@
           </dynadrill-button>
         } @else if (isOperatorLlegadaApproved(row)) {
           <dynadrill-button variant="success" size="small" [disabled]="true">
-            Gerenciamiento retorno completado
-          </dynadrill-button>
-          <dynadrill-button variant="success" size="small" [disabled]="true">
             Aprobado
           </dynadrill-button>
-        } @else if (hasReturnTravelManagement(row)) {
-          <dynadrill-button variant="success" size="small" [disabled]="true">
-            Gerenciamiento retorno completado
-          </dynadrill-button>
+        } @else {
           <dynadrill-button variant="primary" size="small" (click)="approveLlegadaOperator(row)">
             Revisar y aprobar
-          </dynadrill-button>
-        } @else if (isReturnTravelPendingApproval(row)) {
-          <dynadrill-button variant="warning" size="small" [disabled]="true">
-            Pendiente aprobación Jefe de Base
-          </dynadrill-button>
-        } @else {
-          <dynadrill-button variant="primary" size="small" (click)="openReturnTravelManagement(row)">
-            Crear Gerenciamiento de Retorno
           </dynadrill-button>
         }
       </ng-template>
@@ -306,11 +424,7 @@
       />
     </section>
 
-    @if (!allReturnTravelManagementsCompleted()) {
-      <section class="ticket-detail__section">
-        <dynadrill-text variant="caption">Debe completar el Gerenciamiento de Retorno (DYN-SGI-RE-049) de cada operador antes de poder revisar sus reportes de llegada.</dynadrill-text>
-      </section>
-    } @else if (!allLlegadaApproved()) {
+    @if (!allLlegadaApproved()) {
       <section class="ticket-detail__section">
         <dynadrill-text variant="caption">Debe aprobar todos los reportes de llegada antes de continuar.</dynadrill-text>
       </section>
@@ -318,7 +432,7 @@
 
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="success" [disabled]="!allLlegadaApproved() || !allReturnTravelManagementsCompleted() || submitting()" (clicked)="approveAllLlegadaReports()">Aprobar reportes de llegada</dynadrill-button>
+      <dynadrill-button variant="success" [disabled]="!allLlegadaApproved() || submitting()" (clicked)="approveAllLlegadaReports()">Aprobar reportes de llegada</dynadrill-button>
     </footer>
   }
 

@@ -25,11 +25,24 @@ export class PumpingService {
 
   assignResources(
     ticketId: number,
-    payload: { operatorIds: number[]; unitIds: number[]; chemicalIds: number[] },
+    payload: {
+      operatorIds: number[];
+      unitIds: number[];
+      chemicals: { articuloId: number; name: string; unit: string; cantidad: number }[];
+      chemicalMixtureDocument?: string;
+    },
   ): Observable<PumpingTicket> {
     return this.http.patch<PumpingTicket>(
       `${this.baseUrl}/tickets/${ticketId}/assign-resources`,
       payload,
+    );
+  }
+
+  /** Cierre de químicos (Ejecución operativa): registra el consumo real; el sobrante se calcula server-side. */
+  registerChemicalConsumption(ticketId: number, chemicalId: number, quantityUsed: number): Observable<PumpingTicket> {
+    return this.http.patch<PumpingTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/chemical-consumption`,
+      { chemicalId, quantityUsed },
     );
   }
 

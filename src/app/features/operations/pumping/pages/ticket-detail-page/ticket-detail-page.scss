@@ -118,6 +118,24 @@
   }
 }
 
+.ticket-detail__chemical-close-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  dynadrill-input {
+    width: 100%;
+    max-width: 200px;
+  }
+}
+
 .ticket-detail__form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));

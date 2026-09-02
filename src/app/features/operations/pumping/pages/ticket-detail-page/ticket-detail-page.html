@@ -101,8 +101,40 @@
 
       <section class="ticket-detail__section">
         <dynadrill-text variant="h2">Asignar químicos</dynadrill-text>
-        <dynadrill-select label="Químicos" placeholder="Seleccionar químicos" [options]="chemicalOptions" [value]="selectedChemicals()" [multiple]="true" (valueChange)="onChemicalsChange($event)" />
+        <dynadrill-text variant="caption">Catálogo real de Inventario (Bodeguero) — la cantidad retirada se descuenta de bodega al guardar.</dynadrill-text>
+        <dynadrill-select label="Químicos" placeholder="Seleccionar químicos" [options]="chemicalOptions()" [value]="selectedChemicals()" [multiple]="true" (valueChange)="onChemicalsChange($event)" />
       </section>
+
+      <!-- Cantidad a retirar de bodega, por cada químico seleccionado -->
+      @for (articulo of selectedChemicalRows(); track articulo.id) {
+        <section class="ticket-detail__section">
+          <dynadrill-input
+            [label]="'Cantidad a retirar — ' + articulo.nombre + ' (' + articulo.unidadStock + ', stock: ' + articulo.stockActual + ')'"
+            type="number"
+            placeholder="0"
+            [value]="chemicalQuantity(articulo.id)"
+            (valueChange)="onChemicalQuantityChange(articulo.id, $event)"
+          />
+        </section>
+      }
+
+      @if (selectedChemicals().length > 0) {
+        <section class="ticket-detail__section">
+          <dynadrill-text variant="h2">Documento de mezcla de químicos</dynadrill-text>
+          <dynadrill-text variant="caption">Adjunte el documento con el detalle de la mezcla preparada.</dynadrill-text>
+          <dynadrill-upload-zone
+            [state]="chemicalMixtureDocument() ? 'uploaded' : 'idle'"
+            [fileName]="chemicalMixtureDocument()?.name ?? ''"
+            (fileSelected)="onChemicalMixtureDocumentSelected($event)"
+          />
+        </section>
+
+        @if (chemicalStockError(); as error) {
+          <section class="ticket-detail__section">
+            <dynadrill-text variant="caption">{{ error }}</dynadrill-text>
+          </section>
+        }
+      }
 
       <footer class="ticket-detail__actions">
         <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
@@ -222,9 +254,53 @@
       />
     </section>
 
+    @if (ticket()?.chemicals?.length) {
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="h2">Cierre de químicos</dynadrill-text>
+        <dynadrill-text variant="caption">Registre la cantidad realmente usada de cada químico — el sobrante se devuelve a bodega automáticamente (Inventario).</dynadrill-text>
+
+        @for (chemical of ticket()!.chemicals; track chemical.id) {
+          <div class="ticket-detail__chemical-close-row">
+            <dynadrill-text variant="body"><strong>{{ chemical.name }}</strong> — asignado: {{ chemical.quantityAssigned }} {{ chemical.unit }}</dynadrill-text>
+
+            @if (chemical.consumptionRegistered) {
+              <dynadrill-text variant="caption">
+                Usado: {{ chemical.quantityUsed }} {{ chemical.unit }} — Sobrante devuelto a bodega: {{ chemical.quantityReturned }} {{ chemical.unit }}
+              </dynadrill-text>
+            } @else {
+              <dynadrill-input
+                label="Cantidad usada"
+                type="number"
+                placeholder="0"
+                [value]="chemicalConsumptionInput(chemical.id)"
+                (valueChange)="onChemicalConsumptionInputChange(chemical.id, $event)"
+              />
+              @if (chemicalConsumptionPreviewSobrante(chemical); as sobrante) {
+                <dynadrill-text variant="caption">Sobrante a devolver a bodega: {{ sobrante }} {{ chemical.unit }}</dynadrill-text>
+              }
+              <dynadrill-button
+                variant="primary"
+                size="small"
+                [disabled]="!chemicalConsumptionValid(chemical)"
+                (click)="registerChemicalConsumption(chemical)"
+              >
+                Registrar consumo
+              </dynadrill-button>
+            }
+          </div>
+        }
+      </section>
+
+      @if (!allChemicalsClosed()) {
+        <section class="ticket-detail__section">
+          <dynadrill-text variant="caption">Debe registrar el consumo real de todos los químicos antes de continuar.</dynadrill-text>
+        </section>
+      }
+    }
+
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="success" [disabled]="!allDailyReportsCompleted() || submitting()" (clicked)="advanceFromEjecucionOperativa()">Continuar a Gerenciamiento de llegada</dynadrill-button>
+      <dynadrill-button variant="success" [disabled]="!allDailyReportsCompleted() || !allChemicalsClosed() || submitting()" (clicked)="advanceFromEjecucionOperativa()">Continuar a Gerenciamiento de llegada</dynadrill-button>
     </footer>
   }
 

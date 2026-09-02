@@ -76,11 +76,15 @@ export const PUMPING_STEP_ROLE: Record<PumpingStep, { roleName: string; roleId: 
 
 export interface PumpingChemical {
   id: number;
+  /** Id del Articulo real en el módulo Inventario — la salida/devolución de bodega se registra contra este id. */
+  articuloId: number;
   name: string;
   quantityAssigned: number;
   quantityUsed: number;
   quantityReturned: number;
   unit: string;
+  /** true una vez que el Supervisor registró el consumo real de cierre (aunque el sobrante sea 0). */
+  consumptionRegistered: boolean;
 }
 
 export interface PumpingTool {
@@ -151,6 +155,8 @@ export interface PumpingTicket extends Ticket {
   serviceType: PumpingServiceType;
   proposalOrigin: string;
   chemicals: PumpingChemical[];
+  /** Nombre del documento de mezcla de químicos adjuntado al asignar químicos (DYN-PMP, sin código de formato asignado aún). */
+  chemicalMixtureDocument?: string;
   tools: PumpingTool[];
   operators: PumpingOperator[];
   unitReport: PumpingUnitReport | null;

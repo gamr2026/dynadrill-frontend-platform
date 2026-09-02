@@ -74,7 +74,13 @@ export class RegisterPMDialog {
   protected readonly fecha = signal<Date | null>(new Date());
   protected readonly responsable = signal(this.auth.currentUser()?.name ?? '');
   protected readonly observaciones = signal('');
-  /** Reemplaza la casilla simple de antes: el checklist de fábrica (propio de cada marca de unidad) ahora se adjunta como documento. */
+  /**
+   * Reemplaza la casilla simple de antes: el checklist de fábrica (propio
+   * de cada marca de unidad) se adjunta como documento. Obligatorio
+   * siempre — tanto si el mantenimiento lo ejecuta Dynadrill (Interno)
+   * como si lo ejecuta un Tercero, el checklist es aparte del informe que
+   * entrega el proveedor (informeExterno), no lo reemplaza.
+   */
   protected readonly checklistFabricante = signal<NzUploadFile | null>(null);
   protected readonly ejecutadoPor = signal<'Interno' | 'Tercero'>('Interno');
   protected readonly proveedor = signal('');
@@ -85,7 +91,7 @@ export class RegisterPMDialog {
     if (this.alerta.unidad === 'horas' && !this.valorMetrica().trim()) return false;
     if (this.alerta.unidad === 'km' && !this.valorMetrica().trim()) return false;
     if (this.ejecutadoPor() === 'Tercero' && !this.proveedor().trim()) return false;
-    if (!this.permiteTercero() && !this.checklistFabricante()) return false;
+    if (!this.checklistFabricante()) return false;
     return this.fecha() !== null && !!this.responsable().trim();
   });
 

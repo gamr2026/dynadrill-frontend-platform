@@ -68,6 +68,7 @@
       [value]="proveedor()"
       (valueChange)="proveedor.set($event)"
     />
+    <dynadrill-text variant="caption">Informe del proveedor</dynadrill-text>
     <dynadrill-upload-zone
       [state]="informeExterno() ? 'uploaded' : 'idle'"
       [fileName]="informeExterno()?.name ?? ''"
@@ -75,14 +76,13 @@
     />
   }
 
-  @if (!permiteTercero()) {
-    <dynadrill-text variant="caption">Checklist de fábrica — según el manual del fabricante de esta unidad</dynadrill-text>
-    <dynadrill-upload-zone
-      [state]="checklistFabricante() ? 'uploaded' : 'idle'"
-      [fileName]="checklistFabricante()?.name ?? ''"
-      (fileSelected)="onChecklistFabricanteSeleccionado($event)"
-    />
-  }
+  <!-- Checklist de fábrica: obligatorio siempre, sea Interno o Tercero — es el manual propio de cada marca de unidad, no algo que reemplace el informe del proveedor. -->
+  <dynadrill-text variant="caption">Checklist de fábrica — según el manual del fabricante de esta unidad</dynadrill-text>
+  <dynadrill-upload-zone
+    [state]="checklistFabricante() ? 'uploaded' : 'idle'"
+    [fileName]="checklistFabricante()?.name ?? ''"
+    (fileSelected)="onChecklistFabricanteSeleccionado($event)"
+  />
 
   <dynadrill-textarea
     label="Observaciones"

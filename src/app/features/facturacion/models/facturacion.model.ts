@@ -81,7 +81,8 @@ export interface OtqVersion {
   fecha: string;
 }
 
-export type CreateOtqInput = Omit<Otq, 'id' | 'estado' | 'createdAt' | 'activadaPor' | 'activadaAt' | 'version' | 'historialVersiones'>;
+/** `numero` lo asigna el backend (mock) al crear — `OTQ-<año>-<pedido>` — no lo teclea el usuario. */
+export type CreateOtqInput = Omit<Otq, 'id' | 'numero' | 'estado' | 'createdAt' | 'activadaPor' | 'activadaAt' | 'version' | 'historialVersiones'>;
 
 export type OtqItemDraft = Omit<OtqItem, 'id' | 'total'>;
 
@@ -151,6 +152,8 @@ export interface DocumentacionItem {
   unidad: string;
   cantidad: number;
   tipo: 'Material' | 'Servicio';
+  /** Nº de serie de la herramienta despachada — obligatorio para herramientas en renta, opcional para servicios/consumibles. Se arrastra a la Prefactura y al Ticket. */
+  serie?: string;
 }
 
 /** 'pendiente_supervisor' — recién registrada, esperando revisión y firma del Supervisor de Campo (FACT-002, Fase 1) antes de llegar a la cola de Facturación. */
@@ -266,6 +269,8 @@ export interface GuiaCampoItem {
   cantidad: number;
   unidad: string;
   tipo: 'Material' | 'Servicio';
+  /** Nº de serie de la herramienta despachada — la GUÍA real lista un serial por línea. */
+  serie?: string;
 }
 
 export interface GuiaCampo {
@@ -312,6 +317,8 @@ export interface TicketItem {
   precioUnitario: number;
   precioTotal: number;
   tipo: 'Material' | 'Servicio';
+  /** Nº(s) de serie de la(s) herramienta(s) de esta línea — consolidado desde la documentación diaria homologada. */
+  serie?: string;
 }
 
 export type FacturacionTicketEstado = 'cerrado' | 'facturado';
@@ -325,7 +332,7 @@ export interface FacturacionTicket {
   subtotalServicios: number;
   subtotalMateriales: number;
   subtotal: number;
-  /** FACT-004 — IVA 12% y retenciones aplicadas por el cliente (IR 1%, IVA 30%). */
+  /** FACT-004 — IVA 15% y retenciones aplicadas por el cliente (IR 1%, IVA 30%). */
   iva: number;
   retencionIR: number;
   retencionIVA: number;
@@ -340,7 +347,8 @@ export interface FacturacionTicket {
 
 export type CreateFacturacionTicketInput = Pick<FacturacionTicket, 'pedidoId' | 'otqId' | 'items'>;
 
-const IVA_RATE = 0.12;
+/** IVA vigente en Ecuador desde 2024 (antes 12%). */
+const IVA_RATE = 0.15;
 const RETENCION_IR_RATE = 0.01;
 /** Retención de IVA — 30% es lo usual para servicios entre contribuyentes especiales (mismo % usado en la plantilla real de FACT-004). */
 const RETENCION_IVA_RATE = 0.3;

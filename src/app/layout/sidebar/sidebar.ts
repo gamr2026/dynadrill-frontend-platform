@@ -90,6 +90,7 @@ const FACTURACION_ITEM: DynadrillMenuItem = {
   children: [
     { label: 'Pedidos', link: '/dashboard/facturacion/pedidos' },
     { label: 'Tickets', link: '/dashboard/facturacion/tickets' },
+    { label: 'Lista de precios', link: '/dashboard/facturacion/lista-precios' },
     { label: 'Reportería', link: '/dashboard/facturacion/reporteria' },
   ],
 };

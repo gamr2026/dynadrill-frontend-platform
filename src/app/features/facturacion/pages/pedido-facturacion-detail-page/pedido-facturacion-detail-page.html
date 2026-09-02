@@ -43,7 +43,9 @@
             <dynadrill-button variant="secondary" size="small" (clicked)="verPdfOtq()">Ver / Imprimir PDF</dynadrill-button>
           </div>
         } @else {
-          <p class="pedido-detail__muted">Activada por {{ o.activadaPor }} — {{ o.activadaAt }}</p>
+          <p class="pedido-detail__muted">
+            Activada por {{ o.activadaPor || 'Facturación' }}{{ o.activadaAt ? ' — ' + (o.activadaAt | date: 'dd/MM/yyyy HH:mm') : '' }}
+          </p>
           <div class="pedido-detail__actions">
             <dynadrill-button variant="secondary" size="small" (clicked)="verPdfOtq()">Ver / Imprimir PDF</dynadrill-button>
           </div>
@@ -157,12 +159,13 @@
                         <p class="pedido-detail__muted">Motivo de rechazo: {{ d.observacionesHomologacion }}</p>
                       }
                       <table class="pedido-detail__subtable">
-                        <thead><tr><th>Código</th><th>Descripción</th><th class="num">Cantidad</th><th>Tipo</th></tr></thead>
+                        <thead><tr><th>Código</th><th>Descripción</th><th>Serie</th><th class="num">Cantidad</th><th>Tipo</th></tr></thead>
                         <tbody>
                           @for (item of d.items; track item.codigo) {
                             <tr>
                               <td>{{ item.codigo }}</td>
                               <td>{{ item.descripcion }}</td>
+                              <td>{{ item.serie || '—' }}</td>
                               <td class="num">{{ item.cantidad }} {{ item.unidad }}</td>
                               <td>{{ item.tipo }}</td>
                             </tr>

@@ -1,0 +1,24 @@
+<div class="lista-precios-page">
+  <dynadrill-screen-header
+    eyebrow="FACTURACIÓN"
+    title="Lista de precios"
+    subtitle="Hoja LP — tarifario del contrato, espejo de solo lectura de AS2"
+  />
+
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
+    <dynadrill-kpi-row [items]="kpis()" />
+
+    <section class="fact-card">
+      <header class="lista-precios-page__head">
+        <h2>Tarifario contractual</h2>
+        <dynadrill-button variant="secondary" size="small" (clicked)="exportar()">Exportar a CSV</dynadrill-button>
+      </header>
+      <dynadrill-text variant="caption">
+        El Portal solo consulta esta lista — no se crea ni se edita aquí. Alimenta el selector de ítems de la OTQ y la homologación de la documentación diaria.
+      </dynadrill-text>
+      <div class="lista-precios-page__table">
+        <dynadrill-data-table [columns]="columns" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="15" />
+      </div>
+    </section>
+  </dynadrill-spinner>
+</div>

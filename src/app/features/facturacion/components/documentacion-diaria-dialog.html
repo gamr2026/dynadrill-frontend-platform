@@ -10,17 +10,19 @@
       [value]="tipoDraft()"
       (valueChange)="tipoDraft.set($any($event))"
     />
+    <dynadrill-input label="Nº de serie" placeholder="Herramienta en renta" [value]="serieDraft()" (valueChange)="serieDraft.set($event)" />
   </div>
   <dynadrill-button variant="secondary" size="small" (clicked)="agregarItem()">+ Agregar ítem</dynadrill-button>
 
   @if (items().length) {
     <table class="documentacion-diaria-dialog__items">
-      <thead><tr><th>Código</th><th>Descripción</th><th>Cantidad</th><th>Tipo</th><th></th></tr></thead>
+      <thead><tr><th>Código</th><th>Descripción</th><th>Serie</th><th>Cantidad</th><th>Tipo</th><th></th></tr></thead>
       <tbody>
         @for (item of items(); track $index) {
           <tr>
             <td>{{ item.codigo }}</td>
             <td>{{ descripcionDe(item.codigo) }}</td>
+            <td>{{ item.serie || '—' }}</td>
             <td>{{ item.cantidad }} {{ unidadDe(item.codigo) }}</td>
             <td>{{ item.tipo }}</td>
             <td><dynadrill-button variant="secondary" size="small" (clicked)="quitarItem($index)">Quitar</dynadrill-button></td>

@@ -1,0 +1,94 @@
+<div class="ticket-pdf">
+  <div class="ticket-pdf__doc-header">
+    <div class="ticket-pdf__doc-title">
+      <dynadrill-text variant="h1">Prefactura</dynadrill-text>
+      <dynadrill-text variant="caption">{{ data.ticket.code }} · DYN-AFN-RE-11B</dynadrill-text>
+    </div>
+    <div class="ticket-pdf__doc-meta">
+      <dynadrill-text variant="caption">Fecha de impresión: {{ printDate }}</dynadrill-text>
+      <dynadrill-text variant="caption">Cierre: {{ data.ticket.fechaCierre | date: 'dd/MM/yyyy' }}</dynadrill-text>
+      <dynadrill-text variant="caption">Estado: {{ data.ticket.estado === 'facturado' ? 'FACTURADO' : 'CERRADO — PENDIENTE DE FACTURAR' }}</dynadrill-text>
+    </div>
+  </div>
+
+  <div class="ticket-pdf__section">
+    <dynadrill-text variant="caption" class="ticket-pdf__section-label">Datos del contrato</dynadrill-text>
+    <div class="ticket-pdf__grid-4">
+      <div class="ticket-pdf__field"><dynadrill-text variant="caption">Cliente</dynadrill-text><dynadrill-text variant="body">{{ data.otq?.cliente || '—' }}</dynadrill-text></div>
+      <div class="ticket-pdf__field"><dynadrill-text variant="caption">Nº Contrato</dynadrill-text><dynadrill-text variant="body">{{ data.otq?.numeroContrato || '—' }}</dynadrill-text></div>
+      <div class="ticket-pdf__field"><dynadrill-text variant="caption">Campo</dynadrill-text><dynadrill-text variant="body">{{ data.otq?.campo || '—' }}</dynadrill-text></div>
+      <div class="ticket-pdf__field"><dynadrill-text variant="caption">Bloque</dynadrill-text><dynadrill-text variant="body">{{ data.otq?.bloque || '—' }}</dynadrill-text></div>
+      <div class="ticket-pdf__field"><dynadrill-text variant="caption">Pozo</dynadrill-text><dynadrill-text variant="body">{{ data.otq?.pozo || '—' }}</dynadrill-text></div>
+      <div class="ticket-pdf__field"><dynadrill-text variant="caption">Taladro</dynadrill-text><dynadrill-text variant="body">{{ data.otq?.taladro || '—' }}</dynadrill-text></div>
+      <div class="ticket-pdf__field"><dynadrill-text variant="caption">Inicio trabajo</dynadrill-text><dynadrill-text variant="body">{{ data.acta?.fechaInicio || '—' }}</dynadrill-text></div>
+      <div class="ticket-pdf__field"><dynadrill-text variant="caption">Trabajo terminado</dynadrill-text><dynadrill-text variant="body">{{ data.acta?.fechaFin || '—' }}</dynadrill-text></div>
+      <div class="ticket-pdf__field"><dynadrill-text variant="caption">OTQ</dynadrill-text><dynadrill-text variant="body">{{ data.otq?.numero || ('#' + data.ticket.otqId) }}</dynadrill-text></div>
+      <div class="ticket-pdf__field"><dynadrill-text variant="caption">Pedido (Pumping)</dynadrill-text><dynadrill-text variant="body">#{{ data.ticket.pedidoId }}</dynadrill-text></div>
+    </div>
+  </div>
+
+  <div class="ticket-pdf__section">
+    <dynadrill-text variant="caption" class="ticket-pdf__section-label">Detalle</dynadrill-text>
+    <table class="ticket-pdf__table">
+      <thead>
+        <tr><th>Ítem</th><th>Código</th><th>Cant.</th><th>Unidad</th><th>Serie</th><th>Descripción</th><th>Tipo</th><th>P. unitario</th><th>P. total</th></tr>
+      </thead>
+      <tbody>
+        @for (item of data.ticket.items; track item.id; let i = $index) {
+          <tr>
+            <td>{{ i + 1 }}</td>
+            <td>{{ item.codigo }}</td>
+            <td>{{ item.cantidad }}</td>
+            <td>{{ item.unidad }}</td>
+            <td>{{ item.serie || '—' }}</td>
+            <td>{{ item.descripcion }}</td>
+            <td>{{ item.tipo }}</td>
+            <td>${{ item.precioUnitario | number: '1.2-2' }}</td>
+            <td>${{ item.precioTotal | number: '1.2-2' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="ticket-pdf__section ticket-pdf__section--totals">
+    <dynadrill-text variant="caption" class="ticket-pdf__section-label">Liquidación</dynadrill-text>
+    <dl class="ticket-pdf__totals">
+      <div><dt>Subtotal Servicios</dt><dd>${{ data.ticket.subtotalServicios | number: '1.2-2' }}</dd></div>
+      <div><dt>Subtotal Materiales</dt><dd>${{ data.ticket.subtotalMateriales | number: '1.2-2' }}</dd></div>
+      <div class="ticket-pdf__totals-sum"><dt>Subtotal</dt><dd>${{ data.ticket.subtotal | number: '1.2-2' }}</dd></div>
+      <div><dt>IVA (15%)</dt><dd>${{ data.ticket.iva | number: '1.2-2' }}</dd></div>
+      <div><dt>Retención IR (1%)</dt><dd>−${{ data.ticket.retencionIR | number: '1.2-2' }}</dd></div>
+      <div><dt>Retención IVA (30%)</dt><dd>−${{ data.ticket.retencionIVA | number: '1.2-2' }}</dd></div>
+      <div class="ticket-pdf__totals-sum"><dt>Neto a cobrar</dt><dd>${{ data.ticket.netoCobrar | number: '1.2-2' }}</dd></div>
+    </dl>
+  </div>
+
+  <div class="ticket-pdf__firmas">
+    <div class="ticket-pdf__firma">
+      <div class="ticket-pdf__firma-line"></div>
+      <dynadrill-text variant="caption">AUTORIZADO DYNADRILL</dynadrill-text>
+      <dynadrill-text variant="body">{{ data.ticket.firmaAutorizadoDynadrill?.nombre || 'Pendiente de firma' }}</dynadrill-text>
+      @if (data.ticket.firmaAutorizadoDynadrill?.firmadoAt) {
+        <dynadrill-text variant="caption">{{ data.ticket.firmaAutorizadoDynadrill?.firmadoAt | date: 'dd/MM/yyyy HH:mm' }}</dynadrill-text>
+      }
+    </div>
+    <div class="ticket-pdf__firma">
+      <div class="ticket-pdf__firma-line"></div>
+      <dynadrill-text variant="caption">RECIBÍ CONFORME — COMPANY MAN</dynadrill-text>
+      <dynadrill-text variant="body">{{ data.ticket.firmaCompanyMan?.nombre || 'Pendiente de firma' }}</dynadrill-text>
+      @if (data.ticket.firmaCompanyMan?.cedula) {
+        <dynadrill-text variant="caption">C.I. {{ data.ticket.firmaCompanyMan?.cedula }}</dynadrill-text>
+      }
+    </div>
+  </div>
+
+  @if (data.ticket.facturaAs2Ref) {
+    <dynadrill-text variant="caption">Referencia AS2: {{ data.ticket.facturaAs2Ref }}</dynadrill-text>
+  }
+
+  <div class="ticket-pdf__actions no-print">
+    <dynadrill-button variant="secondary" (clicked)="close()">Cerrar</dynadrill-button>
+    <dynadrill-button (clicked)="print()">Imprimir / Exportar PDF</dynadrill-button>
+  </div>
+</div>

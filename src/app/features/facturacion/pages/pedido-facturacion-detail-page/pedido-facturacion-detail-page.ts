@@ -320,7 +320,7 @@ export class PedidoFacturacionDetailPage {
     const ref = this.dialog.open<CambioAlcanceDialog, CambioAlcanceDialogData>({
       title: 'Cambio de alcance',
       content: CambioAlcanceDialog,
-      data: { pedidoId: this.pedidoId, otqId: otq.id, items: otq.items },
+      data: { pedidoId: this.pedidoId, otqId: otq.id, numeroContrato: otq.numeroContrato, items: otq.items },
       footer: false,
       width: '720px',
     });
@@ -395,13 +395,26 @@ export class PedidoFacturacionDetailPage {
     const otq = this.otq();
     if (!otq || !this.listoParaCierre()) return;
 
-    const totalesPorCodigo = new Map<string, { descripcion: string; unidad: string; cantidad: number; tipo: 'Material' | 'Servicio' }>();
+    const totalesPorCodigo = new Map<
+      string,
+      { descripcion: string; unidad: string; cantidad: number; tipo: 'Material' | 'Servicio'; series: Set<string> }
+    >();
     for (const doc of this.documentacion()) {
       if (doc.estado !== 'homologado') continue;
       for (const item of doc.items) {
         const actual = totalesPorCodigo.get(item.codigo);
-        if (actual) actual.cantidad += item.cantidad;
-        else totalesPorCodigo.set(item.codigo, { descripcion: item.descripcion, unidad: item.unidad, cantidad: item.cantidad, tipo: item.tipo });
+        if (actual) {
+          actual.cantidad += item.cantidad;
+          if (item.serie) actual.series.add(item.serie);
+        } else {
+          totalesPorCodigo.set(item.codigo, {
+            descripcion: item.descripcion,
+            unidad: item.unidad,
+            cantidad: item.cantidad,
+            tipo: item.tipo,
+            series: new Set(item.serie ? [item.serie] : []),
+          });
+        }
       }
     }
 
@@ -417,6 +430,7 @@ export class PedidoFacturacionDetailPage {
         precioUnitario,
         precioTotal: Math.round(v.cantidad * precioUnitario * 100) / 100,
         tipo: v.tipo,
+        serie: v.series.size ? [...v.series].join(', ') : undefined,
       };
     });
 

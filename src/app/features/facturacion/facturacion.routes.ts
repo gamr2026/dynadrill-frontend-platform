@@ -30,6 +30,12 @@ export const facturacionRoutes: Routes = [
     data: { allowedRoles: FACTURACION_ROLES },
   },
   {
+    path: 'lista-precios',
+    loadComponent: () => import('./pages/lista-precios-page/lista-precios-page').then(m => m.ListaPreciosPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: FACTURACION_ROLES },
+  },
+  {
     path: 'reporteria',
     loadComponent: () => import('./pages/reporteria-page/reporteria-page').then(m => m.ReporteriaPage),
     canActivate: [roleGuard],

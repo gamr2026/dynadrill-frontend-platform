@@ -15,18 +15,20 @@
     <dynadrill-input label="Descripción" [value]="draft().descripcion" (valueChange)="updateDraft('descripcion', $event)" />
     <div class="guia-campo-dialog__row-cantidad">
       <dynadrill-input label="Cantidad" type="number" [value]="draft().cantidad" (valueChange)="updateDraft('cantidad', +$event)" />
+      <dynadrill-input label="Nº de serie" placeholder="Herramienta en renta" [value]="draft().serie" (valueChange)="updateDraft('serie', $event)" />
       <dynadrill-button variant="secondary" size="small" (clicked)="agregarItem()">+ Agregar ítem</dynadrill-button>
     </div>
   </div>
 
   @if (items().length) {
     <table class="guia-campo-dialog__items">
-      <thead><tr><th>Código</th><th>Descripción</th><th>Cantidad</th><th>Tipo</th><th></th></tr></thead>
+      <thead><tr><th>Código</th><th>Descripción</th><th>Serie</th><th>Cantidad</th><th>Tipo</th><th></th></tr></thead>
       <tbody>
         @for (item of items(); track $index) {
           <tr>
             <td>{{ item.codigo }}</td>
             <td>{{ item.descripcion }}</td>
+            <td>{{ item.serie || '—' }}</td>
             <td>{{ item.cantidad }} {{ item.unidad }}</td>
             <td>{{ item.tipo }}</td>
             <td><dynadrill-button variant="secondary" size="small" (clicked)="quitarItem($index)">Quitar</dynadrill-button></td>

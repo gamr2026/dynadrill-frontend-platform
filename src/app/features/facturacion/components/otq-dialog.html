@@ -1,15 +1,25 @@
 <div class="otq-dialog">
-  <div class="otq-dialog__row-pair">
-    <dynadrill-input label="Nº de Pedido (Pumping)" type="number" placeholder="1" [value]="pedidoId()" (valueChange)="pedidoId.set(+$event)" />
-    <div class="otq-dialog__as2-btn">
-      <dynadrill-button variant="secondary" [disabled]="pedidoId() <= 0 || as2Estado() === 'buscando'" (clicked)="buscarAs2()">
-        {{ as2Estado() === 'buscando' ? 'Buscando…' : 'Buscar en AS2' }}
-      </dynadrill-button>
-    </div>
-  </div>
+  <dynadrill-select
+    label="Pedido (AS2)"
+    [placeholder]="cargandoPedidos() ? 'Cargando pedidos…' : 'Selecciona el pedido a facturar'"
+    [options]="pedidoOptions()"
+    [value]="pedidoId() || null"
+    (valueChange)="seleccionarPedido($any($event))"
+  />
+  <dynadrill-text variant="caption">
+    Solo aparecen pedidos sincronizados desde AS2 que todavía no tienen una OTQ. Al elegir uno se cargan cliente, contrato, ubicación y catálogo de precios.
+  </dynadrill-text>
+
+  @if (!cargandoPedidos() && pedidoOptions().length === 0) {
+    <dynadrill-banner variant="info" message="No hay pedidos pendientes de OTQ. Todos los pedidos sincronizados desde AS2 ya tienen una OTQ registrada." />
+  }
+
+  @if (as2Estado() === 'buscando') {
+    <dynadrill-banner variant="info" message="Consultando el pedido en AS2…" />
+  }
 
   @if (as2Estado() === 'no_encontrado') {
-    <dynadrill-banner variant="critical" message="Este pedido no existe (o no está sincronizado) en AS2. Verifica el número de pedido antes de continuar." />
+    <dynadrill-banner variant="critical" message="No se pudo validar este pedido contra AS2. Intenta con otro o vuelve a abrir el formulario." />
   }
 
   @if (as2Estado() === 'encontrado') {
@@ -26,9 +36,9 @@
     </div>
 
     <div class="otq-dialog__row-pair">
-      <dynadrill-input label="Número de OTQ" placeholder="OTQ-2026-0001" [value]="numero()" (valueChange)="numero.set($event)" />
       <dynadrill-input label="Representante legal" [value]="representanteLegal()" (valueChange)="representanteLegal.set($event)" />
     </div>
+    <dynadrill-text variant="caption">El número de OTQ se asigna automáticamente al guardar (formato OTQ-&lt;año&gt;-&lt;nº de pedido&gt;).</dynadrill-text>
 
     <div class="otq-dialog__row-pair">
       <dynadrill-datetime-picker mode="date" label="Fecha de inicio estimada" [value]="fechaInicioEstimada()!" (valueChange)="fechaInicioEstimada.set($event)" />

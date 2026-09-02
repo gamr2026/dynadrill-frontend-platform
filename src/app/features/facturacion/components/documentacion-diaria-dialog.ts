@@ -26,6 +26,7 @@ interface ItemDraft {
   codigo: string;
   cantidad: number;
   tipo: 'Material' | 'Servicio';
+  serie: string;
 }
 
 interface EquipoDraft {
@@ -65,6 +66,7 @@ export class DocumentacionDiariaDialog {
   protected readonly codigoDraft = signal<string | null>(null);
   protected readonly cantidadDraft = signal(0);
   protected readonly tipoDraft = signal<'Material' | 'Servicio'>('Servicio');
+  protected readonly serieDraft = signal('');
   protected readonly submitting = signal(false);
 
   // ── FACT-002 — respaldos operativos del día ──
@@ -149,9 +151,10 @@ export class DocumentacionDiariaDialog {
   protected agregarItem(): void {
     const codigo = this.codigoDraft();
     if (!codigo || this.cantidadDraft() <= 0) return;
-    this.items.update(list => [...list, { codigo, cantidad: this.cantidadDraft(), tipo: this.tipoDraft() }]);
+    this.items.update(list => [...list, { codigo, cantidad: this.cantidadDraft(), tipo: this.tipoDraft(), serie: this.serieDraft().trim() }]);
     this.codigoDraft.set(null);
     this.cantidadDraft.set(0);
+    this.serieDraft.set('');
   }
 
   protected quitarItem(index: number): void {
@@ -180,6 +183,7 @@ export class DocumentacionDiariaDialog {
       unidad: this.unidadDe(d.codigo),
       cantidad: d.cantidad,
       tipo: d.tipo,
+      serie: d.serie || undefined,
     }));
 
     this.docService

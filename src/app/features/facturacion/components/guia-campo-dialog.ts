@@ -27,6 +27,7 @@ interface ItemDraft {
   cantidad: number;
   unidad: string;
   tipo: 'Material' | 'Servicio';
+  serie: string;
 }
 
 /** FACT-004 — evidencia de despacho en sitio (placas/pozo/firmas). No reemplaza la Guía de Remisión SRI de AS2: solo referencia su número cuando exista. */
@@ -49,7 +50,7 @@ export class GuiaCampoDialog {
   protected readonly fecha = signal<Date | null>(new Date());
   protected readonly unidadId = signal<number | null>(null);
   protected readonly items = signal<ItemDraft[]>([]);
-  protected readonly draft = signal<ItemDraft>({ codigo: '', descripcion: '', cantidad: 0, unidad: '', tipo: 'Material' });
+  protected readonly draft = signal<ItemDraft>({ codigo: '', descripcion: '', cantidad: 0, unidad: '', tipo: 'Material', serie: '' });
   protected readonly submitting = signal(false);
 
   protected readonly puedeGuardar = computed(() => this.fecha() !== null && this.unidadId() !== null && this.items().length > 0);
@@ -71,7 +72,7 @@ export class GuiaCampoDialog {
     const d = this.draft();
     if (!d.codigo.trim() || !d.descripcion.trim() || d.cantidad <= 0) return;
     this.items.update(list => [...list, d]);
-    this.draft.set({ codigo: '', descripcion: '', cantidad: 0, unidad: '', tipo: 'Material' });
+    this.draft.set({ codigo: '', descripcion: '', cantidad: 0, unidad: '', tipo: 'Material', serie: '' });
   }
 
   protected quitarItem(index: number): void {
@@ -87,7 +88,14 @@ export class GuiaCampoDialog {
     this.submitting.set(true);
 
     const unidad = this.unidades().find(u => u.id === this.unidadId());
-    const items: GuiaCampoItem[] = this.items().map(d => ({ codigo: d.codigo, descripcion: d.descripcion, cantidad: d.cantidad, unidad: d.unidad, tipo: d.tipo }));
+    const items: GuiaCampoItem[] = this.items().map(d => ({
+      codigo: d.codigo,
+      descripcion: d.descripcion,
+      cantidad: d.cantidad,
+      unidad: d.unidad,
+      tipo: d.tipo,
+      serie: d.serie.trim() || undefined,
+    }));
 
     this.guiaService
       .create({

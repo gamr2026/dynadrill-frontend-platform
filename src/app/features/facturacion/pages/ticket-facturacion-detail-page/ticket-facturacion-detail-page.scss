@@ -8,6 +8,13 @@
   &__head { @include f.card-head; }
   &__table { @include f.table; }
 
+  &__head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
   &__liquidacion {
     display: flex;
     flex-wrap: wrap;

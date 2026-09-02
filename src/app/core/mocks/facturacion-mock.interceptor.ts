@@ -27,6 +27,30 @@ import {
  * Pumping) simula correctamente el caso "no existe en AS2".
  */
 const as2Pedidos: As2PedidoInfo[] = [
+  // Pedidos sincronizados de AS2 SIN OTQ todavía — disponibles para abrir una en el Portal.
+  {
+    pedidoId: 1,
+    cliente: 'Petroandina',
+    numeroContrato: '2025201',
+    campo: 'AUCA',
+    bloque: 'BLOQUE 43',
+    pozo: 'DELTA-7',
+    taladro: 'RIGLESS',
+    supervisorOperativo: 'Luis Vega',
+    tecnicoHse: 'Ana Torres',
+  },
+  {
+    pedidoId: 12,
+    cliente: 'Petroandina',
+    numeroContrato: '2025201',
+    campo: 'AUCA',
+    bloque: 'BLOQUE 43',
+    pozo: 'SIGMA-4',
+    taladro: 'RIGLESS',
+    supervisorOperativo: 'Luis Vega',
+    tecnicoHse: 'Ana Torres',
+  },
+  // Pedidos que YA tienen OTQ sembrada (pedidoId 3 y 6) — quedan fuera del desplegable de "Nueva OTQ".
   {
     pedidoId: 3,
     cliente: 'Petroecuador',
@@ -127,8 +151,15 @@ let otqs: Otq[] = [
       { id: 3, codigo: 'DYFCE-70', descripcion: 'Fluido Completación Especial Tipo 7', unidad: 'bbl', tarifaUnitaria: 34.9, cantidadEstimada: 300, total: 10470 },
     ],
     representanteLegal: 'Ab. Mónica Rojas',
+    fechaInicioEstimada: '2026-08-18',
+    fechaFinEstimada: '2026-08-27',
+    supervisorOperativo: 'Luis Vega',
+    tecnicoHse: 'Ana Torres',
+    documentosAdjuntos: ['Presupuesto aprobado SCHF-246 (firmado).pdf', 'Alcance de trabajo - Contrato 2025201.pdf'],
     estado: 'aprobada',
     createdAt: '2026-08-15T08:00:00.000Z',
+    activadaPor: 'Ricardo Vallejo',
+    activadaAt: '2026-08-15T09:30:00.000Z',
     version: 1,
     historialVersiones: [],
   },
@@ -146,8 +177,15 @@ let otqs: Otq[] = [
       { id: 2, codigo: 'SB3208', descripcion: 'Bombeo de ácido primeros 2.000 galones', unidad: 'gls', tarifaUnitaria: 0.33, cantidadEstimada: 2000, total: 660 },
     ],
     representanteLegal: 'Ab. Mónica Rojas',
+    fechaInicioEstimada: '2026-08-01',
+    fechaFinEstimada: '2026-08-03',
+    supervisorOperativo: 'Luis Vega',
+    tecnicoHse: 'Ana Torres',
+    documentosAdjuntos: ['Presupuesto aprobado DELTA-7 (firmado).pdf'],
     estado: 'aprobada',
     createdAt: '2026-08-01T08:00:00.000Z',
+    activadaPor: 'Ricardo Vallejo',
+    activadaAt: '2026-08-01T08:45:00.000Z',
     version: 1,
     historialVersiones: [],
   },
@@ -212,7 +250,10 @@ let guiasCampo: GuiaCampo[] = [
     fecha: '2026-08-20',
     unidadId: 15,
     unidadCode: 'PUM-15',
-    items: [{ codigo: 'DYFCE-70', descripcion: 'Fluido Completación Especial Tipo 7', cantidad: 300, unidad: 'bbl', tipo: 'Material' }],
+    items: [
+      { codigo: 'DYFCE-70', descripcion: 'Fluido Completación Especial Tipo 7', cantidad: 300, unidad: 'bbl', tipo: 'Material' },
+      { codigo: 'SFC33032', descripcion: 'Supervisor Senior para fluidos de completación día o fracción', cantidad: 1, unidad: 'día', tipo: 'Servicio', serie: 'DY-RT-542' },
+    ],
     firmaCompanyMan: { nombre: 'Ing. Daniel Balseca', cedula: '1803906450', cargo: 'Company Man', firmadoAt: '2026-08-20T19:30:00.000Z' },
     firmaDynadrill: { nombre: 'Ricardo Vallejo', firmadoAt: '2026-08-20T19:30:00.000Z' },
   },
@@ -232,7 +273,7 @@ let actas: ActaEntregaRecepcion[] = [
 
 let tickets: FacturacionTicket[] = (() => {
   const items = [
-    { id: 1, codigo: 'SB3226', descripcion: 'Supervisor para estimulación día o fracción', unidad: 'día', cantidad: 2, precioUnitario: 437.23, precioTotal: 874.46, tipo: 'Servicio' as const },
+    { id: 1, codigo: 'SB3226', descripcion: 'Supervisor para estimulación día o fracción', unidad: 'día', cantidad: 2, precioUnitario: 437.23, precioTotal: 874.46, tipo: 'Servicio' as const, serie: 'DY-RT-505' },
     { id: 2, codigo: 'SB3208', descripcion: 'Bombeo de ácido primeros 2.000 galones', unidad: 'gls', cantidad: 2000, precioUnitario: 0.33, precioTotal: 660, tipo: 'Material' as const },
   ];
   const { servicios, materiales, subtotal, iva, retencionIR, retencionIVA, netoCobrar } = ticketSubtotales(items);
@@ -280,6 +321,9 @@ export const facturacionMockInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.url.startsWith('/api/facturacion/as2/catalogo') && req.method === 'GET') {
     return of(new HttpResponse({ status: 200, body: as2Catalogo })).pipe(delay(350));
   }
+  if (req.url === '/api/facturacion/as2/pedidos' && req.method === 'GET') {
+    return of(new HttpResponse({ status: 200, body: as2Pedidos })).pipe(delay(350));
+  }
   const as2PedidoId = matchId(req.url, 'as2/pedido');
   if (as2PedidoId !== null && req.method === 'GET') {
     const found = as2Pedidos.find(p => p.pedidoId === as2PedidoId);
@@ -292,7 +336,16 @@ export const facturacionMockInterceptor: HttpInterceptorFn = (req, next) => {
   }
   if (req.url === '/api/facturacion/otq' && req.method === 'POST') {
     const input = req.body as CreateOtqInput;
-    const created: Otq = { ...input, id: nextOtqId++, estado: 'borrador', createdAt: new Date().toISOString(), version: 1, historialVersiones: [] };
+    const created: Otq = {
+      ...input,
+      id: nextOtqId++,
+      // 1 Pedido → 1 OTQ, así que el número se deriva del pedido (mismo criterio que las semillas).
+      numero: `OTQ-${new Date().getFullYear()}-${String(input.pedidoId).padStart(4, '0')}`,
+      estado: 'borrador',
+      createdAt: new Date().toISOString(),
+      version: 1,
+      historialVersiones: [],
+    };
     otqs = [...otqs, created];
     return of(new HttpResponse({ status: 201, body: created })).pipe(delay(400));
   }

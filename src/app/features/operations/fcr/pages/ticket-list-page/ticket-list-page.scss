@@ -1,0 +1,16 @@
+:host {
+  display: block;
+  padding: 1.5rem;
+
+  dynadrill-chip-group {
+    display: block;
+    margin: 1rem 0 1.5rem;
+  }
+}
+
+.fcr-list__kpi-skeleton {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}

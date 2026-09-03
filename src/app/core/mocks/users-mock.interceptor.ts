@@ -29,6 +29,9 @@ const roles: Role[] = [
   { id: 11, name: 'Bodeguero' },
   /** Encargado del módulo Facturación (FACT-001 a FACT-005) — sin acceso a ningún otro módulo. */
   { id: 13, name: 'Facturación' },
+  /** Roles del módulo FCR (FCR-MASTER-001) sin equivalente previo — Supervisor/Operador/Bodeguero se reutilizan. */
+  { id: 7, name: 'Ingeniería de Ventas' },
+  { id: 14, name: 'Control de Herramientas' },
   /**
    * Acceso total (todos los módulos, incluida Administración) — el único
    * rol que ve Administración. "Jefe de Base" se trata igual (ver
@@ -240,6 +243,28 @@ const BASE_USERS: Omit<User, keyof DatosEmpleado>[] = [
     createdAt: '2026-08-28T08:00:00.000Z',
     updatedAt: '2026-08-28T08:00:00.000Z',
   },
+  {
+    id: 17,
+    email: 'ventas.fcr@dynadrill.com',
+    username: 'vromero',
+    name: 'Verónica Romero',
+    phone: '0992221100',
+    roleId: 7,
+    status: true,
+    createdAt: '2026-09-02T08:00:00.000Z',
+    updatedAt: '2026-09-02T08:00:00.000Z',
+  },
+  {
+    id: 18,
+    email: 'control.herramientas@dynadrill.com',
+    username: 'fortiz',
+    name: 'Fernando Ortiz',
+    phone: '0993332211',
+    roleId: 14,
+    status: true,
+    createdAt: '2026-09-02T08:00:00.000Z',
+    updatedAt: '2026-09-02T08:00:00.000Z',
+  },
 ];
 
 let users: User[] = BASE_USERS.map(u => ({ ...u, ...DATOS_EMPLEADO_POR_ID[u.id] }));
@@ -253,7 +278,7 @@ export function getMockRoles(): Role[] {
   return roles;
 }
 
-let nextId = 16;
+let nextId = 19;
 
 function matchUsersId(url: string): number | null {
   const match = url.match(/\/api\/users\/(\d+)$/);

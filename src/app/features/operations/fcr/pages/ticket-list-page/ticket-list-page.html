@@ -1,0 +1,39 @@
+<dynadrill-screen-header
+  eyebrow="OPERATIVO · FCR"
+  title="Tickets"
+  subtitle="Gestión integral de servicios FCR (Field Completion & Retrieval)"
+  [roleTag]="roleName()"
+/>
+
+@if (loading()) {
+  <div class="fcr-list__kpi-skeleton">
+    @for (i of [0, 1, 2, 3, 4]; track i) {
+      <dynadrill-skeleton variant="block" width="160px" height="72px" />
+    }
+  </div>
+} @else {
+  <dynadrill-kpi-row [items]="kpis()" />
+}
+
+<dynadrill-chip-group
+  [options]="quickFilters"
+  mode="single"
+  [selected]="[activeFilter()]"
+  (selectedChange)="onFilterChange($event)"
+/>
+
+<ng-template #actionsTpl let-row>
+  <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(row)">
+    Ver ticket
+  </dynadrill-button>
+</ng-template>
+
+<dynadrill-data-table
+  [columns]="columns"
+  [rows]="rows()"
+  [loading]="loading()"
+  [rowKey]="rowKeyFn"
+  [pageSize]="10"
+  actionsHeader="Acciones"
+  [actionsTemplate]="actionsTpl"
+/>

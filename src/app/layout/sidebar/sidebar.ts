@@ -22,6 +22,13 @@ const OPERATIVO_ITEM: DynadrillMenuItem = {
   ],
 };
 
+/** Para roles que solo tocan FCR dentro de Operativo (no Pumping): Bodega, Ingeniería de Ventas, Control de Herramientas. */
+const FCR_ONLY_ITEM: DynadrillMenuItem = {
+  label: 'Operativo',
+  icon: 'file-text',
+  children: [{ label: 'FCR', link: '/modulos/operativo/fcr' }],
+};
+
 const MANTENIMIENTO_ITEM: DynadrillMenuItem = {
   label: 'Mantenimiento',
   icon: 'tool' as DynadrillIconName,
@@ -157,7 +164,11 @@ export class Sidebar {
     }
 
     if (roleName === 'Bodeguero') {
-      return [dashboard, INVENTARIO_ITEM];
+      return [dashboard, INVENTARIO_ITEM, FCR_ONLY_ITEM];
+    }
+
+    if (roleName === 'Ingeniería de Ventas' || roleName === 'Control de Herramientas') {
+      return [dashboard, FCR_ONLY_ITEM];
     }
 
     if (roleName === 'Técnico HSE' || roleName === 'Coordinador HSE' || roleName === 'Gerente HSE') {

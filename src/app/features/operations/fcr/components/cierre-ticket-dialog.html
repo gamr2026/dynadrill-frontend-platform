@@ -1,0 +1,15 @@
+<section class="fcr-dialog">
+  <dynadrill-text variant="h1">Cerrar ticket FCR</dynadrill-text>
+
+  <dynadrill-context-card [items]="summaryItems" />
+
+  <dynadrill-banner
+    variant="info"
+    message="Al cerrar el ticket se enviará automáticamente la encuesta de satisfacción al cliente."
+  />
+</section>
+
+<footer class="fcr-dialog__actions">
+  <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+  <dynadrill-button variant="success" (clicked)="close()">Cerrar ticket</dynadrill-button>
+</footer>

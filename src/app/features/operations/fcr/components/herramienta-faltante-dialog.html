@@ -1,0 +1,33 @@
+<section class="fcr-dialog">
+  <dynadrill-text variant="h1">Registrar herramienta faltante</dynadrill-text>
+  <dynadrill-text variant="caption">Ticket {{ data.ticketCode }}</dynadrill-text>
+
+  <dynadrill-select
+    label="Herramienta"
+    placeholder="Seleccionar…"
+    [options]="toolOptions"
+    [value]="selectedToolId()"
+    (valueChange)="onToolChange($event)"
+  />
+
+  <dynadrill-select
+    label="Motivo"
+    placeholder="Seleccionar…"
+    [options]="reasonOptions"
+    [value]="selectedReason()"
+    (valueChange)="onReasonChange($event)"
+  />
+
+  <dynadrill-textarea
+    label="Notas adicionales"
+    placeholder="Detalle adicional sobre el faltante…"
+    [rows]="3"
+    [value]="notes()"
+    (valueChange)="notes.set($event)"
+  />
+</section>
+
+<footer class="fcr-dialog__actions">
+  <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+  <dynadrill-button variant="primary" [disabled]="!canRegister()" (clicked)="register()">Registrar</dynadrill-button>
+</footer>

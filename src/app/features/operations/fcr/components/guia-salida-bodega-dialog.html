@@ -1,0 +1,15 @@
+<section class="fcr-dialog">
+  <dynadrill-text variant="h1">Generar Guía de Salida por Bodega</dynadrill-text>
+
+  <dynadrill-banner
+    variant="info"
+    message="El motivo del faltante corresponde a venta complementaria. Bodega debe emitir esta guía antes de actualizar el inventario."
+  />
+
+  <dynadrill-context-card [items]="summaryItems" />
+</section>
+
+<footer class="fcr-dialog__actions">
+  <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+  <dynadrill-button variant="primary" (clicked)="generate()">Generar guía</dynadrill-button>
+</footer>

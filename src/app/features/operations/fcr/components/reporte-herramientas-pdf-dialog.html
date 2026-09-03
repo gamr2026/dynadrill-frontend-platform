@@ -1,0 +1,65 @@
+<div class="reporte-pdf">
+  <div class="reporte-pdf__doc-header">
+    <div class="reporte-pdf__doc-title">
+      <dynadrill-text variant="h1">Reporte Diario de Herramientas en Renta</dynadrill-text>
+      <dynadrill-text variant="caption">DYN-FCR-RE-008 · Ticket {{ data.ticket.code }}</dynadrill-text>
+    </div>
+    <div class="reporte-pdf__doc-meta">
+      <dynadrill-text variant="caption">Fecha de impresión: {{ printDate }}</dynadrill-text>
+    </div>
+  </div>
+
+  <div class="reporte-pdf__section">
+    <div class="reporte-pdf__grid-4">
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Cliente</dynadrill-text><dynadrill-text variant="body">{{ data.ticket.clientName }}</dynadrill-text></div>
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Pozo</dynadrill-text><dynadrill-text variant="body">{{ data.ticket.wellName }}</dynadrill-text></div>
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Supervisor</dynadrill-text><dynadrill-text variant="body">{{ data.ticket.assignedSupervisor || '—' }}</dynadrill-text></div>
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Operador</dynadrill-text><dynadrill-text variant="body">{{ data.ticket.assignedOperator || '—' }}</dynadrill-text></div>
+    </div>
+  </div>
+
+  <div class="reporte-pdf__section">
+    <dynadrill-text variant="caption" class="reporte-pdf__section-label">Uso diario por herramienta</dynadrill-text>
+    <div class="reporte-pdf__matrix-scroll">
+      <table class="reporte-pdf__table reporte-pdf__table--matrix">
+        <thead>
+          <tr>
+            <th>Herramienta</th>
+            @for (d of dates(); track d) { <th>{{ formatShort(d) }}</th> }
+            <th>O</th><th>S</th><th>D</th><th>V</th><th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.toolId) {
+            <tr>
+              <td>{{ row.name }}</td>
+              @for (d of dates(); track d) { <td class="reporte-pdf__cell-code">{{ row.cellsByDate[d] ?? '—' }}</td> }
+              <td>{{ row.counts.operacion }}</td>
+              <td>{{ row.counts.stand_by }}</td>
+              <td>{{ row.counts.daily_charge }}</td>
+              <td>{{ row.counts.venta }}</td>
+              <td>{{ row.total }}</td>
+            </tr>
+          } @empty {
+            <tr><td [attr.colspan]="dates().length + 6">Sin uso de herramientas registrado todavía.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="reporte-pdf__section">
+    <dynadrill-text variant="caption" class="reporte-pdf__section-label">Instrucciones</dynadrill-text>
+    <ul class="reporte-pdf__legend">
+      <li><strong>O</strong> — Herramienta en operación</li>
+      <li><strong>S</strong> — Herramienta en stand-by</li>
+      <li><strong>D</strong> — Herramienta daily charge</li>
+      <li><strong>V</strong> — Consumible / venta</li>
+    </ul>
+  </div>
+
+  <div class="reporte-pdf__actions no-print">
+    <dynadrill-button variant="secondary" (clicked)="close()">Cerrar</dynadrill-button>
+    <dynadrill-button (clicked)="print()">Imprimir / Exportar PDF</dynadrill-button>
+  </div>
+</div>

@@ -1,0 +1,27 @@
+<section class="fcr-dialog">
+  <dynadrill-text variant="h1">Reunión operativa y firma de acta</dynadrill-text>
+  <dynadrill-text variant="caption">Ticket {{ data.ticketCode }}</dynadrill-text>
+
+  <dynadrill-datetime-picker
+    label="Fecha y hora de la reunión"
+    [value]="meetingDate()"
+    [showTime]="true"
+    (valueChange)="meetingDate.set($event)"
+  />
+
+  <dynadrill-checkbox
+    label="Acta operativa firmada por Supervisor y Operador"
+    [checked]="actaSigned()"
+    (checkedChange)="actaSigned.set($event)"
+  />
+
+  <dynadrill-banner
+    variant="info"
+    message="La Ejecución de Campo permanece bloqueada hasta confirmar esta acta."
+  />
+</section>
+
+<footer class="fcr-dialog__actions">
+  <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+  <dynadrill-button variant="primary" [disabled]="!canConfirm()" (clicked)="confirm()">Confirmar acta</dynadrill-button>
+</footer>

@@ -1,0 +1,488 @@
+<dynadrill-screen-header
+  eyebrow="OPERATIVO · FCR"
+  [title]="ticket()?.code ?? 'Cargando…'"
+  [subtitle]="ticket()?.wellName ?? ''"
+  [roleTag]="roleName()"
+/>
+
+<dynadrill-button variant="secondary" size="small" (clicked)="goBack()">← Volver a Tickets</dynadrill-button>
+
+@if (loading()) {
+  <div class="fcr-detail__skeleton">
+    <div class="fcr-detail__skeleton-tracker">
+      @for (label of phaseLabels; track $index) {
+        <dynadrill-skeleton variant="circle" width="24px" height="24px" />
+      }
+    </div>
+    <dynadrill-skeleton variant="block" height="44px" />
+    <div class="fcr-detail__skeleton-context">
+      @for (i of [0, 1, 2, 3]; track i) {
+        <dynadrill-skeleton variant="text" [lines]="2" />
+      }
+    </div>
+    <dynadrill-skeleton variant="block" height="220px" />
+  </div>
+} @else {
+
+  <div class="fcr-detail__tracker">
+    @for (label of phaseLabels; track $index; let last = $last) {
+      <div
+        class="fcr-detail__phase"
+        [class.fcr-detail__phase--active]="$index === currentPhaseIndex()"
+        [class.fcr-detail__phase--completed]="$index < currentPhaseIndex()"
+      >
+        <div class="fcr-detail__phase-dot">
+          @if ($index < currentPhaseIndex()) {
+            <span>✓</span>
+          } @else {
+            <span>{{ $index + 1 }}</span>
+          }
+        </div>
+        <span class="fcr-detail__phase-label">{{ label }}</span>
+      </div>
+      @if (!last) {
+        <div class="fcr-detail__phase-line" [class.fcr-detail__phase-line--completed]="$index < currentPhaseIndex()"></div>
+      }
+    }
+  </div>
+
+  <dynadrill-banner
+    [variant]="isMyTurn() ? 'warning' : 'info'"
+    [message]="'Esperando acción de: ' + responsibleRole()"
+  />
+
+  <dynadrill-context-card [items]="contextItems()" />
+
+  @if (previousPhaseApproval(); as approval) {
+    <dynadrill-text variant="caption">
+      Fase anterior aprobada por {{ approval.approvedBy }} ({{ approval.approvedByRole }}) el {{ formatDate(approval.date) }}
+    </dynadrill-text>
+  }
+
+  @switch (currentPhase()) {
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- FASE: Validación                            -->
+    <!-- ═══════════════════════════════════════════ -->
+    @case ('validacion') {
+      <section class="fcr-detail__section">
+        <dynadrill-text variant="h2">Validación de la información técnica</dynadrill-text>
+        <dynadrill-text variant="caption">
+          Propuesta V{{ ticket()!.proposalVersion }} — revise información, propuesta técnica y apartado de herramientas antes de aprobar.
+        </dynadrill-text>
+
+        @if (ticket()!.observations.length > 0) {
+          <div class="fcr-detail__observations">
+            @for (obs of ticket()!.observations; track obs.id) {
+              <div class="fcr-detail__observation">
+                <strong>{{ obs.author }} · {{ obs.role }}</strong>
+                <span class="fcr-detail__observation-date">{{ obs.date }}</span>
+                <p>{{ obs.message }}</p>
+              </div>
+            }
+          </div>
+        }
+
+        @if (isMyTurn() && roleName() === 'Ingeniería de Ventas') {
+          <footer class="fcr-detail__actions">
+            <dynadrill-button variant="primary" (clicked)="resolveCorrection()">Reenviar a Supervisor</dynadrill-button>
+          </footer>
+        } @else if (isMyTurn()) {
+          <footer class="fcr-detail__actions">
+            <dynadrill-button variant="secondary" (clicked)="openSolicitarCorreccion()">Solicitar corrección</dynadrill-button>
+            <dynadrill-button variant="primary" (clicked)="approveValidation()">Aprobar información</dynadrill-button>
+          </footer>
+        }
+      </section>
+    }
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- FASE: Preparación de Herramientas           -->
+    <!-- ═══════════════════════════════════════════ -->
+    @case ('preparacion_herramientas') {
+      <section class="fcr-detail__section">
+        <dynadrill-text variant="h2">Preparación de Herramientas</dynadrill-text>
+        <dynadrill-text variant="caption">Selección desde el inventario del cliente · Bodega prepara · Supervisor recibe</dynadrill-text>
+
+        <table class="fcr-detail__table">
+          <thead>
+            <tr><th>Herramienta</th><th>Estado</th><th></th></tr>
+          </thead>
+          <tbody>
+            @for (tool of originalTools(); track tool.id) {
+              <ng-container [ngTemplateOutlet]="toolRow" [ngTemplateOutletContext]="{ $implicit: tool }" />
+            }
+          </tbody>
+        </table>
+
+        @if (lateTools().length > 0) {
+          <dynadrill-text variant="caption">Agregadas después — el resto del proceso ya había avanzado cuando se sumaron</dynadrill-text>
+          <table class="fcr-detail__table">
+            <thead>
+              <tr><th>Herramienta</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody>
+              @for (tool of lateTools(); track tool.id) {
+                <ng-container [ngTemplateOutlet]="toolRow" [ngTemplateOutletContext]="{ $implicit: tool }" />
+              }
+            </tbody>
+          </table>
+        }
+
+        <ng-template #toolRow let-tool>
+          <tr>
+            <td>{{ tool.name }}</td>
+            <td><dynadrill-tag [label]="toolStatusLabel(tool.status)" [variant]="tool.status === 'recibida' ? 'success' : 'warning'" /></td>
+            <td>
+              @if (roleName() === 'Bodeguero' && tool.status === 'seleccionada' && tool.sentToBodega) {
+                <dynadrill-button variant="secondary" size="small" (clicked)="markToolPrepared(tool.id)">Marcar preparada</dynadrill-button>
+              }
+              @if (roleName() === 'Bodeguero' && tool.status === 'en_preparacion') {
+                <dynadrill-icon-button icon="edit" tooltip="Corregir (volver a Seleccionada)" (clicked)="correctTool(tool.id, 'seleccionada')" />
+              }
+              @if (roleName() === 'Supervisor' && tool.status === 'en_preparacion' && tool.sentToSupervisor) {
+                <dynadrill-button variant="secondary" size="small" (clicked)="receiveTool(tool.id)">Recibir</dynadrill-button>
+              }
+              @if (roleName() === 'Supervisor' && tool.status === 'recibida') {
+                <dynadrill-icon-button icon="edit" tooltip="Corregir (volver a En preparación)" (clicked)="correctTool(tool.id, 'en_preparacion')" />
+              }
+              @if (roleName() === 'Supervisor' && tool.status === 'seleccionada' && !tool.sentToBodega) {
+                <dynadrill-icon-button class="fcr-detail__tool-delete" icon="delete" tooltip="Quitar herramienta" (clicked)="removeTool(tool.id)" />
+              }
+            </td>
+          </tr>
+        </ng-template>
+
+        @if (roleName() === 'Supervisor' && !ticket()!.toolListConfirmed) {
+          <div class="fcr-detail__add-tool">
+            <dynadrill-select
+              label="Agregar herramienta del inventario del cliente"
+              placeholder="Seleccionar…"
+              [options]="availableToAdd()"
+              [value]="toolToAdd()"
+              (valueChange)="onToolToAddChange($event)"
+            />
+            <dynadrill-button variant="secondary" [disabled]="!toolToAdd()" (clicked)="addTool()">+ Agregar</dynadrill-button>
+          </div>
+        }
+
+        @if (roleName() === 'Supervisor' && canSendToBodega()) {
+          <footer class="fcr-detail__actions">
+            <dynadrill-button variant="primary" (clicked)="sendToolsToBodega()">Enviar a Bodega</dynadrill-button>
+          </footer>
+        }
+
+        @if (roleName() === 'Bodeguero' && canSendToSupervisor()) {
+          <footer class="fcr-detail__actions">
+            <dynadrill-button variant="primary" (clicked)="sendToolsToSupervisor()">Enviar al Supervisor</dynadrill-button>
+          </footer>
+        }
+
+        @if (roleName() === 'Supervisor' && canConfirmToolList()) {
+          <footer class="fcr-detail__actions">
+            <dynadrill-button variant="primary" (clicked)="confirmToolListComplete()">Enviar a documento de inspección</dynadrill-button>
+          </footer>
+        }
+
+        @if (roleName() === 'Supervisor' && ticket()!.toolListConfirmed) {
+          <div class="fcr-detail__inspection">
+            <div class="fcr-detail__inspection-header">
+              <dynadrill-text variant="subtitle">Documento de inspección</dynadrill-text>
+              @if (!ticket()!.inspectionDocumentUploaded) {
+                <dynadrill-button variant="secondary" size="small" (clicked)="reopenToolList()">Reabrir lista de herramientas</dynadrill-button>
+              }
+            </div>
+            <dynadrill-upload-zone
+              [state]="inspectionUploadState()"
+              [fileName]="ticket()!.inspectionDocumentUploaded ? 'inspeccion-fcr.pdf' : ''"
+              (fileSelected)="onInspectionUploaded()"
+            />
+          </div>
+        }
+
+        @if (ticket()!.reviewGuideGenerated) {
+          <footer class="fcr-detail__actions">
+            <dynadrill-button
+              variant="primary"
+              (clicked)="confirmAndAdvance('asignacion_operador', 'Continuar a Asignación de Operador', 'La preparación de herramientas quedará cerrada y ya no podrá corregirse. ¿Continuar?')"
+            >Continuar a Asignación de Operador</dynadrill-button>
+          </footer>
+        }
+      </section>
+    }
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- FASE: Asignación de Operador                -->
+    <!-- ═══════════════════════════════════════════ -->
+    @case ('asignacion_operador') {
+      <section class="fcr-detail__section">
+        <dynadrill-text variant="h2">Asignación de Operador</dynadrill-text>
+
+        @if (ticket()!.assignedOperator) {
+          <dynadrill-text variant="body">Operador asignado: <strong>{{ ticket()!.assignedOperator }}</strong></dynadrill-text>
+          <footer class="fcr-detail__actions">
+            @if (isMyTurn()) {
+              <dynadrill-button variant="secondary" (clicked)="openAsignarOperador()">Reasignar operador</dynadrill-button>
+            }
+            <dynadrill-button
+              variant="primary"
+              (clicked)="confirmAndAdvance('reunion_operativa', 'Continuar a Reunión Operativa', 'La asignación de operador quedará cerrada. ¿Continuar?')"
+            >Continuar a Reunión Operativa</dynadrill-button>
+          </footer>
+        } @else if (isMyTurn()) {
+          <dynadrill-button variant="primary" (clicked)="openAsignarOperador()">Asignar operador</dynadrill-button>
+        }
+      </section>
+    }
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- FASE: Reunión Operativa                     -->
+    <!-- ═══════════════════════════════════════════ -->
+    @case ('reunion_operativa') {
+      <section class="fcr-detail__section">
+        <dynadrill-text variant="h2">Reunión Operativa y Firma de Acta</dynadrill-text>
+
+        @if (ticket()!.operationalActaSigned) {
+          <dynadrill-text variant="body">Acta firmada — reunión del {{ formatDate(ticket()!.operationalMeetingDate) }}.</dynadrill-text>
+          <footer class="fcr-detail__actions">
+            <dynadrill-button
+              variant="primary"
+              (clicked)="confirmAndAdvance('ejecucion_campo', 'Continuar a Ejecución de Campo', 'La reunión operativa quedará cerrada. ¿Continuar?')"
+            >Continuar a Ejecución de Campo</dynadrill-button>
+          </footer>
+        } @else if (isMyTurn()) {
+          <dynadrill-button variant="primary" (clicked)="openFirmaActa()">Registrar reunión y firmar acta</dynadrill-button>
+        }
+      </section>
+    }
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- FASE: Ejecución de Campo                    -->
+    <!-- ═══════════════════════════════════════════ -->
+    @case ('ejecucion_campo') {
+      <section class="fcr-detail__section">
+        <dynadrill-text variant="h2">Ejecución del Trabajo FCR</dynadrill-text>
+        <dynadrill-text variant="caption">Bitácora horaria y uso de herramientas — alimentan el Reporte de Trabajo y el Reporte de Herramientas al finalizar.</dynadrill-text>
+
+        @if (ticket()!.workReportUploaded) {
+          <dynadrill-text variant="body">Reportes de campo subidos, pendientes de revisión del Supervisor.</dynadrill-text>
+        } @else {
+          @if (isMyTurn()) {
+            <div class="fcr-detail__log-form">
+              <dynadrill-text variant="subtitle">Registrar actividad</dynadrill-text>
+              <div class="fcr-detail__log-form-row">
+                <dynadrill-input label="Hora inicio (HH:MM)" placeholder="07:00" [value]="activityStart()" (valueChange)="activityStart.set($event)" />
+                <dynadrill-input label="Hora fin (HH:MM)" placeholder="08:30" [value]="activityEnd()" (valueChange)="activityEnd.set($event)" />
+                <div class="fcr-detail__log-duration">
+                  <dynadrill-text variant="caption">Duración calculada</dynadrill-text>
+                  <dynadrill-text variant="body">{{ activityDuration() !== null ? activityDuration() + ' h' : '—' }}</dynadrill-text>
+                </div>
+              </div>
+              <dynadrill-textarea
+                label="Detalle de la actividad"
+                placeholder="Describa la actividad realizada…"
+                [rows]="2"
+                [value]="activityDetail()"
+                (valueChange)="activityDetail.set($event)"
+              />
+              <dynadrill-button variant="secondary" size="small" [disabled]="!canAddActivity()" (clicked)="addActivityLogEntry()">+ Agregar actividad</dynadrill-button>
+            </div>
+          }
+
+          @if (sortedActivityLog().length > 0) {
+            <table class="fcr-detail__table">
+              <thead><tr><th>Fecha</th><th>Inicio</th><th>Fin</th><th>Horas</th><th>Detalle</th><th></th></tr></thead>
+              <tbody>
+                @for (entry of sortedActivityLog(); track entry.id) {
+                  <tr>
+                    <td>{{ formatDate(entry.date) }}</td>
+                    <td>{{ entry.startTime }}</td>
+                    <td>{{ entry.endTime }}</td>
+                    <td>{{ entry.durationHours }}</td>
+                    <td>{{ entry.detail }}</td>
+                    <td>
+                      @if (isMyTurn()) {
+                        <dynadrill-icon-button class="fcr-detail__tool-delete" icon="delete" tooltip="Quitar actividad" (clicked)="removeActivityLogEntry(entry.id)" />
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+
+          @if (isMyTurn()) {
+            <div class="fcr-detail__log-form">
+              <dynadrill-text variant="subtitle">Registrar uso de herramienta</dynadrill-text>
+              <div class="fcr-detail__log-form-row">
+                <dynadrill-select label="Herramienta" placeholder="Seleccionar…" [options]="usageToolOptions()" [value]="usageToolId()" (valueChange)="onUsageToolChange($event)" />
+                <dynadrill-datetime-picker label="Fecha" [value]="usageDate()" (valueChange)="onUsageDateChange($event)" />
+                <dynadrill-select label="Estado del día" placeholder="Seleccionar…" [options]="usageStatusOptions" [value]="usageStatus()" (valueChange)="onUsageStatusChange($event)" />
+              </div>
+              <dynadrill-button variant="secondary" size="small" [disabled]="!canAddToolUsage()" (clicked)="addToolUsageEntry()">+ Registrar uso</dynadrill-button>
+            </div>
+          }
+
+          @if (sortedToolUsageLog().length > 0) {
+            <table class="fcr-detail__table">
+              <thead><tr><th>Herramienta</th><th>Fecha</th><th>Estado</th><th></th></tr></thead>
+              <tbody>
+                @for (entry of sortedToolUsageLog(); track entry.id) {
+                  <tr>
+                    <td>{{ entry.toolName }}</td>
+                    <td>{{ formatDate(entry.date) }}</td>
+                    <td>{{ toolDailyStatusLabel(entry.status) }}</td>
+                    <td>
+                      @if (isMyTurn()) {
+                        <dynadrill-icon-button class="fcr-detail__tool-delete" icon="delete" tooltip="Quitar registro" (clicked)="removeToolUsageEntry(entry.id)" />
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+
+          @if (isMyTurn()) {
+            <footer class="fcr-detail__actions">
+              <dynadrill-button variant="primary" [disabled]="sortedActivityLog().length === 0" (clicked)="submitFieldReports()">Finalizar ejecución y subir reportes</dynadrill-button>
+            </footer>
+            @if (sortedActivityLog().length === 0) {
+              <dynadrill-text variant="caption">Registre al menos una actividad en la bitácora antes de finalizar.</dynadrill-text>
+            }
+          }
+        }
+      </section>
+    }
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- FASE: Revisión de Reportes                  -->
+    <!-- ═══════════════════════════════════════════ -->
+    @case ('revision_reportes') {
+      <section class="fcr-detail__section">
+        <dynadrill-text variant="h2">Revisión de Reportes</dynadrill-text>
+        <dynadrill-text variant="caption">Documentos subidos por el Operador</dynadrill-text>
+
+        <div class="fcr-detail__review-grid">
+          <div class="fcr-detail__docs">
+            <dynadrill-text variant="subtitle">Documentos</dynadrill-text>
+            @if (ticket()!.workReportUploaded) {
+              <div class="fcr-detail__doc-row">
+                <dynadrill-icon name="file-text" [size]="16" />
+                <dynadrill-text variant="body">Reporte de trabajo</dynadrill-text>
+                <dynadrill-button variant="secondary" size="small" (clicked)="openReporteJob()">Ver PDF</dynadrill-button>
+              </div>
+            }
+            @if (ticket()!.toolReportUploaded) {
+              <div class="fcr-detail__doc-row">
+                <dynadrill-icon name="file-text" [size]="16" />
+                <dynadrill-text variant="body">Reporte de herramientas</dynadrill-text>
+                <dynadrill-button variant="secondary" size="small" (clicked)="openReporteHerramientas()">Ver PDF</dynadrill-button>
+              </div>
+            }
+            @if (ticket()!.finalReviewGuideUploaded) {
+              <div class="fcr-detail__doc-row">
+                <dynadrill-icon name="file-text" [size]="16" />
+                <dynadrill-text variant="body">Guía de revisión final</dynadrill-text>
+              </div>
+            }
+          </div>
+
+          @if (ticket()!.observations.length > 0) {
+            <div class="fcr-detail__observations">
+              <dynadrill-text variant="subtitle">Historial de observaciones</dynadrill-text>
+              @for (obs of ticket()!.observations; track obs.id) {
+                <div class="fcr-detail__observation">
+                  <strong>{{ obs.author }} · {{ obs.role }}</strong>
+                  <span class="fcr-detail__observation-date">{{ obs.date }}</span>
+                  <p>{{ obs.message }}</p>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        @if (isMyTurn()) {
+          <dynadrill-approval-actions
+            [decision]="reportsDecision()"
+            consequenceApprove="El ticket continúa a Control de Retorno de Herramientas."
+            consequenceReject="Se notifica al Operador para corregir los reportes."
+            (decisionChange)="onReportsDecisionChange($event)"
+          />
+
+          @if (reportsDecision() === 'rejected') {
+            <dynadrill-textarea
+              label="Observaciones para el Operador"
+              placeholder="Detalle qué debe corregirse…"
+              [rows]="3"
+              [value]="rejectionNote()"
+              (valueChange)="rejectionNote.set($event)"
+            />
+            <dynadrill-button variant="primary" [disabled]="!rejectionNote().trim()" (clicked)="confirmRejection()">Enviar corrección</dynadrill-button>
+          }
+        }
+      </section>
+    }
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- FASE: Control de Retorno                    -->
+    <!-- ═══════════════════════════════════════════ -->
+    @case ('control_retorno') {
+      <section class="fcr-detail__section">
+        <dynadrill-text variant="h2">Control de Retorno de Herramientas</dynadrill-text>
+        <dynadrill-text variant="caption">Conciliación contra la Guía de Movimiento Local de Envío y Retorno</dynadrill-text>
+
+        <table class="fcr-detail__table">
+          <thead>
+            <tr><th>Herramienta</th><th>Estado</th><th>Motivo si falta</th><th></th></tr>
+          </thead>
+          <tbody>
+            @for (tool of ticket()!.tools; track tool.id) {
+              <tr>
+                <td>{{ tool.name }}</td>
+                <td><dynadrill-tag [label]="toolStatusLabel(tool.status)" [variant]="tool.status === 'devuelta' ? 'success' : (tool.status === 'faltante' ? 'warning' : 'neutral')" /></td>
+                <td>{{ tool.missingReason ?? '—' }}</td>
+                <td>
+                  @if (isMyTurn() && tool.status === 'recibida') {
+                    <dynadrill-button variant="secondary" size="small" (clicked)="markToolReturned(tool.id)">Devuelta</dynadrill-button>
+                  }
+                  @if (roleName() === 'Bodeguero' && tool.status === 'faltante' && !ticket()!.bodegaExitGuideGenerated && tool.missingReason?.startsWith('Venta de herramienta complementaria')) {
+                    <dynadrill-button variant="secondary" size="small" (clicked)="openGuiaSalidaBodega(tool)">Generar Guía de Salida</dynadrill-button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        @if (isMyTurn() && pendingReturnTools().length > 0) {
+          <dynadrill-button variant="secondary" (clicked)="openHerramientaFaltante()">Registrar herramienta faltante</dynadrill-button>
+        }
+
+        @if (isMyTurn() && toolReturnControlComplete()) {
+          <footer class="fcr-detail__actions">
+            <dynadrill-button
+              variant="primary"
+              (clicked)="confirmAndAdvance('cierre', 'Continuar a Cierre', 'El control de retorno de herramientas quedará cerrado. ¿Continuar?')"
+            >Continuar a Cierre</dynadrill-button>
+          </footer>
+        }
+      </section>
+    }
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- FASE: Cierre                                -->
+    <!-- ═══════════════════════════════════════════ -->
+    @case ('cierre') {
+      <section class="fcr-detail__section">
+        <dynadrill-text variant="h2">Cierre de Ticket y Encuesta</dynadrill-text>
+
+        @if (ticket()!.surveySent) {
+          <dynadrill-banner variant="info" message="Ticket cerrado. Encuesta de satisfacción enviada al cliente." />
+        } @else if (isMyTurn()) {
+          <dynadrill-button variant="success" (clicked)="openCierreTicket()">Cerrar ticket</dynadrill-button>
+        }
+      </section>
+    }
+  }
+}

@@ -15,6 +15,7 @@ import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { authMockInterceptor } from './core/mocks/auth-mock.interceptor';
 import { usersMockInterceptor } from './core/mocks/users-mock.interceptor';
 import { pumpingMockInterceptor } from './core/mocks/pumping-mock.interceptor';
+import { fcrMockInterceptor } from './core/mocks/fcr-mock.interceptor';
 import { maintenanceMockInterceptor } from './core/mocks/maintenance-mock.interceptor';
 import { qhseMockInterceptor } from './core/mocks/qhse-mock.interceptor';
 import { inventarioMockInterceptor } from './core/mocks/inventario-mock.interceptor';
@@ -30,7 +31,7 @@ registerLocaleData(localeEs);
 // junto con core/mocks/auth-mock.interceptor.ts cuando el backend NestJS
 // de auth exista de verdad.
 const interceptors: HttpInterceptorFn[] = isDevMode()
-  ? [authMockInterceptor, usersMockInterceptor, pumpingMockInterceptor, maintenanceMockInterceptor, qhseMockInterceptor, inventarioMockInterceptor, facturacionMockInterceptor, authInterceptor]
+  ? [authMockInterceptor, usersMockInterceptor, pumpingMockInterceptor, fcrMockInterceptor, maintenanceMockInterceptor, qhseMockInterceptor, inventarioMockInterceptor, facturacionMockInterceptor, authInterceptor]
   : [authInterceptor];
 
 export const appConfig: ApplicationConfig = {

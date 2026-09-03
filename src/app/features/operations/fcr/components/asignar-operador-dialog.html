@@ -1,0 +1,40 @@
+<section class="fcr-dialog">
+  <dynadrill-text variant="h1">Asignar operador</dynadrill-text>
+  <dynadrill-text variant="caption">Ticket {{ data.ticketCode }}</dynadrill-text>
+
+  <div class="asignar-operador__range">
+    <dynadrill-text variant="caption">Rango del servicio</dynadrill-text>
+    <nz-range-picker
+      [ngModel]="dateRange()"
+      (ngModelChange)="onDateRangeChange($event)"
+      nzFormat="dd/MM/yyyy"
+      [nzAllowClear]="false"
+    />
+  </div>
+
+  <dynadrill-select
+    label="Operador disponible"
+    [placeholder]="loadingOperators() ? 'Buscando disponibilidad…' : 'Seleccionar…'"
+    [disabled]="loadingOperators()"
+    [options]="operatorOptions()"
+    [value]="selectedOperator()"
+    (valueChange)="onOperatorChange($event)"
+  />
+
+  <dynadrill-spinner mode="overlay" [spinning]="loadingOperators()" tip="Buscando disponibilidad de personal…">
+    <div class="asignar-operador__availability">
+      <dynadrill-text variant="caption">Disponibilidad para el rango elegido</dynadrill-text>
+      @for (a of availability(); track a.name) {
+        <div class="asignar-operador__availability-row" [class.asignar-operador__availability-row--unavailable]="!a.available">
+          <dynadrill-icon [name]="a.available ? 'check' : 'close'" [size]="14" />
+          <span>{{ a.name }} — {{ a.detail }}</span>
+        </div>
+      }
+    </div>
+  </dynadrill-spinner>
+</section>
+
+<footer class="fcr-dialog__actions">
+  <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+  <dynadrill-button variant="primary" [disabled]="!canAssign()" (clicked)="assign()">Asignar</dynadrill-button>
+</footer>

@@ -1,0 +1,17 @@
+<section class="fcr-dialog">
+  <dynadrill-text variant="h1">Solicitar corrección de propuesta</dynadrill-text>
+  <dynadrill-tag [label]="versionLabel" variant="warning" />
+
+  <dynadrill-textarea
+    label="Observaciones para Ingeniería de Ventas"
+    placeholder="Detalle qué información falta o debe corregirse…"
+    [rows]="5"
+    [value]="observations()"
+    (valueChange)="observations.set($event)"
+  />
+</section>
+
+<footer class="fcr-dialog__actions">
+  <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+  <dynadrill-button variant="primary" [disabled]="!canSend()" (clicked)="send()">Enviar a Ventas</dynadrill-button>
+</footer>

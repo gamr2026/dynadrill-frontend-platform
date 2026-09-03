@@ -1,0 +1,266 @@
+:host {
+  display: block;
+  padding: 1.5rem;
+}
+
+// ── Skeleton de carga inicial (mismo ritmo visual que el tracker + banner + contexto real) ──
+
+.fcr-detail__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.fcr-detail__skeleton-tracker {
+  display: flex;
+  justify-content: space-between;
+}
+
+.fcr-detail__skeleton-context {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+
+  @media (max-width: 720px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+// ── Tracker de 8 fases, con etiqueta siempre visible (no solo tooltip) ──
+
+.fcr-detail__tracker {
+  display: flex;
+  align-items: flex-start;
+  margin: 1.5rem 0;
+  padding: 0;
+}
+
+.fcr-detail__phase {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 5.5rem;
+}
+
+.fcr-detail__phase-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border, #d9d9d9);
+  background: #fff;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 12px;
+  font-family: var(--font-body, sans-serif);
+  transition: all 0.2s;
+
+  .fcr-detail__phase--active & {
+    background: var(--dynadrill-purple, #662e9b);
+    border-color: var(--dynadrill-purple, #662e9b);
+    color: #fff;
+  }
+
+  .fcr-detail__phase--completed & {
+    border-color: var(--dynadrill-purple, #662e9b);
+    background: #fff;
+    color: var(--dynadrill-purple, #662e9b);
+  }
+}
+
+.fcr-detail__phase-label {
+  margin-top: 0.375rem;
+  font-size: 0.6875rem;
+  text-align: center;
+  color: rgba(0, 0, 0, 0.55);
+  line-height: 1.2;
+
+  .fcr-detail__phase--active & {
+    color: var(--dynadrill-purple, #662e9b);
+    font-weight: 600;
+  }
+}
+
+.fcr-detail__phase-line {
+  flex: 1;
+  height: 1px;
+  min-width: 12px;
+  margin-top: 12px;
+  background: var(--color-border, #d9d9d9);
+  transition: background 0.2s;
+
+  &--completed {
+    background: var(--dynadrill-purple, #662e9b);
+  }
+}
+
+// ── Secciones de fase ──
+
+.fcr-detail__section {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.fcr-detail__actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.fcr-detail__add-tool {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+
+  dynadrill-select {
+    flex: 1;
+    max-width: 24rem;
+  }
+}
+
+.fcr-detail__inspection {
+  margin-top: 0.5rem;
+}
+
+// ── Bitácora de actividades y uso de herramientas (Ejecución de Campo) ──
+
+.fcr-detail__log-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface-secondary, #f8f9fa);
+  border-radius: 0.5rem;
+}
+
+.fcr-detail__log-form-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+
+  > * {
+    flex: 1;
+    min-width: 10rem;
+  }
+}
+
+.fcr-detail__log-duration {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 8rem;
+}
+
+.fcr-detail__inspection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.fcr-detail__review-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 360px) 1fr;
+  gap: 1.5rem;
+  align-items: start;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fcr-detail__docs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface-secondary, #f8f9fa);
+  border-radius: 0.5rem;
+}
+
+.fcr-detail__doc-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-default, #e0e0e0);
+  border-radius: 0.375rem;
+  color: var(--text-secondary, #555);
+
+  dynadrill-text {
+    flex: 1;
+  }
+}
+
+.fcr-detail__observations {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface-secondary, #f8f9fa);
+  border-radius: 0.5rem;
+}
+
+.fcr-detail__observation {
+  font-size: 0.8125rem;
+
+  strong {
+    margin-right: 0.5rem;
+  }
+
+  p {
+    margin: 0.25rem 0 0;
+    color: var(--text-secondary, #555);
+  }
+}
+
+.fcr-detail__observation-date {
+  color: var(--text-secondary, #888);
+  font-size: 0.75rem;
+}
+
+// dynadrill-icon-button no tiene variante "danger" — ::ng-deep pisa su
+// encapsulamiento para el botón de quitar herramienta (necesita !important
+// porque la librería también usa !important en .dynadrill-icon-btn).
+.fcr-detail__tool-delete {
+  ::ng-deep .dynadrill-icon-btn {
+    color: var(--color-danger, #e74c3c) !important;
+    border-color: var(--color-danger, #e74c3c) !important;
+
+    // La regla :hover de la librería tiene más especificidad que la base de
+    // arriba — hay que repetir color/border-color acá o el hover revierte
+    // al morado propio del componente en vez de quedarse en rojo.
+    &:hover:not([disabled]) {
+      color: var(--color-danger, #e74c3c) !important;
+      border-color: var(--color-danger, #e74c3c) !important;
+      background: var(--color-danger-bg, #fdf0ef) !important;
+    }
+  }
+}
+
+// ── Tablas de herramientas ──
+
+.fcr-detail__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+
+  th,
+  td {
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-default, #e0e0e0);
+  }
+
+  th {
+    font-weight: 600;
+    color: var(--text-secondary, #666);
+  }
+}

@@ -7,11 +7,11 @@
   white-space: pre-line;
 }
 
-// ── Stepper custom con tooltip ──
+// ── Stepper custom con leyenda ──
 
 .ticket-detail__stepper {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   margin: 1.5rem 0 0.5rem;
   padding: 0;
 }
@@ -22,12 +22,7 @@
   flex-direction: column;
   align-items: center;
   flex-shrink: 0;
-
-  &:hover .ticket-detail__step-tooltip {
-    opacity: 1;
-    visibility: visible;
-    transform: translateX(-50%) translateY(0);
-  }
+  width: 5.5rem;
 }
 
 .ticket-detail__step-circle {
@@ -62,42 +57,26 @@
   font-weight: 700;
 }
 
-.ticket-detail__step-tooltip {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%) translateY(4px);
-  padding: 6px 12px;
-  background: rgba(0, 0, 0, 0.85);
-  color: #fff;
-  font-size: 12px;
-  font-family: var(--font-body, sans-serif);
-  border-radius: 4px;
-  white-space: nowrap;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.2s ease;
-  z-index: 1000;
-  pointer-events: none;
+.ticket-detail__step-label {
+  margin-top: 0.375rem;
+  font-size: 0.6875rem;
+  text-align: center;
+  color: rgba(0, 0, 0, 0.55);
+  line-height: 1.2;
 
-  &::before {
-    content: '';
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-bottom-color: rgba(0, 0, 0, 0.85);
+  .ticket-detail__step--active & {
+    color: var(--dynadrill-purple, #662e9b);
+    font-weight: 600;
   }
 }
 
 .ticket-detail__step-line {
   flex: 1;
   height: 1px;
-  min-width: 20px;
+  min-width: 12px;
+  margin-top: 12px;
   background: var(--color-border, #d9d9d9);
   transition: background 0.2s;
-  margin: 0 2px;
 
   &--completed {
     background: var(--dynadrill-purple, #662e9b);

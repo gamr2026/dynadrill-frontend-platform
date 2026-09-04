@@ -3,15 +3,15 @@ import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import {
   DynadrillButtonComponent,
+  DynadrillIconComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
   DynadrillProgressComponent,
   type DynadrillProgressStatus,
   DynadrillScreenHeaderComponent,
+  DynadrillSectionComponent,
   DynadrillStatisticComponent,
   type DynadrillStatisticTone,
-  DynadrillTabsComponent,
-  type DynadrillTab,
   DynadrillTagComponent,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
@@ -83,8 +83,12 @@ const PTW_DIAS_SIN_ACTIVIDAD_ALERTA = 3;
 interface AtencionItem {
   id: number;
   code: string;
+  /** Descripción de la actividad — va debajo del código con ícono, no en la misma línea que el estado. */
   titulo: string;
-  motivo: string;
+  /** Badge corto, extremo opuesto al código en la fila superior. */
+  estado: string;
+  /** Segunda línea con ícono de reloj — solo cuando hay un dato temporal aparte del estado. */
+  detalle?: string;
   tone: DynadrillTagVariant;
 }
 
@@ -96,9 +100,10 @@ interface AtencionItem {
     DynadrillTagComponent,
     DynadrillStatisticComponent,
     DynadrillProgressComponent,
-    DynadrillTabsComponent,
     DynadrillInputComponent,
     DynadrillButtonComponent,
+    DynadrillIconComponent,
+    DynadrillSectionComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './qhse-dashboard-page.html',
@@ -119,7 +124,6 @@ export class QhseDashboardPage {
   private readonly router = inject(Router);
 
   protected readonly categorias = CATEGORIAS;
-  protected readonly categoriaTabs: DynadrillTab[] = CATEGORIAS.map(label => ({ label }));
   protected readonly categoriaIndex = signal(0);
   protected readonly defs = DASHBOARD_KPI_DEFS;
   protected readonly semaforoLabel = SEMAFORO_LABEL;
@@ -157,12 +161,12 @@ export class QhseDashboardPage {
     const items: AtencionItem[] = [];
     for (const m of this.matricesRaw()) {
       if (m.status === 'rechazada') {
-        items.push({ id: m.id, code: m.code, titulo: m.actividad, motivo: 'Rechazada — pendiente de corregir', tone: 'error' });
+        items.push({ id: m.id, code: m.code, titulo: m.actividad, estado: 'Rechazada', detalle: 'Pendiente de corregir', tone: 'error' });
       } else if (m.status === 'en_revision') {
-        items.push({ id: m.id, code: m.code, titulo: m.actividad, motivo: 'En revisión — pendiente de aprobar', tone: 'warning' });
+        items.push({ id: m.id, code: m.code, titulo: m.actividad, estado: 'En revisión', detalle: 'Pendiente de aprobar', tone: 'warning' });
       }
       if (m.leccionAprendidaPendiente) {
-        items.push({ id: m.id, code: m.code, titulo: m.actividad, motivo: 'Lección aprendida pendiente de revisar', tone: 'warning' });
+        items.push({ id: m.id, code: m.code, titulo: m.actividad, estado: 'Lección aprendida', detalle: 'Pendiente de revisar', tone: 'warning' });
       }
     }
     return items;
@@ -192,7 +196,8 @@ export class QhseDashboardPage {
         id: p.id,
         code: p.code,
         titulo: p.actividad,
-        motivo: `Sin actividad hace ${dias} días — Fase: ${PTW_FASE_LABELS[p.fase]}`,
+        estado: `${dias} días sin actividad`,
+        detalle: `Fase: ${PTW_FASE_LABELS[p.fase]}`,
         tone: 'warning' as DynadrillTagVariant,
       }));
   });

@@ -40,7 +40,11 @@
   &__content {
     grid-area: content;
     overflow-y: auto;
-    padding: 24px;
+    // Padding derecho mayor que el izquierdo: a la izquierda el sidebar
+    // oscuro (260px sólido) ya da sensación fuerte de margen; a la derecha
+    // no hay ningún bloque visual que lo ancle, así que 24px se percibía
+    // como "pegado al borde" aunque fuera simétrico en números.
+    padding: 24px 48px 24px 24px;
     background: var(--surface-muted, #faf9fc);
   }
 

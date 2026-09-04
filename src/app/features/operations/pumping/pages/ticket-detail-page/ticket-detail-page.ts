@@ -41,6 +41,7 @@ import {
   type DailyActivityReport,
 } from '../../models/pumping.model';
 import { PumpingService } from '../../services/pumping.service';
+import { OperativoDocsBridgeService } from '../../../../../shared/index';
 import { CreateUnitReportInput, unitReportHasNovedades } from '../../../../maintenance/models/unit-report.model';
 import { UnitReportsService } from '../../../../maintenance/services/unit-reports.service';
 import { UnidadesService } from '../../../../maintenance/services/unidades.service';
@@ -131,6 +132,7 @@ export class TicketDetailPage {
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(DynadrillDialogService);
+  private readonly docsBridge = inject(OperativoDocsBridgeService);
 
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
   private readonly unitReportsService = inject(UnitReportsService);
@@ -903,6 +905,34 @@ export class TicketDetailPage {
     return rows.every(r => reports.has(r.fecha));
   });
 
+  /** Puente Pumping → Facturación: al guardar un reporte diario, se empuja al Pedido vinculado. */
+  private enviarReporteJobAFacturacion(report: DailyActivityReport): void {
+    const t = this.ticket();
+    if (!t?.pedidoCode) return;
+    const actividades = report.actividades
+      .filter(a => a.detalle.trim())
+      .map((a, i) => ({
+        id: i + 1,
+        date: report.fecha,
+        startTime: a.inicio,
+        endTime: a.fin,
+        durationHours: a.horas ?? 0,
+        detail: a.detalle,
+        author: report.nombreSupervisor || t.assignedSupervisor,
+      }));
+    if (!actividades.length) return;
+    this.docsBridge.pushReporteJob({
+      pedidoCode: t.pedidoCode,
+      origen: 'pumping',
+      ticketOperativoId: t.id,
+      fecha: report.fecha,
+      firmadoPor: report.nombreSupervisor || t.assignedSupervisor,
+      header: { code: t.code, cliente: t.clientName, pozo: t.wellName, supervisor: t.assignedSupervisor, operador: t.assignedOperator },
+      actividades,
+    });
+    this.notify.info('Enviado a Facturación', `Reporte Job del ${report.fecha} vinculado al Pedido ${t.pedidoCode}.`);
+  }
+
   protected openDailyActivityReportForDay(row: Record<string, unknown>): void {
     const t = this.ticket();
     if (!t) return;
@@ -925,12 +955,14 @@ export class TicketDetailPage {
 
     ref.afterClose.subscribe((result: DailyActivityReportDialogResult | undefined) => {
       if (result?.saved && result.report) {
+        const report = { ...result.report, fecha };
         this.dailyActivityReports.update(map => {
           const updated = new Map(map);
-          updated.set(fecha, { ...result.report!, fecha });
+          updated.set(fecha, report);
           return updated;
         });
         this.notify.success('Reporte guardado', `Reporte del ${fecha} guardado correctamente.`);
+        this.enviarReporteJobAFacturacion(report);
       }
     });
   }

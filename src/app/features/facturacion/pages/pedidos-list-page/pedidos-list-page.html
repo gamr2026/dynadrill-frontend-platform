@@ -1,0 +1,37 @@
+<div class="pedidos-list-page">
+  <dynadrill-screen-header
+    eyebrow="FACTURACIÓN"
+    title="Pedidos"
+    subtitle="FACT-001 — alta desde el Portal y sincronización bidireccional con AS2"
+  />
+
+  <div class="pedidos-list-page__toolbar">
+    <dynadrill-button variant="secondary" [disabled]="sincronizando()" (clicked)="sincronizar()">
+      {{ sincronizando() ? 'Sincronizando…' : 'Sincronizar con AS2' }}
+    </dynadrill-button>
+    <dynadrill-button (clicked)="nuevoPedido()">+ Nuevo pedido</dynadrill-button>
+  </div>
+
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
+    <dynadrill-kpi-row [items]="kpis()" />
+
+    <section class="fact-card pedidos-list-page__filters">
+      <dynadrill-select label="Línea" placeholder="Todas" [options]="lineaOptions" [value]="filtroLinea()" (valueChange)="filtroLinea.set($any($event))" />
+      <dynadrill-select label="Estado" placeholder="Todos" [options]="estadoOptions" [value]="filtroEstado()" (valueChange)="filtroEstado.set($any($event))" />
+      <dynadrill-select label="Origen" placeholder="Todos" [options]="origenOptions" [value]="filtroOrigen()" (valueChange)="filtroOrigen.set($any($event))" />
+      @if (hayFiltros()) {
+        <dynadrill-button variant="secondary" size="small" (clicked)="limpiarFiltros()">Limpiar filtros</dynadrill-button>
+      }
+    </section>
+
+    <ng-template #actionsTpl let-row>
+      <dynadrill-button variant="secondary" size="small" (clicked)="verDetalle(row)">Ver detalle</dynadrill-button>
+    </ng-template>
+
+    <section class="fact-card">
+      <div class="table-scroll">
+        <dynadrill-data-table [columns]="columns" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" [actionsTemplate]="actionsTpl" />
+      </div>
+    </section>
+  </dynadrill-spinner>
+</div>

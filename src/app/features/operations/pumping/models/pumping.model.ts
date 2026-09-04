@@ -161,6 +161,8 @@ export interface PumpingTicket extends Ticket {
   operators: PumpingOperator[];
   unitReport: PumpingUnitReport | null;
   currentStep: PumpingStep;
+  /** Código del Pedido de Facturación asociado — link para el puente Pumping → Facturación. */
+  pedidoCode?: string;
 }
 
 // ── Templates de inspección (ítems del formulario físico DYN-MNT-RE-012) ──

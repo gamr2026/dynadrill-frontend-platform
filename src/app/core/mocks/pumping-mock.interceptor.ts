@@ -52,6 +52,8 @@ let tickets: PumpingTicket[] = [
     serviceType: 'cementacion_remedial',
     proposalOrigin: 'AS2',
     currentStep: 'en_revision',
+    // Link de demo con Facturación: los reportes diarios se empujan al Pedido 4304.
+    pedidoCode: '4304',
     operators: [
       { id: 3, name: 'Carlos Vega', role: 'Operador Mecánico', unitCode: 'PUM-15' },
     ],

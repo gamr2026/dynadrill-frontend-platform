@@ -1,0 +1,32 @@
+@use '../../facturacion-ui' as f;
+
+.pedidos-list-page {
+  @include f.page;
+
+  .fact-card {
+    @include f.card;
+    padding: 6px;
+  }
+
+  &__toolbar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  &__filters {
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+    padding: 14px 16px !important;
+
+    dynadrill-select {
+      flex: 0 1 200px;
+    }
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
+}

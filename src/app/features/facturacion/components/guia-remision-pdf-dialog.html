@@ -1,0 +1,64 @@
+<div class="guia-pdf">
+  <div class="guia-pdf__header">
+    <dynadrill-text variant="h1">GUÍA DE REMISIÓN</dynadrill-text>
+    <dynadrill-text variant="caption">DYNADRILL ECUADOR C.A.</dynadrill-text>
+  </div>
+
+  <div class="guia-pdf__grid">
+    <div><dynadrill-text variant="caption">CLIENTE</dynadrill-text><dynadrill-text variant="body">{{ data.pedido.cliente }}</dynadrill-text></div>
+    <div><dynadrill-text variant="caption">RUC</dynadrill-text><dynadrill-text variant="body">{{ data.guia.clienteRuc || '—' }}</dynadrill-text></div>
+    <div><dynadrill-text variant="caption">HORA SALIDA</dynadrill-text><dynadrill-text variant="body">{{ data.guia.horaSalida || '—' }}</dynadrill-text></div>
+    <div><dynadrill-text variant="caption">HORA LLEGADA</dynadrill-text><dynadrill-text variant="body">{{ data.guia.horaLlegada || '—' }}</dynadrill-text></div>
+
+    <div><dynadrill-text variant="caption">SOLICITADO POR</dynadrill-text><dynadrill-text variant="body">{{ data.guia.solicitadoPor || '—' }}</dynadrill-text></div>
+    <div><dynadrill-text variant="caption">DESPACHADO POR</dynadrill-text><dynadrill-text variant="body">{{ data.guia.despachadoPor || '—' }}</dynadrill-text></div>
+    <div><dynadrill-text variant="caption">LUGAR DE ORIGEN</dynadrill-text><dynadrill-text variant="body">{{ data.guia.lugarOrigen }}</dynadrill-text></div>
+    <div><dynadrill-text variant="caption">FECHA</dynadrill-text><dynadrill-text variant="body">{{ data.guia.fecha }}</dynadrill-text></div>
+
+    <div><dynadrill-text variant="caption">CAMPO</dynadrill-text><dynadrill-text variant="body">{{ data.pedido.campo }}</dynadrill-text></div>
+    <div><dynadrill-text variant="caption">POZO</dynadrill-text><dynadrill-text variant="body">{{ data.pedido.pozo }}</dynadrill-text></div>
+  </div>
+
+  <div class="guia-pdf__section">
+    <dynadrill-text variant="caption" class="guia-pdf__label">Datos de la persona encargada del transporte</dynadrill-text>
+    <div class="guia-pdf__grid">
+      <div><dynadrill-text variant="caption">NOMBRE O RAZÓN SOCIAL</dynadrill-text><dynadrill-text variant="body">{{ data.guia.personaTransporte?.nombreORazonSocial || '—' }}</dynadrill-text></div>
+      <div><dynadrill-text variant="caption">RUC / CÉDULA</dynadrill-text><dynadrill-text variant="body">{{ data.guia.personaTransporte?.rucCedula || '—' }}</dynadrill-text></div>
+      <div><dynadrill-text variant="caption">VEHÍCULO</dynadrill-text><dynadrill-text variant="body">{{ data.guia.vehiculo || '—' }}</dynadrill-text></div>
+      <div><dynadrill-text variant="caption">PLACAS</dynadrill-text><dynadrill-text variant="body">{{ data.guia.placa || '—' }}</dynadrill-text></div>
+    </div>
+  </div>
+
+  <div class="guia-pdf__section">
+    <table class="guia-pdf__table">
+      <thead><tr><th>Ítem</th><th>Cantidad</th><th>Código / Serial</th><th>Unidad de medida</th><th>Descripción</th></tr></thead>
+      <tbody>
+        @for (it of data.guia.items; track $index; let i = $index) {
+          <tr>
+            <td>{{ i + 1 }}</td>
+            <td>{{ it.cantidad }}</td>
+            <td>{{ it.codigo }}{{ it.serie ? ' / ' + it.serie : '' }}</td>
+            <td>{{ it.unidad }}</td>
+            <td>{{ it.descripcion }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="guia-pdf__firmas">
+    <div class="guia-pdf__firma">
+      <div class="guia-pdf__firma-line"></div>
+      <dynadrill-text variant="caption">Entregué conforme</dynadrill-text>
+    </div>
+    <div class="guia-pdf__firma">
+      <div class="guia-pdf__firma-line"></div>
+      <dynadrill-text variant="caption">Recibí conforme</dynadrill-text>
+    </div>
+  </div>
+
+  <div class="guia-pdf__actions no-print">
+    <dynadrill-button variant="secondary" (clicked)="close()">Cerrar</dynadrill-button>
+    <dynadrill-button (clicked)="print()">Imprimir / Exportar PDF</dynadrill-button>
+  </div>
+</div>

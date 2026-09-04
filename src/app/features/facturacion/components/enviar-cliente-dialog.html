@@ -1,0 +1,23 @@
+<div class="enviar-cliente">
+  <dynadrill-select label="Medio de envío" [options]="medioOptions" [value]="medio()" (valueChange)="medio.set($any($event))" />
+
+  <div>
+    <dynadrill-text variant="caption">Paquete de envío</dynadrill-text>
+    <ul class="enviar-cliente__adjuntos">
+      @for (a of data.adjuntosBase; track a) { <li>{{ a }}</li> }
+      @for (a of adjuntosExtra(); track $index) {
+        <li>
+          {{ a }}
+          <dynadrill-button variant="secondary" size="small" (clicked)="quitarExtra($index)">Quitar</dynadrill-button>
+        </li>
+      }
+    </ul>
+    <dynadrill-upload-zone state="idle" fileName="" (fileSelected)="onArchivo($event)" />
+    <dynadrill-text variant="caption">Adjunta BHA, gráficos de monitoreo, reportes OpenWells según el servicio.</dynadrill-text>
+  </div>
+
+  <div class="enviar-cliente__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="submitting()" (clicked)="enviar()">{{ submitting() ? 'Enviando…' : 'Enviar al cliente' }}</dynadrill-button>
+  </div>
+</div>

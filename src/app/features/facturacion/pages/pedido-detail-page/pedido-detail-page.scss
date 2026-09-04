@@ -1,0 +1,71 @@
+@use '../../facturacion-ui' as f;
+
+.pedido-detail {
+  @include f.page;
+
+  .fact-card { @include f.card; }
+
+  &__head { @include f.card-head; }
+  &__defs { @include f.defs; }
+  &__table { @include f.table; }
+
+  &__head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__avance {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+
+    > div {
+      flex: 1 1 220px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+  }
+
+  &__timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    li {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+
+      div {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      strong {
+        font-size: 13.5px;
+        color: var(--text, #2c2b35);
+      }
+    }
+  }
+
+  &__timeline-dot {
+    flex: none;
+    width: 9px;
+    height: 9px;
+    margin-top: 5px;
+    border-radius: 50%;
+    background: var(--dynadrill-purple, #662e9b);
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
+}

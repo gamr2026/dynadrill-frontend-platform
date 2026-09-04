@@ -1,0 +1,76 @@
+<div class="aot-pdf">
+  <div class="aot-pdf__title">
+    <dynadrill-text variant="h1">ORDEN DE TRABAJO</dynadrill-text>
+    <dynadrill-text variant="h2">RESUMEN DE COSTOS</dynadrill-text>
+  </div>
+
+  <div class="aot-pdf__header">
+    <div>
+      <dynadrill-text variant="caption">CONTRATISTA</dynadrill-text>
+      <dynadrill-text variant="body">DYNADRILL ECUADOR C.A.</dynadrill-text>
+    </div>
+    <div>
+      <dynadrill-text variant="caption">No.</dynadrill-text>
+      <dynadrill-text variant="body">{{ data.aot.numeroOpr }}</dynadrill-text>
+    </div>
+    <div>
+      <dynadrill-text variant="caption">FECHA</dynadrill-text>
+      <dynadrill-text variant="body">{{ data.aot.fecha }}</dynadrill-text>
+    </div>
+  </div>
+
+  <p class="aot-pdf__contrato">{{ data.aot.contratoTexto }}</p>
+
+  <div class="aot-pdf__servicio">
+    <dynadrill-text variant="caption">SERVICIO</dynadrill-text>
+    <dynadrill-text variant="body">{{ data.aot.servicio }}</dynadrill-text>
+  </div>
+
+  <table class="aot-pdf__table">
+    <thead>
+      <tr><th>CÓDIGO</th><th>SERVICIOS REQUERIDOS</th><th>UNIDAD</th><th class="num">TARIFA UNITARIA</th><th class="num">CANTIDAD</th><th class="num">TOTAL</th></tr>
+    </thead>
+    <tbody>
+      @for (it of data.aot.detalle; track $index) {
+        <tr>
+          <td>{{ it.codigo }}</td>
+          <td>{{ it.servicioRequerido }}</td>
+          <td>{{ it.unidad }}</td>
+          <td class="num">{{ it.tarifaUnitaria | number: '1.2-2' }}</td>
+          <td class="num">{{ it.cantidad }}</td>
+          <td class="num">{{ it.total | number: '1.2-2' }}</td>
+        </tr>
+      }
+    </tbody>
+    <tfoot>
+      <tr><td colspan="5">Valor de la OT</td><td class="num">{{ data.aot.valorOt | number: '1.2-2' }}</td></tr>
+    </tfoot>
+  </table>
+
+  <div class="aot-pdf__fechas">
+    <div><dynadrill-text variant="caption">Fecha de Inicio</dynadrill-text><dynadrill-text variant="body">{{ data.aot.fechaInicio || '—' }}</dynadrill-text></div>
+    <div><dynadrill-text variant="caption">Fecha de Terminación</dynadrill-text><dynadrill-text variant="body">{{ data.aot.fechaTerminacion || '—' }}</dynadrill-text></div>
+  </div>
+
+  <div class="aot-pdf__firmas">
+    <div class="aot-pdf__firma">
+      <div class="aot-pdf__firma-line"></div>
+      <dynadrill-text variant="caption">REPRESENTANTE DE LA CONTRATISTA</dynadrill-text>
+      <dynadrill-text variant="body">{{ data.aot.representanteContratista.nombre }}</dynadrill-text>
+      <dynadrill-text variant="caption">{{ data.aot.representanteContratista.cargo }}</dynadrill-text>
+    </div>
+    <div class="aot-pdf__firma">
+      <div class="aot-pdf__firma-line"></div>
+      <dynadrill-text variant="caption">REPRESENTANTE DE EP PETROECUADOR</dynadrill-text>
+      <dynadrill-text variant="body">{{ data.aot.representanteCliente.nombre }}</dynadrill-text>
+      <dynadrill-text variant="caption">{{ data.aot.representanteCliente.cargo }}</dynadrill-text>
+    </div>
+  </div>
+
+  <dynadrill-text variant="caption">Impresión: {{ printDate }} · Estado: {{ data.aot.estado }}</dynadrill-text>
+
+  <div class="aot-pdf__actions no-print">
+    <dynadrill-button variant="secondary" (clicked)="close()">Cerrar</dynadrill-button>
+    <dynadrill-button (clicked)="print()">Imprimir / Exportar PDF</dynadrill-button>
+  </div>
+</div>

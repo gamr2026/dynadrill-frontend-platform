@@ -1,87 +1,56 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import {
   DynadrillButtonComponent,
-  DynadrillDataTableColumn,
-  DynadrillDataTableComponent,
+  DynadrillDialogService,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
+  DynadrillTagComponent,
   DynadrillTextComponent,
   type DynadrillKpiRowItem,
 } from '@digitec-it-projects/dynadrill-ui';
-import { As2CatalogoItem } from '../../models/facturacion.model';
-import { As2Service } from '../../services/facturacion.service';
-
-/** Contrato vigente — hoy solo hay uno; el día que AS2 exponga varios, esto pasa a un selector. */
-const CONTRATO = '2025201';
-
-function descargarCsv(nombre: string, columnas: { header: string; key: string }[], filas: Record<string, unknown>[]): void {
-  const escapar = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const encabezado = columnas.map(c => escapar(c.header)).join(',');
-  const cuerpo = filas.map(r => columnas.map(c => escapar(r[c.key])).join(','));
-  // BOM para que Excel detecte UTF-8 y no rompa tildes/ñ.
-  const contenido = '﻿' + [encabezado, ...cuerpo].join('\r\n');
-  const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = nombre;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+import { ListaPrecios } from '../../models/lista-precios.model';
+import { ListaPreciosService } from '../../services/pedido.service';
+import { ListaPreciosCabeceraDialog } from '../../components/lista-precios-cabecera-dialog';
 
 /**
- * Lista de Precios (hoja **LP** del ticket) — espejo de solo lectura del
- * tarifario que en producción vendría anclado al contrato en AS2. El
- * Portal Interno solo la consulta: no se crea ni se edita acá. Alimenta el
- * selector de ítems de la OTQ y la homologación de la documentación diaria.
+ * Fase 2 — Lista de Precios multicliente. Índice de listas + alta. La edición
+ * de ítems vive en el detalle.
  */
 @Component({
   selector: 'app-lista-precios-page',
   imports: [
     DynadrillScreenHeaderComponent,
     DynadrillKpiRowComponent,
-    DynadrillDataTableComponent,
     DynadrillButtonComponent,
-    DynadrillSpinnerComponent,
+    DynadrillTagComponent,
     DynadrillTextComponent,
+    DynadrillSpinnerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './lista-precios-page.html',
   styleUrl: './lista-precios-page.scss',
 })
 export class ListaPreciosPage {
-  private readonly as2Service = inject(As2Service);
+  private readonly listaService = inject(ListaPreciosService);
+  private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly router = inject(Router);
 
-  protected readonly contrato = CONTRATO;
   protected readonly loading = signal(true);
-  protected readonly catalogo = signal<As2CatalogoItem[]>([]);
+  protected readonly listas = signal<ListaPrecios[]>([]);
 
-  protected readonly columns: DynadrillDataTableColumn[] = [
-    { key: 'codigo', header: 'Código', sortable: true, searchable: true },
-    { key: 'descripcion', header: 'Descripción de ítems', sortable: true, searchable: true },
-    { key: 'unidad', header: 'Unidad', sortable: true, searchable: true },
-    { key: 'tarifa', header: 'Tarifa unitaria' },
-  ];
-
-  protected readonly rows = computed(() =>
-    this.catalogo().map(i => ({
-      id: i.codigo,
-      codigo: i.codigo,
-      descripcion: i.descripcion,
-      unidad: i.unidad,
-      tarifa: '$' + i.tarifaUnitaria.toFixed(2),
-    })),
-  );
-
-  protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
-
-  protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => [
-    { label: 'Contrato', value: this.contrato, tone: 'brand' },
-    { label: 'Ítems en el tarifario', value: this.catalogo().length, tone: 'neutral' },
-  ]);
+  protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
+    const ls = this.listas();
+    return [
+      { label: 'Listas', value: ls.length, tone: 'neutral' },
+      { label: 'Activas', value: ls.filter(l => l.activa).length, tone: 'success' },
+      { label: 'Clientes', value: new Set(ls.map(l => l.cliente)).size, tone: 'brand' },
+      { label: 'Ítems totales', value: ls.reduce((s, l) => s + l.items.length, 0), tone: 'neutral' },
+    ];
+  });
 
   constructor() {
     this.reload();
@@ -89,9 +58,9 @@ export class ListaPreciosPage {
 
   private reload(): void {
     this.loading.set(true);
-    this.as2Service.catalogoPrecios(this.contrato).subscribe({
-      next: catalogo => {
-        this.catalogo.set(catalogo);
+    this.listaService.list().subscribe({
+      next: listas => {
+        this.listas.set(listas);
         this.loading.set(false);
       },
       error: () => {
@@ -101,8 +70,20 @@ export class ListaPreciosPage {
     });
   }
 
-  protected exportar(): void {
-    descargarCsv(`lista-precios-${this.contrato}-${new Date().toISOString().slice(0, 10)}.csv`, this.columns, this.rows());
-    this.notify.success('Exportado', 'Se descargó el CSV de la lista de precios.');
+  protected nuevaLista(): void {
+    const ref = this.dialog.open<ListaPreciosCabeceraDialog>({
+      title: 'Nueva lista de precios',
+      content: ListaPreciosCabeceraDialog,
+      data: {},
+      footer: false,
+      width: '640px',
+    });
+    ref.afterClose.subscribe(lista => {
+      if (lista) this.router.navigate(['/dashboard/facturacion/lista-precios', (lista as ListaPrecios).id]);
+    });
+  }
+
+  protected abrir(id: number): void {
+    this.router.navigate(['/dashboard/facturacion/lista-precios', id]);
   }
 }

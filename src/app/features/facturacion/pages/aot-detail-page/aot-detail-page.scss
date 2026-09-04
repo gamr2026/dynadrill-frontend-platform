@@ -1,0 +1,22 @@
+@use '../../facturacion-ui' as f;
+
+.aot-detail {
+  @include f.page;
+
+  .fact-card { @include f.card; }
+
+  &__head { @include f.card-head; }
+  &__defs { @include f.defs; }
+  &__table { @include f.table; }
+
+  &__head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
+}

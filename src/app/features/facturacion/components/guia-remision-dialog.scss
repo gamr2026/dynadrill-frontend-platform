@@ -1,0 +1,44 @@
+@use '../facturacion-ui' as f;
+
+.guia-rem {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  &__grid {
+    @include f.field-grid(160px);
+  }
+
+  &__items-form {
+    @include f.subform;
+  }
+
+  &__items-form-title {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__row-triple {
+    @include f.field-grid(140px);
+  }
+
+  &__row-cantidad {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+
+    dynadrill-input {
+      max-width: 160px;
+    }
+  }
+
+  &__items {
+    @include f.table;
+    border-top: 1px solid var(--border, #e5e4ea);
+  }
+
+  &__actions {
+    @include f.dialog-actions;
+  }
+}

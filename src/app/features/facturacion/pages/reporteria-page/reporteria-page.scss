@@ -5,26 +5,6 @@
 
   .fact-card { @include f.card; }
 
-  &__head { @include f.card-head; }
-
-  &__hint {
-    margin: 0;
-    font-size: 13px;
-    color: var(--text-muted, #5c5870);
-  }
-
-  &__filters {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 12px;
-
-    dynadrill-input,
-    dynadrill-datetime-picker {
-      flex: 0 1 220px;
-    }
-  }
-
   &__table-head {
     display: flex;
     align-items: center;
@@ -32,10 +12,16 @@
     gap: 12px;
     flex-wrap: wrap;
     margin-top: 12px;
-  }
 
-  &__table {
-    overflow-x: auto;
-    margin-top: 8px;
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--text-muted, #5c5870);
+    }
   }
+}
+
+.table-scroll {
+  overflow-x: auto;
+  margin-top: 8px;
 }

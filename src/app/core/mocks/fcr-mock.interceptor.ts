@@ -127,6 +127,9 @@ let tickets: FcrTicket[] = [
     unitCode: 'FCR-02',
     currentPhase: 'ejecucion_campo',
     proposalVersion: 1,
+    // Link de demo con Facturación: al aprobar los reportes de este ticket
+    // se empujan Reporte Job + Reporte de Herramientas al Pedido 4313.
+    pedidoCode: '4313',
     tools: [
       { id: 8, name: 'Tubería de perforación 5"', status: 'recibida' },
     ],
@@ -264,6 +267,54 @@ let tickets: FcrTicket[] = [
 
 function findIndex(id: number): number {
   return tickets.findIndex(t => t.id === id);
+}
+
+let nextTicketId = 200;
+
+/**
+ * Puente Facturación → FCR: al crear un Pedido cuya línea de servicio se
+ * ejecuta por FCR (CTU / Fishing / Completion), se genera acá un ticket
+ * FCR vinculado por `pedidoCode`, listo para trabajar desde `validacion`.
+ * Al aprobar sus reportes en Revisión de Reportes, `enviarReportesAFacturacion`
+ * (ticket-detail-page de FCR) empuja Reporte Job + Reporte de Herramientas
+ * de vuelta al Pedido — cerrando el ciclo Pedido → FCR → Facturación.
+ */
+export function crearTicketFcrParaPedido(input: { pedidoCode: string; cliente: string; pozo: string; estimatedDate: string }): FcrTicket {
+  const id = nextTicketId++;
+  const ticket: FcrTicket = {
+    id,
+    code: `FCR-${id}`,
+    status: 'en_revision',
+    wellName: input.pozo,
+    clientName: input.cliente,
+    estimatedDate: input.estimatedDate,
+    assignedSupervisor: '',
+    assignedOperator: '',
+    unitCode: '',
+    pedidoCode: input.pedidoCode,
+    currentPhase: 'validacion',
+    proposalVersion: 1,
+    tools: [],
+    toolListConfirmed: false,
+    inspectionDocumentUploaded: false,
+    movementGuideGenerated: false,
+    reviewGuideGenerated: false,
+    operationalMeetingDate: '',
+    operationalActaSigned: false,
+    workReportUploaded: false,
+    toolReportUploaded: false,
+    finalReviewGuideUploaded: false,
+    activityLog: [],
+    toolUsageLog: [],
+    observations: [],
+    reportsApproved: false,
+    bodegaExitGuideGenerated: false,
+    toolReturnComplete: false,
+    surveySent: false,
+    phaseHistory: [],
+  };
+  tickets = [...tickets, ticket];
+  return ticket;
 }
 
 /** 'HH:mm' a 'HH:mm' → horas, asumiendo turno que cruza medianoche si fin < inicio (mismo criterio que DYN-SGI-RE-047). */

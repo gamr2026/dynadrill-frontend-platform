@@ -1,0 +1,21 @@
+<div class="lp-cab">
+  <div class="lp-cab__grid">
+    <dynadrill-input label="Cliente" [value]="cliente()" (valueChange)="cliente.set($event)" />
+    <dynadrill-input label="Nº de contrato" [value]="numeroContrato()" (valueChange)="numeroContrato.set($event)" />
+    <dynadrill-datetime-picker mode="date" label="Vigente desde" [value]="vigenteDesde()!" (valueChange)="vigenteDesde.set($event)" />
+    <dynadrill-select
+      label="Estado"
+      [options]="activaOptions"
+      [value]="activa() ? 'si' : 'no'"
+      (valueChange)="activa.set($any($event) === 'si')"
+    />
+  </div>
+  <dynadrill-text variant="caption">Los ítems se agregan/editan desde el detalle de la lista.</dynadrill-text>
+
+  <div class="lp-cab__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">
+      {{ submitting() ? 'Guardando…' : esEdicion ? 'Guardar cambios' : 'Crear lista' }}
+    </dynadrill-button>
+  </div>
+</div>

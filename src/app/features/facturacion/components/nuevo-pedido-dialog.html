@@ -1,0 +1,79 @@
+<div class="nuevo-pedido">
+  <dynadrill-text variant="caption">
+    El pedido se registra en el Portal y el gateway lo sincroniza con AS2. El número secuencial lo asigna AS2.
+  </dynadrill-text>
+
+  <fieldset class="nuevo-pedido__group">
+    <legend>Cliente</legend>
+    <div class="nuevo-pedido__grid">
+      <dynadrill-select label="Cliente" placeholder="Selecciona el cliente" [options]="clienteOptions" [value]="cliente()" (valueChange)="onClienteChange($any($event))" />
+      <dynadrill-input label="RUC" [value]="clienteRuc()" [disabled]="true" />
+      <dynadrill-input label="Subcliente" [value]="subcliente()" (valueChange)="subcliente.set($event)" />
+      <dynadrill-input label="Nº de contrato" [value]="numeroContrato()" (valueChange)="numeroContrato.set($event)" />
+    </div>
+  </fieldset>
+
+  <fieldset class="nuevo-pedido__group">
+    <legend>Servicio</legend>
+    <div class="nuevo-pedido__grid">
+      <dynadrill-select label="Línea de servicio" placeholder="Selecciona" [options]="lineaOptions" [value]="lineaServicio()" (valueChange)="lineaServicio.set($any($event))" />
+      <dynadrill-input label="Campo" [value]="campo()" (valueChange)="campo.set($event)" />
+      <dynadrill-input label="Bloque" [value]="bloque()" (valueChange)="bloque.set($event)" />
+      <dynadrill-input label="Pozo" [value]="pozo()" (valueChange)="pozo.set($event)" />
+      <dynadrill-input label="Taladro / Rig" [value]="taladroRig()" (valueChange)="taladroRig.set($event)" />
+      <dynadrill-datetime-picker mode="date" label="Inicio de servicio" [value]="fechaInicioServicio()!" (valueChange)="fechaInicioServicio.set($event)" />
+      <dynadrill-datetime-picker mode="date" label="Fin de servicio" [value]="fechaFinServicio()!" (valueChange)="fechaFinServicio.set($event)" />
+    </div>
+  </fieldset>
+
+  <fieldset class="nuevo-pedido__group">
+    <legend>Comercial y responsables</legend>
+    <div class="nuevo-pedido__grid">
+      <dynadrill-input label="Agente comercial (Dynadrill)" [value]="agenteComercial()" (valueChange)="agenteComercial.set($event)" />
+      <dynadrill-input label="Representante en campo (PEC)" [value]="representanteCampo()" (valueChange)="representanteCampo.set($event)" />
+      <dynadrill-input label="Representante en Quito (PEC)" [value]="representanteQuito()" (valueChange)="representanteQuito.set($event)" />
+      <dynadrill-input label="Analista de facturación" [value]="analistaFacturacion()" (valueChange)="analistaFacturacion.set($event)" />
+    </div>
+  </fieldset>
+
+  <fieldset class="nuevo-pedido__group">
+    <legend>Administrativos (AS2)</legend>
+    <div class="nuevo-pedido__grid">
+      <dynadrill-input label="Condición de pago" [value]="condicionPago()" (valueChange)="condicionPago.set($event)" />
+      <dynadrill-input label="Zona" [value]="zona()" (valueChange)="zona.set($event)" />
+      <dynadrill-input label="Canal" [value]="canal()" (valueChange)="canal.set($event)" />
+      <dynadrill-input label="Bodega" [value]="bodega()" (valueChange)="bodega.set($event)" />
+      <dynadrill-select label="Solicitud" [options]="solicitudMedioOptions" [value]="solicitudMedio()" (valueChange)="solicitudMedio.set($any($event))" />
+    </div>
+  </fieldset>
+
+  <fieldset class="nuevo-pedido__group">
+    <legend>Línea estimada (cotizado)</legend>
+    @if (!listaCliente()) {
+      <dynadrill-text variant="caption">Selecciona un cliente con lista de precios para elegir el código.</dynadrill-text>
+    }
+    <div class="nuevo-pedido__grid">
+      <dynadrill-select
+        label="Código (lista de precios del cliente)"
+        placeholder="Busca un código o descripción"
+        [options]="itemOptions()"
+        [value]="codigoEstimado()"
+        (valueChange)="onCodigoEstimadoChange($any($event))"
+      />
+      <dynadrill-input label="Cantidad" type="number" [value]="cantidadEstimada()" (valueChange)="cantidadEstimada.set(+$event)" />
+      <dynadrill-input label="Valor unitario" type="number" [value]="valorUnitarioEstimado()" (valueChange)="valorUnitarioEstimado.set(+$event)" />
+    </div>
+    @if (itemEstimadoSel(); as it) {
+      <dynadrill-text variant="caption">
+        {{ it.descripcion }} · {{ it.unidad }} · {{ it.tipo }} · valor estimado total ${{ valorEstimadoTotal() | number: '1.2-2' }}
+      </dynadrill-text>
+    }
+  </fieldset>
+
+  <div class="nuevo-pedido__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">
+      {{ submitting() ? 'Guardando…' : 'Crear pedido' }}
+    </dynadrill-button>
+  </div>
+</div>

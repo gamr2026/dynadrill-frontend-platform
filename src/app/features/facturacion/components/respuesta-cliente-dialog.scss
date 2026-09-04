@@ -1,0 +1,15 @@
+@use '../facturacion-ui' as f;
+
+.respuesta-cliente {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  &__grid {
+    @include f.field-grid(180px);
+  }
+
+  &__actions {
+    @include f.dialog-actions;
+  }
+}

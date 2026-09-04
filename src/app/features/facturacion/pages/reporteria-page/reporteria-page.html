@@ -1,58 +1,64 @@
 <div class="reporteria-page">
   <dynadrill-screen-header
     eyebrow="FACTURACIÓN"
-    title="Reportería y Control de Gestión"
-    subtitle="FACT-005 — calculado sobre los registros actuales del interceptor de mocks"
+    title="Reportería y control de gestión"
+    subtitle="FACT-005 — valores reales de los tickets + semáforo de tiempos"
   />
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
     <dynadrill-kpi-row [items]="kpis()" />
 
     <section class="fact-card">
-      <header class="reporteria-page__head"><h2>Filtros</h2></header>
-      <div class="reporteria-page__filters">
-        <dynadrill-input label="Cliente" placeholder="Buscar por cliente…" [value]="filtroCliente()" (valueChange)="filtroCliente.set($event)" />
-        <dynadrill-datetime-picker mode="date" label="Cierre desde" [value]="filtroFechaDesde()!" (valueChange)="filtroFechaDesde.set($event)" />
-        <dynadrill-datetime-picker mode="date" label="Cierre hasta" [value]="filtroFechaHasta()!" (valueChange)="filtroFechaHasta.set($event)" />
-        @if (hayFiltrosActivos()) {
-          <dynadrill-button variant="secondary" size="small" (clicked)="limpiarFiltros()">Limpiar filtros</dynadrill-button>
-        }
-      </div>
-      <dynadrill-text variant="caption">El rango de fechas aplica sobre la fecha de cierre — solo afecta la pestaña "Cerrados y facturados".</dynadrill-text>
-    </section>
-
-    <ng-template #activosActionsTpl let-row>
-      <dynadrill-button variant="secondary" size="small" (clicked)="verPedido(row)">Ver Prefactura</dynadrill-button>
-    </ng-template>
-    <ng-template #ticketsActionsTpl let-row>
-      <dynadrill-button variant="secondary" size="small" (clicked)="verTicket(row)">Ver Ticket</dynadrill-button>
-    </ng-template>
-
-    <section class="fact-card">
-      <dynadrill-tabs
-        [tabs]="tabs()"
-        [activeIndex]="activeTab()"
-        (activeIndexChange)="activeTab.set($event)"
-        [contentTemplate]="tabContent"
-      />
+      <dynadrill-tabs [tabs]="tabs" [activeIndex]="activeTab()" (activeIndexChange)="activeTab.set($event)" [contentTemplate]="tabContent" />
       <ng-template #tabContent let-index="index">
-        @if (index === 0) {
-          <div class="reporteria-page__table-head">
-            <p class="reporteria-page__hint">% ejecutado vs. presupuestado de cada pedido en ejecución.</p>
-            <dynadrill-button variant="secondary" size="small" (clicked)="exportarActivos()">Exportar a CSV</dynadrill-button>
-          </div>
-          <div class="reporteria-page__table">
-            <dynadrill-data-table [columns]="activosColumns" [rows]="ticketsActivosRows()" [rowKey]="rowKeyFn" [pageSize]="10" [actionsTemplate]="activosActionsTpl" />
-          </div>
-        } @else {
-          <div class="reporteria-page__table-head">
-            <p class="reporteria-page__hint">Tickets ya cerrados por Facturación, facturados o pendientes de facturar.</p>
-            <dynadrill-button variant="secondary" size="small" (clicked)="exportarCerrados()">Exportar a CSV</dynadrill-button>
-          </div>
-          <div class="reporteria-page__table">
-            <dynadrill-data-table [columns]="ticketsColumns" [rows]="ticketsRows()" [rowKey]="rowKeyFn" [pageSize]="10" [actionsTemplate]="ticketsActionsTpl" />
-          </div>
+        <div class="reporteria-page__table-head">
+          @switch (index) {
+            @case (0) { <p>Revenue real y nº de trabajos por mes de generación de prefactura.</p> }
+            @case (1) { <p>Ingresos reales por pozo y línea de servicio.</p> }
+            @case (2) { <p>Accruals (tickets por facturar) por cliente y estado de proceso.</p> }
+            @case (3) { <p>Valor cotizado por Ventas vs. valor real de la prefactura.</p> }
+            @default { <p>Control de tickets con semáforo de días (≤3 verde · 4-7 amarillo · &gt;7 rojo).</p> }
+          }
+          <dynadrill-button variant="secondary" size="small" (clicked)="exportar()">Exportar a CSV</dynadrill-button>
+        </div>
+
+        @switch (index) {
+          @case (0) {
+            @if (porMesRows().length) {
+              <dynadrill-chart type="bar" [categories]="porMesChartCategories()" [series]="porMesChartSeries()" height="240px" />
+            }
+          }
+          @case (1) {
+            @if (porLineaChartData().length) {
+              <dynadrill-chart type="bar" [categories]="porLineaChartCategories()" [series]="porLineaChartSeries()" height="240px" />
+            }
+          }
+          @case (2) {
+            @if (accrualClienteChartData().length) {
+              <dynadrill-chart type="bar" [categories]="accrualClienteChartCategories()" [series]="accrualClienteChartSeries()" height="240px" />
+            }
+          }
+          @case (3) {
+            @if (cotizadoRealRows().length) {
+              <dynadrill-chart type="bar" [categories]="cotizadoRealChartCategories()" [series]="cotizadoRealChartSeries()" height="240px" />
+            }
+          }
+          @default {
+            @if (controlRows().length) {
+              <dynadrill-chart type="bar" [categories]="semaforoChartCategories" [series]="semaforoChartSeries()" height="240px" />
+            }
+          }
         }
+
+        <div class="table-scroll">
+          @switch (index) {
+            @case (0) { <dynadrill-data-table [columns]="porMesColumns" [rows]="porMesRows()" [rowKey]="rowKeyFn" [pageSize]="12" /> }
+            @case (1) { <dynadrill-data-table [columns]="porPozoColumns" [rows]="porPozoRows()" [rowKey]="rowKeyFn" [pageSize]="12" /> }
+            @case (2) { <dynadrill-data-table [columns]="estadoClienteColumns" [rows]="estadoClienteRows()" [rowKey]="rowKeyFn" [pageSize]="12" /> }
+            @case (3) { <dynadrill-data-table [columns]="cotizadoRealColumns" [rows]="cotizadoRealRows()" [rowKey]="rowKeyFn" [pageSize]="12" /> }
+            @default { <dynadrill-data-table [columns]="controlColumns" [rows]="controlRows()" [rowKey]="rowKeyFn" [pageSize]="12" /> }
+          }
+        </div>
       </ng-template>
     </section>
   </dynadrill-spinner>

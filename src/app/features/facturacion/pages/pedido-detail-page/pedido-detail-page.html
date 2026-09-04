@@ -1,0 +1,200 @@
+<div class="pedido-detail">
+  @if (pedido(); as p) {
+    <dynadrill-screen-header
+      eyebrow="FACTURACIÓN — PEDIDO"
+      [title]="'Pedido ' + p.code"
+      [subtitle]="p.cliente + ' — ' + p.campo + ' / ' + p.pozo"
+    />
+
+    <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
+      <section class="fact-card" [class.fact-card--brand]="!estadoFueraDeAlcance()">
+        <header class="pedido-detail__head">
+          <h2>Estado</h2>
+          <dynadrill-tag [label]="estadoLabel()" [variant]="estadoFueraDeAlcance() ? 'neutral' : 'brand'" />
+        </header>
+        @if (estadoFueraDeAlcance()) {
+          <dynadrill-banner variant="info" message="Este estado ya está fuera del alcance del aplicativo (registro AS2 / SRI / cobro)." />
+        }
+        <ol class="pedido-detail__timeline">
+          @for (h of p.historialEstados; track $index) {
+            <li>
+              <span class="pedido-detail__timeline-dot"></span>
+              <div>
+                <strong>{{ estadoLabelDe(h.estado) }}</strong>
+                <dynadrill-text variant="caption">{{ h.fecha | date: 'dd/MM/yyyy HH:mm' }} · {{ h.usuario }}{{ h.motivo ? ' — ' + h.motivo : '' }}</dynadrill-text>
+              </div>
+            </li>
+          }
+        </ol>
+      </section>
+
+      <!-- ── Ticket operativo asociado (Pedido -> FCR) ── -->
+      @if (fcrTicket(); as t) {
+        <section class="fact-card fact-card--brand">
+          <header class="pedido-detail__head">
+            <h2>Ticket FCR asociado</h2>
+            <dynadrill-button variant="secondary" size="small" (clicked)="irAFcr()">Ir a FCR</dynadrill-button>
+          </header>
+          <dynadrill-text variant="body">{{ t.code }} — fase actual: {{ fcrFaseLabel() }}</dynadrill-text>
+          <dynadrill-text variant="caption">
+            Se generó automáticamente al abrir el pedido. Al aprobar sus reportes en Revisión de Reportes, el Reporte Job y el Reporte de Herramientas se empujan solos a este pedido.
+          </dynadrill-text>
+        </section>
+      }
+
+      <!-- ── Documentos de respaldo (FACT-002) ── -->
+      <section class="fact-card">
+        <header class="pedido-detail__head">
+          <h2>Documentos de respaldo</h2>
+          <dynadrill-button variant="secondary" size="small" [disabled]="simulando()" (clicked)="simularCargaOperador()">
+            {{ simulando() ? 'Simulando…' : 'Simular carga de operador' }}
+          </dynadrill-button>
+        </header>
+
+        @if (avance(); as a) {
+          <div class="pedido-detail__avance">
+            <div>
+              <dynadrill-text variant="caption">Reporte Job — {{ a.reporteJobDias }} de {{ a.reporteJobDiasEsperados }} días</dynadrill-text>
+              <dynadrill-progress [value]="a.reporteJobDias" [max]="a.reporteJobDiasEsperados" [showInfo]="false" />
+            </div>
+            <dynadrill-tag
+              [label]="a.reporteHerramientasAplica ? (a.reporteHerramientasAlDia ? 'Reporte de Htas.: al día' : 'Reporte de Htas.: pendiente') : 'Reporte de Htas.: no aplica'"
+              [variant]="!a.reporteHerramientasAplica ? 'neutral' : a.reporteHerramientasAlDia ? 'success' : 'warning'"
+            />
+            @if (a.guiaRemisionAplica) {
+              <dynadrill-tag
+                [label]="a.guiaRemisionGenerada ? 'Guía de remisión: lista' : 'Guía de remisión: pendiente'"
+                [variant]="a.guiaRemisionGenerada ? 'success' : 'warning'"
+              />
+            }
+            <dynadrill-tag [label]="a.completo ? 'Listo para prefacturar' : 'Documentación incompleta'" [variant]="a.completo ? 'success' : 'warning'" />
+          </div>
+        }
+
+        <div class="table-scroll">
+          <table class="pedido-detail__table">
+            <thead>
+              <tr><th>Documento</th><th>Origen</th><th>Fecha</th><th>Firmado por</th><th>Estado</th><th aria-label="Acciones"></th></tr>
+            </thead>
+            <tbody>
+              @for (d of reporteJobDocs(); track d.id) {
+                <tr>
+                  <td>Reporte Job</td>
+                  <td>{{ d.origen === 'fcr' ? 'FCR' : 'Pumping' }}</td>
+                  <td>{{ d.fecha }}</td>
+                  <td>{{ d.firmadoPor || '—' }}</td>
+                  <td><dynadrill-tag label="Recibido" variant="success" /></td>
+                  <td><dynadrill-button variant="secondary" size="small" (clicked)="verReporteJob(d)">Ver PDF</dynadrill-button></td>
+                </tr>
+              }
+              @if (reporteHtasDocs().length) {
+                <tr>
+                  <td>Reporte de Herramientas</td>
+                  <td>FCR</td>
+                  <td>consolidado</td>
+                  <td>{{ reporteHtasDocs()[0].firmadoPor || '—' }}</td>
+                  <td><dynadrill-tag label="Recibido" variant="success" /></td>
+                  <td><dynadrill-button variant="secondary" size="small" (clicked)="verReporteHerramientas()">Ver PDF</dynadrill-button></td>
+                </tr>
+              }
+              @if (guiaRemision(); as g) {
+                <tr>
+                  <td>Guía de Remisión</td>
+                  <td>Facturación</td>
+                  <td>{{ g.fecha }}</td>
+                  <td>{{ g.despachadoPor || '—' }}</td>
+                  <td><dynadrill-tag label="Generada" variant="success" /></td>
+                  <td><dynadrill-button variant="secondary" size="small" (clicked)="verGuiaRemisionPdf()">Ver PDF</dynadrill-button></td>
+                </tr>
+              } @else if (puedeGenerarGuia()) {
+                <tr>
+                  <td>Guía de Remisión</td>
+                  <td colspan="4">Requisito previo — hay ítems tipo Material en el Reporte de Herramientas.</td>
+                  <td><dynadrill-button size="small" [disabled]="generandoGuia()" (clicked)="abrirGuiaRemision()">Generar guía</dynadrill-button></td>
+                </tr>
+              }
+              @if (!reporteJobDocs().length && !reporteHtasDocs().length) {
+                <tr><td colspan="6">Todavía no se ha recibido documentación operativa para este pedido.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── Prefactura (FACT-003) ── -->
+      <section class="fact-card" [class.fact-card--brand]="!!prefactura() && !esRegeneracion()" [class.fact-card--warning]="esRegeneracion()">
+        <header class="pedido-detail__head">
+          <h2>Prefactura</h2>
+          <div class="pedido-detail__head-actions">
+            @if (prefactura(); as pf) {
+              <dynadrill-button variant="secondary" size="small" (clicked)="verPrefactura()">Ver prefactura</dynadrill-button>
+            }
+            @if (puedeGenerarPrefactura()) {
+              <dynadrill-button size="small" [disabled]="generando()" (clicked)="generarPrefactura()">
+                {{ generando() ? 'Generando…' : esRegeneracion() ? 'Regenerar y reenviar' : 'Generar prefactura' }}
+              </dynadrill-button>
+            }
+          </div>
+        </header>
+        @if (esRegeneracion()) {
+          <dynadrill-banner variant="warning" [message]="'Rechazada por el cliente: ' + (prefactura()?.rechazoCliente?.motivo ?? '') + '. Corrige la documentación necesaria y regenera la prefactura para reenviarla.'" />
+        }
+        @if (prefactura(); as pf) {
+          <dl class="pedido-detail__defs">
+            <div><dt>Código</dt><dd>{{ pf.code }}</dd></div>
+            <div><dt>Estado</dt><dd>{{ pf.estado }}</dd></div>
+            <div><dt>Subtotal servicios</dt><dd>${{ pf.subtotalServicios | number: '1.2-2' }}</dd></div>
+            <div><dt>Subtotal materiales</dt><dd>${{ pf.subtotalMateriales | number: '1.2-2' }}</dd></div>
+            <div><dt>IVA (15%)</dt><dd>${{ pf.iva | number: '1.2-2' }}</dd></div>
+            <div><dt>Neto a cobrar</dt><dd>${{ pf.netoCobrar | number: '1.2-2' }}</dd></div>
+          </dl>
+        } @else if (puedeGenerarPrefactura()) {
+          <dynadrill-text variant="caption">La documentación de respaldo está completa — puedes generar la prefactura.</dynadrill-text>
+        } @else {
+          <dynadrill-banner variant="info" message="La prefactura se habilita cuando la documentación de respaldo (y la guía de remisión, si aplica) está completa." />
+        }
+      </section>
+
+      <section class="fact-card">
+        <header class="pedido-detail__head"><h2>Cliente</h2></header>
+        <dl class="pedido-detail__defs">
+          @for (d of datosCliente(); track d.label) { <div><dt>{{ d.label }}</dt><dd>{{ d.value }}</dd></div> }
+        </dl>
+      </section>
+
+      <section class="fact-card">
+        <header class="pedido-detail__head"><h2>Servicio</h2></header>
+        <dl class="pedido-detail__defs">
+          @for (d of datosServicio(); track d.label) { <div><dt>{{ d.label }}</dt><dd>{{ d.value }}</dd></div> }
+        </dl>
+      </section>
+
+      <section class="fact-card">
+        <header class="pedido-detail__head"><h2>Comercial y responsables</h2></header>
+        <dl class="pedido-detail__defs">
+          @for (d of datosComercial(); track d.label) { <div><dt>{{ d.label }}</dt><dd>{{ d.value }}</dd></div> }
+        </dl>
+      </section>
+
+      <section class="fact-card">
+        <header class="pedido-detail__head"><h2>Administrativos (AS2)</h2></header>
+        <dl class="pedido-detail__defs">
+          @for (d of datosAdministrativos(); track d.label) { <div><dt>{{ d.label }}</dt><dd>{{ d.value }}</dd></div> }
+        </dl>
+      </section>
+
+      <section class="fact-card">
+        <header class="pedido-detail__head"><h2>Línea estimada (cotizado)</h2></header>
+        <dl class="pedido-detail__defs">
+          <div><dt>Código</dt><dd>{{ p.itemEstimado.codigo }}</dd></div>
+          <div><dt>Descripción</dt><dd>{{ p.itemEstimado.descripcion }}</dd></div>
+          <div><dt>Cantidad</dt><dd>{{ p.itemEstimado.cantidad }} {{ p.itemEstimado.unidad }}</dd></div>
+          <div><dt>Valor unitario</dt><dd>${{ p.itemEstimado.valorUnitario | number: '1.2-2' }}</dd></div>
+          <div><dt>Valor estimado total</dt><dd>${{ valorEstimado() | number: '1.2-2' }}</dd></div>
+        </dl>
+      </section>
+    </dynadrill-spinner>
+  } @else if (!loading()) {
+    <dynadrill-banner variant="critical" message="No se encontró el pedido." />
+  }
+</div>

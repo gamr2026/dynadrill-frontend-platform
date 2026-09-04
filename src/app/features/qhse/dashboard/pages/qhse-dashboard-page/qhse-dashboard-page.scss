@@ -1,7 +1,7 @@
 :host {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .qhse-dashboard-page {
@@ -11,36 +11,39 @@
   }
 
   // Tarjeta de resumen: estado del semáforo + explicación + alertas legales,
-  // todo en un solo bloque con el color del semáforo como acento — antes
-  // era un tag suelto, un párrafo aparte y un banner con lista, sin
-  // relación visual entre sí a pesar de ser la misma idea ("así estamos y
-  // por qué").
+  // con el fondo teñido del color del semáforo como banner — antes era un
+  // tag suelto, un párrafo aparte y un banner con lista, sin relación
+  // visual entre sí a pesar de ser la misma idea ("así estamos y por qué").
   &__resumen {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    padding: 16px 18px;
-    background: var(--surface, #ffffff);
-    border: 1px solid var(--border, #e5e4ea);
-    border-left-width: 5px;
-    border-radius: var(--radius-md, 6px);
+    padding: 20px;
+    border-radius: var(--radius-lg, 16px);
 
-    &--verde { border-left-color: var(--success, #52c41a); }
-    &--amarillo { border-left-color: var(--warning, #faad14); }
-    &--rojo { border-left-color: var(--error, #ff4d4f); }
+    &--verde { background: var(--success-bg, rgba(82, 196, 26, 0.12)); }
+    &--amarillo { background: var(--warning-bg, rgba(250, 173, 20, 0.12)); }
+    &--rojo { background: var(--error-bg, rgba(255, 77, 79, 0.12)); }
   }
 
   &__resumen-head {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 10px;
+
+    strong {
+      font-size: 15px;
+    }
+
+    .qhse-dashboard-page__resumen--verde & strong { color: var(--success, #52c41a); }
+    .qhse-dashboard-page__resumen--amarillo & strong { color: var(--warning, #faad14); }
+    .qhse-dashboard-page__resumen--rojo & strong { color: var(--error, #ff4d4f); }
   }
 
   &__resumen-dot {
     flex: none;
     width: 12px;
     height: 12px;
-    margin-top: 4px;
     border-radius: 50%;
 
     .qhse-dashboard-page__resumen--verde & { background: var(--success, #52c41a); }
@@ -48,41 +51,21 @@
     .qhse-dashboard-page__resumen--rojo & { background: var(--error, #ff4d4f); }
   }
 
-  &__resumen-texto {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-
-    strong {
-      font-size: 15px;
-      color: var(--dynadrill-navy, #131529);
-    }
-
-    p {
-      margin: 0;
-      font-size: 13px;
-      color: var(--text-muted, #5c5870);
-    }
-  }
-
-  &__resumen-desc {
+  // Única línea de motivo: por qué está en este color — el KPI count si es
+  // la causa, o el detalle legal si es esa la causa. Nunca ambas a la vez,
+  // para no repetir "está en rojo por..." con dos razones sin jerarquía.
+  &__resumen-motivo {
     margin: 0;
-    font-size: 12.5px;
-    line-height: 1.5;
-    color: var(--text-muted, #5c5870);
-    max-width: 760px;
+    font-size: 13px;
+    color: var(--text, #2c2b35);
   }
 
   &__resumen-legal {
-    padding: 10px 12px;
-    background: var(--surface-muted, #fbeaea);
-    border-radius: var(--radius-sm, 4px);
-    font-size: 13px;
-    color: #9c2d2d;
-
     ul {
       margin: 6px 0 0;
       padding-left: 20px;
+      font-size: 13px;
+      color: var(--text, #2c2b35);
     }
   }
 
@@ -100,42 +83,35 @@
   &__operativo {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 16px 18px;
-    background: var(--surface, #ffffff);
-    border: 1px solid var(--border, #e5e4ea);
-    border-radius: var(--radius-md, 6px);
-
-    h3 {
-      margin: 0;
-      font-size: 15px;
-      color: var(--dynadrill-navy, #131529);
-    }
   }
 
-  &__operativo-note {
-    margin: 0 0 4px;
-    font-size: 12.5px;
-    line-height: 1.5;
-    color: var(--text-muted, #5c5870);
-    max-width: 760px;
+  &__operativo-title {
+    margin: 0 0 16px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text, #2c2b35);
   }
 
+  // Cada columna es un dynadrill-section (ya trae su propia card: borde,
+  // fondo, radius, header con ícono + "Ver todo") — acá solo se define la
+  // grilla que las reparte, no su apariencia. Mobile-first: 1 columna por
+  // defecto, 2 desde md (840px) donde ya entra cómodo el layout de 2 cards.
   &__operativo-cols {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-  }
+    grid-template-columns: 1fr;
+    gap: 24px;
+    align-items: start;
 
-  &__operativo-col {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    @media (min-width: 840px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 
-    h4 {
-      margin: 0;
-      font-size: 13px;
-      color: var(--dynadrill-navy, #131529);
+    // El track puede achicarse por el minmax(0, 1fr), pero el ítem en sí
+    // (dynadrill-section) igual se desborda a la derecha si su contenido
+    // no encoge — min-width:auto por defecto en un hijo de grid. Sin esto
+    // la columna derecha rompe el padding del contenedor.
+    > * {
+      min-width: 0;
     }
   }
 
@@ -157,51 +133,134 @@
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 10px;
+  }
 
-    button {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 8px 10px;
-      background: var(--surface-muted, #faf9fc);
-      border: 1px solid var(--border, #e5e4ea);
-      border-radius: var(--radius-sm, 4px);
-      font: inherit;
+  // Fila de lista, no card — ya está dentro de la card que pone
+  // dynadrill-section, así que solo un tinte de fondo la separa, sin
+  // borde ni sombra propia (evita el anidado card-dentro-de-card).
+  &__atencion-btn {
+    all: unset;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    background: var(--surface-muted, #faf9fc);
+    border-radius: var(--radius-sm, 8px);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--dynadrill-purple, #662e9b);
+      outline-offset: 2px;
+    }
+  }
+
+  &__atencion-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+
+    strong {
+      min-width: 0;
+      overflow-wrap: break-word;
+      font-size: 13px;
+      color: var(--text, #2c2b35);
+    }
+
+    dynadrill-tag {
+      flex: none;
+    }
+  }
+
+  &__atencion-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    color: var(--text-muted, #5c5870);
+
+    dynadrill-icon {
+      flex: none;
+      color: var(--text-muted, #5c5870);
+    }
+
+    // flex:1 + min-width:0 — sin esto, un ítem flex de texto no encoge por
+    // debajo de su ancho intrínseco (default min-width:auto) y un
+    // titulo/fase largo empuja la fila fuera del contenedor en vez de
+    // hacer wrap.
+    span {
+      flex: 1;
+      min-width: 0;
+      font-size: 12.5px;
+      line-height: 1.4;
       text-align: left;
-      cursor: pointer;
+      overflow-wrap: break-word;
+    }
+  }
+
+  &__tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  &__tab {
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    border-radius: var(--radius-full, 9999px);
+    font-family: var(--font-body, 'Lato', sans-serif);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted, #5c5870);
+    cursor: pointer;
+
+    &:hover {
+      color: var(--dynadrill-navy, #131529);
+    }
+
+    &--active {
+      background: var(--dynadrill-purple-tint-strong, rgba(102, 46, 155, 0.16));
+      color: var(--dynadrill-purple, #662e9b);
 
       &:hover {
-        border-color: var(--dynadrill-purple, #662e9b);
+        color: var(--dynadrill-purple, #662e9b);
       }
     }
   }
 
-  &__atencion-titulo {
-    font-size: 12.5px;
-    color: var(--ink, #10202f);
-
-    strong {
-      color: var(--dynadrill-navy, #131529);
-    }
-  }
-
+  // Mobile-first: 1 columna por defecto, 2 desde md (840px) — mismo criterio
+  // que operativo-cols.
   &__grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 12px;
+    grid-template-columns: 1fr;
+    gap: 20px;
+
+    @media (min-width: 840px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    > * {
+      min-width: 0;
+    }
   }
 
   &__card {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 14px;
+    gap: 12px;
+    padding: 20px;
     background: var(--surface, #ffffff);
     border: 1px solid var(--border, #e5e4ea);
-    border-radius: var(--radius-md, 6px);
+    border-radius: var(--radius-md, 12px);
 
     header {
       display: flex;
@@ -213,6 +272,20 @@
         font-size: 13px;
       }
     }
+  }
+
+  &__card-title {
+    font-family: var(--font-subheading, 'Oswald', sans-serif);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text, #2c2b35);
+  }
+
+  &__card-motivo {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted, #5c5870);
   }
 
   &__unidad {
@@ -240,16 +313,13 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 12px;
-    background: var(--surface-muted, #faf9fc);
-    border: 1px dashed var(--border, #d8d6e3);
-    border-radius: var(--radius-md, 6px);
+    padding-top: 12px;
   }
 
   &__meta-box-title {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
-    color: var(--dynadrill-navy, #131529);
+    color: var(--text, #2c2b35);
   }
 
   &__meta-form {
@@ -275,10 +345,4 @@
     }
   }
 
-  &__meta-hint {
-    margin: 0;
-    font-size: 11.5px;
-    line-height: 1.5;
-    color: var(--text-muted, #5c5870);
-  }
 }

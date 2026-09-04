@@ -44,8 +44,13 @@ import { FirmaActaDialog, FirmaActaDialogData, FirmaActaDialogResult } from '../
 import { HerramientaFaltanteDialog, HerramientaFaltanteDialogData, HerramientaFaltanteDialogResult } from '../../components/herramienta-faltante-dialog';
 import { GuiaSalidaBodegaDialog, GuiaSalidaBodegaDialogData, GuiaSalidaBodegaDialogResult } from '../../components/guia-salida-bodega-dialog';
 import { CierreTicketDialog, CierreTicketDialogData, CierreTicketDialogResult } from '../../components/cierre-ticket-dialog';
-import { ReporteJobPdfDialog, ReporteJobPdfDialogData } from '../../components/reporte-job-pdf-dialog';
-import { ReporteHerramientasPdfDialog, ReporteHerramientasPdfDialogData } from '../../components/reporte-herramientas-pdf-dialog';
+import {
+  ReporteHerramientasPdfDialog,
+  ReporteHerramientasPdfDialogData,
+  ReporteJobPdfDialog,
+  ReporteJobPdfDialogData,
+  OperativoDocsBridgeService,
+} from '../../../../../shared/index';
 
 /** 'HH:mm' a 'HH:mm' → horas — mismo criterio que el servidor, para mostrar la duración calculada antes de guardar. */
 function calcDurationHours(startTime: string, endTime: string): number {
@@ -117,6 +122,7 @@ export class FcrTicketDetailPage {
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(DynadrillDialogService);
+  private readonly docsBridge = inject(OperativoDocsBridgeService);
 
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
 
@@ -522,7 +528,10 @@ export class FcrTicketDetailPage {
     this.dialog.open<ReporteJobPdfDialog, ReporteJobPdfDialogData>({
       title: 'Reporte de Trabajo — Vista de impresión',
       content: ReporteJobPdfDialog,
-      data: { ticket: t },
+      data: {
+        header: { code: t.code, cliente: t.clientName, pozo: t.wellName, supervisor: t.assignedSupervisor, operador: t.assignedOperator },
+        log: t.activityLog,
+      },
       footer: false,
       width: '820px',
     });
@@ -534,7 +543,11 @@ export class FcrTicketDetailPage {
     this.dialog.open<ReporteHerramientasPdfDialog, ReporteHerramientasPdfDialogData>({
       title: 'Reporte de Herramientas — Vista de impresión',
       content: ReporteHerramientasPdfDialog,
-      data: { ticket: t },
+      data: {
+        header: { code: t.code, cliente: t.clientName, pozo: t.wellName, supervisor: t.assignedSupervisor, operador: t.assignedOperator },
+        tools: t.tools.map(tool => ({ id: tool.id, name: tool.name })),
+        usageLog: t.toolUsageLog,
+      },
       footer: false,
       width: '920px',
     });
@@ -568,8 +581,48 @@ export class FcrTicketDetailPage {
       this.ticket.set(updated);
       this.reportsDecision.set(null);
       this.rejectionNote.set('');
-      if (decision === 'approved') this.advancePhase('control_retorno');
+      if (decision === 'approved') {
+        this.enviarReportesAFacturacion(updated);
+        this.advancePhase('control_retorno');
+      }
     });
+  }
+
+  /** Puente FCR → Facturación: al aprobar los reportes, se empujan al Pedido vinculado. */
+  private enviarReportesAFacturacion(t: FcrTicket): void {
+    if (!t.pedidoCode) return;
+    const header = { code: t.code, cliente: t.clientName, pozo: t.wellName, supervisor: t.assignedSupervisor, operador: t.assignedOperator };
+
+    const porDia = new Map<string, typeof t.activityLog>();
+    for (const e of t.activityLog) {
+      const arr = porDia.get(e.date) ?? [];
+      arr.push(e);
+      porDia.set(e.date, arr);
+    }
+    for (const [fecha, actividades] of porDia) {
+      this.docsBridge.pushReporteJob({
+        pedidoCode: t.pedidoCode,
+        origen: 'fcr',
+        ticketOperativoId: t.id,
+        fecha,
+        firmadoPor: t.assignedSupervisor,
+        header,
+        actividades,
+      });
+    }
+
+    if (t.toolUsageLog.length) {
+      this.docsBridge.pushReporteHerramientas({
+        pedidoCode: t.pedidoCode,
+        origen: 'fcr',
+        ticketOperativoId: t.id,
+        firmadoPor: t.assignedSupervisor,
+        header,
+        herramientas: t.tools.map(tool => ({ id: tool.id, name: tool.name })),
+        usoHerramientas: t.toolUsageLog,
+      });
+    }
+    this.notify.success('Reportes enviados a Facturación', `Vinculados al Pedido ${t.pedidoCode}.`);
   }
 
   // ══════════════════════════════════════════════

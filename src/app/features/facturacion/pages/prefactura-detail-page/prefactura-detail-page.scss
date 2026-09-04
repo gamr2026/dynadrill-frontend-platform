@@ -1,0 +1,81 @@
+@use '../../facturacion-ui' as f;
+
+.pf-detail {
+  @include f.page;
+
+  .fact-card { @include f.card; }
+
+  &__head { @include f.card-head; }
+  &__table { @include f.table; }
+
+  &__head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__liquidacion {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px 40px;
+  }
+
+  &__totals {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 280px;
+    flex: 1 1 320px;
+    max-width: 460px;
+
+    div {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      font-size: 13.5px;
+      color: var(--text-muted, #5c5870);
+    }
+
+    dt,
+    dd { margin: 0; }
+    dd { font-variant-numeric: tabular-nums; }
+  }
+
+  &__totals-sum {
+    padding-top: 7px;
+    border-top: 1px solid #ecebf1;
+    color: var(--text, #2c2b35) !important;
+    font-weight: 600;
+  }
+
+  &__totals-neg dd { color: var(--error, #ff4d4f); }
+
+  &__checklist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    label {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 13.5px;
+      cursor: pointer;
+    }
+
+    input {
+      margin-top: 2px;
+    }
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
+}

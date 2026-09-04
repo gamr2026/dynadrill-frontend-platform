@@ -1,0 +1,51 @@
+<div class="reporte-pdf">
+  <div class="reporte-pdf__doc-header">
+    <div class="reporte-pdf__doc-title">
+      <dynadrill-text variant="h1">Reporte Diario de Actividades de Operaciones</dynadrill-text>
+      <dynadrill-text variant="caption">DYN-SGI-RE-047 · Ticket {{ data.header.code }}</dynadrill-text>
+    </div>
+    <div class="reporte-pdf__doc-meta">
+      <dynadrill-text variant="caption">Fecha de impresión: {{ printDate }}</dynadrill-text>
+    </div>
+  </div>
+
+  <div class="reporte-pdf__section">
+    <div class="reporte-pdf__grid-4">
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Cliente</dynadrill-text><dynadrill-text variant="body">{{ data.header.cliente }}</dynadrill-text></div>
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Pozo</dynadrill-text><dynadrill-text variant="body">{{ data.header.pozo }}</dynadrill-text></div>
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Supervisor</dynadrill-text><dynadrill-text variant="body">{{ data.header.supervisor || '—' }}</dynadrill-text></div>
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Operador</dynadrill-text><dynadrill-text variant="body">{{ data.header.operador || '—' }}</dynadrill-text></div>
+    </div>
+  </div>
+
+  <div class="reporte-pdf__section">
+    <dynadrill-text variant="caption" class="reporte-pdf__section-label">Bitácora de actividades</dynadrill-text>
+    <table class="reporte-pdf__table">
+      <thead>
+        <tr><th>Fecha</th><th>Hora inicio</th><th>Hora fin</th><th>Horas</th><th>Detalle de actividades</th><th>Registrado por</th></tr>
+      </thead>
+      <tbody>
+        @for (entry of sortedLog(); track entry.id) {
+          <tr>
+            <td>{{ formatDate(entry.date) }}</td>
+            <td>{{ entry.startTime }}</td>
+            <td>{{ entry.endTime }}</td>
+            <td>{{ entry.durationHours | number: '1.1-2' }}</td>
+            <td class="reporte-pdf__detail-cell">{{ entry.detail }}</td>
+            <td>{{ entry.author }}</td>
+          </tr>
+        } @empty {
+          <tr><td colspan="6">Sin actividades registradas todavía.</td></tr>
+        }
+      </tbody>
+      <tfoot>
+        <tr><td colspan="3">Total de horas</td><td>{{ totalHours() | number: '1.1-2' }}</td><td colspan="2"></td></tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="reporte-pdf__actions no-print">
+    <dynadrill-button variant="secondary" (clicked)="close()">Cerrar</dynadrill-button>
+    <dynadrill-button (clicked)="print()">Imprimir / Exportar PDF</dynadrill-button>
+  </div>
+</div>

@@ -1,0 +1,15 @@
+@use '../facturacion-ui' as f;
+
+.lp-cab {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  &__grid {
+    @include f.field-grid(200px);
+  }
+
+  &__actions {
+    @include f.dialog-actions;
+  }
+}

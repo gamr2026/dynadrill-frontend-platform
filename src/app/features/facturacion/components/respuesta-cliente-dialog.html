@@ -1,0 +1,22 @@
+<div class="respuesta-cliente">
+  <dynadrill-select label="Respuesta del cliente" [options]="respuestaOptions" [value]="respuesta()" (valueChange)="respuesta.set($any($event))" />
+
+  @if (respuesta() === 'firma') {
+    <div class="respuesta-cliente__grid">
+      <dynadrill-input label="Nombre" [value]="nombre()" (valueChange)="nombre.set($event)" />
+      <dynadrill-input label="Cargo" [value]="cargo()" (valueChange)="cargo.set($event)" />
+    </div>
+  } @else {
+    <dynadrill-textarea label="Motivo del rechazo" [rows]="3" [value]="motivo()" (valueChange)="motivo.set($event)" />
+    <dynadrill-input label="Devolver a (persona que llenó el documento)" [value]="devueltoA()" (valueChange)="devueltoA.set($event)" />
+    <dynadrill-input label="Razón del retraso (opcional)" placeholder="Ej. el cliente se fue de vacaciones" [value]="razonRetraso()" (valueChange)="razonRetraso.set($event)" />
+    <dynadrill-text variant="caption">El pedido vuelve a "En corrección" y se hace seguimiento a la persona indicada aunque cambie de pozo.</dynadrill-text>
+  }
+
+  <div class="respuesta-cliente__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">
+      {{ submitting() ? 'Guardando…' : 'Registrar respuesta' }}
+    </dynadrill-button>
+  </div>
+</div>

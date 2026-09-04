@@ -1,0 +1,103 @@
+<div class="pf-pdf">
+  <!-- ── Cabecera: marca | PREFACTURA | código de documento ── -->
+  <div class="pf-pdf__brand-row">
+    <div class="pf-pdf__brand">
+      <dynadrill-text variant="h2">Dynadrill</dynadrill-text>
+      <dynadrill-text variant="caption">Vía Coca Lago Km 2, Orellana - Ecuador · dynadrillecuador&#64;dynadrill.com.ec · www.dynadrill.com.ec</dynadrill-text>
+    </div>
+    <dynadrill-text variant="h1" class="pf-pdf__title">PREFACTURA</dynadrill-text>
+    <div class="pf-pdf__doc-code">
+      <dynadrill-text variant="caption">DYN-AFN-RE-11B</dynadrill-text>
+      <dynadrill-text variant="caption">Versión: 02</dynadrill-text>
+    </div>
+  </div>
+
+  <!-- ── Meta + nº de ticket destacado + condiciones de servicio ── -->
+  <div class="pf-pdf__meta-row">
+    <div class="pf-pdf__meta-grid">
+      <div class="pf-pdf__field"><dynadrill-text variant="caption">FECHA</dynadrill-text><dynadrill-text variant="body">{{ data.prefactura.fechaGeneracion | date: 'dd-MMM-yyyy' }}</dynadrill-text></div>
+      <div class="pf-pdf__field pf-pdf__field--wide"><dynadrill-text variant="caption">CLIENTE</dynadrill-text><dynadrill-text variant="body">{{ data.pedido.cliente }}</dynadrill-text></div>
+      <div class="pf-pdf__field pf-pdf__field--wide"><dynadrill-text variant="caption">SOLICITADO POR</dynadrill-text><dynadrill-text variant="body">{{ data.pedido.representanteCampo }}</dynadrill-text></div>
+      <div class="pf-pdf__field"><dynadrill-text variant="caption">Verbal ( {{ esVerbal() ? 'x' : ' ' }} )&nbsp;&nbsp;Escrita ( {{ esVerbal() ? ' ' : 'x' }} )</dynadrill-text></div>
+      <div class="pf-pdf__field"><dynadrill-text variant="caption">NÚMERO DE CONTRATO</dynadrill-text><dynadrill-text variant="body">{{ data.pedido.numeroContrato }}</dynadrill-text></div>
+      <div class="pf-pdf__field"><dynadrill-text variant="caption">INICIO TRABAJO</dynadrill-text><dynadrill-text variant="body">{{ data.pedido.fechaInicioServicio || '—' }}</dynadrill-text></div>
+      <div class="pf-pdf__field"><dynadrill-text variant="caption">TRABAJO TERMINADO</dynadrill-text><dynadrill-text variant="body">{{ data.pedido.fechaFinServicio || '—' }}</dynadrill-text></div>
+    </div>
+
+    <div class="pf-pdf__ticket-box">
+      <dynadrill-text variant="h1">{{ data.pedido.code }}</dynadrill-text>
+      <dynadrill-text variant="caption" class="pf-pdf__condiciones-label">Condiciones de servicio</dynadrill-text>
+      <p class="pf-pdf__condiciones">{{ condicionesServicio }}</p>
+    </div>
+  </div>
+
+  <div class="pf-pdf__meta-grid pf-pdf__meta-grid--3">
+    <div class="pf-pdf__field"><dynadrill-text variant="caption">CAMPO / BLOQUE</dynadrill-text><dynadrill-text variant="body">{{ data.pedido.campo }} / BLOQUE {{ data.pedido.bloque }}</dynadrill-text></div>
+    <div class="pf-pdf__field"><dynadrill-text variant="caption">POZO</dynadrill-text><dynadrill-text variant="body">{{ data.pedido.pozo }}</dynadrill-text></div>
+    <div class="pf-pdf__field"><dynadrill-text variant="caption">TALADRO</dynadrill-text><dynadrill-text variant="body">{{ data.pedido.taladroRig }}</dynadrill-text></div>
+  </div>
+
+  <div class="pf-pdf__field pf-pdf__observaciones">
+    <dynadrill-text variant="caption">OBSERVACIONES</dynadrill-text>
+    <dynadrill-text variant="body">{{ data.pedido.itemEstimado.descripcion }}</dynadrill-text>
+  </div>
+
+  <!-- ── Detalle ── -->
+  <table class="pf-pdf__table">
+    <thead>
+      <tr>
+        <th>Ítem</th><th>Código</th><th>Cantidad</th><th>Unidad</th><th>Serie</th><th>Descripción</th>
+        <th>Precio unitario</th><th>Precio total</th><th>Tipo</th><th>Material</th><th>Servicio</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (it of data.prefactura.items; track it.id; let i = $index) {
+        <tr>
+          <td>{{ i + 1 }}</td>
+          <td>{{ it.codigo }}</td>
+          <td>{{ it.cantidad }}</td>
+          <td>{{ it.unidad }}</td>
+          <td>{{ it.serie || '—' }}</td>
+          <td>{{ it.descripcion }}</td>
+          <td class="num">{{ it.precioUnitario | number: '1.2-2' }}</td>
+          <td class="num">{{ it.precioTotal | number: '1.2-2' }}</td>
+          <td>{{ it.tipo }}</td>
+          <td class="num">{{ it.tipo === 'Material' ? (it.precioTotal | number: '1.2-2') : '-' }}</td>
+          <td class="num">{{ it.tipo === 'Servicio' ? (it.precioTotal | number: '1.2-2') : '-' }}</td>
+        </tr>
+      } @empty {
+        <tr><td colspan="11">Sin ítems.</td></tr>
+      }
+    </tbody>
+  </table>
+
+  <dynadrill-text variant="caption">Los precios no incluyen IVA.</dynadrill-text>
+
+  <!-- ── Liquidación ── -->
+  <div class="pf-pdf__section pf-pdf__section--totals">
+    <dl class="pf-pdf__totals">
+      <div><dt>Subtotal Materiales</dt><dd>{{ data.prefactura.subtotalMateriales | number: '1.2-2' }}</dd></div>
+      <div><dt>Subtotal Servicios</dt><dd>{{ data.prefactura.subtotalServicios | number: '1.2-2' }}</dd></div>
+      <div class="pf-pdf__sum"><dt>SUBTOTAL</dt><dd>{{ data.prefactura.subtotal | number: '1.2-2' }}</dd></div>
+      <div><dt>IVA (15%)</dt><dd>{{ data.prefactura.iva | number: '1.2-2' }}</dd></div>
+      <div><dt>Retención IR (1%)</dt><dd>−{{ data.prefactura.retencionIR | number: '1.2-2' }}</dd></div>
+      <div><dt>Retención IVA (30%)</dt><dd>−{{ data.prefactura.retencionIVA | number: '1.2-2' }}</dd></div>
+      <div class="pf-pdf__sum"><dt>TOTAL</dt><dd>{{ data.prefactura.netoCobrar | number: '1.2-2' }}</dd></div>
+    </dl>
+  </div>
+
+  <dynadrill-text variant="caption">
+    Firma electrónica autorizada por Dynadrill Ecuador C.A.: {{ data.prefactura.generadoPor || '—' }}
+  </dynadrill-text>
+
+  @if (data.prefactura.firmaCliente; as f) {
+    <dynadrill-text variant="caption">Firma del cliente: {{ f.nombre }} · {{ f.cargo }} · {{ f.firmadoAt | date: 'dd/MM/yyyy HH:mm' }}</dynadrill-text>
+  }
+
+  <dynadrill-text variant="caption">Impresión: {{ printDate }} · Nº {{ data.prefactura.code }} · Estado: {{ data.prefactura.estado | uppercase }}</dynadrill-text>
+
+  <div class="pf-pdf__actions no-print">
+    <dynadrill-button variant="secondary" (clicked)="close()">Cerrar</dynadrill-button>
+    <dynadrill-button (clicked)="print()">Imprimir / Exportar PDF</dynadrill-button>
+  </div>
+</div>

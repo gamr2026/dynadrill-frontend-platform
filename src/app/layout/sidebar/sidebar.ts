@@ -96,7 +96,7 @@ const FACTURACION_ITEM: DynadrillMenuItem = {
   icon: 'file-text' as DynadrillIconName,
   children: [
     { label: 'Pedidos', link: '/dashboard/facturacion/pedidos' },
-    { label: 'Tickets', link: '/dashboard/facturacion/tickets' },
+    { label: 'Prefacturas', link: '/dashboard/facturacion/prefacturas' },
     { label: 'Lista de precios', link: '/dashboard/facturacion/lista-precios' },
     { label: 'Reportería', link: '/dashboard/facturacion/reporteria' },
   ],
@@ -167,7 +167,15 @@ export class Sidebar {
       return [dashboard, INVENTARIO_ITEM, FCR_ONLY_ITEM];
     }
 
-    if (roleName === 'Ingeniería de Ventas' || roleName === 'Control de Herramientas') {
+    if (roleName === 'Ingeniería de Ventas') {
+      return [
+        dashboard,
+        FCR_ONLY_ITEM,
+        { label: 'Facturación', icon: 'file-text' as DynadrillIconName, children: [{ label: 'Pedidos', link: '/dashboard/facturacion/pedidos' }] },
+      ];
+    }
+
+    if (roleName === 'Control de Herramientas') {
       return [dashboard, FCR_ONLY_ITEM];
     }
 

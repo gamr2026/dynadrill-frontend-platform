@@ -1,24 +1,32 @@
 <div class="lista-precios-page">
   <dynadrill-screen-header
     eyebrow="FACTURACIÓN"
-    title="Lista de precios"
-    subtitle="Hoja LP — tarifario del contrato, espejo de solo lectura de AS2"
+    title="Listas de precios"
+    subtitle="Tarifario por cliente / contrato. Los códigos provienen de AS2."
   />
+
+  <div class="lista-precios-page__toolbar">
+    <dynadrill-button (clicked)="nuevaLista()">+ Nueva lista</dynadrill-button>
+  </div>
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
     <dynadrill-kpi-row [items]="kpis()" />
 
-    <section class="fact-card">
-      <header class="lista-precios-page__head">
-        <h2>Tarifario contractual</h2>
-        <dynadrill-button variant="secondary" size="small" (clicked)="exportar()">Exportar a CSV</dynadrill-button>
-      </header>
-      <dynadrill-text variant="caption">
-        El Portal solo consulta esta lista — no se crea ni se edita aquí. Alimenta el selector de ítems de la OTQ y la homologación de la documentación diaria.
-      </dynadrill-text>
-      <div class="lista-precios-page__table">
-        <dynadrill-data-table [columns]="columns" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="15" />
+    @if (listas().length) {
+      <div class="lista-precios-page__grid">
+        @for (l of listas(); track l.id) {
+          <button type="button" class="lista-precios-page__card" (click)="abrir(l.id)">
+            <div class="lista-precios-page__card-head">
+              <strong>{{ l.cliente }}</strong>
+              <dynadrill-tag [label]="l.activa ? 'Activa' : 'Inactiva'" [variant]="l.activa ? 'success' : 'neutral'" />
+            </div>
+            <dynadrill-text variant="caption">Contrato {{ l.numeroContrato }} · vigente desde {{ l.vigenteDesde }}</dynadrill-text>
+            <dynadrill-text variant="body">{{ l.items.length }} ítem(s)</dynadrill-text>
+          </button>
+        }
       </div>
-    </section>
+    } @else {
+      <section class="fact-card"><dynadrill-text variant="body">Todavía no hay listas de precios. Crea la primera.</dynadrill-text></section>
+    }
   </dynadrill-spinner>
 </div>

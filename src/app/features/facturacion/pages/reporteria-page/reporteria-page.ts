@@ -1,36 +1,27 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import {
   DynadrillButtonComponent,
+  DynadrillChartComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
-  DynadrillDatetimePickerComponent,
-  DynadrillInputComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
   DynadrillTabsComponent,
-  DynadrillTextComponent,
+  type DynadrillChartSeries,
   type DynadrillKpiRowItem,
   type DynadrillTab,
 } from '@digitec-it-projects/dynadrill-ui';
-import { calcularPrefactura, DocumentacionDiaria, FacturacionTicket, Otq } from '../../models/facturacion.model';
-import { DocumentacionDiariaService, FacturacionTicketService, OtqService } from '../../services/facturacion.service';
+import { ESTADO_PEDIDO_LABELS, LINEA_SERVICIO_LABELS, Pedido, valorEstimadoPedido } from '../../models/pedido.model';
+import { Prefactura } from '../../models/prefactura.model';
+import { PedidoService, PrefacturaService } from '../../services/pedido.service';
 
-function presupuestoDe(otq: Otq): number {
-  return otq.items.reduce((sum, i) => sum + i.total, 0);
-}
-
-function descargarCsv(nombre: string, columnas: { header: string; key: string }[], filas: Record<string, unknown>[]): void {
-  const escapar = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const encabezado = columnas.map(c => escapar(c.header)).join(',');
-  const cuerpo = filas.map(r => columnas.map(c => escapar(r[c.key])).join(','));
-  // BOM para que Excel detecte UTF-8 y no rompa tildes/ñ.
-  const contenido = '﻿' + [encabezado, ...cuerpo].join('\r\n');
-  const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
+function descargarCsv(nombre: string, headers: string[], filas: (string | number)[][]): void {
+  const esc = (v: string | number) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const contenido = '﻿' + [headers.map(esc).join(','), ...filas.map(f => f.map(esc).join(','))].join('\r\n');
+  const url = URL.createObjectURL(new Blob([contenido], { type: 'text/csv;charset=utf-8;' }));
   const a = document.createElement('a');
   a.href = url;
   a.download = nombre;
@@ -38,173 +29,243 @@ function descargarCsv(nombre: string, columnas: { header: string; key: string }[
   URL.revokeObjectURL(url);
 }
 
-/**
- * FACT-005 — Reportería y Control de Gestión. No hay reportes automáticos
- * (email semanal/mensual, SMS) todavía — es un dashboard en vivo con los
- * mismos datos que consumirían esos reportes, calculado sobre los
- * registros actuales del interceptor de mocks. La "Exportación a Excel"
- * del documento se resuelve con CSV (compatible con Excel, sin agregar una
- * librería nueva al bundle) hasta que se necesite un formato .xlsx real.
- */
+function mesDe(iso: string): string {
+  return iso.slice(0, 7);
+}
+
+/** Días entre dos ISO (o null). */
+function dias(a?: string, b?: string): number | null {
+  if (!a || !b) return null;
+  return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86_400_000);
+}
+
+function semaforo(d: number | null): 'success' | 'warning' | 'error' | 'neutral' {
+  if (d === null) return 'neutral';
+  return d <= 3 ? 'success' : d <= 7 ? 'warning' : 'error';
+}
+
+/** FACT-005 — Reportería y control de gestión. */
 @Component({
   selector: 'app-reporteria-page',
   imports: [
     DynadrillScreenHeaderComponent,
     DynadrillKpiRowComponent,
     DynadrillDataTableComponent,
-    DynadrillSpinnerComponent,
     DynadrillTabsComponent,
     DynadrillButtonComponent,
-    DynadrillInputComponent,
-    DynadrillDatetimePickerComponent,
-    DynadrillTextComponent,
+    DynadrillChartComponent,
+    DynadrillSpinnerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './reporteria-page.html',
   styleUrl: './reporteria-page.scss',
 })
 export class ReporteriaPage {
-  private readonly otqService = inject(OtqService);
-  private readonly docService = inject(DocumentacionDiariaService);
-  private readonly ticketService = inject(FacturacionTicketService);
+  private readonly pedidoService = inject(PedidoService);
+  private readonly prefacturaService = inject(PrefacturaService);
   private readonly notify = inject(DynadrillNotificationService);
-  private readonly router = inject(Router);
 
   protected readonly loading = signal(true);
-  protected readonly otqs = signal<Otq[]>([]);
-  protected readonly documentacion = signal<DocumentacionDiaria[]>([]);
-  protected readonly tickets = signal<FacturacionTicket[]>([]);
+  protected readonly pedidos = signal<Pedido[]>([]);
+  protected readonly prefacturas = signal<Prefactura[]>([]);
+  protected readonly activeTab = signal(0);
 
-  // ── Filtros — aplican sobre ambas pestañas ──
-  protected readonly filtroCliente = signal('');
-  protected readonly filtroFechaDesde = signal<Date | null>(null);
-  protected readonly filtroFechaHasta = signal<Date | null>(null);
-
-  protected readonly hayFiltrosActivos = computed(() => !!this.filtroCliente().trim() || !!this.filtroFechaDesde() || !!this.filtroFechaHasta());
-
-  protected limpiarFiltros(): void {
-    this.filtroCliente.set('');
-    this.filtroFechaDesde.set(null);
-    this.filtroFechaHasta.set(null);
-  }
-
-  protected readonly activosColumns: DynadrillDataTableColumn[] = [
-    { key: 'numero', header: 'OTQ', sortable: true, searchable: true },
-    { key: 'cliente', header: 'Cliente', sortable: true, searchable: true },
-    { key: 'ubicacion', header: 'Campo / Pozo', searchable: true },
-    { key: 'presupuesto', header: 'Presupuesto' },
-    { key: 'acumulado', header: 'Ejecutado' },
-    { key: 'semaforoBadge', header: '% Ejecutado', type: 'badge' },
+  protected readonly tabs: DynadrillTab[] = [
+    { label: 'Por mes' },
+    { label: 'Por pozo y línea' },
+    { label: 'Estado por cliente' },
+    { label: 'Cotizado vs. real' },
+    { label: 'Control de tickets' },
   ];
 
-  protected readonly ticketsColumns: DynadrillDataTableColumn[] = [
-    { key: 'code', header: 'Ticket', sortable: true, searchable: true },
-    { key: 'cliente', header: 'Cliente', sortable: true, searchable: true },
-    { key: 'pedidoId', header: 'Pedido' },
-    { key: 'fechaCierre', header: 'Fecha de cierre', sortable: true },
-    { key: 'subtotal', header: 'Subtotal' },
-    { key: 'netoCobrar', header: 'Neto a cobrar' },
-    { key: 'estadoBadge', header: 'Estado', type: 'badge' },
-  ];
-
-  private clienteDePedido(pedidoId: number): string {
-    return this.otqs().find(o => o.pedidoId === pedidoId)?.cliente ?? '';
+  private pedidoDe(id: number): Pedido | undefined {
+    return this.pedidos().find(p => p.id === id);
   }
 
-  /** Ticket activos = OTQ sin Ticket de Facturación generado todavía (pedido en ejecución). */
-  protected readonly ticketsActivosRows = computed(() => {
-    const docs = this.documentacion();
-    const cerradosPedidoIds = new Set(this.tickets().map(t => t.pedidoId));
-    const filtroCliente = this.filtroCliente().trim().toLowerCase();
+  private hito(p: Pedido, estado: string): string | undefined {
+    return p.historialEstados.find(h => h.estado === estado)?.fecha;
+  }
 
-    return this.otqs()
-      .filter(otq => !cerradosPedidoIds.has(otq.pedidoId))
-      .filter(otq => !filtroCliente || otq.cliente.toLowerCase().includes(filtroCliente))
-      .map(otq => {
-        const pre = calcularPrefactura(otq.pedidoId, presupuestoDe(otq), docs, otq.items);
-        const tono: 'success' | 'warning' | 'error' = pre.porcentajeConsumido >= 100 ? 'error' : pre.porcentajeConsumido >= 85 ? 'warning' : 'success';
+  // ── 1. Ventas & nº trabajos por mes ──
+  protected readonly porMesRows = computed(() => {
+    const acc = new Map<string, { revenue: number; jobs: number }>();
+    for (const pf of this.prefacturas().filter(p => p.estado === 'firmada')) {
+      const m = mesDe(pf.fechaGeneracion);
+      const cur = acc.get(m) ?? { revenue: 0, jobs: 0 };
+      cur.revenue += pf.subtotal;
+      cur.jobs += 1;
+      acc.set(m, cur);
+    }
+    return [...acc.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([mes, v], i) => ({ id: mes, mes, revenue: '$' + v.revenue.toFixed(2), jobs: v.jobs, _r: v.revenue, _j: v.jobs, _i: i }));
+  });
+  protected readonly porMesColumns: DynadrillDataTableColumn[] = [
+    { key: 'mes', header: 'Mes', sortable: true },
+    { key: 'revenue', header: 'Revenue real' },
+    { key: 'jobs', header: 'Nº de trabajos' },
+  ];
+  protected readonly porMesChartCategories = computed(() => this.porMesRows().map(r => r.mes));
+  protected readonly porMesChartSeries = computed<DynadrillChartSeries[]>(() => [
+    { name: 'Revenue real', data: this.porMesRows().map(r => r._r) },
+  ]);
+
+  // ── 2. Ingresos por pozo y línea ──
+  protected readonly porPozoRows = computed(() =>
+    this.prefacturas()
+      .filter(p => p.estado === 'firmada')
+      .map(pf => {
+        const p = this.pedidoDe(pf.pedidoId);
         return {
-          id: otq.id,
-          pedidoId: otq.pedidoId,
-          numero: otq.numero,
-          cliente: otq.cliente,
-          ubicacion: `${otq.campo} — ${otq.pozo}`,
-          presupuesto: '$' + presupuestoDe(otq).toFixed(2),
-          acumulado: '$' + pre.acumulado.toFixed(2),
-          semaforoBadge: { text: pre.porcentajeConsumido + '%', tone: tono },
-          _porcentaje: pre.porcentajeConsumido,
+          id: pf.id,
+          pozo: p?.pozo ?? '—',
+          linea: p ? LINEA_SERVICIO_LABELS[p.lineaServicio] : '—',
+          cliente: p?.cliente ?? '—',
+          revenue: '$' + pf.subtotal.toFixed(2),
         };
+      }),
+  );
+  protected readonly porPozoColumns: DynadrillDataTableColumn[] = [
+    { key: 'pozo', header: 'Pozo', sortable: true, searchable: true },
+    { key: 'linea', header: 'Línea de servicio', sortable: true, searchable: true },
+    { key: 'cliente', header: 'Cliente', searchable: true },
+    { key: 'revenue', header: 'Revenue real' },
+  ];
+  /** Ingresos agregados por línea de servicio — mismo corte que "ventas por sublínea" del VENTAS_DYNADRILL. */
+  protected readonly porLineaChartData = computed(() => {
+    const acc = new Map<string, number>();
+    for (const pf of this.prefacturas().filter(p => p.estado === 'firmada')) {
+      const p = this.pedidoDe(pf.pedidoId);
+      const linea = p ? LINEA_SERVICIO_LABELS[p.lineaServicio] : 'Sin línea';
+      acc.set(linea, (acc.get(linea) ?? 0) + pf.subtotal);
+    }
+    return [...acc.entries()].sort(([a], [b]) => a.localeCompare(b));
+  });
+  protected readonly porLineaChartCategories = computed(() => this.porLineaChartData().map(([linea]) => linea));
+  protected readonly porLineaChartSeries = computed<DynadrillChartSeries[]>(() => [
+    { name: 'Ingresos reales', data: this.porLineaChartData().map(([, v]) => v) },
+  ]);
+
+  // ── 3. Estado de tickets por cliente ──
+  protected readonly estadoClienteRows = computed(() => {
+    const acc = new Map<string, { tickets: number; accrual: number }>();
+    for (const p of this.pedidos()) {
+      const key = `${p.cliente}||${ESTADO_PEDIDO_LABELS[p.estado]}`;
+      const pf = this.prefacturas().find(x => x.pedidoId === p.id);
+      const cur = acc.get(key) ?? { tickets: 0, accrual: 0 };
+      cur.tickets += 1;
+      cur.accrual += pf?.subtotal ?? valorEstimadoPedido(p);
+      acc.set(key, cur);
+    }
+    return [...acc.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, v]) => {
+        const [cliente, estado] = key.split('||');
+        return { id: key, cliente, estado, tickets: v.tickets, accrual: '$' + v.accrual.toFixed(2), _a: v.accrual };
       });
   });
+  protected readonly estadoClienteColumns: DynadrillDataTableColumn[] = [
+    { key: 'cliente', header: 'Cliente', sortable: true, searchable: true },
+    { key: 'estado', header: 'Estado', sortable: true, searchable: true },
+    { key: 'tickets', header: 'Nº tickets' },
+    { key: 'accrual', header: 'Accrual (por facturar)' },
+  ];
+  /** Accrual total por cliente (agregado sobre todos los estados de proceso). */
+  protected readonly accrualClienteChartData = computed(() => {
+    const acc = new Map<string, number>();
+    for (const r of this.estadoClienteRows()) acc.set(r.cliente, (acc.get(r.cliente) ?? 0) + r._a);
+    return [...acc.entries()].sort(([, a], [, b]) => b - a);
+  });
+  protected readonly accrualClienteChartCategories = computed(() => this.accrualClienteChartData().map(([cliente]) => cliente));
+  protected readonly accrualClienteChartSeries = computed<DynadrillChartSeries[]>(() => [
+    { name: 'Accrual', data: this.accrualClienteChartData().map(([, v]) => v) },
+  ]);
 
-  protected readonly ticketsRows = computed(() => {
-    const filtroCliente = this.filtroCliente().trim().toLowerCase();
-    const desde = this.filtroFechaDesde();
-    const hasta = this.filtroFechaHasta();
+  // ── 4. Cotizado vs. real ──
+  protected readonly cotizadoRealRows = computed(() =>
+    this.pedidos().map(p => {
+      const pf = this.prefacturas().find(x => x.pedidoId === p.id);
+      const cotizado = valorEstimadoPedido(p);
+      const real = pf?.subtotal ?? 0;
+      const desv = cotizado > 0 ? Math.round(((real - cotizado) / cotizado) * 100) : 0;
+      return {
+        id: p.id,
+        code: p.code,
+        cliente: p.cliente,
+        cotizado: '$' + cotizado.toFixed(2),
+        real: real ? '$' + real.toFixed(2) : '—',
+        desviacion: pf ? (desv >= 0 ? '+' : '') + desv + '%' : '—',
+      };
+    }),
+  );
+  protected readonly cotizadoRealColumns: DynadrillDataTableColumn[] = [
+    { key: 'code', header: 'Pedido', sortable: true, searchable: true },
+    { key: 'cliente', header: 'Cliente', searchable: true },
+    { key: 'cotizado', header: 'Cotizado (Ventas)' },
+    { key: 'real', header: 'Real (prefactura)' },
+    { key: 'desviacion', header: 'Desviación' },
+  ];
+  private readonly cotizadoRealChartBase = computed(() =>
+    this.pedidos().map(p => {
+      const pf = this.prefacturas().find(x => x.pedidoId === p.id);
+      return { code: p.code, cotizado: valorEstimadoPedido(p), real: pf?.subtotal ?? 0 };
+    }),
+  );
+  protected readonly cotizadoRealChartCategories = computed(() => this.cotizadoRealChartBase().map(r => r.code));
+  protected readonly cotizadoRealChartSeries = computed<DynadrillChartSeries[]>(() => [
+    { name: 'Cotizado (Ventas)', data: this.cotizadoRealChartBase().map(r => r.cotizado) },
+    { name: 'Real (prefactura)', data: this.cotizadoRealChartBase().map(r => r.real) },
+  ]);
 
-    return this.tickets()
-      .filter(t => {
-        const cliente = this.clienteDePedido(t.pedidoId).toLowerCase();
-        if (filtroCliente && !cliente.includes(filtroCliente)) return false;
-        const fecha = new Date(t.fechaCierre);
-        if (desde && fecha < desde) return false;
-        if (hasta && fecha > hasta) return false;
-        return true;
-      })
-      .map(t => ({
-        id: t.id,
-        code: t.code,
-        cliente: this.clienteDePedido(t.pedidoId),
-        pedidoId: t.pedidoId,
-        fechaCierre: new Date(t.fechaCierre).toLocaleDateString('es-EC'),
-        subtotal: '$' + t.subtotal.toFixed(2),
-        netoCobrar: '$' + t.netoCobrar.toFixed(2),
-        estadoBadge: t.estado === 'facturado' ? { text: 'Facturado', tone: 'success' as const } : { text: 'Cerrado', tone: 'warning' as const },
-      }));
+  // ── 5. Control de tickets (estilo Secuencial Tk Control) ──
+  protected readonly controlRows = computed(() =>
+    this.pedidos().map(p => {
+      const dPref = dias(p.fechaFinServicio, this.hito(p, 'documentos_completos'));
+      const dFirma = dias(this.hito(p, 'enviado_para_firmas'), this.hito(p, 'ticket_firmado'));
+      return {
+        id: p.id,
+        code: p.code,
+        cliente: p.cliente,
+        linea: LINEA_SERVICIO_LABELS[p.lineaServicio],
+        pozo: p.pozo,
+        analista: p.analistaFacturacion ?? '—',
+        vendedor: p.agenteComercial,
+        estado: ESTADO_PEDIDO_LABELS[p.estado],
+        diasPrefBadge: { text: dPref === null ? '—' : dPref + ' d', tone: semaforo(dPref) },
+        diasFirmaBadge: { text: dFirma === null ? '—' : dFirma + ' d', tone: semaforo(dFirma) },
+      };
+    }),
+  );
+  protected readonly controlColumns: DynadrillDataTableColumn[] = [
+    { key: 'code', header: 'Ticket', sortable: true, searchable: true },
+    { key: 'cliente', header: 'Cliente', searchable: true },
+    { key: 'linea', header: 'Línea', searchable: true },
+    { key: 'pozo', header: 'Pozo', searchable: true },
+    { key: 'analista', header: 'Analista' },
+    { key: 'vendedor', header: 'Vendedor' },
+    { key: 'estado', header: 'Estado' },
+    { key: 'diasPrefBadge', header: 'Días prefact.', type: 'badge' },
+    { key: 'diasFirmaBadge', header: 'Días firma', type: 'badge' },
+  ];
+  /** Distribución del semáforo de días de prefacturación — cuántos tickets caen en cada color. */
+  protected readonly semaforoChartCategories = ['🟢 Verde (≤3 d)', '🟡 Amarillo (4-7 d)', '🔴 Rojo (>7 d)', '⚪ Sin dato'];
+  protected readonly semaforoChartSeries = computed<DynadrillChartSeries[]>(() => {
+    const rows = this.controlRows();
+    const contar = (tono: string) => rows.filter(r => r.diasPrefBadge.tone === tono).length;
+    return [{ name: 'Tickets', data: [contar('success'), contar('warning'), contar('error'), contar('neutral')] }];
   });
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
-  protected readonly activeTab = signal(0);
-
-  protected readonly tabs = computed<DynadrillTab[]>(() => [
-    { label: 'Tickets activos', badge: this.ticketsActivosRows().length },
-    { label: 'Cerrados y facturados', badge: this.ticketsRows().length },
-  ]);
-
-  /** Indicadores operativos (FACT-005) — derivados de los datos ya cargados, sin llamadas extra. */
-  protected readonly tasaSobrepaso = computed(() => {
-    const activos = this.ticketsActivosRows();
-    if (!activos.length) return 0;
-    const sobrepasados = activos.filter(r => r._porcentaje >= 100).length;
-    return Math.round((sobrepasados / activos.length) * 100);
-  });
-
-  protected readonly tiempoPromedioCierre = computed(() => {
-    const cerrados = this.tickets();
-    if (!cerrados.length) return null;
-    const dias = cerrados
-      .map(t => {
-        const otq = this.otqs().find(o => o.id === t.otqId);
-        if (!otq) return null;
-        const ms = new Date(t.fechaCierre).getTime() - new Date(otq.createdAt).getTime();
-        return ms > 0 ? ms / (1000 * 60 * 60 * 24) : null;
-      })
-      .filter((d): d is number => d !== null);
-    if (!dias.length) return null;
-    return Math.round((dias.reduce((s, d) => s + d, 0) / dias.length) * 10) / 10;
-  });
-
   protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
-    const tickets = this.tickets();
-    const facturacionAcumulada = tickets.reduce((sum, t) => sum + t.subtotal, 0);
-    const tiempoCierre = this.tiempoPromedioCierre();
+    const firmadas = this.prefacturas().filter(p => p.estado === 'firmada');
+    const total = firmadas.reduce((s, p) => s + p.subtotal, 0);
+    const enProceso = this.pedidos().filter(p => !['facturado', 'listo_para_facturar', 'enviado_a_control_de_costos'].includes(p.estado));
     return [
-      { label: 'Facturación acumulada', value: '$' + facturacionAcumulada.toFixed(2), tone: 'brand' },
-      { label: 'Tickets activos (en ejecución)', value: this.ticketsActivosRows().length, tone: 'neutral' },
-      { label: 'Tickets facturados', value: tickets.filter(t => t.estado === 'facturado').length, tone: 'success' },
-      { label: 'Tasa de sobrepaso (activos)', value: this.tasaSobrepaso() + '%', tone: this.tasaSobrepaso() > 10 ? 'error' : 'neutral' },
-      { label: 'Tiempo prom. de cierre', value: tiempoCierre !== null ? tiempoCierre + ' d' : '—', tone: 'neutral' },
+      { label: 'Revenue real acumulado', value: '$' + total.toFixed(2), tone: 'brand' },
+      { label: 'Trabajos facturados', value: firmadas.length, tone: 'success' },
+      { label: 'Pedidos en proceso', value: enProceso.length, tone: 'neutral' },
+      { label: 'Accrual (por facturar)', value: '$' + this.pedidos().filter(p => !this.prefacturas().some(x => x.pedidoId === p.id && x.estado === 'firmada')).reduce((s, p) => s + valorEstimadoPedido(p), 0).toFixed(2), tone: 'warning' },
     ];
   });
 
@@ -214,11 +275,10 @@ export class ReporteriaPage {
 
   private reload(): void {
     this.loading.set(true);
-    forkJoin({ otqs: this.otqService.list(), documentacion: this.docService.list(), tickets: this.ticketService.list() }).subscribe({
-      next: ({ otqs, documentacion, tickets }) => {
-        this.otqs.set(otqs);
-        this.documentacion.set(documentacion);
-        this.tickets.set(tickets);
+    forkJoin({ pedidos: this.pedidoService.list(), prefacturas: this.prefacturaService.list() }).subscribe({
+      next: ({ pedidos, prefacturas }) => {
+        this.pedidos.set(pedidos);
+        this.prefacturas.set(prefacturas);
         this.loading.set(false);
       },
       error: () => {
@@ -228,29 +288,23 @@ export class ReporteriaPage {
     });
   }
 
-  protected verPedido(row: Record<string, unknown>): void {
-    this.router.navigate(['/dashboard/facturacion/pedidos', row['pedidoId']]);
-  }
-
-  protected verTicket(row: Record<string, unknown>): void {
-    this.router.navigate(['/dashboard/facturacion/tickets', row['id']]);
-  }
-
-  protected exportarActivos(): void {
-    descargarCsv(
-      `tickets-activos-${new Date().toISOString().slice(0, 10)}.csv`,
-      this.activosColumns.filter(c => c.key !== 'semaforoBadge').concat([{ key: 'semaforoBadge', header: '% Ejecutado' } as DynadrillDataTableColumn]),
-      this.ticketsActivosRows().map(r => ({ ...r, semaforoBadge: r.semaforoBadge.text })),
-    );
-    this.notify.success('Exportado', 'Se descargó el CSV de tickets activos.');
-  }
-
-  protected exportarCerrados(): void {
-    descargarCsv(
-      `tickets-cerrados-facturados-${new Date().toISOString().slice(0, 10)}.csv`,
-      this.ticketsColumns.filter(c => c.key !== 'estadoBadge').concat([{ key: 'estadoBadge', header: 'Estado' } as DynadrillDataTableColumn]),
-      this.ticketsRows().map(r => ({ ...r, estadoBadge: r.estadoBadge.text })),
-    );
-    this.notify.success('Exportado', 'Se descargó el CSV de tickets cerrados y facturados.');
+  protected exportar(): void {
+    const hoy = new Date().toISOString().slice(0, 10);
+    switch (this.activeTab()) {
+      case 0:
+        return descargarCsv(`ventas-por-mes-${hoy}.csv`, ['Mes', 'Revenue', 'Jobs'], this.porMesRows().map(r => [r.mes, r._r, r._j]));
+      case 1:
+        return descargarCsv(`ingresos-por-pozo-${hoy}.csv`, ['Pozo', 'Línea', 'Cliente', 'Revenue'], this.porPozoRows().map(r => [r.pozo, r.linea, r.cliente, r.revenue]));
+      case 2:
+        return descargarCsv(`estado-por-cliente-${hoy}.csv`, ['Cliente', 'Estado', 'Nº tickets', 'Accrual'], this.estadoClienteRows().map(r => [r.cliente, r.estado, r.tickets, r._a]));
+      case 3:
+        return descargarCsv(`cotizado-vs-real-${hoy}.csv`, ['Pedido', 'Cliente', 'Cotizado', 'Real', 'Desviación'], this.cotizadoRealRows().map(r => [r.code, r.cliente, r.cotizado, r.real, r.desviacion]));
+      default:
+        return descargarCsv(
+          `control-tickets-${hoy}.csv`,
+          ['Ticket', 'Cliente', 'Línea', 'Pozo', 'Analista', 'Vendedor', 'Estado', 'Días prefact.', 'Días firma'],
+          this.controlRows().map(r => [r.code, r.cliente, r.linea, r.pozo, r.analista, r.vendedor, r.estado, r.diasPrefBadge.text, r.diasFirmaBadge.text]),
+        );
+    }
   }
 }

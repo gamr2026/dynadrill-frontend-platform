@@ -30,12 +30,11 @@
     @for (question of riskQuestions(); track question.id) {
       <div class="travel-dialog__question-row">
         <dynadrill-text variant="body">{{ question.id }}. {{ question.question }}</dynadrill-text>
-        <dynadrill-select
-          [label]="'Respuesta'"
-          placeholder="Seleccionar"
-          [options]="getQuestionOptions(question)"
-          [value]="question.selectedValue"
-          (valueChange)="onQuestionAnswer(question.id, $event)"
+        <dynadrill-chip-group
+          [options]="getQuestionOptionLabels(question)"
+          mode="single"
+          [selected]="getSelectedOptionLabel(question)"
+          (selectedChange)="onQuestionChipChange(question, $event)"
         />
       </div>
     }

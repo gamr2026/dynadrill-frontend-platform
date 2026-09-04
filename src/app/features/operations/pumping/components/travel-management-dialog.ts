@@ -155,14 +155,28 @@ export class TravelManagementDialog {
   }
 
   // ── Question selection ──
+  // Chip-group en vez de select: son solo 2-3 opciones por pregunta y 15
+  // preguntas en total — con select había que abrir y cerrar el dropdown
+  // 15 veces para llenar el formulario completo.
   protected onQuestionAnswer(questionId: number, value: unknown): void {
     this.riskQuestions.update(questions =>
       questions.map(q => q.id === questionId ? { ...q, selectedValue: value as number } : q),
     );
   }
 
-  protected getQuestionOptions(question: TravelRiskQuestion): DynadrillSelectOption[] {
-    return question.options.map(opt => ({ label: opt.label, value: opt.value }));
+  protected getQuestionOptionLabels(question: TravelRiskQuestion): string[] {
+    return question.options.map(opt => opt.label);
+  }
+
+  protected getSelectedOptionLabel(question: TravelRiskQuestion): string[] {
+    const selected = question.options.find(opt => opt.value === question.selectedValue);
+    return selected ? [selected.label] : [];
+  }
+
+  protected onQuestionChipChange(question: TravelRiskQuestion, selectedLabels: string[]): void {
+    const label = selectedLabels[0];
+    const option = question.options.find(opt => opt.label === label);
+    this.onQuestionAnswer(question.id, option ? option.value : null);
   }
 
   protected readonly allQuestionsAnswered = computed(() => {

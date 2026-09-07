@@ -48,6 +48,11 @@ function toChecklistItems(labels: string[]): VehicleChecklistItem[] {
   return labels.map(label => ({ label, estado: null }));
 }
 
+/** Medianoche LOCAL: `new Date('2026-01-10')` es UTC y en Ecuador (UTC-5) el date-picker lo muestra un día antes. */
+function parseIsoLocal(iso: string): Date {
+  return new Date(iso.slice(0, 10) + 'T00:00:00');
+}
+
 /**
  * DYN-SGI-RE-068 — checklist previo a la salida de vehículos de apoyo
  * (camionetas/camiones/cabezales). Lo llena el rol Conductor — separado de
@@ -171,10 +176,11 @@ export class VehicleInspectionDialog {
     if (unidad.categoriaPeso) this.tipo.set(unidad.categoriaPeso);
     // Documentos legales del vehículo: vienen del patrimonio de la Unidad
     // (Inventario) y quedan bloqueados, igual que Marca/Modelo/Placa.
-    if (unidad.fechaMatricula) this.fechaMatricula.set(new Date(unidad.fechaMatricula));
-    if (unidad.caducidadMatricula) this.caducidadMatricula.set(new Date(unidad.caducidadMatricula));
-    if (unidad.caducidadPoliza) this.caducidadPoliza.set(new Date(unidad.caducidadPoliza));
-    if (unidad.vigenciaOtroDocumento) this.vigenciaOtroDocumento.set(new Date(unidad.vigenciaOtroDocumento));
+    // Medianoche local (ver parseIsoLocal) para no mostrar un día antes en UTC-5.
+    if (unidad.fechaMatricula) this.fechaMatricula.set(parseIsoLocal(unidad.fechaMatricula));
+    if (unidad.caducidadMatricula) this.caducidadMatricula.set(parseIsoLocal(unidad.caducidadMatricula));
+    if (unidad.caducidadPoliza) this.caducidadPoliza.set(parseIsoLocal(unidad.caducidadPoliza));
+    if (unidad.vigenciaOtroDocumento) this.vigenciaOtroDocumento.set(parseIsoLocal(unidad.vigenciaOtroDocumento));
     // El kilometraje se precarga como sugerencia pero queda EDITABLE (no se
     // bloquea como Marca/Modelo/Placa): es una lectura física del odómetro
     // y `Unidad.kmActual` puede estar desactualizado — el inspector lo

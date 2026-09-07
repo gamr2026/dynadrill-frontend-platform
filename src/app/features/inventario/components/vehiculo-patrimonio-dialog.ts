@@ -38,8 +38,9 @@ export class VehiculoPatrimonioDialog {
 
   protected readonly submitting = signal(false);
 
+  /** Parsea como medianoche LOCAL (no UTC): `new Date('2026-01-10')` es UTC y en Ecuador (UTC-5) se muestra un día antes en el date-picker. */
   private parseIso(iso: string | undefined): Date | null {
-    return iso ? new Date(iso) : null;
+    return iso ? new Date(iso.slice(0, 10) + 'T00:00:00') : null;
   }
 
   protected save(): void {

@@ -101,7 +101,7 @@
         }
 
         <dynadrill-textarea label="Observaciones" [value]="observacionesConductor()" (valueChange)="observacionesConductor.set($event)" [rows]="2" />
-        <dynadrill-input label="Nombre del Supervisor" [value]="supervisorNombre()" (valueChange)="supervisorNombre.set($event)" />
+        <dynadrill-select label="Nombre del Supervisor" placeholder="Selecciona el supervisor" [options]="supervisorOptions()" [value]="supervisorNombre() || null" (valueChange)="supervisorNombre.set($any($event) ?? '')" />
       </div>
     }
   </div>

@@ -31,6 +31,9 @@ import { UnidadesService } from '../services/unidades.service';
 import { Unidad } from '../models/unidad.model';
 import { UnitReportDialog, UnitReportDialogData } from './unit-report-dialog';
 import { AuthService } from '../../../core/services/auth.service';
+import { RolesService, UsersService } from '../../users/services/users.service';
+
+const SUPERVISOR_ROLE_NAME = 'Supervisor';
 
 const STEPS = ['Datos', 'Vehículo', 'Equipo', 'Conductor'];
 
@@ -71,6 +74,8 @@ function toChecklistItems(labels: string[]): VehicleChecklistItem[] {
 export class VehicleInspectionDialog {
   private readonly inspectionsService = inject(VehicleInspectionsService);
   private readonly unidadesService = inject(UnidadesService);
+  private readonly rolesService = inject(RolesService);
+  private readonly usersService = inject(UsersService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly dialogService = inject(DynadrillDialogService);
   private readonly auth = inject(AuthService);
@@ -144,6 +149,8 @@ export class VehicleInspectionDialog {
   });
   protected readonly observacionesConductor = signal('');
   protected readonly supervisorNombre = signal('');
+  /** Supervisores activos en el sistema — se elige de la lista, no se escribe a mano. */
+  protected readonly supervisorOptions = signal<DynadrillSelectOption[]>([]);
 
   protected readonly puedeGuardar = computed(() => !!this.unidadId() && !!this.conductorSeleccionado() && this.reuneCondicionesParaTrabajar());
 
@@ -172,6 +179,19 @@ export class VehicleInspectionDialog {
   constructor() {
     this.unidadesService.list().subscribe(unidades => this.unidades.set(unidades));
     this.inspectionsService.listConductoresPermisos().subscribe(permisos => this.conductoresPermisos.set(permisos));
+
+    // "Nombre del Supervisor": se precargan los supervisores activos del
+    // sistema (rol Supervisor) — se elige de la lista, no se tipea.
+    this.rolesService.list().subscribe(roles => {
+      const supervisorRole = roles.find(r => r.name === SUPERVISOR_ROLE_NAME);
+      if (!supervisorRole) return;
+      this.usersService.list().subscribe(users => {
+        const nombres = [
+          ...new Set(users.filter(u => u.status && u.roleId === supervisorRole.id).map(u => u.name)),
+        ];
+        this.supervisorOptions.set(nombres.map(n => ({ label: n, value: n })));
+      });
+    });
 
     const existing = this.data?.existing;
     if (existing) {

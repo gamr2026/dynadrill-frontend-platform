@@ -34,6 +34,38 @@ function average(values: number[]): number {
   return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
 }
 
+/** Hex plano (echarts pinta en <canvas>, fuera del árbol de estilos — un var(--…) no resuelve). Sincronizados con _tokens.less, igual que dashboard-page.ts. */
+const TIPO_HEX: Record<string, string> = {
+  Servicio: '#662e9b',
+  Auxiliar: '#1890ff',
+  Transporte: '#52c41a',
+  'Sin tipo': '#bdbdbd',
+};
+
+const CAT_HEX = { Pesado: '#1890ff', Liviano: '#52c41a' } as const;
+
+/**
+ * Donut decorativo — mismo patrón que dashboard-page.ts: labels/leyenda
+ * nativos apagados (la lectura real va en la lista de texto de al lado,
+ * el canvas queda aria-hidden), sin agrandar el sector al pasar el mouse.
+ */
+function donutOptions(segments: { name: string; value: number; color: string }[]): EChartsCoreOption {
+  return {
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    series: [
+      {
+        type: 'pie',
+        radius: ['60%', '90%'],
+        avoidLabelOverlap: false,
+        label: { show: false },
+        labelLine: { show: false },
+        emphasis: { scale: false },
+        data: segments.map(s => ({ name: s.name, value: s.value, itemStyle: { color: s.color } })),
+      },
+    ],
+  };
+}
+
 /**
  * Fase 10 — KPIs de MAN-MASTER-001. Se calculan sobre datos del
  * interceptor de mocks: sirven para validar la definición de cada
@@ -253,45 +285,45 @@ export class MaintenanceKpisPage {
     return [...conteo.entries()].map(([tipo, cantidad]) => ({ tipo, cantidad }));
   });
 
-  private static readonly TIPO_HEX: Record<string, string> = {
-    Servicio: '#662e9b',
-    Auxiliar: '#1890ff',
-    Transporte: '#52c41a',
-    'Sin tipo': '#bdbdbd',
-  };
+  protected readonly ordenesPorTipoDonut = computed<EChartsCoreOption>(() =>
+    donutOptions(this.ordenesPorTipoUnidad().map(s => ({
+      name: s.tipo,
+      value: s.cantidad,
+      color: TIPO_HEX[s.tipo] ?? TIPO_HEX['Sin tipo'],
+    }))),
+  );
 
-  protected readonly ordenesPorTipoPieOptions = computed<EChartsCoreOption>(() => ({
-    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-    legend: { bottom: 0, left: 'center' },
-    series: [
-      {
-        type: 'pie',
-        radius: ['45%', '72%'],
-        avoidLabelOverlap: true,
-        label: { show: true, formatter: '{b}\n{c}' },
-        labelLine: { show: true, length: 8, length2: 8 },
-        data: this.ordenesPorTipoUnidad().map(s => ({
-          name: s.tipo,
-          value: s.cantidad,
-          itemStyle: { color: MaintenanceKpisPage.TIPO_HEX[s.tipo] ?? '#bdbdbd' },
-        })),
-      },
-    ],
-  }));
+  protected readonly ordenesPorTipoLegend = computed(() =>
+    this.ordenesPorTipoUnidad().map(s => ({
+      text: `${s.cantidad} ${s.tipo}`,
+      color: TIPO_HEX[s.tipo] ?? TIPO_HEX['Sin tipo'],
+    })),
+  );
 
   // ── Gauges seccionados por categoría de transporte (Pesado / Liviano) ──
-
-  protected readonly categoriaTransporteCategorias = ['Pesados', 'Livianos'];
-
-  protected readonly cumplimientoPorCategoriaSeries = computed<DynadrillChartSeries[]>(() => [
-    { name: '% cumplimiento', data: [this.cumplimientoPesados(), this.cumplimientoLivianos()] },
-  ]);
-
-  protected readonly disponibilidadPorCategoriaSeries = computed<DynadrillChartSeries[]>(() => [
-    { name: '% disponibilidad', data: [this.disponibilidadPesados(), this.disponibilidadLivianos()] },
-  ]);
+  // Mismo donut decorativo + leyenda de texto que el Dashboard: el círculo
+  // reparte las unidades por categoría, la leyenda lleva el % real de cada una.
 
   protected readonly hayTransporte = computed(() => this.transporteUnidades().length > 0);
+
+  private categoriaDonut(): EChartsCoreOption {
+    return donutOptions([
+      { name: 'Pesados', value: this.transportePesados().length, color: CAT_HEX.Pesado },
+      { name: 'Livianos', value: this.transporteLivianos().length, color: CAT_HEX.Liviano },
+    ]);
+  }
+
+  protected readonly categoriaDonutOptions = computed<EChartsCoreOption>(() => this.categoriaDonut());
+
+  protected readonly cumplimientoLegend = computed(() => [
+    { text: `Pesados (${this.transportePesados().length}) — ${this.cumplimientoPesados()}%`, color: CAT_HEX.Pesado },
+    { text: `Livianos (${this.transporteLivianos().length}) — ${this.cumplimientoLivianos()}%`, color: CAT_HEX.Liviano },
+  ]);
+
+  protected readonly disponibilidadLegend = computed(() => [
+    { text: `Pesados (${this.transportePesados().length}) — ${this.disponibilidadPesados()}%`, color: CAT_HEX.Pesado },
+    { text: `Livianos (${this.transporteLivianos().length}) — ${this.disponibilidadLivianos()}%`, color: CAT_HEX.Liviano },
+  ]);
 
   protected readonly fallasColumns: DynadrillDataTableColumn[] = [
     { key: 'unidad', header: 'Unidad', sortable: true },

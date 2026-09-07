@@ -40,12 +40,61 @@
     gap: 4px;
   }
 
+  &__card--left {
+    align-items: flex-start;
+  }
+
   &__breakdown-title {
     align-self: flex-start;
     margin-top: 4px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--text-muted, #5c5870);
+  }
+
+  // Donut decorativo + leyenda de texto — mismo patrón que dashboard-page.
+  &__chart-row {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-top: 4px;
+  }
+
+  &__donut {
+    flex: none;
+    width: 72px;
+    height: 72px;
+  }
+
+  &__legend {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  &__legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__legend-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  &__legend-text {
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--text-muted, #5c5870);
+    font-variant-numeric: tabular-nums;
   }
 
   &__breakdown {

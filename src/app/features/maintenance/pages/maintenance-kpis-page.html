@@ -23,15 +23,16 @@
         <dynadrill-chart type="gauge" [value]="cumplimientoPreventivo()" [max]="100" height="220px" />
         @if (hayTransporte()) {
           <dynadrill-text variant="caption" class="maintenance-kpis-page__breakdown-title">Transporte, por categoría</dynadrill-text>
-          <dynadrill-chart
-            type="bar"
-            [categories]="categoriaTransporteCategorias"
-            [series]="cumplimientoPorCategoriaSeries()"
-            height="180px"
-          />
-          <div class="maintenance-kpis-page__breakdown">
-            <span>Pesados ({{ transportePesados().length }})</span><strong>{{ cumplimientoPesados() }}%</strong>
-            <span>Livianos ({{ transporteLivianos().length }})</span><strong>{{ cumplimientoLivianos() }}%</strong>
+          <div class="maintenance-kpis-page__chart-row">
+            <div echarts class="maintenance-kpis-page__donut" [options]="categoriaDonutOptions()" [autoResize]="true" aria-hidden="true"></div>
+            <ul class="maintenance-kpis-page__legend">
+              @for (item of cumplimientoLegend(); track item.text) {
+                <li class="maintenance-kpis-page__legend-item">
+                  <span class="maintenance-kpis-page__legend-dot" [style.background]="item.color" aria-hidden="true"></span>
+                  <span class="maintenance-kpis-page__legend-text">{{ item.text }}</span>
+                </li>
+              }
+            </ul>
           </div>
         }
       </div>
@@ -40,24 +41,35 @@
         <dynadrill-chart type="gauge" [value]="disponibilidadFlota()" [max]="100" height="220px" />
         @if (hayTransporte()) {
           <dynadrill-text variant="caption" class="maintenance-kpis-page__breakdown-title">Transporte, por categoría</dynadrill-text>
-          <dynadrill-chart
-            type="bar"
-            [categories]="categoriaTransporteCategorias"
-            [series]="disponibilidadPorCategoriaSeries()"
-            height="180px"
-          />
-          <div class="maintenance-kpis-page__breakdown">
-            <span>Pesados ({{ transportePesados().length }})</span><strong>{{ disponibilidadPesados() }}%</strong>
-            <span>Livianos ({{ transporteLivianos().length }})</span><strong>{{ disponibilidadLivianos() }}%</strong>
+          <div class="maintenance-kpis-page__chart-row">
+            <div echarts class="maintenance-kpis-page__donut" [options]="categoriaDonutOptions()" [autoResize]="true" aria-hidden="true"></div>
+            <ul class="maintenance-kpis-page__legend">
+              @for (item of disponibilidadLegend(); track item.text) {
+                <li class="maintenance-kpis-page__legend-item">
+                  <span class="maintenance-kpis-page__legend-dot" [style.background]="item.color" aria-hidden="true"></span>
+                  <span class="maintenance-kpis-page__legend-text">{{ item.text }}</span>
+                </li>
+              }
+            </ul>
           </div>
         }
       </div>
     </div>
 
-    <div class="maintenance-kpis-page__card">
+    <div class="maintenance-kpis-page__card maintenance-kpis-page__card--left">
       <dynadrill-text variant="h2">Órdenes de mantenimiento por tipo de unidad</dynadrill-text>
       @if (ordenesPorTipoUnidad().length) {
-        <div echarts [options]="ordenesPorTipoPieOptions()" [autoResize]="true" style="height: 280px"></div>
+        <div class="maintenance-kpis-page__chart-row">
+          <div echarts class="maintenance-kpis-page__donut" [options]="ordenesPorTipoDonut()" [autoResize]="true" aria-hidden="true"></div>
+          <ul class="maintenance-kpis-page__legend">
+            @for (item of ordenesPorTipoLegend(); track item.text) {
+              <li class="maintenance-kpis-page__legend-item">
+                <span class="maintenance-kpis-page__legend-dot" [style.background]="item.color" aria-hidden="true"></span>
+                <span class="maintenance-kpis-page__legend-text">{{ item.text }}</span>
+              </li>
+            }
+          </ul>
+        </div>
       } @else {
         <dynadrill-text variant="caption">Todavía no hay órdenes de mantenimiento registradas.</dynadrill-text>
       }

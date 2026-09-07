@@ -39,6 +39,15 @@
     </div>
 
     <div class="maintenance-kpis-page__card">
+      <dynadrill-text variant="h2">Órdenes de mantenimiento por tipo de unidad</dynadrill-text>
+      @if (ordenesPorTipoUnidad().length) {
+        <div echarts [options]="ordenesPorTipoPieOptions()" [autoResize]="true" style="height: 280px"></div>
+      } @else {
+        <dynadrill-text variant="caption">Todavía no hay órdenes de mantenimiento registradas.</dynadrill-text>
+      }
+    </div>
+
+    <div class="maintenance-kpis-page__card">
       <dynadrill-text variant="h2">Unidades con fallas repetitivas</dynadrill-text>
       @if (fallasRepetitivas().length) {
         <dynadrill-chart type="bar" [categories]="fallasChartCategories()" [series]="fallasChartSeries()" height="260px" />

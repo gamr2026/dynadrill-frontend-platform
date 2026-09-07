@@ -37,6 +37,8 @@ const STEPS = ['Datos', 'Vehículo', 'Equipo', 'Conductor'];
 export interface VehicleInspectionDialogData {
   /** Si viene, el diálogo abre en modo edición prellenado con este registro. */
   existing?: VehicleInspection;
+  /** true = solo lectura: se ve el detalle pero no se puede guardar (ni se llama al backend). */
+  readonly?: boolean;
 }
 
 function toChecklistItems(labels: string[]): VehicleChecklistItem[] {
@@ -74,8 +76,10 @@ export class VehicleInspectionDialog {
   private readonly auth = inject(AuthService);
   private readonly modalRef = inject(NzModalRef<VehicleInspectionDialog, VehicleInspection | undefined>);
   private readonly data = inject<VehicleInspectionDialogData | null>(NZ_MODAL_DATA, { optional: true });
-  private readonly existingId = this.data?.existing?.id ?? null;
+  // id <= 0 = registro de ejemplo no persistido (ver createMockCompletedInspection en pumping): se prellenar pero se guarda como alta nueva, nunca PUT.
+  private readonly existingId = (this.data?.existing?.id ?? 0) > 0 ? this.data!.existing!.id : null;
   protected readonly isEditMode = this.existingId !== null;
+  protected readonly readonly = this.data?.readonly ?? false;
 
   protected readonly steps = STEPS;
   protected readonly currentStep = signal(0);
@@ -134,6 +138,24 @@ export class VehicleInspectionDialog {
   protected readonly supervisorNombre = signal('');
 
   protected readonly puedeGuardar = computed(() => !!this.unidadId() && !!this.conductorSeleccionado() && this.reuneCondicionesParaTrabajar());
+
+  /**
+   * Al elegir la unidad, precarga sus datos patrimoniales (Marca/Tipo/
+   * Modelo/Año/Placa) desde el registro de la Unidad — el inspector ya no
+   * los reescribe a mano. Quedan editables por si el registro está
+   * incompleto o desactualizado.
+   */
+  protected onUnidadChange(unidadId: number | null): void {
+    this.unidadId.set(unidadId);
+    const unidad = this.unidades().find(u => u.id === unidadId);
+    if (!unidad) return;
+    if (unidad.marca) this.marca.set(unidad.marca);
+    if (unidad.modelo) this.modelo.set(unidad.modelo);
+    if (unidad.anio) this.anioFabricacion.set(unidad.anio);
+    if (unidad.placa) this.placa.set(unidad.placa);
+    if (unidad.categoriaPeso) this.tipo.set(unidad.categoriaPeso);
+    if (unidad.kmActual != null && !this.kmInicial()) this.kmInicial.set(String(unidad.kmActual));
+  }
 
   constructor() {
     this.unidadesService.list().subscribe(unidades => this.unidades.set(unidades));
@@ -234,7 +256,7 @@ export class VehicleInspectionDialog {
   }
 
   async submit(): Promise<void> {
-    if (this.submitting() || !this.puedeGuardar()) return;
+    if (this.readonly || this.submitting() || !this.puedeGuardar()) return;
     this.submitting.set(true);
     const input = this.buildInput();
 

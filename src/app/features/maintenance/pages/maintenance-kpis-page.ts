@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
+import { NgxEchartsDirective } from 'ngx-echarts';
+import type { EChartsCoreOption } from 'echarts/core';
 import {
   DynadrillButtonComponent,
   DynadrillChartComponent,
@@ -49,6 +51,7 @@ function average(values: number[]): number {
     DynadrillDataTableComponent,
     DynadrillSelectComponent,
     DynadrillButtonComponent,
+    NgxEchartsDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './maintenance-kpis-page.html',
@@ -233,6 +236,48 @@ export class MaintenanceKpisPage {
   protected readonly fallasChartSeries = computed<DynadrillChartSeries[]>(() => [
     { name: 'Órdenes', data: this.fallasRepetitivas().map(r => r.cantidad) },
   ]);
+
+  /**
+   * Reparto de las órdenes de mantenimiento por tipo de unidad
+   * (Servicio / Auxiliar / Transporte) — pastel para ver de un vistazo qué
+   * segmento de la flota concentra la carga correctiva. Usa `orders()` sin
+   * el filtro de tipo: filtrado dejaría el pastel de un solo color.
+   */
+  protected readonly ordenesPorTipoUnidad = computed(() => {
+    const tipoPorCode = new Map(this.unidades().map(u => [u.code, u.tipo]));
+    const conteo = new Map<string, number>();
+    for (const o of this.orders()) {
+      const tipo = tipoPorCode.get(o.unidad) ?? 'Sin tipo';
+      conteo.set(tipo, (conteo.get(tipo) ?? 0) + 1);
+    }
+    return [...conteo.entries()].map(([tipo, cantidad]) => ({ tipo, cantidad }));
+  });
+
+  private static readonly TIPO_HEX: Record<string, string> = {
+    Servicio: '#662e9b',
+    Auxiliar: '#1890ff',
+    Transporte: '#52c41a',
+    'Sin tipo': '#bdbdbd',
+  };
+
+  protected readonly ordenesPorTipoPieOptions = computed<EChartsCoreOption>(() => ({
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    legend: { bottom: 0, left: 'center' },
+    series: [
+      {
+        type: 'pie',
+        radius: ['45%', '72%'],
+        avoidLabelOverlap: true,
+        label: { show: true, formatter: '{b}\n{c}' },
+        labelLine: { show: true, length: 8, length2: 8 },
+        data: this.ordenesPorTipoUnidad().map(s => ({
+          name: s.tipo,
+          value: s.cantidad,
+          itemStyle: { color: MaintenanceKpisPage.TIPO_HEX[s.tipo] ?? '#bdbdbd' },
+        })),
+      },
+    ],
+  }));
 
   protected readonly fallasColumns: DynadrillDataTableColumn[] = [
     { key: 'unidad', header: 'Unidad', sortable: true },

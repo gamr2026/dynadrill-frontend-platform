@@ -23,12 +23,15 @@
         <dynadrill-input label="Placa N°" [value]="placa()" [disabled]="vehiculoDataLocked()" (valueChange)="placa.set($event)" />
       </div>
 
-      <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">Documentos del vehículo</dynadrill-text>
+      <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">
+        Documentos del vehículo
+        @if (vehiculoDataLocked()) { — tomados del registro de la unidad (se editan en Inventario) }
+      </dynadrill-text>
       <div class="vehicle-inspection-dialog__grid">
-        <dynadrill-datetime-picker mode="date" label="Fecha de matrícula" [value]="fechaMatricula()!" (valueChange)="fechaMatricula.set($event)" />
-        <dynadrill-datetime-picker mode="date" label="Caducidad de matrícula" [value]="caducidadMatricula()!" (valueChange)="caducidadMatricula.set($event)" />
-        <dynadrill-datetime-picker mode="date" label="Caducidad póliza de seguro" [value]="caducidadPoliza()!" (valueChange)="caducidadPoliza.set($event)" />
-        <dynadrill-datetime-picker mode="date" label="Vigencia otro documento" [value]="vigenciaOtroDocumento()!" (valueChange)="vigenciaOtroDocumento.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Fecha de matrícula" [value]="fechaMatricula()!" [disabled]="vehiculoDataLocked()" (valueChange)="fechaMatricula.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Caducidad de matrícula" [value]="caducidadMatricula()!" [disabled]="vehiculoDataLocked()" (valueChange)="caducidadMatricula.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Caducidad póliza de seguro" [value]="caducidadPoliza()!" [disabled]="vehiculoDataLocked()" (valueChange)="caducidadPoliza.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Vigencia otro documento" [value]="vigenciaOtroDocumento()!" [disabled]="vehiculoDataLocked()" (valueChange)="vigenciaOtroDocumento.set($event)" />
       </div>
 
       <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">Kilometraje</dynadrill-text>

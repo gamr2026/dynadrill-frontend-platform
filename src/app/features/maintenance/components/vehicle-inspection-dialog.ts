@@ -169,6 +169,12 @@ export class VehicleInspectionDialog {
     if (unidad.anio) this.anioFabricacion.set(unidad.anio);
     if (unidad.placa) this.placa.set(unidad.placa);
     if (unidad.categoriaPeso) this.tipo.set(unidad.categoriaPeso);
+    // Documentos legales del vehículo: vienen del patrimonio de la Unidad
+    // (Inventario) y quedan bloqueados, igual que Marca/Modelo/Placa.
+    if (unidad.fechaMatricula) this.fechaMatricula.set(new Date(unidad.fechaMatricula));
+    if (unidad.caducidadMatricula) this.caducidadMatricula.set(new Date(unidad.caducidadMatricula));
+    if (unidad.caducidadPoliza) this.caducidadPoliza.set(new Date(unidad.caducidadPoliza));
+    if (unidad.vigenciaOtroDocumento) this.vigenciaOtroDocumento.set(new Date(unidad.vigenciaOtroDocumento));
     // El kilometraje se precarga como sugerencia pero queda EDITABLE (no se
     // bloquea como Marca/Modelo/Placa): es una lectura física del odómetro
     // y `Unidad.kmActual` puede estar desactualizado — el inspector lo

@@ -9,6 +9,16 @@
     <dynadrill-input label="Modelo" [value]="modelo()" (valueChange)="modelo.set($event)" />
   </div>
 
+  <div class="vehiculo-patrimonio-dialog__row">
+    <dynadrill-datetime-picker label="Fecha de matrícula" mode="date" [value]="$any(fechaMatricula())" (valueChange)="fechaMatricula.set($any($event))" />
+    <dynadrill-datetime-picker label="Caducidad de matrícula" mode="date" [value]="$any(caducidadMatricula())" (valueChange)="caducidadMatricula.set($any($event))" />
+  </div>
+
+  <div class="vehiculo-patrimonio-dialog__row">
+    <dynadrill-datetime-picker label="Caducidad de póliza de seguro" mode="date" [value]="$any(caducidadPoliza())" (valueChange)="caducidadPoliza.set($any($event))" />
+    <dynadrill-datetime-picker label="Vigencia otro documento" mode="date" [value]="$any(vigenciaOtroDocumento())" (valueChange)="vigenciaOtroDocumento.set($any($event))" />
+  </div>
+
   <dynadrill-input label="Responsable" [value]="responsablePatrimonial()" (valueChange)="responsablePatrimonial.set($event)" />
 
   <dynadrill-checkbox label="Unidad predeterminada de su categoría" [checked]="predeterminado()" (checkedChange)="predeterminado.set($event)" />

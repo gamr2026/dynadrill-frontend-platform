@@ -162,7 +162,10 @@ export class VehicleInspectionDialog {
     if (unidad.anio) this.anioFabricacion.set(unidad.anio);
     if (unidad.placa) this.placa.set(unidad.placa);
     if (unidad.categoriaPeso) this.tipo.set(unidad.categoriaPeso);
-    if (unidad.kmActual != null && !this.kmInicial()) this.kmInicial.set(String(unidad.kmActual));
+    // El kilometraje NO se precarga: es una lectura física del odómetro al
+    // inicio del viaje, no un dato del registro maestro. `Unidad.kmActual`
+    // puede estar desactualizado — heredarlo (y peor, bloquearlo) forzaría
+    // un valor incorrecto. El inspector lo toma del tablero.
   }
 
   constructor() {

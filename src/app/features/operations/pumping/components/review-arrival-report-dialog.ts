@@ -151,35 +151,40 @@ export class ReviewArrivalReportDialog {
     ];
   });
 
-  // ── Tires ──
+  // ── Tires (PSI por llanta — máximo 4) ──
   protected readonly tireColumns: DynadrillDataTableColumn[] = [
     { key: 'rowLabel', header: '' },
-    { key: 'A', header: 'A' },
-    { key: 'B', header: 'B' },
-    { key: 'C', header: 'C' },
-    { key: 'D', header: 'D' },
+    ...this.report.tires.map(t => ({ key: t.position, header: t.position })),
   ];
 
   protected readonly tireRows = computed(() => {
     const t = this.report.tires;
-    return [
-      { rowLabel: 'Salida', A: t[0]?.salida || '—', B: t[1]?.salida || '—', C: t[2]?.salida || '—', D: t[3]?.salida || '—' },
-      { rowLabel: 'Llegada', A: t[0]?.llegada || '—', B: t[1]?.llegada || '—', C: t[2]?.llegada || '—', D: t[3]?.llegada || '—' },
-    ];
+    const salida: Record<string, string> = { rowLabel: 'Salida' };
+    const llegada: Record<string, string> = { rowLabel: 'Llegada' };
+    for (const tire of t) {
+      salida[tire.position] = tire.salida || '—';
+      llegada[tire.position] = tire.llegada || '—';
+    }
+    return [salida, llegada];
   });
 
-  // ── Hubodometro ──
+  // ── Hubodómetro (lectura por eje, tomada en Origen y en Destino) ──
   protected readonly hubodometroColumns: DynadrillDataTableColumn[] = [
-    { key: 'salida', header: 'Salida' },
     { key: 'centro', header: '' },
+    { key: 'salida', header: 'Salida' },
     { key: 'llegada', header: 'Llegada' },
   ];
 
   protected readonly hubodometroRows = computed(() => [
     {
-      salida: this.report.hubodometro.map(h => h.salida ?? '—').join(' / '),
-      centro: 'Origen → Destino',
-      llegada: this.report.hubodometro.map(h => h.llegada ?? '—').join(' / '),
+      centro: 'Origen',
+      salida: this.report.hubodometroOrigen.map(h => h.salida ?? '—').join(' / '),
+      llegada: this.report.hubodometroOrigen.map(h => h.llegada ?? '—').join(' / '),
+    },
+    {
+      centro: 'Destino',
+      salida: this.report.hubodometroDestino.map(h => h.salida ?? '—').join(' / '),
+      llegada: this.report.hubodometroDestino.map(h => h.llegada ?? '—').join(' / '),
     },
   ]);
 

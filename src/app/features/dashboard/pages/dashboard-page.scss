@@ -1,0 +1,213 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+// Mobile-first: las tarjetas achican y envuelven en pantallas angostas;
+// desde 700px calzan las 4 en una sola fila como en el diseño de escritorio.
+.dashboard-page__kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.dashboard-page__kpi {
+  // flex-basis 0 + grow: las 4 reparten el ancho disponible en partes
+  // iguales en vez de quedarse en un ancho fijo con espacio libre a la
+  // derecha (lo que traía el mockup original).
+  flex: 1 1 160px;
+  min-width: 160px;
+  padding: 16px;
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface-muted, #faf9fc);
+  color: var(--text, #2c2b35);
+  transition: transform var(--duration-fast, 0.15s) var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
+  @media (min-width: 700px) {
+    flex: 1 1 0;
+  }
+
+  &--error {
+    background: var(--error-bg, rgba(255, 77, 79, 0.12));
+    color: var(--error, #ff4d4f);
+  }
+
+  &--info {
+    background: var(--info-bg, rgba(24, 144, 255, 0.12));
+    color: var(--info, #1890ff);
+  }
+
+  &--success {
+    background: var(--success-bg, rgba(82, 196, 26, 0.12));
+    color: var(--success, #52c41a);
+  }
+
+  &--brand {
+    background: var(--dynadrill-purple-tint-strong, rgba(102, 46, 155, 0.16));
+    color: var(--dynadrill-purple, #662e9b);
+  }
+}
+
+.dashboard-page__kpi-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 8px;
+  border-radius: 50%;
+  // fondo blanco semitransparente sobre el tinte de la card — icono
+  // siempre se distingue del fondo sin depender de un color extra por tono.
+  background: rgba(255, 255, 255, 0.6);
+
+  dynadrill-icon {
+    // dynadrill-icon pinta con currentColor: hereda el color del tono de
+    // la card (heredado en cascada desde .dashboard-page__kpi--{tone}).
+    color: inherit;
+  }
+}
+
+.dashboard-page__kpi-value {
+  margin: 0 0 4px;
+  font-family: var(--font-heading, 'Big Shoulders', sans-serif);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dashboard-page__kpi-label {
+  margin: 0;
+  font-family: var(--font-subheading, 'Oswald', sans-serif);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+// auto-fit + minmax en vez de breakpoints fijos: reparte 1/2/3 columnas
+// según el ancho real disponible, sin un punto de quiebre codificado a
+// mano por cantidad de cards — mobile-first porque a 320-420px ya cae
+// solo a 1 columna (240px de mínimo no entran 2).
+.dashboard-page__module-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  // fr en filas auto-height iguala todas las filas a la más alta —
+  // sin esto cada dynadrill-section mide según su propio contenido
+  // (distinto n° de líneas por módulo) y las cards quedan dispares.
+  grid-auto-rows: 1fr;
+  gap: 16px;
+
+  > * {
+    min-width: 0;
+    // align-items:stretch (default de grid) ya fuerza la altura de fila;
+    // height:100% asegura que dynadrill-section (:host{display:block}) la
+    // tome en vez de encogerse a su contenido.
+    height: 100%;
+  }
+
+  // El host mide 100% (regla de arriba), pero la <section> interna de
+  // dynadrill-section es flex-column con height:auto propio — sin esto se
+  // encoge a su contenido y deja hueco vacío debajo en las cards más cortas.
+  ::ng-deep dynadrill-section .dynadrill-section {
+    height: 100%;
+    transition: box-shadow var(--duration-fast, 0.15s) var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)), transform var(--duration-fast, 0.15s) var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  }
+
+  // Elevación sutil al pasar el mouse — señala que la card es clickeable
+  // ("Ver todo") sin depender solo del link de texto.
+  dynadrill-section:hover ::ng-deep .dynadrill-section {
+    box-shadow: var(--shadow-md, 0 4px 12px rgba(19, 21, 41, 0.1));
+    transform: translateY(-2px);
+  }
+
+  // Acento de color por módulo en el ícono — sin data-accent, dynadrill-section
+  // ya trae su morado de marca por defecto (Inventario, Usuarios).
+  ::ng-deep dynadrill-section[data-accent='success'] .dynadrill-section__icon {
+    background: var(--success-bg, rgba(82, 196, 26, 0.12));
+    color: var(--success, #52c41a);
+  }
+
+  ::ng-deep dynadrill-section[data-accent='error'] .dynadrill-section__icon {
+    background: var(--error-bg, rgba(255, 77, 79, 0.12));
+    color: var(--error, #ff4d4f);
+  }
+
+  ::ng-deep dynadrill-section[data-accent='warning'] .dynadrill-section__icon {
+    background: var(--warning-bg, rgba(250, 173, 20, 0.12));
+    color: var(--warning, #faad14);
+  }
+
+  ::ng-deep dynadrill-section[data-accent='info'] .dynadrill-section__icon {
+    background: var(--info-bg, rgba(24, 144, 255, 0.12));
+    color: var(--info, #1890ff);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    ::ng-deep dynadrill-section .dynadrill-section {
+      transition: none;
+    }
+  }
+}
+
+.dashboard-page__module-line {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text, #2c2b35);
+
+  &--total {
+    font-weight: 700;
+  }
+}
+
+.dashboard-page__chart-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+// Donut de echarts (dynadrill-chart no expone tipo "pie", así que va
+// NgxEchartsDirective directo). Tamaño fijo: el canvas es puramente
+// decorativo, la lectura real de los valores va en la leyenda de texto.
+.dashboard-page__donut {
+  flex: none;
+  width: 64px;
+  height: 64px;
+}
+
+.dashboard-page__legend {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dashboard-page__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-page__legend-text {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-muted, #5c5870);
+}
+
+.dashboard-page__legend-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}

@@ -1,0 +1,40 @@
+<dynadrill-screen-header eyebrow="INICIO" title="Dashboard" />
+
+<div class="dashboard-page__kpi-row">
+  @for (kpi of kpis; track kpi.label) {
+    <div class="dashboard-page__kpi dashboard-page__kpi--{{ kpi.tone }}">
+      <div class="dashboard-page__kpi-icon" aria-hidden="true">
+        <dynadrill-icon [name]="kpi.icon" [size]="20" />
+      </div>
+      <p class="dashboard-page__kpi-value">{{ kpi.value }}</p>
+      <p class="dashboard-page__kpi-label">{{ kpi.label }}</p>
+    </div>
+  }
+</div>
+
+<div class="dashboard-page__module-grid">
+  @for (card of moduleCards; track card.title) {
+    <dynadrill-section
+      class="dashboard-page__module-card"
+      [attr.data-accent]="card.accent"
+      [title]="card.title"
+      [icon]="card.icon"
+      [viewAllLink]="card.viewAllLink"
+    >
+      @if (card.summaryLine) {
+        <p class="dashboard-page__module-line dashboard-page__module-line--total">{{ card.summaryLine }}</p>
+      }
+      <div class="dashboard-page__chart-row">
+        <div echarts class="dashboard-page__donut" [options]="card.pieOptions" [autoResize]="true" aria-hidden="true"></div>
+        <ul class="dashboard-page__legend">
+          @for (segment of card.segments; track segment.label) {
+            <li class="dashboard-page__legend-item">
+              <span class="dashboard-page__legend-dot" [style.background]="dotColor(segment.tone)" aria-hidden="true"></span>
+              <span class="dashboard-page__legend-text">{{ segment.value }} {{ segment.label }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    </dynadrill-section>
+  }
+</div>

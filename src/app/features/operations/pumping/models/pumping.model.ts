@@ -66,7 +66,10 @@ export const PUMPING_STEP_ROLE: Record<PumpingStep, { roleName: string; roleId: 
   asignacion: { roleName: 'Supervisor', roleId: 1 },
   en_ejecucion: { roleName: 'Operador', roleId: 2 },
   revisar_reportes_salida: { roleName: 'Supervisor', roleId: 1 },
-  ejecucion_operativa: { roleName: 'Supervisor', roleId: 1 },
+  // El Reporte Diario de Actividades (DYN-SGI-RE-047) lo llena el Operador,
+  // no el Supervisor — confirmado en el vault (conceptos/Reporte-Job.md) y
+  // en la documentación de Facturación (FACT-002, PASOS DEL PROCESO).
+  ejecucion_operativa: { roleName: 'Operador', roleId: 2 },
   gerenciamiento_llegada: { roleName: 'Supervisor', roleId: 1 },
   en_ejecucion_llegada: { roleName: 'Operador', roleId: 2 },
   mantenimiento: { roleName: 'Supervisor', roleId: 1 },

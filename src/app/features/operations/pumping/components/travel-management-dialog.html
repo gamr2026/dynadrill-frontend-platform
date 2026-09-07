@@ -16,8 +16,8 @@
     <dynadrill-input label="Gerente/Supervisor" [value]="gerenteSupervisor()" (valueChange)="gerenteSupervisor.set($event)" />
     <dynadrill-input label="Ticket No." [value]="ticketNo()" (valueChange)="ticketNo.set($event)" />
     <dynadrill-input label="Conductor(es)" [value]="conductores()" (valueChange)="conductores.set($event)" />
-    <dynadrill-select label="Tipo de Vehículo" placeholder="Seleccionar tipo" [options]="vehicleTypeOptions" [value]="vehicleType()" (valueChange)="onVehicleTypeChange($event)" />
-    <dynadrill-input label="Placas" [value]="placas()" (valueChange)="placas.set($event)" />
+    <dynadrill-select label="Tipo de Vehículo" placeholder="Seleccionar tipo" [options]="vehicleTypeOptions" [value]="vehicleType()" [disabled]="tipoBloqueado()" (valueChange)="onVehicleTypeChange($event)" />
+    <dynadrill-input label="Placas" [value]="placas()" [disabled]="placaBloqueada()" (valueChange)="placas.set($event)" />
   </div>
 </section>
 

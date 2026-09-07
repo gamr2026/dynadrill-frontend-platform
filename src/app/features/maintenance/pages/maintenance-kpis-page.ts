@@ -279,6 +279,20 @@ export class MaintenanceKpisPage {
     ],
   }));
 
+  // ── Gauges seccionados por categoría de transporte (Pesado / Liviano) ──
+
+  protected readonly categoriaTransporteCategorias = ['Pesados', 'Livianos'];
+
+  protected readonly cumplimientoPorCategoriaSeries = computed<DynadrillChartSeries[]>(() => [
+    { name: '% cumplimiento', data: [this.cumplimientoPesados(), this.cumplimientoLivianos()] },
+  ]);
+
+  protected readonly disponibilidadPorCategoriaSeries = computed<DynadrillChartSeries[]>(() => [
+    { name: '% disponibilidad', data: [this.disponibilidadPesados(), this.disponibilidadLivianos()] },
+  ]);
+
+  protected readonly hayTransporte = computed(() => this.transporteUnidades().length > 0);
+
   protected readonly fallasColumns: DynadrillDataTableColumn[] = [
     { key: 'unidad', header: 'Unidad', sortable: true },
     { key: 'cantidad', header: 'N° de órdenes', sortable: true },

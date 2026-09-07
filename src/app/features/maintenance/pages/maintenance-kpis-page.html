@@ -21,20 +21,36 @@
       <div class="maintenance-kpis-page__card">
         <dynadrill-text variant="h2">Cumplimiento del plan preventivo</dynadrill-text>
         <dynadrill-chart type="gauge" [value]="cumplimientoPreventivo()" [max]="100" height="220px" />
-        <dynadrill-text variant="caption" class="maintenance-kpis-page__breakdown-title">Transporte, por categoría</dynadrill-text>
-        <div class="maintenance-kpis-page__breakdown">
-          <span>Pesados ({{ transportePesados().length }})</span><strong>{{ cumplimientoPesados() }}%</strong>
-          <span>Livianos ({{ transporteLivianos().length }})</span><strong>{{ cumplimientoLivianos() }}%</strong>
-        </div>
+        @if (hayTransporte()) {
+          <dynadrill-text variant="caption" class="maintenance-kpis-page__breakdown-title">Transporte, por categoría</dynadrill-text>
+          <dynadrill-chart
+            type="bar"
+            [categories]="categoriaTransporteCategorias"
+            [series]="cumplimientoPorCategoriaSeries()"
+            height="180px"
+          />
+          <div class="maintenance-kpis-page__breakdown">
+            <span>Pesados ({{ transportePesados().length }})</span><strong>{{ cumplimientoPesados() }}%</strong>
+            <span>Livianos ({{ transporteLivianos().length }})</span><strong>{{ cumplimientoLivianos() }}%</strong>
+          </div>
+        }
       </div>
       <div class="maintenance-kpis-page__card">
         <dynadrill-text variant="h2">Disponibilidad de flota</dynadrill-text>
         <dynadrill-chart type="gauge" [value]="disponibilidadFlota()" [max]="100" height="220px" />
-        <dynadrill-text variant="caption" class="maintenance-kpis-page__breakdown-title">Transporte, por categoría</dynadrill-text>
-        <div class="maintenance-kpis-page__breakdown">
-          <span>Pesados ({{ transportePesados().length }})</span><strong>{{ disponibilidadPesados() }}%</strong>
-          <span>Livianos ({{ transporteLivianos().length }})</span><strong>{{ disponibilidadLivianos() }}%</strong>
-        </div>
+        @if (hayTransporte()) {
+          <dynadrill-text variant="caption" class="maintenance-kpis-page__breakdown-title">Transporte, por categoría</dynadrill-text>
+          <dynadrill-chart
+            type="bar"
+            [categories]="categoriaTransporteCategorias"
+            [series]="disponibilidadPorCategoriaSeries()"
+            height="180px"
+          />
+          <div class="maintenance-kpis-page__breakdown">
+            <span>Pesados ({{ transportePesados().length }})</span><strong>{{ disponibilidadPesados() }}%</strong>
+            <span>Livianos ({{ transporteLivianos().length }})</span><strong>{{ disponibilidadLivianos() }}%</strong>
+          </div>
+        }
       </div>
     </div>
 

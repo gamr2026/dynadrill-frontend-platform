@@ -11,13 +11,16 @@
         <dynadrill-select label="Inspeccionado por (Conductor)" placeholder="Selecciona el conductor" [options]="conductorOptions()" [value]="inspeccionadoPor() || null" (valueChange)="inspeccionadoPor.set($any($event))" />
       </div>
 
-      <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">Descripción del vehículo</dynadrill-text>
+      <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">
+        Descripción del vehículo
+        @if (vehiculoDataLocked()) { — tomada del registro de la unidad (se edita en Inventario) }
+      </dynadrill-text>
       <div class="vehicle-inspection-dialog__grid">
-        <dynadrill-input label="Marca" [value]="marca()" (valueChange)="marca.set($event)" />
-        <dynadrill-input label="Tipo" [value]="tipo()" (valueChange)="tipo.set($event)" />
-        <dynadrill-input label="Modelo" [value]="modelo()" (valueChange)="modelo.set($event)" />
-        <dynadrill-input label="Año fabricación" [value]="anioFabricacion()" (valueChange)="anioFabricacion.set($event)" />
-        <dynadrill-input label="Placa N°" [value]="placa()" (valueChange)="placa.set($event)" />
+        <dynadrill-input label="Marca" [value]="marca()" [disabled]="vehiculoDataLocked()" (valueChange)="marca.set($event)" />
+        <dynadrill-input label="Tipo" [value]="tipo()" [disabled]="vehiculoDataLocked()" (valueChange)="tipo.set($event)" />
+        <dynadrill-input label="Modelo" [value]="modelo()" [disabled]="vehiculoDataLocked()" (valueChange)="modelo.set($event)" />
+        <dynadrill-input label="Año fabricación" [value]="anioFabricacion()" [disabled]="vehiculoDataLocked()" (valueChange)="anioFabricacion.set($event)" />
+        <dynadrill-input label="Placa N°" [value]="placa()" [disabled]="vehiculoDataLocked()" (valueChange)="placa.set($event)" />
       </div>
 
       <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">Documentos del vehículo</dynadrill-text>

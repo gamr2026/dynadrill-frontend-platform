@@ -102,6 +102,14 @@ export class VehicleInspectionDialog {
   protected readonly anioFabricacion = signal('');
   protected readonly placa = signal('');
 
+  /**
+   * Marca/Tipo/Modelo/Año/Placa se toman del registro maestro de la Unidad
+   * y quedan bloqueados una vez elegida — no se editan aquí para no
+   * introducir inconsistencias con Inventario. Si el registro maestro está
+   * incompleto o mal, se corrige en Inventario (PATCH .../patrimonio).
+   */
+  protected readonly vehiculoDataLocked = computed(() => this.unidadId() !== null);
+
   protected readonly fechaMatricula = signal<Date | null>(null);
   protected readonly caducidadMatricula = signal<Date | null>(null);
   protected readonly caducidadPoliza = signal<Date | null>(null);

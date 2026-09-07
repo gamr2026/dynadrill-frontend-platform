@@ -7,16 +7,10 @@ import {
   createMotorInspectionItems,
   createArrivalEquipmentItems,
   createInstrumentationItems,
-  type TireEntry,
+  createDefaultTires,
+  createDefaultHubodometro,
 } from '../../features/operations/pumping/models/pumping.model';
 import { registrarLlegadaPumping } from './maintenance-mock.interceptor';
-
-const defaultTires: TireEntry[] = [
-  { axle: 'A', salida: '', llegada: '' },
-  { axle: 'B', salida: '', llegada: '' },
-  { axle: 'C', salida: '', llegada: '' },
-  { axle: 'D', salida: '', llegada: '' },
-];
 
 let tickets: PumpingTicket[] = [
   // ── Ticket principal de demo: empieza en revision_propuesta ──
@@ -69,13 +63,14 @@ let tickets: PumpingTicket[] = [
       arrivalDate: '2026-08-20',
       fuelDeparture: 80,
       fuelArrival: 45,
-      hubodometro: [
+      hubodometroOrigen: [
         { label: 'A', salida: 5570, llegada: 5720 },
         { label: 'B', salida: 4550036, llegada: 4550190 },
         { label: 'C', salida: null, llegada: null },
         { label: 'D', salida: null, llegada: null },
       ],
-      tires: defaultTires,
+      hubodometroDestino: createDefaultHubodometro(),
+      tires: createDefaultTires(),
       origin: 'Base Coco',
       destination: 'Pozo Beta-9',
       chassisInspection: createChassisInspectionItems().map(i => ({ ...i, salida: 'ok' as const, llegada: 'ok' as const })),
@@ -126,13 +121,14 @@ let tickets: PumpingTicket[] = [
       arrivalDate: '2026-08-25',
       fuelDeparture: 90,
       fuelArrival: 50,
-      hubodometro: [
+      hubodometroOrigen: [
         { label: 'A', salida: 3100, llegada: 3380 },
         { label: 'B', salida: null, llegada: null },
         { label: 'C', salida: null, llegada: null },
         { label: 'D', salida: null, llegada: null },
       ],
-      tires: defaultTires,
+      hubodometroDestino: createDefaultHubodometro(),
+      tires: createDefaultTires(),
       origin: 'Base Coco',
       destination: 'Pozo Delta-7',
       chassisInspection: createChassisInspectionItems().map(i => ({ ...i, salida: 'ok' as const, llegada: 'ok' as const })),
@@ -191,13 +187,14 @@ let tickets: PumpingTicket[] = [
       arrivalDate: '',
       fuelDeparture: 88,
       fuelArrival: null,
-      hubodometro: [
+      hubodometroOrigen: [
         { label: 'A', salida: 8100, llegada: null },
         { label: 'B', salida: 4500, llegada: null },
         { label: 'C', salida: null, llegada: null },
         { label: 'D', salida: null, llegada: null },
       ],
-      tires: defaultTires,
+      hubodometroDestino: createDefaultHubodometro(),
+      tires: createDefaultTires(),
       origin: 'Base Coco',
       destination: 'Pozo Sigma-4',
       chassisInspection: createChassisInspectionItems().map(i => ({ ...i, salida: 'ok' as const, llegada: null })),

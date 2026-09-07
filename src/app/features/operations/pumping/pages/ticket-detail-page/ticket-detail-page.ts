@@ -33,6 +33,9 @@ import {
   createMotorInspectionItems,
   createArrivalEquipmentItems,
   createInstrumentationItems,
+  createDefaultTires,
+  createDefaultHubodometro,
+  nextHubodometroAxleLabel,
   type PumpingStep,
   type PumpingChemical,
   type HubodometroEntry,
@@ -1160,16 +1163,9 @@ export class TicketDetailPage {
   protected readonly reportFuelArrival = signal('');
   protected readonly reportOrigin = signal('');
   protected readonly reportDestination = signal('');
-  protected readonly hubodometroDestinoSalida = signal('');
-  protected readonly hubodometroDestinoLlegada = signal('');
 
-  // Neumáticos (encabezados A/B/C/D, filas Salida/Llegada)
-  protected readonly tires = signal<TireEntry[]>([
-    { axle: 'A', salida: '', llegada: '' },
-    { axle: 'B', salida: '', llegada: '' },
-    { axle: 'C', salida: '', llegada: '' },
-    { axle: 'D', salida: '', llegada: '' },
-  ]);
+  // Neumáticos (máximo 4 llantas: delantera/trasera x izq/der)
+  protected readonly tires = signal<TireEntry[]>(createDefaultTires());
 
   protected updateTire(index: number, field: 'salida' | 'llegada', value: string): void {
     this.tires.update(tires =>
@@ -1177,37 +1173,39 @@ export class TicketDetailPage {
     );
   }
 
-  // Hubodómetro (con Origen/Destino en la mitad)
-  protected readonly hubodometro = signal<HubodometroEntry[]>([
-    { label: 'A', salida: null, llegada: null },
-    { label: 'B', salida: null, llegada: null },
-    { label: 'C', salida: null, llegada: null },
-    { label: 'D', salida: null, llegada: null },
-  ]);
+  /**
+   * Hubodómetro: dispositivo montado por eje (no es el odómetro general del
+   * vehículo) — se lee por eje en dos puntos del trayecto: Origen y Destino.
+   */
+  protected readonly hubodometroOrigen = signal<HubodometroEntry[]>(createDefaultHubodometro());
+  protected readonly hubodometroDestino = signal<HubodometroEntry[]>(createDefaultHubodometro());
 
-  protected updateHubodometro(index: number, field: 'salida' | 'llegada', value: string): void {
-    this.hubodometro.update(entries =>
-      entries.map((h, i) => i === index ? { ...h, [field]: value ? Number(value) : null } : h),
+  protected updateHubodometro(point: 'origen' | 'destino', axleIndex: number, field: 'salida' | 'llegada', value: string): void {
+    const target = point === 'origen' ? this.hubodometroOrigen : this.hubodometroDestino;
+    target.update(entries =>
+      entries.map((h, i) => i === axleIndex ? { ...h, [field]: value ? Number(value) : null } : h),
     );
   }
 
-  protected readonly hubodometroSalidaText = computed(() =>
-    this.hubodometro().map(h => h.salida ?? '—').join(' / '),
-  );
+  /**
+   * Agrega un eje más — Origen y Destino siempre tienen el mismo número de
+   * ejes (espejo), así que se agregan juntos aquí. Solo se hace en Salida;
+   * Llegada reutiliza el mismo conjunto ya definido (initFromTicket).
+   */
+  protected addHubodometroAxle(): void {
+    const label = nextHubodometroAxleLabel(this.hubodometroOrigen());
+    const entry: HubodometroEntry = { label, salida: null, llegada: null };
+    this.hubodometroOrigen.update(entries => [...entries, entry]);
+    this.hubodometroDestino.update(entries => [...entries, { ...entry }]);
+  }
 
-  protected readonly hubodometroLlegadaText = computed(() =>
-    this.hubodometro().map(h => h.llegada ?? '—').join(' / '),
-  );
-
-  protected parseHubodometroText(field: 'salida' | 'llegada', text: string): void {
-    const parts = text.split('/').map(s => s.trim());
-    this.hubodometro.update(entries =>
-      entries.map((h, i) => {
-        const raw = parts[i];
-        const val = raw && raw !== '—' && raw !== '' ? Number(raw) : null;
-        return { ...h, [field]: isNaN(val as number) ? null : val };
-      }),
-    );
+  /** Quita un eje (mínimo 1) — se relabelan A, B, C... para que no queden huecos. */
+  protected removeHubodometroAxle(axleIndex: number): void {
+    if (this.hubodometroOrigen().length <= 1) return;
+    const relabel = (entries: HubodometroEntry[]): HubodometroEntry[] =>
+      entries.filter((_, i) => i !== axleIndex).map((e, i) => ({ ...e, label: String.fromCharCode(65 + i) }));
+    this.hubodometroOrigen.update(relabel);
+    this.hubodometroDestino.update(relabel);
   }
 
   // Secciones de inspección
@@ -1592,7 +1590,8 @@ export class TicketDetailPage {
       arrivalDate: this.reportArrivalDate(),
       fuelDeparture: Number(this.reportFuelDeparture()) || null,
       fuelArrival: Number(this.reportFuelArrival()) || null,
-      hubodometro: this.hubodometro(),
+      hubodometroOrigen: this.hubodometroOrigen(),
+      hubodometroDestino: this.hubodometroDestino(),
       tires: this.tires(),
       origin: this.reportOrigin(),
       destination: this.reportDestination(),
@@ -1902,7 +1901,8 @@ export class TicketDetailPage {
       this.reportFuelArrival.set(r.fuelArrival != null ? String(r.fuelArrival) : '');
       this.reportOrigin.set(r.origin);
       this.reportDestination.set(r.destination);
-      this.hubodometro.set(r.hubodometro);
+      this.hubodometroOrigen.set(r.hubodometroOrigen);
+      this.hubodometroDestino.set(r.hubodometroDestino);
       if (r.tires) this.tires.set(r.tires);
       this.chassisItems.set(r.chassisInspection);
       this.motorItems.set(r.motorInspection);

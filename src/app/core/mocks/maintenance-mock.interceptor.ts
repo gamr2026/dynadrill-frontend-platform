@@ -699,7 +699,7 @@ export function registrarLlegadaPumping(
     arrivalDate: string;
     origin: string;
     destination: string;
-    hubodometro: { salida: number | null; llegada: number | null }[];
+    hubodometroDestino: { salida: number | null; llegada: number | null }[];
     novelties: { mecanica: string; instrumentacion: string; operaciones: string };
     operationInterrupted: boolean | null;
     interruptionDetail: string;
@@ -712,7 +712,7 @@ export function registrarLlegadaPumping(
   if (unidadIdx === -1) return;
   const unidad = unidades[unidadIdx];
 
-  const llegadas = report.hubodometro.map(h => h.llegada).filter((v): v is number => v != null);
+  const llegadas = report.hubodometroDestino.map(h => h.llegada).filter((v): v is number => v != null);
   const maxLlegada = llegadas.length > 0 ? Math.max(...llegadas) : undefined;
   if (unidad.tipo === 'Transporte' && maxLlegada !== undefined) {
     unidades[unidadIdx] = { ...unidad, kmActual: Math.max(unidad.kmActual ?? 0, maxLlegada) };

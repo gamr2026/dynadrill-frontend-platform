@@ -109,10 +109,27 @@ export interface HubodometroEntry {
   llegada: number | null;
 }
 
+/** Número de ejes varía por unidad — arranca con 2 (mínimo típico), se pueden agregar más. */
+export function createDefaultHubodometro(): HubodometroEntry[] {
+  return ['A', 'B'].map(label => ({ label, salida: null, llegada: null }));
+}
+
+/** Siguiente letra de eje disponible (A, B, C, ...) según cuántos ya existen. */
+export function nextHubodometroAxleLabel(current: HubodometroEntry[]): string {
+  return String.fromCharCode(65 + current.length);
+}
+
 export interface TireEntry {
-  axle: string;
+  /** Posición física de la llanta — máximo 4 en total (delantera/trasera x izq/der) */
+  position: string;
   salida: string;
   llegada: string;
+}
+
+const TIRE_POSITIONS = ['Delantera Izq.', 'Delantera Der.', 'Trasera Izq.', 'Trasera Der.'];
+
+export function createDefaultTires(): TireEntry[] {
+  return TIRE_POSITIONS.map(position => ({ position, salida: '', llegada: '' }));
 }
 
 export interface UnitReportNovelties {
@@ -133,7 +150,10 @@ export interface PumpingUnitReport {
   arrivalDate: string;
   fuelDeparture: number | null;
   fuelArrival: number | null;
-  hubodometro: HubodometroEntry[];
+  /** Lectura del hubodómetro por eje, tomada en el punto de Origen del trayecto */
+  hubodometroOrigen: HubodometroEntry[];
+  /** Lectura del hubodómetro por eje, tomada en el punto de Destino del trayecto */
+  hubodometroDestino: HubodometroEntry[];
   tires: TireEntry[];
   origin: string;
   destination: string;

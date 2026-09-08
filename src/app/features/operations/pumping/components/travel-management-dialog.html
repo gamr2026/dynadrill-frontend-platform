@@ -4,114 +4,183 @@
   <dynadrill-context-card [items]="headerItems()" />
 </section>
 
-<!-- ═══ Información general ═══ -->
-<section class="travel-dialog__section">
-  <dynadrill-text variant="h2">Información general</dynadrill-text>
-  <div class="travel-dialog__form-grid">
-    <dynadrill-input label="Fecha" [value]="fecha()" (valueChange)="fecha.set($event)" />
-    <dynadrill-input label="Motivo del viaje" [value]="motivoViaje()" (valueChange)="motivoViaje.set($event)" />
-    <dynadrill-input label="Línea de Servicio" [value]="lineaServicio()" (valueChange)="lineaServicio.set($event)" />
-    <dynadrill-input label="Origen" [value]="origen()" (valueChange)="origen.set($event)" />
-    <dynadrill-input label="Destino" [value]="destino()" (valueChange)="destino.set($event)" />
-    <dynadrill-input label="Gerente/Supervisor" [value]="gerenteSupervisor()" (valueChange)="gerenteSupervisor.set($event)" />
-    <dynadrill-input label="Ticket No." [value]="ticketNo()" (valueChange)="ticketNo.set($event)" />
-    <dynadrill-input label="Conductor(es)" [value]="conductores()" (valueChange)="conductores.set($event)" />
-    <dynadrill-select label="Tipo de Vehículo" placeholder="Seleccionar tipo" [options]="vehicleTypeOptions" [value]="vehicleType()" [disabled]="tipoBloqueado()" (valueChange)="onVehicleTypeChange($event)" />
-    <dynadrill-input label="Placas" [value]="placas()" [disabled]="placaBloqueada()" (valueChange)="placas.set($event)" />
-  </div>
-</section>
+<dynadrill-stepper [steps]="steps" [currentIndex]="currentStep()" />
 
-<!-- ═══ Evaluación de riesgos ═══ -->
-<section class="travel-dialog__section">
-  <dynadrill-text variant="h2">Evaluación de riesgos de viaje</dynadrill-text>
-  <dynadrill-text variant="caption">Responda cada pregunta para calcular el nivel de riesgo del viaje.</dynadrill-text>
-
-  <div class="travel-dialog__questions">
-    @for (question of riskQuestions(); track question.id) {
-      <div class="travel-dialog__question-row">
-        <dynadrill-text variant="body">{{ question.id }}. {{ question.question }}</dynadrill-text>
-        <dynadrill-chip-group
-          [options]="getQuestionOptionLabels(question)"
-          mode="single"
-          [selected]="getSelectedOptionLabel(question)"
-          (selectedChange)="onQuestionChipChange(question, $event)"
-        />
+<div class="travel-dialog__body">
+  @if (currentStep() === 0) {
+    <!-- ═══ Información general ═══ -->
+    <section class="travel-dialog__section">
+      <dynadrill-text variant="h2">Información general</dynadrill-text>
+      <div class="travel-dialog__form-grid">
+        <dynadrill-datetime-picker mode="date" label="Fecha" [value]="fecha()" (valueChange)="fecha.set($event)" />
+        <dynadrill-input label="Motivo del viaje" [value]="motivoViaje()" (valueChange)="motivoViaje.set($event)" />
+        <dynadrill-input label="Línea de Servicio" [value]="lineaServicio()" (valueChange)="lineaServicio.set($event)" />
+        <dynadrill-input label="Origen" [value]="origen()" (valueChange)="origen.set($event)" />
+        <dynadrill-input label="Destino" [value]="destino()" (valueChange)="destino.set($event)" />
+        <dynadrill-input label="Gerente/Supervisor" [value]="gerenteSupervisor()" (valueChange)="gerenteSupervisor.set($event)" />
+        <dynadrill-input label="Ticket No." [value]="ticketNo()" (valueChange)="ticketNo.set($event)" />
+        <dynadrill-input label="Conductor(es)" [value]="conductores()" (valueChange)="conductores.set($event)" />
+        <dynadrill-select label="Tipo de Vehículo" placeholder="Seleccionar tipo" [options]="vehicleTypeOptions" [value]="vehicleType()" (valueChange)="onVehicleTypeChange($event)" />
+        <dynadrill-input label="Placas" [value]="placas()" (valueChange)="placas.set($event)" />
       </div>
-    }
-  </div>
-</section>
-
-<!-- ═══ Resultado de riesgo ═══ -->
-<section class="travel-dialog__section">
-  <dynadrill-text variant="h2">Resultado</dynadrill-text>
-
-  @if (hasBlockingAnswer()) {
-    <div class="travel-dialog__risk-result travel-dialog__risk-result--error">
-      <dynadrill-text variant="body"><strong>NO PUEDE VIAJAR</strong> — Una de las respuestas bloquea el viaje.</dynadrill-text>
-    </div>
-  } @else {
-    <div class="travel-dialog__risk-result travel-dialog__risk-result--{{ riskLevelColor() }}">
-      <dynadrill-text variant="body">Total de puntos: <strong>{{ totalPoints() }}</strong></dynadrill-text>
-      <dynadrill-text variant="body">Nivel de riesgo: <strong>{{ riskLevel() }}</strong></dynadrill-text>
-      <dynadrill-text variant="caption">{{ riskDescription() }}</dynadrill-text>
-    </div>
+    </section>
   }
 
-  <dynadrill-data-table [columns]="riskTableColumns" [rows]="riskTableRows" [loading]="false" />
-</section>
+  @if (currentStep() === 1) {
+    <!-- ═══ Evaluación de riesgos ═══ -->
+    <section class="travel-dialog__section">
+      <dynadrill-text variant="h2">Evaluación de riesgos de viaje</dynadrill-text>
+      <dynadrill-text variant="caption">Responda cada pregunta para calcular el nivel de riesgo del viaje.</dynadrill-text>
 
-<!-- ═══ Plan de gestión de viajes terrestres ═══ -->
-<section class="travel-dialog__section">
-  <dynadrill-text variant="h2">Plan de gestión de viajes terrestres</dynadrill-text>
+      <div class="travel-dialog__questions-scroll">
+        <table class="travel-dialog__questions-table">
+          <caption class="travel-dialog__sr-only">Preguntas de evaluación de riesgo y sus opciones de respuesta</caption>
+          <thead>
+            <tr>
+              <th scope="col" class="travel-dialog__questions-table-num">#</th>
+              <th scope="col">Pregunta</th>
+              <th scope="col">Opciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (question of riskQuestions(); track question.id) {
+              <tr>
+                <td class="travel-dialog__questions-table-num">{{ question.id }}</td>
+                <td>{{ question.question }}</td>
+                <td>
+                  <div class="travel-dialog__question-options" role="group" [attr.aria-label]="'Pregunta ' + question.id">
+                    @for (option of question.options; track $index) {
+                      <button
+                        type="button"
+                        class="travel-dialog__option-btn"
+                        [class.travel-dialog__option-btn--selected]="isOptionSelected(question, $index)"
+                        [class.travel-dialog__option-btn--blocking]="isBlockingOption(option)"
+                        [attr.aria-pressed]="isOptionSelected(question, $index)"
+                        (click)="onQuestionAnswer(question.id, $index, option.value)"
+                      >{{ optionDisplayLabel(option) }}</button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-  <div class="travel-dialog__form-grid">
-    <dynadrill-input label="Pasajeros" [value]="passengers()" (valueChange)="passengers.set($event)" />
-  </div>
+    <!-- ═══ Resultado de riesgo ═══ -->
+    <section class="travel-dialog__section">
+      <dynadrill-text variant="h2">Resultado</dynadrill-text>
 
-  <dynadrill-text variant="body">Posibilidad de combinar viajes:</dynadrill-text>
-  <dynadrill-chip-group [options]="combineOptions" mode="single" [selected]="canCombineTrips()" (selectedChange)="canCombineTrips.set($event)" />
-</section>
+      @if (hasBlockingAnswer()) {
+        <div class="travel-dialog__risk-result travel-dialog__risk-result--error">
+          <dynadrill-text variant="body"><strong>NO PUEDE VIAJAR</strong> — Una de las respuestas bloquea el viaje.</dynadrill-text>
+        </div>
+      } @else {
+        <div class="travel-dialog__risk-result travel-dialog__risk-result--{{ riskLevelColor() }}">
+          <dynadrill-text variant="body">Total de puntos: <strong>{{ totalPoints() }}</strong></dynadrill-text>
+          <dynadrill-text variant="body">Nivel de riesgo: <strong>{{ riskLevel() }}</strong></dynadrill-text>
+          <dynadrill-text variant="caption">{{ riskDescription() }}</dynadrill-text>
+        </div>
+      }
 
-<!-- ═══ Información de la ruta ═══ -->
-<section class="travel-dialog__section">
-  <dynadrill-text variant="h2">Información de la ruta</dynadrill-text>
-  <div class="travel-dialog__form-grid">
-    <dynadrill-input label="Locación" [value]="routeLocation()" (valueChange)="routeLocation.set($event)" />
-    <div class="travel-dialog__time-field">
-      <label class="travel-dialog__time-label">Hora arribo</label>
-      <input type="time" class="travel-dialog__time-input" [value]="routeArrivalTime()" (input)="routeArrivalTime.set($any($event.target).value)" />
-    </div>
-    <div class="travel-dialog__time-field">
-      <label class="travel-dialog__time-label">Hora salida</label>
-      <input type="time" class="travel-dialog__time-input" [value]="routeDepartureTime()" (input)="routeDepartureTime.set($any($event.target).value)" />
-    </div>
-    <dynadrill-input label="Datos pernoctación (domicilio, telf., etc.)" [value]="routeOvernightDetails()" (valueChange)="routeOvernightDetails.set($event)" />
-  </div>
-</section>
+      <dynadrill-data-table [columns]="riskTableColumns" [rows]="riskTableRows" [loading]="false" />
+    </section>
+  }
 
-<!-- ═══ Detalles de la comunicación ═══ -->
-<section class="travel-dialog__section">
-  <dynadrill-text variant="h2">Detalles de la comunicación</dynadrill-text>
-  <div class="travel-dialog__form-grid">
-    <dynadrill-input label="Frecuencia del contacto" [value]="commFrequency()" (valueChange)="commFrequency.set($event)" />
-    <dynadrill-input label="Persona de contacto" [value]="commContactPerson()" (valueChange)="commContactPerson.set($event)" />
-    <dynadrill-input label="Detalles del contacto (Ej. Tel., radio)" [value]="commContactDetails()" (valueChange)="commContactDetails.set($event)" />
-  </div>
-</section>
+  @if (currentStep() === 2) {
+    <!-- ═══ Plan de gestión de viajes terrestres ═══ -->
+    <section class="travel-dialog__section">
+      <dynadrill-text variant="h2">Plan de gestión de viajes terrestres</dynadrill-text>
 
-<!-- ═══ Aprobaciones ═══ -->
-<section class="travel-dialog__section">
-  <dynadrill-text variant="h2">Aprobaciones</dynadrill-text>
-  <dynadrill-text variant="caption">Riesgo alto, medio y bajo fuera de rutina: una vez completada la Evaluación de riesgos de viajes terrestres</dynadrill-text>
+      <div class="travel-dialog__field-group">
+        <div class="travel-dialog__passenger-input-row">
+          <dynadrill-input
+            [label]="passengersLabel()"
+            placeholder="Nombre del pasajero — Enter o , para agregar"
+            [value]="passengerDraft()"
+            (valueChange)="passengerDraft.set($event)"
+            (keydown)="onPassengerDraftKeydown($event)"
+          />
+          <dynadrill-button variant="secondary" size="small" [disabled]="!passengerDraft().trim()" (clicked)="addPassenger()">+ Agregar</dynadrill-button>
+        </div>
+        @if (passengersList().length > 0) {
+          <ul class="travel-dialog__chip-list">
+            @for (passenger of passengersList(); track passenger; let i = $index) {
+              <li>
+                <dynadrill-tag [label]="passenger" variant="brand" />
+                <button type="button" class="travel-dialog__chip-remove" [attr.aria-label]="'Quitar ' + passenger" (click)="removePassenger(i)">
+                  <dynadrill-icon name="close" [size]="10" />
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </div>
 
-  <div class="travel-dialog__form-grid">
-    <dynadrill-input label="Conductor(es) / Nombres" [value]="conductorNames()" (valueChange)="conductorNames.set($event)" />
-    <dynadrill-input label="Gerente que autoriza" [value]="approverName()" (valueChange)="approverName.set($event)" />
-  </div>
-</section>
+      <div class="travel-dialog__field-group">
+        <dynadrill-text variant="caption" class="travel-dialog__field-label">Posibilidad de combinar viajes</dynadrill-text>
+        <dynadrill-chip-group [options]="combineOptions" mode="single" [selected]="canCombineTrips()" (selectedChange)="canCombineTrips.set($event)" />
+      </div>
+    </section>
+
+    <!-- ═══ Información de la ruta ═══ -->
+    <section class="travel-dialog__section">
+      <dynadrill-text variant="h2">Información de la ruta</dynadrill-text>
+      <div class="travel-dialog__form-grid">
+        <dynadrill-input label="Locación" [value]="routeLocation()" (valueChange)="routeLocation.set($event)" />
+        <div class="travel-dialog__time-field">
+          <label class="travel-dialog__time-label">Hora arribo</label>
+          <input type="time" class="travel-dialog__time-input" [value]="routeArrivalTime()" (input)="routeArrivalTime.set($any($event.target).value)" />
+        </div>
+        <div class="travel-dialog__time-field">
+          <label class="travel-dialog__time-label">Hora salida</label>
+          <input type="time" class="travel-dialog__time-input" [value]="routeDepartureTime()" (input)="routeDepartureTime.set($any($event.target).value)" />
+        </div>
+        <dynadrill-input label="Datos pernoctación (domicilio, telf., etc.)" [value]="routeOvernightDetails()" (valueChange)="routeOvernightDetails.set($event)" />
+      </div>
+    </section>
+
+    <!-- ═══ Detalles de la comunicación ═══ -->
+    <section class="travel-dialog__section">
+      <dynadrill-text variant="h2">Detalles de la comunicación</dynadrill-text>
+      <div class="travel-dialog__form-grid">
+        <dynadrill-input label="Frecuencia del contacto" [value]="commFrequency()" (valueChange)="commFrequency.set($event)" />
+        <dynadrill-input label="Persona de contacto" [value]="commContactPerson()" (valueChange)="commContactPerson.set($event)" />
+        <dynadrill-input label="Detalles del contacto (Ej. Tel., radio)" [value]="commContactDetails()" (valueChange)="commContactDetails.set($event)" />
+      </div>
+    </section>
+  }
+
+  @if (currentStep() === 3) {
+    <!-- ═══ Aprobaciones ═══ -->
+    <section class="travel-dialog__section">
+      <dynadrill-text variant="h2">Aprobaciones</dynadrill-text>
+      <dynadrill-text variant="caption">Riesgo alto, medio y bajo fuera de rutina: una vez completada la Evaluación de riesgos de viajes terrestres</dynadrill-text>
+
+      <div class="travel-dialog__approval-cards">
+        <div class="travel-dialog__approval-card">
+          <dynadrill-input label="Conductor(es) / Nombres" [value]="conductorNames()" (valueChange)="conductorNames.set($event)" />
+        </div>
+        <div class="travel-dialog__approval-card">
+          <dynadrill-input label="Gerente que autoriza" [value]="approverName()" (valueChange)="approverName.set($event)" />
+        </div>
+      </div>
+    </section>
+  }
+</div>
 
 <!-- ═══ Footer actions ═══ -->
 <footer class="travel-dialog__actions">
   <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
-  <dynadrill-button variant="success" [disabled]="!canSubmit()" (clicked)="submit()">Guardar Gerenciamiento de Viaje</dynadrill-button>
+  <div class="travel-dialog__actions-right">
+    @if (currentStep() > 0) {
+      <dynadrill-button variant="secondary" (clicked)="goToPreviousStep()">Atrás</dynadrill-button>
+    }
+    @if (currentStep() < steps.length - 1) {
+      <dynadrill-button (clicked)="goToNextStep()">Siguiente</dynadrill-button>
+    } @else {
+      <dynadrill-button variant="success" [disabled]="!canSubmit()" (clicked)="submit()">Guardar Gerenciamiento de Viaje</dynadrill-button>
+    }
+  </div>
 </footer>

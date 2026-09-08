@@ -8,6 +8,7 @@ import {
   DynadrillContextCardComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
+  DynadrillDatetimePickerComponent,
   DynadrillDialogService,
   DynadrillInputComponent,
   DynadrillInspectionGridComponent,
@@ -101,6 +102,11 @@ function createMockCompletedInspection(operatorName: string, unitCode: string): 
 
 const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'revisar_reportes_salida', 'ejecucion_operativa', 'en_ejecucion_llegada', 'mantenimiento', 'revisar_reportes_llegada', 'en_revision'];
 
+/** PumpingUnitReport guarda fechas como string ISO (yyyy-MM-dd); dynadrill-datetime-picker trabaja con Date. */
+function toIsoDateString(date: Date | null): string {
+  return date ? date.toISOString().split('T')[0] : '';
+}
+
 @Component({
   selector: 'app-ticket-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -112,6 +118,7 @@ const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecuc
     DynadrillTextComponent,
     DynadrillTextareaComponent,
     DynadrillInputComponent,
+    DynadrillDatetimePickerComponent,
     DynadrillSelectComponent,
     DynadrillInspectionGridComponent,
     DynadrillChipGroupComponent,
@@ -944,8 +951,10 @@ export class TicketDetailPage {
   protected readonly reportHeaderCode = signal('');
   protected readonly reportClientName = signal('');
   protected readonly reportUnitCode = signal('');
-  protected readonly reportDepartureDate = signal('');
-  protected readonly reportArrivalDate = signal('');
+  // dynadrill-datetime-picker trabaja con Date, no con el string ISO que guarda
+  // PumpingUnitReport — se convierte en los límites (initFromTicket / saveUnitReport).
+  protected readonly reportDepartureDate = signal<Date | null>(null);
+  protected readonly reportArrivalDate = signal<Date | null>(null);
   protected readonly reportFuelDeparture = signal('');
   protected readonly reportFuelArrival = signal('');
   protected readonly reportOrigin = signal('');
@@ -1027,8 +1036,8 @@ export class TicketDetailPage {
 
   protected readonly departureSignatureDate = computed(() => {
     if (this.departureApprovalDate()) return this.departureApprovalDate();
-    if (this.reportDepartureDate()) return this.reportDepartureDate();
-    return new Date().toISOString().split('T')[0];
+    if (this.reportDepartureDate()) return toIsoDateString(this.reportDepartureDate());
+    return toIsoDateString(new Date());
   });
 
   protected readonly arrivalSignatureName = computed(() => {
@@ -1039,8 +1048,8 @@ export class TicketDetailPage {
 
   protected readonly arrivalSignatureDate = computed(() => {
     if (this.arrivalApprovalDate()) return this.arrivalApprovalDate();
-    if (this.reportArrivalDate()) return this.reportArrivalDate();
-    return new Date().toISOString().split('T')[0];
+    if (this.reportArrivalDate()) return toIsoDateString(this.reportArrivalDate());
+    return toIsoDateString(new Date());
   });
 
   // Datos de salida en solo lectura para la vista de llegada
@@ -1054,7 +1063,7 @@ export class TicketDetailPage {
   ]);
 
   protected readonly arrivalFuelReadonlyItems = computed<DynadrillContextCardItem[]>(() => [
-    { label: 'Fecha de salida', value: this.reportDepartureDate() || '—' },
+    { label: 'Fecha de salida', value: toIsoDateString(this.reportDepartureDate()) || '—' },
     { label: 'Combustible salida', value: this.reportFuelDeparture() || '—' },
   ]);
 
@@ -1322,8 +1331,8 @@ export class TicketDetailPage {
       blockName: this.reportBlockName(),
       headerCode: this.reportHeaderCode(),
       clientName: this.reportClientName(),
-      departureDate: this.reportDepartureDate(),
-      arrivalDate: this.reportArrivalDate(),
+      departureDate: toIsoDateString(this.reportDepartureDate()),
+      arrivalDate: toIsoDateString(this.reportArrivalDate()),
       fuelDeparture: Number(this.reportFuelDeparture()) || null,
       fuelArrival: Number(this.reportFuelArrival()) || null,
       hubodometroOrigen: this.hubodometroOrigen(),
@@ -1622,8 +1631,8 @@ export class TicketDetailPage {
       this.reportBaseName.set(r.baseName);
       this.reportBlockName.set(r.blockName);
       this.reportHeaderCode.set(r.headerCode);
-      this.reportDepartureDate.set(r.departureDate);
-      this.reportArrivalDate.set(r.arrivalDate);
+      this.reportDepartureDate.set(r.departureDate ? new Date(r.departureDate) : null);
+      this.reportArrivalDate.set(r.arrivalDate ? new Date(r.arrivalDate) : null);
       this.reportFuelDeparture.set(r.fuelDeparture != null ? String(r.fuelDeparture) : '');
       this.reportFuelArrival.set(r.fuelArrival != null ? String(r.fuelArrival) : '');
       this.reportOrigin.set(r.origin);

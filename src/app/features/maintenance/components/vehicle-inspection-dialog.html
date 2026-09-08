@@ -4,7 +4,7 @@
   <div class="vehicle-inspection-dialog__body">
     @if (currentStep() === 0) {
       <div class="vehicle-inspection-dialog__grid">
-        <dynadrill-select label="Unidad" placeholder="Selecciona el vehículo" [options]="unidadOptions()" [value]="unidadId()" (valueChange)="onUnidadChange($any($event))" />
+        <dynadrill-select label="Unidad" placeholder="Selecciona el vehículo" [options]="unidadOptions()" [value]="unidadId()" [disabled]="unidadLocked" (valueChange)="onUnidadChange($any($event))" />
         <dynadrill-datetime-picker label="Fecha" [value]="fecha()!" (valueChange)="fecha.set($event)" />
         <dynadrill-input label="Punto de partida" [value]="puntoPartida()" (valueChange)="puntoPartida.set($event)" />
         <dynadrill-input label="Destino" [value]="destino()" (valueChange)="destino.set($event)" />

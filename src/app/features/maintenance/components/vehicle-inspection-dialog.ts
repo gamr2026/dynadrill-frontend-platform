@@ -31,17 +31,22 @@ import { UnidadesService } from '../services/unidades.service';
 import { Unidad } from '../models/unidad.model';
 import { UnitReportDialog, UnitReportDialogData } from './unit-report-dialog';
 import { AuthService } from '../../../core/services/auth.service';
-import { RolesService, UsersService } from '../../users/services/users.service';
+import { RolesService } from '../../users/services/users.service';
 
-const SUPERVISOR_ROLE_NAME = 'Supervisor';
+/** Código de rol (roles.code) — estable, ver backend role-code.ts. */
+const SUPERVISOR_ROLE_CODE = 'supervisor';
 
 const STEPS = ['Datos', 'Vehículo', 'Equipo', 'Conductor'];
 
 export interface VehicleInspectionDialogData {
-  /** Si viene, el diálogo abre en modo edición prellenado con este registro. */
+  /** Si viene, el diálogo abre prellenado con este registro (edición si id > 0, alta prellenada si id <= 0). */
   existing?: VehicleInspection;
   /** true = solo lectura: se ve el detalle pero no se puede guardar (ni se llama al backend). */
   readonly?: boolean;
+  /** true = el select de Unidad queda bloqueado — para la inspección de llegada, donde la unidad ya se fijó en la salida. */
+  lockUnidad?: boolean;
+  /** Nombre del supervisor a dejar preseleccionado en el paso "Conductor" (ej. el supervisor asignado al ticket de Pumping). */
+  supervisorNombre?: string;
 }
 
 function toChecklistItems(labels: string[]): VehicleChecklistItem[] {
@@ -80,7 +85,6 @@ export class VehicleInspectionDialog {
   private readonly inspectionsService = inject(VehicleInspectionsService);
   private readonly unidadesService = inject(UnidadesService);
   private readonly rolesService = inject(RolesService);
-  private readonly usersService = inject(UsersService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly dialogService = inject(DynadrillDialogService);
   private readonly auth = inject(AuthService);
@@ -90,6 +94,7 @@ export class VehicleInspectionDialog {
   private readonly existingId = (this.data?.existing?.id ?? 0) > 0 ? this.data!.existing!.id : null;
   protected readonly isEditMode = this.existingId !== null;
   protected readonly readonly = this.data?.readonly ?? false;
+  protected readonly unidadLocked = this.data?.lockUnidad ?? false;
 
   protected readonly steps = STEPS;
   protected readonly currentStep = signal(0);
@@ -153,9 +158,16 @@ export class VehicleInspectionDialog {
     return c ? conductorPermisosPorVencer(c) : [];
   });
   protected readonly observacionesConductor = signal('');
-  protected readonly supervisorNombre = signal('');
-  /** Supervisores activos en el sistema — se elige de la lista, no se escribe a mano. */
-  protected readonly supervisorOptions = signal<DynadrillSelectOption[]>([]);
+  protected readonly supervisorNombre = signal(this.data?.supervisorNombre ?? '');
+  /**
+   * Supervisores activos del sistema — se elige de la lista, no se escribe a
+   * mano. Se siembra ya con el supervisor que llega por `data` (el asignado
+   * al ticket de Pumping) para que el select nunca quede vacío aunque la
+   * llamada de red falle o tarde.
+   */
+  protected readonly supervisorOptions = signal<DynadrillSelectOption[]>(
+    this.data?.supervisorNombre ? [{ label: this.data.supervisorNombre, value: this.data.supervisorNombre }] : [],
+  );
 
   protected readonly puedeGuardar = computed(() => !!this.unidadId() && !!this.conductorSeleccionado() && this.reuneCondicionesParaTrabajar());
 
@@ -189,20 +201,34 @@ export class VehicleInspectionDialog {
   }
 
   constructor() {
-    this.unidadesService.list().subscribe(unidades => this.unidades.set(unidades));
+    this.unidadesService.list().subscribe(unidades => {
+      this.unidades.set(unidades);
+      // El registro de salida puede traer un unidadId que no resuelve contra
+      // el catálogo actual (datos de ejemplo). Si el código sí matchea, se
+      // corrige el id para que el select muestre la unidad correcta.
+      const ex = this.data?.existing;
+      if (ex && !unidades.some(u => u.id === this.unidadId())) {
+        const porCodigo = unidades.find(u => u.code === ex.unidadCode);
+        if (porCodigo) this.unidadId.set(porCodigo.id);
+      }
+    });
     this.inspectionsService.listConductoresPermisos().subscribe(permisos => this.conductoresPermisos.set(permisos));
 
     // "Nombre del Supervisor": se precargan los supervisores activos del
-    // sistema (rol Supervisor) — se elige de la lista, no se tipea.
-    this.rolesService.list().subscribe(roles => {
-      const supervisorRole = roles.find(r => r.name === SUPERVISOR_ROLE_NAME);
-      if (!supervisorRole) return;
-      this.usersService.list().subscribe(users => {
-        const nombres = [
-          ...new Set(users.filter(u => u.status && u.roleId === supervisorRole.id).map(u => u.name)),
-        ];
+    // sistema vía `GET /api/roles/supervisor/usuarios` — un endpoint liviano
+    // (id + nombre) accesible a cualquier autenticado, a diferencia de
+    // `GET /api/users` que es solo Superadmin.
+    this.rolesService.usuariosPorRol(SUPERVISOR_ROLE_CODE).subscribe({
+      next: usuarios => {
+        const nombres = [...new Set(usuarios.map(u => u.name))];
+        // Conserva el supervisor preseleccionado aunque no esté en la lista
+        // de activos (ej. cambió de rol después de asignarse al ticket).
+        const preseleccionado = this.supervisorNombre();
+        if (preseleccionado && !nombres.includes(preseleccionado)) nombres.unshift(preseleccionado);
         this.supervisorOptions.set(nombres.map(n => ({ label: n, value: n })));
-      });
+      },
+      // Si falla, queda al menos el supervisor sembrado desde `data`.
+      error: () => {},
     });
 
     const existing = this.data?.existing;
@@ -221,8 +247,9 @@ export class VehicleInspectionDialog {
       this.caducidadMatricula.set(existing.caducidadMatricula ? new Date(existing.caducidadMatricula) : null);
       this.caducidadPoliza.set(existing.caducidadPoliza ? new Date(existing.caducidadPoliza) : null);
       this.vigenciaOtroDocumento.set(existing.vigenciaOtroDocumento ? new Date(existing.vigenciaOtroDocumento) : null);
-      this.kmInicial.set(String(existing.kmInicial ?? ''));
-      this.kmFinal.set(String(existing.kmFinal ?? ''));
+      // 0 = sin lectura (nunca es un odómetro real) -> se muestra vacío.
+      this.kmInicial.set(existing.kmInicial ? String(existing.kmInicial) : '');
+      this.kmFinal.set(existing.kmFinal ? String(existing.kmFinal) : '');
       this.proximoMantenimiento.set(existing.proximoMantenimiento ? new Date(existing.proximoMantenimiento) : null);
       this.checklistVehiculo.set(existing.checklistVehiculo);
       this.checklistEquipo.set(existing.checklistEquipo);

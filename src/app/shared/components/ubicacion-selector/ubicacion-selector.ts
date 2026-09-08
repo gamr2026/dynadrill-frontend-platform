@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { DynadrillInputComponent, DynadrillSelectComponent, type DynadrillSelectOption } from '@digitec-it-projects/dynadrill-ui';
 import { CatalogosService } from '../../services/catalogos.service';
 import { UBICACION_VACIA, type Campo, type Pozo, type Taladro, type UbicacionSeleccion } from '../../models/catalogos.model';
@@ -83,23 +83,35 @@ export class UbicacionSelectorComponent {
   protected readonly pozoId = signal<number | null>(null);
   protected readonly taladroId = signal<number | null>(null);
 
+  /** Último `valorInicial` ya aplicado — evita re-aplicar (y re-emitir) en cada corrida del effect. */
+  private ultimoValorAplicado?: Partial<UbicacionSeleccion> | null;
+
   constructor() {
     this.catalogos.campos().subscribe(c => this.campos.set(c));
     this.catalogos.taladros().subscribe(t => this.taladros.set(t.filter(x => x.habilitado)));
-    this.catalogos.pozos().subscribe(p => {
-      this.pozos.set(p);
-      this.aplicarValorInicial();
+    this.catalogos.pozos().subscribe(p => this.pozos.set(p));
+
+    // El `valorInicial` puede llegar después del catálogo (ej. el ticket se
+    // carga por HTTP y recién ahí se sabe el pozo), así que no alcanza con
+    // aplicarlo una sola vez al resolver los pozos.
+    effect(() => {
+      const v = this.valorInicial();
+      const hayPozos = this.pozos().length > 0;
+      // `aplicarValorInicial` escribe las mismas señales que lee (pozoId,
+      // campoId, taladroId), así que va en `untracked`: el effect sólo debe
+      // depender del valor inicial y de que el catálogo ya esté cargado.
+      untracked(() => {
+        if (!hayPozos || v === this.ultimoValorAplicado) return;
+        this.ultimoValorAplicado = v;
+        this.aplicarValorInicial();
+      });
     });
   }
 
   private aplicarValorInicial(): void {
     const v = this.valorInicial();
     if (!v) return;
-    const pozo = v.pozoId
-      ? this.pozos().find(p => p.id === v.pozoId)
-      : v.pozo
-        ? this.pozos().find(p => p.codigo === v.pozo)
-        : undefined;
+    const pozo = v.pozoId ? this.pozos().find(p => p.id === v.pozoId) : this.buscarPozoPorNombre(v.pozo);
     if (pozo) {
       this.pozoId.set(pozo.id);
       this.campoId.set(pozo.campoId);
@@ -112,6 +124,17 @@ export class UbicacionSelectorComponent {
       this.taladroId.set(this.taladros().find(t => t.nombre === v.taladro)?.id ?? null);
     }
     this.emitir();
+  }
+
+  /**
+   * Los formularios traen el pozo como texto y no siempre con el mismo
+   * formato: unos guardan el código ("AMSA-006"), otros el nombre completo
+   * ("AMISTAD-A006"). Se prueban ambos, sin distinguir mayúsculas.
+   */
+  private buscarPozoPorNombre(nombre: string | undefined): Pozo | undefined {
+    const q = nombre?.trim().toLowerCase();
+    if (!q) return undefined;
+    return this.pozos().find(p => p.codigo.toLowerCase() === q || p.nombreCompleto.toLowerCase() === q);
   }
 
   protected readonly campoOptions = computed<DynadrillSelectOption[]>(() =>

@@ -45,7 +45,7 @@ import {
   type DailyActivityReport,
 } from '../../models/pumping.model';
 import { PumpingService } from '../../services/pumping.service';
-import { OperativoDocsBridgeService } from '../../../../../shared/index';
+import { OperativoDocsBridgeService, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../../../shared/index';
 import { CreateUnitReportInput, unitReportHasNovedades } from '../../../../maintenance/models/unit-report.model';
 import { UnitReportsService } from '../../../../maintenance/services/unit-reports.service';
 import { UnidadesService } from '../../../../maintenance/services/unidades.service';
@@ -131,6 +131,7 @@ const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecuc
     DynadrillChipGroupComponent,
     DynadrillApprovalActionsComponent,
     DynadrillUploadZoneComponent,
+    UbicacionSelectorComponent,
   ],
   templateUrl: './ticket-detail-page.html',
   styleUrl: './ticket-detail-page.scss',
@@ -1141,19 +1142,60 @@ export class TicketDetailPage {
   });
 
   // Información general del reporte
+  //
+  // Pozo / Base(campo) / Bloque ya no se tipean: salen del catálogo de
+  // ubicaciones vía <app-ubicacion-selector>. Se siguen guardando como
+  // strings en el payload (wellName/baseName/blockName) para no romper el
+  // contrato del reporte, y además se conservan los ids para trazabilidad.
   protected readonly reportWellName = signal('');
   protected readonly reportBaseName = signal('');
   protected readonly reportBlockName = signal('');
+  protected readonly reportPozoId = signal<number | null>(null);
+  protected readonly reportCampoId = signal<number | null>(null);
+  protected readonly reportBloqueId = signal<number | null>(null);
+
+  /**
+   * Semilla del selector: el pozo que ya trae el ticket (heredado del
+   * pedido). Depende sólo de `ticket()` — nunca de las señales que escribe
+   * `onUbicacionChange`, para que no se realimente.
+   */
+  protected readonly ubicacionInicial = computed<Partial<UbicacionSeleccion> | null>(() => {
+    const t = this.ticket();
+    return t?.wellName ? { pozo: t.wellName } : null;
+  });
+
+  protected onUbicacionChange(u: UbicacionSeleccion): void {
+    this.reportWellName.set(u.nombreCompletoPozo || u.pozo);
+    this.reportBaseName.set(u.campo);
+    this.reportBlockName.set(u.bloque);
+    this.reportPozoId.set(u.pozoId);
+    this.reportCampoId.set(u.campoId);
+    this.reportBloqueId.set(u.bloqueId);
+  }
   protected readonly reportHeaderCode = signal('');
   protected readonly reportClientName = signal('');
   protected readonly reportUnitCode = signal('');
   protected readonly reportDepartureDate = signal('');
   protected readonly reportArrivalDate = signal('');
 
-  /** Adaptadores string ISO (yyyy-MM-dd) <-> Date para dynadrill-datetime-picker. El payload sigue guardando la fecha como string. */
-  protected toDateOrNull(iso: string): Date | null {
+  /**
+   * Adaptadores string ISO (yyyy-MM-dd) <-> Date para dynadrill-datetime-picker.
+   * El payload sigue guardando la fecha como string.
+   *
+   * IMPORTANTE: la conversión ISO -> Date va en un `computed`, nunca llamada
+   * directo desde el template. Un `new Date(...)` dentro del binding devuelve
+   * una instancia nueva en cada ciclo de detección de cambios; como Angular
+   * compara los inputs con `Object.is`, el picker se marcaba sucio siempre,
+   * su `[ngModel]` reescribía el valor de nz-date-picker, éste reposicionaba
+   * el overlay y disparaba otro ciclo -> bucle infinito que colgaba la pestaña
+   * al abrir el panel del calendario. El `computed` memoiza la instancia y
+   * sólo la recrea cuando cambia el string ISO.
+   */
+  private toDateOrNull(iso: string): Date | null {
     return iso ? new Date(iso + 'T00:00:00') : null;
   }
+  protected readonly reportDepartureDateValue = computed(() => this.toDateOrNull(this.reportDepartureDate()));
+  protected readonly reportArrivalDateValue = computed(() => this.toDateOrNull(this.reportArrivalDate()));
   protected toIsoDate(d: Date | null): string {
     if (!d) return '';
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -1824,17 +1866,35 @@ export class TicketDetailPage {
    * mode 'salida' guarda en completedInspections, 'llegada' en completedLlegadaInspections.
    */
   protected openInspection(row: Record<string, unknown>, mode: 'salida' | 'llegada' = 'salida'): void {
-    const ref = this.dialog.open<VehicleInspectionDialog>({
+    const operatorId = row['id'] as number;
+    const supervisorNombre = this.ticket()?.assignedSupervisor || undefined;
+
+    // Llegada: se parte de la inspección de salida ya registrada — no se
+    // vuelve a elegir la unidad (ya se sabe cuál se asignó) y los datos
+    // quedan editables. Se pasa con id <= 0 para que el diálogo guarde un
+    // registro nuevo de llegada, no un PUT sobre el de salida.
+    const salidaInspection = mode === 'llegada'
+      ? (this.completedInspections().get(operatorId) as VehicleInspection | undefined)
+      : undefined;
+    const prefill: VehicleInspection | undefined = salidaInspection
+      ? { ...salidaInspection, id: 0, kmInicial: salidaInspection.kmFinal || salidaInspection.kmInicial, kmFinal: 0 }
+      : undefined;
+
+    const ref = this.dialog.open<VehicleInspectionDialog, VehicleInspectionDialogData>({
       title: mode === 'llegada'
         ? 'Inspección de Vehículos (Llegada) — DYN-SGI-RE-068'
         : 'Inspección de Vehículos — DYN-SGI-RE-068',
       content: VehicleInspectionDialog,
+      data: {
+        existing: prefill,
+        lockUnidad: mode === 'llegada' && !!prefill,
+        supervisorNombre,
+      },
       size: 'large',
       footer: false,
     });
     ref.afterClose.subscribe(result => {
       if (result) {
-        const operatorId = row['id'] as number;
         if (mode === 'llegada') {
           this.completedLlegadaInspections.update(map => {
             const updated = new Map(map);
@@ -1899,8 +1959,13 @@ export class TicketDetailPage {
     this.reportClientName.set(ticket.clientName);
     this.reportUnitCode.set(ticket.unitCode || '');
 
-    // En llegada, la inspección de salida ya fue realizada y aprobada por el supervisor
-    if (ticket.currentStep === 'en_ejecucion_llegada') {
+    // Desde `en_ejecucion_llegada` en adelante (llegada, mantenimiento, revisar
+    // reportes de llegada, revisión, finalizado) la inspección de salida ya
+    // fue realizada y aprobada por el supervisor. Antes solo se hidrataba en
+    // `en_ejecucion_llegada` exacto, por lo que la sección "Inspección de
+    // salida" del paso `revisar_reportes_llegada` siempre mostraba
+    // "el operador no registró inspección de salida".
+    if (STEP_KEYS.indexOf(ticket.currentStep) >= STEP_KEYS.indexOf('en_ejecucion_llegada')) {
       const inspMap = new Map<number, VehicleInspection>();
       for (const op of ticket.operators) {
         inspMap.set(op.id, createMockCompletedInspection(op.name, op.unitCode));

@@ -182,23 +182,30 @@ export class TravelManagementDialog {
   // Chip-group en vez de select: son solo 2-3 opciones por pregunta y 15
   // preguntas en total — con select había que abrir y cerrar el dropdown
   // 15 veces para llenar el formulario completo.
-  protected getQuestionOptionLabels(question: TravelRiskQuestion): string[] {
-    return question.options.map(opt => opt.label);
-  }
+  // Las etiquetas de opciones y la selección se arman en un `computed`, no
+  // con métodos llamados desde el template. `question.options.map(...)`
+  // dentro del binding devolvía un array nuevo en cada ciclo de detección de
+  // cambios; como Angular compara los inputs con `Object.is`, los 15
+  // chip-groups quedaban sucios siempre y se re-evaluaban aunque nadie
+  // hubiera tocado nada. El `computed` sólo se recalcula cuando cambia
+  // `riskQuestions` — o sea, una vez por click del usuario.
+  protected readonly riskQuestionRows = computed(() =>
+    this.riskQuestions().map(q => ({
+      id: q.id,
+      question: q.question,
+      optionLabels: q.options.map(opt => opt.label),
+      selectedLabels: q.selectedLabel ? [q.selectedLabel] : [],
+    })),
+  );
 
-  protected getSelectedOptionLabel(question: TravelRiskQuestion): string[] {
-    return question.selectedLabel ? [question.selectedLabel] : [];
-  }
-
-  protected onQuestionChipChange(question: TravelRiskQuestion, selectedLabels: string[]): void {
+  protected onQuestionChipChange(questionId: number, selectedLabels: string[]): void {
     const label = selectedLabels[0] ?? null;
-    const option = label ? question.options.find(opt => opt.label === label) : undefined;
     this.riskQuestions.update(questions =>
-      questions.map(q =>
-        q.id === question.id
-          ? { ...q, selectedLabel: label, selectedValue: option ? option.value : null }
-          : q,
-      ),
+      questions.map(q => {
+        if (q.id !== questionId) return q;
+        const option = label ? q.options.find(opt => opt.label === label) : undefined;
+        return { ...q, selectedLabel: label, selectedValue: option ? option.value : null };
+      }),
     );
   }
 

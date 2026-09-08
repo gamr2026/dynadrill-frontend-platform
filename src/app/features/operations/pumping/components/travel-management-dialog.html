@@ -27,14 +27,14 @@
   <dynadrill-text variant="caption">Responda cada pregunta para calcular el nivel de riesgo del viaje.</dynadrill-text>
 
   <div class="travel-dialog__questions">
-    @for (question of riskQuestions(); track question.id) {
+    @for (row of riskQuestionRows(); track row.id) {
       <div class="travel-dialog__question-row">
-        <dynadrill-text variant="body">{{ question.id }}. {{ question.question }}</dynadrill-text>
+        <dynadrill-text variant="body">{{ row.id }}. {{ row.question }}</dynadrill-text>
         <dynadrill-chip-group
-          [options]="getQuestionOptionLabels(question)"
+          [options]="row.optionLabels"
           mode="single"
-          [selected]="getSelectedOptionLabel(question)"
-          (selectedChange)="onQuestionChipChange(question, $event)"
+          [selected]="row.selectedLabels"
+          (selectedChange)="onQuestionChipChange(row.id, $event)"
         />
       </div>
     }

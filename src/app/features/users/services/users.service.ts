@@ -35,4 +35,13 @@ export class RolesService {
   list(): Observable<Role[]> {
     return this.http.get<Role[]>('/api/roles');
   }
+
+  /**
+   * {id, name} de los usuarios activos con un rol (por code). Para los
+   * selects de "responsable/supervisor" — no requiere `GET /api/users`
+   * (Superadmin únicamente).
+   */
+  usuariosPorRol(code: string): Observable<{ id: number; name: string }[]> {
+    return this.http.get<{ id: number; name: string }[]>(`/api/roles/${code}/usuarios`);
+  }
 }

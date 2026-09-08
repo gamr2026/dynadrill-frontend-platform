@@ -20,6 +20,7 @@ import {
   crearStopChecklist,
 } from '../models/stop-card.model';
 import { StopCardService } from '../services/stop-card.service';
+import { toLocalDateString } from '../../../../shared/utils';
 
 interface StopGrupo {
   subcategoria: string;
@@ -106,7 +107,7 @@ export class StopCardDialog {
       queObservaCondiciones: this.queObservaCondiciones().trim() || undefined,
       accionesCondiciones: this.accionesCondiciones().trim() || undefined,
       observadorNombre: this.observadorNombre().trim(),
-      fecha: this.fecha()!.toISOString().slice(0, 10),
+      fecha: toLocalDateString(this.fecha()!),
       locacion: this.locacion().trim(),
       operadora: this.operadora().trim(),
       contacto: this.contacto().trim() || undefined,

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../../../core/services/auth.service';
+import { parseLocalDateString, toLocalDateString } from '../../../../../shared/utils';
 import {
   DynadrillApprovalActionsComponent,
   DynadrillButtonComponent,
@@ -68,7 +69,7 @@ function createMockCompletedInspection(operatorName: string, unitCode: string): 
     id: 999,
     unidadId: 1,
     unidadCode: unitCode,
-    fecha: new Date().toISOString().split('T')[0],
+    fecha: toLocalDateString(new Date()),
     puntoPartida: 'Base Coco',
     destino: 'Pozo Beta-9',
     inspeccionadoPor: operatorName,
@@ -104,7 +105,15 @@ const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecuc
 
 /** PumpingUnitReport guarda fechas como string ISO (yyyy-MM-dd); dynadrill-datetime-picker trabaja con Date. */
 function toIsoDateString(date: Date | null): string {
-  return date ? date.toISOString().split('T')[0] : '';
+  return date ? toLocalDateString(date) : '';
+}
+
+/** A diferencia de `Number(x) || null`, no descarta una lectura real de 0 — solo trata el campo vacío como ausente. */
+function toFuelReading(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (trimmed === '') return null;
+  const value = Number(trimmed);
+  return Number.isNaN(value) ? null : value;
 }
 
 @Component({
@@ -811,7 +820,7 @@ export class TicketDetailPage {
     let current = new Date(start);
     let dayNum = 1;
     while (current <= today) {
-      const dateStr = current.toISOString().split('T')[0];
+      const dateStr = toLocalDateString(current);
       const hasReport = reports.has(dateStr);
       days.push({
         id: dayNum,
@@ -1333,8 +1342,8 @@ export class TicketDetailPage {
       clientName: this.reportClientName(),
       departureDate: toIsoDateString(this.reportDepartureDate()),
       arrivalDate: toIsoDateString(this.reportArrivalDate()),
-      fuelDeparture: Number(this.reportFuelDeparture()) || null,
-      fuelArrival: Number(this.reportFuelArrival()) || null,
+      fuelDeparture: toFuelReading(this.reportFuelDeparture()),
+      fuelArrival: toFuelReading(this.reportFuelArrival()),
       hubodometroOrigen: this.hubodometroOrigen(),
       hubodometroDestino: this.hubodometroDestino(),
       tires: this.tires(),
@@ -1631,8 +1640,8 @@ export class TicketDetailPage {
       this.reportBaseName.set(r.baseName);
       this.reportBlockName.set(r.blockName);
       this.reportHeaderCode.set(r.headerCode);
-      this.reportDepartureDate.set(r.departureDate ? new Date(r.departureDate) : null);
-      this.reportArrivalDate.set(r.arrivalDate ? new Date(r.arrivalDate) : null);
+      this.reportDepartureDate.set(r.departureDate ? parseLocalDateString(r.departureDate) : null);
+      this.reportArrivalDate.set(r.arrivalDate ? parseLocalDateString(r.arrivalDate) : null);
       this.reportFuelDeparture.set(r.fuelDeparture != null ? String(r.fuelDeparture) : '');
       this.reportFuelArrival.set(r.fuelArrival != null ? String(r.fuelArrival) : '');
       this.reportOrigin.set(r.origin);

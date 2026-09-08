@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import {
@@ -100,6 +100,24 @@ export class UserFormDialog {
 
     this.rolesService.list().subscribe(roles => this.roles.set(roles));
 
+    // `isOperatorRole` depende de `roles()` y `selectedRoleId()`, poblados por dos peticiones HTTP
+    // independientes sin orden garantizado. Antes este chequeo era un `if` de una sola vez justo
+    // después de cargar el usuario (línea ~126 antigua): si `roles()` aún no había llegado en ese
+    // instante, el validator de "especialidad" nunca se agregaba, aunque `isOperatorRole()` pasara
+    // a `true` después — un `effect()` lo re-evalúa cada vez que cualquiera de las dos cambia.
+    effect(() => {
+      const specialty = this.form.controls.specialty;
+      if (this.isOperatorRole()) {
+        if (!specialty.hasValidator(Validators.required)) {
+          specialty.addValidators([Validators.required]);
+          specialty.updateValueAndValidity();
+        }
+      } else if (specialty.hasValidator(Validators.required)) {
+        specialty.removeValidators([Validators.required]);
+        specialty.updateValueAndValidity();
+      }
+    });
+
     if (this.isEditMode) {
       this.usersService.get(this.data.userId!).subscribe({
         next: user => {
@@ -123,10 +141,6 @@ export class UserFormDialog {
           });
           this.fechaIngreso.set(user.fechaIngreso ? new Date(user.fechaIngreso) : null);
           this.selectedRoleId.set(user.roleId);
-          if (this.isOperatorRole()) {
-            this.form.controls.specialty.addValidators([Validators.required]);
-            this.form.controls.specialty.updateValueAndValidity();
-          }
           this.loading.set(false);
         },
         error: () => {
@@ -158,13 +172,11 @@ export class UserFormDialog {
     const roleId = typeof value === 'number' ? value : null;
     this.form.controls.roleId.setValue(roleId);
     this.selectedRoleId.set(roleId);
-    if (this.isOperatorRole()) {
-      this.form.controls.specialty.addValidators([Validators.required]);
-    } else {
-      this.form.controls.specialty.clearValidators();
+    // El validator required/no-required lo maneja el effect() de arriba, reactivo a isOperatorRole().
+    // Aquí solo se limpia el valor si deja de aplicar, para no dejar una especialidad obsoleta.
+    if (!this.isOperatorRole()) {
       this.form.controls.specialty.setValue(null);
     }
-    this.form.controls.specialty.updateValueAndValidity();
   }
 
   updateSpecialty(value: unknown): void {

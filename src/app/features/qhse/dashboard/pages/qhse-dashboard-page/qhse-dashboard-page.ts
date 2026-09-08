@@ -399,9 +399,15 @@ export class QhseDashboardPage {
     const raw = this.metaEdit(id).trim();
     const value = Number(raw);
     if (!raw || Number.isNaN(value)) return;
-    this.metasService.update({ [id]: value }).subscribe(metas => {
-      this.metas.set(metas);
-      this.notify.success('Meta guardada', 'El semáforo se recalculó con la nueva meta.');
+    this.metasService.update({ [id]: value }).subscribe({
+      next: metas => {
+        this.metas.set(metas);
+        // Sin esto, metaEditDirty(id) seguía dando true tras guardar con éxito — el link
+        // "Cancelar" quedaba mostrado permanentemente junto a un KPI que ya estaba guardado.
+        this.cancelarMetaEdit(id);
+        this.notify.success('Meta guardada', 'El semáforo se recalculó con la nueva meta.');
+      },
+      error: () => this.notify.error('Error', 'No se pudo guardar la meta.'),
     });
   }
 }

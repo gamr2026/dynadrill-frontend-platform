@@ -31,8 +31,8 @@
     </div>
 
     <div class="otq-dialog__row-pair">
-      <dynadrill-datetime-picker mode="date" label="Fecha de inicio estimada" [value]="fechaInicioEstimada()!" (valueChange)="fechaInicioEstimada.set($event)" />
-      <dynadrill-datetime-picker mode="date" label="Fecha de fin estimada" [value]="fechaFinEstimada()!" (valueChange)="fechaFinEstimada.set($event)" />
+      <dynadrill-datetime-picker mode="date" label="Fecha de inicio estimada" [value]="$any(fechaInicioEstimada())" (valueChange)="fechaInicioEstimada.set($event)" />
+      <dynadrill-datetime-picker mode="date" label="Fecha de fin estimada" [value]="$any(fechaFinEstimada())" (valueChange)="fechaFinEstimada.set($event)" />
     </div>
 
     <dynadrill-text variant="caption" class="otq-dialog__section-title">Supervisor y Técnico HSE — precargados desde AS2, seleccionables sobre el catálogo real de usuarios</dynadrill-text>

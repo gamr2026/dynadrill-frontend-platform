@@ -4,6 +4,7 @@ import {
   DynadrillButtonComponent,
   DynadrillCheckboxComponent,
   DynadrillInputComponent,
+  DynadrillNotificationService,
   DynadrillSelectComponent,
   DynadrillTagComponent,
   DynadrillTextComponent,
@@ -69,6 +70,7 @@ type MomentoGtc = 'riesgoInicial' | 'riesgoResidual';
 })
 export class IpercHazardPanel {
   private readonly ipercService = inject(IpercService);
+  private readonly notify = inject(DynadrillNotificationService);
   private readonly drawerRef = inject(NzDrawerRef<void>);
   private readonly data = inject<IpercHazardPanelData>(NZ_DRAWER_DATA);
 
@@ -168,6 +170,11 @@ export class IpercHazardPanel {
     );
     const updated: IpercMatrix = { ...current, tasks };
     this.matrixState.set(updated);
-    this.ipercService.update(current.id, { tasks }).subscribe();
+    this.ipercService.update(current.id, { tasks }).subscribe({
+      error: () => {
+        this.matrixState.set(current);
+        this.notify.error('Error', 'No se pudo guardar el cambio. Inténtalo de nuevo.');
+      },
+    });
   }
 }

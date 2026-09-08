@@ -216,7 +216,12 @@ export class InvestigacionDetailPage {
     const current = this.investigacion();
     if (!current) return;
     this.investigacion.set({ ...current, ...changes });
-    this.investigacionService.update(current.id, changes).subscribe();
+    this.investigacionService.update(current.id, changes).subscribe({
+      error: () => {
+        this.investigacion.set(current);
+        this.notify.error('Error', 'No se pudo guardar el cambio. Inténtalo de nuevo.');
+      },
+    });
   }
 
   // ── Escena y equipo ──

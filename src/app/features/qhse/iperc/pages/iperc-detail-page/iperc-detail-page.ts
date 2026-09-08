@@ -39,7 +39,7 @@ import { PtwService } from '../../../ptw/services/ptw.service';
 import { TIPO_EQUIPO_LABELS } from '../../../inspecciones/models/inspeccion-equipo.model';
 import { InspeccionEquipoService } from '../../../inspecciones/services/inspeccion-equipo.service';
 import { IpercHazardPanel, IpercHazardPanelData } from '../../components/iperc-hazard-panel';
-import { downloadQhseReport, qhseBadge, type QhseReportSection } from '../../../shared/utils/qhse-report.util';
+import { downloadQhseReport, escapeHtml, qhseBadge, type QhseReportSection } from '../../../shared/utils/qhse-report.util';
 
 interface HazardDraft {
   peligro: string;
@@ -275,7 +275,7 @@ export class IpercDetailPage {
 
   protected onDecision(decision: DynadrillApprovalDecision): void {
     const current = this.matrix();
-    if (!current || !decision) return;
+    if (!current || !decision || !this.canApprove()) return;
 
     if (decision === 'approved') {
       const approvedByName = this.auth.currentUser()?.name ?? '';
@@ -369,15 +369,15 @@ export class IpercDetailPage {
           title: 'Matriz IPERC',
           bodyHtml: `
             <table>
-              <tr><th>Código</th><td>${m.code}</td></tr>
-              <tr><th>Actividad</th><td>${m.actividad}</td></tr>
-              <tr><th>Ubicación</th><td>${m.ubicacion}</td></tr>
+              <tr><th>Código</th><td>${escapeHtml(m.code)}</td></tr>
+              <tr><th>Actividad</th><td>${escapeHtml(m.actividad)}</td></tr>
+              <tr><th>Ubicación</th><td>${escapeHtml(m.ubicacion)}</td></tr>
               <tr><th>Estado</th><td>${IPERC_STATUS_LABELS[m.status]}</td></tr>
-              <tr><th>Equipo evaluador</th><td>${m.equipoEvaluador.join(', ') || '—'}</td></tr>
-              <tr><th>ATS base</th><td>${m.atsAdjunto ?? 'Sin adjuntar'}</td></tr>
-              <tr><th>Procedimiento operativo</th><td>${m.procedimientoAdjunto ?? 'Sin adjuntar'}</td></tr>
-              <tr><th>Aprobada por</th><td>${m.approvedByName ? `${m.approvedByName} — ${m.approvedAt}` : '—'}</td></tr>
-              <tr><th>Último rechazo</th><td>${m.rejectedByName ? `${m.rejectedByName} — ${m.rejectedAt} — ${m.rejectedReason ?? 'sin motivo registrado'}` : '—'}</td></tr>
+              <tr><th>Equipo evaluador</th><td>${m.equipoEvaluador.map(escapeHtml).join(', ') || '—'}</td></tr>
+              <tr><th>ATS base</th><td>${m.atsAdjunto ? escapeHtml(m.atsAdjunto) : 'Sin adjuntar'}</td></tr>
+              <tr><th>Procedimiento operativo</th><td>${m.procedimientoAdjunto ? escapeHtml(m.procedimientoAdjunto) : 'Sin adjuntar'}</td></tr>
+              <tr><th>Aprobada por</th><td>${m.approvedByName ? `${escapeHtml(m.approvedByName)} — ${m.approvedAt}` : '—'}</td></tr>
+              <tr><th>Último rechazo</th><td>${m.rejectedByName ? `${escapeHtml(m.rejectedByName)} — ${m.rejectedAt} — ${m.rejectedReason ? escapeHtml(m.rejectedReason) : 'sin motivo registrado'}` : '—'}</td></tr>
             </table>`,
         };
 
@@ -388,11 +388,11 @@ export class IpercDetailPage {
             const nrResidual = calcularNR(h.riesgoResidual.nd, h.riesgoResidual.ne, h.riesgoResidual.nc);
             return `
               <tr>
-                <td>${tarea}</td>
-                <td>${h.peligro}</td>
-                <td>${h.fuenteRiesgo}</td>
+                <td>${escapeHtml(tarea)}</td>
+                <td>${escapeHtml(h.peligro)}</td>
+                <td>${escapeHtml(h.fuenteRiesgo)}</td>
                 <td>${nrInicial != null ? `NR ${nrInicial} — ${interpretarNR(nrInicial).label}` : 'Sin evaluar'}</td>
-                <td>${h.controles.map(c => c.description).join('; ') || '—'}</td>
+                <td>${h.controles.map(c => escapeHtml(c.description)).join('; ') || '—'}</td>
                 <td>${nrResidual != null ? `NR ${nrResidual} — ${interpretarNR(nrResidual).label}` : 'Sin evaluar'}</td>
               </tr>`;
           })
@@ -409,8 +409,8 @@ export class IpercDetailPage {
           .map(
             p => `
               <tr>
-                <td>${p.code}</td>
-                <td>${p.ordenTrabajo}</td>
+                <td>${escapeHtml(p.code)}</td>
+                <td>${escapeHtml(p.ordenTrabajo)}</td>
                 <td>${PTW_FASE_LABELS[p.fase]}</td>
                 <td>${ptwCerrado(p) ? qhseBadge('Cerrado', 'ok') : qhseBadge('Abierto', 'warn')}</td>
                 <td>${new Date(p.createdAt).toLocaleString('es-EC')}</td>
@@ -430,8 +430,8 @@ export class IpercDetailPage {
           .map(
             i => `
               <tr>
-                <td>${i.code}</td>
-                <td>${i.equipoCodigo}</td>
+                <td>${escapeHtml(i.code)}</td>
+                <td>${escapeHtml(i.equipoCodigo)}</td>
                 <td>${TIPO_EQUIPO_LABELS[i.tipo]}</td>
                 <td>${new Date(i.fecha).toLocaleString('es-EC')}</td>
                 <td>${i.resultado === 'aprobado' ? qhseBadge('Aprobado', 'ok') : qhseBadge('Rechazado', 'error')}</td>
@@ -549,7 +549,12 @@ export class IpercDetailPage {
   private persistTasks(current: IpercMatrix, tasks: IpercTask[]): void {
     const updated: IpercMatrix = { ...current, tasks };
     this.matrix.set(updated);
-    this.ipercService.update(current.id, { tasks }).subscribe();
+    this.ipercService.update(current.id, { tasks }).subscribe({
+      error: () => {
+        this.matrix.set(current);
+        this.notify.error('Error', 'No se pudo guardar el cambio. Inténtalo de nuevo.');
+      },
+    });
   }
 
   private transitionTo(status: IpercMatrix['status']): void {

@@ -415,7 +415,7 @@
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Fecha y combustible</dynadrill-text>
       <div class="ticket-detail__form-grid">
-        <dynadrill-datetime-picker mode="date" label="Fecha de salida" [value]="reportDepartureDate()!" (valueChange)="reportDepartureDate.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Fecha de salida" [value]="$any(reportDepartureDate())" (valueChange)="reportDepartureDate.set($event)" />
         <dynadrill-input type="number" label="Combustible salida" [value]="reportFuelDeparture()" (valueChange)="reportFuelDeparture.set($event)" />
       </div>
     </section>
@@ -554,7 +554,7 @@
       <dynadrill-text variant="h2">Fecha y combustible</dynadrill-text>
       <dynadrill-context-card [items]="arrivalFuelReadonlyItems()" />
       <div class="ticket-detail__form-grid">
-        <dynadrill-datetime-picker mode="date" label="Fecha de llegada" [value]="reportArrivalDate()!" (valueChange)="reportArrivalDate.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Fecha de llegada" [value]="$any(reportArrivalDate())" (valueChange)="reportArrivalDate.set($event)" />
         <dynadrill-input type="number" label="Combustible llegada" [value]="reportFuelArrival()" (valueChange)="reportFuelArrival.set($event)" />
       </div>
     </section>

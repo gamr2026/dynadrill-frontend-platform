@@ -9,6 +9,7 @@ import {
   type DynadrillChecklistItem,
   DynadrillContextCardComponent,
   DynadrillDialogService,
+  DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillTagComponent,
   DynadrillTextareaComponent,
@@ -38,6 +39,7 @@ import { EmergenciaAlertDialog, EmergenciaAlertDialogData } from '../../../emerg
 })
 export class SwaDetailPage {
   private readonly swaService = inject(SwaService);
+  private readonly notify = inject(DynadrillNotificationService);
   private readonly dialogService = inject(DynadrillDialogService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -88,7 +90,12 @@ export class SwaDetailPage {
     const current = this.evento();
     if (!current) return;
     this.evento.set({ ...current, ...changes });
-    this.swaService.update(current.id, changes).subscribe();
+    this.swaService.update(current.id, changes).subscribe({
+      error: () => {
+        this.evento.set(current);
+        this.notify.error('Error', 'No se pudo guardar el cambio. Inténtalo de nuevo.');
+      },
+    });
   }
 
   protected notificarRol(rol: string): void {

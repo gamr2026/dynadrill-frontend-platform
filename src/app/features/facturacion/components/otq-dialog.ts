@@ -16,6 +16,7 @@ import {
 import { RolesService, UsersService } from '../../users/services/users.service';
 import { As2CatalogoItem, Otq, OtqItem } from '../models/facturacion.model';
 import { As2Service, OtqService } from '../services/facturacion.service';
+import { toLocalDateString } from '../../../shared/utils';
 
 interface ItemDraft {
   cantidadEstimada: number;
@@ -197,8 +198,8 @@ export class OtqDialog {
         pozo: this.pozo(),
         taladro: this.taladro() || undefined,
         representanteLegal: this.representanteLegal().trim() || undefined,
-        fechaInicioEstimada: this.fechaInicioEstimada()?.toISOString().slice(0, 10),
-        fechaFinEstimada: this.fechaFinEstimada()?.toISOString().slice(0, 10),
+        fechaInicioEstimada: this.fechaInicioEstimada() ? toLocalDateString(this.fechaInicioEstimada()!) : undefined,
+        fechaFinEstimada: this.fechaFinEstimada() ? toLocalDateString(this.fechaFinEstimada()!) : undefined,
         supervisorOperativo: supervisorNombre,
         tecnicoHse: tecnicoNombre,
         documentosAdjuntos: documentosAdjuntos.length ? documentosAdjuntos : undefined,

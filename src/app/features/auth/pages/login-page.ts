@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { DynadrillButtonComponent, DynadrillInputComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../core/services/auth.service';
@@ -36,9 +37,12 @@ export class LoginPage {
     const { email, password } = this.form.getRawValue();
     this.auth.login(email, password).subscribe({
       next: () => this.router.navigate(['/dashboard']),
-      error: () => {
+      error: (err: unknown) => {
         this.submitting.set(false);
-        this.errorMessage.set('Correo o contraseña incorrectos.');
+        const isAuthError = err instanceof HttpErrorResponse && (err.status === 401 || err.status === 403);
+        this.errorMessage.set(
+          isAuthError ? 'Correo o contraseña incorrectos.' : 'No se pudo conectar con el servidor. Inténtalo de nuevo.',
+        );
       },
     });
   }

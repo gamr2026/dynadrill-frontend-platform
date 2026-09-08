@@ -93,26 +93,6 @@ export class OrderClassificationDialog {
   protected readonly submitting = signal(false);
   protected readonly loadingOperators = signal(true);
 
-  // ── Tabs de novedades ──
-  protected readonly novedadTabIndex = signal(0);
-  protected readonly novedadTabs = computed<DynadrillTab[]>(() => {
-    const r = this.data.unitReport;
-    const tabs: DynadrillTab[] = [];
-    if (r.problemasMecanica) tabs.push({ label: 'Mecánica' });
-    if (r.problemasInstrumentacion) tabs.push({ label: 'Instrumentación' });
-    if (r.problemasOperaciones) tabs.push({ label: 'Operaciones' });
-    return tabs;
-  });
-  protected readonly novedadActiva = computed(() => {
-    const r = this.data.unitReport;
-    const tipos = [
-      r.problemasMecanica ? 'mecanica' : null,
-      r.problemasInstrumentacion ? 'instrumentacion' : null,
-      r.problemasOperaciones ? 'operaciones' : null,
-    ].filter(Boolean) as string[];
-    return tipos[this.novedadTabIndex()] ?? null;
-  });
-
   // ── Reclasificación de novedades ──
   protected readonly novedadCategoriaOptions: DynadrillSelectOption[] = NOVEDAD_ORDEN.map(cat => ({
     label: NOVEDAD_LABELS[cat],
@@ -123,6 +103,28 @@ export class OrderClassificationDialog {
     instrumentacion: signal(this.data.unitReport.problemasInstrumentacion),
     operaciones: signal(this.data.unitReport.problemasOperaciones),
   };
+
+  // ── Tabs de novedades ──
+  // Antes leían `this.data.unitReport.problemasX` (objeto plano, no señal): tras
+  // guardarNovedades() reclasificar, Angular no tenía forma de saber que debía
+  // recalcular, así que las pestañas quedaban congeladas con la clasificación
+  // original. `novedadTexto` sí es señal y ya se actualiza en ambos casos.
+  protected readonly novedadTabIndex = signal(0);
+  protected readonly novedadTabs = computed<DynadrillTab[]>(() => {
+    const tabs: DynadrillTab[] = [];
+    if (this.novedadTexto.mecanica()) tabs.push({ label: 'Mecánica' });
+    if (this.novedadTexto.instrumentacion()) tabs.push({ label: 'Instrumentación' });
+    if (this.novedadTexto.operaciones()) tabs.push({ label: 'Operaciones' });
+    return tabs;
+  });
+  protected readonly novedadActiva = computed(() => {
+    const tipos = [
+      this.novedadTexto.mecanica() ? 'mecanica' : null,
+      this.novedadTexto.instrumentacion() ? 'instrumentacion' : null,
+      this.novedadTexto.operaciones() ? 'operaciones' : null,
+    ].filter(Boolean) as string[];
+    return tipos[this.novedadTabIndex()] ?? null;
+  });
   protected readonly novedadesModificadas = signal(false);
   protected readonly guardandoNovedades = signal(false);
 

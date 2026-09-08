@@ -12,7 +12,7 @@
     <section class="travel-dialog__section">
       <dynadrill-text variant="h2">Información general</dynadrill-text>
       <div class="travel-dialog__form-grid">
-        <dynadrill-datetime-picker mode="date" label="Fecha" [value]="fecha()" (valueChange)="fecha.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Fecha" [value]="$any(fecha())" (valueChange)="fecha.set($event)" />
         <dynadrill-input label="Motivo del viaje" [value]="motivoViaje()" (valueChange)="motivoViaje.set($event)" />
         <dynadrill-input label="Línea de Servicio" [value]="lineaServicio()" (valueChange)="lineaServicio.set($event)" />
         <dynadrill-input label="Origen" [value]="origen()" (valueChange)="origen.set($event)" />

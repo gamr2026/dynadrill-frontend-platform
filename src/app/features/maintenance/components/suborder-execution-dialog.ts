@@ -63,9 +63,14 @@ export class SuborderExecutionDialog {
 
   updateRepuesto(index: number, field: keyof Repuesto, value: string): void {
     this.repuestos.update(list =>
-      list.map((r, i) =>
-        i === index ? { ...r, [field]: field === 'cantidad' ? (Number(value) || 1) : value } : r,
-      ),
+      list.map((r, i) => {
+        if (i !== index) return r;
+        if (field !== 'cantidad') return { ...r, [field]: value };
+        // Mientras el usuario borra el campo para reescribirlo, `Number('') || 1` lo forzaba
+        // a 1 en cada tecla — conserva la cantidad anterior hasta que el nuevo valor sea válido.
+        const parsed = Number(value);
+        return Number.isNaN(parsed) || parsed <= 0 ? r : { ...r, cantidad: parsed };
+      }),
     );
   }
 

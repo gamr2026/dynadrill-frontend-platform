@@ -13,6 +13,7 @@ import { UnidadesService } from '../../maintenance/services/unidades.service';
 import { Unidad } from '../../maintenance/models/unidad.model';
 import { GuiaCampo, GuiaCampoItem } from '../models/facturacion.model';
 import { GuiaCampoService } from '../services/facturacion.service';
+import { toLocalDateString } from '../../../shared/utils';
 
 export interface GuiaCampoDialogData {
   pedidoId: number;
@@ -95,7 +96,7 @@ export class GuiaCampoDialog {
         cliente: this.data.cliente,
         campo: this.data.campo,
         pozo: this.data.pozo,
-        fecha: this.fecha()!.toISOString().slice(0, 10),
+        fecha: toLocalDateString(this.fecha()!),
         unidadId: this.unidadId()!,
         unidadCode: unidad?.code ?? '',
         items,

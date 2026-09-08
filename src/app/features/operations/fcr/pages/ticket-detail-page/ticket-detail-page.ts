@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import type { Observable } from 'rxjs';
 import {
   DynadrillApprovalActionsComponent,
   DynadrillBannerComponent,
@@ -234,7 +235,7 @@ export class FcrTicketDetailPage {
       'Declara que no quedan herramientas por agregar. La lista quedará cerrada y podrá subir el documento de inspección.',
     );
     if (!ok) return;
-    this.fcrService.setToolListConfirmed(t.id, true).subscribe(updated => this.ticket.set(updated));
+    this.updateTicket(this.fcrService.setToolListConfirmed(t.id, true));
   }
 
   /** Corrección puntual: reabre la lista para agregar una herramienta olvidada, antes de continuar a la siguiente fase. */
@@ -243,7 +244,7 @@ export class FcrTicketDetailPage {
     if (!t) return;
     const ok = await this.confirmStep('Reabrir lista de herramientas', 'Esto permite agregar más herramientas antes de subir el documento de inspección. ¿Continuar?', true);
     if (!ok) return;
-    this.fcrService.setToolListConfirmed(t.id, false).subscribe(updated => this.ticket.set(updated));
+    this.updateTicket(this.fcrService.setToolListConfirmed(t.id, false));
   }
 
   /**
@@ -264,7 +265,7 @@ export class FcrTicketDetailPage {
       'Bodega podrá empezar a preparar las herramientas seleccionadas. Esta acción no se puede deshacer para estas herramientas.',
     );
     if (!ok) return;
-    this.fcrService.sendToolsToBodega(t.id).subscribe(updated => this.ticket.set(updated));
+    this.updateTicket(this.fcrService.sendToolsToBodega(t.id));
   }
 
   protected onToolToAddChange(value: unknown): void {
@@ -275,9 +276,12 @@ export class FcrTicketDetailPage {
     const name = this.toolToAdd();
     const t = this.ticket();
     if (!name || !t) return;
-    this.fcrService.addTool(t.id, name).subscribe(updated => {
-      this.ticket.set(updated);
-      this.toolToAdd.set(null);
+    this.fcrService.addTool(t.id, name).subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        this.toolToAdd.set(null);
+      },
+      error: () => this.notify.error('Error', 'No se pudo agregar la herramienta.'),
     });
   }
 
@@ -287,7 +291,7 @@ export class FcrTicketDetailPage {
     if (!t) return;
     const ok = await this.confirmStep('Quitar herramienta', 'Esta acción no se puede deshacer. ¿Quitar la herramienta de la lista?', true);
     if (!ok) return;
-    this.fcrService.removeTool(t.id, toolId).subscribe(updated => this.ticket.set(updated));
+    this.updateTicket(this.fcrService.removeTool(t.id, toolId));
   }
 
   /** Bodega marca la herramienta como preparada físicamente (FCR-002). */
@@ -323,7 +327,7 @@ export class FcrTicketDetailPage {
       'El Supervisor podrá empezar a recibir las herramientas preparadas. Esta acción no se puede deshacer para estas herramientas.',
     );
     if (!ok) return;
-    this.fcrService.sendToolsToSupervisor(t.id).subscribe(updated => this.ticket.set(updated));
+    this.updateTicket(this.fcrService.sendToolsToSupervisor(t.id));
   }
 
   /**
@@ -341,7 +345,7 @@ export class FcrTicketDetailPage {
   private updateToolStatus(toolId: number, status: FcrToolStatus): void {
     const t = this.ticket();
     if (!t) return;
-    this.fcrService.setToolStatus(t.id, toolId, status).subscribe(updated => this.ticket.set(updated));
+    this.updateTicket(this.fcrService.setToolStatus(t.id, toolId, status));
   }
 
   protected readonly inspectionUploadState = computed(() => (this.ticket()?.inspectionDocumentUploaded ? 'uploaded' : 'idle'));
@@ -351,9 +355,12 @@ export class FcrTicketDetailPage {
     if (!t) return;
     const ok = await this.confirmStep('Confirmar documento de inspección', 'Al confirmar se generan la Guía de Movimiento y la Guía de Revisión. Esta acción no se puede deshacer.');
     if (!ok) return;
-    this.fcrService.markInspectionUploaded(t.id).subscribe(updated => {
-      this.ticket.set(updated);
-      this.notify.success('Guía de Movimiento y Guía de Revisión generadas.');
+    this.fcrService.markInspectionUploaded(t.id).subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        this.notify.success('Guía de Movimiento y Guía de Revisión generadas.');
+      },
+      error: () => this.notify.error('Error', 'No se pudo confirmar el documento de inspección.'),
     });
   }
 
@@ -372,7 +379,7 @@ export class FcrTicketDetailPage {
     });
     ref.afterClose.subscribe((result: AsignarOperadorDialogResult | undefined) => {
       if (!result?.assigned || !result.operatorName) return;
-      this.fcrService.assignOperator(t.id, result.operatorName).subscribe(updated => this.ticket.set(updated));
+      this.updateTicket(this.fcrService.assignOperator(t.id, result.operatorName));
     });
   }
 
@@ -391,7 +398,7 @@ export class FcrTicketDetailPage {
     });
     ref.afterClose.subscribe((result: FirmaActaDialogResult | undefined) => {
       if (!result?.confirmed || !result.meetingDate) return;
-      this.fcrService.confirmActa(t.id, result.meetingDate).subscribe(updated => this.ticket.set(updated));
+      this.updateTicket(this.fcrService.confirmActa(t.id, result.meetingDate));
     });
   }
 
@@ -423,11 +430,14 @@ export class FcrTicketDetailPage {
     const author = this.auth.currentUser()?.name ?? this.roleName();
     this.fcrService
       .addActivityLogEntry(t.id, { date: todayIso(), startTime: this.activityStart(), endTime: this.activityEnd(), detail: this.activityDetail(), author })
-      .subscribe(updated => {
-        this.ticket.set(updated);
-        this.activityStart.set('');
-        this.activityEnd.set('');
-        this.activityDetail.set('');
+      .subscribe({
+        next: updated => {
+          this.ticket.set(updated);
+          this.activityStart.set('');
+          this.activityEnd.set('');
+          this.activityDetail.set('');
+        },
+        error: () => this.notify.error('Error', 'No se pudo registrar la actividad.'),
       });
   }
 
@@ -436,7 +446,7 @@ export class FcrTicketDetailPage {
     if (!t) return;
     const ok = await this.confirmStep('Quitar actividad', 'Esta acción no se puede deshacer. ¿Quitar esta entrada de la bitácora?', true);
     if (!ok) return;
-    this.fcrService.removeActivityLogEntry(t.id, entryId).subscribe(updated => this.ticket.set(updated));
+    this.updateTicket(this.fcrService.removeActivityLogEntry(t.id, entryId));
   }
 
   // ══════════════════════════════════════════════
@@ -481,10 +491,13 @@ export class FcrTicketDetailPage {
     const toolId = this.usageToolId();
     const status = this.usageStatus();
     if (!t || toolId === null || !status) return;
-    this.fcrService.addToolUsageEntry(t.id, { toolId, date: toIso(this.usageDate()), status }).subscribe(updated => {
-      this.ticket.set(updated);
-      this.usageToolId.set(null);
-      this.usageStatus.set(null);
+    this.fcrService.addToolUsageEntry(t.id, { toolId, date: toIso(this.usageDate()), status }).subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        this.usageToolId.set(null);
+        this.usageStatus.set(null);
+      },
+      error: () => this.notify.error('Error', 'No se pudo registrar el uso de la herramienta.'),
     });
   }
 
@@ -493,7 +506,7 @@ export class FcrTicketDetailPage {
     if (!t) return;
     const ok = await this.confirmStep('Quitar registro', 'Esta acción no se puede deshacer. ¿Quitar este registro de uso?', true);
     if (!ok) return;
-    this.fcrService.removeToolUsageEntry(t.id, entryId).subscribe(updated => this.ticket.set(updated));
+    this.updateTicket(this.fcrService.removeToolUsageEntry(t.id, entryId));
   }
 
   // ══════════════════════════════════════════════
@@ -505,10 +518,13 @@ export class FcrTicketDetailPage {
     if (!t) return;
     const ok = await this.confirmStep('Finalizar ejecución', 'Confirma que el trabajo de campo finalizó y desea subir los reportes operativos. No podrá modificarlos después.');
     if (!ok) return;
-    this.fcrService.submitReports(t.id).subscribe(updated => {
-      this.ticket.set(updated);
-      this.notify.success('Reportes de campo subidos. Pendientes de revisión del Supervisor.');
-      this.advancePhase('revision_reportes');
+    this.fcrService.submitReports(t.id).subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        this.notify.success('Reportes de campo subidos. Pendientes de revisión del Supervisor.');
+        this.advancePhase('revision_reportes');
+      },
+      error: () => this.notify.error('Error', 'No se pudieron subir los reportes de campo.'),
     });
   }
 
@@ -564,11 +580,14 @@ export class FcrTicketDetailPage {
   private confirmReportsReview(decision: 'approved' | 'rejected', observation?: string): void {
     const t = this.ticket();
     if (!t) return;
-    this.fcrService.reviewReports(t.id, decision, observation).subscribe(updated => {
-      this.ticket.set(updated);
-      this.reportsDecision.set(null);
-      this.rejectionNote.set('');
-      if (decision === 'approved') this.advancePhase('control_retorno');
+    this.fcrService.reviewReports(t.id, decision, observation).subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        this.reportsDecision.set(null);
+        this.rejectionNote.set('');
+        if (decision === 'approved') this.advancePhase('control_retorno');
+      },
+      error: () => this.notify.error('Error', 'No se pudo registrar la revisión de reportes.'),
     });
   }
 
@@ -595,7 +614,7 @@ export class FcrTicketDetailPage {
     });
     ref.afterClose.subscribe((result: HerramientaFaltanteDialogResult | undefined) => {
       if (!result?.registered || result.toolId === undefined || !result.reason) return;
-      this.fcrService.registerMissingTool(t.id, result.toolId, result.reason).subscribe(updated => this.ticket.set(updated));
+      this.updateTicket(this.fcrService.registerMissingTool(t.id, result.toolId, result.reason));
     });
   }
 
@@ -610,7 +629,7 @@ export class FcrTicketDetailPage {
     });
     ref.afterClose.subscribe((result: GuiaSalidaBodegaDialogResult | undefined) => {
       if (!result?.generated) return;
-      this.fcrService.generateBodegaExitGuide(t.id, tool.id).subscribe(updated => this.ticket.set(updated));
+      this.updateTicket(this.fcrService.generateBodegaExitGuide(t.id, tool.id));
     });
   }
 
@@ -632,7 +651,7 @@ export class FcrTicketDetailPage {
 
   protected openCierreTicket(): void {
     const t = this.ticket();
-    if (!t) return;
+    if (!t || !this.isMyTurn()) return;
     const returned = t.tools.filter(tool => tool.status === 'devuelta').length;
     const ref = this.dialog.open<CierreTicketDialog, CierreTicketDialogData>({
       title: 'Cerrar ticket FCR',
@@ -642,9 +661,12 @@ export class FcrTicketDetailPage {
     });
     ref.afterClose.subscribe((result: CierreTicketDialogResult | undefined) => {
       if (!result?.closed) return;
-      this.fcrService.closeTicket(t.id).subscribe(updated => {
-        this.ticket.set(updated);
-        this.notify.success('Ticket cerrado. Encuesta de satisfacción enviada al cliente.');
+      this.fcrService.closeTicket(t.id).subscribe({
+        next: updated => {
+          this.ticket.set(updated);
+          this.notify.success('Ticket cerrado. Encuesta de satisfacción enviada al cliente.');
+        },
+        error: () => this.notify.error('Error', 'No se pudo cerrar el ticket.'),
       });
     });
   }
@@ -664,10 +686,13 @@ export class FcrTicketDetailPage {
     });
     ref.afterClose.subscribe((result: SolicitarCorreccionDialogResult | undefined) => {
       if (!result?.requested || !result.observations) return;
-      this.fcrService.requestCorrection(t.id, result.observations).subscribe(updated => {
-        this.ticket.set(updated);
-        this.notify.success('Corrección solicitada a Ingeniería de Ventas.');
-        this.auth.switchRole('Ingeniería de Ventas', 7);
+      this.fcrService.requestCorrection(t.id, result.observations).subscribe({
+        next: updated => {
+          this.ticket.set(updated);
+          this.notify.success('Corrección solicitada a Ingeniería de Ventas.');
+          this.auth.switchRole('Ingeniería de Ventas', 7);
+        },
+        error: () => this.notify.error('Error', 'No se pudo solicitar la corrección.'),
       });
     });
   }
@@ -679,10 +704,13 @@ export class FcrTicketDetailPage {
     const ok = await this.confirmStep('Reenviar a Supervisor', 'Confirma que la corrección solicitada ya fue aplicada. El Supervisor podrá volver a revisar la información.');
     if (!ok) return;
     const author = this.auth.currentUser();
-    this.fcrService.resolveCorrection(t.id, author?.name ?? 'Ingeniería de Ventas', 'Corrección aplicada según lo solicitado.').subscribe(updated => {
-      this.ticket.set(updated);
-      this.notify.success('Corrección reenviada al Supervisor.');
-      this.auth.switchRole('Supervisor', 1);
+    this.fcrService.resolveCorrection(t.id, author?.name ?? 'Ingeniería de Ventas', 'Corrección aplicada según lo solicitado.').subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        this.notify.success('Corrección reenviada al Supervisor.');
+        this.auth.switchRole('Supervisor', 1);
+      },
+      error: () => this.notify.error('Error', 'No se pudo reenviar la corrección al Supervisor.'),
     });
   }
 
@@ -703,14 +731,29 @@ export class FcrTicketDetailPage {
     this.advancePhase(phase);
   }
 
+  /**
+   * La mayoría de acciones de este flujo actualizaban `ticket` sin ningún callback de
+   * error — si la petición fallaba (red caída, 500, etc.), la UI simplemente parecía
+   * no haber hecho nada, sin ningún aviso de que la acción no se guardó.
+   */
+  private updateTicket(request: Observable<FcrTicket>): void {
+    request.subscribe({
+      next: updated => this.ticket.set(updated),
+      error: () => this.notify.error('Error', 'No se pudo completar la acción. Inténtalo de nuevo.'),
+    });
+  }
+
   protected advancePhase(phase: FcrPhase): void {
     const t = this.ticket();
-    if (!t) return;
+    if (!t || !this.isMyTurn()) return;
     const approver = this.auth.currentUser();
-    this.fcrService.advancePhase(t.id, phase, approver?.name ?? '', approver?.roleName ?? '').subscribe(updated => {
-      this.ticket.set(updated);
-      const nextRole = FCR_PHASE_ROLE[phase];
-      this.auth.switchRole(nextRole.roleName, nextRole.roleId);
+    this.fcrService.advancePhase(t.id, phase, approver?.name ?? '', approver?.roleName ?? '').subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        const nextRole = FCR_PHASE_ROLE[phase];
+        this.auth.switchRole(nextRole.roleName, nextRole.roleId);
+      },
+      error: () => this.notify.error('Error', 'No se pudo avanzar de fase.'),
     });
   }
 

@@ -58,8 +58,8 @@ export class EmergenciaAlertDialog {
 
     const input: CreateEmergenciaInput = {
       activadoPorNombre: this.activadoPorNombre(),
-      tipo: this.tipo(),
-      descripcion: this.descripcion(),
+      tipo: this.tipo().trim(),
+      descripcion: this.descripcion().trim(),
       ubicacion: this.ubicacion() || undefined,
       origenSwaId: this.data?.origenSwaId,
       origenDerrameId: this.data?.origenDerrameId,

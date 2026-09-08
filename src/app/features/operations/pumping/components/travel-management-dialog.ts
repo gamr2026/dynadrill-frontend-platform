@@ -26,6 +26,7 @@ import {
   type TravelRiskQuestion,
   type VehicleType,
 } from '../models/pumping.model';
+import { toLocalDateString } from '../../../../shared/utils';
 
 export interface TravelManagementDialogData {
   operatorName: string;
@@ -86,8 +87,10 @@ export class TravelManagementDialog {
 
   // ── Header fields ──
   // dynadrill-datetime-picker trabaja con Date, no con el string ISO que espera TravelManagement.fecha
-  // (mismo patrón que user-form-dialog.ts / investigacion-dialog.ts).
-  protected readonly fecha = signal(new Date());
+  // (mismo patrón que user-form-dialog.ts / investigacion-dialog.ts). Tipado `Date | null` porque el
+  // picker permite limpiar el campo (allowClear) y emite null pese a que su tipo declarado diga Date —
+  // canSubmit/submit() lo validan.
+  protected readonly fecha = signal<Date | null>(new Date());
   protected readonly motivoViaje = signal('');
   protected readonly lineaServicio = signal(this.data.lineaServicio);
   protected readonly origen = signal(this.data.origen);
@@ -242,13 +245,24 @@ export class TravelManagementDialog {
   });
 
   protected readonly canSubmit = computed(() => {
-    return this.allQuestionsAnswered() && !this.hasBlockingAnswer() && this.motivoViaje() !== '';
+    return (
+      this.fecha() !== null &&
+      this.allQuestionsAnswered() &&
+      !this.hasBlockingAnswer() &&
+      this.motivoViaje() !== '' &&
+      this.passengersList().length > 0 &&
+      this.routeLocation().trim() !== '' &&
+      this.conductorNames().trim() !== '' &&
+      this.approverName().trim() !== ''
+    );
   });
 
   // ── Actions ──
   protected submit(): void {
+    const fecha = this.fecha();
+    if (!fecha) return;
     const result: TravelManagement = {
-      fecha: this.fecha().toISOString().split('T')[0],
+      fecha: toLocalDateString(fecha),
       motivoViaje: this.motivoViaje(),
       lineaServicio: this.lineaServicio(),
       origen: this.origen(),

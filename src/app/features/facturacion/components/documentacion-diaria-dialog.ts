@@ -16,6 +16,7 @@ import { Unidad } from '../../maintenance/models/unidad.model';
 import { UnidadesService } from '../../maintenance/services/unidades.service';
 import { ConsumoMaterialEntry, DocumentacionDiaria, DocumentacionItem, HojaTiempoEntry, OtqItem, UsoEquipoEntry } from '../models/facturacion.model';
 import { DocumentacionDiariaService } from '../services/facturacion.service';
+import { toLocalDateString } from '../../../shared/utils';
 
 export interface DocumentacionDiariaDialogData {
   pedidoId: number;
@@ -185,7 +186,7 @@ export class DocumentacionDiariaDialog {
     this.docService
       .create({
         pedidoId: this.data.pedidoId,
-        fecha: this.fecha()!.toISOString().slice(0, 10),
+        fecha: toLocalDateString(this.fecha()!),
         hojasTiempo: this.hojasTiempo(),
         usoEquipos: this.usoEquipos(),
         consumoMateriales: this.consumoMateriales(),

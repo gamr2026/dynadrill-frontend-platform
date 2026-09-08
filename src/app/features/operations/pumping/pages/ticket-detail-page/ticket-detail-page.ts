@@ -114,9 +114,20 @@ function createMockCompletedInspection(operatorName: string, unitCode: string): 
 
 const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'revisar_reportes_salida', 'ejecucion_operativa', 'gerenciamiento_llegada', 'en_ejecucion_llegada', 'mantenimiento', 'revisar_reportes_llegada', 'en_revision', 'finalizado'];
 
-/** PumpingUnitReport guarda fechas como string ISO (yyyy-MM-dd); dynadrill-datetime-picker trabaja con Date. */
+/**
+ * PumpingUnitReport guarda fechas como string ISO (yyyy-MM-dd);
+ * dynadrill-datetime-picker trabaja con Date. Se usan los getters LOCALES
+ * (no toISOString, que es UTC) — en Ecuador (UTC-5) un Date de medianoche
+ * local caería al día anterior al serializar en UTC.
+ */
 function toIsoDateString(date: Date | null): string {
-  return date ? date.toISOString().split('T')[0] : '';
+  if (!date) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+/** Medianoche LOCAL: `new Date('2026-01-10')` es UTC y el picker lo muestra un día antes en UTC-5. */
+function parseIsoLocal(iso: string): Date | null {
+  return iso ? new Date(iso.slice(0, 10) + 'T00:00:00') : null;
 }
 
 @Component({
@@ -1962,8 +1973,8 @@ export class TicketDetailPage {
       this.reportBaseName.set(r.baseName);
       this.reportBlockName.set(r.blockName);
       this.reportHeaderCode.set(r.headerCode);
-      this.reportDepartureDate.set(r.departureDate ? new Date(r.departureDate) : null);
-      this.reportArrivalDate.set(r.arrivalDate ? new Date(r.arrivalDate) : null);
+      this.reportDepartureDate.set(parseIsoLocal(r.departureDate));
+      this.reportArrivalDate.set(parseIsoLocal(r.arrivalDate));
       this.reportFuelDeparture.set(r.fuelDeparture != null ? String(r.fuelDeparture) : '');
       this.reportFuelArrival.set(r.fuelArrival != null ? String(r.fuelArrival) : '');
       this.reportOrigin.set(r.origin);

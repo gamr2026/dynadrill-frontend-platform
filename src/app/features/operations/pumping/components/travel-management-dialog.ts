@@ -5,8 +5,12 @@ import {
   DynadrillContextCardComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
+  DynadrillDatetimePickerComponent,
+  DynadrillIconComponent,
   DynadrillInputComponent,
   DynadrillSelectComponent,
+  DynadrillStepperComponent,
+  DynadrillTagComponent,
   DynadrillTextComponent,
   DynadrillChipGroupComponent,
   type DynadrillContextCardItem,
@@ -18,6 +22,7 @@ import {
   getTravelRiskDescription,
   type TravelManagement,
   type TravelRiskLevel,
+  type TravelRiskOption,
   type TravelRiskQuestion,
   type VehicleType,
 } from '../models/pumping.model';
@@ -40,6 +45,11 @@ export interface TravelManagementDialogResult {
   travelManagement?: TravelManagement;
 }
 
+/** Ponderación que bloquea el viaje — ver createTravelRiskQuestions() en pumping.model.ts */
+const BLOCKING_RISK_VALUE = 999;
+
+const STEPS = ['General', 'Evaluación', 'Plan & Ruta', 'Aprobación'];
+
 @Component({
   selector: 'app-travel-management-dialog',
   imports: [
@@ -47,8 +57,12 @@ export interface TravelManagementDialogResult {
     DynadrillContextCardComponent,
     DynadrillDataTableComponent,
     DynadrillButtonComponent,
+    DynadrillDatetimePickerComponent,
+    DynadrillIconComponent,
     DynadrillInputComponent,
     DynadrillSelectComponent,
+    DynadrillStepperComponent,
+    DynadrillTagComponent,
     DynadrillChipGroupComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -82,8 +96,22 @@ export class TravelManagementDialog {
     });
   }
 
+  // ── Wizard steps ──
+  protected readonly steps = STEPS;
+  protected readonly currentStep = signal(0);
+
+  protected goToNextStep(): void {
+    this.currentStep.update(step => Math.min(step + 1, STEPS.length - 1));
+  }
+
+  protected goToPreviousStep(): void {
+    this.currentStep.update(step => Math.max(step - 1, 0));
+  }
+
   // ── Header fields ──
-  protected readonly fecha = signal(new Date().toISOString().split('T')[0]);
+  // dynadrill-datetime-picker trabaja con Date, no con el string ISO que espera TravelManagement.fecha
+  // (mismo patrón que user-form-dialog.ts / investigacion-dialog.ts).
+  protected readonly fecha = signal(new Date());
   protected readonly motivoViaje = signal('');
   protected readonly lineaServicio = signal(this.data.lineaServicio);
   protected readonly origen = signal(this.data.origen);
@@ -114,7 +142,7 @@ export class TravelManagementDialog {
     const questions = this.riskQuestions();
     let total = 0;
     for (const q of questions) {
-      if (q.selectedValue !== null && q.selectedValue < 999) {
+      if (q.selectedValue !== null && q.selectedValue < BLOCKING_RISK_VALUE) {
         total += q.selectedValue;
       }
     }
@@ -122,7 +150,7 @@ export class TravelManagementDialog {
   });
 
   protected readonly hasBlockingAnswer = computed(() => {
-    return this.riskQuestions().some(q => q.selectedValue === 999);
+    return this.riskQuestions().some(q => q.selectedValue === BLOCKING_RISK_VALUE);
   });
 
   protected readonly riskLevel = computed<TravelRiskLevel>(() => {
@@ -155,9 +183,34 @@ export class TravelManagementDialog {
   ];
 
   // ── Travel plan fields ──
-  protected readonly passengers = signal('');
+  protected readonly passengerDraft = signal('');
+  protected readonly passengersList = signal<string[]>([]);
+  protected readonly passengersLabel = computed(() => {
+    const count = this.passengersList().length;
+    return count > 0 ? `Pasajeros (${count} agregado${count === 1 ? '' : 's'})` : 'Pasajeros';
+  });
   protected readonly canCombineTrips = signal<string[]>([]);
   protected readonly combineOptions = ['Sí', 'No'];
+
+  protected addPassenger(): void {
+    const name = this.passengerDraft().trim();
+    if (!name) return;
+    this.passengersList.update(list => [...list, name]);
+    this.passengerDraft.set('');
+  }
+
+  protected removePassenger(index: number): void {
+    this.passengersList.update(list => list.filter((_, i) => i !== index));
+  }
+
+  protected onPassengerDraftKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' || event.key === ',') {
+      event.preventDefault();
+      this.addPassenger();
+    } else if (event.key === 'Backspace' && this.passengerDraft() === '') {
+      this.passengersList.update(list => list.slice(0, -1));
+    }
+  }
 
   // ── Route info ──
   protected readonly routeLocation = signal('');
@@ -179,34 +232,33 @@ export class TravelManagementDialog {
   }
 
   // ── Question selection ──
-  // Chip-group en vez de select: son solo 2-3 opciones por pregunta y 15
-  // preguntas en total — con select había que abrir y cerrar el dropdown
-  // 15 veces para llenar el formulario completo.
-  // Las etiquetas de opciones y la selección se arman en un `computed`, no
-  // con métodos llamados desde el template. `question.options.map(...)`
-  // dentro del binding devolvía un array nuevo en cada ciclo de detección de
-  // cambios; como Angular compara los inputs con `Object.is`, los 15
-  // chip-groups quedaban sucios siempre y se re-evaluaban aunque nadie
-  // hubiera tocado nada. El `computed` sólo se recalcula cuando cambia
-  // `riskQuestions` — o sea, una vez por click del usuario.
-  protected readonly riskQuestionRows = computed(() =>
-    this.riskQuestions().map(q => ({
-      id: q.id,
-      question: q.question,
-      optionLabels: q.options.map(opt => opt.label),
-      selectedLabels: q.selectedLabel ? [q.selectedLabel] : [],
-    })),
-  );
+  // Varias opciones de una misma pregunta pueden compartir el mismo valor de ponderación
+  // (ej. "N/A = 0" y "Sí = 0"), así que la opción marcada se rastrea por índice, no por valor.
+  private readonly selectedOptionIndexByQuestion = signal<Record<number, number>>({});
 
-  protected onQuestionChipChange(questionId: number, selectedLabels: string[]): void {
-    const label = selectedLabels[0] ?? null;
+  protected onQuestionAnswer(questionId: number, optionIndex: number, value: number): void {
     this.riskQuestions.update(questions =>
-      questions.map(q => {
-        if (q.id !== questionId) return q;
-        const option = label ? q.options.find(opt => opt.label === label) : undefined;
-        return { ...q, selectedLabel: label, selectedValue: option ? option.value : null };
-      }),
+      questions.map(q => q.id === questionId ? { ...q, selectedValue: value } : q),
     );
+    this.selectedOptionIndexByQuestion.update(byQuestion => ({ ...byQuestion, [questionId]: optionIndex }));
+  }
+
+  protected isOptionSelected(question: TravelRiskQuestion, optionIndex: number): boolean {
+    return this.selectedOptionIndexByQuestion()[question.id] === optionIndex;
+  }
+
+  protected isBlockingOption(option: TravelRiskOption): boolean {
+    return option.value === BLOCKING_RISK_VALUE;
+  }
+
+  /**
+   * El operador solo necesita ver la opción, no la ponderación interna
+   * (ej. "4m - 8m = 15" → "4m - 8m"). Se conserva cualquier texto que venga
+   * después del número (ej. "Sí = 75 No viaja" → "Sí No viaja") porque ahí
+   * suele ir la consecuencia de la respuesta, no el puntaje.
+   */
+  protected optionDisplayLabel(option: TravelRiskOption): string {
+    return option.label.replace(/\s*=\s*\d+\b/, '').trim();
   }
 
   protected readonly allQuestionsAnswered = computed(() => {
@@ -220,7 +272,7 @@ export class TravelManagementDialog {
   // ── Actions ──
   protected submit(): void {
     const result: TravelManagement = {
-      fecha: this.fecha(),
+      fecha: this.fecha().toISOString().split('T')[0],
       motivoViaje: this.motivoViaje(),
       lineaServicio: this.lineaServicio(),
       origen: this.origen(),
@@ -233,7 +285,7 @@ export class TravelManagementDialog {
       riskQuestions: this.riskQuestions(),
       totalPoints: this.totalPoints(),
       riskLevel: this.riskLevel(),
-      passengers: this.passengers(),
+      passengers: this.passengersList().join(', '),
       canCombineTrips: this.canCombineTrips()[0] === 'Sí' ? true : this.canCombineTrips()[0] === 'No' ? false : null,
       routeInfo: [{
         location: this.routeLocation(),

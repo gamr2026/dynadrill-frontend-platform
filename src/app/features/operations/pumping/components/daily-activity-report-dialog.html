@@ -19,7 +19,7 @@
 <section class="daily-report__section">
   <dynadrill-text variant="h2">Información general</dynadrill-text>
   <div class="daily-report__form-grid">
-    <dynadrill-input label="Fecha" [value]="fecha()" (valueChange)="fecha.set($event)" />
+    <dynadrill-datetime-picker mode="date" label="Fecha" [value]="fecha()" (valueChange)="fecha.set($event)" />
     <dynadrill-input label="N°" [value]="numero()" (valueChange)="numero.set($event)" />
     <dynadrill-input label="Cliente" [value]="cliente()" (valueChange)="cliente.set($event)" />
     <dynadrill-input label="Orden/Contrato N°" [value]="ordenContrato()" (valueChange)="ordenContrato.set($event)" />
@@ -69,8 +69,8 @@
 <section class="daily-report__section">
   <dynadrill-text variant="h2">Resumen de tiempos</dynadrill-text>
   <div class="daily-report__times-grid">
-    <dynadrill-input label="Tiempo productivo (hrs)" [value]="tiempoProductivo()" (valueChange)="tiempoProductivo.set($event)" />
-    <dynadrill-input label="Tiempo no productivo (hrs)" [value]="tiempoNoProductivo()" (valueChange)="tiempoNoProductivo.set($event)" />
+    <dynadrill-input type="number" label="Tiempo productivo (hrs)" [value]="tiempoProductivo()" (valueChange)="tiempoProductivo.set($event)" />
+    <dynadrill-input type="number" label="Tiempo no productivo (hrs)" [value]="tiempoNoProductivo()" (valueChange)="tiempoNoProductivo.set($event)" />
     <div class="daily-report__time-total">
       <dynadrill-text variant="body"><strong>Tiempo Total:</strong> {{ tiempoTotal() }} hrs</dynadrill-text>
     </div>

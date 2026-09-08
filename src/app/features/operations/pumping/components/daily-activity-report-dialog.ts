@@ -4,6 +4,7 @@ import { NzUploadFile } from 'ng-zorro-antd/upload';
 import {
   DynadrillButtonComponent,
   DynadrillContextCardComponent,
+  DynadrillDatetimePickerComponent,
   DynadrillInputComponent,
   DynadrillTextComponent,
   DynadrillTextareaComponent,
@@ -35,6 +36,7 @@ export interface DailyActivityReportDialogResult {
     DynadrillContextCardComponent,
     DynadrillButtonComponent,
     DynadrillInputComponent,
+    DynadrillDatetimePickerComponent,
     DynadrillTextareaComponent,
     DynadrillUploadZoneComponent,
     UbicacionSelectorComponent,
@@ -48,7 +50,9 @@ export class DailyActivityReportDialog {
   private readonly data = inject<DailyActivityReportDialogData>(NZ_MODAL_DATA);
 
   // ── Header info ──
-  protected readonly fecha = signal(this.data.existing?.fecha ?? new Date().toISOString().split('T')[0]);
+  // dynadrill-datetime-picker trabaja con Date, no con el string ISO que guarda DailyActivityReport.fecha
+  // (mismo patrón que travel-management-dialog.ts).
+  protected readonly fecha = signal(this.data.existing?.fecha ? new Date(this.data.existing.fecha) : new Date());
   protected readonly numero = signal(this.data.existing?.numero ?? '');
   protected readonly cliente = signal(this.data.existing?.cliente ?? this.data.cliente);
   protected readonly ordenContrato = signal(this.data.existing?.ordenContrato ?? '');
@@ -148,13 +152,13 @@ export class DailyActivityReportDialog {
   protected readonly canSave = computed(() => {
     const acts = this.actividades();
     const hasAtLeastOneActivity = acts.some(a => a.detalle.trim() !== '');
-    return this.fecha() !== '' && this.cliente() !== '' && hasAtLeastOneActivity;
+    return this.cliente() !== '' && hasAtLeastOneActivity;
   });
 
   // ── Actions ──
   protected save(): void {
     const report: DailyActivityReport = {
-      fecha: this.fecha(),
+      fecha: this.fecha().toISOString().split('T')[0],
       numero: this.numero(),
       cliente: this.cliente(),
       ordenContrato: this.ordenContrato(),

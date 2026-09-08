@@ -534,8 +534,8 @@
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Fecha y combustible</dynadrill-text>
       <div class="ticket-detail__form-grid">
-        <dynadrill-datetime-picker label="Fecha de salida" [value]="$any(reportDepartureDateValue())" (valueChange)="reportDepartureDate.set(toIsoDate($any($event)))" />
-        <dynadrill-input label="Combustible salida (gal)" type="number" [value]="reportFuelDeparture()" (valueChange)="reportFuelDeparture.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Fecha de salida" [value]="reportDepartureDate()!" (valueChange)="reportDepartureDate.set($event)" />
+        <dynadrill-input type="number" label="Combustible salida (gal)" [value]="reportFuelDeparture()" (valueChange)="reportFuelDeparture.set($event)" />
       </div>
     </section>
 
@@ -553,7 +553,7 @@
         <div class="ticket-detail__editable-table-row">
           <span class="ticket-detail__editable-table-label">Salida</span>
           @for (tire of tires(); track tire.position; let i = $index) {
-            <dynadrill-input [value]="tire.salida" placeholder="PSI" (valueChange)="updateTire(i, 'salida', $event)" />
+            <dynadrill-input type="number" [value]="tire.salida" placeholder="PSI" (valueChange)="updateTire(i, 'salida', $event)" />
           }
         </div>
       </div>
@@ -673,8 +673,8 @@
       <dynadrill-text variant="h2">Fecha y combustible</dynadrill-text>
       <dynadrill-context-card [items]="arrivalFuelReadonlyItems()" />
       <div class="ticket-detail__form-grid">
-        <dynadrill-datetime-picker label="Fecha de llegada" [value]="$any(reportArrivalDateValue())" (valueChange)="reportArrivalDate.set(toIsoDate($any($event)))" />
-        <dynadrill-input label="Combustible llegada (gal)" type="number" [value]="reportFuelArrival()" (valueChange)="reportFuelArrival.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Fecha de llegada" [value]="reportArrivalDate()!" (valueChange)="reportArrivalDate.set($event)" />
+        <dynadrill-input type="number" label="Combustible llegada (gal)" [value]="reportFuelArrival()" (valueChange)="reportFuelArrival.set($event)" />
       </div>
     </section>
 
@@ -698,7 +698,7 @@
         <div class="ticket-detail__editable-table-row">
           <span class="ticket-detail__editable-table-label">Llegada</span>
           @for (tire of tires(); track tire.position; let i = $index) {
-            <dynadrill-input [value]="tire.llegada" placeholder="PSI" (valueChange)="updateTire(i, 'llegada', $event)" />
+            <dynadrill-input type="number" [value]="tire.llegada" placeholder="PSI" (valueChange)="updateTire(i, 'llegada', $event)" />
           }
         </div>
       </div>

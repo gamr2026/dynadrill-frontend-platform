@@ -31,16 +31,26 @@ import { UnidadesService } from '../services/unidades.service';
 import { Unidad } from '../models/unidad.model';
 import { UnitReportDialog, UnitReportDialogData } from './unit-report-dialog';
 import { AuthService } from '../../../core/services/auth.service';
+import { RolesService, UsersService } from '../../users/services/users.service';
+
+const SUPERVISOR_ROLE_NAME = 'Supervisor';
 
 const STEPS = ['Datos', 'Vehículo', 'Equipo', 'Conductor'];
 
 export interface VehicleInspectionDialogData {
   /** Si viene, el diálogo abre en modo edición prellenado con este registro. */
   existing?: VehicleInspection;
+  /** true = solo lectura: se ve el detalle pero no se puede guardar (ni se llama al backend). */
+  readonly?: boolean;
 }
 
 function toChecklistItems(labels: string[]): VehicleChecklistItem[] {
   return labels.map(label => ({ label, estado: null }));
+}
+
+/** Medianoche LOCAL: `new Date('2026-01-10')` es UTC y en Ecuador (UTC-5) el date-picker lo muestra un día antes. */
+function parseIsoLocal(iso: string): Date {
+  return new Date(iso.slice(0, 10) + 'T00:00:00');
 }
 
 /**
@@ -69,13 +79,17 @@ function toChecklistItems(labels: string[]): VehicleChecklistItem[] {
 export class VehicleInspectionDialog {
   private readonly inspectionsService = inject(VehicleInspectionsService);
   private readonly unidadesService = inject(UnidadesService);
+  private readonly rolesService = inject(RolesService);
+  private readonly usersService = inject(UsersService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly dialogService = inject(DynadrillDialogService);
   private readonly auth = inject(AuthService);
   private readonly modalRef = inject(NzModalRef<VehicleInspectionDialog, VehicleInspection | undefined>);
   private readonly data = inject<VehicleInspectionDialogData | null>(NZ_MODAL_DATA, { optional: true });
-  private readonly existingId = this.data?.existing?.id ?? null;
+  // id <= 0 = registro de ejemplo no persistido (ver createMockCompletedInspection en pumping): se prellenar pero se guarda como alta nueva, nunca PUT.
+  private readonly existingId = (this.data?.existing?.id ?? 0) > 0 ? this.data!.existing!.id : null;
   protected readonly isEditMode = this.existingId !== null;
+  protected readonly readonly = this.data?.readonly ?? false;
 
   protected readonly steps = STEPS;
   protected readonly currentStep = signal(0);
@@ -97,6 +111,14 @@ export class VehicleInspectionDialog {
   protected readonly modelo = signal('');
   protected readonly anioFabricacion = signal('');
   protected readonly placa = signal('');
+
+  /**
+   * Marca/Tipo/Modelo/Año/Placa se toman del registro maestro de la Unidad
+   * y quedan bloqueados una vez elegida — no se editan aquí para no
+   * introducir inconsistencias con Inventario. Si el registro maestro está
+   * incompleto o mal, se corrige en Inventario (PATCH .../patrimonio).
+   */
+  protected readonly vehiculoDataLocked = computed(() => this.unidadId() !== null);
 
   protected readonly fechaMatricula = signal<Date | null>(null);
   protected readonly caducidadMatricula = signal<Date | null>(null);
@@ -132,12 +154,56 @@ export class VehicleInspectionDialog {
   });
   protected readonly observacionesConductor = signal('');
   protected readonly supervisorNombre = signal('');
+  /** Supervisores activos en el sistema — se elige de la lista, no se escribe a mano. */
+  protected readonly supervisorOptions = signal<DynadrillSelectOption[]>([]);
 
   protected readonly puedeGuardar = computed(() => !!this.unidadId() && !!this.conductorSeleccionado() && this.reuneCondicionesParaTrabajar());
+
+  /**
+   * Al elegir la unidad, precarga sus datos patrimoniales (Marca/Tipo/
+   * Modelo/Año/Placa) desde el registro de la Unidad — el inspector ya no
+   * los reescribe a mano. Quedan editables por si el registro está
+   * incompleto o desactualizado.
+   */
+  protected onUnidadChange(unidadId: number | null): void {
+    this.unidadId.set(unidadId);
+    const unidad = this.unidades().find(u => u.id === unidadId);
+    if (!unidad) return;
+    if (unidad.marca) this.marca.set(unidad.marca);
+    if (unidad.modelo) this.modelo.set(unidad.modelo);
+    if (unidad.anio) this.anioFabricacion.set(unidad.anio);
+    if (unidad.placa) this.placa.set(unidad.placa);
+    if (unidad.categoriaPeso) this.tipo.set(unidad.categoriaPeso);
+    // Documentos legales del vehículo: vienen del patrimonio de la Unidad
+    // (Inventario) y quedan bloqueados, igual que Marca/Modelo/Placa.
+    // Medianoche local (ver parseIsoLocal) para no mostrar un día antes en UTC-5.
+    if (unidad.fechaMatricula) this.fechaMatricula.set(parseIsoLocal(unidad.fechaMatricula));
+    if (unidad.caducidadMatricula) this.caducidadMatricula.set(parseIsoLocal(unidad.caducidadMatricula));
+    if (unidad.caducidadPoliza) this.caducidadPoliza.set(parseIsoLocal(unidad.caducidadPoliza));
+    if (unidad.vigenciaOtroDocumento) this.vigenciaOtroDocumento.set(parseIsoLocal(unidad.vigenciaOtroDocumento));
+    // El kilometraje se precarga como sugerencia pero queda EDITABLE (no se
+    // bloquea como Marca/Modelo/Placa): es una lectura física del odómetro
+    // y `Unidad.kmActual` puede estar desactualizado — el inspector lo
+    // ajusta contra el tablero.
+    if (unidad.kmActual != null && !this.kmInicial()) this.kmInicial.set(String(unidad.kmActual));
+  }
 
   constructor() {
     this.unidadesService.list().subscribe(unidades => this.unidades.set(unidades));
     this.inspectionsService.listConductoresPermisos().subscribe(permisos => this.conductoresPermisos.set(permisos));
+
+    // "Nombre del Supervisor": se precargan los supervisores activos del
+    // sistema (rol Supervisor) — se elige de la lista, no se tipea.
+    this.rolesService.list().subscribe(roles => {
+      const supervisorRole = roles.find(r => r.name === SUPERVISOR_ROLE_NAME);
+      if (!supervisorRole) return;
+      this.usersService.list().subscribe(users => {
+        const nombres = [
+          ...new Set(users.filter(u => u.status && u.roleId === supervisorRole.id).map(u => u.name)),
+        ];
+        this.supervisorOptions.set(nombres.map(n => ({ label: n, value: n })));
+      });
+    });
 
     const existing = this.data?.existing;
     if (existing) {
@@ -234,7 +300,7 @@ export class VehicleInspectionDialog {
   }
 
   async submit(): Promise<void> {
-    if (this.submitting() || !this.puedeGuardar()) return;
+    if (this.readonly || this.submitting() || !this.puedeGuardar()) return;
     this.submitting.set(true);
     const input = this.buildInput();
 

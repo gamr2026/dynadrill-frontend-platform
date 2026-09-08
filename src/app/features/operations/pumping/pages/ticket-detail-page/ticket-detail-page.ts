@@ -9,6 +9,7 @@ import {
   DynadrillContextCardComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
+  DynadrillDatetimePickerComponent,
   DynadrillDialogService,
   DynadrillInputComponent,
   DynadrillInspectionGridComponent,
@@ -68,10 +69,15 @@ import { ArticulosService } from '../../../../inventario/services/articulos.serv
 import { MovimientosInventarioService } from '../../../../inventario/services/movimientos-inventario.service';
 import { forkJoin, map, of, type Observable } from 'rxjs';
 
-/** Genera una inspección mock de ejemplo para ver detalle en llegada */
+/**
+ * Inspección de salida de ejemplo — solo para MOSTRAR el detalle en los
+ * pasos de llegada cuando todavía no hay una inspección real persistida.
+ * `id: 0` marca que NO existe en el backend: los diálogos que la reciben
+ * van siempre en modo lectura (`readonly: true`), nunca hacen PUT/PATCH.
+ */
 function createMockCompletedInspection(operatorName: string, unitCode: string): VehicleInspection {
   return {
-    id: 999,
+    id: 0,
     unidadId: 1,
     unidadCode: unitCode,
     fecha: new Date().toISOString().split('T')[0],
@@ -106,7 +112,7 @@ function createMockCompletedInspection(operatorName: string, unitCode: string): 
   };
 }
 
-const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'revisar_reportes_salida', 'ejecucion_operativa', 'gerenciamiento_llegada', 'en_ejecucion_llegada', 'mantenimiento', 'revisar_reportes_llegada', 'en_revision'];
+const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'revisar_reportes_salida', 'ejecucion_operativa', 'gerenciamiento_llegada', 'en_ejecucion_llegada', 'mantenimiento', 'revisar_reportes_llegada', 'en_revision', 'finalizado'];
 
 @Component({
   selector: 'app-ticket-detail-page',
@@ -119,6 +125,7 @@ const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecuc
     DynadrillTextComponent,
     DynadrillTextareaComponent,
     DynadrillInputComponent,
+    DynadrillDatetimePickerComponent,
     DynadrillSelectComponent,
     DynadrillInspectionGridComponent,
     DynadrillChipGroupComponent,
@@ -859,42 +866,25 @@ export class TicketDetailPage {
     { key: 'statusBadge', header: 'Estado', type: 'badge' },
   ];
 
-  /** Generates rows for each day from departure date to today (max 3 days for demo) */
+  /**
+   * Un solo reporte diario (el de hoy) — a pedido del cliente: llenar un
+   * reporte por cada día del servicio hacía el flujo demasiado lento para
+   * avanzar en la demo. Si más adelante se quiere el historial completo,
+   * volver a iterar desde `unitReport.departureDate`.
+   */
   protected readonly dailyReportDayRows = computed(() => {
     const t = this.ticket();
     if (!t) return [];
     const reports = this.dailyActivityReports();
-    const startDate = t.unitReport?.departureDate || t.estimatedDate;
-    if (!startDate) return [];
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Use the later of: departure date or 2 days ago (keeps demo manageable)
-    const departure = new Date(startDate + 'T00:00:00');
-    const twoDaysAgo = new Date(today);
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-    const start = departure > twoDaysAgo ? departure : twoDaysAgo;
-
-    const days: { id: number; dia: string; fecha: string; statusBadge: { text: string; tone: 'success' | 'warning' } }[] = [];
-
-    let current = new Date(start);
-    let dayNum = 1;
-    while (current <= today) {
-      const dateStr = current.toISOString().split('T')[0];
-      const hasReport = reports.has(dateStr);
-      days.push({
-        id: dayNum,
-        dia: `Día ${dayNum}`,
-        fecha: dateStr,
-        statusBadge: hasReport
-          ? { text: 'Completado', tone: 'success' }
-          : { text: 'Pendiente', tone: 'warning' },
-      });
-      current.setDate(current.getDate() + 1);
-      dayNum++;
-    }
-    return days;
+    const dateStr = new Date().toISOString().split('T')[0];
+    return [{
+      id: 1,
+      dia: 'Día 1',
+      fecha: dateStr,
+      statusBadge: reports.has(dateStr)
+        ? { text: 'Completado', tone: 'success' as const }
+        : { text: 'Pendiente', tone: 'warning' as const },
+    }];
   });
 
   protected isDailyReportCompleted(row: Record<string, unknown>): boolean {
@@ -1159,6 +1149,15 @@ export class TicketDetailPage {
   protected readonly reportUnitCode = signal('');
   protected readonly reportDepartureDate = signal('');
   protected readonly reportArrivalDate = signal('');
+
+  /** Adaptadores string ISO (yyyy-MM-dd) <-> Date para dynadrill-datetime-picker. El payload sigue guardando la fecha como string. */
+  protected toDateOrNull(iso: string): Date | null {
+    return iso ? new Date(iso + 'T00:00:00') : null;
+  }
+  protected toIsoDate(d: Date | null): string {
+    if (!d) return '';
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
   protected readonly reportFuelDeparture = signal('');
   protected readonly reportFuelArrival = signal('');
   protected readonly reportOrigin = signal('');
@@ -1734,7 +1733,7 @@ export class TicketDetailPage {
     this.pumpingService.approveTicket(t.id).subscribe({
       next: () => {
         this.submitting.set(false);
-        this.notify.success('Aprobado', 'Ticket aprobado correctamente.');
+        this.notify.success('Aprobado', 'Ticket aprobado — pasa a estado Finalizado.');
         this.router.navigate(['..'], { relativeTo: this.route });
       },
       error: () => {
@@ -1743,6 +1742,25 @@ export class TicketDetailPage {
       },
     });
   }
+
+  protected rejectTicket(): void {
+    const t = this.ticket();
+    if (!t || this.decision() !== 'rejected') return;
+    this.submitting.set(true);
+    this.pumpingService.rejectTicket(t.id, this.ticketRejectionReason()).subscribe({
+      next: () => {
+        this.submitting.set(false);
+        this.notify.success('Rechazado', 'El ticket volvió a revisión de reportes de llegada.');
+        this.router.navigate(['..'], { relativeTo: this.route });
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.notify.error('Error', 'No se pudo rechazar el ticket.');
+      },
+    });
+  }
+
+  protected readonly ticketRejectionReason = signal('');
 
   // ══════════════════════════════════════════════
   // Event handlers
@@ -1846,7 +1864,7 @@ export class TicketDetailPage {
     this.dialog.open<VehicleInspectionDialog, VehicleInspectionDialogData>({
       title: 'Detalle de Inspección — DYN-SGI-RE-068',
       content: VehicleInspectionDialog,
-      data: { existing },
+      data: { existing, readonly: true },
       size: 'large',
       footer: false,
     });
@@ -1860,7 +1878,7 @@ export class TicketDetailPage {
     this.dialog.open<VehicleInspectionDialog, VehicleInspectionDialogData>({
       title: 'Detalle de Inspección (Llegada) — DYN-SGI-RE-068',
       content: VehicleInspectionDialog,
-      data: { existing },
+      data: { existing, readonly: true },
       size: 'large',
       footer: false,
     });

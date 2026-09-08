@@ -216,7 +216,8 @@
   }
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
-  <!-- Supervisor: Ejecución operativa — Reporte diario DYN-SGI-RE-047 -->
+  <!-- Operador: Ejecución operativa — Reporte diario DYN-SGI-RE-047     -->
+  <!-- (el cierre de químicos también es tarea de campo del operador)    -->
   <!-- ══════════════════════════════════════════════════════════════════ -->
   @if (currentStep() === 'ejecucion_operativa') {
     <section class="ticket-detail__section">
@@ -410,7 +411,7 @@
           </dynadrill-button>
         } @else {
           <dynadrill-button variant="warning" size="small" [disabled]="true">
-            Sin inspección
+            El operador no registró inspección de salida
           </dynadrill-button>
         }
       </ng-template>
@@ -529,8 +530,8 @@
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Fecha y combustible</dynadrill-text>
       <div class="ticket-detail__form-grid">
-        <dynadrill-input label="Fecha de salida" [value]="reportDepartureDate()" (valueChange)="reportDepartureDate.set($event)" />
-        <dynadrill-input label="Combustible salida" [value]="reportFuelDeparture()" (valueChange)="reportFuelDeparture.set($event)" />
+        <dynadrill-datetime-picker label="Fecha de salida" [value]="$any(toDateOrNull(reportDepartureDate()))" (valueChange)="reportDepartureDate.set(toIsoDate($any($event)))" />
+        <dynadrill-input label="Combustible salida (gal)" type="number" [value]="reportFuelDeparture()" (valueChange)="reportFuelDeparture.set($event)" />
       </div>
     </section>
 
@@ -668,8 +669,8 @@
       <dynadrill-text variant="h2">Fecha y combustible</dynadrill-text>
       <dynadrill-context-card [items]="arrivalFuelReadonlyItems()" />
       <div class="ticket-detail__form-grid">
-        <dynadrill-input label="Fecha de llegada" [value]="reportArrivalDate()" (valueChange)="reportArrivalDate.set($event)" />
-        <dynadrill-input label="Combustible llegada" [value]="reportFuelArrival()" (valueChange)="reportFuelArrival.set($event)" />
+        <dynadrill-datetime-picker label="Fecha de llegada" [value]="$any(toDateOrNull(reportArrivalDate()))" (valueChange)="reportArrivalDate.set(toIsoDate($any($event)))" />
+        <dynadrill-input label="Combustible llegada (gal)" type="number" [value]="reportFuelArrival()" (valueChange)="reportFuelArrival.set($event)" />
       </div>
     </section>
 
@@ -877,14 +878,27 @@
       <dynadrill-approval-actions
         [decision]="decision()"
         consequenceApprove="El ticket será aprobado y pasará a estado finalizado."
-        consequenceReject="El ticket será devuelto para correcciones."
+        consequenceReject="El ticket será devuelto a revisión de reportes de llegada para correcciones."
         (decisionChange)="onDecisionChange($event)"
       />
+      @if (decision() === 'rejected') {
+        <dynadrill-textarea
+          label="Motivo del rechazo"
+          placeholder="Indique qué debe corregirse"
+          [value]="ticketRejectionReason()"
+          (valueChange)="ticketRejectionReason.set($event)"
+          [rows]="3"
+        />
+      }
     </section>
 
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="success" [disabled]="decision() !== 'approved' || submitting()" (clicked)="approveTicket()">Aprobar ticket</dynadrill-button>
+      @if (decision() === 'rejected') {
+        <dynadrill-button variant="error" [disabled]="submitting()" (clicked)="rejectTicket()">Rechazar ticket</dynadrill-button>
+      } @else {
+        <dynadrill-button variant="success" [disabled]="decision() !== 'approved' || submitting()" (clicked)="approveTicket()">Aprobar ticket</dynadrill-button>
+      }
     </footer>
   }
 }

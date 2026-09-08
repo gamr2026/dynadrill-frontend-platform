@@ -17,25 +17,65 @@
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Calculando indicadores…">
     <dynadrill-kpi-row [items]="kpis()" />
 
-    <div class="maintenance-kpis-page__gauges">
-      <div class="maintenance-kpis-page__card">
+    <div class="maintenance-kpis-page__pies">
+      <div class="maintenance-kpis-page__card maintenance-kpis-page__card--left">
         <dynadrill-text variant="h2">Cumplimiento del plan preventivo</dynadrill-text>
-        <dynadrill-chart type="gauge" [value]="cumplimientoPreventivo()" [max]="100" height="220px" />
-        <dynadrill-text variant="caption" class="maintenance-kpis-page__breakdown-title">Transporte, por categoría</dynadrill-text>
-        <div class="maintenance-kpis-page__breakdown">
-          <span>Pesados ({{ transportePesados().length }})</span><strong>{{ cumplimientoPesados() }}%</strong>
-          <span>Livianos ({{ transporteLivianos().length }})</span><strong>{{ cumplimientoLivianos() }}%</strong>
-        </div>
+        @if (hayUnidades()) {
+          <div class="maintenance-kpis-page__chart-row">
+            <div echarts class="maintenance-kpis-page__pie" [options]="cumplimientoPieOptions()" [autoResize]="true" aria-hidden="true"></div>
+            <ul class="maintenance-kpis-page__legend">
+              @for (item of cumplimientoPieLegend(); track item.text) {
+                <li class="maintenance-kpis-page__legend-item">
+                  <span class="maintenance-kpis-page__legend-dot" [style.background]="item.color" aria-hidden="true"></span>
+                  <span class="maintenance-kpis-page__legend-text">{{ item.text }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+          <dynadrill-text variant="caption">Pasa el mouse sobre un sector para ver qué unidades lo componen.</dynadrill-text>
+        } @else {
+          <dynadrill-text variant="caption">No hay unidades para el tipo seleccionado.</dynadrill-text>
+        }
       </div>
-      <div class="maintenance-kpis-page__card">
+
+      <div class="maintenance-kpis-page__card maintenance-kpis-page__card--left">
         <dynadrill-text variant="h2">Disponibilidad de flota</dynadrill-text>
-        <dynadrill-chart type="gauge" [value]="disponibilidadFlota()" [max]="100" height="220px" />
-        <dynadrill-text variant="caption" class="maintenance-kpis-page__breakdown-title">Transporte, por categoría</dynadrill-text>
-        <div class="maintenance-kpis-page__breakdown">
-          <span>Pesados ({{ transportePesados().length }})</span><strong>{{ disponibilidadPesados() }}%</strong>
-          <span>Livianos ({{ transporteLivianos().length }})</span><strong>{{ disponibilidadLivianos() }}%</strong>
-        </div>
+        @if (hayUnidades()) {
+          <div class="maintenance-kpis-page__chart-row">
+            <div echarts class="maintenance-kpis-page__pie" [options]="disponibilidadPieOptions()" [autoResize]="true" aria-hidden="true"></div>
+            <ul class="maintenance-kpis-page__legend">
+              @for (item of disponibilidadPieLegend(); track item.text) {
+                <li class="maintenance-kpis-page__legend-item">
+                  <span class="maintenance-kpis-page__legend-dot" [style.background]="item.color" aria-hidden="true"></span>
+                  <span class="maintenance-kpis-page__legend-text">{{ item.text }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+          <dynadrill-text variant="caption">Pasa el mouse sobre un sector para ver qué unidades lo componen.</dynadrill-text>
+        } @else {
+          <dynadrill-text variant="caption">No hay unidades para el tipo seleccionado.</dynadrill-text>
+        }
       </div>
+    </div>
+
+    <div class="maintenance-kpis-page__card maintenance-kpis-page__card--left">
+      <dynadrill-text variant="h2">Órdenes de mantenimiento por tipo de unidad</dynadrill-text>
+      @if (ordenesPorTipoUnidad().length) {
+        <div class="maintenance-kpis-page__chart-row">
+          <div echarts class="maintenance-kpis-page__donut" [options]="ordenesPorTipoDonut()" [autoResize]="true" aria-hidden="true"></div>
+          <ul class="maintenance-kpis-page__legend">
+            @for (item of ordenesPorTipoLegend(); track item.text) {
+              <li class="maintenance-kpis-page__legend-item">
+                <span class="maintenance-kpis-page__legend-dot" [style.background]="item.color" aria-hidden="true"></span>
+                <span class="maintenance-kpis-page__legend-text">{{ item.text }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      } @else {
+        <dynadrill-text variant="caption">Todavía no hay órdenes de mantenimiento registradas.</dynadrill-text>
+      }
     </div>
 
     <div class="maintenance-kpis-page__card">

@@ -13,15 +13,12 @@
     width: 220px;
   }
 
-  // Mismo tratamiento de tarjeta para gauges y fallas repetitivas — antes
-  // tenían padding/borde ligeramente distintos y se sentían como bloques
-  // sueltos en vez de una sola familia visual.
-  &__gauges {
+  // Pasteles de clasificación por unidad (cumplimiento / disponibilidad).
+  // auto-fit en vez de un breakpoint fijo: si no entran dos lado a lado,
+  // baja sola a una columna sin depender del ancho exacto del dispositivo.
+  &__pies {
     display: grid;
-    // auto-fit en vez de un breakpoint fijo: cada tarjeta necesita al menos
-    // 240px (el gauge de 220px + padding) — si no entran dos, baja sola a
-    // una columna, sin depender de acertar el ancho exacto del dispositivo.
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 16px;
   }
 
@@ -36,28 +33,61 @@
     border-radius: var(--radius-md, 6px);
   }
 
-  &__gauges &__card {
-    gap: 4px;
+  &__card--left {
+    align-items: flex-start;
   }
 
-  &__breakdown-title {
-    align-self: flex-start;
-    margin-top: 4px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+  // Donut decorativo + leyenda de texto — mismo patrón que dashboard-page.
+  &__chart-row {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-top: 4px;
+  }
+
+  &__donut {
+    flex: none;
+    width: 72px;
+    height: 72px;
+  }
+
+  // Pastel "real" (con tooltip) — más grande que el donut decorativo para
+  // que los sectores y el hover sean cómodos de leer.
+  &__pie {
+    flex: none;
+    width: 140px;
+    height: 140px;
+  }
+
+  &__legend {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  &__legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__legend-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  &__legend-text {
+    font-size: 12.5px;
+    line-height: 1.4;
     color: var(--text-muted, #5c5870);
-  }
-
-  &__breakdown {
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    row-gap: 4px;
-    column-gap: 12px;
-    font-size: 13px;
-
-    span { color: var(--text-muted, #5c5870); }
-    strong { font-variant-numeric: tabular-nums; }
+    font-variant-numeric: tabular-nums;
   }
 
   &__note {
@@ -67,7 +97,7 @@
 
   // ── Responsive ──
   // Mismo patrón que maintenance-list-page.scss: dynadrill-kpi-row no es
-  // responsive por sí solo, necesita el override manual acá — los gauges
+  // responsive por sí solo, necesita el override manual acá — los pasteles
   // ya se resuelven solos arriba con auto-fit.
 
   @media (max-width: 600px) {

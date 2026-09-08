@@ -40,7 +40,8 @@ export type PumpingStep =
   | 'en_ejecucion_llegada'
   | 'mantenimiento'
   | 'revisar_reportes_llegada'
-  | 'en_revision';
+  | 'en_revision'
+  | 'finalizado';
 
 export const PUMPING_STEP_LABELS: Record<PumpingStep, string> = {
   revision_propuesta: 'Revisión de propuesta',
@@ -53,6 +54,7 @@ export const PUMPING_STEP_LABELS: Record<PumpingStep, string> = {
   mantenimiento: 'Mantenimiento',
   revisar_reportes_llegada: 'Revisar reportes de llegada',
   en_revision: 'En revisión',
+  finalizado: 'Finalizado',
 };
 
 /**
@@ -64,12 +66,16 @@ export const PUMPING_STEP_ROLE: Record<PumpingStep, { roleName: string; roleId: 
   asignacion: { roleName: 'Supervisor', roleId: 1 },
   en_ejecucion: { roleName: 'Operador', roleId: 2 },
   revisar_reportes_salida: { roleName: 'Supervisor', roleId: 1 },
-  ejecucion_operativa: { roleName: 'Supervisor', roleId: 1 },
+  // El Reporte Diario de Actividades (DYN-SGI-RE-047) lo llena el Operador,
+  // no el Supervisor — confirmado en el vault (conceptos/Reporte-Job.md) y
+  // en la documentación de Facturación (FACT-002, PASOS DEL PROCESO).
+  ejecucion_operativa: { roleName: 'Operador', roleId: 2 },
   gerenciamiento_llegada: { roleName: 'Supervisor', roleId: 1 },
   en_ejecucion_llegada: { roleName: 'Operador', roleId: 2 },
   mantenimiento: { roleName: 'Supervisor', roleId: 1 },
   revisar_reportes_llegada: { roleName: 'Supervisor', roleId: 1 },
   en_revision: { roleName: 'Supervisor', roleId: 1 },
+  finalizado: { roleName: 'Supervisor', roleId: 1 },
 };
 
 // ── Entidades del dominio ──
@@ -277,6 +283,13 @@ export interface TravelRiskQuestion {
   question: string;
   options: TravelRiskOption[];
   selectedValue: number | null;
+  /**
+   * Etiqueta de la opción elegida. Varias opciones de una misma pregunta
+   * pueden compartir `value` (ej. pregunta 12: "N/A = 0" y "Sí = 0"), así
+   * que la selección se rastrea por etiqueta — que sí es única dentro de
+   * cada pregunta — y `selectedValue` queda como el puntaje derivado.
+   */
+  selectedLabel: string | null;
 }
 
 export interface TravelRiskOption {
@@ -336,6 +349,7 @@ export function createTravelRiskQuestions(): TravelRiskQuestion[] {
         { label: 'NO: Deténgase', value: 999 },
       ],
       selectedValue: null,
+      selectedLabel: null,
     },
     {
       id: 2,
@@ -345,6 +359,7 @@ export function createTravelRiskQuestions(): TravelRiskQuestion[] {
         { label: 'Sí = 15', value: 15 },
       ],
       selectedValue: null,
+      selectedLabel: null,
     },
     {
       id: 3,
@@ -355,6 +370,7 @@ export function createTravelRiskQuestions(): TravelRiskQuestion[] {
         { label: '0m - 3m = 40', value: 40 },
       ],
       selectedValue: null,
+      selectedLabel: null,
     },
     {
       id: 4,
@@ -365,6 +381,7 @@ export function createTravelRiskQuestions(): TravelRiskQuestion[] {
         { label: '> 16 hs', value: 999 },
       ],
       selectedValue: null,
+      selectedLabel: null,
     },
     {
       id: 5,
@@ -375,6 +392,7 @@ export function createTravelRiskQuestions(): TravelRiskQuestion[] {
         { label: '> 6 hs = 0', value: 0 },
       ],
       selectedValue: null,
+      selectedLabel: null,
     },
     {
       id: 6,
@@ -385,6 +403,7 @@ export function createTravelRiskQuestions(): TravelRiskQuestion[] {
         { label: '> 6 hs = 20', value: 20 },
       ],
       selectedValue: null,
+      selectedLabel: null,
     },
     {
       id: 7,
@@ -394,6 +413,7 @@ export function createTravelRiskQuestions(): TravelRiskQuestion[] {
         { label: 'Sí = 0', value: 0 },
       ],
       selectedValue: null,
+      selectedLabel: null,
     },
     {
       id: 8,
@@ -404,6 +424,7 @@ export function createTravelRiskQuestions(): TravelRiskQuestion[] {
         { label: '> 6 hs = 40', value: 40 },
       ],
       selectedValue: null,
+      selectedLabel: null,
     },
     {
       id: 9,
@@ -414,6 +435,7 @@ export function createTravelRiskQuestions(): TravelRiskQuestion[] {
         { label: 'Deficiente = 25', value: 25 },
       ],
       selectedValue: null,
+      selectedLabel: null,
     },
     {
       id: 10,
@@ -424,6 +446,7 @@ export function createTravelRiskQuestions(): TravelRiskQuestion[] {
         { label: 'Deficiente = 15', value: 15 },
       ],
       selectedValue: null,
+      selectedLabel: null,
     },
     {
       id: 11,
@@ -434,6 +457,7 @@ export function createTravelRiskQuestions(): TravelRiskQuestion[] {
         { label: 'Sí = 75 No viaja', value: 75 },
       ],
       selectedValue: null,
+      selectedLabel: null,
     },
     {
       id: 12,
@@ -444,6 +468,7 @@ export function createTravelRiskQuestions(): TravelRiskQuestion[] {
         { label: 'Sí = 0', value: 0 },
       ],
       selectedValue: null,
+      selectedLabel: null,
     },
   ];
 }

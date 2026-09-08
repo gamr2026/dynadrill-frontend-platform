@@ -60,6 +60,13 @@ export class PumpingService {
     );
   }
 
+  rejectTicket(ticketId: number, reason: string): Observable<PumpingTicket> {
+    return this.http.patch<PumpingTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/reject`,
+      { reason },
+    );
+  }
+
   advanceStep(ticketId: number, step: PumpingStep): Observable<PumpingTicket> {
     return this.http.patch<PumpingTicket>(
       `${this.baseUrl}/tickets/${ticketId}/advance`,

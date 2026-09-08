@@ -238,7 +238,11 @@ export class TravelManagementDialog {
 
   protected onQuestionAnswer(questionId: number, optionIndex: number, value: number): void {
     this.riskQuestions.update(questions =>
-      questions.map(q => q.id === questionId ? { ...q, selectedValue: value } : q),
+      questions.map(q =>
+        q.id === questionId
+          ? { ...q, selectedValue: value, selectedLabel: q.options[optionIndex]?.label ?? null }
+          : q,
+      ),
     );
     this.selectedOptionIndexByQuestion.update(byQuestion => ({ ...byQuestion, [questionId]: optionIndex }));
   }
@@ -266,7 +270,16 @@ export class TravelManagementDialog {
   });
 
   protected readonly canSubmit = computed(() => {
-    return this.allQuestionsAnswered() && !this.hasBlockingAnswer() && this.motivoViaje() !== '';
+    return this.allQuestionsAnswered() && !this.hasBlockingAnswer() && this.motivoViaje().trim() !== '';
+  });
+
+  /** Por qué el botón "Guardar" está deshabilitado — el usuario llega al paso 4 sin saber qué le falta (los pasos no bloquean el avance). */
+  protected readonly submitHint = computed(() => {
+    if (this.hasBlockingAnswer()) return 'Una de las respuestas bloquea el viaje — no se puede guardar el gerenciamiento.';
+    const faltan: string[] = [];
+    if (this.motivoViaje().trim() === '') faltan.push('Motivo del viaje (paso General)');
+    if (!this.allQuestionsAnswered()) faltan.push('responder todas las preguntas de la Evaluación');
+    return faltan.length ? `Falta: ${faltan.join(' · ')}.` : '';
   });
 
   // ── Actions ──

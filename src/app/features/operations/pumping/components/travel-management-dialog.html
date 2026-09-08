@@ -166,6 +166,10 @@
           <dynadrill-input label="Gerente que autoriza" [value]="approverName()" (valueChange)="approverName.set($event)" />
         </div>
       </div>
+
+      @if (submitHint()) {
+        <dynadrill-text variant="caption" class="travel-dialog__submit-hint">{{ submitHint() }}</dynadrill-text>
+      }
     </section>
   }
 </div>

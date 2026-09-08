@@ -5,14 +5,12 @@
     @if (currentStep() === 0) {
       <div class="unit-report-dialog__grid">
         <dynadrill-input label="Reporte N°" placeholder="3104" [value]="reportNo()" (valueChange)="reportNo.set($event)" />
-        <dynadrill-input label="Pozo" placeholder="Guanta 43" [value]="pozo()" (valueChange)="pozo.set($event)" />
-        <dynadrill-input label="Bloque" placeholder="56" [value]="bloque()" (valueChange)="bloque.set($event)" />
         <dynadrill-input label="Cliente" placeholder="Petroecuador" [value]="cliente()" (valueChange)="cliente.set($event)" />
-        <dynadrill-input label="Base" placeholder="Coca" [value]="base()" (valueChange)="base.set($event)" />
         <dynadrill-select label="Unidad" placeholder="Selecciona la unidad" [options]="unidadOptions()" [value]="unidadId()" (valueChange)="unidadId.set($any($event))" />
         <dynadrill-datetime-picker label="Fecha Salida" [value]="fechaSalida()!" (valueChange)="fechaSalida.set($event)" />
         <dynadrill-datetime-picker label="Fecha Llegada" [value]="fechaLlegada()!" (valueChange)="fechaLlegada.set($event)" />
       </div>
+      <app-ubicacion-selector [mostrarTaladro]="false" (seleccionChange)="ubicacion.set($event)" />
       @if (horasAcumuladasLabel(); as label) {
         <div class="unit-report-dialog__horas-acumuladas">
           <dynadrill-icon name="clock" [size]="16" />

@@ -21,13 +21,11 @@ import {
   Desecho,
 } from '../models/desecho.model';
 import { DesechoService } from '../services/desecho.service';
+import { CatalogosService } from '../../../../shared/index';
 
 const CONTENEDOR_OPTIONS: DynadrillSelectOption[] = (Object.entries(CONTENEDOR_COLOR_LABELS) as [ContenedorColor, string][]).map(
   ([value, label]) => ({ label, value }),
 );
-
-/** Ubicaciones ya usadas en el resto de QHSE (IPERC/PTW/Inspecciones/STOP) — precargadas para no repetir texto libre a mano; el modo creatable permite agregar una nueva si no está en la lista. */
-const UBICACIONES_BASE = ['Pozo Alfa-3', 'Pozo Beta-9', 'Pozo Delta-7'];
 
 /** "Personal Operativo: Genera y clasifica desechos en campo" (HSE-AMBIENTAL-001) — abre desde "Reportar", sin roleGuard de QHSE. */
 @Component({
@@ -48,7 +46,16 @@ export class DesechoDialog {
   private readonly desechoService = inject(DesechoService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
+  private readonly catalogos = inject(CatalogosService);
   private readonly modalRef = inject(NzModalRef<DesechoDialog, Desecho | undefined>);
+
+  constructor() {
+    // Ubicaciones = pozos del catálogo. `agregarUbicacion` sigue permitiendo
+    // cargar una ubicación que no sea un pozo (laydown, bodega, vía...).
+    this.catalogos.pozos().subscribe(pozos =>
+      this.ubicacionOptions.set(pozos.map(p => ({ label: p.nombreCompleto, value: p.nombreCompleto }))),
+    );
+  }
 
   protected readonly clasificacionOptions = ['Peligroso', 'No peligroso'];
   protected readonly clasificacionLabel = signal<string[]>(['No peligroso']);
@@ -58,7 +65,7 @@ export class DesechoDialog {
   protected readonly contenedorColor = signal<ContenedorColor>('gris');
   protected readonly descripcion = signal('');
   protected readonly pesoKg = signal('');
-  protected readonly ubicacionOptions = signal<DynadrillSelectOption[]>(UBICACIONES_BASE.map(v => ({ label: v, value: v })));
+  protected readonly ubicacionOptions = signal<DynadrillSelectOption[]>([]);
   protected readonly ubicacion = signal('');
   protected readonly generadoPorNombre = signal(this.auth.currentUser()?.name ?? '');
   protected readonly submitting = signal(false);

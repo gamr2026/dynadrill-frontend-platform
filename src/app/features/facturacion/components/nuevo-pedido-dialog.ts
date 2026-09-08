@@ -14,6 +14,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { LINEA_SERVICIO_LABELS, LineaServicio, Pedido } from '../models/pedido.model';
 import { ListaPrecios } from '../models/lista-precios.model';
 import { ListaPreciosService, PedidoService } from '../services/pedido.service';
+import { UBICACION_VACIA, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../shared/index';
 
 /** Clientes conocidos — hasta que exista el catálogo real de AS2. */
 const CLIENTES: { nombre: string; ruc: string }[] = [
@@ -36,6 +37,7 @@ const CLIENTES: { nombre: string; ruc: string }[] = [
     DynadrillDatetimePickerComponent,
     DynadrillButtonComponent,
     DynadrillTextComponent,
+    UbicacionSelectorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './nuevo-pedido-dialog.html',
@@ -61,10 +63,8 @@ export class NuevoPedidoDialog {
   protected readonly lineaOptions: DynadrillSelectOption[] = (Object.entries(LINEA_SERVICIO_LABELS) as [LineaServicio, string][]).map(
     ([value, label]) => ({ label, value }),
   );
-  protected readonly campo = signal('');
-  protected readonly bloque = signal('');
-  protected readonly pozo = signal('');
-  protected readonly taladroRig = signal('');
+  /** Campo / Bloque / Pozo / Taladro — del catálogo, vía <app-ubicacion-selector>. */
+  protected readonly ubicacion = signal<UbicacionSeleccion>(UBICACION_VACIA);
   protected readonly fechaInicioServicio = signal<Date | null>(null);
   protected readonly fechaFinServicio = signal<Date | null>(null);
 
@@ -102,9 +102,8 @@ export class NuevoPedidoDialog {
     () =>
       !!this.cliente() &&
       !!this.lineaServicio() &&
-      this.campo().trim().length > 0 &&
-      this.pozo().trim().length > 0 &&
-      this.taladroRig().trim().length > 0 &&
+      this.ubicacion().pozoId !== null &&
+      this.ubicacion().taladroId !== null &&
       this.agenteComercial().trim().length > 0 &&
       this.representanteCampo().trim().length > 0 &&
       this.representanteQuito().trim().length > 0 &&
@@ -165,10 +164,15 @@ export class NuevoPedidoDialog {
         clienteRuc: this.clienteRuc() || undefined,
         subcliente: this.subcliente().trim() || undefined,
         lineaServicio: this.lineaServicio()!,
-        campo: this.campo().trim(),
-        bloque: this.bloque().trim(),
-        pozo: this.pozo().trim(),
-        taladroRig: this.taladroRig().trim(),
+        campo: this.ubicacion().campo,
+        bloque: this.ubicacion().bloque,
+        pozo: this.ubicacion().pozo,
+        taladroRig: this.ubicacion().taladro,
+        campoId: this.ubicacion().campoId ?? undefined,
+        bloqueId: this.ubicacion().bloqueId ?? undefined,
+        pozoId: this.ubicacion().pozoId ?? undefined,
+        nombreCompletoPozo: this.ubicacion().nombreCompletoPozo || undefined,
+        taladroId: this.ubicacion().taladroId ?? undefined,
         numeroContrato: this.numeroContrato().trim(),
         agenteComercial: this.agenteComercial().trim(),
         representanteCampo: this.representanteCampo().trim(),

@@ -105,6 +105,12 @@ export interface Pedido {
   bloque: string;
   pozo: string;
   taladroRig: string;
+  /** Ids de los catálogos de ubicación — para que los tickets derivados no re-pregunten campo/bloque/pozo/taladro. */
+  campoId?: number;
+  bloqueId?: number;
+  pozoId?: number;
+  nombreCompletoPozo?: string;
+  taladroId?: number;
   numeroContrato: string;
 
   // ── Comercial / responsables ──

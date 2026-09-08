@@ -103,7 +103,12 @@ export class DerrameDetailPage {
     const current = this.evento();
     if (!current) return;
     this.evento.set({ ...current, ...changes });
-    this.derrameService.update(current.id, changes).subscribe();
+    this.derrameService.update(current.id, changes).subscribe({
+      error: () => {
+        this.evento.set(current);
+        this.notify.error('Error', 'No se pudo guardar el cambio. Inténtalo de nuevo.');
+      },
+    });
   }
 
   protected toggleChecklist(index: number): void {

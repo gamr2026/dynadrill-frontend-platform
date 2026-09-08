@@ -46,6 +46,10 @@ export class EntregaEpiDialog {
   protected readonly trabajadorCargo = signal('');
 
   protected readonly items = signal<EpiItem[]>([]);
+  // Contador monotónico: `items().length + 1` reasigna un id ya usado en cuanto se
+  // quita un ítem del medio y se agrega uno nuevo, lo que hace que quitarItem()
+  // borre el ítem equivocado (dos ítems terminan con el mismo id).
+  private nextItemId = 1;
   protected readonly itemDraft = signal<ItemDraft>({ ...ITEM_DRAFT_VACIO });
 
   protected readonly firmaAceptada = signal(false);
@@ -61,7 +65,7 @@ export class EntregaEpiDialog {
     if (!this.puedeAgregarItem()) return;
     const d = this.itemDraft();
     const item: EpiItem = {
-      id: this.items().length + 1,
+      id: this.nextItemId++,
       elemento: d.elemento.trim(),
       cantidad: Number(d.cantidad),
       talla: d.talla.trim() || undefined,

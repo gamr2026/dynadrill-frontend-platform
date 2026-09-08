@@ -33,7 +33,7 @@ import {
   ptwGasLimiteLabel,
 } from '../../models/ptw.model';
 import { PtwService } from '../../services/ptw.service';
-import { downloadQhseReport, qhseBadge, type QhseReportSection } from '../../../shared/utils/qhse-report.util';
+import { downloadQhseReport, escapeHtml, qhseBadge, type QhseReportSection } from '../../../shared/utils/qhse-report.util';
 
 type FirmaCampo = 'ptwFirmadoSitio' | 'actaRecibimientoFirmada' | 'ptwCerrado' | 'actaDevolucionFirmada';
 
@@ -214,7 +214,15 @@ export class PtwDetailPage {
     const current = this.ptw();
     if (!current) return;
     this.ptw.set({ ...current, ...changes });
-    this.ptwService.update(current.id, changes).subscribe();
+    this.ptwService.update(current.id, changes).subscribe({
+      error: () => {
+        // Revierte el update optimista: sin esto, un fallo de red dejaba la UI mostrando
+        // un cambio que nunca se guardó, sin ningún aviso — el usuario lo descubría recién
+        // al recargar y ver que "desapareció".
+        this.ptw.set(current);
+        this.notify.error('Error', 'No se pudo guardar el cambio. Inténtalo de nuevo.');
+      },
+    });
   }
 
   /**
@@ -386,9 +394,9 @@ export class PtwDetailPage {
       .map(
         d => `
           <tr>
-            <td>${d.label}</td>
+            <td>${escapeHtml(d.label)}</td>
             <td>${d.cargado ? qhseBadge('Cargado', 'ok') : qhseBadge('Pendiente', 'warn')}</td>
-            <td>${d.fileName ?? '—'}</td>
+            <td>${d.fileName ? escapeHtml(d.fileName) : '—'}</td>
             <td>${d.cargadoAt ? new Date(d.cargadoAt).toLocaleString('es-EC') : '—'}</td>
           </tr>`,
       )
@@ -421,7 +429,7 @@ export class PtwDetailPage {
     };
 
     const firmaFila = (label: string, f?: PtwFirma) =>
-      `<tr><td>${label}</td><td>${f ? `${f.nombre} — ${new Date(f.firmadoAt).toLocaleString('es-EC')}` : '—'}</td></tr>`;
+      `<tr><td>${label}</td><td>${f ? `${escapeHtml(f.nombre)} — ${new Date(f.firmadoAt).toLocaleString('es-EC')}` : '—'}</td></tr>`;
     const firmasSection: QhseReportSection = {
       title: 'Firmas y cierre',
       bodyHtml: `<table>
@@ -437,7 +445,7 @@ export class PtwDetailPage {
         l => `
           <tr>
             <td>${new Date(l.fecha).toLocaleString('es-EC')}</td>
-            <td>${l.registradoPorNombre}</td>
+            <td>${escapeHtml(l.registradoPorNombre)}</td>
             <td>${l.toolboxTalkRealizado ? 'Sí' : 'No'}</td>
             <td>${l.lotoVerificado ? 'Sí' : 'No'}</td>
             <td>${l.gasReadings.length > 0 ? (l.gasReadings.every(r => r.seguro) ? qhseBadge('Seguro', 'ok') : qhseBadge('Fuera de rango', 'error')) : '—'}</td>

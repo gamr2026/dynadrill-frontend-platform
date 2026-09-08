@@ -4,6 +4,7 @@ import { DynadrillButtonComponent, DynadrillInputComponent, DynadrillNotificatio
 import { Articulo, CreateMovimientoInput, MovimientoInventario, MovimientoTipo } from '../models/articulo.model';
 import { MovimientosInventarioService } from '../services/movimientos-inventario.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { toLocalDateString } from '../../../shared/utils';
 
 export interface MovimientoDialogData {
   articulo: Articulo;
@@ -55,7 +56,7 @@ export class MovimientoDialog {
       articuloId: this.targetArticulo.id,
       tipo: this.tipo(),
       cantidad: this.cantidadNum(),
-      fecha: new Date().toISOString().slice(0, 10),
+      fecha: toLocalDateString(new Date()),
       motivo: this.motivo().trim(),
       responsable: this.responsable().trim(),
     };

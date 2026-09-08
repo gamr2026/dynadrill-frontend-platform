@@ -8,7 +8,7 @@
  * cualquier "exportar reporte" sin backend de generación de PDF detrás.
  */
 
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 

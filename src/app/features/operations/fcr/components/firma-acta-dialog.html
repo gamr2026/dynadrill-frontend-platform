@@ -4,7 +4,7 @@
 
   <dynadrill-datetime-picker
     label="Fecha y hora de la reunión"
-    [value]="meetingDate()"
+    [value]="$any(meetingDate())"
     [showTime]="true"
     (valueChange)="meetingDate.set($event)"
   />

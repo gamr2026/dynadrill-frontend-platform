@@ -8,6 +8,7 @@ import {
   DynadrillDataTableComponent,
   DynadrillDialogService,
   DynadrillKpiRowComponent,
+  DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillTabsComponent,
   DynadrillTagComponent,
@@ -74,6 +75,7 @@ export class TicketListPage {
   private readonly auth = inject(AuthService);
 
   private readonly dialog = inject(DynadrillDialogService);
+  private readonly notify = inject(DynadrillNotificationService);
 
   // ── Rol actual ──
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
@@ -156,11 +158,14 @@ export class TicketListPage {
   // ── Filas ──
 
   protected readonly inProcessRows = computed(() => {
-    const seenSteps = new Set<PumpingStep>();
+    // Deduplica por id de ticket (defensivo ante duplicados reales en los datos) — deduplicar por
+    // currentStep ocultaba tickets legítimos cuando dos coincidían en el mismo paso, mientras los
+    // KPIs (que sí cuentan inProcessTickets() completo) seguían mostrando el conteo real.
+    const seenIds = new Set<number>();
     return this.inProcessTickets()
       .filter(t => {
-        if (seenSteps.has(t.currentStep)) return false;
-        seenSteps.add(t.currentStep);
+        if (seenIds.has(t.id)) return false;
+        seenIds.add(t.id);
         return true;
       })
       .map(t => {
@@ -238,6 +243,7 @@ export class TicketListPage {
     });
     this.maintenanceOrdersService.list().subscribe({
       next: orders => this.maintenanceOrders.set(orders),
+      error: () => this.notify.error('Error', 'No se pudieron cargar las órdenes de mantenimiento.'),
     });
   }
 
@@ -290,6 +296,7 @@ export class TicketListPage {
       if (changed) {
         this.maintenanceOrdersService.list().subscribe({
           next: orders => this.maintenanceOrders.set(orders),
+          error: () => this.notify.error('Error', 'No se pudieron recargar las órdenes de mantenimiento.'),
         });
       }
     });

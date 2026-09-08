@@ -4,28 +4,34 @@
   <div class="vehicle-inspection-dialog__body">
     @if (currentStep() === 0) {
       <div class="vehicle-inspection-dialog__grid">
-        <dynadrill-select label="Unidad" placeholder="Selecciona el vehículo" [options]="unidadOptions()" [value]="unidadId()" (valueChange)="unidadId.set($any($event))" />
+        <dynadrill-select label="Unidad" placeholder="Selecciona el vehículo" [options]="unidadOptions()" [value]="unidadId()" (valueChange)="onUnidadChange($any($event))" />
         <dynadrill-datetime-picker label="Fecha" [value]="fecha()!" (valueChange)="fecha.set($event)" />
         <dynadrill-input label="Punto de partida" [value]="puntoPartida()" (valueChange)="puntoPartida.set($event)" />
         <dynadrill-input label="Destino" [value]="destino()" (valueChange)="destino.set($event)" />
         <dynadrill-select label="Inspeccionado por (Conductor)" placeholder="Selecciona el conductor" [options]="conductorOptions()" [value]="inspeccionadoPor() || null" (valueChange)="inspeccionadoPor.set($any($event))" />
       </div>
 
-      <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">Descripción del vehículo</dynadrill-text>
+      <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">
+        Descripción del vehículo
+        @if (vehiculoDataLocked()) { — tomada del registro de la unidad (se edita en Inventario) }
+      </dynadrill-text>
       <div class="vehicle-inspection-dialog__grid">
-        <dynadrill-input label="Marca" [value]="marca()" (valueChange)="marca.set($event)" />
-        <dynadrill-input label="Tipo" [value]="tipo()" (valueChange)="tipo.set($event)" />
-        <dynadrill-input label="Modelo" [value]="modelo()" (valueChange)="modelo.set($event)" />
-        <dynadrill-input label="Año fabricación" [value]="anioFabricacion()" (valueChange)="anioFabricacion.set($event)" />
-        <dynadrill-input label="Placa N°" [value]="placa()" (valueChange)="placa.set($event)" />
+        <dynadrill-input label="Marca" [value]="marca()" [disabled]="vehiculoDataLocked()" (valueChange)="marca.set($event)" />
+        <dynadrill-input label="Tipo" [value]="tipo()" [disabled]="vehiculoDataLocked()" (valueChange)="tipo.set($event)" />
+        <dynadrill-input label="Modelo" [value]="modelo()" [disabled]="vehiculoDataLocked()" (valueChange)="modelo.set($event)" />
+        <dynadrill-input label="Año fabricación" [value]="anioFabricacion()" [disabled]="vehiculoDataLocked()" (valueChange)="anioFabricacion.set($event)" />
+        <dynadrill-input label="Placa N°" [value]="placa()" [disabled]="vehiculoDataLocked()" (valueChange)="placa.set($event)" />
       </div>
 
-      <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">Documentos del vehículo</dynadrill-text>
+      <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">
+        Documentos del vehículo
+        @if (vehiculoDataLocked()) { — tomados del registro de la unidad (se editan en Inventario) }
+      </dynadrill-text>
       <div class="vehicle-inspection-dialog__grid">
-        <dynadrill-datetime-picker mode="date" label="Fecha de matrícula" [value]="fechaMatricula()!" (valueChange)="fechaMatricula.set($event)" />
-        <dynadrill-datetime-picker mode="date" label="Caducidad de matrícula" [value]="caducidadMatricula()!" (valueChange)="caducidadMatricula.set($event)" />
-        <dynadrill-datetime-picker mode="date" label="Caducidad póliza de seguro" [value]="caducidadPoliza()!" (valueChange)="caducidadPoliza.set($event)" />
-        <dynadrill-datetime-picker mode="date" label="Vigencia otro documento" [value]="vigenciaOtroDocumento()!" (valueChange)="vigenciaOtroDocumento.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Fecha de matrícula" [value]="fechaMatricula()!" [disabled]="vehiculoDataLocked()" (valueChange)="fechaMatricula.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Caducidad de matrícula" [value]="caducidadMatricula()!" [disabled]="vehiculoDataLocked()" (valueChange)="caducidadMatricula.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Caducidad póliza de seguro" [value]="caducidadPoliza()!" [disabled]="vehiculoDataLocked()" (valueChange)="caducidadPoliza.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Vigencia otro documento" [value]="vigenciaOtroDocumento()!" [disabled]="vehiculoDataLocked()" (valueChange)="vigenciaOtroDocumento.set($event)" />
       </div>
 
       <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">Kilometraje</dynadrill-text>
@@ -98,7 +104,7 @@
         }
 
         <dynadrill-textarea label="Observaciones" [value]="observacionesConductor()" (valueChange)="observacionesConductor.set($event)" [rows]="2" />
-        <dynadrill-input label="Nombre del Supervisor" [value]="supervisorNombre()" (valueChange)="supervisorNombre.set($event)" />
+        <dynadrill-select label="Nombre del Supervisor" placeholder="Selecciona el supervisor" [options]="supervisorOptions()" [value]="supervisorNombre() || null" (valueChange)="supervisorNombre.set($any($event) ?? '')" />
       </div>
     }
   </div>
@@ -111,7 +117,7 @@
       }
       @if (currentStep() < steps.length - 1) {
         <dynadrill-button (clicked)="next()">Siguiente</dynadrill-button>
-      } @else {
+      } @else if (!readonly) {
         <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="submit()">{{ submitting() ? 'Guardando…' : (isEditMode ? 'Guardar cambios' : 'Guardar') }}</dynadrill-button>
       }
     </div>

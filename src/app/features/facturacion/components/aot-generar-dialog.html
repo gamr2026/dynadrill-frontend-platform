@@ -1,0 +1,18 @@
+<div class="aot-gen">
+  <dynadrill-text variant="caption">
+    El encabezado queda fijo. El número OPR y la fecha (un día antes del inicio del servicio) se calculan automáticamente.
+  </dynadrill-text>
+  <div class="aot-gen__grid">
+    <dynadrill-input label="Ciudad (código OPR)" [value]="ciudad()" (valueChange)="ciudad.set($event)" />
+    <dynadrill-input label="Representante del cliente" [value]="repNombre()" (valueChange)="repNombre.set($event)" />
+    <dynadrill-input label="Cargo del representante" [value]="repCargo()" (valueChange)="repCargo.set($event)" />
+  </div>
+  <dynadrill-input label="Descripción del requerimiento" [value]="descripcion()" (valueChange)="descripcion.set($event)" />
+
+  <div class="aot-gen__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="generar()">
+      {{ submitting() ? 'Generando…' : 'Generar AOT' }}
+    </dynadrill-button>
+  </div>
+</div>

@@ -91,7 +91,7 @@
     [pageSize]="10"
     actionsHeader="Acciones"
     [actionsTemplate]="actionsTpl"
-    [expandable]="isSupervisor()"
+    [expandable]="isSupervisor() && hasExpandableRows()"
     [expandedRowTemplate]="maintenanceExpandTpl"
   />
 } @else {

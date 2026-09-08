@@ -1,0 +1,31 @@
+@use '../facturacion-ui' as f;
+
+.nuevo-pedido {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__group {
+    border: 1px solid #ecebf1;
+    border-radius: 10px;
+    padding: 14px 16px 16px;
+    margin: 0;
+
+    legend {
+      font-family: var(--font-subheading, 'Oswald', sans-serif);
+      font-size: 11px;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--text-muted, #5c5870);
+      padding: 0 6px;
+    }
+  }
+
+  &__grid {
+    @include f.field-grid(200px);
+  }
+
+  &__actions {
+    @include f.dialog-actions;
+  }
+}

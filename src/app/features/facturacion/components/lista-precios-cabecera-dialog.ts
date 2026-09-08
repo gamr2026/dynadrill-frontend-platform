@@ -1,0 +1,89 @@
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
+import {
+  DynadrillButtonComponent,
+  DynadrillDatetimePickerComponent,
+  DynadrillInputComponent,
+  DynadrillNotificationService,
+  DynadrillSelectComponent,
+  DynadrillTextComponent,
+  type DynadrillSelectOption,
+} from '@digitec-it-projects/dynadrill-ui';
+import { ListaPrecios } from '../models/lista-precios.model';
+import { ListaPreciosService } from '../services/pedido.service';
+
+export interface ListaPreciosCabeceraDialogData {
+  /** Cuando viene, es edición de esa lista; si no, es alta. */
+  lista?: ListaPrecios;
+}
+
+/** Fase 2 — alta/edición de la cabecera de una Lista de Precios (cliente/contrato). */
+@Component({
+  selector: 'app-lista-precios-cabecera-dialog',
+  imports: [
+    DynadrillInputComponent,
+    DynadrillSelectComponent,
+    DynadrillDatetimePickerComponent,
+    DynadrillButtonComponent,
+    DynadrillTextComponent,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  templateUrl: './lista-precios-cabecera-dialog.html',
+  styleUrl: './lista-precios-cabecera-dialog.scss',
+})
+export class ListaPreciosCabeceraDialog {
+  private readonly listaService = inject(ListaPreciosService);
+  private readonly notify = inject(DynadrillNotificationService);
+  private readonly modalRef = inject(NzModalRef<ListaPreciosCabeceraDialog, ListaPrecios | undefined>);
+  protected readonly data = inject<ListaPreciosCabeceraDialogData>(NZ_MODAL_DATA);
+
+  protected readonly esEdicion = !!this.data.lista;
+
+  protected readonly cliente = signal(this.data.lista?.cliente ?? '');
+  protected readonly numeroContrato = signal(this.data.lista?.numeroContrato ?? '');
+  protected readonly vigenteDesde = signal<Date | null>(
+    this.data.lista?.vigenteDesde ? new Date(this.data.lista.vigenteDesde) : new Date(),
+  );
+  protected readonly activa = signal(this.data.lista?.activa ?? true);
+  protected readonly submitting = signal(false);
+
+  protected readonly activaOptions: DynadrillSelectOption[] = [
+    { label: 'Activa', value: 'si' },
+    { label: 'Inactiva', value: 'no' },
+  ];
+
+  protected readonly puedeGuardar = computed(
+    () => this.cliente().trim().length > 0 && this.numeroContrato().trim().length > 0 && this.vigenteDesde() !== null,
+  );
+
+  protected cancelar(): void {
+    this.modalRef.close();
+  }
+
+  protected guardar(): void {
+    if (!this.puedeGuardar() || this.submitting()) return;
+    this.submitting.set(true);
+
+    const payload = {
+      cliente: this.cliente().trim(),
+      numeroContrato: this.numeroContrato().trim(),
+      vigenteDesde: this.vigenteDesde()!.toISOString().slice(0, 10),
+      activa: this.activa(),
+    };
+
+    const req$ = this.esEdicion
+      ? this.listaService.actualizarCabecera(this.data.lista!.id, payload)
+      : this.listaService.create({ ...payload, items: [] });
+
+    req$.subscribe({
+      next: lista => {
+        this.notify.success(this.esEdicion ? 'Lista actualizada' : 'Lista creada', `${lista.cliente} — ${lista.numeroContrato}`);
+        this.modalRef.close(lista);
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.notify.error('Error', 'No se pudo guardar la lista de precios.');
+      },
+    });
+  }
+}

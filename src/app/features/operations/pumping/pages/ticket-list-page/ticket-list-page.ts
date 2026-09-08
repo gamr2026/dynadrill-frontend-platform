@@ -36,10 +36,12 @@ const STEP_BADGES: Record<PumpingStep, { text: string; tone: BadgeTone }> = {
   en_ejecucion: { text: 'En ejecución (Salida)', tone: 'brand' },
   revisar_reportes_salida: { text: 'Revisar reportes de salida', tone: 'warning' },
   ejecucion_operativa: { text: 'Ejecución operativa', tone: 'brand' },
+  gerenciamiento_llegada: { text: 'Gerenciamiento de llegada', tone: 'warning' },
   en_ejecucion_llegada: { text: 'En ejecución (Llegada)', tone: 'brand' },
   mantenimiento: { text: 'Mantenimiento', tone: 'info' },
   revisar_reportes_llegada: { text: 'Revisar reportes de llegada', tone: 'warning' },
   en_revision: { text: 'En revisión', tone: 'warning' },
+  finalizado: { text: 'Finalizado', tone: 'success' },
 };
 
 const SERVICE_TYPE_FILTERS = Object.entries(PUMPING_SERVICE_TYPE_LABELS).map(
@@ -190,6 +192,16 @@ export class TicketListPage {
         };
       });
   });
+
+  /**
+   * El botón de "expandir" solo tiene sentido si alguna fila está en el
+   * paso de mantenimiento (es la única con detalle extra). Sin esto, el
+   * Supervisor veía el chevron en todas las filas y al abrirlo no aparecía
+   * nada.
+   */
+  protected readonly hasExpandableRows = computed(() =>
+    this.inProcessRows().some(r => r['isMaintenanceStep']),
+  );
 
   protected readonly approvedRows = computed(() =>
     this.approvedTickets().map(t => ({

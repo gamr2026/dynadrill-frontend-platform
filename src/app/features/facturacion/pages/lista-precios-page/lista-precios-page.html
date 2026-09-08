@@ -1,0 +1,32 @@
+<div class="lista-precios-page">
+  <dynadrill-screen-header
+    eyebrow="FACTURACIÓN"
+    title="Listas de precios"
+    subtitle="Tarifario por cliente / contrato. Los códigos provienen de AS2."
+  />
+
+  <div class="lista-precios-page__toolbar">
+    <dynadrill-button (clicked)="nuevaLista()">+ Nueva lista</dynadrill-button>
+  </div>
+
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
+    <dynadrill-kpi-row [items]="kpis()" />
+
+    @if (listas().length) {
+      <div class="lista-precios-page__grid">
+        @for (l of listas(); track l.id) {
+          <button type="button" class="lista-precios-page__card" (click)="abrir(l.id)">
+            <div class="lista-precios-page__card-head">
+              <strong>{{ l.cliente }}</strong>
+              <dynadrill-tag [label]="l.activa ? 'Activa' : 'Inactiva'" [variant]="l.activa ? 'success' : 'neutral'" />
+            </div>
+            <dynadrill-text variant="caption">Contrato {{ l.numeroContrato }} · vigente desde {{ l.vigenteDesde }}</dynadrill-text>
+            <dynadrill-text variant="body">{{ l.items.length }} ítem(s)</dynadrill-text>
+          </button>
+        }
+      </div>
+    } @else {
+      <section class="fact-card"><dynadrill-text variant="body">Todavía no hay listas de precios. Crea la primera.</dynadrill-text></section>
+    }
+  </dynadrill-spinner>
+</div>

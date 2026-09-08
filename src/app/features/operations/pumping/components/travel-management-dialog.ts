@@ -26,6 +26,7 @@ import {
   type TravelRiskQuestion,
   type VehicleType,
 } from '../models/pumping.model';
+import { UnidadesService } from '../../../maintenance/services/unidades.service';
 
 export interface TravelManagementDialogData {
   operatorName: string;
@@ -71,6 +72,29 @@ const STEPS = ['General', 'Evaluación', 'Plan & Ruta', 'Aprobación'];
 export class TravelManagementDialog {
   private readonly modalRef = inject(NzModalRef<TravelManagementDialog, TravelManagementDialogResult | undefined>);
   private readonly data = inject<TravelManagementDialogData>(NZ_MODAL_DATA);
+  private readonly unidadesService = inject(UnidadesService);
+
+  /** true cuando el dato vino del registro maestro de la Unidad — se bloquea para no romper la integridad con Inventario. */
+  protected readonly placaBloqueada = signal(false);
+  protected readonly tipoBloqueado = signal(false);
+
+  constructor() {
+    // Precarga del vehículo: la placa y el tipo (Liviano/Pesado) se toman
+    // del registro de la Unidad seleccionada en el ticket. Si el registro
+    // maestro los tiene, quedan bloqueados; si no, se pueden escribir.
+    this.unidadesService.list().subscribe(unidades => {
+      const unidad = unidades.find(u => u.code === this.data.unitCode);
+      if (!unidad) return;
+      if (unidad.placa) {
+        this.placas.set(unidad.placa);
+        this.placaBloqueada.set(true);
+      }
+      if (unidad.categoriaPeso) {
+        this.vehicleType.set(unidad.categoriaPeso);
+        this.tipoBloqueado.set(true);
+      }
+    });
+  }
 
   // ── Wizard steps ──
   protected readonly steps = STEPS;
@@ -238,7 +262,7 @@ export class TravelManagementDialog {
   }
 
   protected readonly allQuestionsAnswered = computed(() => {
-    return this.riskQuestions().every(q => q.selectedValue !== null);
+    return this.riskQuestions().every(q => q.selectedLabel !== null);
   });
 
   protected readonly canSubmit = computed(() => {

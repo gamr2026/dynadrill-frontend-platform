@@ -1,4 +1,4 @@
-import { ApplicationConfig, isDevMode, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { HttpInterceptorFn, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { PreloadAllModules, provideRouter, withPreloading } from '@angular/router';
 import { provideNzI18n, es_ES } from 'ng-zorro-antd/i18n';
@@ -12,14 +12,6 @@ import { provideDynadrillDialog, provideDynadrillDrawer } from '@digitec-it-proj
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
-import { authMockInterceptor } from './core/mocks/auth-mock.interceptor';
-import { usersMockInterceptor } from './core/mocks/users-mock.interceptor';
-import { pumpingMockInterceptor } from './core/mocks/pumping-mock.interceptor';
-import { fcrMockInterceptor } from './core/mocks/fcr-mock.interceptor';
-import { maintenanceMockInterceptor } from './core/mocks/maintenance-mock.interceptor';
-import { qhseMockInterceptor } from './core/mocks/qhse-mock.interceptor';
-import { inventarioMockInterceptor } from './core/mocks/inventario-mock.interceptor';
-import { facturacionMockInterceptor } from './core/mocks/facturacion-mock.interceptor';
 
 // provideNzI18n(es_ES) cambia el LOCALE_ID de Angular a 'es', pero Angular
 // no trae los datos de ese locale por defecto — sin este registro,
@@ -27,12 +19,12 @@ import { facturacionMockInterceptor } from './core/mocks/facturacion-mock.interc
 // revienta con NG0701 al abrir.
 registerLocaleData(localeEs);
 
-// El mock solo se agrega en dev, nunca en build de produccion. Quitar
-// junto con core/mocks/auth-mock.interceptor.ts cuando el backend NestJS
-// de auth exista de verdad.
-const interceptors: HttpInterceptorFn[] = isDevMode()
-  ? [authMockInterceptor, usersMockInterceptor, pumpingMockInterceptor, fcrMockInterceptor, maintenanceMockInterceptor, qhseMockInterceptor, inventarioMockInterceptor, facturacionMockInterceptor, authInterceptor]
-  : [authInterceptor];
+// Fase 7-8 completa (documentacion/backend/ANALISIS-BACKEND-TONTO.md): los 8
+// dominios hablan con el backend real (dynadrill-backend) — no queda ningún
+// interceptor mock registrado, en dev ni en producción. Requiere `npm start`
+// (usa proxy.conf.json -> localhost:3000) con el backend corriendo y su seed
+// aplicado (npm run prisma:seed en dynadrill-backend).
+const interceptors: HttpInterceptorFn[] = [authInterceptor];
 
 export const appConfig: ApplicationConfig = {
   providers: [

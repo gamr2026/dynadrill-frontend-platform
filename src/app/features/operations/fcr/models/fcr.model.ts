@@ -1,4 +1,11 @@
 import { Ticket } from '../../../../shared/models/ticket.model';
+import {
+  TOOL_DAILY_STATUS_CODE,
+  TOOL_DAILY_STATUS_LABELS,
+  type OperativoActivityLogEntry,
+  type OperativoToolUsageEntry,
+  type ToolDailyStatus,
+} from '../../../../shared/models/operativo-docs.model';
 
 // ── Fases del ticket FCR (FCR-MASTER-001) ──
 
@@ -89,51 +96,22 @@ export interface FcrPhaseApproval {
   date: string;
 }
 
-// ── Bitácora de actividades de campo (Reporte Job — DYN-SGI-RE-047) ──
+// ── Documentos operativos (Reporte Job DYN-SGI-RE-047 / Reporte de Herramientas DYN-FCR-RE-008) ──
+// Los tipos viven en `shared/` porque también los produce Pumping y los consume Facturación.
 
-/** Una entrada de la bitácora horaria de Ejecución de Campo — la duración se calcula, nunca se captura a mano. */
-export interface FcrActivityLogEntry {
-  id: number;
-  date: string;
-  startTime: string;
-  endTime: string;
-  durationHours: number;
-  detail: string;
-  author: string;
-}
-
-// ── Uso diario de herramientas (Reporte de Herramientas en Renta — DYN-FCR-RE-008) ──
-
-export type FcrToolDailyStatus = 'operacion' | 'stand_by' | 'daily_charge' | 'venta';
-
-export const FCR_TOOL_DAILY_STATUS_LABELS: Record<FcrToolDailyStatus, string> = {
-  operacion: 'En operación',
-  stand_by: 'Stand-by',
-  daily_charge: 'Daily charge',
-  venta: 'Consumible / venta',
-};
-
-/** Código de una sola letra usado en el DYN-FCR-RE-008 real (O/S/D/V). */
-export const FCR_TOOL_DAILY_STATUS_CODE: Record<FcrToolDailyStatus, string> = {
-  operacion: 'O',
-  stand_by: 'S',
-  daily_charge: 'D',
-  venta: 'V',
-};
-
-/** Un día de uso registrado para una herramienta — un registro por (herramienta, fecha); registrar de nuevo esa combinación reemplaza el estado del día. */
-export interface FcrToolUsageEntry {
-  id: number;
-  toolId: number;
-  date: string;
-  status: FcrToolDailyStatus;
-}
+export type FcrActivityLogEntry = OperativoActivityLogEntry;
+export type FcrToolDailyStatus = ToolDailyStatus;
+export type FcrToolUsageEntry = OperativoToolUsageEntry;
+export const FCR_TOOL_DAILY_STATUS_LABELS = TOOL_DAILY_STATUS_LABELS;
+export const FCR_TOOL_DAILY_STATUS_CODE = TOOL_DAILY_STATUS_CODE;
 
 // ── Ticket FCR ──
 
 export interface FcrTicket extends Ticket {
   currentPhase: FcrPhase;
   proposalVersion: number;
+  /** Código del Pedido de Facturación asociado — link para el puente FCR → Facturación. */
+  pedidoCode?: string;
   tools: FcrTool[];
   /** RN-FCR-005 / SP7: declaración explícita del Supervisor de que no quedan herramientas por agregar. */
   toolListConfirmed: boolean;

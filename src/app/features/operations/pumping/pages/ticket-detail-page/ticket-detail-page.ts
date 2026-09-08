@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import type { NzUploadFile } from 'ng-zorro-antd/upload';
 import { AuthService } from '../../../../../core/services/auth.service';
 import {
   DynadrillApprovalActionsComponent,
@@ -17,6 +18,7 @@ import {
   DynadrillSelectComponent,
   DynadrillTextComponent,
   DynadrillTextareaComponent,
+  DynadrillUploadZoneComponent,
   type DynadrillApprovalDecision,
   type DynadrillContextCardItem,
   type DynadrillInspectionItem,
@@ -36,12 +38,14 @@ import {
   createDefaultHubodometro,
   nextHubodometroAxleLabel,
   type PumpingStep,
+  type PumpingChemical,
   type HubodometroEntry,
   type TireEntry,
   type TravelManagement,
   type DailyActivityReport,
 } from '../../models/pumping.model';
 import { PumpingService } from '../../services/pumping.service';
+import { OperativoDocsBridgeService } from '../../../../../shared/index';
 import { CreateUnitReportInput, unitReportHasNovedades } from '../../../../maintenance/models/unit-report.model';
 import { UnitReportsService } from '../../../../maintenance/services/unit-reports.service';
 import { UnidadesService } from '../../../../maintenance/services/unidades.service';
@@ -60,12 +64,20 @@ import { MaintenanceOrdersService } from '../../../../maintenance/services/maint
 import { MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../../../../maintenance/models/maintenance-order.model';
 import { SuborderDetailDialog, SuborderDetailDialogData } from '../../../../maintenance/components/suborder-detail-dialog';
 import { SuborderReviewDialog, SuborderReviewDialogData } from '../../../../maintenance/components/suborder-review-dialog';
-import { forkJoin, map } from 'rxjs';
+import { Articulo } from '../../../../inventario/models/articulo.model';
+import { ArticulosService } from '../../../../inventario/services/articulos.service';
+import { MovimientosInventarioService } from '../../../../inventario/services/movimientos-inventario.service';
+import { forkJoin, map, of, type Observable } from 'rxjs';
 
-/** Genera una inspección mock de ejemplo para ver detalle en llegada */
+/**
+ * Inspección de salida de ejemplo — solo para MOSTRAR el detalle en los
+ * pasos de llegada cuando todavía no hay una inspección real persistida.
+ * `id: 0` marca que NO existe en el backend: los diálogos que la reciben
+ * van siempre en modo lectura (`readonly: true`), nunca hacen PUT/PATCH.
+ */
 function createMockCompletedInspection(operatorName: string, unitCode: string): VehicleInspection {
   return {
-    id: 999,
+    id: 0,
     unidadId: 1,
     unidadCode: unitCode,
     fecha: new Date().toISOString().split('T')[0],
@@ -100,7 +112,7 @@ function createMockCompletedInspection(operatorName: string, unitCode: string): 
   };
 }
 
-const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'revisar_reportes_salida', 'ejecucion_operativa', 'en_ejecucion_llegada', 'mantenimiento', 'revisar_reportes_llegada', 'en_revision'];
+const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'revisar_reportes_salida', 'ejecucion_operativa', 'gerenciamiento_llegada', 'en_ejecucion_llegada', 'mantenimiento', 'revisar_reportes_llegada', 'en_revision', 'finalizado'];
 
 /** PumpingUnitReport guarda fechas como string ISO (yyyy-MM-dd); dynadrill-datetime-picker trabaja con Date. */
 function toIsoDateString(date: Date | null): string {
@@ -123,6 +135,7 @@ function toIsoDateString(date: Date | null): string {
     DynadrillInspectionGridComponent,
     DynadrillChipGroupComponent,
     DynadrillApprovalActionsComponent,
+    DynadrillUploadZoneComponent,
   ],
   templateUrl: './ticket-detail-page.html',
   styleUrl: './ticket-detail-page.scss',
@@ -134,12 +147,15 @@ export class TicketDetailPage {
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(DynadrillDialogService);
+  private readonly docsBridge = inject(OperativoDocsBridgeService);
 
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
   private readonly unitReportsService = inject(UnitReportsService);
   private readonly unidadesService = inject(UnidadesService);
   private readonly vehicleInspectionsService = inject(VehicleInspectionsService);
   private readonly maintenanceOrdersService = inject(MaintenanceOrdersService);
+  private readonly articulosService = inject(ArticulosService);
+  private readonly movimientosInventarioService = inject(MovimientosInventarioService);
 
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
@@ -206,14 +222,72 @@ export class TicketDetailPage {
   ];
   protected readonly selectedUnits = signal<number[]>([]);
 
-  protected readonly chemicalOptions: DynadrillSelectOption[] = [
-    { label: 'Biocida QX-12 — gal', value: 1 },
-    { label: 'Inhibidor de corrosión — gal', value: 2 },
-    { label: 'Surfactante SF-3 — gal', value: 3 },
-    { label: 'Fosfato — gal', value: 4 },
-    { label: 'Amonio — gal', value: 5 },
-  ];
+  // ── Químicos: catálogo real de Inventario (Bodeguero), categoría QUIMICA ──
+
+  /** Solo los químicos existen como Articulo con stock — se cargan desde el módulo Inventario, no una lista fija. */
+  protected readonly chemicalArticulos = signal<Articulo[]>([]);
+
+  protected readonly chemicalOptions = computed<DynadrillSelectOption[]>(() =>
+    this.chemicalArticulos().map(a => ({
+      label: `${a.nombre} — ${a.unidadStock} (stock: ${a.stockActual})`,
+      value: a.id,
+    })),
+  );
+
   protected readonly selectedChemicals = signal<number[]>([]);
+  /** Cantidad a retirar de bodega por cada químico seleccionado (articuloId → cantidad). */
+  protected readonly chemicalQuantities = signal<Map<number, number>>(new Map());
+  /** Documento de mezcla de químicos — obligatorio en cuanto se selecciona al menos un químico. */
+  protected readonly chemicalMixtureDocument = signal<NzUploadFile | null>(null);
+
+  private loadChemicalArticulos(): void {
+    this.articulosService.list().subscribe({
+      next: articulos => this.chemicalArticulos.set(articulos.filter(a => a.categoria === 'QUIMICA' && a.activo)),
+    });
+  }
+
+  protected chemicalArticulo(articuloId: number): Articulo | undefined {
+    return this.chemicalArticulos().find(a => a.id === articuloId);
+  }
+
+  protected selectedChemicalRows(): Articulo[] {
+    const ids = this.selectedChemicals();
+    return this.chemicalArticulos().filter(a => ids.includes(a.id));
+  }
+
+  protected chemicalQuantity(articuloId: number): string {
+    const n = this.chemicalQuantities().get(articuloId);
+    return n != null ? String(n) : '';
+  }
+
+  protected onChemicalQuantityChange(articuloId: number, value: string): void {
+    const n = Number(value);
+    this.chemicalQuantities.update(map => {
+      const updated = new Map(map);
+      if (Number.isFinite(n) && n > 0) {
+        updated.set(articuloId, n);
+      } else {
+        updated.delete(articuloId);
+      }
+      return updated;
+    });
+  }
+
+  protected onChemicalMixtureDocumentSelected(file: NzUploadFile): void {
+    this.chemicalMixtureDocument.set(file);
+  }
+
+  /** Motivo de bloqueo (cantidad sin definir o stock insuficiente en bodega), o null si todo está en regla. */
+  protected readonly chemicalStockError = computed(() => {
+    for (const articulo of this.selectedChemicalRows()) {
+      const cantidad = this.chemicalQuantities().get(articulo.id);
+      if (!cantidad || cantidad <= 0) return `Ingrese la cantidad a retirar de ${articulo.nombre}.`;
+      if (cantidad > articulo.stockActual) {
+        return `${articulo.nombre}: stock insuficiente en bodega (disponible ${articulo.stockActual} ${articulo.unidadStock}).`;
+      }
+    }
+    return null;
+  });
 
   // ══════════════════════════════════════════════
   // PASO 2: Asignación — Resumen
@@ -455,23 +529,24 @@ export class TicketDetailPage {
   }
 
   /**
-   * El cliente pidió invertir el orden (confirmado al revisar el código: el
-   * Gerenciamiento se creaba después de aprobar el reporte, cuando debe ser
-   * al revés) — ahora el Gerenciamiento de Viaje es requisito para TODOS
-   * los operadores del ticket, no solo para los ya aprobados, porque la
-   * aprobación del reporte ya no se habilita sin él primero.
+   * Orden final confirmado con el cliente: el Supervisor primero revisa y
+   * aprueba la inspección + reporte de unidad de cada operador; recién una
+   * vez aprobado crea el Gerenciamiento de Viaje de salida (ver
+   * reviewSalidaActionsTpl) — por eso solo cuenta el Gerenciamiento de los
+   * operadores ya aprobados, no de todos los del ticket.
    */
   protected readonly allTravelManagementsCompleted = computed(() => {
     const rows = this.reviewSalidaRows();
+    const approved = this.approvedSalidaOperators();
     const travels = this.travelManagements();
     if (rows.length === 0) return false;
-    return rows.every(r => travels.has(r.id));
+    return rows.every(r => approved.has(r.id) && travels.has(r.id));
   });
 
   /**
-   * Abre el dialog de Gerenciamiento de Viaje (DYN-SGI-RE-049) — ahora es
-   * el PRIMER paso por operador; recién con esto completo se habilita
-   * "Revisar y aprobar" el Reporte de Unidad (ver reviewSalidaActionsTpl).
+   * Abre el dialog de Gerenciamiento de Viaje (DYN-SGI-RE-049) — último
+   * paso por operador, solo disponible una vez aprobado su reporte de
+   * unidad (ver reviewSalidaActionsTpl).
    * Según los puntos:
    * - BAJO: el supervisor directo aprueba (se completa inmediatamente)
    * - MEDIO/ALTO: requiere aprobación del Jefe de Base (queda pendiente)
@@ -665,9 +740,16 @@ export class TicketDetailPage {
     return this.returnTravelPendingApproval().has(row['id'] as number);
   }
 
-  /** Mismo cambio de orden que en salida — ver allTravelManagementsCompleted más arriba. */
+  /**
+   * Orden final confirmado con el cliente: para la llegada el Gerenciamiento
+   * de Viaje va PRIMERO — antes de que el operador pueda siquiera crear la
+   * inspección y el reporte de unidad de llegada (paso `gerenciamiento_llegada`,
+   * ver advanceFromGerenciamientoLlegada). Por eso se basa en personnelRows
+   * (la asignación del ticket) y no en reviewLlegadaRows, que depende de un
+   * reporte que en este punto todavía no existe.
+   */
   protected readonly allReturnTravelManagementsCompleted = computed(() => {
-    const rows = this.reviewLlegadaRows();
+    const rows = this.personnelRows();
     const travels = this.returnTravelManagements();
     if (rows.length === 0) return false;
     return rows.every(r => travels.has(r.id));
@@ -789,42 +871,25 @@ export class TicketDetailPage {
     { key: 'statusBadge', header: 'Estado', type: 'badge' },
   ];
 
-  /** Generates rows for each day from departure date to today (max 3 days for demo) */
+  /**
+   * Un solo reporte diario (el de hoy) — a pedido del cliente: llenar un
+   * reporte por cada día del servicio hacía el flujo demasiado lento para
+   * avanzar en la demo. Si más adelante se quiere el historial completo,
+   * volver a iterar desde `unitReport.departureDate`.
+   */
   protected readonly dailyReportDayRows = computed(() => {
     const t = this.ticket();
     if (!t) return [];
     const reports = this.dailyActivityReports();
-    const startDate = t.unitReport?.departureDate || t.estimatedDate;
-    if (!startDate) return [];
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Use the later of: departure date or 2 days ago (keeps demo manageable)
-    const departure = new Date(startDate + 'T00:00:00');
-    const twoDaysAgo = new Date(today);
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-    const start = departure > twoDaysAgo ? departure : twoDaysAgo;
-
-    const days: { id: number; dia: string; fecha: string; statusBadge: { text: string; tone: 'success' | 'warning' } }[] = [];
-
-    let current = new Date(start);
-    let dayNum = 1;
-    while (current <= today) {
-      const dateStr = current.toISOString().split('T')[0];
-      const hasReport = reports.has(dateStr);
-      days.push({
-        id: dayNum,
-        dia: `Día ${dayNum}`,
-        fecha: dateStr,
-        statusBadge: hasReport
-          ? { text: 'Completado', tone: 'success' }
-          : { text: 'Pendiente', tone: 'warning' },
-      });
-      current.setDate(current.getDate() + 1);
-      dayNum++;
-    }
-    return days;
+    const dateStr = new Date().toISOString().split('T')[0];
+    return [{
+      id: 1,
+      dia: 'Día 1',
+      fecha: dateStr,
+      statusBadge: reports.has(dateStr)
+        ? { text: 'Completado', tone: 'success' as const }
+        : { text: 'Pendiente', tone: 'warning' as const },
+    }];
   });
 
   protected isDailyReportCompleted(row: Record<string, unknown>): boolean {
@@ -837,6 +902,34 @@ export class TicketDetailPage {
     const reports = this.dailyActivityReports();
     return rows.every(r => reports.has(r.fecha));
   });
+
+  /** Puente Pumping → Facturación: al guardar un reporte diario, se empuja al Pedido vinculado. */
+  private enviarReporteJobAFacturacion(report: DailyActivityReport): void {
+    const t = this.ticket();
+    if (!t?.pedidoCode) return;
+    const actividades = report.actividades
+      .filter(a => a.detalle.trim())
+      .map((a, i) => ({
+        id: i + 1,
+        date: report.fecha,
+        startTime: a.inicio,
+        endTime: a.fin,
+        durationHours: a.horas ?? 0,
+        detail: a.detalle,
+        author: report.nombreSupervisor || t.assignedSupervisor,
+      }));
+    if (!actividades.length) return;
+    this.docsBridge.pushReporteJob({
+      pedidoCode: t.pedidoCode,
+      origen: 'pumping',
+      ticketOperativoId: t.id,
+      fecha: report.fecha,
+      firmadoPor: report.nombreSupervisor || t.assignedSupervisor,
+      header: { code: t.code, cliente: t.clientName, pozo: t.wellName, supervisor: t.assignedSupervisor, operador: t.assignedOperator },
+      actividades,
+    });
+    this.notify.info('Enviado a Facturación', `Reporte Job del ${report.fecha} vinculado al Pedido ${t.pedidoCode}.`);
+  }
 
   protected openDailyActivityReportForDay(row: Record<string, unknown>): void {
     const t = this.ticket();
@@ -860,17 +953,125 @@ export class TicketDetailPage {
 
     ref.afterClose.subscribe((result: DailyActivityReportDialogResult | undefined) => {
       if (result?.saved && result.report) {
+        const report = { ...result.report, fecha };
         this.dailyActivityReports.update(map => {
           const updated = new Map(map);
-          updated.set(fecha, { ...result.report!, fecha });
+          updated.set(fecha, report);
           return updated;
         });
         this.notify.success('Reporte guardado', `Reporte del ${fecha} guardado correctamente.`);
+        this.enviarReporteJobAFacturacion(report);
       }
     });
   }
 
+  // ── Cierre de químicos — consumo real y devolución de sobrante a bodega ──
+
+  protected readonly chemicalConsumptionInputs = signal<Map<number, string>>(new Map());
+
+  protected chemicalConsumptionInput(chemicalId: number): string {
+    return this.chemicalConsumptionInputs().get(chemicalId) ?? '';
+  }
+
+  protected onChemicalConsumptionInputChange(chemicalId: number, value: string): void {
+    this.chemicalConsumptionInputs.update(map => {
+      const updated = new Map(map);
+      updated.set(chemicalId, value);
+      return updated;
+    });
+  }
+
+  protected chemicalConsumptionValid(chemical: PumpingChemical): boolean {
+    const raw = this.chemicalConsumptionInput(chemical.id);
+    if (raw.trim() === '') return false;
+    const n = Number(raw);
+    return Number.isFinite(n) && n >= 0 && n <= chemical.quantityAssigned;
+  }
+
+  /** Sobrante en vivo, mientras el Supervisor escribe la cantidad usada (antes de guardar). */
+  protected chemicalConsumptionPreviewSobrante(chemical: PumpingChemical): number | null {
+    const raw = this.chemicalConsumptionInput(chemical.id);
+    if (raw === '') return null;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return null;
+    return Math.max(chemical.quantityAssigned - n, 0);
+  }
+
+  protected readonly allChemicalsClosed = computed(() => {
+    const t = this.ticket();
+    if (!t) return false;
+    return t.chemicals.every(c => c.consumptionRegistered);
+  });
+
+  /**
+   * Registra el consumo real de un químico. Si queda sobrante, se devuelve
+   * a bodega automáticamente (entrada real en el kardex de Inventario, a
+   * cargo del Bodeguero) — sin esto el "sobrante" quedaría solo anotado en
+   * Pumping sin reflejarse nunca en el stock que Bodeguero administra.
+   */
+  protected registerChemicalConsumption(chemical: PumpingChemical): void {
+    const t = this.ticket();
+    if (!t || !this.chemicalConsumptionValid(chemical)) return;
+    const quantityUsed = Number(this.chemicalConsumptionInput(chemical.id));
+
+    this.pumpingService.registerChemicalConsumption(t.id, chemical.id, quantityUsed).subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        const sobrante = chemical.quantityAssigned - quantityUsed;
+        if (sobrante <= 0) {
+          this.notify.success('Consumo registrado', `${chemical.name}: sin sobrante que devolver a bodega.`);
+          return;
+        }
+        this.returnChemicalToWarehouse(t, chemical, sobrante);
+      },
+      error: () => this.notify.error('Error', `No se pudo registrar el consumo de ${chemical.name}.`),
+    });
+  }
+
+  private returnChemicalToWarehouse(t: PumpingTicket, chemical: PumpingChemical, sobrante: number): void {
+    const responsable = this.auth.currentUser()?.name ?? t.assignedSupervisor ?? 'Supervisor';
+    this.movimientosInventarioService.registrar({
+      articuloId: chemical.articuloId,
+      tipo: 'entrada',
+      cantidad: sobrante,
+      fecha: new Date().toISOString().slice(0, 10),
+      motivo: `Devolución de sobrante — Ticket ${t.code}`,
+      responsable,
+    }).subscribe({
+      next: () => this.notify.success('Sobrante devuelto a bodega', `${chemical.name}: ${sobrante} ${chemical.unit} devueltos y registrados en Inventario.`),
+      error: () => this.notify.error('Error', `El consumo de ${chemical.name} se guardó, pero no se pudo registrar la devolución a bodega.`),
+    });
+  }
+
   protected advanceFromEjecucionOperativa(): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.submitting.set(true);
+    const nextStep: PumpingStep = 'gerenciamiento_llegada';
+    this.pumpingService.advanceStep(t.id, nextStep).subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        this.submitting.set(false);
+        const nextRole = PUMPING_STEP_ROLE[nextStep];
+        this.auth.switchRole(nextRole.roleName, nextRole.roleId);
+        this.notify.success('Avanzado', `El ticket avanza a Gerenciamiento de llegada. Ahora actúa como ${nextRole.roleName}.`);
+        this.router.navigate(['..'], { relativeTo: this.route });
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.notify.error('Error', 'No se pudo avanzar el ticket.');
+      },
+    });
+  }
+
+  /**
+   * Orden final confirmado con el cliente: el Gerenciamiento de Viaje de
+   * llegada lo crea el Supervisor ANTES de que el operador pueda crear la
+   * inspección y el reporte de unidad de llegada — ver
+   * allReturnTravelManagementsCompleted/openReturnTravelManagement más
+   * arriba, gated en el paso `gerenciamiento_llegada`.
+   */
+  protected advanceFromGerenciamientoLlegada(): void {
     const t = this.ticket();
     if (!t) return;
     this.submitting.set(true);
@@ -1130,6 +1331,7 @@ export class TicketDetailPage {
       },
       error: () => this.loading.set(false),
     });
+    this.loadChemicalArticulos();
   }
 
   private canAccessStep(step: PumpingStep): boolean {
@@ -1240,6 +1442,17 @@ export class TicketDetailPage {
   protected saveAssignments(): void {
     const t = this.ticket();
     if (!t) return;
+
+    const stockError = this.chemicalStockError();
+    if (stockError) {
+      this.notify.error('Químicos', stockError);
+      return;
+    }
+    if (this.selectedChemicals().length > 0 && !this.chemicalMixtureDocument()) {
+      this.notify.error('Documento requerido', 'Adjunte el documento de mezcla de químicos antes de continuar.');
+      return;
+    }
+
     this.submitting.set(true);
 
     this.validateTransporteUnits().subscribe(errorMessage => {
@@ -1249,22 +1462,61 @@ export class TicketDetailPage {
         return;
       }
 
-      this.pumpingService.assignResources(t.id, {
-        operatorIds: this.selectedOperators(),
-        unitIds: this.selectedUnits(),
-        chemicalIds: this.selectedChemicals(),
-      }).subscribe({
-        next: updated => {
-          this.ticket.set(updated);
-          this.submitting.set(false);
-          this.notify.success('Guardado', 'Asignaciones guardadas correctamente.');
-          this.advanceToNextStep(t);
-        },
+      this.withdrawChemicalsFromWarehouse(t).subscribe({
+        next: () => this.persistAssignments(t),
         error: () => {
           this.submitting.set(false);
-          this.notify.error('Error', 'No se pudieron guardar las asignaciones.');
+          this.notify.error('Error', 'No se pudo registrar la salida de bodega de los químicos.');
         },
       });
+    });
+  }
+
+  /**
+   * Registra en Inventario (kardex del Bodeguero) la salida de cada
+   * químico seleccionado — es lo que respalda que más adelante, al cerrar
+   * la ejecución, el sobrante pueda devolverse contra stock real.
+   */
+  private withdrawChemicalsFromWarehouse(t: PumpingTicket): Observable<unknown> {
+    const rows = this.selectedChemicalRows();
+    if (rows.length === 0) return of(null);
+    const responsable = this.auth.currentUser()?.name ?? t.assignedSupervisor ?? 'Supervisor';
+    return forkJoin(rows.map(articulo =>
+      this.movimientosInventarioService.registrar({
+        articuloId: articulo.id,
+        tipo: 'salida',
+        cantidad: this.chemicalQuantities().get(articulo.id)!,
+        fecha: new Date().toISOString().slice(0, 10),
+        motivo: `Asignación a Ticket ${t.code}`,
+        responsable,
+      }),
+    ));
+  }
+
+  private persistAssignments(t: PumpingTicket): void {
+    const chemicals = this.selectedChemicalRows().map(articulo => ({
+      articuloId: articulo.id,
+      name: articulo.nombre,
+      unit: articulo.unidadStock,
+      cantidad: this.chemicalQuantities().get(articulo.id)!,
+    }));
+
+    this.pumpingService.assignResources(t.id, {
+      operatorIds: this.selectedOperators(),
+      unitIds: this.selectedUnits(),
+      chemicals,
+      chemicalMixtureDocument: this.chemicalMixtureDocument()?.name,
+    }).subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        this.submitting.set(false);
+        this.notify.success('Guardado', 'Asignaciones guardadas correctamente.');
+        this.advanceToNextStep(t);
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.notify.error('Error', 'No se pudieron guardar las asignaciones.');
+      },
     });
   }
 
@@ -1479,7 +1731,7 @@ export class TicketDetailPage {
     this.pumpingService.approveTicket(t.id).subscribe({
       next: () => {
         this.submitting.set(false);
-        this.notify.success('Aprobado', 'Ticket aprobado correctamente.');
+        this.notify.success('Aprobado', 'Ticket aprobado — pasa a estado Finalizado.');
         this.router.navigate(['..'], { relativeTo: this.route });
       },
       error: () => {
@@ -1488,6 +1740,25 @@ export class TicketDetailPage {
       },
     });
   }
+
+  protected rejectTicket(): void {
+    const t = this.ticket();
+    if (!t || this.decision() !== 'rejected') return;
+    this.submitting.set(true);
+    this.pumpingService.rejectTicket(t.id, this.ticketRejectionReason()).subscribe({
+      next: () => {
+        this.submitting.set(false);
+        this.notify.success('Rechazado', 'El ticket volvió a revisión de reportes de llegada.');
+        this.router.navigate(['..'], { relativeTo: this.route });
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.notify.error('Error', 'No se pudo rechazar el ticket.');
+      },
+    });
+  }
+
+  protected readonly ticketRejectionReason = signal('');
 
   // ══════════════════════════════════════════════
   // Event handlers
@@ -1506,7 +1777,16 @@ export class TicketDetailPage {
   }
 
   protected onChemicalsChange(value: unknown): void {
-    this.selectedChemicals.set(Array.isArray(value) ? value : []);
+    const ids = Array.isArray(value) ? (value as number[]) : [];
+    this.selectedChemicals.set(ids);
+    // Si se deselecciona un químico, no arrastrar una cantidad huérfana.
+    this.chemicalQuantities.update(map => {
+      const updated = new Map(map);
+      for (const id of updated.keys()) {
+        if (!ids.includes(id)) updated.delete(id);
+      }
+      return updated;
+    });
   }
 
   protected onDecisionChange(decision: DynadrillApprovalDecision): void {
@@ -1582,7 +1862,7 @@ export class TicketDetailPage {
     this.dialog.open<VehicleInspectionDialog, VehicleInspectionDialogData>({
       title: 'Detalle de Inspección — DYN-SGI-RE-068',
       content: VehicleInspectionDialog,
-      data: { existing },
+      data: { existing, readonly: true },
       size: 'large',
       footer: false,
     });
@@ -1596,7 +1876,7 @@ export class TicketDetailPage {
     this.dialog.open<VehicleInspectionDialog, VehicleInspectionDialogData>({
       title: 'Detalle de Inspección (Llegada) — DYN-SGI-RE-068',
       content: VehicleInspectionDialog,
-      data: { existing },
+      data: { existing, readonly: true },
       size: 'large',
       footer: false,
     });

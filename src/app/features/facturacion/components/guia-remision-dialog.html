@@ -1,0 +1,58 @@
+<div class="guia-rem">
+  <dynadrill-text variant="caption">
+    Requisito previo a generar la prefactura — solo aplica a ítems tipo Material (unidades), no a servicios.
+  </dynadrill-text>
+
+  <div class="guia-rem__grid">
+    <dynadrill-input label="Solicitado por" [value]="solicitadoPor()" (valueChange)="solicitadoPor.set($event)" />
+    <dynadrill-input label="Despachado por" [value]="despachadoPor()" (valueChange)="despachadoPor.set($event)" />
+    <dynadrill-input label="Lugar de origen" [value]="lugarOrigen()" (valueChange)="lugarOrigen.set($event)" />
+    <dynadrill-input label="Hora de salida" placeholder="HH:mm" [value]="horaSalida()" (valueChange)="horaSalida.set($event)" />
+    <dynadrill-input label="Hora de llegada" placeholder="HH:mm" [value]="horaLlegada()" (valueChange)="horaLlegada.set($event)" />
+  </div>
+
+  <div class="guia-rem__grid">
+    <dynadrill-input label="Persona encargada del transporte" [value]="personaNombre()" (valueChange)="personaNombre.set($event)" />
+    <dynadrill-input label="RUC / Cédula" [value]="personaCedula()" (valueChange)="personaCedula.set($event)" />
+    <dynadrill-input label="Vehículo" [value]="vehiculo()" (valueChange)="vehiculo.set($event)" />
+    <dynadrill-input label="Placa" [value]="placa()" (valueChange)="placa.set($event)" />
+  </div>
+
+  <div class="guia-rem__items-form">
+    <dynadrill-text variant="caption" class="guia-rem__items-form-title">Agregar ítem despachado</dynadrill-text>
+    <div class="guia-rem__row-triple">
+      <dynadrill-input label="Código" [value]="draft().codigo" (valueChange)="updateDraft('codigo', $event)" />
+      <dynadrill-input label="Unidad" [value]="draft().unidad" (valueChange)="updateDraft('unidad', $event)" />
+      <dynadrill-input label="Serie" [value]="draft().serie" (valueChange)="updateDraft('serie', $event)" />
+    </div>
+    <dynadrill-input label="Descripción" [value]="draft().descripcion" (valueChange)="updateDraft('descripcion', $event)" />
+    <div class="guia-rem__row-cantidad">
+      <dynadrill-input label="Cantidad" type="number" [value]="draft().cantidad" (valueChange)="updateDraft('cantidad', +$event)" />
+      <dynadrill-button variant="secondary" size="small" (clicked)="agregarItem()">+ Agregar ítem</dynadrill-button>
+    </div>
+  </div>
+
+  @if (items().length) {
+    <table class="guia-rem__items">
+      <thead><tr><th>Código</th><th>Descripción</th><th>Serie</th><th>Cantidad</th><th></th></tr></thead>
+      <tbody>
+        @for (item of items(); track $index) {
+          <tr>
+            <td>{{ item.codigo }}</td>
+            <td>{{ item.descripcion }}</td>
+            <td>{{ item.serie || '—' }}</td>
+            <td>{{ item.cantidad }} {{ item.unidad }}</td>
+            <td><dynadrill-button variant="secondary" size="small" (clicked)="quitarItem($index)">Quitar</dynadrill-button></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+
+  <div class="guia-rem__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="generar()">
+      {{ submitting() ? 'Generando…' : 'Generar guía' }}
+    </dynadrill-button>
+  </div>
+</div>

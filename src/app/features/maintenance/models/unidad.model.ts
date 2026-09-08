@@ -79,6 +79,16 @@ export interface Unidad {
   marca?: string;
   modelo?: string;
   anio?: string;
+  /**
+   * ── Documentos legales del vehículo (ISO fecha) ──
+   * Antes se tipeaban a mano en cada Inspección de Vehículos (DYN-SGI-RE-068).
+   * Son datos maestros: no cambian de viaje a viaje. La inspección los
+   * precarga y bloquea; se editan solo acá, en Inventario.
+   */
+  fechaMatricula?: string;
+  caducidadMatricula?: string;
+  caducidadPoliza?: string;
+  vigenciaOtroDocumento?: string;
   /** Responsable administrativo/patrimonial del activo — no es el operador que lo usa en campo. */
   responsablePatrimonial?: string;
   /** Unidad de referencia dentro de su categoría (informativo). */
@@ -91,7 +101,18 @@ export interface Unidad {
 /** Campos patrimoniales editables desde Inventario — no incluye nada operativo de Mantenimiento. */
 export type UpdatePatrimonioInput = Pick<
   Unidad,
-  'placa' | 'marca' | 'modelo' | 'anio' | 'responsablePatrimonial' | 'predeterminado' | 'activo' | 'notaInventario'
+  | 'placa'
+  | 'marca'
+  | 'modelo'
+  | 'anio'
+  | 'fechaMatricula'
+  | 'caducidadMatricula'
+  | 'caducidadPoliza'
+  | 'vigenciaOtroDocumento'
+  | 'responsablePatrimonial'
+  | 'predeterminado'
+  | 'activo'
+  | 'notaInventario'
 >;
 
 /**
@@ -118,6 +139,10 @@ export type CreateUnidadInput = Pick<
   | 'marca'
   | 'modelo'
   | 'anio'
+  | 'fechaMatricula'
+  | 'caducidadMatricula'
+  | 'caducidadPoliza'
+  | 'vigenciaOtroDocumento'
   | 'responsablePatrimonial'
   | 'predeterminado'
   | 'activo'

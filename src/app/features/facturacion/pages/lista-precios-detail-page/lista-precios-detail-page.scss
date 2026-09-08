@@ -1,0 +1,33 @@
+@use '../../facturacion-ui' as f;
+
+.lp-detail {
+  @include f.page;
+
+  .fact-card { @include f.card; }
+
+  &__head { @include f.card-head; }
+
+  &__head-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__new {
+    @include f.subform;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    align-items: end;
+  }
+
+  &__table {
+    @include f.table;
+
+    td { vertical-align: top; }
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
+}

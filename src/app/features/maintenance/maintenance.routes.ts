@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { provideDynadrillCharts } from '@digitec-it-projects/dynadrill-ui';
-import { BarChart, GaugeChart, LineChart } from 'echarts/charts';
+import { BarChart, GaugeChart, LineChart, PieChart } from 'echarts/charts';
 import { roleGuard } from '../../core/guards/role.guard';
 
 /** Superadmin/Jefe de Base ven todos los módulos (ver sidebar.ts). */
@@ -30,6 +30,6 @@ export const maintenanceRoutes: Routes = [
     loadComponent: () => import('./pages/maintenance-kpis-page').then(m => m.MaintenanceKpisPage),
     canActivate: [roleGuard],
     data: { allowedRoles: JEFE_MANTENIMIENTO_ROLES },
-    providers: [provideDynadrillCharts([BarChart, LineChart, GaugeChart])],
+    providers: [provideDynadrillCharts([BarChart, LineChart, GaugeChart, PieChart])],
   },
 ];

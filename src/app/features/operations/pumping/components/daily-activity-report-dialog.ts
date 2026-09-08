@@ -70,10 +70,6 @@ export class DailyActivityReportDialog {
     this.data.existing?.actividades ?? [
       { inicio: '', fin: '', horas: null, detalle: '' },
       { inicio: '', fin: '', horas: null, detalle: '' },
-      { inicio: '', fin: '', horas: null, detalle: '' },
-      { inicio: '', fin: '', horas: null, detalle: '' },
-      { inicio: '', fin: '', horas: null, detalle: '' },
-      { inicio: '', fin: '', horas: null, detalle: '' },
     ],
   );
 

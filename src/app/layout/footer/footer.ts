@@ -8,4 +8,6 @@ import { DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
   templateUrl: './footer.html',
   styleUrl: './footer.scss',
 })
-export class Footer {}
+export class Footer {
+  protected readonly year = new Date().getFullYear();
+}

@@ -93,7 +93,7 @@ export class InspeccionEquipoDialog {
 
     const input: CreateInspeccionInput = {
       tipo: this.tipo(),
-      equipoCodigo: this.equipoCodigo(),
+      equipoCodigo: this.equipoCodigo().trim(),
       inspectorNombre: this.inspectorNombre(),
       fecha: this.fecha()!.toISOString(),
       criterios: this.criterios(),

@@ -78,8 +78,8 @@
       }
     </div>
 
-    @if (npInicial(); as np) {
-      <dynadrill-tag [label]="'NP = ' + np + ' · ' + interpretarNP(np).label" variant="neutral" />
+    @if (npInicial() !== null) {
+      <dynadrill-tag [label]="'NP = ' + npInicial() + ' · ' + interpretarNP(npInicial()!).label" variant="neutral" />
     }
 
     <div class="iperc-hazard-panel__gtc-axis">
@@ -98,8 +98,8 @@
       }
     </div>
 
-    @if (nrInicial(); as nr) {
-      <dynadrill-tag [label]="'NR = ' + nr + ' · Nivel ' + interpretarNR(nr).label + ' — ' + interpretarNR(nr).aceptabilidad" variant="brand" />
+    @if (nrInicial() !== null) {
+      <dynadrill-tag [label]="'NR = ' + nrInicial() + ' · Nivel ' + interpretarNR(nrInicial()!).label + ' — ' + interpretarNR(nrInicial()!).aceptabilidad" variant="brand" />
     }
   </section>
 
@@ -164,8 +164,8 @@
       }
     </div>
 
-    @if (npResidual(); as np) {
-      <dynadrill-tag [label]="'NP = ' + np + ' · ' + interpretarNP(np).label" variant="neutral" />
+    @if (npResidual() !== null) {
+      <dynadrill-tag [label]="'NP = ' + npResidual() + ' · ' + interpretarNP(npResidual()!).label" variant="neutral" />
     }
 
     <div class="iperc-hazard-panel__gtc-axis">
@@ -184,8 +184,8 @@
       }
     </div>
 
-    @if (nrResidual(); as nr) {
-      <dynadrill-tag [label]="'NR = ' + nr + ' · Nivel ' + interpretarNR(nr).label + ' — ' + interpretarNR(nr).aceptabilidad" variant="brand" />
+    @if (nrResidual() !== null) {
+      <dynadrill-tag [label]="'NR = ' + nrResidual() + ' · Nivel ' + interpretarNR(nrResidual()!).label + ' — ' + interpretarNR(nrResidual()!).aceptabilidad" variant="brand" />
     }
   </section>
 

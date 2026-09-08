@@ -43,6 +43,7 @@ type FirmaCampo = 'firmaGenerador' | 'firmaTransportista' | 'firmaGestor';
 })
 export class DesechoDetailPage {
   private readonly desechoService = inject(DesechoService);
+  private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -99,7 +100,12 @@ export class DesechoDetailPage {
     const current = this.desecho();
     if (!current) return;
     this.desecho.set({ ...current, ...changes });
-    this.desechoService.update(current.id, changes).subscribe();
+    this.desechoService.update(current.id, changes).subscribe({
+      error: () => {
+        this.desecho.set(current);
+        this.notify.error('Error', 'No se pudo guardar el cambio. Inténtalo de nuevo.');
+      },
+    });
   }
 
   protected generarManifiesto(): void {

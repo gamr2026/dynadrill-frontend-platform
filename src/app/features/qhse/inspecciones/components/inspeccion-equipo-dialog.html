@@ -6,7 +6,7 @@
 
   <div class="inspeccion-equipo-dialog__grid">
     <dynadrill-input label="Inspector" [value]="inspectorNombre()" (valueChange)="inspectorNombre.set($event)" />
-    <dynadrill-datetime-picker mode="date" label="Fecha" [value]="fecha()!" (valueChange)="fecha.set($event)" />
+    <dynadrill-datetime-picker mode="date" label="Fecha" [value]="$any(fecha())" (valueChange)="fecha.set($event)" />
   </div>
 
   @if (tipo() === 'detector_gas') {

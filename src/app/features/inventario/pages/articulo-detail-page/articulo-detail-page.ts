@@ -87,6 +87,11 @@ export class ArticuloDetailPage {
   protected readonly kardexRowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   constructor() {
+    if (Number.isNaN(this.articuloId)) {
+      this.notify.error('Error', 'El artículo solicitado no es válido.');
+      this.router.navigate(['/dashboard/inventario/articulos']);
+      return;
+    }
     this.reload();
   }
 
@@ -102,7 +107,10 @@ export class ArticuloDetailPage {
         this.notify.error('Error', 'No se pudo cargar el artículo.');
       },
     });
-    this.movimientosService.list(this.articuloId).subscribe(movimientos => this.movimientos.set(movimientos));
+    this.movimientosService.list(this.articuloId).subscribe({
+      next: movimientos => this.movimientos.set(movimientos),
+      error: () => this.notify.error('Error', 'No se pudo cargar el historial de movimientos.'),
+    });
   }
 
   protected back(): void {

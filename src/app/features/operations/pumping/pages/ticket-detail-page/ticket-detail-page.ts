@@ -190,6 +190,14 @@ export class TicketDetailPage {
     const nombres = this.conductoresPermisos();
     return nombres.length ? nombres[operatorId % nombres.length] : '';
   }
+  /** Inspecciones de vehículos ya registradas en el backend — para recuperar
+   *  la que hizo el operador (con su conductor real) al recargar la página. */
+  private readonly realInspections = signal<VehicleInspection[]>([]);
+  private ultimaInspeccionReal(unitCode: string): VehicleInspection | undefined {
+    return this.realInspections()
+      .filter(i => i.unidadCode === unitCode)
+      .sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
+  }
   /** Conductor elegido en la inspección de la unidad del operador (no el operador). */
   private conductorDeOperador(operatorId: number, retorno = false): string {
     const llegada = this.completedLlegadaInspections().get(operatorId) as VehicleInspection | undefined;
@@ -567,14 +575,14 @@ export class TicketDetailPage {
 
   /** Operadores cuyo gerenciamiento espera la autorización del Jefe de Base. */
   protected readonly travelPendingApproval = signal<Set<number>>(new Set());
-  /** Gerenciamientos MEDIO/ALTO retenidos hasta que el Jefe de Base autorice. */
+  /** Gerenciamientos retenidos hasta que el Jefe de Base los autorice. */
   protected readonly travelPendingManagements = signal<Map<number, TravelManagement>>(new Map());
   protected readonly returnTravelPendingManagements = signal<Map<number, TravelManagement>>(new Map());
 
   /**
-   * El Jefe de Base autoriza un gerenciamiento MEDIO/ALTO. Es un paso real:
-   * en la demo un mismo usuario recorre todos los roles, así que se confirma
-   * explícitamente "actuando como Jefe de Base".
+   * Todo Gerenciamiento de Viaje (DYN-SGI-RE-049) lo autoriza el Jefe de Base.
+   * En la demo un mismo usuario recorre todos los roles, así que al confirmar
+   * se ingresa de verdad como Jefe de Base (`switchRole`) antes de autorizar.
    */
   protected async autorizarGerenciamiento(row: Record<string, unknown>, retorno = false): Promise<void> {
     const id = row['id'] as number;
@@ -582,13 +590,16 @@ export class TicketDetailPage {
     const tm = pendientes.get(id);
     if (!tm) return;
     const ok = await this.dialog.confirm({
-      title: 'Autorización del Jefe de Base',
-      content: `Actuando como Jefe de Base: ¿autorizar el gerenciamiento de viaje${retorno ? ' de retorno' : ''} de ${row['name']}? Riesgo ${tm.riskLevel}${tm.riskLevel === 'ALTO' ? ' — requiere además visto bueno del Director General (fuera del alcance del app).' : '.'}`,
-      okText: 'Autorizar',
+      title: 'Ingresar como Jefe de Base',
+      content: `Vas a ingresar como Jefe de Base para autorizar el gerenciamiento de viaje${retorno ? ' de retorno' : ''} de ${row['name']} (riesgo ${tm.riskLevel})${tm.riskLevel === 'ALTO' ? '. El riesgo ALTO requiere además el visto bueno del Director General, fuera del alcance del app' : ''}.`,
+      okText: 'Ingresar como Jefe de Base y autorizar',
     });
     if (!ok) return;
 
-    const aprobador = this.jefeBaseNombre() || this.auth.currentUser()?.name || 'Jefe de Base';
+    // Ingreso real como Jefe de Base — el backend emite un token con ese rol.
+    this.auth.switchRole('Jefe de Base', 4);
+
+    const aprobador = this.jefeBaseNombre() || 'Jefe de Base';
     const autorizado: TravelManagement = { ...tm, approverName: aprobador, approverSignature: aprobador };
     const pendMap = retorno ? this.returnTravelPendingManagements : this.travelPendingManagements;
     const doneMap = retorno ? this.returnTravelManagements : this.travelManagements;
@@ -676,32 +687,22 @@ export class TicketDetailPage {
 
       const riskLevel = travelResult.travelManagement.riskLevel;
 
-      if (riskLevel === 'BAJO') {
-        // Supervisor directo aprueba — se completa inmediatamente
-        this.travelManagements.update(map => {
-          const updated = new Map(map);
-          updated.set(operatorId, travelResult.travelManagement!);
-          return updated;
-        });
-        this.notify.success('Gerenciamiento completado', `Riesgo BAJO — aprobado por supervisor directo.`);
-      } else {
-        // MEDIO o ALTO — queda pendiente hasta que el Jefe de Base lo autorice
-        // (el paso "Autorizar" en la tabla de personal).
-        this.travelPendingManagements.update(map => {
-          const updated = new Map(map);
-          updated.set(operatorId, travelResult.travelManagement!);
-          return updated;
-        });
-        this.travelPendingApproval.update(set => {
-          const updated = new Set(set);
-          updated.add(operatorId);
-          return updated;
-        });
-        this.notify.info(
-          'Pendiente de autorización',
-          `Riesgo ${riskLevel} — el Jefe de Base debe autorizar el gerenciamiento de viaje.`,
-        );
-      }
+      // Todo gerenciamiento queda pendiente hasta que el Jefe de Base lo
+      // autorice desde la tabla de personal ("Autorizar gerenciamiento").
+      this.travelPendingManagements.update(map => {
+        const updated = new Map(map);
+        updated.set(operatorId, travelResult.travelManagement!);
+        return updated;
+      });
+      this.travelPendingApproval.update(set => {
+        const updated = new Set(set);
+        updated.add(operatorId);
+        return updated;
+      });
+      this.notify.info(
+        'Enviado al Jefe de Base',
+        `Gerenciamiento de viaje de ${row['name']} (riesgo ${riskLevel}) — pendiente de autorización del Jefe de Base.`,
+      );
     });
   }
 
@@ -874,29 +875,20 @@ export class TicketDetailPage {
 
       const riskLevel = travelResult.travelManagement.riskLevel;
 
-      if (riskLevel === 'BAJO') {
-        this.returnTravelManagements.update(map => {
-          const updated = new Map(map);
-          updated.set(operatorId, travelResult.travelManagement!);
-          return updated;
-        });
-        this.notify.success('Gerenciamiento de retorno completado', 'Riesgo BAJO — aprobado por supervisor directo.');
-      } else {
-        this.returnTravelPendingManagements.update(map => {
-          const updated = new Map(map);
-          updated.set(operatorId, travelResult.travelManagement!);
-          return updated;
-        });
-        this.returnTravelPendingApproval.update(set => {
-          const updated = new Set(set);
-          updated.add(operatorId);
-          return updated;
-        });
-        this.notify.info(
-          'Pendiente de autorización',
-          `Riesgo ${riskLevel} — el Jefe de Base debe autorizar el gerenciamiento de retorno.`,
-        );
-      }
+      this.returnTravelPendingManagements.update(map => {
+        const updated = new Map(map);
+        updated.set(operatorId, travelResult.travelManagement!);
+        return updated;
+      });
+      this.returnTravelPendingApproval.update(set => {
+        const updated = new Set(set);
+        updated.add(operatorId);
+        return updated;
+      });
+      this.notify.info(
+        'Enviado al Jefe de Base',
+        `Gerenciamiento de retorno de ${row['name']} (riesgo ${riskLevel}) — pendiente de autorización del Jefe de Base.`,
+      );
     });
   }
 
@@ -1452,6 +1444,10 @@ export class TicketDetailPage {
     this.rolesService.usuariosPorRol('jefe_base').subscribe(us => this.jefeBaseNombre.set(us[0]?.name ?? ''));
     this.vehicleInspectionsService.listConductoresPermisos().subscribe(cs => {
       this.conductoresPermisos.set(cs.map(c => c.nombre));
+      this.syncMockInspections();
+    });
+    this.vehicleInspectionsService.list().subscribe(list => {
+      this.realInspections.set(list);
       this.syncMockInspections();
     });
   }
@@ -2029,25 +2025,29 @@ export class TicketDetailPage {
   // ══════════════════════════════════════════════
 
   /**
-   * (Re)genera las inspecciones de salida de EJEMPLO — solo para operadores
-   * sin inspección real (id 0). Se llama al hidratar el ticket y cada vez que
-   * llega un catálogo (Unidades, Conductores), para que ni la descripción del
-   * vehículo ni el conductor queden en blanco por una carrera de red.
+   * Hidrata la inspección de salida de cada operador desde el paso de revisión
+   * en adelante (la tabla ya la da por "Realizada"). Prioridad:
+   *  1. la inspección real que el operador registró (en sesión o en el backend),
+   *     de donde sale el conductor elegido;
+   *  2. si no hay ninguna, una de EJEMPLO (id 0, solo lectura) con la Unidad
+   *     real y un conductor con permisos.
+   * Se re-ejecuta al llegar cada catálogo para no perder una carrera de red.
    */
   private syncMockInspections(): void {
     const t = this.ticket();
     if (!t) return;
-    if (STEP_KEYS.indexOf(t.currentStep) < STEP_KEYS.indexOf('en_ejecucion_llegada')) return;
+    if (STEP_KEYS.indexOf(t.currentStep) < STEP_KEYS.indexOf('revisar_reportes_salida')) return;
     this.completedInspections.update(map => {
       const updated = new Map(map);
       for (const op of t.operators) {
         const actual = updated.get(op.id) as VehicleInspection | undefined;
-        if (!actual || actual.id === 0) {
-          updated.set(
-            op.id,
+        if (actual && actual.id !== 0) continue; // inspección real hecha en esta sesión
+        const real = this.ultimaInspeccionReal(op.unitCode);
+        updated.set(
+          op.id,
+          real ??
             createMockCompletedInspection(op.name, op.unitCode, this.unidadPorCodigo(op.unitCode), this.conductorParaOperador(op.id)),
-          );
-        }
+        );
       }
       return updated;
     });

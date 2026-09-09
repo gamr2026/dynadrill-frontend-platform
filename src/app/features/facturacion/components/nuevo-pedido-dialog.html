@@ -45,26 +45,39 @@
   </fieldset>
 
   <fieldset class="nuevo-pedido__group">
-    <legend>Línea estimada (cotizado)</legend>
+    <legend>Líneas estimadas (cotizado)</legend>
     @if (!listaCliente()) {
-      <dynadrill-text variant="caption">Selecciona un cliente con lista de precios para elegir el código.</dynadrill-text>
+      <dynadrill-text variant="caption">Selecciona un cliente con lista de precios para elegir los códigos.</dynadrill-text>
     }
-    <div class="nuevo-pedido__grid">
-      <dynadrill-select
-        label="Código (lista de precios del cliente)"
-        placeholder="Busca un código o descripción"
-        [options]="itemOptions()"
-        [value]="codigoEstimado()"
-        (valueChange)="onCodigoEstimadoChange($any($event))"
-      />
-      <dynadrill-input label="Cantidad" type="number" [value]="cantidadEstimada()" (valueChange)="cantidadEstimada.set(+$event)" />
-      <dynadrill-input label="Valor unitario" type="number" [value]="valorUnitarioEstimado()" (valueChange)="valorUnitarioEstimado.set(+$event)" />
+    @for (l of lineasEstimadas(); track $index) {
+      <div class="nuevo-pedido__linea">
+        <div class="nuevo-pedido__grid">
+          <dynadrill-select
+            label="Código (lista de precios del cliente)"
+            placeholder="Busca un código o descripción"
+            [options]="itemOptions()"
+            [value]="l.codigo"
+            (valueChange)="onLineaCodigoChange($index, $any($event))"
+          />
+          <dynadrill-input label="Cantidad" type="number" [value]="l.cantidad" (valueChange)="onLineaCampoChange($index, 'cantidad', $event)" />
+          <dynadrill-input label="Valor unitario" type="number" [value]="l.valorUnitario" (valueChange)="onLineaCampoChange($index, 'valorUnitario', $event)" />
+        </div>
+        <div class="nuevo-pedido__linea-foot">
+          @if (itemDeLinea(l.codigo); as it) {
+            <dynadrill-text variant="caption">{{ it.descripcion }} · {{ it.unidad }} · {{ it.tipo }}</dynadrill-text>
+          } @else {
+            <span></span>
+          }
+          @if (lineasEstimadas().length > 1) {
+            <dynadrill-button variant="secondary" size="small" (clicked)="quitarLinea($index)">Quitar</dynadrill-button>
+          }
+        </div>
+      </div>
+    }
+    <div class="nuevo-pedido__linea-actions">
+      <dynadrill-button variant="secondary" size="small" (clicked)="agregarLinea()">+ Agregar línea</dynadrill-button>
+      <dynadrill-text variant="caption">Valor estimado total ${{ valorEstimadoTotal() | number: '1.2-2' }}</dynadrill-text>
     </div>
-    @if (itemEstimadoSel(); as it) {
-      <dynadrill-text variant="caption">
-        {{ it.descripcion }} · {{ it.unidad }} · {{ it.tipo }} · valor estimado total ${{ valorEstimadoTotal() | number: '1.2-2' }}
-      </dynadrill-text>
-    }
   </fieldset>
 
   <div class="nuevo-pedido__actions">

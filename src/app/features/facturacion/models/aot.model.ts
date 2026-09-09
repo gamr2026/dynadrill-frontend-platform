@@ -56,6 +56,9 @@ export interface Aot {
 
   estado: EstadoAot;
   generadaAt: string;
+  /** Quién marcó la AOT como firmada en el sistema (la firma es física) y cuándo. */
+  firmadaPor?: string;
+  firmadaAt?: string;
 }
 
 export type CreateAotInput = Pick<Aot, 'pedidoId' | 'prefacturaId' | 'ciudad' | 'descripcionRequerimiento' | 'representanteCliente'>;

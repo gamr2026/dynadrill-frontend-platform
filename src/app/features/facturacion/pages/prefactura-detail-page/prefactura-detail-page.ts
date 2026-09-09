@@ -13,7 +13,7 @@ import {
   DynadrillTagComponent,
   DynadrillTextComponent,
 } from '@digitec-it-projects/dynadrill-ui';
-import { Pedido } from '../../models/pedido.model';
+import { Pedido, itemEstimadoPrincipal } from '../../models/pedido.model';
 import { Prefactura } from '../../models/prefactura.model';
 import { GuiaRemision } from '../../models/guia-remision.model';
 import { Aot } from '../../models/aot.model';
@@ -217,7 +217,7 @@ export class PrefacturaDetailPage {
       content: AotGenerarDialog,
       data: {
         prefacturaId: pf.id,
-        descripcionSugerida: this.pedido()?.itemEstimado.descripcion ?? 'Servicio ejecutado según prefactura',
+        descripcionSugerida: itemEstimadoPrincipal(this.pedido() ?? { itemsEstimados: [] })?.descripcion ?? 'Servicio ejecutado según prefactura',
         representanteSugerido: {
           nombre: pf.firmaCliente?.nombre ?? this.pedido()?.representanteCampo ?? '',
           cargo: pf.firmaCliente?.cargo ?? 'Ingeniero de Operaciones',

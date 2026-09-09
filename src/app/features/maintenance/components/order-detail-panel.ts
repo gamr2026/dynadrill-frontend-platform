@@ -19,7 +19,7 @@ import { UnitReport } from '../models/unit-report.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { DeriveToPumpingDialog, DeriveToPumpingDialogData } from './derive-to-pumping-dialog';
 import { ReturnToOperationDialog, ReturnToOperationDialogData } from './return-to-operation-dialog';
-import { RolesService, UsersService } from '../../users/services/users.service';
+import { RolesService } from '../../users/services/users.service';
 import { AuthService } from '../../../core/services/auth.service';
 
 export interface OrderDetailPanelData {
@@ -70,7 +70,6 @@ export class OrderDetailPanel {
   private readonly drawerRef = inject(NzDrawerRef<OrderDetailPanel>);
   private readonly auth = inject(AuthService);
   private readonly rolesService = inject(RolesService);
-  private readonly usersService = inject(UsersService);
   protected readonly data = inject<OrderDetailPanelData>(NZ_DRAWER_DATA);
 
   protected readonly report = this.data.unitReport;
@@ -97,14 +96,9 @@ export class OrderDetailPanel {
   protected readonly statusAccent = STATUS_ACCENT;
 
   constructor() {
-    const OPERATOR_ROLE = 'Operador de Mantenimiento';
-    this.rolesService.list().subscribe(roles => {
-      const role = roles.find(r => r.name === OPERATOR_ROLE);
-      this.usersService.list().subscribe(users => {
-        const active = users.filter(u => u.status && u.roleId === role?.id);
-        this.mecanicoOptions.set(active.filter(u => u.specialty === 'Mecánico').map(u => ({ label: u.name, value: u.id })));
-        this.instrumentalOptions.set(active.filter(u => u.specialty === 'Instrumental').map(u => ({ label: u.name, value: u.id })));
-      });
+    this.rolesService.usuariosPorRol('operador_mantenimiento').subscribe(usuarios => {
+      this.mecanicoOptions.set(usuarios.filter(u => u.specialty === 'Mecánico').map(u => ({ label: u.name, value: u.id })));
+      this.instrumentalOptions.set(usuarios.filter(u => u.specialty === 'Instrumental').map(u => ({ label: u.name, value: u.id })));
     });
   }
 

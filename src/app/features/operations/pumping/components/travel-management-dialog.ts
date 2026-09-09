@@ -36,7 +36,12 @@ export interface TravelManagementDialogData {
   origen: string;
   destino: string;
   lineaServicio: string;
+  /** Supervisor asignado al ticket — fallback si aún no cargó el Jefe de Base. */
   supervisor: string;
+  /** Jefe de Base — "Gerente/Supervisor" (paso General) y "Gerente que autoriza" (paso Aprobación). */
+  jefeBase?: string;
+  /** Conductor elegido en la inspección de la unidad — no el operador del ticket. */
+  conductor?: string;
   conductores: string;
   placas: string;
 }
@@ -119,9 +124,9 @@ export class TravelManagementDialog {
   protected readonly lineaServicio = signal(this.data.lineaServicio);
   protected readonly origen = signal(this.data.origen);
   protected readonly destino = signal(this.data.destino);
-  protected readonly gerenteSupervisor = signal(this.data.supervisor);
+  protected readonly gerenteSupervisor = signal(this.data.jefeBase || this.data.supervisor);
   protected readonly ticketNo = signal(this.data.ticketCode);
-  protected readonly conductores = signal(this.data.conductores);
+  protected readonly conductores = signal(this.data.conductor || this.data.conductores);
   protected readonly vehicleType = signal<VehicleType | null>(null);
   protected readonly placas = signal(this.data.placas);
 
@@ -227,8 +232,9 @@ export class TravelManagementDialog {
   protected readonly commContactDetails = signal('');
 
   // ── Approvals ──
-  protected readonly conductorNames = signal(this.data.conductores);
-  protected readonly approverName = signal(this.data.supervisor);
+  protected readonly conductorNames = signal(this.data.conductor || this.data.conductores);
+  /** Gerente que autoriza = Jefe de Base; lo confirma él al autorizar cuando el riesgo es MEDIO/ALTO. */
+  protected readonly approverName = signal(this.data.jefeBase || this.data.supervisor);
 
   protected onVehicleTypeChange(value: unknown): void {
     this.vehicleType.set(value as VehicleType);
@@ -283,6 +289,12 @@ export class TravelManagementDialog {
       this.approverName().trim() !== ''
     );
   });
+
+  /** BAJO lo cierra el supervisor directo; MEDIO/ALTO va a autorización del Jefe de Base. */
+  protected readonly requiereAprobacionJefeBase = computed(() => this.riskLevel() !== 'BAJO');
+  protected readonly submitLabel = computed(() =>
+    this.requiereAprobacionJefeBase() ? 'Enviar para aprobación del Jefe de Base' : 'Guardar Gerenciamiento de Viaje',
+  );
 
   /**
    * Por qué el botón "Guardar" está deshabilitado — los pasos del wizard no

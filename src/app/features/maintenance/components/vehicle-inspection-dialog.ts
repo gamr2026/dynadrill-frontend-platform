@@ -46,6 +46,8 @@ export interface VehicleInspectionDialogData {
   readonly?: boolean;
   /** true = el select de Unidad queda bloqueado — para la inspección de llegada, donde la unidad ya se fijó en la salida. */
   lockUnidad?: boolean;
+  /** Código de la unidad ya asignada al operador — la precarga y (con lockUnidad) la fija, para no pedirla de nuevo. */
+  unidadCodeAsignada?: string;
   /** Nombre del supervisor a dejar preseleccionado en el paso "Conductor" (ej. el supervisor asignado al ticket de Pumping). */
   supervisorNombre?: string;
 }
@@ -54,9 +56,16 @@ function toChecklistItems(labels: string[]): VehicleChecklistItem[] {
   return labels.map(label => ({ label, estado: null }));
 }
 
-/** Medianoche LOCAL: `new Date('2026-01-10')` es UTC y en Ecuador (UTC-5) el date-picker lo muestra un día antes. */
-function parseIsoLocal(iso: string): Date {
-  return new Date(iso.slice(0, 10) + 'T00:00:00');
+/** Parsea a Date local, o null si el valor no es una fecha válida (evita Invalid Date que revienta al serializar). */
+function parseFechaSegura(valor: string | null | undefined): Date | null {
+  if (!valor) return null;
+  const d = parseLocalDateString(valor);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** Date -> ISO, tolerando null/Invalid Date. */
+function isoOrUndefined(d: Date | null): string | undefined {
+  return d && !Number.isNaN(d.getTime()) ? d.toISOString() : undefined;
 }
 
 /**
@@ -196,11 +205,11 @@ export class VehicleInspectionDialog {
     if (unidad.categoriaPeso) this.tipo.set(unidad.categoriaPeso);
     // Documentos legales del vehículo: vienen del patrimonio de la Unidad
     // (Inventario) y quedan bloqueados, igual que Marca/Modelo/Placa.
-    // Medianoche local (ver parseIsoLocal) para no mostrar un día antes en UTC-5.
-    if (unidad.fechaMatricula) this.fechaMatricula.set(parseIsoLocal(unidad.fechaMatricula));
-    if (unidad.caducidadMatricula) this.caducidadMatricula.set(parseIsoLocal(unidad.caducidadMatricula));
-    if (unidad.caducidadPoliza) this.caducidadPoliza.set(parseIsoLocal(unidad.caducidadPoliza));
-    if (unidad.vigenciaOtroDocumento) this.vigenciaOtroDocumento.set(parseIsoLocal(unidad.vigenciaOtroDocumento));
+    // Medianoche local para no mostrar un día antes en UTC-5; tolerante a datos malos.
+    if (unidad.fechaMatricula) this.fechaMatricula.set(parseFechaSegura(unidad.fechaMatricula));
+    if (unidad.caducidadMatricula) this.caducidadMatricula.set(parseFechaSegura(unidad.caducidadMatricula));
+    if (unidad.caducidadPoliza) this.caducidadPoliza.set(parseFechaSegura(unidad.caducidadPoliza));
+    if (unidad.vigenciaOtroDocumento) this.vigenciaOtroDocumento.set(parseFechaSegura(unidad.vigenciaOtroDocumento));
     // El kilometraje se precarga como sugerencia pero queda EDITABLE (no se
     // bloquea como Marca/Modelo/Placa): es una lectura física del odómetro
     // y `Unidad.kmActual` puede estar desactualizado — el inspector lo
@@ -211,13 +220,23 @@ export class VehicleInspectionDialog {
   constructor() {
     this.unidadesService.list().subscribe(unidades => {
       this.unidades.set(unidades);
-      // El registro de salida puede traer un unidadId que no resuelve contra
-      // el catálogo actual (datos de ejemplo). Si el código sí matchea, se
-      // corrige el id para que el select muestre la unidad correcta.
+      // 1) Registro de salida con unidadId que no resuelve (datos de ejemplo): se corrige por código.
       const ex = this.data?.existing;
       if (ex && !unidades.some(u => u.id === this.unidadId())) {
         const porCodigo = unidades.find(u => u.code === ex.unidadCode);
         if (porCodigo) this.unidadId.set(porCodigo.id);
+      }
+      // 2) Inspección de salida: la unidad ya se la asignó el Supervisor —
+      //    se precarga (y con lockUnidad, se fija) en vez de pedirla de nuevo.
+      const codigoAsignado = this.data?.unidadCodeAsignada;
+      if (codigoAsignado && this.unidadId() === null) {
+        const asignada = unidades.find(u => u.code === codigoAsignado);
+        if (asignada) this.onUnidadChange(asignada.id);
+      }
+      // 3) Prellenado de llegada (id <= 0): la descripción del vehículo se
+      //    toma del registro REAL de la unidad, no de lo que venga en `existing`.
+      if (ex && this.existingId === null && this.unidadId() !== null) {
+        this.onUnidadChange(this.unidadId());
       }
     });
     this.inspectionsService.listConductoresPermisos().subscribe(permisos => this.conductoresPermisos.set(permisos));
@@ -242,7 +261,7 @@ export class VehicleInspectionDialog {
     const existing = this.data?.existing;
     if (existing) {
       this.unidadId.set(existing.unidadId);
-      this.fecha.set(parseLocalDateString(existing.fecha));
+      this.fecha.set(parseFechaSegura(existing.fecha) ?? new Date());
       this.puntoPartida.set(existing.puntoPartida);
       this.destino.set(existing.destino);
       this.inspeccionadoPor.set(existing.inspeccionadoPor);
@@ -251,20 +270,21 @@ export class VehicleInspectionDialog {
       this.modelo.set(existing.modelo);
       this.anioFabricacion.set(existing.anioFabricacion);
       this.placa.set(existing.placa);
-      this.fechaMatricula.set(existing.fechaMatricula ? parseLocalDateString(existing.fechaMatricula) : null);
-      this.caducidadMatricula.set(existing.caducidadMatricula ? parseLocalDateString(existing.caducidadMatricula) : null);
-      this.caducidadPoliza.set(existing.caducidadPoliza ? parseLocalDateString(existing.caducidadPoliza) : null);
-      this.vigenciaOtroDocumento.set(existing.vigenciaOtroDocumento ? parseLocalDateString(existing.vigenciaOtroDocumento) : null);
+      this.fechaMatricula.set(parseFechaSegura(existing.fechaMatricula));
+      this.caducidadMatricula.set(parseFechaSegura(existing.caducidadMatricula));
+      this.caducidadPoliza.set(parseFechaSegura(existing.caducidadPoliza));
+      this.vigenciaOtroDocumento.set(parseFechaSegura(existing.vigenciaOtroDocumento));
       // 0 = sin lectura (nunca es un odómetro real) -> se muestra vacío.
       this.kmInicial.set(existing.kmInicial ? String(existing.kmInicial) : '');
       this.kmFinal.set(existing.kmFinal ? String(existing.kmFinal) : '');
-      this.proximoMantenimiento.set(existing.proximoMantenimiento ? parseLocalDateString(existing.proximoMantenimiento) : null);
+      this.proximoMantenimiento.set(parseFechaSegura(existing.proximoMantenimiento));
       this.checklistVehiculo.set(existing.checklistVehiculo);
       this.checklistEquipo.set(existing.checklistEquipo);
       // Los 6 documentos del conductor y "reúne condiciones" ya no se restauran del registro guardado:
       // se derivan en vivo de conductorSeleccionado() (inspeccionadoPor, seteado arriba) contra la base simulada.
       this.observacionesConductor.set(existing.observacionesConductor ?? '');
-      this.supervisorNombre.set(existing.supervisorNombre ?? '');
+      // El supervisor del ticket (data.supervisorNombre) gana sobre el guardado en el registro.
+      this.supervisorNombre.set(this.data?.supervisorNombre || existing.supervisorNombre || '');
     }
   }
 
@@ -304,7 +324,7 @@ export class VehicleInspectionDialog {
     return {
       unidadId: this.unidadId()!,
       unidadCode: unidad?.code ?? '',
-      fecha: this.fecha()!.toISOString(),
+      fecha: isoOrUndefined(this.fecha()) ?? new Date().toISOString(),
       puntoPartida: this.puntoPartida(),
       destino: this.destino(),
       inspeccionadoPor: this.inspeccionadoPor(),
@@ -313,13 +333,13 @@ export class VehicleInspectionDialog {
       modelo: this.modelo(),
       anioFabricacion: this.anioFabricacion(),
       placa: this.placa(),
-      fechaMatricula: this.fechaMatricula()?.toISOString(),
-      caducidadMatricula: this.caducidadMatricula()?.toISOString(),
-      caducidadPoliza: this.caducidadPoliza()?.toISOString(),
-      vigenciaOtroDocumento: this.vigenciaOtroDocumento()?.toISOString(),
+      fechaMatricula: isoOrUndefined(this.fechaMatricula()),
+      caducidadMatricula: isoOrUndefined(this.caducidadMatricula()),
+      caducidadPoliza: isoOrUndefined(this.caducidadPoliza()),
+      vigenciaOtroDocumento: isoOrUndefined(this.vigenciaOtroDocumento()),
       kmInicial: Number(this.kmInicial()) || 0,
       kmFinal: Number(this.kmFinal()) || 0,
-      proximoMantenimiento: this.proximoMantenimiento()?.toISOString(),
+      proximoMantenimiento: isoOrUndefined(this.proximoMantenimiento()),
       checklistVehiculo: this.checklistVehiculo(),
       checklistEquipo: this.checklistEquipo(),
       licenciaVigente: conductor?.licenciaVigente ?? false,

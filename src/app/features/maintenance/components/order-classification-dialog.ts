@@ -14,7 +14,7 @@ import { MaintenanceOrderWithSubOrders, MaintenanceType } from '../models/mainte
 import { CreateUnitReportInput, unitReportCode, UnitReport } from '../models/unit-report.model';
 import { ClassifyTypeAssignment, MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { UnitReportsService } from '../services/unit-reports.service';
-import { RolesService, UsersService } from '../../users/services/users.service';
+import { RolesService } from '../../users/services/users.service';
 import { AuthService } from '../../../core/services/auth.service';
 
 export interface OrderClassificationDialogData {
@@ -26,7 +26,7 @@ export interface OrderClassificationDialogData {
 }
 
 const ALL_TYPES: MaintenanceType[] = ['Mecánico', 'Instrumental', 'Operativo'];
-const OPERATOR_ROLE_NAME = 'Operador de Mantenimiento';
+const OPERATOR_ROLE_CODE = 'operador_mantenimiento';
 
 type NovedadCategoria = 'mecanica' | 'instrumentacion' | 'operaciones';
 
@@ -76,7 +76,6 @@ export class OrderClassificationDialog {
   private readonly ordersService = inject(MaintenanceOrdersService);
   private readonly unitReportsService = inject(UnitReportsService);
   private readonly rolesService = inject(RolesService);
-  private readonly usersService = inject(UsersService);
   private readonly auth = inject(AuthService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<OrderClassificationDialog, boolean>);
@@ -221,15 +220,15 @@ export class OrderClassificationDialog {
   );
 
   constructor() {
-    this.rolesService.list().subscribe(roles => {
-      const operatorRole = roles.find(r => r.name === OPERATOR_ROLE_NAME);
-      this.usersService.list().subscribe(users => {
-        const active = users.filter(u => u.status && u.roleId === operatorRole?.id);
-        active.forEach(u => this.operatorNames.set(u.id, u.name));
-        this.mecanicoOptions.set(active.filter(u => u.specialty === 'Mecánico').map(u => ({ label: u.name, value: u.id })));
-        this.instrumentalOptions.set(active.filter(u => u.specialty === 'Instrumental').map(u => ({ label: u.name, value: u.id })));
+    // GET /api/roles/:code/usuarios — activos por rol, sin pegarle a /api/users (solo Superadmin).
+    this.rolesService.usuariosPorRol(OPERATOR_ROLE_CODE).subscribe({
+      next: usuarios => {
+        usuarios.forEach(u => this.operatorNames.set(u.id, u.name));
+        this.mecanicoOptions.set(usuarios.filter(u => u.specialty === 'Mecánico').map(u => ({ label: u.name, value: u.id })));
+        this.instrumentalOptions.set(usuarios.filter(u => u.specialty === 'Instrumental').map(u => ({ label: u.name, value: u.id })));
         this.loadingOperators.set(false);
-      });
+      },
+      error: () => this.loadingOperators.set(false),
     });
   }
 

@@ -50,6 +50,8 @@ import { OperativoDocsBridgeService, UbicacionSelectorComponent, type UbicacionS
 import { CreateUnitReportInput, unitReportHasNovedades } from '../../../../maintenance/models/unit-report.model';
 import { UnitReportsService } from '../../../../maintenance/services/unit-reports.service';
 import { UnidadesService } from '../../../../maintenance/services/unidades.service';
+import type { Unidad } from '../../../../maintenance/models/unidad.model';
+import { RolesService } from '../../../../users/services/users.service';
 import {
   VehicleInspection,
   VEHICLE_CHECKLIST_VEHICULO,
@@ -76,23 +78,30 @@ import { forkJoin, map, of, type Observable } from 'rxjs';
  * `id: 0` marca que NO existe en el backend: los diálogos que la reciben
  * van siempre en modo lectura (`readonly: true`), nunca hacen PUT/PATCH.
  */
-function createMockCompletedInspection(operatorName: string, unitCode: string): VehicleInspection {
+function createMockCompletedInspection(
+  operatorName: string,
+  unitCode: string,
+  unidad?: Unidad,
+  conductorNombre?: string,
+): VehicleInspection {
   return {
     id: 0,
-    unidadId: 1,
-    unidadCode: unitCode,
+    unidadId: unidad?.id ?? 0,
+    unidadCode: unidad?.code ?? unitCode,
     fecha: toLocalDateString(new Date()),
     puntoPartida: 'Base Coco',
     destino: 'Pozo Beta-9',
-    inspeccionadoPor: operatorName,
-    marca: 'Kenworth',
-    tipo: 'Cabezal',
-    modelo: 'T800',
-    anioFabricacion: '2022',
-    placa: 'PBA-1234',
-    fechaMatricula: '2026-01-15',
-    caducidadMatricula: '2027-01-15',
-    caducidadPoliza: '2027-06-30',
+    // El conductor es el elegido en la inspección — no el operador del ticket.
+    inspeccionadoPor: conductorNombre || operatorName,
+    // Descripción del vehículo tomada del registro real de la Unidad.
+    marca: unidad?.marca ?? '',
+    tipo: unidad?.categoriaPeso ?? '',
+    modelo: unidad?.modelo ?? '',
+    anioFabricacion: unidad?.anio ?? '',
+    placa: unidad?.placa ?? '',
+    fechaMatricula: unidad?.fechaMatricula,
+    caducidadMatricula: unidad?.caducidadMatricula,
+    caducidadPoliza: unidad?.caducidadPoliza,
     kmInicial: 45200,
     kmFinal: 45380,
     proximoMantenimiento: toLocalDateString(new Date(Date.now() + 90 * 86_400_000)),
@@ -106,8 +115,8 @@ function createMockCompletedInspection(operatorName: string, unitCode: string): 
     vacunasCertificado: true,
     reuneCondicionesParaTrabajar: true,
     observacionesConductor: 'Sin novedades',
-    supervisorNombre: 'Luis Vega',
-    supervisorApprovedBy: 'Luis Vega',
+    supervisorNombre: '',
+    supervisorApprovedBy: '',
     supervisorApprovedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
   };
@@ -167,6 +176,27 @@ export class TicketDetailPage {
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
   private readonly unitReportsService = inject(UnitReportsService);
   private readonly unidadesService = inject(UnidadesService);
+  /** Catálogo de unidades — para completar la descripción real del vehículo en las inspecciones de ejemplo. */
+  private readonly unidades = signal<Unidad[]>([]);
+  private unidadPorCodigo(code: string): Unidad | undefined {
+    return this.unidades().find(u => u.code === code);
+  }
+  private readonly rolesService = inject(RolesService);
+  /** Nombre del Jefe de Base — va en "Gerente/Supervisor" y "Gerente que autoriza" del Gerenciamiento de Viaje. */
+  protected readonly jefeBaseNombre = signal('');
+  /** Nombres de conductores con permisos — para asignar el conductor en las inspecciones de ejemplo. */
+  private readonly conductoresPermisos = signal<string[]>([]);
+  private conductorParaOperador(operatorId: number): string {
+    const nombres = this.conductoresPermisos();
+    return nombres.length ? nombres[operatorId % nombres.length] : '';
+  }
+  /** Conductor elegido en la inspección de la unidad del operador (no el operador). */
+  private conductorDeOperador(operatorId: number, retorno = false): string {
+    const llegada = this.completedLlegadaInspections().get(operatorId) as VehicleInspection | undefined;
+    const salida = this.completedInspections().get(operatorId) as VehicleInspection | undefined;
+    const insp = retorno ? (llegada ?? salida) : salida;
+    return insp?.inspeccionadoPor ?? '';
+  }
   private readonly vehicleInspectionsService = inject(VehicleInspectionsService);
   private readonly maintenanceOrdersService = inject(MaintenanceOrdersService);
   private readonly articulosService = inject(ArticulosService);
@@ -491,7 +521,7 @@ export class TicketDetailPage {
     // La inspección que el operador realmente registró (no un mock nuevo).
     const inspection =
       (this.completedInspections().get(row['id'] as number) as VehicleInspection | undefined) ??
-      createMockCompletedInspection(operatorName, unitCode);
+      createMockCompletedInspection(operatorName, unitCode, this.unidadPorCodigo(unitCode), this.conductorParaOperador(row['id'] as number));
 
     const ref = this.dialog.open<ReviewArrivalReportDialog, ReviewArrivalReportDialogData>({
       title: 'Revisar inspección y reporte de salida',
@@ -558,6 +588,8 @@ export class TicketDetailPage {
     });
     if (!ok) return;
 
+    const aprobador = this.jefeBaseNombre() || this.auth.currentUser()?.name || 'Jefe de Base';
+    const autorizado: TravelManagement = { ...tm, approverName: aprobador, approverSignature: aprobador };
     const pendMap = retorno ? this.returnTravelPendingManagements : this.travelPendingManagements;
     const doneMap = retorno ? this.returnTravelManagements : this.travelManagements;
     pendMap.update(m => {
@@ -567,7 +599,7 @@ export class TicketDetailPage {
     });
     doneMap.update(m => {
       const u = new Map(m);
-      u.set(id, tm);
+      u.set(id, autorizado);
       return u;
     });
     this.travelPendingApproval.update(set => {
@@ -630,6 +662,8 @@ export class TicketDetailPage {
         destino: t.unitReport?.destination ?? '',
         lineaServicio: PUMPING_SERVICE_TYPE_LABELS[t.serviceType],
         supervisor: t.assignedSupervisor ?? '',
+        jefeBase: this.jefeBaseNombre(),
+        conductor: this.conductorDeOperador(operatorId),
         conductores: row['name'] as string,
         placas: '',
       },
@@ -826,6 +860,8 @@ export class TicketDetailPage {
         destino: t.unitReport?.origin ?? '',
         lineaServicio: PUMPING_SERVICE_TYPE_LABELS[t.serviceType],
         supervisor: t.assignedSupervisor ?? '',
+        jefeBase: this.jefeBaseNombre(),
+        conductor: this.conductorDeOperador(operatorId, true),
         conductores: row['name'] as string,
         placas: '',
       },
@@ -1409,6 +1445,15 @@ export class TicketDetailPage {
       error: () => this.loading.set(false),
     });
     this.loadChemicalArticulos();
+    this.unidadesService.list().subscribe(us => {
+      this.unidades.set(us);
+      this.syncMockInspections();
+    });
+    this.rolesService.usuariosPorRol('jefe_base').subscribe(us => this.jefeBaseNombre.set(us[0]?.name ?? ''));
+    this.vehicleInspectionsService.listConductoresPermisos().subscribe(cs => {
+      this.conductoresPermisos.set(cs.map(c => c.nombre));
+      this.syncMockInspections();
+    });
   }
 
   private canAccessStep(step: PumpingStep): boolean {
@@ -1983,6 +2028,31 @@ export class TicketDetailPage {
   // Init
   // ══════════════════════════════════════════════
 
+  /**
+   * (Re)genera las inspecciones de salida de EJEMPLO — solo para operadores
+   * sin inspección real (id 0). Se llama al hidratar el ticket y cada vez que
+   * llega un catálogo (Unidades, Conductores), para que ni la descripción del
+   * vehículo ni el conductor queden en blanco por una carrera de red.
+   */
+  private syncMockInspections(): void {
+    const t = this.ticket();
+    if (!t) return;
+    if (STEP_KEYS.indexOf(t.currentStep) < STEP_KEYS.indexOf('en_ejecucion_llegada')) return;
+    this.completedInspections.update(map => {
+      const updated = new Map(map);
+      for (const op of t.operators) {
+        const actual = updated.get(op.id) as VehicleInspection | undefined;
+        if (!actual || actual.id === 0) {
+          updated.set(
+            op.id,
+            createMockCompletedInspection(op.name, op.unitCode, this.unidadPorCodigo(op.unitCode), this.conductorParaOperador(op.id)),
+          );
+        }
+      }
+      return updated;
+    });
+  }
+
   private initFromTicket(ticket: PumpingTicket): void {
     if (ticket.assignedSupervisor) {
       const opt = this.supervisorOptions.find(o => o.label === ticket.assignedSupervisor);
@@ -2000,13 +2070,7 @@ export class TicketDetailPage {
     // `en_ejecucion_llegada` exacto, por lo que la sección "Inspección de
     // salida" del paso `revisar_reportes_llegada` siempre mostraba
     // "el operador no registró inspección de salida".
-    if (STEP_KEYS.indexOf(ticket.currentStep) >= STEP_KEYS.indexOf('en_ejecucion_llegada')) {
-      const inspMap = new Map<number, VehicleInspection>();
-      for (const op of ticket.operators) {
-        inspMap.set(op.id, createMockCompletedInspection(op.name, op.unitCode));
-      }
-      this.completedInspections.set(inspMap);
-    }
+    this.syncMockInspections();
 
     if (ticket.unitReport) {
       const r = ticket.unitReport;

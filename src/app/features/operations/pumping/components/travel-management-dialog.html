@@ -163,7 +163,10 @@
           <dynadrill-input label="Conductor(es) / Nombres" [value]="conductorNames()" (valueChange)="conductorNames.set($event)" />
         </div>
         <div class="travel-dialog__approval-card">
-          <dynadrill-input label="Gerente que autoriza" [value]="approverName()" (valueChange)="approverName.set($event)" />
+          <dynadrill-input label="Gerente que autoriza (Jefe de Base)" [value]="approverName()" (valueChange)="approverName.set($event)" />
+          @if (requiereAprobacionJefeBase()) {
+            <dynadrill-text variant="caption">Riesgo {{ riskLevel() }}: el Jefe de Base debe autorizarlo desde la tabla de personal antes de completarse.</dynadrill-text>
+          }
         </div>
       </div>
 
@@ -184,7 +187,7 @@
     @if (currentStep() < steps.length - 1) {
       <dynadrill-button (clicked)="goToNextStep()">Siguiente</dynadrill-button>
     } @else {
-      <dynadrill-button variant="success" [disabled]="!canSubmit()" (clicked)="submit()">Guardar Gerenciamiento de Viaje</dynadrill-button>
+      <dynadrill-button variant="success" [disabled]="!canSubmit()" (clicked)="submit()">{{ submitLabel() }}</dynadrill-button>
     }
   </div>
 </footer>

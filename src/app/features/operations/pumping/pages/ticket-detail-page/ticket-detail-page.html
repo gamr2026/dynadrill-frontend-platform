@@ -177,8 +177,8 @@
           <dynadrill-button variant="success" size="small" [disabled]="true">
             Aprobado
           </dynadrill-button>
-          <dynadrill-button variant="warning" size="small" [disabled]="true">
-            Pendiente aprobación Jefe de Base
+          <dynadrill-button variant="warning" size="small" (click)="autorizarGerenciamiento(row)">
+            Autorizar gerenciamiento (Jefe de Base)
           </dynadrill-button>
         } @else {
           <dynadrill-button variant="success" size="small" [disabled]="true">

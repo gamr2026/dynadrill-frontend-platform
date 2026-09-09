@@ -41,7 +41,7 @@ export class RolesService {
    * selects de "responsable/supervisor" — no requiere `GET /api/users`
    * (Superadmin únicamente).
    */
-  usuariosPorRol(code: string): Observable<{ id: number; name: string }[]> {
-    return this.http.get<{ id: number; name: string }[]>(`/api/roles/${code}/usuarios`);
+  usuariosPorRol(code: string): Observable<{ id: number; name: string; specialty?: string | null }[]> {
+    return this.http.get<{ id: number; name: string; specialty?: string | null }[]>(`/api/roles/${code}/usuarios`);
   }
 }

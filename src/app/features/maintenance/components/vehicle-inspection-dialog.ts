@@ -233,6 +233,11 @@ export class VehicleInspectionDialog {
         const asignada = unidades.find(u => u.code === codigoAsignado);
         if (asignada) this.onUnidadChange(asignada.id);
       }
+      // 3) Prellenado de llegada (id <= 0): la descripción del vehículo se
+      //    toma del registro REAL de la unidad, no de lo que venga en `existing`.
+      if (ex && this.existingId === null && this.unidadId() !== null) {
+        this.onUnidadChange(this.unidadId());
+      }
     });
     this.inspectionsService.listConductoresPermisos().subscribe(permisos => this.conductoresPermisos.set(permisos));
 
@@ -278,7 +283,8 @@ export class VehicleInspectionDialog {
       // Los 6 documentos del conductor y "reúne condiciones" ya no se restauran del registro guardado:
       // se derivan en vivo de conductorSeleccionado() (inspeccionadoPor, seteado arriba) contra la base simulada.
       this.observacionesConductor.set(existing.observacionesConductor ?? '');
-      this.supervisorNombre.set(existing.supervisorNombre ?? '');
+      // El supervisor del ticket (data.supervisorNombre) gana sobre el guardado en el registro.
+      this.supervisorNombre.set(this.data?.supervisorNombre || existing.supervisorNombre || '');
     }
   }
 

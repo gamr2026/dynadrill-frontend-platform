@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, catchError, of, tap } from 'rxjs';
 
 export interface AuthenticatedUser {
   id: number;
@@ -8,6 +8,8 @@ export interface AuthenticatedUser {
   email: string;
   roleId: number;
   roleName: string;
+  /** Identificador estable de rol que usa el backend para autorización. */
+  roleCode?: string;
 }
 
 interface LoginResponse {
@@ -39,16 +41,32 @@ export class AuthService {
   }
 
   /**
-   * Cambia el rol del usuario actual sin cerrar sesión ni recargar.
-   * Usado para demo: al avanzar un paso en pumping, se cambia al rol
-   * que corresponde al siguiente paso.
+   * Cambia el rol de la sesión sin re-login. Usado en la demo del flujo de
+   * Pumping/FCR: al avanzar un paso se pasa al rol que actúa el siguiente.
+   *
+   * Pide al backend un token nuevo emitido con ese rol (`POST
+   * /api/auth/switch-role`, gated por `DEV_ROLE_SWITCH`) — así los guards de
+   * autorización del backend ven el rol correcto. Si el backend lo rechaza
+   * (flag apagado / offline), cae al cambio solo-cliente para no romper la
+   * demo visual.
    */
   switchRole(roleName: string, roleId: number): void {
     const current = this.user();
     if (!current) return;
-    const updated: AuthenticatedUser = { ...current, roleName, roleId };
-    this.user.set(updated);
-    localStorage.setItem(USER_KEY, JSON.stringify(updated));
+
+    this.http
+      .post<LoginResponse>('/api/auth/switch-role', { roleId })
+      .pipe(
+        catchError(() => {
+          const updated: AuthenticatedUser = { ...current, roleName, roleId };
+          this.user.set(updated);
+          localStorage.setItem(USER_KEY, JSON.stringify(updated));
+          return of(null);
+        }),
+      )
+      .subscribe(res => {
+        if (res) this.setSession(res.accessToken, res.user);
+      });
   }
 
   getToken(): string | null {

@@ -17,13 +17,10 @@
     <legend>Servicio</legend>
     <div class="nuevo-pedido__grid">
       <dynadrill-select label="Línea de servicio" placeholder="Selecciona" [options]="lineaOptions" [value]="lineaServicio()" (valueChange)="lineaServicio.set($any($event))" />
-      <dynadrill-input label="Campo" [value]="campo()" (valueChange)="campo.set($event)" />
-      <dynadrill-input label="Bloque" [value]="bloque()" (valueChange)="bloque.set($event)" />
-      <dynadrill-input label="Pozo" [value]="pozo()" (valueChange)="pozo.set($event)" />
-      <dynadrill-input label="Taladro / Rig" [value]="taladroRig()" (valueChange)="taladroRig.set($event)" />
       <dynadrill-datetime-picker mode="date" label="Inicio de servicio" [value]="fechaInicioServicio()!" (valueChange)="fechaInicioServicio.set($event)" />
       <dynadrill-datetime-picker mode="date" label="Fin de servicio" [value]="fechaFinServicio()!" (valueChange)="fechaFinServicio.set($event)" />
     </div>
+    <app-ubicacion-selector [requiereTaladro]="true" (seleccionChange)="ubicacion.set($event)" />
   </fieldset>
 
   <fieldset class="nuevo-pedido__group">

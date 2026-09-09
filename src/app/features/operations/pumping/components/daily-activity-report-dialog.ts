@@ -12,6 +12,7 @@ import {
   type DynadrillContextCardItem,
 } from '@digitec-it-projects/dynadrill-ui';
 import type { DailyActivityEntry, DailyActivityReport } from '../models/pumping.model';
+import { UBICACION_VACIA, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../../shared/index';
 import { parseLocalDateString, toLocalDateString } from '../../../../shared/utils';
 
 export interface DailyActivityReportDialogData {
@@ -39,6 +40,7 @@ export interface DailyActivityReportDialogResult {
     DynadrillDatetimePickerComponent,
     DynadrillTextareaComponent,
     DynadrillUploadZoneComponent,
+    UbicacionSelectorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './daily-activity-report-dialog.html',
@@ -56,11 +58,19 @@ export class DailyActivityReportDialog {
   protected readonly numero = signal(this.data.existing?.numero ?? '');
   protected readonly cliente = signal(this.data.existing?.cliente ?? this.data.cliente);
   protected readonly ordenContrato = signal(this.data.existing?.ordenContrato ?? '');
-  protected readonly pozo = signal(this.data.existing?.pozo ?? this.data.pozo);
   protected readonly representanteCliente = signal(this.data.existing?.representanteCliente ?? '');
-  protected readonly campoBloque = signal(this.data.existing?.campoBloque ?? this.data.campoBloque);
   protected readonly cargo = signal(this.data.existing?.cargo ?? '');
-  protected readonly taladro = signal(this.data.existing?.taladro ?? '');
+
+  /** Pozo / Campo / Bloque / Taladro — del catálogo. Prellena con lo que trae el ticket. */
+  protected readonly ubicacionInicial: Partial<UbicacionSeleccion> = {
+    pozo: this.data.existing?.pozo ?? this.data.pozo,
+    taladro: this.data.existing?.taladro ?? '',
+  };
+  protected readonly ubicacion = signal<UbicacionSeleccion>({
+    ...UBICACION_VACIA,
+    pozo: this.ubicacionInicial.pozo ?? '',
+    taladro: this.ubicacionInicial.taladro ?? '',
+  });
 
   protected readonly headerItems = computed<DynadrillContextCardItem[]>(() => [
     { label: 'Documento', value: 'DYN-SGI-RE-047 V11' },
@@ -156,11 +166,11 @@ export class DailyActivityReportDialog {
       numero: this.numero(),
       cliente: this.cliente(),
       ordenContrato: this.ordenContrato(),
-      pozo: this.pozo(),
+      pozo: this.ubicacion().pozo || this.ubicacionInicial.pozo || '',
       representanteCliente: this.representanteCliente(),
-      campoBloque: this.campoBloque(),
+      campoBloque: [this.ubicacion().campo, this.ubicacion().bloque].filter(Boolean).join(' / '),
       cargo: this.cargo(),
-      taladro: this.taladro(),
+      taladro: this.ubicacion().taladro || this.ubicacionInicial.taladro || '',
       actividades: this.actividades().filter(a => a.detalle.trim() !== ''),
       tiempoProductivo: Number(this.tiempoProductivo()) || null,
       tiempoNoProductivo: Number(this.tiempoNoProductivo()) || null,

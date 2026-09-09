@@ -11,9 +11,7 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { CreateIpercMatrixInput, IpercMatrix } from '../models/iperc.model';
 import { IpercService } from '../services/iperc.service';
-
-/** Mismas ubicaciones ya usadas en el resto de QHSE (Desechos, Inspecciones, STOP). */
-const UBICACIONES_BASE = ['Pozo Alfa-3', 'Pozo Beta-9', 'Pozo Delta-7'];
+import { CatalogosService } from '../../../../shared/index';
 
 /** HSE-PLAN-001 Fase 1 — "Conformar equipo evaluador multidisciplinario" + "desglosar actividad". El desglose en tareas se hace después, dentro del detalle. */
 @Component({
@@ -26,14 +24,21 @@ const UBICACIONES_BASE = ['Pozo Alfa-3', 'Pozo Beta-9', 'Pozo Delta-7'];
 export class IpercMatrixDialog {
   private readonly ipercService = inject(IpercService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly catalogos = inject(CatalogosService);
   private readonly modalRef = inject(NzModalRef<IpercMatrixDialog, IpercMatrix | undefined>);
 
   protected readonly actividad = signal('');
-  protected readonly ubicacionOptions = signal<DynadrillSelectOption[]>(UBICACIONES_BASE.map(v => ({ label: v, value: v })));
+  protected readonly ubicacionOptions = signal<DynadrillSelectOption[]>([]);
   protected readonly ubicacion = signal('');
   protected readonly nuevoIntegrante = signal('');
   protected readonly equipoEvaluador = signal<string[]>([]);
   protected readonly submitting = signal(false);
+
+  constructor() {
+    this.catalogos.pozos().subscribe(pozos =>
+      this.ubicacionOptions.set(pozos.map(p => ({ label: p.nombreCompleto, value: p.nombreCompleto }))),
+    );
+  }
 
   protected readonly puedeGuardar = computed(
     () => this.actividad().trim().length > 0 && this.ubicacion().trim().length > 0 && this.equipoEvaluador().length > 0,

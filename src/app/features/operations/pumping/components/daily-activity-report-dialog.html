@@ -23,12 +23,10 @@
     <dynadrill-input label="N°" [value]="numero()" (valueChange)="numero.set($event)" />
     <dynadrill-input label="Cliente" [value]="cliente()" (valueChange)="cliente.set($event)" />
     <dynadrill-input label="Orden/Contrato N°" [value]="ordenContrato()" (valueChange)="ordenContrato.set($event)" />
-    <dynadrill-input label="Pozo" [value]="pozo()" (valueChange)="pozo.set($event)" />
     <dynadrill-input label="Representante del Cliente" [value]="representanteCliente()" (valueChange)="representanteCliente.set($event)" />
-    <dynadrill-input label="Campo/Bloque" [value]="campoBloque()" (valueChange)="campoBloque.set($event)" />
     <dynadrill-input label="Cargo" [value]="cargo()" (valueChange)="cargo.set($event)" />
-    <dynadrill-input label="Taladro" [value]="taladro()" (valueChange)="taladro.set($event)" />
   </div>
+  <app-ubicacion-selector [valorInicial]="ubicacionInicial" (seleccionChange)="ubicacion.set($event)" />
 </section>
 
 <!-- ═══ Detalle de actividades ═══ -->

@@ -241,7 +241,11 @@ export class TravelManagementDialog {
 
   protected onQuestionAnswer(questionId: number, optionIndex: number, value: number): void {
     this.riskQuestions.update(questions =>
-      questions.map(q => q.id === questionId ? { ...q, selectedValue: value } : q),
+      questions.map(q =>
+        q.id === questionId
+          ? { ...q, selectedValue: value, selectedLabel: q.options[optionIndex]?.label ?? null }
+          : q,
+      ),
     );
     this.selectedOptionIndexByQuestion.update(byQuestion => ({ ...byQuestion, [questionId]: optionIndex }));
   }
@@ -273,12 +277,28 @@ export class TravelManagementDialog {
       this.fecha() !== null &&
       this.allQuestionsAnswered() &&
       !this.hasBlockingAnswer() &&
-      this.motivoViaje() !== '' &&
-      this.passengersList().length > 0 &&
+      this.motivoViaje().trim() !== '' &&
       this.routeLocation().trim() !== '' &&
       this.conductorNames().trim() !== '' &&
       this.approverName().trim() !== ''
     );
+  });
+
+  /**
+   * Por qué el botón "Guardar" está deshabilitado — los pasos del wizard no
+   * bloquean el avance, así que se llega al paso 4 sin saber qué falta.
+   * (Pasajeros queda opcional: un viaje solo con conductor es válido.)
+   */
+  protected readonly submitHint = computed(() => {
+    if (this.hasBlockingAnswer()) return 'Una de las respuestas bloquea el viaje — no se puede guardar el gerenciamiento.';
+    const faltan: string[] = [];
+    if (this.fecha() === null) faltan.push('Fecha (paso General)');
+    if (this.motivoViaje().trim() === '') faltan.push('Motivo del viaje (paso General)');
+    if (!this.allQuestionsAnswered()) faltan.push('responder todas las preguntas de la Evaluación');
+    if (this.routeLocation().trim() === '') faltan.push('Locación de la ruta (Plan & Ruta)');
+    if (this.conductorNames().trim() === '') faltan.push('Conductor(es) (Aprobación)');
+    if (this.approverName().trim() === '') faltan.push('Gerente que autoriza (Aprobación)');
+    return faltan.length ? `Falta: ${faltan.join(' · ')}.` : '';
   });
 
   // ── Actions ──

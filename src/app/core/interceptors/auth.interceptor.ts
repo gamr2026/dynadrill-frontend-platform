@@ -4,22 +4,26 @@ import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
+/**
+ * Adjunta el `Authorization: Bearer` a toda llamada saliente y, ante un 401
+ * del backend (token vencido o inválido), cierra la sesión y manda al login.
+ * El 401 del propio `/api/auth/login` (credenciales incorrectas) se deja
+ * pasar — lo maneja la página de login.
+ */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const router = inject(Router);
   const token = auth.getToken();
 
-  const authorized = token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req;
+  const request = token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req;
 
-  return next(authorized).pipe(
-    catchError((err: unknown) => {
-      // Sesión inválida/expirada: cerrar sesión y redirigir en vez de dejar la
-      // UI mostrando vistas "autorizadas" mientras cada request sigue fallando.
-      if (err instanceof HttpErrorResponse && err.status === 401) {
+  return next(request).pipe(
+    catchError((error: unknown) => {
+      if (error instanceof HttpErrorResponse && error.status === 401 && !req.url.includes('/api/auth/login')) {
         auth.logout();
-        router.navigate(['/login']);
+        void router.navigate(['/login']);
       }
-      return throwError(() => err);
+      return throwError(() => error);
     }),
   );
 };

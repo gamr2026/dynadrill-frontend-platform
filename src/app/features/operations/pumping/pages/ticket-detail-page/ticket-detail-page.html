@@ -516,10 +516,14 @@
     <!-- Info general -->
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Información general</dynadrill-text>
+      <!-- Pozo / Base(campo) / Bloque salen del catálogo: se elige el pozo y los
+           otros dos se derivan de su registro, no se tipean. -->
+      <app-ubicacion-selector
+        [valorInicial]="ubicacionInicial()"
+        [mostrarTaladro]="false"
+        (seleccionChange)="onUbicacionChange($event)"
+      />
       <div class="ticket-detail__form-grid">
-        <dynadrill-input label="Pozo" [value]="reportWellName()" (valueChange)="reportWellName.set($event)" />
-        <dynadrill-input label="Base" [value]="reportBaseName()" (valueChange)="reportBaseName.set($event)" />
-        <dynadrill-input label="Bloque" [value]="reportBlockName()" (valueChange)="reportBlockName.set($event)" />
         <dynadrill-input label="Cabezal" [value]="reportHeaderCode()" (valueChange)="reportHeaderCode.set($event)" />
         <dynadrill-input label="Cliente" [value]="reportClientName()" (valueChange)="reportClientName.set($event)" />
         <dynadrill-input label="Unidad" [value]="reportUnitCode()" (valueChange)="reportUnitCode.set($event)" />
@@ -531,7 +535,7 @@
       <dynadrill-text variant="h2">Fecha y combustible</dynadrill-text>
       <div class="ticket-detail__form-grid">
         <dynadrill-datetime-picker mode="date" label="Fecha de salida" [value]="$any(reportDepartureDate())" (valueChange)="reportDepartureDate.set($event)" />
-        <dynadrill-input type="number" label="Combustible salida" [value]="reportFuelDeparture()" (valueChange)="reportFuelDeparture.set($event)" />
+        <dynadrill-input type="number" label="Combustible salida (gal)" [value]="reportFuelDeparture()" (valueChange)="reportFuelDeparture.set($event)" />
       </div>
     </section>
 
@@ -670,7 +674,7 @@
       <dynadrill-context-card [items]="arrivalFuelReadonlyItems()" />
       <div class="ticket-detail__form-grid">
         <dynadrill-datetime-picker mode="date" label="Fecha de llegada" [value]="$any(reportArrivalDate())" (valueChange)="reportArrivalDate.set($event)" />
-        <dynadrill-input type="number" label="Combustible llegada" [value]="reportFuelArrival()" (valueChange)="reportFuelArrival.set($event)" />
+        <dynadrill-input type="number" label="Combustible llegada (gal)" [value]="reportFuelArrival()" (valueChange)="reportFuelArrival.set($event)" />
       </div>
     </section>
 

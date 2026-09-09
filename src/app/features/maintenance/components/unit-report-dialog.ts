@@ -28,6 +28,7 @@ import {
 import { UnitReportsService } from '../services/unit-reports.service';
 import { UnidadesService } from '../services/unidades.service';
 import { Unidad } from '../models/unidad.model';
+import { UBICACION_VACIA, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../shared/index';
 
 const STEPS = ['Datos', 'Métricas', 'Chasis', 'Plataforma', 'Instrum.', 'Problemas', 'Firmas'];
 
@@ -71,6 +72,7 @@ function toDualItems(labels: string[]): ChecklistDualItem[] {
     DynadrillStepperComponent,
     DynadrillSelectComponent,
     DynadrillTextComponent,
+    UbicacionSelectorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './unit-report-dialog.html',
@@ -91,10 +93,9 @@ export class UnitReportDialog {
   sourceModule: MaintenanceSourceModule = this.data?.sourceModule ?? 'Pumping';
 
   protected readonly reportNo = signal('');
-  protected readonly pozo = signal('');
-  protected readonly bloque = signal('');
   protected readonly cliente = signal('');
-  protected readonly base = signal('');
+  /** Pozo / Campo (= "Base") / Bloque — del catálogo, vía <app-ubicacion-selector>. */
+  protected readonly ubicacion = signal<UbicacionSeleccion>(UBICACION_VACIA);
   protected readonly unidadId = signal<number | null>(this.data?.unidadId ?? null);
   protected readonly fechaSalida = signal<Date | null>(null);
   protected readonly fechaLlegada = signal<Date | null>(null);
@@ -185,7 +186,7 @@ export class UnitReportDialog {
   }
 
   next(): void {
-    if (this.currentStep() === 0 && (!this.reportNo().trim() || !this.pozo().trim() || !this.unidadId() || !this.fechaSalida())) {
+    if (this.currentStep() === 0 && (!this.reportNo().trim() || this.ubicacion().pozoId === null || !this.unidadId() || !this.fechaSalida())) {
       this.notify.error('Falta información', 'Completa Reporte N°, Pozo, Unidad y Fecha de Salida antes de continuar.');
       return;
     }
@@ -210,10 +211,10 @@ export class UnitReportDialog {
     const input: CreateUnitReportInput = {
       reportNo: this.reportNo(),
       sourceModule: this.sourceModule,
-      pozo: this.pozo(),
-      bloque: this.bloque(),
+      pozo: this.ubicacion().pozo,
+      bloque: this.ubicacion().bloque,
       cliente: this.cliente(),
-      base: this.base(),
+      base: this.ubicacion().campo,
       unidadId: this.unidadId()!,
       unidad: this.unidadSeleccionada()?.code ?? '',
       fechaSalida: this.fechaSalida()?.toISOString() ?? '',

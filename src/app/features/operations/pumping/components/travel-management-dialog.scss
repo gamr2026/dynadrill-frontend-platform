@@ -262,6 +262,12 @@
     background: var(--color-surface, #fafafa);
   }
 
+  &__submit-hint {
+    display: block;
+    margin-top: 0.75rem;
+    color: var(--color-warning-text, #8a6d00);
+  }
+
   &__actions {
     display: flex;
     justify-content: space-between;

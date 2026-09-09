@@ -85,21 +85,52 @@ export class NuevoPedidoDialog {
     { label: 'Verbal', value: 'verbal' },
   ];
 
-  // ── Estimado (1 línea, desde la Lista de Precios del cliente) ──
+  // ── Estimado (1 o varias líneas, desde la Lista de Precios del cliente) ──
   protected readonly listaCliente = signal<ListaPrecios | null>(null);
   protected readonly itemOptions = computed<DynadrillSelectOption[]>(() =>
     (this.listaCliente()?.items ?? []).map(i => ({ label: `${i.codigo} — ${i.descripcion}`, value: i.codigo })),
   );
-  protected readonly codigoEstimado = signal<string | null>(null);
-  // Inputs numéricos como string (mismo patrón que unit-report-dialog): bindear
-  // un number a [value] de un <input type="number"> hace que el valor tipeado
-  // "no pegue" y termine quedando en el default.
-  protected readonly cantidadEstimada = signal('1');
-  protected readonly valorUnitarioEstimado = signal('0');
-  protected readonly cantidadNum = computed(() => Number(this.cantidadEstimada()) || 0);
-  protected readonly valorUnitarioNum = computed(() => Number(this.valorUnitarioEstimado()) || 0);
-  protected readonly itemEstimadoSel = computed(() => this.listaCliente()?.items.find(i => i.codigo === this.codigoEstimado()) ?? null);
-  protected readonly valorEstimadoTotal = computed(() => Math.round(this.cantidadNum() * this.valorUnitarioNum() * 100) / 100);
+
+  /**
+   * Líneas estimadas. Cantidad/valor como string (mismo patrón que
+   * unit-report-dialog): bindear un number a [value] de un <input type="number">
+   * hace que el valor tipeado "no pegue" y quede en el default.
+   */
+  protected readonly lineasEstimadas = signal<{ codigo: string | null; cantidad: string; valorUnitario: string }[]>([
+    { codigo: null, cantidad: '1', valorUnitario: '0' },
+  ]);
+
+  protected itemDeLinea(codigo: string | null) {
+    return this.listaCliente()?.items.find(i => i.codigo === codigo) ?? null;
+  }
+
+  protected agregarLinea(): void {
+    this.lineasEstimadas.update(ls => [...ls, { codigo: null, cantidad: '1', valorUnitario: '0' }]);
+  }
+
+  protected quitarLinea(index: number): void {
+    this.lineasEstimadas.update(ls => (ls.length > 1 ? ls.filter((_, i) => i !== index) : ls));
+  }
+
+  protected onLineaCodigoChange(index: number, codigo: string): void {
+    const precio = this.itemDeLinea(codigo)?.precio;
+    this.lineasEstimadas.update(ls =>
+      ls.map((l, i) => (i === index ? { ...l, codigo, valorUnitario: precio != null ? String(precio) : l.valorUnitario } : l)),
+    );
+  }
+
+  protected onLineaCampoChange(index: number, campo: 'cantidad' | 'valorUnitario', valor: string): void {
+    this.lineasEstimadas.update(ls => ls.map((l, i) => (i === index ? { ...l, [campo]: valor } : l)));
+  }
+
+  private lineaValida(l: { codigo: string | null; cantidad: string; valorUnitario: string }): boolean {
+    return !!l.codigo && Number(l.cantidad) > 0 && Number(l.valorUnitario) > 0;
+  }
+
+  protected readonly lineasTodasValidas = computed(() => this.lineasEstimadas().every(l => this.lineaValida(l)));
+  protected readonly valorEstimadoTotal = computed(() =>
+    Math.round(this.lineasEstimadas().reduce((s, l) => s + Number(l.cantidad) * Number(l.valorUnitario), 0) * 100) / 100,
+  );
 
   protected readonly submitting = signal(false);
 
@@ -112,9 +143,7 @@ export class NuevoPedidoDialog {
       this.agenteComercial().trim().length > 0 &&
       this.representanteCampo().trim().length > 0 &&
       this.representanteQuito().trim().length > 0 &&
-      !!this.itemEstimadoSel() &&
-      this.cantidadNum() > 0 &&
-      this.valorUnitarioNum() > 0,
+      this.lineasTodasValidas(),
   );
 
   constructor() {
@@ -136,19 +165,13 @@ export class NuevoPedidoDialog {
       this.todasLasListas.find(l => l.cliente === this.cliente() && l.activa) ??
       null;
     this.listaCliente.set(match);
-    this.codigoEstimado.set(null);
-    this.valorUnitarioEstimado.set('0');
+    // Al cambiar de lista se limpian los códigos elegidos (pueden no existir en la nueva).
+    this.lineasEstimadas.set([{ codigo: null, cantidad: '1', valorUnitario: '0' }]);
   }
 
   protected onClienteChange(value: string): void {
     this.cliente.set(value);
     this.emparejarLista();
-  }
-
-  protected onCodigoEstimadoChange(codigo: string): void {
-    this.codigoEstimado.set(codigo);
-    const item = this.itemEstimadoSel();
-    if (item) this.valorUnitarioEstimado.set(String(item.precio));
   }
 
   protected cancelar(): void {
@@ -159,8 +182,17 @@ export class NuevoPedidoDialog {
     if (!this.puedeGuardar() || this.submitting()) return;
     this.submitting.set(true);
 
-    const item = this.itemEstimadoSel()!;
     const nombre = this.auth.currentUser()?.name ?? 'Ventas';
+    const itemsEstimados = this.lineasEstimadas().map(l => {
+      const it = this.itemDeLinea(l.codigo)!;
+      return {
+        codigo: it.codigo,
+        descripcion: it.descripcion,
+        unidad: it.unidad,
+        cantidad: Number(l.cantidad),
+        valorUnitario: Number(l.valorUnitario),
+      };
+    });
 
     this.pedidoService
       .create({
@@ -188,13 +220,7 @@ export class NuevoPedidoDialog {
         zona: this.zona().trim() || undefined,
         canal: this.canal().trim() || undefined,
         bodega: this.bodega().trim() || undefined,
-        itemEstimado: {
-          codigo: item.codigo,
-          descripcion: item.descripcion,
-          unidad: item.unidad,
-          cantidad: this.cantidadNum(),
-          valorUnitario: this.valorUnitarioNum(),
-        },
+        itemsEstimados,
         fechaInicioServicio: this.fechaInicioServicio()?.toISOString().slice(0, 10),
         fechaFinServicio: this.fechaFinServicio()?.toISOString().slice(0, 10),
         createdBy: nombre,

@@ -184,14 +184,25 @@
       </section>
 
       <section class="fact-card">
-        <header class="pedido-detail__head"><h2>Línea estimada (cotizado)</h2></header>
-        <dl class="pedido-detail__defs">
-          <div><dt>Código</dt><dd>{{ p.itemEstimado.codigo }}</dd></div>
-          <div><dt>Descripción</dt><dd>{{ p.itemEstimado.descripcion }}</dd></div>
-          <div><dt>Cantidad</dt><dd>{{ p.itemEstimado.cantidad }} {{ p.itemEstimado.unidad }}</dd></div>
-          <div><dt>Valor unitario</dt><dd>${{ p.itemEstimado.valorUnitario | number: '1.2-2' }}</dd></div>
-          <div><dt>Valor estimado total</dt><dd>${{ valorEstimado() | number: '1.2-2' }}</dd></div>
-        </dl>
+        <header class="pedido-detail__head"><h2>Líneas estimadas (cotizado)</h2></header>
+        <div class="table-scroll">
+          <table class="pedido-detail__table">
+            <thead><tr><th>Código</th><th>Descripción</th><th class="num">Cantidad</th><th>Unidad</th><th class="num">Valor unitario</th><th class="num">Total</th></tr></thead>
+            <tbody>
+              @for (it of lineasEstimadas(); track $index) {
+                <tr>
+                  <td>{{ it.codigo }}</td>
+                  <td>{{ it.descripcion }}</td>
+                  <td class="num">{{ it.cantidad }}</td>
+                  <td>{{ it.unidad }}</td>
+                  <td class="num">${{ it.valorUnitario | number: '1.2-2' }}</td>
+                  <td class="num">${{ it.cantidad * it.valorUnitario | number: '1.2-2' }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot><tr><td colspan="5" class="num"><strong>Valor estimado total</strong></td><td class="num"><strong>${{ valorEstimado() | number: '1.2-2' }}</strong></td></tr></tfoot>
+          </table>
+        </div>
       </section>
     </dynadrill-spinner>
   } @else if (!loading()) {

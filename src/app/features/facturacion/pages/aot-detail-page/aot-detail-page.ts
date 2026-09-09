@@ -12,6 +12,7 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { Aot } from '../../models/aot.model';
 import { AotService } from '../../services/pedido.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { AotPdfDialog, AotPdfDialogData } from '../../components/aot-pdf-dialog';
 
 /** Fase 6 — detalle de la AOT (documento oficial final). */
@@ -36,6 +37,7 @@ export class AotDetailPage {
   private readonly aotService = inject(AotService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly auth = inject(AuthService);
 
   private readonly aotId = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -77,7 +79,7 @@ export class AotDetailPage {
   protected marcarFirmada(): void {
     const aot = this.aot();
     if (!aot || aot.estado === 'firmada') return;
-    this.aotService.marcarFirmada(aot.id).subscribe({
+    this.aotService.marcarFirmada(aot.id, this.auth.currentUser()?.name ?? 'Facturación').subscribe({
       next: updated => {
         this.aot.set(updated);
         this.notify.success('AOT firmada', 'Registrada como firmada físicamente.');

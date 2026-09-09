@@ -70,7 +70,7 @@ export const ESTADOS_FUERA_DE_ALCANCE: readonly EstadoPedido[] = [
 
 export type PedidoOrigen = 'as2' | 'portal';
 
-/** Línea estimada única que Ventas captura al abrir el Pedido (decisión 10 del plan). */
+/** Línea estimada que Ventas captura al abrir el Pedido — base "cotizado" del reporte cotizado-vs-real. */
 export interface ItemEstimado {
   codigo: string;
   descripcion: string;
@@ -127,8 +127,10 @@ export interface Pedido {
   /** "Verbal ( ) / Escrita ( x )" del formato real de prefactura — cómo llegó la solicitud del servicio. */
   solicitudMedio?: 'verbal' | 'escrita';
 
-  // ── Estimado (1 línea) ──
-  itemEstimado: ItemEstimado;
+  // ── Estimado (1 o varias líneas) ──
+  itemsEstimados: ItemEstimado[];
+  /** @deprecated Compat: pedidos antiguos guardaban una sola línea. El backend normaliza a `itemsEstimados`. */
+  itemEstimado?: ItemEstimado;
 
   // ── Fechas ──
   fechaInicioServicio?: string;
@@ -144,10 +146,22 @@ export interface Pedido {
 
 export type CreatePedidoInput = Omit<
   Pedido,
-  'id' | 'code' | 'estado' | 'historialEstados' | 'createdAt' | 'lastSyncedAt' | 'as2Ref'
+  'id' | 'code' | 'estado' | 'historialEstados' | 'createdAt' | 'lastSyncedAt' | 'as2Ref' | 'itemEstimado'
 >;
 
-/** Valor cotizado del Pedido — base del reporte "cotizado vs. real". */
-export function valorEstimadoPedido(p: Pick<Pedido, 'itemEstimado'>): number {
-  return Math.round(p.itemEstimado.cantidad * p.itemEstimado.valorUnitario * 100) / 100;
+/** Líneas estimadas del Pedido, tolerante al shape viejo (`itemEstimado` única). */
+export function itemsEstimadosDe(p: Pick<Pedido, 'itemsEstimados' | 'itemEstimado'>): ItemEstimado[] {
+  if (p.itemsEstimados?.length) return p.itemsEstimados;
+  return p.itemEstimado ? [p.itemEstimado] : [];
+}
+
+/** Primera línea estimada — la que usa la prefactura para el cargo de personal y la descripción por defecto. */
+export function itemEstimadoPrincipal(p: Pick<Pedido, 'itemsEstimados' | 'itemEstimado'>): ItemEstimado | null {
+  return itemsEstimadosDe(p)[0] ?? null;
+}
+
+/** Valor cotizado del Pedido (suma de todas las líneas) — base del reporte "cotizado vs. real". */
+export function valorEstimadoPedido(p: Pick<Pedido, 'itemsEstimados' | 'itemEstimado'>): number {
+  const total = itemsEstimadosDe(p).reduce((s, i) => s + i.cantidad * i.valorUnitario, 0);
+  return Math.round(total * 100) / 100;
 }

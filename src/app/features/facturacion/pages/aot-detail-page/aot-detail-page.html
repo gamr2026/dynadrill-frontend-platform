@@ -24,6 +24,9 @@
           <div><dt>Inicio / Terminación</dt><dd>{{ a.fechaInicio || '—' }} — {{ a.fechaTerminacion || '—' }}</dd></div>
           <div><dt>Valor de la OT</dt><dd>${{ total() | number: '1.2-2' }}</dd></div>
           <div><dt>Generada</dt><dd>{{ a.generadaAt | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
+          @if (a.estado === 'firmada' && a.firmadaAt) {
+            <div><dt>Marcada firmada por</dt><dd>{{ a.firmadaPor }} · {{ a.firmadaAt | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
+          }
         </dl>
       </section>
 

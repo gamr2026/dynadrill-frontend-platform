@@ -26,6 +26,7 @@ import {
   LINEA_SERVICIO_LABELS,
   Pedido,
   valorEstimadoPedido,
+  itemsEstimadosDe,
 } from '../../models/pedido.model';
 import { AvanceDocumental, DocumentoOperativo } from '../../models/documento-operativo.model';
 import { Prefactura } from '../../models/prefactura.model';
@@ -167,6 +168,11 @@ export class PedidoDetailPage {
       { label: 'Origen', value: p.origen === 'as2' ? 'AS2' : 'Portal' },
       { label: 'Referencia AS2', value: p.as2Ref ?? '—' },
     ];
+  });
+
+  protected readonly lineasEstimadas = computed(() => {
+    const p = this.pedido();
+    return p ? itemsEstimadosDe(p) : [];
   });
 
   protected readonly valorEstimado = computed(() => {

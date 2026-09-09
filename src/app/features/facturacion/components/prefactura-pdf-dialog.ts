@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import { DynadrillButtonComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
 import { Prefactura } from '../models/prefactura.model';
-import { Pedido } from '../models/pedido.model';
+import { Pedido, itemsEstimadosDe } from '../models/pedido.model';
 
 export interface PrefacturaPdfDialogData {
   prefactura: Prefactura;
@@ -37,6 +37,14 @@ export class PrefacturaPdfDialog {
   protected readonly condicionesServicio = CONDICIONES_SERVICIO;
 
   protected readonly esVerbal = computed(() => this.data.pedido.solicitudMedio === 'verbal');
+
+  /** Descripción(es) de las líneas estimadas — texto de observaciones del PDF. */
+  protected readonly observaciones = computed(() =>
+    itemsEstimadosDe(this.data.pedido)
+      .map(i => i.descripcion)
+      .filter(Boolean)
+      .join(' · '),
+  );
 
   print(): void {
     window.print();

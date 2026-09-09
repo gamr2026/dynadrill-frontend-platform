@@ -182,7 +182,7 @@ export class AotService {
     return this.http.post<Aot>(`/api/facturacion/prefacturas/${prefacturaId}/aot`, { ...datos, usuario });
   }
 
-  marcarFirmada(id: number): Observable<Aot> {
-    return this.http.patch<Aot>(`/api/facturacion/aots/${id}/firmar`, {});
+  marcarFirmada(id: number, usuario: string): Observable<Aot> {
+    return this.http.patch<Aot>(`/api/facturacion/aots/${id}/firmar`, { usuario });
   }
 }

@@ -57,8 +57,8 @@
         [value]="codigoEstimado()"
         (valueChange)="onCodigoEstimadoChange($any($event))"
       />
-      <dynadrill-input label="Cantidad" type="number" [value]="cantidadEstimada()" (valueChange)="cantidadEstimada.set(+$event)" />
-      <dynadrill-input label="Valor unitario" type="number" [value]="valorUnitarioEstimado()" (valueChange)="valorUnitarioEstimado.set(+$event)" />
+      <dynadrill-input label="Cantidad" type="number" [value]="cantidadEstimada()" (valueChange)="cantidadEstimada.set($event)" />
+      <dynadrill-input label="Valor unitario" type="number" [value]="valorUnitarioEstimado()" (valueChange)="valorUnitarioEstimado.set($event)" />
     </div>
     @if (itemEstimadoSel(); as it) {
       <dynadrill-text variant="caption">

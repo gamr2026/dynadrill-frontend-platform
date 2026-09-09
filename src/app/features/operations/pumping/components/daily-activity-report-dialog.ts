@@ -21,6 +21,8 @@ export interface DailyActivityReportDialogData {
   pozo: string;
   campoBloque: string;
   supervisor: string;
+  /** Nº de contrato/OT heredado del Pedido — prellena "Orden/Contrato N°". */
+  numeroContrato?: string;
   /** Pre-fill from existing report if editing */
   existing?: DailyActivityReport;
 }
@@ -57,7 +59,7 @@ export class DailyActivityReportDialog {
   protected readonly fecha = signal<Date | null>(this.data.existing?.fecha ? parseLocalDateString(this.data.existing.fecha) : new Date());
   protected readonly numero = signal(this.data.existing?.numero ?? '');
   protected readonly cliente = signal(this.data.existing?.cliente ?? this.data.cliente);
-  protected readonly ordenContrato = signal(this.data.existing?.ordenContrato ?? '');
+  protected readonly ordenContrato = signal(this.data.existing?.ordenContrato ?? this.data.numeroContrato ?? '');
   protected readonly representanteCliente = signal(this.data.existing?.representanteCliente ?? '');
   protected readonly cargo = signal(this.data.existing?.cargo ?? '');
 

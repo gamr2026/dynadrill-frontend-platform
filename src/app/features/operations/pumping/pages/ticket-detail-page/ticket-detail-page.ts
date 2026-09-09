@@ -960,6 +960,7 @@ export class TicketDetailPage {
         pozo: t.wellName,
         campoBloque: t.unitReport?.blockName ?? '',
         supervisor: t.assignedSupervisor ?? '',
+        numeroContrato: t.numeroContrato,
         existing: undefined,
       },
       size: 'large',

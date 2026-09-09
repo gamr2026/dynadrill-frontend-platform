@@ -189,6 +189,8 @@ export interface PumpingTicket extends Ticket {
   currentStep: PumpingStep;
   /** Código del Pedido de Facturación asociado — link para el puente Pumping → Facturación. */
   pedidoCode?: string;
+  /** Nº de contrato/OT — heredado del Pedido, prellena el Reporte Diario. */
+  numeroContrato?: string;
 }
 
 // ── Templates de inspección (ítems del formulario físico DYN-MNT-RE-012) ──

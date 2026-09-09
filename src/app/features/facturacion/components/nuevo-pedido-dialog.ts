@@ -91,10 +91,15 @@ export class NuevoPedidoDialog {
     (this.listaCliente()?.items ?? []).map(i => ({ label: `${i.codigo} — ${i.descripcion}`, value: i.codigo })),
   );
   protected readonly codigoEstimado = signal<string | null>(null);
-  protected readonly cantidadEstimada = signal(1);
-  protected readonly valorUnitarioEstimado = signal(0);
+  // Inputs numéricos como string (mismo patrón que unit-report-dialog): bindear
+  // un number a [value] de un <input type="number"> hace que el valor tipeado
+  // "no pegue" y termine quedando en el default.
+  protected readonly cantidadEstimada = signal('1');
+  protected readonly valorUnitarioEstimado = signal('0');
+  protected readonly cantidadNum = computed(() => Number(this.cantidadEstimada()) || 0);
+  protected readonly valorUnitarioNum = computed(() => Number(this.valorUnitarioEstimado()) || 0);
   protected readonly itemEstimadoSel = computed(() => this.listaCliente()?.items.find(i => i.codigo === this.codigoEstimado()) ?? null);
-  protected readonly valorEstimadoTotal = computed(() => Math.round(this.cantidadEstimada() * this.valorUnitarioEstimado() * 100) / 100);
+  protected readonly valorEstimadoTotal = computed(() => Math.round(this.cantidadNum() * this.valorUnitarioNum() * 100) / 100);
 
   protected readonly submitting = signal(false);
 
@@ -108,8 +113,8 @@ export class NuevoPedidoDialog {
       this.representanteCampo().trim().length > 0 &&
       this.representanteQuito().trim().length > 0 &&
       !!this.itemEstimadoSel() &&
-      this.cantidadEstimada() > 0 &&
-      this.valorUnitarioEstimado() > 0,
+      this.cantidadNum() > 0 &&
+      this.valorUnitarioNum() > 0,
   );
 
   constructor() {
@@ -132,7 +137,7 @@ export class NuevoPedidoDialog {
       null;
     this.listaCliente.set(match);
     this.codigoEstimado.set(null);
-    this.valorUnitarioEstimado.set(0);
+    this.valorUnitarioEstimado.set('0');
   }
 
   protected onClienteChange(value: string): void {
@@ -143,7 +148,7 @@ export class NuevoPedidoDialog {
   protected onCodigoEstimadoChange(codigo: string): void {
     this.codigoEstimado.set(codigo);
     const item = this.itemEstimadoSel();
-    if (item) this.valorUnitarioEstimado.set(item.precio);
+    if (item) this.valorUnitarioEstimado.set(String(item.precio));
   }
 
   protected cancelar(): void {
@@ -187,8 +192,8 @@ export class NuevoPedidoDialog {
           codigo: item.codigo,
           descripcion: item.descripcion,
           unidad: item.unidad,
-          cantidad: this.cantidadEstimada(),
-          valorUnitario: this.valorUnitarioEstimado(),
+          cantidad: this.cantidadNum(),
+          valorUnitario: this.valorUnitarioNum(),
         },
         fechaInicioServicio: this.fechaInicioServicio()?.toISOString().slice(0, 10),
         fechaFinServicio: this.fechaFinServicio()?.toISOString().slice(0, 10),

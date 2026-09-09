@@ -23,6 +23,9 @@ export interface DailyActivityReportDialogData {
   supervisor: string;
   /** Nº de contrato/OT heredado del Pedido — prellena "Orden/Contrato N°". */
   numeroContrato?: string;
+  /** Taladro heredado del Pedido/Ticket — prellena el selector de ubicación. */
+  taladro?: string;
+  taladroId?: number;
   /** Pre-fill from existing report if editing */
   existing?: DailyActivityReport;
 }
@@ -66,7 +69,8 @@ export class DailyActivityReportDialog {
   /** Pozo / Campo / Bloque / Taladro — del catálogo. Prellena con lo que trae el ticket. */
   protected readonly ubicacionInicial: Partial<UbicacionSeleccion> = {
     pozo: this.data.existing?.pozo ?? this.data.pozo,
-    taladro: this.data.existing?.taladro ?? '',
+    taladro: this.data.existing?.taladro ?? this.data.taladro ?? '',
+    taladroId: this.data.taladroId ?? null,
   };
   protected readonly ubicacion = signal<UbicacionSeleccion>({
     ...UBICACION_VACIA,

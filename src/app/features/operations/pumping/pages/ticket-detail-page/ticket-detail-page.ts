@@ -95,7 +95,7 @@ function createMockCompletedInspection(operatorName: string, unitCode: string): 
     caducidadPoliza: '2027-06-30',
     kmInicial: 45200,
     kmFinal: 45380,
-    proximoMantenimiento: '46000',
+    proximoMantenimiento: toLocalDateString(new Date(Date.now() + 90 * 86_400_000)),
     checklistVehiculo: VEHICLE_CHECKLIST_VEHICULO.map(label => ({ label, estado: 'C' as const })),
     checklistEquipo: VEHICLE_CHECKLIST_EQUIPO.map(label => ({ label, estado: 'C' as const })),
     licenciaVigente: true,
@@ -488,7 +488,10 @@ export class TicketDetailPage {
 
     const operatorName = row['name'] as string;
     const unitCode = row['unitCode'] as string;
-    const inspection = createMockCompletedInspection(operatorName, unitCode);
+    // La inspección que el operador realmente registró (no un mock nuevo).
+    const inspection =
+      (this.completedInspections().get(row['id'] as number) as VehicleInspection | undefined) ??
+      createMockCompletedInspection(operatorName, unitCode);
 
     const ref = this.dialog.open<ReviewArrivalReportDialog, ReviewArrivalReportDialogData>({
       title: 'Revisar inspección y reporte de salida',
@@ -532,8 +535,53 @@ export class TicketDetailPage {
 
   // ── Travel Management (DYN-SGI-RE-049) ──
 
-  /** Tracks operators whose travel management is pending Jefe de Base approval */
+  /** Operadores cuyo gerenciamiento espera la autorización del Jefe de Base. */
   protected readonly travelPendingApproval = signal<Set<number>>(new Set());
+  /** Gerenciamientos MEDIO/ALTO retenidos hasta que el Jefe de Base autorice. */
+  protected readonly travelPendingManagements = signal<Map<number, TravelManagement>>(new Map());
+  protected readonly returnTravelPendingManagements = signal<Map<number, TravelManagement>>(new Map());
+
+  /**
+   * El Jefe de Base autoriza un gerenciamiento MEDIO/ALTO. Es un paso real:
+   * en la demo un mismo usuario recorre todos los roles, así que se confirma
+   * explícitamente "actuando como Jefe de Base".
+   */
+  protected async autorizarGerenciamiento(row: Record<string, unknown>, retorno = false): Promise<void> {
+    const id = row['id'] as number;
+    const pendientes = retorno ? this.returnTravelPendingManagements() : this.travelPendingManagements();
+    const tm = pendientes.get(id);
+    if (!tm) return;
+    const ok = await this.dialog.confirm({
+      title: 'Autorización del Jefe de Base',
+      content: `Actuando como Jefe de Base: ¿autorizar el gerenciamiento de viaje${retorno ? ' de retorno' : ''} de ${row['name']}? Riesgo ${tm.riskLevel}${tm.riskLevel === 'ALTO' ? ' — requiere además visto bueno del Director General (fuera del alcance del app).' : '.'}`,
+      okText: 'Autorizar',
+    });
+    if (!ok) return;
+
+    const pendMap = retorno ? this.returnTravelPendingManagements : this.travelPendingManagements;
+    const doneMap = retorno ? this.returnTravelManagements : this.travelManagements;
+    pendMap.update(m => {
+      const u = new Map(m);
+      u.delete(id);
+      return u;
+    });
+    doneMap.update(m => {
+      const u = new Map(m);
+      u.set(id, tm);
+      return u;
+    });
+    this.travelPendingApproval.update(set => {
+      const u = new Set(set);
+      u.delete(id);
+      return u;
+    });
+    this.returnTravelPendingApproval.update(set => {
+      const u = new Set(set);
+      u.delete(id);
+      return u;
+    });
+    this.notify.success('Gerenciamiento autorizado', `El Jefe de Base autorizó el gerenciamiento de viaje${retorno ? ' de retorno' : ''} de ${row['name']}.`);
+  }
 
   protected hasTravelManagement(row: Record<string, unknown>): boolean {
     return this.travelManagements().has(row['id'] as number);
@@ -603,30 +651,22 @@ export class TicketDetailPage {
         });
         this.notify.success('Gerenciamiento completado', `Riesgo BAJO — aprobado por supervisor directo.`);
       } else {
-        // MEDIO o ALTO — requiere aprobación del Jefe de Base
+        // MEDIO o ALTO — queda pendiente hasta que el Jefe de Base lo autorice
+        // (el paso "Autorizar" en la tabla de personal).
+        this.travelPendingManagements.update(map => {
+          const updated = new Map(map);
+          updated.set(operatorId, travelResult.travelManagement!);
+          return updated;
+        });
         this.travelPendingApproval.update(set => {
           const updated = new Set(set);
           updated.add(operatorId);
           return updated;
         });
         this.notify.info(
-          'Pendiente de aprobación',
-          `Riesgo ${riskLevel} — requiere aprobación del ${riskLevel === 'ALTO' ? 'Director General' : 'Jefe de Base'}.`,
+          'Pendiente de autorización',
+          `Riesgo ${riskLevel} — el Jefe de Base debe autorizar el gerenciamiento de viaje.`,
         );
-        // Simulate Jefe de Base approval after a short delay (in real app, this would be async)
-        setTimeout(() => {
-          this.travelPendingApproval.update(set => {
-            const updated = new Set(set);
-            updated.delete(operatorId);
-            return updated;
-          });
-          this.travelManagements.update(map => {
-            const updated = new Map(map);
-            updated.set(operatorId, travelResult.travelManagement!);
-            return updated;
-          });
-          this.notify.success('Gerenciamiento aprobado', `El ${riskLevel === 'ALTO' ? 'Director General' : 'Jefe de Base'} ha aprobado el gerenciamiento de viaje.`);
-        }, 3000);
       }
     });
   }
@@ -806,28 +846,20 @@ export class TicketDetailPage {
         });
         this.notify.success('Gerenciamiento de retorno completado', 'Riesgo BAJO — aprobado por supervisor directo.');
       } else {
+        this.returnTravelPendingManagements.update(map => {
+          const updated = new Map(map);
+          updated.set(operatorId, travelResult.travelManagement!);
+          return updated;
+        });
         this.returnTravelPendingApproval.update(set => {
           const updated = new Set(set);
           updated.add(operatorId);
           return updated;
         });
         this.notify.info(
-          'Pendiente de aprobación',
-          `Riesgo ${riskLevel} — requiere aprobación del ${riskLevel === 'ALTO' ? 'Director General' : 'Jefe de Base'}.`,
+          'Pendiente de autorización',
+          `Riesgo ${riskLevel} — el Jefe de Base debe autorizar el gerenciamiento de retorno.`,
         );
-        setTimeout(() => {
-          this.returnTravelPendingApproval.update(set => {
-            const updated = new Set(set);
-            updated.delete(operatorId);
-            return updated;
-          });
-          this.returnTravelManagements.update(map => {
-            const updated = new Map(map);
-            updated.set(operatorId, travelResult.travelManagement!);
-            return updated;
-          });
-          this.notify.success('Gerenciamiento de retorno aprobado', `El ${riskLevel === 'ALTO' ? 'Director General' : 'Jefe de Base'} ha aprobado el gerenciamiento de viaje de retorno.`);
-        }, 3000);
       }
     });
   }
@@ -961,6 +993,8 @@ export class TicketDetailPage {
         campoBloque: t.unitReport?.blockName ?? '',
         supervisor: t.assignedSupervisor ?? '',
         numeroContrato: t.numeroContrato,
+        taladro: t.taladroRig,
+        taladroId: t.taladroId,
         existing: undefined,
       },
       size: 'large',
@@ -1886,7 +1920,9 @@ export class TicketDetailPage {
       content: VehicleInspectionDialog,
       data: {
         existing: prefill,
-        lockUnidad: mode === 'llegada' && !!prefill,
+        // La unidad ya se la asignó el Supervisor al operador: se precarga y se fija.
+        unidadCodeAsignada: row['unitCode'] as string,
+        lockUnidad: !!(row['unitCode'] as string) || (mode === 'llegada' && !!prefill),
         supervisorNombre,
       },
       size: 'large',

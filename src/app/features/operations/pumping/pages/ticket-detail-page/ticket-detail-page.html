@@ -327,8 +327,8 @@
             Gerenciamiento completado
           </dynadrill-button>
         } @else if (isReturnTravelPendingApproval(row)) {
-          <dynadrill-button variant="warning" size="small" [disabled]="true">
-            Pendiente aprobación Jefe de Base
+          <dynadrill-button variant="warning" size="small" (click)="autorizarGerenciamiento(row, true)">
+            Autorizar gerenciamiento de retorno (Jefe de Base)
           </dynadrill-button>
         } @else {
           <dynadrill-button variant="primary" size="small" (click)="openReturnTravelManagement(row)">

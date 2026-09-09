@@ -191,6 +191,9 @@ export interface PumpingTicket extends Ticket {
   pedidoCode?: string;
   /** Nº de contrato/OT — heredado del Pedido, prellena el Reporte Diario. */
   numeroContrato?: string;
+  /** Taladro/Rig — heredado del Pedido, prellena el selector de ubicación del Reporte Diario. */
+  taladroRig?: string;
+  taladroId?: number;
 }
 
 // ── Templates de inspección (ítems del formulario físico DYN-MNT-RE-012) ──

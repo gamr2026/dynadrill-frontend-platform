@@ -581,25 +581,25 @@ export class TicketDetailPage {
 
   /**
    * Todo Gerenciamiento de Viaje (DYN-SGI-RE-049) lo autoriza el Jefe de Base.
-   * En la demo un mismo usuario recorre todos los roles, así que al confirmar
-   * se ingresa de verdad como Jefe de Base (`switchRole`) antes de autorizar.
+   * En la demo un mismo usuario recorre todos los roles: el diálogo de
+   * confirmación es la firma del Jefe de Base. No se cambia el rol de la
+   * sesión — la autorización es solo del lado del cliente y el Supervisor
+   * tiene que poder seguir el flujo (avanzar de paso) apenas queda autorizada.
    */
   protected async autorizarGerenciamiento(row: Record<string, unknown>, retorno = false): Promise<void> {
     const id = row['id'] as number;
     const pendientes = retorno ? this.returnTravelPendingManagements() : this.travelPendingManagements();
     const tm = pendientes.get(id);
     if (!tm) return;
+    const jefeBase = this.jefeBaseNombre() || 'Jefe de Base';
     const ok = await this.dialog.confirm({
-      title: 'Ingresar como Jefe de Base',
-      content: `Vas a ingresar como Jefe de Base para autorizar el gerenciamiento de viaje${retorno ? ' de retorno' : ''} de ${row['name']} (riesgo ${tm.riskLevel})${tm.riskLevel === 'ALTO' ? '. El riesgo ALTO requiere además el visto bueno del Director General, fuera del alcance del app' : ''}.`,
-      okText: 'Ingresar como Jefe de Base y autorizar',
+      title: `Autorización de ${jefeBase}`,
+      content: `Como Jefe de Base (${jefeBase}), ¿autorizas el gerenciamiento de viaje${retorno ? ' de retorno' : ''} de ${row['name']} (riesgo ${tm.riskLevel})?${tm.riskLevel === 'ALTO' ? ' El riesgo ALTO requiere además el visto bueno del Director General, fuera del alcance del app.' : ''}`,
+      okText: 'Autorizar como Jefe de Base',
     });
     if (!ok) return;
 
-    // Ingreso real como Jefe de Base — el backend emite un token con ese rol.
-    this.auth.switchRole('Jefe de Base', 4);
-
-    const aprobador = this.jefeBaseNombre() || 'Jefe de Base';
+    const aprobador = jefeBase;
     const autorizado: TravelManagement = { ...tm, approverName: aprobador, approverSignature: aprobador };
     const pendMap = retorno ? this.returnTravelPendingManagements : this.travelPendingManagements;
     const doneMap = retorno ? this.returnTravelManagements : this.travelManagements;
@@ -1423,11 +1423,13 @@ export class TicketDetailPage {
     this.viewMode.set(this.route.snapshot.queryParamMap.get('mode') ?? '');
     this.pumpingService.getTicket(id).subscribe({
       next: ticket => {
-        // Validar que el rol puede ver este estado
-        if (!this.canAccessStep(ticket.currentStep)) {
-          this.notify.error('Acceso denegado', 'No tienes permisos para ver este ticket en su estado actual.');
-          this.router.navigate(['..'], { relativeTo: this.route });
-          return;
+        // Demo: un mismo usuario recorre todos los roles. Si el rol de la
+        // sesión no es el que actúa el paso actual del ticket (p. ej. quedó
+        // en "Jefe de Base" tras autorizar un gerenciamiento), se pasa a ese
+        // rol en vez de bloquear el acceso.
+        const expected = PUMPING_STEP_ROLE[ticket.currentStep];
+        if (expected && this.roleName() !== expected.roleName) {
+          this.auth.switchRole(expected.roleName, expected.roleId);
         }
         this.ticket.set(ticket);
         this.loading.set(false);
@@ -1450,14 +1452,6 @@ export class TicketDetailPage {
       this.realInspections.set(list);
       this.syncMockInspections();
     });
-  }
-
-  private canAccessStep(step: PumpingStep): boolean {
-    const role = this.roleName();
-    const expectedRole = PUMPING_STEP_ROLE[step];
-    // Allow access if the user has the correct role for this step
-    // (auto-switching ensures this in the demo flow)
-    return role === expectedRole.roleName;
   }
 
   // ══════════════════════════════════════════════

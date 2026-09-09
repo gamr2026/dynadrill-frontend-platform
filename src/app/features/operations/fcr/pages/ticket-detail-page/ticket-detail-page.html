@@ -22,7 +22,7 @@
     </div>
     <dynadrill-skeleton variant="block" height="220px" />
   </div>
-} @else {
+} @else if (ticket()) {
 
   <div class="fcr-detail__tracker">
     @for (label of phaseLabels; track $index; let last = $last) {
@@ -485,4 +485,6 @@
       </section>
     }
   }
+} @else {
+  <dynadrill-banner variant="critical" message="No se pudo cargar el ticket. Verifique la conexión e inténtelo de nuevo." />
 }

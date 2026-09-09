@@ -28,12 +28,16 @@ export class FirmaActaDialog {
   private readonly modalRef = inject(NzModalRef<FirmaActaDialog, FirmaActaDialogResult | undefined>);
   protected readonly data = inject<FirmaActaDialogData>(NZ_MODAL_DATA);
 
-  protected readonly meetingDate = signal(new Date());
+  // Tipado `Date | null`: el picker permite limpiar el campo (allowClear) y emite null
+  // pese a que su tipo declarado diga Date — canConfirm/confirm() lo validan.
+  protected readonly meetingDate = signal<Date | null>(new Date());
   protected readonly actaSigned = signal(false);
-  protected readonly canConfirm = computed(() => this.actaSigned());
+  protected readonly canConfirm = computed(() => this.actaSigned() && this.meetingDate() !== null);
 
   protected confirm(): void {
-    this.modalRef.close({ confirmed: true, meetingDate: this.meetingDate().toISOString() });
+    const meetingDate = this.meetingDate();
+    if (!meetingDate) return;
+    this.modalRef.close({ confirmed: true, meetingDate: meetingDate.toISOString() });
   }
 
   protected cancel(): void {

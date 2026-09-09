@@ -13,6 +13,7 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import type { DailyActivityEntry, DailyActivityReport } from '../models/pumping.model';
 import { UBICACION_VACIA, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../../shared/index';
+import { parseLocalDateString, toLocalDateString } from '../../../../shared/utils';
 
 export interface DailyActivityReportDialogData {
   ticketCode: string;
@@ -51,8 +52,9 @@ export class DailyActivityReportDialog {
 
   // ── Header info ──
   // dynadrill-datetime-picker trabaja con Date, no con el string ISO que guarda DailyActivityReport.fecha
-  // (mismo patrón que travel-management-dialog.ts).
-  protected readonly fecha = signal(this.data.existing?.fecha ? new Date(this.data.existing.fecha) : new Date());
+  // (mismo patrón que travel-management-dialog.ts). Tipado `Date | null` porque el picker permite limpiar
+  // el campo (allowClear) y emite null pese a que su tipo declarado diga Date — canSave/save() lo validan.
+  protected readonly fecha = signal<Date | null>(this.data.existing?.fecha ? parseLocalDateString(this.data.existing.fecha) : new Date());
   protected readonly numero = signal(this.data.existing?.numero ?? '');
   protected readonly cliente = signal(this.data.existing?.cliente ?? this.data.cliente);
   protected readonly ordenContrato = signal(this.data.existing?.ordenContrato ?? '');
@@ -152,13 +154,15 @@ export class DailyActivityReportDialog {
   protected readonly canSave = computed(() => {
     const acts = this.actividades();
     const hasAtLeastOneActivity = acts.some(a => a.detalle.trim() !== '');
-    return this.cliente() !== '' && hasAtLeastOneActivity;
+    return this.fecha() !== null && this.cliente() !== '' && hasAtLeastOneActivity;
   });
 
   // ── Actions ──
   protected save(): void {
+    const fecha = this.fecha();
+    if (!fecha) return;
     const report: DailyActivityReport = {
-      fecha: this.fecha().toISOString().split('T')[0],
+      fecha: toLocalDateString(fecha),
       numero: this.numero(),
       cliente: this.cliente(),
       ordenContrato: this.ordenContrato(),

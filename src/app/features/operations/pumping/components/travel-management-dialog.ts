@@ -27,6 +27,7 @@ import {
   type VehicleType,
 } from '../models/pumping.model';
 import { UnidadesService } from '../../../maintenance/services/unidades.service';
+import { toLocalDateString } from '../../../../shared/utils';
 
 export interface TravelManagementDialogData {
   operatorName: string;
@@ -110,8 +111,10 @@ export class TravelManagementDialog {
 
   // ── Header fields ──
   // dynadrill-datetime-picker trabaja con Date, no con el string ISO que espera TravelManagement.fecha
-  // (mismo patrón que user-form-dialog.ts / investigacion-dialog.ts).
-  protected readonly fecha = signal(new Date());
+  // (mismo patrón que user-form-dialog.ts / investigacion-dialog.ts). Tipado `Date | null` porque el
+  // picker permite limpiar el campo (allowClear) y emite null pese a que su tipo declarado diga Date —
+  // canSubmit/submit() lo validan.
+  protected readonly fecha = signal<Date | null>(new Date());
   protected readonly motivoViaje = signal('');
   protected readonly lineaServicio = signal(this.data.lineaServicio);
   protected readonly origen = signal(this.data.origen);
@@ -270,22 +273,40 @@ export class TravelManagementDialog {
   });
 
   protected readonly canSubmit = computed(() => {
-    return this.allQuestionsAnswered() && !this.hasBlockingAnswer() && this.motivoViaje().trim() !== '';
+    return (
+      this.fecha() !== null &&
+      this.allQuestionsAnswered() &&
+      !this.hasBlockingAnswer() &&
+      this.motivoViaje().trim() !== '' &&
+      this.routeLocation().trim() !== '' &&
+      this.conductorNames().trim() !== '' &&
+      this.approverName().trim() !== ''
+    );
   });
 
-  /** Por qué el botón "Guardar" está deshabilitado — el usuario llega al paso 4 sin saber qué le falta (los pasos no bloquean el avance). */
+  /**
+   * Por qué el botón "Guardar" está deshabilitado — los pasos del wizard no
+   * bloquean el avance, así que se llega al paso 4 sin saber qué falta.
+   * (Pasajeros queda opcional: un viaje solo con conductor es válido.)
+   */
   protected readonly submitHint = computed(() => {
     if (this.hasBlockingAnswer()) return 'Una de las respuestas bloquea el viaje — no se puede guardar el gerenciamiento.';
     const faltan: string[] = [];
+    if (this.fecha() === null) faltan.push('Fecha (paso General)');
     if (this.motivoViaje().trim() === '') faltan.push('Motivo del viaje (paso General)');
     if (!this.allQuestionsAnswered()) faltan.push('responder todas las preguntas de la Evaluación');
+    if (this.routeLocation().trim() === '') faltan.push('Locación de la ruta (Plan & Ruta)');
+    if (this.conductorNames().trim() === '') faltan.push('Conductor(es) (Aprobación)');
+    if (this.approverName().trim() === '') faltan.push('Gerente que autoriza (Aprobación)');
     return faltan.length ? `Falta: ${faltan.join(' · ')}.` : '';
   });
 
   // ── Actions ──
   protected submit(): void {
+    const fecha = this.fecha();
+    if (!fecha) return;
     const result: TravelManagement = {
-      fecha: this.fecha().toISOString().split('T')[0],
+      fecha: toLocalDateString(fecha),
       motivoViaje: this.motivoViaje(),
       lineaServicio: this.lineaServicio(),
       origen: this.origen(),

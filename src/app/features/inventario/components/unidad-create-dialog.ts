@@ -90,17 +90,39 @@ export class UnidadCreateDialog {
     this.categoriaPeso.set((value as UnidadCategoriaPeso) || null);
   }
 
+  private numOrUndefined(raw: string): number | undefined {
+    const trimmed = raw.trim();
+    if (!trimmed) return undefined;
+    const value = Number(trimmed);
+    return Number.isNaN(value) ? undefined : value;
+  }
+
+  /** Distingue "campo vacío" (válido, sin línea base) de "texto no numérico" (error del usuario) — sin esto, `numOrUndefined` descarta ambos en silencio y la unidad se crea sin poder generar alertas preventivas. */
+  private camposNumericosInvalidos(tipo: UnidadTipo): string[] {
+    const invalidos: string[] = [];
+    const check = (raw: string, label: string) => {
+      if (raw.trim() !== '' && this.numOrUndefined(raw) === undefined) invalidos.push(label);
+    };
+    if (tipo === 'Servicio') check(this.horometroActual(), 'Horómetro actual');
+    if (tipo === 'Transporte') {
+      check(this.kmActual(), 'Kilometraje actual');
+      check(this.kmUltimoMantenimiento(), 'Kilometraje del último mantenimiento');
+    }
+    return invalidos;
+  }
+
   protected save(): void {
     const tipo = this.tipo();
     if (!this.canSave() || !tipo || this.submitting()) return;
-    this.submitting.set(true);
 
-    const numOrUndefined = (raw: string): number | undefined => {
-      const trimmed = raw.trim();
-      if (!trimmed) return undefined;
-      const value = Number(trimmed);
-      return Number.isNaN(value) ? undefined : value;
-    };
+    const invalidos = this.camposNumericosInvalidos(tipo);
+    if (invalidos.length > 0) {
+      this.notify.error('Valor inválido', `Revisa el formato de: ${invalidos.join(', ')}.`);
+      return;
+    }
+
+    this.submitting.set(true);
+    const numOrUndefined = (raw: string) => this.numOrUndefined(raw);
 
     const input: CreateUnidadInput = {
       code: this.code().trim(),

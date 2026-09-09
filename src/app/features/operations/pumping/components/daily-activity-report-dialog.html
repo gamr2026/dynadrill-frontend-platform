@@ -19,7 +19,7 @@
 <section class="daily-report__section">
   <dynadrill-text variant="h2">Información general</dynadrill-text>
   <div class="daily-report__form-grid">
-    <dynadrill-datetime-picker mode="date" label="Fecha" [value]="fecha()" (valueChange)="fecha.set($event)" />
+    <dynadrill-datetime-picker mode="date" label="Fecha" [value]="$any(fecha())" (valueChange)="fecha.set($event)" />
     <dynadrill-input label="N°" [value]="numero()" (valueChange)="numero.set($event)" />
     <dynadrill-input label="Cliente" [value]="cliente()" (valueChange)="cliente.set($event)" />
     <dynadrill-input label="Orden/Contrato N°" [value]="ordenContrato()" (valueChange)="ordenContrato.set($event)" />

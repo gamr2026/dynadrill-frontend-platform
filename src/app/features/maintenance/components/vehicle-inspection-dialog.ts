@@ -32,6 +32,7 @@ import { Unidad } from '../models/unidad.model';
 import { UnitReportDialog, UnitReportDialogData } from './unit-report-dialog';
 import { AuthService } from '../../../core/services/auth.service';
 import { RolesService } from '../../users/services/users.service';
+import { parseLocalDateString } from '../../../shared/utils';
 
 /** Código de rol (roles.code) — estable, ver backend role-code.ts. */
 const SUPERVISOR_ROLE_CODE = 'supervisor';
@@ -169,7 +170,14 @@ export class VehicleInspectionDialog {
     this.data?.supervisorNombre ? [{ label: this.data.supervisorNombre, value: this.data.supervisorNombre }] : [],
   );
 
-  protected readonly puedeGuardar = computed(() => !!this.unidadId() && !!this.conductorSeleccionado() && this.reuneCondicionesParaTrabajar());
+  /** El wizard permitía avanzar por los pasos de checklist (Vehículo/Equipo) sin marcar ningún ítem — next() solo valida el paso 0. */
+  protected readonly checklistCompleto = computed(
+    () => this.checklistVehiculo().every(i => i.estado !== null) && this.checklistEquipo().every(i => i.estado !== null),
+  );
+
+  protected readonly puedeGuardar = computed(
+    () => !!this.unidadId() && !!this.conductorSeleccionado() && this.reuneCondicionesParaTrabajar() && this.checklistCompleto(),
+  );
 
   /**
    * Al elegir la unidad, precarga sus datos patrimoniales (Marca/Tipo/
@@ -234,7 +242,7 @@ export class VehicleInspectionDialog {
     const existing = this.data?.existing;
     if (existing) {
       this.unidadId.set(existing.unidadId);
-      this.fecha.set(new Date(existing.fecha));
+      this.fecha.set(parseLocalDateString(existing.fecha));
       this.puntoPartida.set(existing.puntoPartida);
       this.destino.set(existing.destino);
       this.inspeccionadoPor.set(existing.inspeccionadoPor);
@@ -243,14 +251,14 @@ export class VehicleInspectionDialog {
       this.modelo.set(existing.modelo);
       this.anioFabricacion.set(existing.anioFabricacion);
       this.placa.set(existing.placa);
-      this.fechaMatricula.set(existing.fechaMatricula ? new Date(existing.fechaMatricula) : null);
-      this.caducidadMatricula.set(existing.caducidadMatricula ? new Date(existing.caducidadMatricula) : null);
-      this.caducidadPoliza.set(existing.caducidadPoliza ? new Date(existing.caducidadPoliza) : null);
-      this.vigenciaOtroDocumento.set(existing.vigenciaOtroDocumento ? new Date(existing.vigenciaOtroDocumento) : null);
+      this.fechaMatricula.set(existing.fechaMatricula ? parseLocalDateString(existing.fechaMatricula) : null);
+      this.caducidadMatricula.set(existing.caducidadMatricula ? parseLocalDateString(existing.caducidadMatricula) : null);
+      this.caducidadPoliza.set(existing.caducidadPoliza ? parseLocalDateString(existing.caducidadPoliza) : null);
+      this.vigenciaOtroDocumento.set(existing.vigenciaOtroDocumento ? parseLocalDateString(existing.vigenciaOtroDocumento) : null);
       // 0 = sin lectura (nunca es un odómetro real) -> se muestra vacío.
       this.kmInicial.set(existing.kmInicial ? String(existing.kmInicial) : '');
       this.kmFinal.set(existing.kmFinal ? String(existing.kmFinal) : '');
-      this.proximoMantenimiento.set(existing.proximoMantenimiento ? new Date(existing.proximoMantenimiento) : null);
+      this.proximoMantenimiento.set(existing.proximoMantenimiento ? parseLocalDateString(existing.proximoMantenimiento) : null);
       this.checklistVehiculo.set(existing.checklistVehiculo);
       this.checklistEquipo.set(existing.checklistEquipo);
       // Los 6 documentos del conductor y "reúne condiciones" ya no se restauran del registro guardado:

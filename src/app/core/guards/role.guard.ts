@@ -10,5 +10,9 @@ export const roleGuard: CanActivateFn = route => {
   const allowedRoles = route.data['allowedRoles'] as string[] | undefined;
   const roleName = auth.currentUser()?.roleName;
 
-  return !allowedRoles || (roleName != null && allowedRoles.includes(roleName)) ? true : router.createUrlTree(['/dashboard']);
+  // `allowedRoles: []` no debe interpretarse como "sin restricción" — !allowedRoles
+  // es false para un array vacío, así que se chequea la longitud explícitamente.
+  return !allowedRoles || allowedRoles.length === 0 || (roleName != null && allowedRoles.includes(roleName))
+    ? true
+    : router.createUrlTree(['/dashboard']);
 };

@@ -151,6 +151,9 @@ export class EmergenciaDetailPage {
   protected readonly puedeCerrar = computed(() => {
     const e = this.evento();
     if (!e) return false;
+    // Nivel 2/3 siempre generan investigación al cerrar (emergenciaRequiereInvestigacion) — sin este
+    // chequeo se podía cerrar sin abrirla nunca, saltándose HSE-TRIAGE-002 permanentemente.
+    if (this.requiereInvestigacion() && !e.investigacionId) return false;
     return e.estado === 'controlada' && !!e.reporteFlash.emitidoAt;
   });
 
@@ -174,7 +177,12 @@ export class EmergenciaDetailPage {
     const current = this.evento();
     if (!current) return;
     this.evento.set({ ...current, ...changes });
-    this.emergenciaService.update(current.id, changes).subscribe();
+    this.emergenciaService.update(current.id, changes).subscribe({
+      error: () => {
+        this.evento.set(current);
+        this.notify.error('Error', 'No se pudo guardar el cambio. Inténtalo de nuevo.');
+      },
+    });
   }
 
   // ── Cronómetro ──
@@ -317,10 +325,16 @@ export class EmergenciaDetailPage {
         ubicacion: e.ubicacion ?? '',
         origenEmergenciaId: e.id,
       })
-      .subscribe(inv => {
-        this.abriendoInvestigacion.set(false);
-        this.patch({ investigacionId: inv.id });
-        this.router.navigate(['/dashboard/qhse/investigaciones', inv.id]);
+      .subscribe({
+        next: inv => {
+          this.abriendoInvestigacion.set(false);
+          this.patch({ investigacionId: inv.id });
+          this.router.navigate(['/dashboard/qhse/investigaciones', inv.id]);
+        },
+        error: () => {
+          this.abriendoInvestigacion.set(false);
+          this.notify.error('Error', 'No se pudo abrir la investigación. Inténtalo de nuevo.');
+        },
       });
   }
 

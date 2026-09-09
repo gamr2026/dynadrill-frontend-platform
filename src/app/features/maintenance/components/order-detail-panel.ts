@@ -140,7 +140,10 @@ export class OrderDetailPanel {
         this.reassigning.set(false);
         this.refreshOrder();
       },
-      error: () => this.reassigning.set(false),
+      error: () => {
+        this.reassigning.set(false);
+        this.notify.error('Error', 'No se pudo reasignar el operador.');
+      },
     });
   }
 
@@ -211,7 +214,10 @@ export class OrderDetailPanel {
         this.notify.success('Sub-orden cerrada', `${sub.code} quedó cerrada.`);
         this.refreshOrder();
       },
-      error: () => this.reviewing.set(false),
+      error: () => {
+        this.reviewing.set(false);
+        this.notify.error('Error', 'No se pudo cerrar la sub-orden.');
+      },
     });
   }
 
@@ -227,7 +233,10 @@ export class OrderDetailPanel {
         this.notify.warning('Corrección solicitada', `${sub.code} regresa al operador.`);
         this.refreshOrder();
       },
-      error: () => this.reviewing.set(false),
+      error: () => {
+        this.reviewing.set(false);
+        this.notify.error('Error', 'No se pudo enviar la corrección.');
+      },
     });
   }
 

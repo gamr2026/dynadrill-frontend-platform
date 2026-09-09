@@ -91,5 +91,13 @@ export class AuthService {
 
 function readStoredUser(): AuthenticatedUser | null {
   const raw = localStorage.getItem(USER_KEY);
-  return raw ? (JSON.parse(raw) as AuthenticatedUser) : null;
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as AuthenticatedUser;
+  } catch {
+    // localStorage corrupto (escritura parcial, versión anterior con otro shape, etc.)
+    // — tratarlo como "sin sesión" en vez de tumbar el bootstrap de toda la app.
+    localStorage.removeItem(USER_KEY);
+    return null;
+  }
 }

@@ -139,13 +139,21 @@ export class UnitReportDialog {
   protected readonly operadorLlegada = signal('');
   protected readonly supervisorLlegada = signal('');
 
+  /** No usa `Number(x) || null`: una lectura real de 0 es un valor válido, no "sin lectura". */
+  private static parseLectura(raw: string): number | null {
+    const trimmed = raw.trim();
+    if (trimmed === '') return null;
+    const value = Number(trimmed);
+    return Number.isNaN(value) ? null : value;
+  }
+
   /** Advertencia no bloqueante: una lectura que retrocede es una situación real (cambio de equipo, etc.) y debe poder registrarse igual. */
   protected readonly lecturaWarning = computed(() => {
     const u = this.unidadSeleccionada();
-    const hSalida = Number(this.horometroSalida()) || null;
-    const hLlegada = Number(this.horometroLlegada()) || null;
-    const oSalida = Number(this.odometroSalida()) || null;
-    const oLlegada = Number(this.odometroLlegada()) || null;
+    const hSalida = UnitReportDialog.parseLectura(this.horometroSalida());
+    const hLlegada = UnitReportDialog.parseLectura(this.horometroLlegada());
+    const oSalida = UnitReportDialog.parseLectura(this.odometroSalida());
+    const oLlegada = UnitReportDialog.parseLectura(this.odometroLlegada());
 
     if (hSalida !== null && hLlegada !== null && hLlegada < hSalida) {
       return 'El horómetro de llegada es menor al de salida — verifica las lecturas.';
@@ -193,8 +201,11 @@ export class UnitReportDialog {
     this.modalRef.close();
   }
 
+  /** Antes se podía guardar el reporte completo (7 pasos) sin ninguna firma — next() solo valida el paso 0. */
+  protected readonly canSubmit = computed(() => this.operadorSalida().trim() !== '' && this.supervisorSalida().trim() !== '');
+
   submit(): void {
-    if (this.submitting() || !this.unidadId()) return;
+    if (this.submitting() || !this.unidadId() || !this.canSubmit()) return;
     this.submitting.set(true);
 
     const input: CreateUnitReportInput = {

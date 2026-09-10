@@ -365,3 +365,28 @@
 .ticket-detail__iperc-banner-text {
   min-width: 0;
 }
+
+.ticket-detail__iperc-pendientes {
+  margin: 0.25rem 0 0.5rem;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+
+  li {
+    margin: 0.15rem 0;
+  }
+
+  em {
+    color: var(--text-secondary, #666);
+  }
+}
+
+.ticket-detail__iperc-link {
+  margin-left: 0.4rem;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--dynadrill-purple, #662e9b);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

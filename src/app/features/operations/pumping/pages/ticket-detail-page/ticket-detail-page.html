@@ -33,22 +33,33 @@
 @if (ipercVinculo(); as iperc) {
   <section
     class="ticket-detail__iperc-banner"
-    [class.ticket-detail__iperc-banner--ok]="ipercAprobada()"
-    [class.ticket-detail__iperc-banner--pendiente]="!ipercAprobada()"
+    [class.ticket-detail__iperc-banner--ok]="coberturaOk()"
+    [class.ticket-detail__iperc-banner--pendiente]="!coberturaOk()"
   >
     <div class="ticket-detail__iperc-banner-text">
-      <dynadrill-text variant="body">
-        <strong>Matriz IPERC {{ iperc.ipercCode }}</strong> — {{ ipercEstadoLabel(iperc.ipercEstado) }}
-      </dynadrill-text>
-      @if (!ipercAprobada()) {
+      @if (coberturaOk()) {
+        <dynadrill-text variant="body">
+          <strong>Matriz IPERC {{ iperc.matrizMaestra }}</strong> — actividades del servicio cubiertas y aprobadas.
+        </dynadrill-text>
+      } @else {
+        <dynadrill-text variant="body">
+          <strong>Matriz IPERC {{ iperc.matrizMaestra }}</strong> — HSE tiene actividades pendientes de aprobar:
+        </dynadrill-text>
+        <ul class="ticket-detail__iperc-pendientes">
+          @for (act of actividadesPendientes(); track act.ipercMatrixId) {
+            <li>
+              {{ act.nombre }} <em>({{ ipercEstadoLabel(act.estado) }})</em>
+              @if (puedeVerMatrizIperc()) {
+                <button type="button" class="ticket-detail__iperc-link" (click)="verMatrizIperc(act.ipercMatrixId)">Ver</button>
+              }
+            </li>
+          }
+        </ul>
         <dynadrill-text variant="caption">
-          El servicio no puede avanzar (asignación de personal y ejecución) hasta que HSE apruebe la matriz.
+          El servicio no puede avanzar (asignación de personal y ejecución) hasta que estén todas aprobadas.
         </dynadrill-text>
       }
     </div>
-    @if (puedeVerMatrizIperc()) {
-      <dynadrill-button variant="secondary" size="small" (clicked)="verMatrizIperc()">Ver matriz</dynadrill-button>
-    }
   </section>
 }
 
@@ -68,17 +79,17 @@
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Asignar supervisor</dynadrill-text>
       <dynadrill-select label="Supervisor responsable" placeholder="Seleccionar supervisor" [options]="supervisorOptions" [value]="selectedSupervisor()" (valueChange)="onSupervisorChange($event)" />
-      @if (!ipercAprobada()) {
+      @if (!coberturaOk()) {
         <dynadrill-text variant="caption">
-          No se puede asignar ni notificar al Supervisor sin la Matriz IPERC aprobada por HSE
-          ({{ ipercVinculo()?.ipercCode ?? 'sin vincular' }} — {{ ipercEstadoLabel(ipercVinculo()?.ipercEstado ?? '') }}).
+          No se puede asignar ni notificar al Supervisor: HSE tiene pendiente aprobar
+          {{ actividadesPendientesTexto() }} en la matriz maestra {{ ipercVinculo()?.matrizMaestra }}.
         </dynadrill-text>
       }
     </section>
 
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="primary" [disabled]="selectedSupervisor() === null || !ipercAprobada() || submitting()" (clicked)="saveSupervisor()">Guardar y continuar</dynadrill-button>
+      <dynadrill-button variant="primary" [disabled]="selectedSupervisor() === null || !coberturaOk() || submitting()" (clicked)="saveSupervisor()">Guardar y continuar</dynadrill-button>
     </footer>
   }
 
@@ -235,18 +246,18 @@
       <section class="ticket-detail__section">
         <dynadrill-text variant="caption">Debe completar el Gerenciamiento de Viaje (DYN-SGI-RE-049) de cada operador aprobado antes de continuar.</dynadrill-text>
       </section>
-    } @else if (!ipercAprobada()) {
+    } @else if (!coberturaOk()) {
       <section class="ticket-detail__section">
         <dynadrill-text variant="caption">
-          El servicio no puede pasar a ejecución sin la Matriz IPERC aprobada por HSE
-          ({{ ipercVinculo()?.ipercCode ?? 'sin vincular' }} — {{ ipercEstadoLabel(ipercVinculo()?.ipercEstado ?? '') }}).
+          El servicio no puede pasar a ejecución: HSE tiene pendiente aprobar
+          {{ actividadesPendientesTexto() }} en la matriz maestra {{ ipercVinculo()?.matrizMaestra }}.
         </dynadrill-text>
       </section>
     }
 
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="success" [disabled]="!allSalidaApproved() || !allTravelManagementsCompleted() || !ipercAprobada() || submitting()" (clicked)="approveAllSalidaReports()">Aprobar reportes de salida</dynadrill-button>
+      <dynadrill-button variant="success" [disabled]="!allSalidaApproved() || !allTravelManagementsCompleted() || !coberturaOk() || submitting()" (clicked)="approveAllSalidaReports()">Aprobar reportes de salida</dynadrill-button>
     </footer>
   }
 

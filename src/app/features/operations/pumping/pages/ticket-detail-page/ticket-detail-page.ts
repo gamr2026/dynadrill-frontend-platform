@@ -175,35 +175,43 @@ export class TicketDetailPage {
 
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
 
-  // ── Vínculo con QHSE (HSE-PLAN-001) ──
-  /** Matriz IPERC vinculada al ticket — el backend la asigna al crearlo. */
+  // ── Cobertura de la Matriz Maestra IPERC (HSE-PLAN-001) ──
+  /** Resultado del chequeo del backend: la matriz maestra cubre —aprobadas— las actividades del trabajo. */
   protected readonly ipercVinculo = computed(() => this.ticket()?.qhse ?? null);
   /**
-   * El servicio no pasa a "Ejecución operativa" sin la IPERC aprobada por HSE.
-   * Tickets sin vínculo (datos viejos / backend sin reiniciar) no se bloquean
-   * — el gate solo aplica cuando hay una matriz vinculada.
+   * El servicio no avanza (asignar personal, ejecutar) si alguna actividad
+   * de la línea no está aprobada en la matriz maestra. Tickets sin vínculo
+   * (datos viejos / backend sin reiniciar) no se bloquean.
    */
-  protected readonly ipercAprobada = computed(() => {
+  protected readonly coberturaOk = computed(() => {
     const v = this.ipercVinculo();
-    return !v || v.ipercEstado === 'aprobada';
+    return !v || v.cobertura === 'ok';
   });
+  /** Actividades que todavía no están aprobadas — lo que HSE tiene pendiente. */
+  protected readonly actividadesPendientes = computed(() =>
+    (this.ipercVinculo()?.actividades ?? []).filter(a => a.estado !== 'aprobada'),
+  );
+  protected readonly actividadesPendientesTexto = computed(() =>
+    this.actividadesPendientes()
+      .map(a => a.nombre)
+      .join(', '),
+  );
   private readonly IPERC_ESTADO_LABELS: Record<string, string> = {
-    borrador: 'En elaboración por HSE',
-    en_evaluacion: 'En evaluación por HSE',
-    en_revision: 'En revisión por HSE',
-    aprobada: 'Aprobada',
-    rechazada: 'Rechazada',
+    borrador: 'en elaboración por HSE',
+    en_evaluacion: 'en evaluación por HSE',
+    en_revision: 'en revisión por HSE',
+    aprobada: 'aprobada',
+    rechazada: 'rechazada',
+    no_evaluada: 'sin evaluar',
   };
   protected ipercEstadoLabel(estado: string): string {
     return this.IPERC_ESTADO_LABELS[estado] ?? estado;
   }
-  /** El módulo QHSE (y su endpoint) solo lo abren estos roles — para el resto
-   *  el banner con código + estado es suficiente, la matriz la trabaja HSE. */
+  /** El módulo QHSE (y su endpoint) solo lo abren estos roles. */
   private readonly QHSE_VIEWER_ROLES = ['Técnico HSE', 'Coordinador HSE', 'Gerente HSE', 'Superadmin', 'Jefe de Base'];
   protected readonly puedeVerMatrizIperc = computed(() => this.QHSE_VIEWER_ROLES.includes(this.roleName()));
-  protected verMatrizIperc(): void {
-    const id = this.ipercVinculo()?.ipercMatrixId;
-    if (id && this.puedeVerMatrizIperc()) this.router.navigate(['/dashboard/qhse/iperc', id]);
+  protected verMatrizIperc(actividadIpercId: number): void {
+    if (this.puedeVerMatrizIperc()) this.router.navigate(['/dashboard/qhse/iperc', actividadIpercId]);
   }
 
   private readonly unitReportsService = inject(UnitReportsService);
@@ -927,10 +935,12 @@ export class TicketDetailPage {
   protected approveAllSalidaReports(): void {
     const t = this.ticket();
     if (!t) return;
-    if (!this.ipercAprobada()) {
+    if (!this.coberturaOk()) {
       this.notify.error(
-        'Falta la Matriz IPERC',
-        `El servicio no puede pasar a ejecución sin la Matriz IPERC aprobada por HSE (${t.qhse?.ipercCode ?? 'sin vincular'}).`,
+        'Matriz IPERC incompleta',
+        `El servicio no puede pasar a ejecución: HSE tiene pendiente aprobar ${this.actividadesPendientes()
+          .map(a => a.nombre)
+          .join(', ')} en la matriz maestra.`,
       );
       return;
     }
@@ -1575,10 +1585,12 @@ export class TicketDetailPage {
     const supervisorId = this.selectedSupervisor();
     const t = this.ticket();
     if (!supervisorId || !t) return;
-    if (!this.ipercAprobada()) {
+    if (!this.coberturaOk()) {
       this.notify.error(
-        'Falta la Matriz IPERC',
-        `No se puede asignar (ni notificar) al Supervisor sin la Matriz IPERC aprobada por HSE (${t.qhse?.ipercCode ?? 'sin vincular'} — ${this.ipercEstadoLabel(t.qhse?.ipercEstado ?? '')}).`,
+        'Matriz IPERC incompleta',
+        `No se puede asignar ni notificar al Supervisor: HSE tiene pendiente aprobar ${this.actividadesPendientes()
+          .map(a => a.nombre)
+          .join(', ')} en la matriz maestra.`,
       );
       return;
     }

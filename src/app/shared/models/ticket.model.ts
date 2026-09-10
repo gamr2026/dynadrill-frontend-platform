@@ -3,20 +3,25 @@ export type TicketStatus = 'borrador' | 'en_revision' | 'aprobado' | 'en_ejecuci
 /** Estados de la Matriz IPERC — mismos valores que `IpercStatus` en el módulo QHSE. */
 export type TicketIpercEstado = 'borrador' | 'en_evaluacion' | 'en_revision' | 'aprobada' | 'rechazada';
 
+/** Una actividad de la Matriz Maestra IPERC que implica el trabajo del ticket. */
+export interface TicketQhseActividad {
+  nombre: string;
+  ipercMatrixId: number;
+  /** Estado VIVO de la evaluación de esa actividad (lo refresca el backend al leer el ticket). */
+  estado: TicketIpercEstado;
+}
+
 /**
- * Vínculo del ticket operativo (Pumping/FCR) con QHSE — HSE-PLAN-001. Lo
- * asigna el backend al crear el ticket: una Matriz IPERC por tipo de
- * actividad, reutilizada si ya hay una aprobada. `ipercEstado` llega
- * refrescado con el estado VIVO de la matriz — el gate de "pasar a
- * ejecución" y el panel del detalle lo leen.
+ * Vínculo del ticket operativo (Pumping/FCR) con QHSE — HSE-PLAN-001. El
+ * backend verifica que la Matriz Maestra IPERC (DYN-SGI-RE-087) cubra
+ * —aprobadas— todas las actividades que implica la línea de servicio.
+ * `cobertura === 'ok'` sólo cuando todas están aprobadas; el gate del
+ * detalle (asignar supervisor, pasar a ejecución) lo lee.
  */
 export interface TicketQhseVinculo {
-  ipercMatrixId: number;
-  ipercCode: string;
-  ipercEstado: TicketIpercEstado;
-  /** true si se reutilizó una matriz aprobada existente; false si se creó una solicitud nueva. */
-  reutilizada?: boolean;
-  origenOperativo?: { tipo: 'pumping' | 'fcr'; ticketCode: string; pedidoCode?: string };
+  matrizMaestra: string;
+  cobertura: 'ok' | 'incompleta';
+  actividades: TicketQhseActividad[];
 }
 
 export interface Ticket {

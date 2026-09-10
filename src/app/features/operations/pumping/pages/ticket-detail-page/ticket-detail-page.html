@@ -41,6 +41,25 @@
         <dynadrill-text variant="body">
           <strong>Matriz IPERC {{ iperc.matrizMaestra }}</strong> — actividades del servicio cubiertas y aprobadas.
         </dynadrill-text>
+        @if (ptwVinculo(); as ptw) {
+          <dynadrill-text variant="caption">
+            <strong>PTW {{ ptw.code }}</strong> —
+            @if (ptw.cerrado) {
+              cerrado, sitio devuelto.
+            } @else if (ptw.firmadoSitio) {
+              firmado en sitio; ejecución en campo habilitada.
+            } @else {
+              en {{ ptwFaseLabel(ptw.fase) }}. La ejecución en campo requiere la firma en sitio.
+            }
+            @if (puedeVerMatrizIperc()) {
+              <button type="button" class="ticket-detail__iperc-link" (click)="verPtw()">Ver PTW</button>
+            }
+          </dynadrill-text>
+        } @else {
+          <dynadrill-text variant="caption">
+            Falta abrir el PTW / Recibimiento de Sitio en QHSE — necesario antes de la ejecución en campo.
+          </dynadrill-text>
+        }
       } @else {
         <dynadrill-text variant="body">
           <strong>Matriz IPERC {{ iperc.matrizMaestra }}</strong> — HSE tiene actividades pendientes de aprobar:
@@ -253,11 +272,22 @@
           {{ actividadesPendientesTexto() }} en la matriz maestra {{ ipercVinculo()?.matrizMaestra }}.
         </dynadrill-text>
       </section>
+    } @else if (!ptwFirmadoOk()) {
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="caption">
+          @if (ptwVinculo(); as ptw) {
+            El servicio no puede pasar a ejecución en campo: el PTW {{ ptw.code }} está en
+            {{ ptwFaseLabel(ptw.fase) }} — falta la firma en sitio (HSE-SITIO-001).
+          } @else {
+            El servicio no puede pasar a ejecución en campo: todavía no se abrió el PTW / Recibimiento de Sitio en QHSE.
+          }
+        </dynadrill-text>
+      </section>
     }
 
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="success" [disabled]="!allSalidaApproved() || !allTravelManagementsCompleted() || !coberturaOk() || submitting()" (clicked)="approveAllSalidaReports()">Aprobar reportes de salida</dynadrill-button>
+      <dynadrill-button variant="success" [disabled]="!allSalidaApproved() || !allTravelManagementsCompleted() || !coberturaOk() || !ptwFirmadoOk() || submitting()" (clicked)="approveAllSalidaReports()">Aprobar reportes de salida</dynadrill-button>
     </footer>
   }
 

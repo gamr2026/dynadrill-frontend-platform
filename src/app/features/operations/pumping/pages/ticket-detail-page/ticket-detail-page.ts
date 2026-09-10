@@ -214,6 +214,37 @@ export class TicketDetailPage {
     if (this.puedeVerMatrizIperc()) this.router.navigate(['/dashboard/qhse/iperc', actividadIpercId]);
   }
 
+  // ── PTW / Recibimiento de Sitio (HSE-SITIO-001) ──
+  /** Estado del PTW del servicio (lo adjunta el backend). `null` mientras la cobertura IPERC no esté completa. */
+  protected readonly ptwVinculo = computed(() => this.ipercVinculo()?.ptw ?? null);
+  /**
+   * Segundo gate: no se pasa a ejecución en campo (Reporte Diario) sin el
+   * PTW firmado en sitio — PUM-004 "Descargar documentos HSE", RN-PUM-004-06.
+   * Si aún no hay PTW (ticket sembrado / sin pedido) no se bloquea; el
+   * bloqueo aplica en cuanto el PTW existe (se abre solo al completarse la
+   * cobertura IPERC).
+   */
+  protected readonly ptwFirmadoOk = computed(() => {
+    if (!this.coberturaOk()) return false;
+    const p = this.ptwVinculo();
+    return !p || p.firmadoSitio;
+  });
+  private readonly PTW_FASE_LABELS: Record<string, string> = {
+    gabinete: 'preparación en gabinete',
+    ingreso: 'ingreso a locación',
+    verificaciones: 'verificaciones de seguridad',
+    formalizacion: 'formalización del recibimiento',
+    ejecucion: 'ejecución y devolución',
+    gestion_documental: 'gestión documental final',
+  };
+  protected ptwFaseLabel(fase: string): string {
+    return this.PTW_FASE_LABELS[fase] ?? fase;
+  }
+  protected verPtw(): void {
+    const p = this.ptwVinculo();
+    if (p && this.puedeVerMatrizIperc()) this.router.navigate(['/dashboard/qhse/ptw', p.id]);
+  }
+
   private readonly unitReportsService = inject(UnitReportsService);
   private readonly unidadesService = inject(UnidadesService);
   /** Catálogo de unidades — para completar la descripción real del vehículo en las inspecciones de ejemplo. */
@@ -941,6 +972,18 @@ export class TicketDetailPage {
         `El servicio no puede pasar a ejecución: HSE tiene pendiente aprobar ${this.actividadesPendientes()
           .map(a => a.nombre)
           .join(', ')} en la matriz maestra.`,
+      );
+      return;
+    }
+    if (!this.ptwFirmadoOk()) {
+      const p = this.ptwVinculo();
+      this.notify.error(
+        'PTW pendiente',
+        p
+          ? `El servicio no puede pasar a ejecución en campo: el PTW ${p.code} está en ${this.ptwFaseLabel(
+              p.fase,
+            )} — falta la firma en sitio (HSE-SITIO-001).`
+          : 'El servicio no puede pasar a ejecución en campo: todavía no se abrió el PTW/Recibimiento de Sitio en QHSE.',
       );
       return;
     }

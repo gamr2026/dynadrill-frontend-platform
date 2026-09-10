@@ -51,6 +51,8 @@
     [message]="'Esperando acción de: ' + responsibleRole()"
   />
 
+  <app-ticket-qhse-banner [vinculo]="qhseVinculo()" [canView]="puedeVerQhse()" />
+
   <dynadrill-context-card [items]="contextItems()" />
 
   @if (previousPhaseApproval(); as approval) {
@@ -201,9 +203,15 @@
         }
 
         @if (ticket()!.reviewGuideGenerated) {
+          @if (!coberturaOk()) {
+            <dynadrill-text variant="caption">
+              No se puede asignar operador: la Matriz IPERC del servicio tiene actividades que HSE aún no aprobó.
+            </dynadrill-text>
+          }
           <footer class="fcr-detail__actions">
             <dynadrill-button
               variant="primary"
+              [disabled]="!coberturaOk()"
               (clicked)="confirmAndAdvance('asignacion_operador', 'Continuar a Asignación de Operador', 'La preparación de herramientas quedará cerrada y ya no podrá corregirse. ¿Continuar?')"
             >Continuar a Asignación de Operador</dynadrill-button>
           </footer>
@@ -244,9 +252,21 @@
 
         @if (ticket()!.operationalActaSigned) {
           <dynadrill-text variant="body">Acta firmada — reunión del {{ formatDate(ticket()!.operationalMeetingDate) }}.</dynadrill-text>
+          @if (!ptwFirmadoOk()) {
+            <dynadrill-text variant="caption">
+              @if (qhseVinculo()?.ptw; as ptw) {
+                No se puede pasar a Ejecución de Campo: el PTW {{ ptw.code }} aún no está firmado en sitio (HSE-SITIO-001).
+              } @else if (!coberturaOk()) {
+                No se puede pasar a Ejecución de Campo: la Matriz IPERC del servicio tiene actividades sin aprobar.
+              } @else {
+                No se puede pasar a Ejecución de Campo: todavía no se abrió el PTW / Recibimiento de Sitio en QHSE.
+              }
+            </dynadrill-text>
+          }
           <footer class="fcr-detail__actions">
             <dynadrill-button
               variant="primary"
+              [disabled]="!ptwFirmadoOk()"
               (clicked)="confirmAndAdvance('ejecucion_campo', 'Continuar a Ejecución de Campo', 'La reunión operativa quedará cerrada. ¿Continuar?')"
             >Continuar a Ejecución de Campo</dynadrill-button>
           </footer>

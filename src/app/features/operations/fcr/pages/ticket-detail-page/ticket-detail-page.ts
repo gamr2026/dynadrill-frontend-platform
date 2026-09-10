@@ -39,6 +39,14 @@ import {
 } from '../../models/fcr.model';
 import { FcrService } from '../../services/fcr.service';
 import { AuthService } from '../../../../../core/services/auth.service';
+import { TicketQhseBanner } from '../../../shared/ticket-qhse-banner/ticket-qhse-banner';
+import {
+  QHSE_VIEWER_ROLES,
+  actividadesPendientesTexto,
+  coberturaOk,
+  ptwFaseLabel,
+  ptwFirmadoOk,
+} from '../../../shared/ticket-qhse.util';
 import { SolicitarCorreccionDialog, SolicitarCorreccionDialogData, SolicitarCorreccionDialogResult } from '../../components/solicitar-correccion-dialog';
 import { AsignarOperadorDialog, AsignarOperadorDialogData, AsignarOperadorDialogResult } from '../../components/asignar-operador-dialog';
 import { FirmaActaDialog, FirmaActaDialogData, FirmaActaDialogResult } from '../../components/firma-acta-dialog';
@@ -112,6 +120,7 @@ const CLIENT_INVENTORY_CATALOG = [
     DynadrillTextareaComponent,
     DynadrillUploadZoneComponent,
     DynadrillApprovalActionsComponent,
+    TicketQhseBanner,
   ],
   templateUrl: './ticket-detail-page.html',
   styleUrl: './ticket-detail-page.scss',
@@ -129,6 +138,12 @@ export class FcrTicketDetailPage {
 
   protected readonly loading = signal(true);
   protected readonly ticket = signal<FcrTicket | null>(null);
+
+  // ── Gates QHSE (HSE-PLAN-001 cobertura IPERC + HSE-SITIO-001 PTW) ──
+  protected readonly qhseVinculo = computed(() => this.ticket()?.qhse ?? null);
+  protected readonly coberturaOk = computed(() => coberturaOk(this.qhseVinculo()));
+  protected readonly ptwFirmadoOk = computed(() => ptwFirmadoOk(this.qhseVinculo()));
+  protected readonly puedeVerQhse = computed(() => QHSE_VIEWER_ROLES.includes(this.roleName()));
 
   // ── Tracker de fases ──
 
@@ -377,6 +392,15 @@ export class FcrTicketDetailPage {
   protected openAsignarOperador(): void {
     const t = this.ticket();
     if (!t) return;
+    if (!this.coberturaOk()) {
+      this.notify.error(
+        'Matriz IPERC incompleta',
+        `No se puede asignar ni notificar al operador: HSE tiene pendiente aprobar ${actividadesPendientesTexto(
+          this.qhseVinculo(),
+        )} en la matriz maestra.`,
+      );
+      return;
+    }
     const ref = this.dialog.open<AsignarOperadorDialog, AsignarOperadorDialogData>({
       title: 'Asignar operador',
       content: AsignarOperadorDialog,
@@ -799,6 +823,31 @@ export class FcrTicketDetailPage {
   protected advancePhase(phase: FcrPhase): void {
     const t = this.ticket();
     if (!t || !this.isMyTurn()) return;
+
+    // Gate HSE-PLAN-001: no se asigna operador ni se ejecuta sin la
+    // cobertura IPERC completa.
+    if ((phase === 'asignacion_operador' || phase === 'ejecucion_campo') && !this.coberturaOk()) {
+      this.notify.error(
+        'Matriz IPERC incompleta',
+        `HSE tiene pendiente aprobar ${actividadesPendientesTexto(this.qhseVinculo())} en la matriz maestra.`,
+      );
+      return;
+    }
+    // Gate HSE-SITIO-001: no se ejecuta en campo sin el PTW firmado en sitio
+    // (FCR-004 "Descargar documentos HSE", RN-FCR-016).
+    if (phase === 'ejecucion_campo' && !this.ptwFirmadoOk()) {
+      const p = this.qhseVinculo()?.ptw;
+      this.notify.error(
+        'PTW pendiente',
+        p
+          ? `El servicio no puede pasar a ejecución de campo: el PTW ${p.code} está en ${ptwFaseLabel(
+              p.fase,
+            )} — falta la firma en sitio.`
+          : 'El servicio no puede pasar a ejecución de campo: todavía no se abrió el PTW / Recibimiento de Sitio en QHSE.',
+      );
+      return;
+    }
+
     const approver = this.auth.currentUser();
     this.fcrService.advancePhase(t.id, phase, approver?.name ?? '', approver?.roleName ?? '').subscribe({
       next: updated => {

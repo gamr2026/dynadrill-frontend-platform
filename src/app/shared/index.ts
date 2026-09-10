@@ -1,5 +1,13 @@
 // Models
-export type { Ticket, TicketStatus, TicketQhseVinculo, TicketQhseActividad, TicketIpercEstado } from './models/ticket.model';
+export type {
+  Ticket,
+  TicketStatus,
+  TicketQhseVinculo,
+  TicketQhseActividad,
+  TicketIpercEstado,
+  TicketQhsePtw,
+  TicketPtwFase,
+} from './models/ticket.model';
 export type { Unit, UnitStatus } from './models/unit.model';
 export * from './models/operativo-docs.model';
 export * from './models/catalogos.model';

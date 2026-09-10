@@ -66,11 +66,17 @@
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Asignar supervisor</dynadrill-text>
       <dynadrill-select label="Supervisor responsable" placeholder="Seleccionar supervisor" [options]="supervisorOptions" [value]="selectedSupervisor()" (valueChange)="onSupervisorChange($event)" />
+      @if (!ipercAprobada()) {
+        <dynadrill-text variant="caption">
+          No se puede asignar ni notificar al Supervisor sin la Matriz IPERC aprobada por HSE
+          ({{ ipercVinculo()?.ipercCode ?? 'sin vincular' }} — {{ ipercEstadoLabel(ipercVinculo()?.ipercEstado ?? '') }}).
+        </dynadrill-text>
+      }
     </section>
 
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="primary" [disabled]="selectedSupervisor() === null || submitting()" (clicked)="saveSupervisor()">Guardar y continuar</dynadrill-button>
+      <dynadrill-button variant="primary" [disabled]="selectedSupervisor() === null || !ipercAprobada() || submitting()" (clicked)="saveSupervisor()">Guardar y continuar</dynadrill-button>
     </footer>
   }
 

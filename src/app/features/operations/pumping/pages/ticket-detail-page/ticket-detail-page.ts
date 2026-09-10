@@ -1571,6 +1571,13 @@ export class TicketDetailPage {
     const supervisorId = this.selectedSupervisor();
     const t = this.ticket();
     if (!supervisorId || !t) return;
+    if (!this.ipercAprobada()) {
+      this.notify.error(
+        'Falta la Matriz IPERC',
+        `No se puede asignar (ni notificar) al Supervisor sin la Matriz IPERC aprobada por HSE (${t.qhse?.ipercCode ?? 'sin vincular'} — ${this.ipercEstadoLabel(t.qhse?.ipercEstado ?? '')}).`,
+      );
+      return;
+    }
     this.submitting.set(true);
     this.pumpingService.assignSupervisor(t.id, supervisorId).subscribe({
       next: updated => {

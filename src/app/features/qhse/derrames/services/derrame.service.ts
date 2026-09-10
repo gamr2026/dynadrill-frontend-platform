@@ -2,11 +2,12 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { CreateDerrameInput, DerrameEvento } from '../models/derrame.model';
+import { environment } from '@env';
 
 @Injectable({ providedIn: 'root' })
 export class DerrameService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/qhse/derrames';
+  private readonly baseUrl = `${environment.apiUrl}/qhse/derrames`;
 
   list(): Observable<DerrameEvento[]> {
     return this.http.get<DerrameEvento[]>(this.baseUrl);

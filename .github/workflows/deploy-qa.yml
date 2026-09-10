@@ -35,8 +35,10 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
 
-      - name: Build de producción
-        run: npm run build -- --configuration production
+      # "qa" (no "production"): trae el fileReplacement que apunta
+      # environment.ts -> environment.qa.ts (apiUrl del backend en QA).
+      - name: Build de QA
+        run: npm run build -- --configuration qa
 
       - name: Azure Login
         uses: azure/login@v2

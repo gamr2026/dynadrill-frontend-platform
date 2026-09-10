@@ -2,11 +2,12 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { PtwMatrix } from '../models/ptw.model';
+import { environment } from '@env';
 
 @Injectable({ providedIn: 'root' })
 export class PtwService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/qhse/ptw';
+  private readonly baseUrl = `${environment.apiUrl}/qhse/ptw`;
 
   list(): Observable<PtwMatrix[]> {
     return this.http.get<PtwMatrix[]>(this.baseUrl);

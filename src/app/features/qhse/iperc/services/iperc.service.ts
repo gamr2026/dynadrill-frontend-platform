@@ -2,11 +2,12 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { CreateIpercMatrixInput, IpercMatrix } from '../models/iperc.model';
+import { environment } from '@env';
 
 @Injectable({ providedIn: 'root' })
 export class IpercService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/qhse/iperc';
+  private readonly baseUrl = `${environment.apiUrl}/qhse/iperc`;
 
   list(): Observable<IpercMatrix[]> {
     return this.http.get<IpercMatrix[]>(this.baseUrl);

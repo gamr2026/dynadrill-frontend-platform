@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { MaintenanceOrderWithSubOrders, MaintenanceType, SubOrder, UnitFinalState } from '../models/maintenance-order.model';
 import { MaintenanceSourceModule } from '../models/unit-report.model';
+import { environment } from '@env';
 
 export interface ClassifyTypeAssignment {
   type: MaintenanceType;
@@ -33,7 +34,7 @@ export class MaintenanceOrdersService {
   private readonly http = inject(HttpClient);
 
   list(): Observable<MaintenanceOrderWithSubOrders[]> {
-    return this.http.get<MaintenanceOrderWithSubOrders[]>('/api/maintenance-orders');
+    return this.http.get<MaintenanceOrderWithSubOrders[]>(`${environment.apiUrl}/maintenance-orders`);
   }
 
   get(id: number): Observable<MaintenanceOrderWithSubOrders> {
@@ -42,7 +43,7 @@ export class MaintenanceOrdersService {
 
   /** MAN-001-A: crea la orden + una sub-orden por cada tipo seleccionado. */
   classify(input: ClassifyOrderInput): Observable<MaintenanceOrderWithSubOrders> {
-    return this.http.post<MaintenanceOrderWithSubOrders>('/api/maintenance-orders', input);
+    return this.http.post<MaintenanceOrderWithSubOrders>(`${environment.apiUrl}/maintenance-orders`, input);
   }
 
   /**

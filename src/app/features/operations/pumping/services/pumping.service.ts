@@ -2,11 +2,12 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { PumpingTicket, PumpingStep } from '../models/pumping.model';
+import { environment } from '@env';
 
 @Injectable({ providedIn: 'root' })
 export class PumpingService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/operations/pumping';
+  private readonly baseUrl = `${environment.apiUrl}/operations/pumping`;
 
   listTickets(): Observable<PumpingTicket[]> {
     return this.http.get<PumpingTicket[]>(`${this.baseUrl}/tickets`);

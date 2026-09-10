@@ -1,7 +1,16 @@
 import { Routes } from '@angular/router';
 import { roleGuard } from '../../../core/guards/role.guard';
 
-const FCR_ROLES = ['Superadmin', 'Jefe de Base', 'Supervisor', 'Operador', 'Bodeguero', 'Ingeniería de Ventas', 'Control de Herramientas'];
+const FCR_ROLES = [
+  'Superadmin',
+  'Jefe de Base',
+  'Supervisor',
+  'Operador',
+  'Bodeguero',
+  'Ingeniería de Ventas',
+  'Control de Herramientas',
+  'Supervisor Operaciones FCR',
+];
 
 export const fcrRoutes: Routes = [
   {

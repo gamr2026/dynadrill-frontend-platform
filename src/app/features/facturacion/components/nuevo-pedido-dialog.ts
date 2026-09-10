@@ -11,7 +11,7 @@ import {
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../core/services/auth.service';
-import { LINEA_SERVICIO_LABELS, LineaServicio, Pedido } from '../models/pedido.model';
+import { LINEA_SERVICIO_LABELS, LineaServicio, Pedido, TIPO_OT_LABELS, TipoOt } from '../models/pedido.model';
 import { ListaPrecios } from '../models/lista-precios.model';
 import { ListaPreciosService, PedidoService } from '../services/pedido.service';
 import { UBICACION_VACIA, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../shared/index';
@@ -61,6 +61,11 @@ export class NuevoPedidoDialog {
   // ── Servicio ──
   protected readonly lineaServicio = signal<LineaServicio | null>(null);
   protected readonly lineaOptions: DynadrillSelectOption[] = (Object.entries(LINEA_SERVICIO_LABELS) as [LineaServicio, string][]).map(
+    ([value, label]) => ({ label, value }),
+  );
+  /** Decide qué entrada del FcrTicket derivado usa este pedido — la elige Ventas, no Operaciones. */
+  protected readonly tipoOt = signal<TipoOt | null>(null);
+  protected readonly tipoOtOptions: DynadrillSelectOption[] = (Object.entries(TIPO_OT_LABELS) as [TipoOt, string][]).map(
     ([value, label]) => ({ label, value }),
   );
   /** Campo / Bloque / Pozo / Taladro — del catálogo, vía <app-ubicacion-selector>. */
@@ -138,6 +143,7 @@ export class NuevoPedidoDialog {
     () =>
       !!this.cliente() &&
       !!this.lineaServicio() &&
+      !!this.tipoOt() &&
       this.ubicacion().pozoId !== null &&
       this.ubicacion().taladroId !== null &&
       this.agenteComercial().trim().length > 0 &&
@@ -201,6 +207,7 @@ export class NuevoPedidoDialog {
         clienteRuc: this.clienteRuc() || undefined,
         subcliente: this.subcliente().trim() || undefined,
         lineaServicio: this.lineaServicio()!,
+        tipoOt: this.tipoOt()!,
         campo: this.ubicacion().campo,
         bloque: this.ubicacion().bloque,
         pozo: this.ubicacion().pozo,

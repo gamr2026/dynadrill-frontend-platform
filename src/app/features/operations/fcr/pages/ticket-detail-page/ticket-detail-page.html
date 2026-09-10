@@ -10,7 +10,7 @@
 @if (loading()) {
   <div class="fcr-detail__skeleton">
     <div class="fcr-detail__skeleton-tracker">
-      @for (label of phaseLabels; track $index) {
+      @for (label of phaseLabels(); track $index) {
         <dynadrill-skeleton variant="circle" width="24px" height="24px" />
       }
     </div>
@@ -25,7 +25,7 @@
 } @else if (ticket()) {
 
   <div class="fcr-detail__tracker">
-    @for (label of phaseLabels; track $index; let last = $last) {
+    @for (label of phaseLabels(); track $index; let last = $last) {
       <div
         class="fcr-detail__phase"
         [class.fcr-detail__phase--active]="$index === currentPhaseIndex()"
@@ -60,6 +60,153 @@
   }
 
   @switch (currentPhase()) {
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- FASE: Tipo de Operador (entrada SERVICIOS)  -->
+    <!-- ═══════════════════════════════════════════ -->
+    @case ('tipo_operador') {
+      <section class="fcr-detail__section">
+        <dynadrill-text variant="h2">Tipo de operador</dynadrill-text>
+        <dynadrill-text variant="caption">Selecciona la especialidad requerida para esta reparación.</dynadrill-text>
+
+        <dynadrill-select
+          label="Tipo de operador"
+          placeholder="Selecciona"
+          [options]="tipoOperadorOptions"
+          [value]="tipoOperadorSeleccionado()"
+          (valueChange)="tipoOperadorSeleccionado.set($any($event))"
+        />
+
+        @if (isMyTurn()) {
+          <footer class="fcr-detail__actions">
+            <dynadrill-button variant="primary" [disabled]="!tipoOperadorSeleccionado()" (clicked)="confirmTipoOperador()">Continuar a Reparación</dynadrill-button>
+          </footer>
+        }
+      </section>
+    }
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- FASE: Reparación (entrada SERVICIOS)        -->
+    <!-- ═══════════════════════════════════════════ -->
+    @case ('reparacion') {
+      <section class="fcr-detail__section">
+        <dynadrill-text variant="h2">Reparación</dynadrill-text>
+        <dynadrill-text variant="caption">Describe el trabajo de reparación realizado en campo.</dynadrill-text>
+
+        <dynadrill-textarea
+          label="Descripción de la reparación"
+          placeholder="Detalle del trabajo realizado…"
+          [value]="reparacionDescripcion()"
+          (valueChange)="reparacionDescripcion.set($event)"
+        />
+
+        @if (isMyTurn()) {
+          <footer class="fcr-detail__actions">
+            <dynadrill-button variant="primary" [disabled]="!reparacionDescripcion().trim()" (clicked)="confirmReparacion()">Continuar a Formulario de Inspección</dynadrill-button>
+          </footer>
+        }
+      </section>
+    }
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- FASE: Formulario de Inspección (SERVICIOS)  -->
+    <!-- ═══════════════════════════════════════════ -->
+    @case ('inspeccion') {
+      <section class="fcr-detail__section">
+        <dynadrill-text variant="h2">Formulario de inspección</dynadrill-text>
+        <dynadrill-text variant="caption">Adjunta los 3 documentos requeridos antes de enviar a Supervisor.</dynadrill-text>
+
+        <div class="fcr-detail__inspection">
+          <div class="fcr-detail__inspection-header">
+            <dynadrill-text variant="subtitle">Formulario de inspección externo</dynadrill-text>
+            @if (ticket()!.formularioInspeccionExternoUploaded) {
+              <dynadrill-icon-button icon="delete" tooltip="Quitar archivo" (clicked)="onSubirInspeccionServicio('formularioExterno', false)" />
+            }
+          </div>
+          <dynadrill-upload-zone
+            [state]="formularioExternoUploadState()"
+            [fileName]="ticket()!.formularioInspeccionExternoUploaded ? 'formulario-inspeccion-externo.pdf' : ''"
+            (fileSelected)="onSubirInspeccionServicio('formularioExterno')"
+          />
+        </div>
+
+        <div class="fcr-detail__inspection">
+          <div class="fcr-detail__inspection-header">
+            <dynadrill-text variant="subtitle">Formato de dimensionamiento</dynadrill-text>
+            @if (ticket()!.formatoDimensionamientoServicioUploaded) {
+              <dynadrill-icon-button icon="delete" tooltip="Quitar archivo" (clicked)="onSubirInspeccionServicio('dimensionamiento', false)" />
+            }
+          </div>
+          <dynadrill-upload-zone
+            [state]="dimensionamientoServicioUploadState()"
+            [fileName]="ticket()!.formatoDimensionamientoServicioUploaded ? 'formato-dimensionamiento.pdf' : ''"
+            (fileSelected)="onSubirInspeccionServicio('dimensionamiento')"
+          />
+        </div>
+
+        <div class="fcr-detail__inspection">
+          <div class="fcr-detail__inspection-header">
+            <dynadrill-text variant="subtitle">Formato de Dureza</dynadrill-text>
+            @if (ticket()!.formatoDurezaServicioUploaded) {
+              <dynadrill-icon-button icon="delete" tooltip="Quitar archivo" (clicked)="onSubirInspeccionServicio('dureza', false)" />
+            }
+          </div>
+          <dynadrill-upload-zone
+            [state]="durezaServicioUploadState()"
+            [fileName]="ticket()!.formatoDurezaServicioUploaded ? 'formato-dureza.pdf' : ''"
+            (fileSelected)="onSubirInspeccionServicio('dureza')"
+          />
+        </div>
+
+        @if (isMyTurn()) {
+          <footer class="fcr-detail__actions">
+            <dynadrill-button variant="primary" [disabled]="!inspeccionServicioCompleta()" (clicked)="confirmEnviarInspeccionServicio()">Enviar a Supervisor</dynadrill-button>
+          </footer>
+        }
+      </section>
+    }
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- FASE: Aprobación de Supervisor de Operaciones       -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    @case ('aprobacion_supervisor_operaciones') {
+      <section class="fcr-detail__section">
+        <dynadrill-text variant="h2">Aprobación de Supervisor de Operaciones</dynadrill-text>
+        <dynadrill-text variant="caption">Revisa los documentos de inspección antes de aprobar o rechazar.</dynadrill-text>
+
+        @if (ticket()!.observations.length > 0) {
+          <div class="fcr-detail__observations">
+            @for (obs of ticket()!.observations; track obs.id) {
+              <div class="fcr-detail__observation">
+                <strong>{{ obs.author }} · {{ obs.role }}</strong>
+                <span class="fcr-detail__observation-date">{{ obs.date }}</span>
+                <p>{{ obs.message }}</p>
+              </div>
+            }
+          </div>
+        }
+
+        @if (isMyTurn()) {
+          <dynadrill-approval-actions
+            [decision]="inspeccionDecision()"
+            consequenceApprove="El ticket continúa a Preparación de Herramientas."
+            consequenceReject="Se notifica al Operador para corregir la inspección."
+            (decisionChange)="onInspeccionDecisionChange($event)"
+          />
+
+          @if (inspeccionDecision() === 'rejected') {
+            <dynadrill-textarea
+              label="Observaciones para el Operador"
+              placeholder="Detalle qué debe corregirse…"
+              [rows]="3"
+              [value]="inspeccionRejectionNote()"
+              (valueChange)="inspeccionRejectionNote.set($event)"
+            />
+            <dynadrill-button variant="primary" [disabled]="!inspeccionRejectionNote().trim()" (clicked)="confirmInspeccionRejection()">Enviar corrección</dynadrill-button>
+          }
+        }
+      </section>
+    }
 
     <!-- ═══════════════════════════════════════════ -->
     <!-- FASE: Validación                            -->
@@ -198,6 +345,35 @@
               (fileSelected)="onInspectionUploaded()"
             />
           </div>
+
+          @if (ticket()!.tipoOt !== 'servicio') {
+            <div class="fcr-detail__inspection">
+              <div class="fcr-detail__inspection-header">
+                <dynadrill-text variant="subtitle">Registro de dureza</dynadrill-text>
+                @if (ticket()!.registroDurezaUploaded) {
+                  <dynadrill-icon-button icon="delete" tooltip="Quitar archivo" (clicked)="onRegistroDurezaUploaded(false)" />
+                }
+              </div>
+              <dynadrill-upload-zone
+                [state]="durezaUploadState()"
+                [fileName]="ticket()!.registroDurezaUploaded ? 'registro-dureza.pdf' : ''"
+                (fileSelected)="onRegistroDurezaUploaded(true)"
+              />
+            </div>
+            <div class="fcr-detail__inspection">
+              <div class="fcr-detail__inspection-header">
+                <dynadrill-text variant="subtitle">Registro firmado de QAQC</dynadrill-text>
+                @if (ticket()!.registroQaqcUploaded) {
+                  <dynadrill-icon-button icon="delete" tooltip="Quitar archivo" (clicked)="onRegistroQaqcUploaded(false)" />
+                }
+              </div>
+              <dynadrill-upload-zone
+                [state]="qaqcUploadState()"
+                [fileName]="ticket()!.registroQaqcUploaded ? 'registro-qaqc.pdf' : ''"
+                (fileSelected)="onRegistroQaqcUploaded(true)"
+              />
+            </div>
+          }
         }
 
         @if (ticket()!.reviewGuideGenerated) {
@@ -271,8 +447,20 @@
             <div class="fcr-detail__log-form">
               <dynadrill-text variant="subtitle">Registrar actividad</dynadrill-text>
               <div class="fcr-detail__log-form-row">
-                <dynadrill-input label="Hora inicio (HH:MM)" placeholder="07:00" [value]="activityStart()" (valueChange)="activityStart.set($event)" />
-                <dynadrill-input label="Hora fin (HH:MM)" placeholder="08:30" [value]="activityEnd()" (valueChange)="activityEnd.set($event)" />
+                <div class="fcr-detail__time-field">
+                  <dynadrill-text variant="caption">Hora inicio</dynadrill-text>
+                  <div class="fcr-detail__time-field-row">
+                    <dynadrill-select placeholder="HH" [options]="hourOptions" [value]="activityStartHour()" (valueChange)="onActivityStartHourChange($any($event))" />
+                    <dynadrill-select placeholder="MM" [options]="minuteOptions" [value]="activityStartMinute()" (valueChange)="onActivityStartMinuteChange($any($event))" />
+                  </div>
+                </div>
+                <div class="fcr-detail__time-field">
+                  <dynadrill-text variant="caption">Hora fin</dynadrill-text>
+                  <div class="fcr-detail__time-field-row">
+                    <dynadrill-select placeholder="HH" [options]="hourOptions" [value]="activityEndHour()" (valueChange)="onActivityEndHourChange($any($event))" />
+                    <dynadrill-select placeholder="MM" [options]="minuteOptions" [value]="activityEndMinute()" (valueChange)="onActivityEndMinuteChange($any($event))" />
+                  </div>
+                </div>
                 <div class="fcr-detail__log-duration">
                   <dynadrill-text variant="caption">Duración calculada</dynadrill-text>
                   <dynadrill-text variant="body">{{ activityDuration() !== null ? activityDuration() + ' h' : '—' }}</dynadrill-text>
@@ -319,19 +507,47 @@
                 <dynadrill-datetime-picker label="Fecha" [value]="usageDate()" (valueChange)="onUsageDateChange($event)" />
                 <dynadrill-select label="Estado del día" placeholder="Seleccionar…" [options]="usageStatusOptions" [value]="usageStatus()" (valueChange)="onUsageStatusChange($event)" />
               </div>
+              <div class="fcr-detail__log-form-row">
+                @if (ticket()!.tipoOt === 'servicio') {
+                  <dynadrill-select label="Tipo de trabajo" placeholder="Selecciona" [options]="tipoTrabajoOptions" [value]="usageTipoTrabajo()" (valueChange)="usageTipoTrabajo.set($any($event))" />
+                } @else {
+                  <dynadrill-select label="Tipo de completación" placeholder="Selecciona" [options]="tipoCompletacionOptions" [value]="usageTipoCompletacion()" (valueChange)="usageTipoCompletacion.set($any($event))" />
+                }
+                <dynadrill-select label="Tipo de picker" placeholder="Selecciona" [options]="tipoPickerOptions" [value]="usageTipoPicker()" (valueChange)="usageTipoPicker.set($any($event))" />
+                <dynadrill-input label="Presión" type="number" placeholder="0" [value]="usagePresion()" (valueChange)="usagePresion.set($event)" />
+                <dynadrill-input label="Peso" type="number" placeholder="0" [value]="usagePeso()" (valueChange)="usagePeso.set($event)" />
+              </div>
+              <dynadrill-textarea
+                label="Observación (solo si hay novedad)"
+                placeholder="Detalle cualquier novedad durante el uso…"
+                [rows]="2"
+                [value]="usageObservacion()"
+                (valueChange)="usageObservacion.set($event)"
+              />
               <dynadrill-button variant="secondary" size="small" [disabled]="!canAddToolUsage()" (clicked)="addToolUsageEntry()">+ Registrar uso</dynadrill-button>
             </div>
           }
 
           @if (sortedToolUsageLog().length > 0) {
             <table class="fcr-detail__table">
-              <thead><tr><th>Herramienta</th><th>Fecha</th><th>Estado</th><th></th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Herramienta</th><th>Fecha</th><th>Estado</th>
+                  <th>{{ ticket()!.tipoOt === 'servicio' ? 'Tipo de trabajo' : 'Tipo de completación' }}</th>
+                  <th>Picker</th><th>Presión</th><th>Peso</th><th>Observación</th><th></th>
+                </tr>
+              </thead>
               <tbody>
                 @for (entry of sortedToolUsageLog(); track entry.id) {
                   <tr>
                     <td>{{ entry.toolName }}</td>
                     <td>{{ formatDate(entry.date) }}</td>
                     <td>{{ toolDailyStatusLabel(entry.status) }}</td>
+                    <td>{{ entry.tipoTrabajo ? tipoTrabajoLabel(entry.tipoTrabajo) : entry.tipoCompletacion ? tipoCompletacionLabel(entry.tipoCompletacion) : '—' }}</td>
+                    <td>{{ entry.tipoPicker ?? '—' }}</td>
+                    <td>{{ entry.presion ?? '—' }}</td>
+                    <td>{{ entry.peso ?? '—' }}</td>
+                    <td>{{ entry.observacion ?? '—' }}</td>
                     <td>
                       @if (isMyTurn()) {
                         <dynadrill-icon-button class="fcr-detail__tool-delete" icon="delete" tooltip="Quitar registro" (clicked)="removeToolUsageEntry(entry.id)" />
@@ -344,11 +560,19 @@
           }
 
           @if (isMyTurn()) {
+            <dynadrill-button variant="secondary" size="small" (clicked)="togglePickerUsageListConfirmed()">
+              {{ ticket()!.pickerUsageListConfirmed ? 'Reabrir listado' : 'Declarar listado completo' }}
+            </dynadrill-button>
+          }
+
+          @if (isMyTurn()) {
             <footer class="fcr-detail__actions">
-              <dynadrill-button variant="primary" [disabled]="sortedActivityLog().length === 0" (clicked)="submitFieldReports()">Finalizar ejecución y subir reportes</dynadrill-button>
+              <dynadrill-button variant="primary" [disabled]="sortedActivityLog().length === 0 || !ticket()!.pickerUsageListConfirmed" (clicked)="submitFieldReports()">Finalizar ejecución y subir reportes</dynadrill-button>
             </footer>
             @if (sortedActivityLog().length === 0) {
               <dynadrill-text variant="caption">Registre al menos una actividad en la bitácora antes de finalizar.</dynadrill-text>
+            } @else if (!ticket()!.pickerUsageListConfirmed) {
+              <dynadrill-text variant="caption">Declare el listado completo antes de finalizar.</dynadrill-text>
             }
           }
         }

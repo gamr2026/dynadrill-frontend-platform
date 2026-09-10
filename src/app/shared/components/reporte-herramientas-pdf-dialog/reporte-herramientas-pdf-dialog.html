@@ -50,6 +50,32 @@
     </div>
   </div>
 
+  @if (detailRows().length > 0) {
+    <div class="reporte-pdf__section">
+      <dynadrill-text variant="caption" class="reporte-pdf__section-label">Detalle de completación / tipo de trabajo y picker</dynadrill-text>
+      <div class="reporte-pdf__matrix-scroll">
+        <table class="reporte-pdf__table">
+          <thead>
+            <tr><th>Herramienta</th><th>Fecha</th><th>Tipo</th><th>Picker</th><th>Presión</th><th>Peso</th><th>Observación</th></tr>
+          </thead>
+          <tbody>
+            @for (row of detailRows(); track $index) {
+              <tr>
+                <td>{{ row.toolName }}</td>
+                <td>{{ row.date }}</td>
+                <td>{{ row.tipo }}</td>
+                <td>{{ row.picker }}</td>
+                <td>{{ row.presion }}</td>
+                <td>{{ row.peso }}</td>
+                <td>{{ row.observacion }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
   <div class="reporte-pdf__section">
     <dynadrill-text variant="caption" class="reporte-pdf__section-label">Instrucciones</dynadrill-text>
     <ul class="reporte-pdf__legend">

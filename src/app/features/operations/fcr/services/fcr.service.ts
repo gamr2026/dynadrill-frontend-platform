@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { FcrPhase, FcrTicket, type FcrToolDailyStatus, type FcrToolStatus } from '../models/fcr.model';
+import type { TipoCompletacion, TipoOperador, TipoPicker, TipoTrabajo } from '../models/fcr-catalogos.model';
 
 @Injectable({ providedIn: 'root' })
 export class FcrService {
@@ -73,8 +74,34 @@ export class FcrService {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/inspection-document`, {});
   }
 
+  uploadRegistroDureza(ticketId: number, uploaded: boolean): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/registro-dureza`, { uploaded });
+  }
+
+  uploadRegistroQaqc(ticketId: number, uploaded: boolean): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/registro-qaqc`, { uploaded });
+  }
+
   assignOperator(ticketId: number, operatorName: string): Observable<FcrTicket> {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/assign-operator`, { operatorName });
+  }
+
+  // ── Entrada SERVICIOS ──
+
+  setTipoOperador(ticketId: number, tipoOperador: TipoOperador): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tipo-operador`, { tipoOperador });
+  }
+
+  registrarReparacion(ticketId: number, descripcion: string): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/reparacion`, { descripcion });
+  }
+
+  subirInspeccionServicio(ticketId: number, documento: 'formularioExterno' | 'dimensionamiento' | 'dureza', uploaded = true): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/inspeccion-servicio`, { documento, uploaded });
+  }
+
+  reviewInspeccion(ticketId: number, decision: 'approved' | 'rejected', observation?: string): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/review-inspeccion`, { decision, observation });
   }
 
   confirmActa(ticketId: number, meetingDate: string): Observable<FcrTicket> {
@@ -94,8 +121,25 @@ export class FcrService {
     return this.http.delete<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/activity-log/${entryId}`);
   }
 
-  /** Registrar de nuevo (misma herramienta, misma fecha) reemplaza el estado de ese día en vez de duplicarlo. */
-  addToolUsageEntry(ticketId: number, entry: { toolId: number; date: string; status: FcrToolDailyStatus }): Observable<FcrTicket> {
+  /**
+   * Registrar de nuevo (misma herramienta, misma fecha) reemplaza la fila de ese día en vez de duplicarla.
+   * Los campos de completación/trabajo + picker + presión/peso/observación son "por herramienta" — van en
+   * esta misma entrada, no en un campo general del ticket.
+   */
+  addToolUsageEntry(
+    ticketId: number,
+    entry: {
+      toolId: number;
+      date: string;
+      status: FcrToolDailyStatus;
+      tipoCompletacion?: TipoCompletacion;
+      tipoTrabajo?: TipoTrabajo;
+      tipoPicker?: TipoPicker;
+      presion?: string;
+      peso?: string;
+      observacion?: string;
+    },
+  ): Observable<FcrTicket> {
     return this.http.post<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tool-usage`, entry);
   }
 
@@ -105,6 +149,10 @@ export class FcrService {
 
   reviewReports(ticketId: number, decision: 'approved' | 'rejected', observation?: string): Observable<FcrTicket> {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/review-reports`, { decision, observation });
+  }
+
+  confirmPickerUsageList(ticketId: number, confirmed: boolean): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/confirm-picker-usage-list`, { confirmed });
   }
 
   registerMissingTool(ticketId: number, toolId: number, reason: string): Observable<FcrTicket> {

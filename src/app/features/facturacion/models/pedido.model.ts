@@ -19,6 +19,14 @@ export const LINEA_SERVICIO_LABELS: Record<LineaServicio, string> = {
   ctu: 'CTU',
 };
 
+/** Decide, para pedidos de línea FCR, qué entrada del FcrTicket derivado se usa — la elige Ventas, no Operaciones. */
+export type TipoOt = 'venta' | 'servicio';
+
+export const TIPO_OT_LABELS: Record<TipoOt, string> = {
+  venta: 'Venta',
+  servicio: 'Servicio',
+};
+
 /**
  * Máquina de estados del Pedido — alineada con la dimensión STATUS de
  * `VENTAS_DYNADRILL_2026.xlsm` y con Estado Servicio/TKT/OT del Secuencial
@@ -101,6 +109,7 @@ export interface Pedido {
 
   // ── Servicio ──
   lineaServicio: LineaServicio;
+  tipoOt: TipoOt;
   campo: string;
   bloque: string;
   pozo: string;

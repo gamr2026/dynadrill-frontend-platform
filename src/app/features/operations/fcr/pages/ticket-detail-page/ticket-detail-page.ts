@@ -38,6 +38,16 @@ import {
   type FcrToolStatus,
 } from '../../models/fcr.model';
 import { FcrService } from '../../services/fcr.service';
+import {
+  TIPO_COMPLETACION_LABELS,
+  TIPO_OPERADOR_LABELS,
+  TIPO_PICKER_LABELS,
+  TIPO_TRABAJO_LABELS,
+  type TipoCompletacion,
+  type TipoOperador,
+  type TipoPicker,
+  type TipoTrabajo,
+} from '../../models/fcr-catalogos.model';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { SolicitarCorreccionDialog, SolicitarCorreccionDialogData, SolicitarCorreccionDialogResult } from '../../components/solicitar-correccion-dialog';
 import { AsignarOperadorDialog, AsignarOperadorDialogData, AsignarOperadorDialogResult } from '../../components/asignar-operador-dialog';
@@ -52,6 +62,15 @@ import {
   ReporteJobPdfDialogData,
   OperativoDocsBridgeService,
 } from '../../../../../shared/index';
+
+const HOUR_OPTIONS: DynadrillSelectOption[] = Array.from({ length: 24 }, (_, h) => {
+  const v = String(h).padStart(2, '0');
+  return { value: v, label: v };
+});
+const MINUTE_OPTIONS: DynadrillSelectOption[] = Array.from({ length: 60 }, (_, m) => {
+  const v = String(m).padStart(2, '0');
+  return { value: v, label: v };
+});
 
 /** 'HH:mm' a 'HH:mm' → horas — mismo criterio que el servidor, para mostrar la duración calculada antes de guardar. */
 function calcDurationHours(startTime: string, endTime: string): number {
@@ -70,8 +89,24 @@ function todayIso(): string {
   return toIso(new Date());
 }
 
-const PHASE_KEYS: FcrPhase[] = [
+/** Entrada VENTA — sin cambios respecto al flujo original. */
+const PHASE_KEYS_VENTA: FcrPhase[] = [
   'validacion',
+  'preparacion_herramientas',
+  'asignacion_operador',
+  'reunion_operativa',
+  'ejecucion_campo',
+  'revision_reportes',
+  'control_retorno',
+  'cierre',
+];
+
+/** Entrada SERVICIOS — confluye en 'preparacion_herramientas', mismo tronco que VENTA de ahí en adelante. */
+const PHASE_KEYS_SERVICIO: FcrPhase[] = [
+  'tipo_operador',
+  'reparacion',
+  'inspeccion',
+  'aprobacion_supervisor_operaciones',
   'preparacion_herramientas',
   'asignacion_operador',
   'reunion_operativa',
@@ -130,13 +165,16 @@ export class FcrTicketDetailPage {
   protected readonly loading = signal(true);
   protected readonly ticket = signal<FcrTicket | null>(null);
 
-  // ── Tracker de fases ──
+  // ── Tracker de fases (la secuencia depende de tipoOt — dos entradas, un tronco común) ──
 
-  protected readonly phaseLabels = PHASE_KEYS.map(p => FCR_PHASE_LABELS[p]);
+  protected readonly phaseKeys = computed<FcrPhase[]>(() =>
+    this.ticket()?.tipoOt === 'servicio' ? PHASE_KEYS_SERVICIO : PHASE_KEYS_VENTA,
+  );
+  protected readonly phaseLabels = computed(() => this.phaseKeys().map(p => FCR_PHASE_LABELS[p]));
 
   protected readonly currentPhaseIndex = computed(() => {
     const t = this.ticket();
-    return t ? PHASE_KEYS.indexOf(t.currentPhase) : 0;
+    return t ? this.phaseKeys().indexOf(t.currentPhase) : 0;
   });
 
   protected readonly currentPhase = computed<FcrPhase>(() => this.ticket()?.currentPhase ?? 'validacion');
@@ -370,6 +408,22 @@ export class FcrTicketDetailPage {
     });
   }
 
+  /** Documentos de VENTA que el diagrama pide junto al de inspección (Registro de dureza / Registro firmado de QAQC). */
+  protected readonly durezaUploadState = computed(() => (this.ticket()?.registroDurezaUploaded ? 'uploaded' : 'idle'));
+  protected readonly qaqcUploadState = computed(() => (this.ticket()?.registroQaqcUploaded ? 'uploaded' : 'idle'));
+
+  protected onRegistroDurezaUploaded(uploaded: boolean): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.updateTicket(this.fcrService.uploadRegistroDureza(t.id, uploaded));
+  }
+
+  protected onRegistroQaqcUploaded(uploaded: boolean): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.updateTicket(this.fcrService.uploadRegistroQaqc(t.id, uploaded));
+  }
+
   // ══════════════════════════════════════════════
   // FASE: Asignación de Operador
   // ══════════════════════════════════════════════
@@ -415,6 +469,32 @@ export class FcrTicketDetailPage {
   protected readonly activityStart = signal('');
   protected readonly activityEnd = signal('');
   protected readonly activityDetail = signal('');
+
+  // Dos selects (hora/minuto) en vez de un datetime-picker — ese componente solo existe combinado con
+  // fecha, y aquí la fecha no aplica (siempre es "hoy"); esto evita mostrar un calendario de más.
+  protected readonly hourOptions = HOUR_OPTIONS;
+  protected readonly minuteOptions = MINUTE_OPTIONS;
+
+  protected readonly activityStartHour = computed(() => this.activityStart().split(':')[0] || null);
+  protected readonly activityStartMinute = computed(() => this.activityStart().split(':')[1] || null);
+  protected readonly activityEndHour = computed(() => this.activityEnd().split(':')[0] || null);
+  protected readonly activityEndMinute = computed(() => this.activityEnd().split(':')[1] || null);
+
+  protected onActivityStartHourChange(hour: string): void {
+    this.activityStart.set(`${hour}:${this.activityStartMinute() ?? '00'}`);
+  }
+
+  protected onActivityStartMinuteChange(minute: string): void {
+    this.activityStart.set(`${this.activityStartHour() ?? '00'}:${minute}`);
+  }
+
+  protected onActivityEndHourChange(hour: string): void {
+    this.activityEnd.set(`${hour}:${this.activityEndMinute() ?? '00'}`);
+  }
+
+  protected onActivityEndMinuteChange(minute: string): void {
+    this.activityEnd.set(`${this.activityEndHour() ?? '00'}:${minute}`);
+  }
 
   /** Nunca se captura a mano — se deriva de la hora de inicio/fin, igual que hace el servidor al guardar. */
   protected readonly activityDuration = computed<number | null>(() => {
@@ -462,13 +542,25 @@ export class FcrTicketDetailPage {
   protected readonly usageToolId = signal<number | null>(null);
   protected readonly usageDate = signal(new Date());
   protected readonly usageStatus = signal<FcrToolDailyStatus | null>(null);
+  // Completación/trabajo + picker + presión/peso/observación — por herramienta, junto al resto del registro de uso.
+  protected readonly usageTipoCompletacion = signal<TipoCompletacion | null>(null);
+  protected readonly usageTipoTrabajo = signal<TipoTrabajo | null>(null);
+  protected readonly usageTipoPicker = signal<TipoPicker | null>(null);
+  protected readonly usagePresion = signal('');
+  protected readonly usagePeso = signal('');
+  protected readonly usageObservacion = signal('');
 
   protected readonly usageToolOptions = computed<DynadrillSelectOption[]>(() => (this.ticket()?.tools ?? []).map(tool => ({ label: tool.name, value: tool.id })));
   protected readonly usageStatusOptions: DynadrillSelectOption[] = (Object.entries(FCR_TOOL_DAILY_STATUS_LABELS) as [FcrToolDailyStatus, string][]).map(
     ([value, label]) => ({ label: `${FCR_TOOL_DAILY_STATUS_CODE[value]} — ${label}`, value }),
   );
 
-  protected readonly canAddToolUsage = computed(() => this.usageToolId() !== null && this.usageStatus() !== null);
+  protected readonly canAddToolUsage = computed(() => {
+    const t = this.ticket();
+    if (!t || this.usageToolId() === null || !this.usageStatus()) return false;
+    if (!this.usageTipoPicker() || !this.usagePresion().trim() || !this.usagePeso().trim()) return false;
+    return t.tipoOt === 'servicio' ? !!this.usageTipoTrabajo() : !!this.usageTipoCompletacion();
+  });
 
   protected readonly sortedToolUsageLog = computed(() => {
     const t = this.ticket();
@@ -479,6 +571,8 @@ export class FcrTicketDetailPage {
   });
 
   protected readonly toolDailyStatusLabel = (status: FcrToolDailyStatus): string => `${FCR_TOOL_DAILY_STATUS_CODE[status]} — ${FCR_TOOL_DAILY_STATUS_LABELS[status]}`;
+  protected readonly tipoTrabajoLabel = (value: TipoTrabajo): string => TIPO_TRABAJO_LABELS[value];
+  protected readonly tipoCompletacionLabel = (value: TipoCompletacion): string => TIPO_COMPLETACION_LABELS[value];
 
   protected onUsageDateChange(value: Date | null): void {
     if (value) this.usageDate.set(value);
@@ -496,15 +590,34 @@ export class FcrTicketDetailPage {
     const t = this.ticket();
     const toolId = this.usageToolId();
     const status = this.usageStatus();
-    if (!t || toolId === null || !status) return;
-    this.fcrService.addToolUsageEntry(t.id, { toolId, date: toIso(this.usageDate()), status }).subscribe({
-      next: updated => {
-        this.ticket.set(updated);
-        this.usageToolId.set(null);
-        this.usageStatus.set(null);
-      },
-      error: () => this.notify.error('Error', 'No se pudo registrar el uso de la herramienta.'),
-    });
+    if (!t || toolId === null || !status || !this.canAddToolUsage()) return;
+    this.fcrService
+      .addToolUsageEntry(t.id, {
+        toolId,
+        date: toIso(this.usageDate()),
+        status,
+        // Tickets sembrados antes de tipoOt no lo traen — se tratan como venta (mismo default que en el resto de la página).
+        tipoCompletacion: t.tipoOt !== 'servicio' ? (this.usageTipoCompletacion() ?? undefined) : undefined,
+        tipoTrabajo: t.tipoOt === 'servicio' ? (this.usageTipoTrabajo() ?? undefined) : undefined,
+        tipoPicker: this.usageTipoPicker() ?? undefined,
+        presion: this.usagePresion().trim(),
+        peso: this.usagePeso().trim(),
+        observacion: this.usageObservacion().trim() || undefined,
+      })
+      .subscribe({
+        next: updated => {
+          this.ticket.set(updated);
+          this.usageToolId.set(null);
+          this.usageStatus.set(null);
+          this.usageTipoCompletacion.set(null);
+          this.usageTipoTrabajo.set(null);
+          this.usageTipoPicker.set(null);
+          this.usagePresion.set('');
+          this.usagePeso.set('');
+          this.usageObservacion.set('');
+        },
+        error: () => this.notify.error('Error', 'No se pudo registrar el uso de la herramienta.'),
+      });
   }
 
   protected async removeToolUsageEntry(entryId: number): Promise<void> {
@@ -513,6 +626,33 @@ export class FcrTicketDetailPage {
     const ok = await this.confirmStep('Quitar registro', 'Esta acción no se puede deshacer. ¿Quitar este registro de uso?', true);
     if (!ok) return;
     this.updateTicket(this.fcrService.removeToolUsageEntry(t.id, entryId));
+  }
+
+  // ══════════════════════════════════════════════
+  // FASE: Ejecución de Campo — tronco compartido: catálogos de completación/trabajo/picker (por herramienta)
+  // ══════════════════════════════════════════════
+
+  protected readonly tipoCompletacionOptions: DynadrillSelectOption[] = (
+    Object.entries(TIPO_COMPLETACION_LABELS) as [TipoCompletacion, string][]
+  ).map(([value, label]) => ({ value, label }));
+  protected readonly tipoTrabajoOptions: DynadrillSelectOption[] = (
+    Object.entries(TIPO_TRABAJO_LABELS) as [TipoTrabajo, string][]
+  ).map(([value, label]) => ({ value, label }));
+  protected readonly tipoPickerOptions: DynadrillSelectOption[] = (
+    Object.entries(TIPO_PICKER_LABELS) as [TipoPicker, string][]
+  ).map(([value, label]) => ({ value, label }));
+
+  /** "Todo el listado está completo" (venta) / "El listado está completo de uso" (servicio). */
+  protected async togglePickerUsageListConfirmed(): Promise<void> {
+    const t = this.ticket();
+    if (!t) return;
+    const confirming = !t.pickerUsageListConfirmed;
+    const ok = await this.confirmStep(
+      confirming ? 'Confirmar listado completo' : 'Reabrir listado',
+      confirming ? 'Declara que no queda nada pendiente por registrar.' : 'Permite seguir editando antes de finalizar.',
+    );
+    if (!ok) return;
+    this.updateTicket(this.fcrService.confirmPickerUsageList(t.id, confirming));
   }
 
   // ══════════════════════════════════════════════
@@ -764,6 +904,108 @@ export class FcrTicketDetailPage {
         this.auth.switchRole('Supervisor', 1);
       },
       error: () => this.notify.error('Error', 'No se pudo reenviar la corrección al Supervisor.'),
+    });
+  }
+
+  // ══════════════════════════════════════════════
+  // Entrada SERVICIOS — tipo_operador / reparacion
+  // ══════════════════════════════════════════════
+
+  protected readonly tipoOperadorOptions: DynadrillSelectOption[] = (
+    Object.entries(TIPO_OPERADOR_LABELS) as [TipoOperador, string][]
+  ).map(([value, label]) => ({ value, label }));
+  protected readonly tipoOperadorSeleccionado = signal<TipoOperador | null>(null);
+
+  protected async confirmTipoOperador(): Promise<void> {
+    const t = this.ticket();
+    const value = this.tipoOperadorSeleccionado();
+    if (!t || !value) return;
+    const ok = await this.confirmStep('Confirmar tipo de operador', 'El ticket avanzará a Reparación.');
+    if (!ok) return;
+    this.fcrService.setTipoOperador(t.id, value).subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        this.advancePhase('reparacion');
+      },
+      error: () => this.notify.error('Error', 'No se pudo guardar el tipo de operador.'),
+    });
+  }
+
+  protected readonly reparacionDescripcion = signal('');
+
+  protected async confirmReparacion(): Promise<void> {
+    const t = this.ticket();
+    const descripcion = this.reparacionDescripcion().trim();
+    if (!t || !descripcion) return;
+    const ok = await this.confirmStep('Confirmar reparación', 'El ticket avanzará al Formulario de Inspección.');
+    if (!ok) return;
+    this.fcrService.registrarReparacion(t.id, descripcion).subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        this.advancePhase('inspeccion');
+      },
+      error: () => this.notify.error('Error', 'No se pudo guardar la reparación.'),
+    });
+  }
+
+  // ══════════════════════════════════════════════
+  // Entrada SERVICIOS — inspeccion / aprobacion_supervisor_operaciones
+  // ══════════════════════════════════════════════
+
+  protected readonly formularioExternoUploadState = computed(() => (this.ticket()?.formularioInspeccionExternoUploaded ? 'uploaded' : 'idle'));
+  protected readonly dimensionamientoServicioUploadState = computed(() => (this.ticket()?.formatoDimensionamientoServicioUploaded ? 'uploaded' : 'idle'));
+  protected readonly durezaServicioUploadState = computed(() => (this.ticket()?.formatoDurezaServicioUploaded ? 'uploaded' : 'idle'));
+
+  protected readonly inspeccionServicioCompleta = computed(() => {
+    const t = this.ticket();
+    return !!t?.formularioInspeccionExternoUploaded && !!t?.formatoDimensionamientoServicioUploaded && !!t?.formatoDurezaServicioUploaded;
+  });
+
+  protected onSubirInspeccionServicio(documento: 'formularioExterno' | 'dimensionamiento' | 'dureza', uploaded = true): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.updateTicket(this.fcrService.subirInspeccionServicio(t.id, documento, uploaded));
+  }
+
+  protected async confirmEnviarInspeccionServicio(): Promise<void> {
+    if (!this.inspeccionServicioCompleta()) return;
+    const ok = await this.confirmStep('Enviar a Supervisor', 'El ticket avanzará a Aprobación de Supervisor de Operaciones.');
+    if (!ok) return;
+    this.advancePhase('aprobacion_supervisor_operaciones');
+  }
+
+  protected readonly inspeccionDecision = signal<DynadrillApprovalDecision>(null);
+  protected readonly inspeccionRejectionNote = signal('');
+
+  protected async onInspeccionDecisionChange(decision: DynadrillApprovalDecision): Promise<void> {
+    if (decision === 'approved') {
+      const ok = await this.confirmStep('Aprobar inspección', 'El ticket continuará a Preparación de Herramientas.');
+      if (!ok) return;
+      this.inspeccionDecision.set(decision);
+      this.confirmInspeccionReview('approved');
+      return;
+    }
+    this.inspeccionDecision.set(decision);
+  }
+
+  protected async confirmInspeccionRejection(): Promise<void> {
+    if (!this.inspeccionRejectionNote().trim()) return;
+    const ok = await this.confirmStep('Solicitar corrección', 'Se notificará al Operador para corregir la inspección.');
+    if (!ok) return;
+    this.confirmInspeccionReview('rejected', this.inspeccionRejectionNote());
+  }
+
+  private confirmInspeccionReview(decision: 'approved' | 'rejected', observation?: string): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.fcrService.reviewInspeccion(t.id, decision, observation).subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        this.inspeccionDecision.set(null);
+        this.inspeccionRejectionNote.set('');
+        this.advancePhase(decision === 'approved' ? 'preparacion_herramientas' : 'inspeccion');
+      },
+      error: () => this.notify.error('Error', 'No se pudo registrar la revisión de inspección.'),
     });
   }
 

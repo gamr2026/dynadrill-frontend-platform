@@ -158,6 +158,23 @@
   min-width: 8rem;
 }
 
+.fcr-detail__time-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 10rem;
+}
+
+.fcr-detail__time-field-row {
+  display: flex;
+  gap: 0.5rem;
+
+  > * {
+    flex: 1;
+    min-width: 4.5rem;
+  }
+}
+
 .fcr-detail__inspection-header {
   display: flex;
   align-items: center;

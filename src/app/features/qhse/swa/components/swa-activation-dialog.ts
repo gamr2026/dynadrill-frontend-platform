@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NzModalRef } from 'ng-zorro-antd/modal';
-import { catchError, forkJoin, of } from 'rxjs';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
@@ -13,8 +12,7 @@ import {
 import { AuthService } from '../../../../core/services/auth.service';
 import { CreateSwaInput, SWA_ZERO_RETALIATION_NOTICE, SwaEvento } from '../models/swa.model';
 import { SwaService } from '../services/swa.service';
-import { PumpingService } from '../../../operations/pumping/services/pumping.service';
-import { FcrService } from '../../../operations/fcr/services/fcr.service';
+import { parseServicio, useServiciosOperativosOptions } from '../../shared/utils/servicio-operativo.util';
 
 /**
  * "Cualquier Trabajador" activa el botón de pánico digital
@@ -39,8 +37,6 @@ export class SwaActivationDialog {
   private readonly swaService = inject(SwaService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
-  private readonly pumpingService = inject(PumpingService);
-  private readonly fcrService = inject(FcrService);
   private readonly modalRef = inject(NzModalRef<SwaActivationDialog, SwaEvento | undefined>);
 
   protected readonly zeroRetaliationNotice = SWA_ZERO_RETALIATION_NOTICE;
@@ -55,18 +51,8 @@ export class SwaActivationDialog {
   protected readonly submitting = signal(false);
 
   constructor() {
-    // Servicios operativos en curso — para ligar el evento (y detenerlos).
-    // Best-effort: si el rol no puede listar tickets, el selector queda vacío.
-    forkJoin({
-      pumping: this.pumpingService.listTickets().pipe(catchError(() => of([]))),
-      fcr: this.fcrService.listTickets().pipe(catchError(() => of([]))),
-    }).subscribe(({ pumping, fcr }) => {
-      const opts: DynadrillSelectOption[] = [
-        ...pumping.map(t => ({ label: `Pumping · ${t.code} — ${t.wellName}`, value: `pumping:${t.code}` })),
-        ...fcr.map(t => ({ label: `FCR · ${t.code} — ${t.wellName}`, value: `fcr:${t.code}` })),
-      ];
-      this.servicioOptions.set(opts);
-    });
+    // Servicios operativos en curso — para ligar el evento (y detenerlo).
+    useServiciosOperativosOptions().subscribe(opts => this.servicioOptions.set(opts));
   }
 
   protected readonly puedeActivar = computed(
@@ -81,13 +67,12 @@ export class SwaActivationDialog {
     if (!this.puedeActivar() || this.submitting()) return;
     this.submitting.set(true);
 
-    const [tipo, code] = this.servicio().split(':');
     const input: CreateSwaInput = {
       activadoPorNombre: this.activadoPorNombre(),
       tipoPeligro: this.tipoPeligro(),
       descripcion: this.descripcion(),
       ubicacion: this.ubicacion() || undefined,
-      ...(tipo === 'pumping' || tipo === 'fcr' ? { ticketTipo: tipo, ticketCode: code } : {}),
+      ...(parseServicio(this.servicio()) ?? {}),
     };
 
     this.swaService.activar(input).subscribe({

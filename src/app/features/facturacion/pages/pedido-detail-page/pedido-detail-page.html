@@ -67,6 +67,15 @@
                 [variant]="a.guiaRemisionGenerada ? 'success' : 'warning'"
               />
             }
+            @if (a.ptwAplica) {
+              <dynadrill-tag
+                [label]="a.ptwsCerrados ? 'PTW: cerrado' : 'PTW: sin cerrar'"
+                [variant]="a.ptwsCerrados ? 'success' : 'warning'"
+              />
+            }
+            @if (a.incidentesHse) {
+              <dynadrill-tag [label]="'Incidente HSE: ' + a.incidentesHse + ' derrame(s)'" variant="error" />
+            }
             <dynadrill-tag [label]="a.completo ? 'Listo para prefacturar' : 'Documentación incompleta'" [variant]="a.completo ? 'success' : 'warning'" />
           </div>
         }

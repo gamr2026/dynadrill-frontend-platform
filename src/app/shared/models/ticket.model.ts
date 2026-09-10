@@ -49,6 +49,14 @@ export interface TicketQhseSwa {
   activadoAt: string;
 }
 
+/** Derrame (HSE-AMBIENTAL-002) registrado durante el servicio. Informativo — no bloquea. */
+export interface TicketQhseDerrame {
+  id: number;
+  code: string;
+  estado: string;
+  volumen: string;
+}
+
 /**
  * Vínculo del ticket operativo (Pumping/FCR) con QHSE — HSE-PLAN-001. El
  * backend verifica que la Matriz Maestra IPERC (DYN-SGI-RE-087) cubra
@@ -56,7 +64,8 @@ export interface TicketQhseSwa {
  * `cobertura === 'ok'` sólo cuando todas están aprobadas; el gate del
  * detalle (asignar supervisor, pasar a ejecución) lo lee. `ptw` es el
  * segundo gate (HSE-SITIO-001): ejecución en campo y prefactura. `swa`,
- * si está presente, detiene todo el trabajo del ticket.
+ * si está presente, detiene todo el trabajo del ticket. `derrames` es
+ * informativo (FACT-002 "trabajo con incidente asociado").
  */
 export interface TicketQhseVinculo {
   matrizMaestra: string;
@@ -64,6 +73,7 @@ export interface TicketQhseVinculo {
   actividades: TicketQhseActividad[];
   ptw?: TicketQhsePtw | null;
   swa?: TicketQhseSwa | null;
+  derrames?: TicketQhseDerrame[];
 }
 
 export interface Ticket {

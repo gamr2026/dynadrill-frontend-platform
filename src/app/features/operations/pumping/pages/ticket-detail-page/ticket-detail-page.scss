@@ -336,3 +336,32 @@
     border: 1px solid #b2e0b2;
   }
 }
+
+.ticket-detail__iperc-banner {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  dynadrill-text {
+    display: block;
+  }
+
+  &--ok {
+    background: rgba(35, 155, 86, 0.08);
+    border-color: rgba(35, 155, 86, 0.4);
+  }
+
+  &--pendiente {
+    background: rgba(214, 158, 46, 0.1);
+    border-color: rgba(214, 158, 46, 0.5);
+  }
+}
+
+.ticket-detail__iperc-banner-text {
+  min-width: 0;
+}

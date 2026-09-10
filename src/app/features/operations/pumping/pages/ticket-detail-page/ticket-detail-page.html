@@ -30,6 +30,26 @@
   }
 </div>
 
+@if (ipercVinculo(); as iperc) {
+  <section
+    class="ticket-detail__iperc-banner"
+    [class.ticket-detail__iperc-banner--ok]="ipercAprobada()"
+    [class.ticket-detail__iperc-banner--pendiente]="!ipercAprobada()"
+  >
+    <div class="ticket-detail__iperc-banner-text">
+      <dynadrill-text variant="body">
+        <strong>Matriz IPERC {{ iperc.ipercCode }}</strong> — {{ ipercEstadoLabel(iperc.ipercEstado) }}
+      </dynadrill-text>
+      @if (!ipercAprobada()) {
+        <dynadrill-text variant="caption">
+          La ejecución del servicio (Reporte Diario) está bloqueada hasta que HSE apruebe la matriz.
+        </dynadrill-text>
+      }
+    </div>
+    <dynadrill-button variant="secondary" size="small" (clicked)="verMatrizIperc()">Ver matriz</dynadrill-button>
+  </section>
+}
+
 @if (loading()) {
   <dynadrill-text variant="body">Cargando ticket...</dynadrill-text>
 } @else {
@@ -207,11 +227,18 @@
       <section class="ticket-detail__section">
         <dynadrill-text variant="caption">Debe completar el Gerenciamiento de Viaje (DYN-SGI-RE-049) de cada operador aprobado antes de continuar.</dynadrill-text>
       </section>
+    } @else if (!ipercAprobada()) {
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="caption">
+          El servicio no puede pasar a ejecución sin la Matriz IPERC aprobada por HSE
+          ({{ ipercVinculo()?.ipercCode ?? 'sin vincular' }} — {{ ipercEstadoLabel(ipercVinculo()?.ipercEstado ?? '') }}).
+        </dynadrill-text>
+      </section>
     }
 
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="success" [disabled]="!allSalidaApproved() || !allTravelManagementsCompleted() || submitting()" (clicked)="approveAllSalidaReports()">Aprobar reportes de salida</dynadrill-button>
+      <dynadrill-button variant="success" [disabled]="!allSalidaApproved() || !allTravelManagementsCompleted() || !ipercAprobada() || submitting()" (clicked)="approveAllSalidaReports()">Aprobar reportes de salida</dynadrill-button>
     </footer>
   }
 

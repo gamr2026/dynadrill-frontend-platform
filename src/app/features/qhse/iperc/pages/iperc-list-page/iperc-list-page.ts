@@ -109,7 +109,9 @@ export class IpercListPage {
     this.matrices().map(m => ({
       id: m.id,
       code: m.code,
-      actividad: m.actividad,
+      // Si la matriz nació como solicitud desde un ticket operativo, se
+      // muestra de dónde vino — HSE-PLAN-001 arranca de "una nueva actividad".
+      actividad: m.origenOperativo ? `${m.actividad} · solicitada desde ${m.origenOperativo.ticketCode}` : m.actividad,
       ubicacion: m.ubicacion,
       estadoBadge: STATUS_BADGES[m.status],
       faseIndex: STATUS_INDEX[m.status],

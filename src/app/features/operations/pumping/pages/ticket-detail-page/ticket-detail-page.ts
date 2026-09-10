@@ -174,6 +174,34 @@ export class TicketDetailPage {
   private readonly docsBridge = inject(OperativoDocsBridgeService);
 
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
+
+  // ── Vínculo con QHSE (HSE-PLAN-001) ──
+  /** Matriz IPERC vinculada al ticket — el backend la asigna al crearlo. */
+  protected readonly ipercVinculo = computed(() => this.ticket()?.qhse ?? null);
+  /**
+   * El servicio no pasa a "Ejecución operativa" sin la IPERC aprobada por HSE.
+   * Tickets sin vínculo (datos viejos / backend sin reiniciar) no se bloquean
+   * — el gate solo aplica cuando hay una matriz vinculada.
+   */
+  protected readonly ipercAprobada = computed(() => {
+    const v = this.ipercVinculo();
+    return !v || v.ipercEstado === 'aprobada';
+  });
+  private readonly IPERC_ESTADO_LABELS: Record<string, string> = {
+    borrador: 'En elaboración por HSE',
+    en_evaluacion: 'En evaluación por HSE',
+    en_revision: 'En revisión por HSE',
+    aprobada: 'Aprobada',
+    rechazada: 'Rechazada',
+  };
+  protected ipercEstadoLabel(estado: string): string {
+    return this.IPERC_ESTADO_LABELS[estado] ?? estado;
+  }
+  protected verMatrizIperc(): void {
+    const id = this.ipercVinculo()?.ipercMatrixId;
+    if (id) this.router.navigate(['/dashboard/qhse/iperc', id]);
+  }
+
   private readonly unitReportsService = inject(UnitReportsService);
   private readonly unidadesService = inject(UnidadesService);
   /** Catálogo de unidades — para completar la descripción real del vehículo en las inspecciones de ejemplo. */
@@ -895,6 +923,13 @@ export class TicketDetailPage {
   protected approveAllSalidaReports(): void {
     const t = this.ticket();
     if (!t) return;
+    if (!this.ipercAprobada()) {
+      this.notify.error(
+        'Falta la Matriz IPERC',
+        `El servicio no puede pasar a ejecución sin la Matriz IPERC aprobada por HSE (${t.qhse?.ipercCode ?? 'sin vincular'}).`,
+      );
+      return;
+    }
     this.submitting.set(true);
     const nextStep: PumpingStep = 'ejecucion_operativa';
     this.pumpingService.advanceStep(t.id, nextStep).subscribe({

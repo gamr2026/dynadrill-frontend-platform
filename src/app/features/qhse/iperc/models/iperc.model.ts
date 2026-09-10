@@ -198,6 +198,13 @@ export interface IpercMatrix {
   leccionAprendidaPendiente?: boolean;
   leccionAprendidaTexto?: string;
   leccionAprendidaInvestigacionCode?: string;
+
+  /**
+   * Puente Operaciones → HSE-PLAN-001: cuando esta matriz se creó como
+   * "solicitud" a partir de un ticket de Pumping/FCR, guarda de dónde vino
+   * — la bandeja de HSE muestra "solicitada desde <ticket>".
+   */
+  origenOperativo?: { tipo: 'pumping' | 'fcr'; ticketCode: string; pedidoCode?: string };
 }
 
 /** Fase 1 de HSE-PLAN-001 — lo mínimo para arrancar una matriz nueva en estado "borrador"; tasks/hazards se agregan después, dentro del detalle. */

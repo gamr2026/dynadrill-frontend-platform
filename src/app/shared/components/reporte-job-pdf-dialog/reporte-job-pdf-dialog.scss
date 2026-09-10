@@ -3,6 +3,18 @@
   flex-direction: column;
   gap: 20px;
 
+  &__letterhead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 12px;
+  }
+
+  &__logo {
+    height: 32px;
+    width: auto;
+  }
+
   &__doc-header {
     display: flex;
     align-items: flex-start;
@@ -86,6 +98,11 @@
   &__detail-cell {
     white-space: pre-line;
     max-width: 360px;
+  }
+
+  &__footer {
+    text-align: center;
+    padding-top: 8px;
   }
 
   &__actions {

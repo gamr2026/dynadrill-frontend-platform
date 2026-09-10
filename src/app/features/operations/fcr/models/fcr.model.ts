@@ -14,7 +14,7 @@ export type TipoOt = 'venta' | 'servicio';
 // ── Fases del ticket FCR (FCR-MASTER-001) ──
 
 export type FcrPhase =
-  // ── Entrada SERVICIOS (nueva) — confluye en preparacion_herramientas ──
+  // ── Entrada SERVICIOS (nueva) — arranca en preparacion_herramientas ──
   | 'tipo_operador'
   | 'reparacion'
   | 'inspeccion'
@@ -79,6 +79,12 @@ export const FCR_TOOL_STATUS_LABELS: Record<FcrToolStatus, string> = {
 
 export interface FcrTool {
   id: number;
+  /**
+   * Referencia al catálogo real de Inventario (`Articulo`, `categoria='HERRAMIENTAS'`).
+   * Opcional porque los tickets FCR sembrados antes de este cambio no lo tienen
+   * (no se hizo backfill) — el checklist de inspección queda deshabilitado para esas herramientas.
+   */
+  articuloId?: number;
   name: string;
   status: FcrToolStatus;
   missingReason?: string;
@@ -143,27 +149,35 @@ export interface FcrToolUsageEntry extends OperativoToolUsageEntry {
 
 export interface FcrTicket extends Ticket {
   currentPhase: FcrPhase;
-  /** Decide qué entrada usa este ticket (tipo_operador vs. validacion) — viene del Pedido, no editable aquí. */
+  /** Decide qué entrada usa este ticket (preparacion_herramientas vs. validacion) — viene del Pedido, no editable aquí. */
   tipoOt: TipoOt;
   proposalVersion: number;
   /** Código del Pedido de Facturación asociado — link para el puente FCR → Facturación. */
   pedidoCode?: string;
+  /** FK real del Pedido asociado (columna escalar del ticket) — se usa para traer el detalle completo de solo lectura en 'validacion'. */
+  pedidoId?: number | null;
   tools: FcrTool[];
   // ── Entrada SERVICIOS ──
   tipoOperador?: TipoOperador;
   reparacionDescripcion?: string;
   formularioInspeccionExternoUploaded?: boolean;
+  formularioInspeccionExternoNombreArchivo?: string;
   formatoDimensionamientoServicioUploaded?: boolean;
+  formatoDimensionamientoServicioNombreArchivo?: string;
   formatoDurezaServicioUploaded?: boolean;
+  formatoDurezaServicioNombreArchivo?: string;
   inspeccionAprobada?: boolean;
   // ── Documentos de VENTA que faltaban ──
   registroDurezaUploaded?: boolean;
+  registroDurezaNombreArchivo?: string;
   registroQaqcUploaded?: boolean;
+  registroQaqcNombreArchivo?: string;
   /** "Todo el listado está completo" (venta) / "El listado está completo de uso" (servicio). */
   pickerUsageListConfirmed?: boolean;
   /** RN-FCR-005 / SP7: declaración explícita del Supervisor de que no quedan herramientas por agregar. */
   toolListConfirmed: boolean;
   inspectionDocumentUploaded: boolean;
+  inspectionDocumentNombreArchivo?: string;
   movementGuideGenerated: boolean;
   reviewGuideGenerated: boolean;
   operationalMeetingDate: string;

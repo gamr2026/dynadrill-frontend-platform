@@ -10,6 +10,14 @@ export {
   ReporteHerramientasPdfDialog,
   type ReporteHerramientasPdfDialogData,
 } from './components/reporte-herramientas-pdf-dialog/reporte-herramientas-pdf-dialog';
+export {
+  ReporteCierrePdfDialog,
+  type ReporteCierrePdfDialogData,
+  type ReporteCierrePdfPhaseRow,
+  type ReporteCierrePdfToolRow,
+  type ReporteCierrePdfDocumentRow,
+  type ReporteCierrePdfActivitySummaryRow,
+} from './components/reporte-cierre-pdf-dialog/reporte-cierre-pdf-dialog';
 
 // Servicios
 export { OperativoDocsBridgeService } from './services/operativo-docs-bridge.service';

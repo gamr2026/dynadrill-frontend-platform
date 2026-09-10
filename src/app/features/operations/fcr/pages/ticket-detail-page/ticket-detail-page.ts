@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import type { Observable } from 'rxjs';
+import type { NzUploadFile } from 'ng-zorro-antd/upload';
 import {
   DynadrillApprovalActionsComponent,
   DynadrillBannerComponent,
@@ -16,6 +18,7 @@ import {
   DynadrillScreenHeaderComponent,
   DynadrillSelectComponent,
   DynadrillSkeletonComponent,
+  DynadrillStatisticComponent,
   DynadrillTagComponent,
   DynadrillTextComponent,
   DynadrillTextareaComponent,
@@ -37,7 +40,11 @@ import {
   type FcrToolDailyStatus,
   type FcrToolStatus,
 } from '../../models/fcr.model';
-import { FcrService } from '../../services/fcr.service';
+import { FcrService, type CampoDocumentoFcr } from '../../services/fcr.service';
+import { PedidoService } from '../../../../facturacion/services/pedido.service';
+import { itemsEstimadosDe, LINEA_SERVICIO_LABELS, type Pedido } from '../../../../facturacion/models/pedido.model';
+import { FcrToolInspeccionesService } from '../../services/fcr-tool-inspecciones.service';
+import type { FcrToolInspection } from '../../models/fcr-tool-inspeccion.model';
 import {
   TIPO_COMPLETACION_LABELS,
   TIPO_OPERADOR_LABELS,
@@ -48,20 +55,36 @@ import {
   type TipoPicker,
   type TipoTrabajo,
 } from '../../models/fcr-catalogos.model';
+import { ArticulosService } from '../../../../inventario/services/articulos.service';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { SolicitarCorreccionDialog, SolicitarCorreccionDialogData, SolicitarCorreccionDialogResult } from '../../components/solicitar-correccion-dialog';
 import { AsignarOperadorDialog, AsignarOperadorDialogData, AsignarOperadorDialogResult } from '../../components/asignar-operador-dialog';
 import { FirmaActaDialog, FirmaActaDialogData, FirmaActaDialogResult } from '../../components/firma-acta-dialog';
+import { ChecklistHerramientaDialog, ChecklistHerramientaDialogData } from '../../components/checklist-herramienta-dialog';
 import { HerramientaFaltanteDialog, HerramientaFaltanteDialogData, HerramientaFaltanteDialogResult } from '../../components/herramienta-faltante-dialog';
 import { GuiaSalidaBodegaDialog, GuiaSalidaBodegaDialogData, GuiaSalidaBodegaDialogResult } from '../../components/guia-salida-bodega-dialog';
 import { CierreTicketDialog, CierreTicketDialogData, CierreTicketDialogResult } from '../../components/cierre-ticket-dialog';
 import {
+  ReporteCierrePdfDialog,
+  ReporteCierrePdfDialogData,
+  type ReporteCierrePdfActivitySummaryRow,
+  type ReporteCierrePdfDocumentRow,
   ReporteHerramientasPdfDialog,
   ReporteHerramientasPdfDialogData,
   ReporteJobPdfDialog,
   ReporteJobPdfDialogData,
   OperativoDocsBridgeService,
 } from '../../../../../shared/index';
+
+/** RN de negocio (fcr-adjuntos-reales): el backend es la fuente de verdad, esto es solo UX para no esperar el round-trip. */
+const MAX_UPLOAD_SIZE_BYTES = 2 * 1024 * 1024;
+
+/** Mapea las 3 claves cortas históricas de la rama SERVICIOS al nombre de campo real de `CAMPOS_DOCUMENTO_FCR` (backend). */
+const CAMPO_DOCUMENTO_SERVICIO: Record<'formularioExterno' | 'dimensionamiento' | 'dureza', CampoDocumentoFcr> = {
+  formularioExterno: 'formularioInspeccionExterno',
+  dimensionamiento: 'formatoDimensionamientoServicio',
+  dureza: 'formatoDurezaServicio',
+};
 
 const HOUR_OPTIONS: DynadrillSelectOption[] = Array.from({ length: 24 }, (_, h) => {
   const v = String(h).padStart(2, '0');
@@ -101,30 +124,28 @@ const PHASE_KEYS_VENTA: FcrPhase[] = [
   'cierre',
 ];
 
-/** Entrada SERVICIOS — confluye en 'preparacion_herramientas', mismo tronco que VENTA de ahí en adelante. */
+/**
+ * Entrada SERVICIOS — paridad con VENTA: arranca en 'validacion' (mismo
+ * paso, mismo rol responsable) antes de 'preparacion_herramientas'
+ * (Supervisor pide herramientas a Bodega), luego 'tipo_operador' asigna al
+ * operador mecánico que repara e inspecciona por herramienta, y
+ * 'aprobacion_supervisor_operaciones' confluye directo en
+ * 'asignacion_operador' (operador de campo) — ya no se vuelve a pasar por
+ * 'preparacion_herramientas', eso ocurre una sola vez.
+ */
 const PHASE_KEYS_SERVICIO: FcrPhase[] = [
+  'validacion',
+  'preparacion_herramientas',
   'tipo_operador',
   'reparacion',
   'inspeccion',
   'aprobacion_supervisor_operaciones',
-  'preparacion_herramientas',
   'asignacion_operador',
   'reunion_operativa',
   'ejecucion_campo',
   'revision_reportes',
   'control_retorno',
   'cierre',
-];
-
-/** Catálogo simulado del inventario del cliente (RN-FCR-008A: no se permite seleccionar fuera de él). */
-const CLIENT_INVENTORY_CATALOG = [
-  'Tubería de perforación 5"',
-  'Estabilizador 8 1/2"',
-  'Martillo de fondo',
-  'Sarta de perforación',
-  'Broca tricónica 12 1/4"',
-  'Estabilizador 6 3/4"',
-  'Válvula de contrapresión',
 ];
 
 @Component({
@@ -144,6 +165,7 @@ const CLIENT_INVENTORY_CATALOG = [
     DynadrillTextComponent,
     DynadrillTagComponent,
     DynadrillSelectComponent,
+    DynadrillStatisticComponent,
     DynadrillTextareaComponent,
     DynadrillUploadZoneComponent,
     DynadrillApprovalActionsComponent,
@@ -155,6 +177,9 @@ export class FcrTicketDetailPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly fcrService = inject(FcrService);
+  private readonly toolInspeccionesService = inject(FcrToolInspeccionesService);
+  private readonly articulosService = inject(ArticulosService);
+  private readonly pedidoService = inject(PedidoService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(DynadrillDialogService);
@@ -233,6 +258,22 @@ export class FcrTicketDetailPage {
     return this.dialog.confirm({ title, content, okText: 'Confirmar', cancelText: 'Cancelar', danger });
   }
 
+  // ── Pedido vinculado (solo lectura, fase 'validacion') ──
+
+  /** Detalle completo del Pedido de Facturación que originó este ticket — `null` si el ticket no tiene uno vinculado (tickets legado sembrados sin puente). */
+  protected readonly pedido = signal<Pedido | null>(null);
+  protected readonly pedidoLineaServicioLabel = computed(() => {
+    const p = this.pedido();
+    return p ? LINEA_SERVICIO_LABELS[p.lineaServicio] : '';
+  });
+  protected readonly pedidoItems = computed(() => {
+    const p = this.pedido();
+    return p ? itemsEstimadosDe(p) : [];
+  });
+  protected readonly pedidoItemsTotal = computed(() =>
+    this.pedidoItems().reduce((sum, item) => sum + item.cantidad * item.valorUnitario, 0),
+  );
+
   // ── Contexto ──
 
   protected readonly contextItems = computed<DynadrillContextCardItem[]>(() => {
@@ -256,12 +297,20 @@ export class FcrTicketDetailPage {
   protected readonly originalTools = computed(() => (this.ticket()?.tools ?? []).filter(tool => !tool.addedLate));
   protected readonly lateTools = computed(() => (this.ticket()?.tools ?? []).filter(tool => tool.addedLate));
 
+  /** Catálogo real de Inventario (RN-FCR-008A: no se permite seleccionar fuera de él) — reemplaza el mock hardcodeado que existía antes. */
+  protected readonly herramientasCatalogo = toSignal(
+    this.articulosService.list({ categoria: 'HERRAMIENTAS', activo: true }),
+    { initialValue: [] },
+  );
+
   protected readonly availableToAdd = computed<DynadrillSelectOption[]>(() => {
-    const currentNames = new Set(this.ticket()?.tools.map(t => t.name) ?? []);
-    return CLIENT_INVENTORY_CATALOG.filter(name => !currentNames.has(name)).map(name => ({ label: name, value: name }));
+    const currentArticuloIds = new Set(this.ticket()?.tools.map(t => t.articuloId).filter((id): id is number => id !== undefined) ?? []);
+    return this.herramientasCatalogo()
+      .filter(articulo => !currentArticuloIds.has(articulo.id))
+      .map(articulo => ({ label: articulo.nombre, value: articulo.id }));
   });
 
-  protected readonly toolToAdd = signal<string | null>(null);
+  protected readonly toolToAdd = signal<number | null>(null);
 
   protected readonly allToolsReceived = computed(() => {
     const tools = this.ticket()?.tools ?? [];
@@ -313,14 +362,14 @@ export class FcrTicketDetailPage {
   }
 
   protected onToolToAddChange(value: unknown): void {
-    this.toolToAdd.set(value as string | null);
+    this.toolToAdd.set(value as number | null);
   }
 
   protected addTool(): void {
-    const name = this.toolToAdd();
+    const articuloId = this.toolToAdd();
     const t = this.ticket();
-    if (!name || !t) return;
-    this.fcrService.addTool(t.id, name).subscribe({
+    if (!articuloId || !t) return;
+    this.fcrService.addTool(t.id, articuloId).subscribe({
       next: updated => {
         this.ticket.set(updated);
         this.toolToAdd.set(null);
@@ -394,17 +443,29 @@ export class FcrTicketDetailPage {
 
   protected readonly inspectionUploadState = computed(() => (this.ticket()?.inspectionDocumentUploaded ? 'uploaded' : 'idle'));
 
-  protected async onInspectionUploaded(): Promise<void> {
+  /**
+   * Sube el archivo real del documento de inspección y, recién si eso sale
+   * bien, confirma el paso que genera la Guía de Movimiento y la Guía de
+   * Revisión (`markInspectionUploaded` — efecto colateral fuera del alcance
+   * de fcr-adjuntos-reales, ver comentario en `FcrDomainService.uploadInspectionDocument`).
+   */
+  protected async onInspectionUploaded(file: NzUploadFile): Promise<void> {
     const t = this.ticket();
-    if (!t) return;
+    const archivo = this.extraerArchivoValido(file);
+    if (!t || !archivo) return;
     const ok = await this.confirmStep('Confirmar documento de inspección', 'Al confirmar se generan la Guía de Movimiento y la Guía de Revisión. Esta acción no se puede deshacer.');
     if (!ok) return;
-    this.fcrService.markInspectionUploaded(t.id).subscribe({
-      next: updated => {
-        this.ticket.set(updated);
-        this.notify.success('Guía de Movimiento y Guía de Revisión generadas.');
+    this.fcrService.subirDocumento(t.id, 'inspectionDocument', archivo).subscribe({
+      next: () => {
+        this.fcrService.markInspectionUploaded(t.id).subscribe({
+          next: updated => {
+            this.ticket.set(updated);
+            this.notify.success('Guía de Movimiento y Guía de Revisión generadas.');
+          },
+          error: () => this.notify.error('Error', 'El documento se subió, pero no se pudieron generar las guías.'),
+        });
       },
-      error: () => this.notify.error('Error', 'No se pudo confirmar el documento de inspección.'),
+      error: () => this.notify.error('Error', 'No se pudo subir el documento de inspección.'),
     });
   }
 
@@ -412,16 +473,30 @@ export class FcrTicketDetailPage {
   protected readonly durezaUploadState = computed(() => (this.ticket()?.registroDurezaUploaded ? 'uploaded' : 'idle'));
   protected readonly qaqcUploadState = computed(() => (this.ticket()?.registroQaqcUploaded ? 'uploaded' : 'idle'));
 
-  protected onRegistroDurezaUploaded(uploaded: boolean): void {
+  protected onRegistroDurezaUploaded(file: NzUploadFile): void {
     const t = this.ticket();
-    if (!t) return;
-    this.updateTicket(this.fcrService.uploadRegistroDureza(t.id, uploaded));
+    const archivo = this.extraerArchivoValido(file);
+    if (!t || !archivo) return;
+    this.updateTicket(this.fcrService.subirDocumento(t.id, 'registroDureza', archivo));
   }
 
-  protected onRegistroQaqcUploaded(uploaded: boolean): void {
+  protected onEliminarRegistroDureza(): void {
     const t = this.ticket();
     if (!t) return;
-    this.updateTicket(this.fcrService.uploadRegistroQaqc(t.id, uploaded));
+    this.updateTicket(this.fcrService.eliminarDocumento(t.id, 'registroDureza'));
+  }
+
+  protected onRegistroQaqcUploaded(file: NzUploadFile): void {
+    const t = this.ticket();
+    const archivo = this.extraerArchivoValido(file);
+    if (!t || !archivo) return;
+    this.updateTicket(this.fcrService.subirDocumento(t.id, 'registroQaqc', archivo));
+  }
+
+  protected onEliminarRegistroQaqc(): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.updateTicket(this.fcrService.eliminarDocumento(t.id, 'registroQaqc'));
   }
 
   // ══════════════════════════════════════════════
@@ -839,6 +914,108 @@ export class FcrTicketDetailPage {
   });
 
   // ══════════════════════════════════════════════
+  // FASE: Cierre — dashboard de resumen
+  // ══════════════════════════════════════════════
+
+  protected readonly phaseLabel = (phase: FcrPhase): string => FCR_PHASE_LABELS[phase];
+
+  /**
+   * KPIs del dashboard de cierre. "Documentos subidos" cuenta los 6 flags
+   * reales de documento (3 de la rama SERVICIOS + 3 de la rama VENTA) más
+   * los otros 6 hitos/documentos generados durante el ticket — el mismo
+   * universo que `closureOtherDocuments` + `checklistDocumentosReadOnly`.
+   */
+  protected readonly closureStats = computed(() => {
+    const t = this.ticket();
+    if (!t) return { toolsCount: 0, documentsCount: 0, totalHours: 0, phasesCompletedCount: 0 };
+    const docFlags = [
+      t.formularioInspeccionExternoUploaded,
+      t.formatoDimensionamientoServicioUploaded,
+      t.formatoDurezaServicioUploaded,
+      t.registroDurezaUploaded,
+      t.registroQaqcUploaded,
+      t.inspectionDocumentUploaded,
+      t.workReportUploaded,
+      t.toolReportUploaded,
+      t.finalReviewGuideUploaded,
+      t.movementGuideGenerated,
+      t.reviewGuideGenerated,
+      t.bodegaExitGuideGenerated,
+    ];
+    return {
+      toolsCount: t.tools.length,
+      documentsCount: docFlags.filter(Boolean).length,
+      totalHours: t.activityLog.reduce((sum, e) => sum + e.durationHours, 0),
+      phasesCompletedCount: t.phaseHistory.length,
+    };
+  });
+
+  /** Hitos/documentos generados durante el ticket que quedan fuera de los 6 flags reales ya cubiertos por `checklistDocumentosReadOnly` / los documentos de VENTA. */
+  protected readonly closureOtherDocuments = computed(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    return [
+      { key: 'workReport' as const, label: 'Reporte de trabajo', uploaded: t.workReportUploaded },
+      { key: 'toolReport' as const, label: 'Reporte de herramientas', uploaded: t.toolReportUploaded },
+      { key: 'finalReviewGuide' as const, label: 'Guía de revisión final', uploaded: t.finalReviewGuideUploaded },
+      { key: 'movementGuide' as const, label: 'Guía de movimiento', uploaded: t.movementGuideGenerated },
+      { key: 'reviewGuide' as const, label: 'Guía de revisión', uploaded: t.reviewGuideGenerated },
+      { key: 'bodegaExitGuide' as const, label: 'Guía de salida de bodega', uploaded: t.bodegaExitGuideGenerated },
+    ];
+  });
+
+  /** Abre la vista imprimible del resumen de cierre — datos derivados del ticket completo, sin llamada adicional al backend. */
+  protected openReporteCierre(): void {
+    const t = this.ticket();
+    if (!t) return;
+
+    const documentos: ReporteCierrePdfDocumentRow[] = [
+      { label: 'Formulario de inspección externo', uploaded: !!t.formularioInspeccionExternoUploaded, nombreArchivo: t.formularioInspeccionExternoNombreArchivo },
+      { label: 'Formato de dimensionamiento', uploaded: !!t.formatoDimensionamientoServicioUploaded, nombreArchivo: t.formatoDimensionamientoServicioNombreArchivo },
+      { label: 'Formato de Dureza', uploaded: !!t.formatoDurezaServicioUploaded, nombreArchivo: t.formatoDurezaServicioNombreArchivo },
+      { label: 'Documento de inspección', uploaded: t.inspectionDocumentUploaded, nombreArchivo: t.inspectionDocumentNombreArchivo },
+      { label: 'Registro de dureza', uploaded: !!t.registroDurezaUploaded, nombreArchivo: t.registroDurezaNombreArchivo },
+      { label: 'Registro firmado de QAQC', uploaded: !!t.registroQaqcUploaded, nombreArchivo: t.registroQaqcNombreArchivo },
+      { label: 'Reporte de trabajo', uploaded: t.workReportUploaded },
+      { label: 'Reporte de herramientas', uploaded: t.toolReportUploaded },
+      { label: 'Guía de revisión final', uploaded: t.finalReviewGuideUploaded },
+      { label: 'Guía de movimiento', uploaded: t.movementGuideGenerated },
+      { label: 'Guía de revisión', uploaded: t.reviewGuideGenerated },
+      { label: 'Guía de salida de bodega', uploaded: t.bodegaExitGuideGenerated },
+    ];
+
+    const byDate = new Map<string, { count: number; totalHours: number }>();
+    for (const entry of t.activityLog) {
+      const acc = byDate.get(entry.date) ?? { count: 0, totalHours: 0 };
+      acc.count += 1;
+      acc.totalHours += entry.durationHours;
+      byDate.set(entry.date, acc);
+    }
+    const activitySummary: ReporteCierrePdfActivitySummaryRow[] = [...byDate.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, acc]) => ({ date, count: acc.count, totalHours: acc.totalHours }));
+
+    this.dialog.open<ReporteCierrePdfDialog, ReporteCierrePdfDialogData>({
+      title: 'Resumen de Cierre — Vista de impresión',
+      content: ReporteCierrePdfDialog,
+      data: {
+        header: { code: t.code, cliente: t.clientName, pozo: t.wellName, supervisor: t.assignedSupervisor, operador: t.assignedOperator },
+        tipoOtLabel: t.tipoOt === 'servicio' ? 'Servicio' : 'Venta',
+        estimatedDate: t.estimatedDate,
+        phases: t.phaseHistory.map(p => ({ label: this.phaseLabel(p.phase), approvedBy: p.approvedBy, approvedByRole: p.approvedByRole, date: p.date })),
+        tools: t.tools.map(tool => ({ id: tool.id, name: tool.name, status: this.toolStatusLabel(tool.status) })),
+        documentos,
+        activitySummary,
+        totalHours: this.closureStats().totalHours,
+        toolUsageCount: t.toolUsageLog.length,
+        observationsCount: t.observations.length,
+      },
+      footer: false,
+      width: '900px',
+    });
+  }
+
+  // ══════════════════════════════════════════════
   // FASE: Cierre
   // ══════════════════════════════════════════════
 
@@ -883,7 +1060,6 @@ export class FcrTicketDetailPage {
         next: updated => {
           this.ticket.set(updated);
           this.notify.success('Corrección solicitada a Ingeniería de Ventas.');
-          this.auth.switchRole('Ingeniería de Ventas', 7);
         },
         error: () => this.notify.error('Error', 'No se pudo solicitar la corrección.'),
       });
@@ -901,7 +1077,6 @@ export class FcrTicketDetailPage {
       next: updated => {
         this.ticket.set(updated);
         this.notify.success('Corrección reenviada al Supervisor.');
-        this.auth.switchRole('Supervisor', 1);
       },
       error: () => this.notify.error('Error', 'No se pudo reenviar la corrección al Supervisor.'),
     });
@@ -961,14 +1136,93 @@ export class FcrTicketDetailPage {
     return !!t?.formularioInspeccionExternoUploaded && !!t?.formatoDimensionamientoServicioUploaded && !!t?.formatoDurezaServicioUploaded;
   });
 
-  protected onSubirInspeccionServicio(documento: 'formularioExterno' | 'dimensionamiento' | 'dureza', uploaded = true): void {
+  // ── Checklist de inspección por herramienta (fcr-checklist-inspeccion) ──
+  // Se llena una vez por cada FcrTool del ticket, exclusivo de la rama
+  // SERVICIOS. Convive con los 3 documentos de arriba — no lo reemplaza.
+
+  protected readonly toolInspections = signal<FcrToolInspection[]>([]);
+
+  private readonly toolInspectionByToolId = computed(() => new Map(this.toolInspections().map(i => [i.toolId, i])));
+
+  protected toolInspectionEstado(toolId: number): string | null {
+    return this.toolInspectionByToolId().get(toolId)?.estado ?? null;
+  }
+
+  protected toolChecklistButtonLabel(toolId: number): string {
+    const estado = this.toolInspectionEstado(toolId);
+    if (estado === 'enviado' || estado === 'aprobado') return 'Ver checklist';
+    if (estado === 'borrador') return 'Continuar checklist';
+    return 'Iniciar checklist';
+  }
+
+  /** RN (fcr-checklist-inspeccion): la fase no avanza a Aprobación de Supervisor si falta el checklist "enviado" de alguna herramienta. */
+  protected readonly allChecklistsEnviados = computed(() => {
+    const tools = this.ticket()?.tools ?? [];
+    return tools.length > 0 && tools.every(tool => this.toolInspectionByToolId().get(tool.id)?.estado === 'enviado');
+  });
+
+  protected readonly puedeEnviarInspeccionServicio = computed(() => this.inspeccionServicioCompleta() && this.allChecklistsEnviados());
+
+  private loadToolInspections(ticketId: number): void {
+    this.toolInspeccionesService.listByTicket(ticketId).subscribe({
+      next: list => this.toolInspections.set(list),
+      error: () => this.notify.error('Error', 'No se pudieron cargar los checklists de inspección.'),
+    });
+  }
+
+  protected openChecklistHerramienta(tool: FcrTool): void {
+    const t = this.ticket();
+    if (!t || !tool.articuloId) return;
+    const ref = this.dialog.open<ChecklistHerramientaDialog, ChecklistHerramientaDialogData>({
+      title: 'Checklist de inspección',
+      content: ChecklistHerramientaDialog,
+      data: { ticketId: t.id, toolId: tool.id, articuloId: tool.articuloId, toolName: tool.name },
+      footer: false,
+      width: 960,
+    });
+    ref.afterClose.subscribe(() => {
+      // Se recarga la lista completa aunque el diálogo se haya cerrado sin
+      // "Enviar" — "Guardar borrador" también persiste cambios en backend.
+      this.loadToolInspections(t.id);
+    });
+  }
+
+  protected onSubirInspeccionServicio(documento: 'formularioExterno' | 'dimensionamiento' | 'dureza', file: NzUploadFile): void {
+    const t = this.ticket();
+    const archivo = this.extraerArchivoValido(file);
+    if (!t || !archivo) return;
+    this.updateTicket(this.fcrService.subirDocumento(t.id, CAMPO_DOCUMENTO_SERVICIO[documento], archivo));
+  }
+
+  protected onEliminarInspeccionServicio(documento: 'formularioExterno' | 'dimensionamiento' | 'dureza'): void {
     const t = this.ticket();
     if (!t) return;
-    this.updateTicket(this.fcrService.subirInspeccionServicio(t.id, documento, uploaded));
+    this.updateTicket(this.fcrService.eliminarDocumento(t.id, CAMPO_DOCUMENTO_SERVICIO[documento]));
+  }
+
+  /**
+   * Previsualiza uno de los 6 documentos de FCR en una pestaña nueva (sin
+   * forzar descarga) — el navegador renderiza PDF/imagen directo; otros
+   * formatos (doc/xls) el propio navegador decide si los puede mostrar o los
+   * descarga, no hay forma de forzar una vista previa universal para esos.
+   * `fcrService.descargarDocumento` pasa por `HttpClient` (Bearer incluido);
+   * un `<a href>`/`window.open` directo al endpoint no lo llevaría.
+   */
+  protected previsualizarDocumento(campo: CampoDocumentoFcr): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.fcrService.descargarDocumento(t.id, campo).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      },
+      error: () => this.notify.error('Error', 'No se pudo abrir el documento.'),
+    });
   }
 
   protected async confirmEnviarInspeccionServicio(): Promise<void> {
-    if (!this.inspeccionServicioCompleta()) return;
+    if (!this.puedeEnviarInspeccionServicio()) return;
     const ok = await this.confirmStep('Enviar a Supervisor', 'El ticket avanzará a Aprobación de Supervisor de Operaciones.');
     if (!ok) return;
     this.advancePhase('aprobacion_supervisor_operaciones');
@@ -979,7 +1233,7 @@ export class FcrTicketDetailPage {
 
   protected async onInspeccionDecisionChange(decision: DynadrillApprovalDecision): Promise<void> {
     if (decision === 'approved') {
-      const ok = await this.confirmStep('Aprobar inspección', 'El ticket continuará a Preparación de Herramientas.');
+      const ok = await this.confirmStep('Aprobar inspección', 'El ticket continuará a Asignación de Operador.');
       if (!ok) return;
       this.inspeccionDecision.set(decision);
       this.confirmInspeccionReview('approved');
@@ -1003,7 +1257,7 @@ export class FcrTicketDetailPage {
         this.ticket.set(updated);
         this.inspeccionDecision.set(null);
         this.inspeccionRejectionNote.set('');
-        this.advancePhase(decision === 'approved' ? 'preparacion_herramientas' : 'inspeccion');
+        this.advancePhase(decision === 'approved' ? 'asignacion_operador' : 'inspeccion');
       },
       error: () => this.notify.error('Error', 'No se pudo registrar la revisión de inspección.'),
     });
@@ -1016,7 +1270,7 @@ export class FcrTicketDetailPage {
   }
 
   // ══════════════════════════════════════════════
-  // Avance genérico de fase (con auto-switch de rol para la demo)
+  // Avance genérico de fase
   // ══════════════════════════════════════════════
 
   /** Confirmación previa a un "Continuar a X" — el paso queda bloqueado tras confirmar. */
@@ -1038,16 +1292,34 @@ export class FcrTicketDetailPage {
     });
   }
 
+  /**
+   * `<dynadrill-upload-zone>` emite el `NzUploadFile` real de ng-zorro — acá
+   * se extrae el `File` nativo y se valida el tamaño en cliente (UX; el
+   * backend es la fuente de verdad y vuelve a validarlo).
+   */
+  private extraerArchivoValido(file: NzUploadFile): File | null {
+    // `originFileObj` es lo normal, pero algunos flujos de ng-zorro entregan
+    // el `File` nativo directamente en vez de envuelto — si no viene ahí,
+    // usamos el propio `file` cuando ya parece un `File` (tiene `size`/`name`
+    // reales), en vez de fallar en silencio.
+    const archivo = (file.originFileObj as File | undefined) ?? (file as unknown as File);
+    if (!archivo || typeof archivo.size !== 'number') {
+      this.notify.error('Archivo no reconocido', 'No se pudo leer el archivo seleccionado. Probá de nuevo.');
+      return null;
+    }
+    if (archivo.size > MAX_UPLOAD_SIZE_BYTES) {
+      this.notify.error('Archivo demasiado grande', 'El archivo supera el máximo permitido de 2MB.');
+      return null;
+    }
+    return archivo;
+  }
+
   protected advancePhase(phase: FcrPhase): void {
     const t = this.ticket();
     if (!t || !this.isMyTurn()) return;
     const approver = this.auth.currentUser();
     this.fcrService.advancePhase(t.id, phase, approver?.name ?? '', approver?.roleName ?? '').subscribe({
-      next: updated => {
-        this.ticket.set(updated);
-        const nextRole = FCR_PHASE_ROLE[phase];
-        this.auth.switchRole(nextRole.roleName, nextRole.roleId);
-      },
+      next: updated => this.ticket.set(updated),
       error: () => this.notify.error('Error', 'No se pudo avanzar de fase.'),
     });
   }
@@ -1062,6 +1334,13 @@ export class FcrTicketDetailPage {
       next: t => {
         this.ticket.set(t);
         this.loading.set(false);
+        if (t.tipoOt === 'servicio') this.loadToolInspections(id);
+        if (t.pedidoId) {
+          this.pedidoService.get(t.pedidoId).subscribe({
+            next: p => this.pedido.set(p),
+            error: () => this.pedido.set(null),
+          });
+        }
       },
       error: () => this.loading.set(false),
     });

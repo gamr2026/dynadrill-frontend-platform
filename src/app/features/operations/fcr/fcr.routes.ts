@@ -10,6 +10,10 @@ const FCR_ROLES = [
   'Ingeniería de Ventas',
   'Control de Herramientas',
   'Supervisor Operaciones FCR',
+  // Firman "Liberado por QHSE" en el checklist de inspección por herramienta.
+  'Técnico HSE',
+  'Coordinador HSE',
+  'Gerente HSE',
 ];
 
 export const fcrRoutes: Routes = [

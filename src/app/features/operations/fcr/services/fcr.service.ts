@@ -4,6 +4,20 @@ import { Observable } from 'rxjs';
 import { FcrPhase, FcrTicket, type FcrToolDailyStatus, type FcrToolStatus } from '../models/fcr.model';
 import type { TipoCompletacion, TipoOperador, TipoPicker, TipoTrabajo } from '../models/fcr-catalogos.model';
 
+/**
+ * Los 6 campos de FCR con subida real de archivo (fcr-adjuntos-reales) —
+ * nombres cortos, sin el sufijo "Uploaded" (mismo criterio que
+ * `CAMPOS_DOCUMENTO_FCR` en el backend). `fcr.model.ts` no cambia: los 6
+ * booleanos `...Uploaded` siguen viniendo del backend igual que siempre.
+ */
+export type CampoDocumentoFcr =
+  | 'formularioInspeccionExterno'
+  | 'formatoDimensionamientoServicio'
+  | 'formatoDurezaServicio'
+  | 'inspectionDocument'
+  | 'registroDureza'
+  | 'registroQaqc';
+
 @Injectable({ providedIn: 'root' })
 export class FcrService {
   private readonly http = inject(HttpClient);
@@ -37,8 +51,8 @@ export class FcrService {
    * herramienta nueva) pisaría silenciosamente ese cambio ajeno al
    * guardar su propia copia obsoleta.
    */
-  addTool(ticketId: number, name: string): Observable<FcrTicket> {
-    return this.http.post<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools`, { name });
+  addTool(ticketId: number, articuloId: number): Observable<FcrTicket> {
+    return this.http.post<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools`, { articuloId });
   }
 
   removeTool(ticketId: number, toolId: number): Observable<FcrTicket> {
@@ -70,16 +84,14 @@ export class FcrService {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/confirm-list`, { confirmed });
   }
 
+  /**
+   * Solo dispara el efecto colateral que sigue fuera del alcance de
+   * fcr-adjuntos-reales: generar `movementGuideGenerated` /
+   * `reviewGuideGenerated`. El archivo real del documento de inspección se
+   * sube aparte con `subirDocumento(ticketId, 'inspectionDocument', file)`.
+   */
   markInspectionUploaded(ticketId: number): Observable<FcrTicket> {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/inspection-document`, {});
-  }
-
-  uploadRegistroDureza(ticketId: number, uploaded: boolean): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/registro-dureza`, { uploaded });
-  }
-
-  uploadRegistroQaqc(ticketId: number, uploaded: boolean): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/registro-qaqc`, { uploaded });
   }
 
   assignOperator(ticketId: number, operatorName: string): Observable<FcrTicket> {
@@ -94,10 +106,6 @@ export class FcrService {
 
   registrarReparacion(ticketId: number, descripcion: string): Observable<FcrTicket> {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/reparacion`, { descripcion });
-  }
-
-  subirInspeccionServicio(ticketId: number, documento: 'formularioExterno' | 'dimensionamiento' | 'dureza', uploaded = true): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/inspeccion-servicio`, { documento, uploaded });
   }
 
   reviewInspeccion(ticketId: number, decision: 'approved' | 'rejected', observation?: string): Observable<FcrTicket> {
@@ -165,5 +173,28 @@ export class FcrService {
 
   closeTicket(ticketId: number): Observable<FcrTicket> {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/close`, {});
+  }
+
+  // ── Adjuntos reales (fcr-adjuntos-reales) ──
+
+  /** Sube (o reemplaza) el archivo real de uno de los 6 campos de documento de FCR. Máx. 2MB — validado también en el backend. */
+  subirDocumento(ticketId: number, campo: CampoDocumentoFcr, file: File): Observable<FcrTicket> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/documentos/${campo}`, formData);
+  }
+
+  eliminarDocumento(ticketId: number, campo: CampoDocumentoFcr): Observable<FcrTicket> {
+    return this.http.delete<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/documentos/${campo}`);
+  }
+
+  /**
+   * Descarga el archivo real de uno de los 6 campos de documento de FCR.
+   * `responseType: 'blob'` para que pase por `HttpClient` (y por lo tanto
+   * por el `authInterceptor` que adjunta el Bearer) — un `<a href>` directo
+   * al endpoint no llevaría el token y el backend respondería 401.
+   */
+  descargarDocumento(ticketId: number, campo: CampoDocumentoFcr): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/tickets/${ticketId}/documentos/${campo}`, { responseType: 'blob' });
   }
 }

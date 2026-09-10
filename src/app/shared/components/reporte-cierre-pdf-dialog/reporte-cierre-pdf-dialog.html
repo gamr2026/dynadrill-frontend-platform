@@ -1,0 +1,126 @@
+<div class="reporte-pdf">
+  <div class="reporte-pdf__letterhead">
+    <img class="reporte-pdf__logo" src="/brand/dynadrill-logo.svg" alt="Dynadrill" />
+    <dynadrill-text variant="caption">Dynadrill Ecuador C.A.</dynadrill-text>
+  </div>
+
+  <div class="reporte-pdf__doc-header">
+    <div class="reporte-pdf__doc-title">
+      <dynadrill-text variant="h1">Resumen de Cierre de Ticket FCR</dynadrill-text>
+      <dynadrill-text variant="caption">Ticket {{ data.header.code }} · {{ data.tipoOtLabel }}</dynadrill-text>
+    </div>
+    <div class="reporte-pdf__doc-meta">
+      <dynadrill-text variant="caption">Fecha de impresión: {{ printDate }}</dynadrill-text>
+    </div>
+  </div>
+
+  <div class="reporte-pdf__section">
+    <div class="reporte-pdf__grid-4">
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Cliente</dynadrill-text><dynadrill-text variant="body">{{ data.header.cliente }}</dynadrill-text></div>
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Pozo</dynadrill-text><dynadrill-text variant="body">{{ data.header.pozo }}</dynadrill-text></div>
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Supervisor</dynadrill-text><dynadrill-text variant="body">{{ data.header.supervisor || '—' }}</dynadrill-text></div>
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Operador</dynadrill-text><dynadrill-text variant="body">{{ data.header.operador || '—' }}</dynadrill-text></div>
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Fecha estimada</dynadrill-text><dynadrill-text variant="body">{{ formatDate(data.estimatedDate) }}</dynadrill-text></div>
+    </div>
+  </div>
+
+  <div class="reporte-pdf__section">
+    <div class="reporte-pdf__grid-4">
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Herramientas</dynadrill-text><dynadrill-text variant="body">{{ data.tools.length }}</dynadrill-text></div>
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Documentos subidos</dynadrill-text><dynadrill-text variant="body">{{ documentsUploadedCount() }} de {{ data.documentos.length }}</dynadrill-text></div>
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Horas trabajadas</dynadrill-text><dynadrill-text variant="body">{{ data.totalHours | number: '1.1-2' }} h</dynadrill-text></div>
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Fases completadas</dynadrill-text><dynadrill-text variant="body">{{ data.phases.length }}</dynadrill-text></div>
+    </div>
+  </div>
+
+  <div class="reporte-pdf__section">
+    <dynadrill-text variant="caption" class="reporte-pdf__section-label">Línea de tiempo — responsables por fase</dynadrill-text>
+    <table class="reporte-pdf__table">
+      <thead>
+        <tr><th>Fase</th><th>Responsable</th><th>Rol</th><th>Fecha</th></tr>
+      </thead>
+      <tbody>
+        @for (phase of data.phases; track $index) {
+          <tr>
+            <td>{{ phase.label }}</td>
+            <td>{{ phase.approvedBy }}</td>
+            <td>{{ phase.approvedByRole }}</td>
+            <td>{{ formatDate(phase.date) }}</td>
+          </tr>
+        } @empty {
+          <tr><td colspan="4">Sin fases registradas todavía.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="reporte-pdf__section">
+    <dynadrill-text variant="caption" class="reporte-pdf__section-label">Herramientas del ticket</dynadrill-text>
+    <table class="reporte-pdf__table">
+      <thead>
+        <tr><th>Herramienta</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        @for (tool of data.tools; track tool.id) {
+          <tr>
+            <td>{{ tool.name }}</td>
+            <td>{{ tool.status }}</td>
+          </tr>
+        } @empty {
+          <tr><td colspan="2">Sin herramientas registradas.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="reporte-pdf__section">
+    <dynadrill-text variant="caption" class="reporte-pdf__section-label">Documentos generados</dynadrill-text>
+    <table class="reporte-pdf__table">
+      <thead>
+        <tr><th>Documento</th><th>Estado</th><th>Archivo</th></tr>
+      </thead>
+      <tbody>
+        @for (doc of data.documentos; track doc.label) {
+          <tr>
+            <td>{{ doc.label }}</td>
+            <td>{{ doc.uploaded ? 'Generado' : 'Pendiente' }}</td>
+            <td>{{ doc.nombreArchivo ?? '—' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="reporte-pdf__section">
+    <dynadrill-text variant="caption" class="reporte-pdf__section-label">Bitácora de actividades — resumen por día</dynadrill-text>
+    <table class="reporte-pdf__table">
+      <thead>
+        <tr><th>Fecha</th><th>Actividades registradas</th><th>Horas</th></tr>
+      </thead>
+      <tbody>
+        @for (row of data.activitySummary; track row.date) {
+          <tr>
+            <td>{{ formatDate(row.date) }}</td>
+            <td>{{ row.count }}</td>
+            <td>{{ row.totalHours | number: '1.1-2' }}</td>
+          </tr>
+        } @empty {
+          <tr><td colspan="3">Sin actividades registradas todavía.</td></tr>
+        }
+      </tbody>
+      <tfoot>
+        <tr><td>Total</td><td></td><td>{{ data.totalHours | number: '1.1-2' }}</td></tr>
+      </tfoot>
+    </table>
+    <dynadrill-text variant="caption">{{ data.toolUsageCount }} registro(s) de uso de herramientas · {{ data.observationsCount }} observación(es) durante el ticket.</dynadrill-text>
+  </div>
+
+  <div class="reporte-pdf__footer">
+    <dynadrill-text variant="caption">Documento generado electrónicamente por el Sistema de Gestión Dynadrill.</dynadrill-text>
+  </div>
+
+  <div class="reporte-pdf__actions no-print">
+    <dynadrill-button variant="secondary" (clicked)="close()">Cerrar</dynadrill-button>
+    <dynadrill-button (clicked)="print()">Imprimir / Exportar PDF</dynadrill-button>
+  </div>
+</div>

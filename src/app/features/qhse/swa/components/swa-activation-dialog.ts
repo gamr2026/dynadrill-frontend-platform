@@ -1,15 +1,20 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NzModalRef } from 'ng-zorro-antd/modal';
+import { catchError, forkJoin, of } from 'rxjs';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
+  DynadrillSelectComponent,
   DynadrillTextareaComponent,
+  type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../../core/services/auth.service';
 import { CreateSwaInput, SWA_ZERO_RETALIATION_NOTICE, SwaEvento } from '../models/swa.model';
 import { SwaService } from '../services/swa.service';
+import { PumpingService } from '../../../operations/pumping/services/pumping.service';
+import { FcrService } from '../../../operations/fcr/services/fcr.service';
 
 /**
  * "Cualquier Trabajador" activa el botón de pánico digital
@@ -19,7 +24,13 @@ import { SwaService } from '../services/swa.service';
  */
 @Component({
   selector: 'app-swa-activation-dialog',
-  imports: [DynadrillBannerComponent, DynadrillInputComponent, DynadrillTextareaComponent, DynadrillButtonComponent],
+  imports: [
+    DynadrillBannerComponent,
+    DynadrillInputComponent,
+    DynadrillTextareaComponent,
+    DynadrillSelectComponent,
+    DynadrillButtonComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './swa-activation-dialog.html',
   styleUrl: './swa-activation-dialog.scss',
@@ -28,6 +39,8 @@ export class SwaActivationDialog {
   private readonly swaService = inject(SwaService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
+  private readonly pumpingService = inject(PumpingService);
+  private readonly fcrService = inject(FcrService);
   private readonly modalRef = inject(NzModalRef<SwaActivationDialog, SwaEvento | undefined>);
 
   protected readonly zeroRetaliationNotice = SWA_ZERO_RETALIATION_NOTICE;
@@ -36,9 +49,29 @@ export class SwaActivationDialog {
   protected readonly tipoPeligro = signal('');
   protected readonly descripcion = signal('');
   protected readonly ubicacion = signal('');
+  /** `<tipo>:<code>` del servicio afectado — vacío = evento sin servicio ligado. */
+  protected readonly servicio = signal('');
+  protected readonly servicioOptions = signal<DynadrillSelectOption[]>([]);
   protected readonly submitting = signal(false);
 
-  protected readonly puedeActivar = computed(() => this.tipoPeligro().trim().length > 0 && this.descripcion().trim().length > 0);
+  constructor() {
+    // Servicios operativos en curso — para ligar el evento (y detenerlos).
+    // Best-effort: si el rol no puede listar tickets, el selector queda vacío.
+    forkJoin({
+      pumping: this.pumpingService.listTickets().pipe(catchError(() => of([]))),
+      fcr: this.fcrService.listTickets().pipe(catchError(() => of([]))),
+    }).subscribe(({ pumping, fcr }) => {
+      const opts: DynadrillSelectOption[] = [
+        ...pumping.map(t => ({ label: `Pumping · ${t.code} — ${t.wellName}`, value: `pumping:${t.code}` })),
+        ...fcr.map(t => ({ label: `FCR · ${t.code} — ${t.wellName}`, value: `fcr:${t.code}` })),
+      ];
+      this.servicioOptions.set(opts);
+    });
+  }
+
+  protected readonly puedeActivar = computed(
+    () => this.tipoPeligro().trim().length > 0 && this.descripcion().trim().length > 0,
+  );
 
   protected cancelar(): void {
     this.modalRef.close();
@@ -48,16 +81,21 @@ export class SwaActivationDialog {
     if (!this.puedeActivar() || this.submitting()) return;
     this.submitting.set(true);
 
+    const [tipo, code] = this.servicio().split(':');
     const input: CreateSwaInput = {
       activadoPorNombre: this.activadoPorNombre(),
       tipoPeligro: this.tipoPeligro(),
       descripcion: this.descripcion(),
       ubicacion: this.ubicacion() || undefined,
+      ...(tipo === 'pumping' || tipo === 'fcr' ? { ticketTipo: tipo, ticketCode: code } : {}),
     };
 
     this.swaService.activar(input).subscribe({
       next: evento => {
-        this.notify.success('Trabajo detenido', `Evento ${evento.code} registrado — se notificó a Supervisor, Coordinador HSE y Gerente HSE.`);
+        this.notify.success(
+          'Trabajo detenido',
+          `Evento ${evento.code} registrado — se notificó a Supervisor, Coordinador HSE y Gerente HSE.`,
+        );
         this.modalRef.close(evento);
       },
       error: () => {

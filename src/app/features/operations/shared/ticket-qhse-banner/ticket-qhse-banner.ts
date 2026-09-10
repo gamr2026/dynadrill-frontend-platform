@@ -2,7 +2,13 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { Router } from '@angular/router';
 import { DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
 import { TicketQhseVinculo } from '../../../../shared/models/ticket.model';
-import { actividadesPendientes, coberturaOk, ipercEstadoLabel, ptwFaseLabel } from '../ticket-qhse.util';
+import {
+  SWA_ESTADO_LABELS,
+  actividadesPendientes,
+  coberturaOk,
+  ipercEstadoLabel,
+  ptwFaseLabel,
+} from '../ticket-qhse.util';
 
 /**
  * Banner de estado QHSE del ticket operativo — compartido por los detalles
@@ -27,9 +33,11 @@ export class TicketQhseBanner {
   protected readonly coberturaOk = computed(() => coberturaOk(this.vinculo()));
   protected readonly pendientes = computed(() => actividadesPendientes(this.vinculo()));
   protected readonly ptw = computed(() => this.vinculo()?.ptw ?? null);
+  protected readonly swa = computed(() => this.vinculo()?.swa ?? null);
 
   protected readonly ipercEstadoLabel = ipercEstadoLabel;
   protected readonly ptwFaseLabel = ptwFaseLabel;
+  protected readonly swaEstadoLabel = (estado: string): string => SWA_ESTADO_LABELS[estado] ?? estado;
 
   protected verMatriz(ipercMatrixId: number): void {
     if (this.canView()) this.router.navigate(['/dashboard/qhse/iperc', ipercMatrixId]);
@@ -38,5 +46,10 @@ export class TicketQhseBanner {
   protected verPtw(): void {
     const p = this.ptw();
     if (p && this.canView()) this.router.navigate(['/dashboard/qhse/ptw', p.id]);
+  }
+
+  protected verSwa(): void {
+    const s = this.swa();
+    if (s && this.canView()) this.router.navigate(['/dashboard/qhse/swa', s.id]);
   }
 }

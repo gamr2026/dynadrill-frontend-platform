@@ -46,6 +46,7 @@ import {
   type DailyActivityReport,
 } from '../../models/pumping.model';
 import { PumpingService } from '../../services/pumping.service';
+import { TicketQhseBanner } from '../../../shared/ticket-qhse-banner/ticket-qhse-banner';
 import { OperativoDocsBridgeService, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../../../shared/index';
 import { CreateUnitReportInput, unitReportHasNovedades } from '../../../../maintenance/models/unit-report.model';
 import { UnitReportsService } from '../../../../maintenance/services/unit-reports.service';
@@ -160,6 +161,7 @@ function toFuelReading(raw: string): number | null {
     DynadrillApprovalActionsComponent,
     DynadrillUploadZoneComponent,
     UbicacionSelectorComponent,
+    TicketQhseBanner,
   ],
   templateUrl: './ticket-detail-page.html',
   styleUrl: './ticket-detail-page.scss',
@@ -243,6 +245,24 @@ export class TicketDetailPage {
   protected verPtw(): void {
     const p = this.ptwVinculo();
     if (p && this.puedeVerMatrizIperc()) this.router.navigate(['/dashboard/qhse/ptw', p.id]);
+  }
+
+  // ── Stop Work Authority (HSE-SEGUIMIENTO-003) ──
+  /** Evento Stop Work abierto contra este servicio — mientras exista, el trabajo está detenido. */
+  protected readonly swaActivo = computed(() => this.ipercVinculo()?.swa ?? null);
+  /** Guard común: con un Stop Work abierto ningún paso del flujo avanza. Devuelve `true` (y avisa) si está bloqueado. */
+  private bloqueadoPorSwa(): boolean {
+    const s = this.swaActivo();
+    if (!s) return false;
+    this.notify.error(
+      'Trabajo detenido',
+      `Stop Work ${s.code} abierto (${s.tipoPeligro}). El servicio no puede avanzar hasta que HSE y el Company Man autoricen la reanudación.`,
+    );
+    return true;
+  }
+  protected verSwa(): void {
+    const s = this.swaActivo();
+    if (s && this.puedeVerMatrizIperc()) this.router.navigate(['/dashboard/qhse/swa', s.id]);
   }
 
   private readonly unitReportsService = inject(UnitReportsService);
@@ -966,6 +986,7 @@ export class TicketDetailPage {
   protected approveAllSalidaReports(): void {
     const t = this.ticket();
     if (!t) return;
+    if (this.bloqueadoPorSwa()) return;
     if (!this.coberturaOk()) {
       this.notify.error(
         'Matriz IPERC incompleta',
@@ -1008,6 +1029,7 @@ export class TicketDetailPage {
   protected approveAllLlegadaReports(): void {
     const t = this.ticket();
     if (!t) return;
+    if (this.bloqueadoPorSwa()) return;
     this.submitting.set(true);
     const nextStep: PumpingStep = 'en_revision';
     this.pumpingService.advanceStep(t.id, nextStep).subscribe({
@@ -1216,6 +1238,7 @@ export class TicketDetailPage {
   protected advanceFromEjecucionOperativa(): void {
     const t = this.ticket();
     if (!t) return;
+    if (this.bloqueadoPorSwa()) return;
     this.submitting.set(true);
     const nextStep: PumpingStep = 'gerenciamiento_llegada';
     this.pumpingService.advanceStep(t.id, nextStep).subscribe({
@@ -1244,6 +1267,7 @@ export class TicketDetailPage {
   protected advanceFromGerenciamientoLlegada(): void {
     const t = this.ticket();
     if (!t) return;
+    if (this.bloqueadoPorSwa()) return;
     this.submitting.set(true);
     const nextStep: PumpingStep = 'en_ejecucion_llegada';
     this.pumpingService.advanceStep(t.id, nextStep).subscribe({
@@ -1602,6 +1626,7 @@ export class TicketDetailPage {
   protected approveMaintenanceStep(): void {
     const t = this.ticket();
     if (!t) return;
+    if (this.bloqueadoPorSwa()) return;
     this.submitting.set(true);
     const nextStep: PumpingStep = 'revisar_reportes_llegada';
     this.pumpingService.advanceStep(t.id, nextStep).subscribe({
@@ -1628,6 +1653,7 @@ export class TicketDetailPage {
     const supervisorId = this.selectedSupervisor();
     const t = this.ticket();
     if (!supervisorId || !t) return;
+    if (this.bloqueadoPorSwa()) return;
     if (!this.coberturaOk()) {
       this.notify.error(
         'Matriz IPERC incompleta',
@@ -1778,6 +1804,7 @@ export class TicketDetailPage {
   protected saveUnitReport(): void {
     const t = this.ticket();
     if (!t) return;
+    if (this.bloqueadoPorSwa()) return;
 
     // Validar que la inspección esté realizada antes de enviar
     if (!this.allInspectionsCompleted()) {
@@ -1940,6 +1967,7 @@ export class TicketDetailPage {
   protected approveTicket(): void {
     const t = this.ticket();
     if (!t || this.decision() !== 'approved') return;
+    if (this.bloqueadoPorSwa()) return;
     this.submitting.set(true);
     this.pumpingService.approveTicket(t.id).subscribe({
       next: () => {

@@ -36,18 +36,34 @@ export interface TicketQhsePtw {
 }
 
 /**
+ * Evento Stop Work (HSE-SEGUIMIENTO-003) ABIERTO contra este servicio. El
+ * backend sólo lo adjunta mientras el evento no esté cerrado (reanudado);
+ * mientras exista, el trabajo del ticket está detenido.
+ */
+export interface TicketQhseSwa {
+  id: number;
+  code: string;
+  /** 'activo' (trabajo detenido) | 'evaluado' (riesgo evaluado, aún sin reanudar). */
+  estado: string;
+  tipoPeligro: string;
+  activadoAt: string;
+}
+
+/**
  * Vínculo del ticket operativo (Pumping/FCR) con QHSE — HSE-PLAN-001. El
  * backend verifica que la Matriz Maestra IPERC (DYN-SGI-RE-087) cubra
  * —aprobadas— todas las actividades que implica la línea de servicio.
  * `cobertura === 'ok'` sólo cuando todas están aprobadas; el gate del
  * detalle (asignar supervisor, pasar a ejecución) lo lee. `ptw` es el
- * segundo gate (HSE-SITIO-001): ejecución en campo y prefactura.
+ * segundo gate (HSE-SITIO-001): ejecución en campo y prefactura. `swa`,
+ * si está presente, detiene todo el trabajo del ticket.
  */
 export interface TicketQhseVinculo {
   matrizMaestra: string;
   cobertura: 'ok' | 'incompleta';
   actividades: TicketQhseActividad[];
   ptw?: TicketQhsePtw | null;
+  swa?: TicketQhseSwa | null;
 }
 
 export interface Ticket {

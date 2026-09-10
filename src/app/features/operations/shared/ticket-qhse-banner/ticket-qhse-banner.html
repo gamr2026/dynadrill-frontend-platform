@@ -1,4 +1,22 @@
-@if (vinculo(); as v) {
+@if (swa(); as s) {
+  <section class="ticket-qhse-banner ticket-qhse-banner--detenido">
+    <div class="ticket-qhse-banner__text">
+      <dynadrill-text variant="body">
+        <strong>⛔ TRABAJO DETENIDO — Stop Work {{ s.code }}</strong> ({{ swaEstadoLabel(s.estado) }}).
+      </dynadrill-text>
+      <dynadrill-text variant="caption">
+        Peligro: {{ s.tipoPeligro }}. Ningún paso del servicio puede avanzar hasta que HSE y el Company Man autoricen la
+        reanudación.
+        @if (canView()) {
+          <button type="button" class="ticket-qhse-banner__link" (click)="verSwa()">Ver evento</button>
+        }
+      </dynadrill-text>
+    </div>
+  </section>
+}
+
+@if (vinculo()?.matrizMaestra; as matrizMaestra) {
+  @let v = vinculo()!;
   <section
     class="ticket-qhse-banner"
     [class.ticket-qhse-banner--ok]="coberturaOk()"

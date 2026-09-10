@@ -4,6 +4,17 @@
   <dynadrill-input label="Tipo de peligro" placeholder="Ej: fuga de gas, caída de objeto, línea energizada..." [value]="tipoPeligro()" (valueChange)="tipoPeligro.set($event)" />
   <dynadrill-textarea label="Descripción de la situación" [value]="descripcion()" (valueChange)="descripcion.set($event)" [rows]="3" />
   <dynadrill-input label="Ubicación" [value]="ubicacion()" (valueChange)="ubicacion.set($event)" />
+
+  @if (servicioOptions().length > 0) {
+    <dynadrill-select
+      label="Servicio afectado (opcional)"
+      placeholder="Ligar el evento a un ticket de Pumping/FCR — lo detiene hasta reanudar"
+      [options]="servicioOptions()"
+      [value]="servicio()"
+      [searchable]="true"
+      (valueChange)="servicio.set($any($event) ?? '')"
+    />
+  }
   <dynadrill-input label="Activado por" [value]="activadoPorNombre()" (valueChange)="activadoPorNombre.set($event)" />
 
   <div class="swa-activation-dialog__actions">

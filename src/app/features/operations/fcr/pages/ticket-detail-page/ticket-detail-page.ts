@@ -46,6 +46,7 @@ import {
   coberturaOk,
   ptwFaseLabel,
   ptwFirmadoOk,
+  swaActivo,
 } from '../../../shared/ticket-qhse.util';
 import { SolicitarCorreccionDialog, SolicitarCorreccionDialogData, SolicitarCorreccionDialogResult } from '../../components/solicitar-correccion-dialog';
 import { AsignarOperadorDialog, AsignarOperadorDialogData, AsignarOperadorDialogResult } from '../../components/asignar-operador-dialog';
@@ -139,10 +140,11 @@ export class FcrTicketDetailPage {
   protected readonly loading = signal(true);
   protected readonly ticket = signal<FcrTicket | null>(null);
 
-  // ── Gates QHSE (HSE-PLAN-001 cobertura IPERC + HSE-SITIO-001 PTW) ──
+  // ── Gates QHSE (HSE-PLAN-001 cobertura IPERC + HSE-SITIO-001 PTW + HSE-SEGUIMIENTO-003 SWA) ──
   protected readonly qhseVinculo = computed(() => this.ticket()?.qhse ?? null);
   protected readonly coberturaOk = computed(() => coberturaOk(this.qhseVinculo()));
   protected readonly ptwFirmadoOk = computed(() => ptwFirmadoOk(this.qhseVinculo()));
+  protected readonly swa = computed(() => swaActivo(this.qhseVinculo()));
   protected readonly puedeVerQhse = computed(() => QHSE_VIEWER_ROLES.includes(this.roleName()));
 
   // ── Tracker de fases ──
@@ -823,6 +825,16 @@ export class FcrTicketDetailPage {
   protected advancePhase(phase: FcrPhase): void {
     const t = this.ticket();
     if (!t || !this.isMyTurn()) return;
+
+    // Gate HSE-SEGUIMIENTO-003: con un Stop Work abierto, nada avanza.
+    const s = this.swa();
+    if (s) {
+      this.notify.error(
+        'Trabajo detenido',
+        `Stop Work ${s.code} abierto (${s.tipoPeligro}). El servicio no puede avanzar hasta que se autorice la reanudación en QHSE.`,
+      );
+      return;
+    }
 
     // Gate HSE-PLAN-001: no se asigna operador ni se ejecuta sin la
     // cobertura IPERC completa.

@@ -68,3 +68,19 @@ export function ptwFirmadoOk(vinculo: TicketQhseVinculo | null | undefined): boo
   const ptw = vinculo?.ptw;
   return !ptw || ptw.firmadoSitio;
 }
+
+/**
+ * Evento Stop Work abierto contra el servicio (HSE-SEGUIMIENTO-003). El
+ * backend sólo lo adjunta mientras no esté cerrado. Mientras exista, TODO
+ * el trabajo del ticket está detenido — cualquier avance se bloquea hasta
+ * que HSE + Company Man autoricen la reanudación.
+ */
+export function swaActivo(vinculo: TicketQhseVinculo | null | undefined) {
+  return vinculo?.swa ?? null;
+}
+
+export const SWA_ESTADO_LABELS: Record<string, string> = {
+  activo: 'trabajo detenido',
+  evaluado: 'riesgo evaluado — pendiente de reanudación',
+  cerrado: 'reanudado',
+};

@@ -65,9 +65,20 @@ export interface SwaEvento {
 
   /** HSE-MASTER-001: si el riesgo no se controla, escala a Emergencia Mayor (HSE-TRIAGE-001). */
   emergenciaId?: number;
+
+  /**
+   * Servicio operativo detenido por este evento (HSE-SEGUIMIENTO-003 se
+   * ejecuta "durante HSE-SITIO-001"). Mientras el evento siga abierto, el
+   * ticket de Pumping/FCR no puede avanzar ningún paso.
+   */
+  ticketTipo?: 'pumping' | 'fcr';
+  ticketCode?: string;
 }
 
-export type CreateSwaInput = Pick<SwaEvento, 'activadoPorNombre' | 'tipoPeligro' | 'descripcion' | 'ubicacion'>;
+export type CreateSwaInput = Pick<
+  SwaEvento,
+  'activadoPorNombre' | 'tipoPeligro' | 'descripcion' | 'ubicacion' | 'ticketTipo' | 'ticketCode'
+>;
 
 export function swaNotificacionCompleta(e: Pick<SwaEvento, 'notificaciones'>): boolean {
   return e.notificaciones.every(n => !!n.notificadoAt);

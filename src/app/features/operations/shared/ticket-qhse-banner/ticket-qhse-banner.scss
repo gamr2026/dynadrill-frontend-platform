@@ -21,6 +21,11 @@
     background: rgba(214, 158, 46, 0.1);
     border-color: rgba(214, 158, 46, 0.5);
   }
+
+  &--detenido {
+    background: rgba(214, 48, 49, 0.12);
+    border-color: rgba(214, 48, 49, 0.6);
+  }
 }
 
 .ticket-qhse-banner__text {

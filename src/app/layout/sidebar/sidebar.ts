@@ -63,6 +63,7 @@ const QHSE_ITEM: DynadrillMenuItem = {
       label: 'Planificación',
       children: [
         { label: 'IPERC', link: '/dashboard/qhse/iperc' },
+        { label: 'Cobertura IPERC por línea', link: '/dashboard/qhse/iperc-cobertura' },
         { label: 'PTW / Recibimiento', link: '/dashboard/qhse/ptw' },
       ],
     },

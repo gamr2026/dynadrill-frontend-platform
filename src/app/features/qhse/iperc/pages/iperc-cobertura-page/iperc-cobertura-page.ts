@@ -3,8 +3,8 @@ import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import {
   DynadrillBannerComponent,
-  DynadrillButtonComponent,
   DynadrillCardComponent,
+  DynadrillDialogService,
   DynadrillIconButtonComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
@@ -26,6 +26,7 @@ import { AuthService } from '../../../../../core/services/auth.service';
 
 /** Mismo orden y nombre que `LINEAS_SERVICIO` del backend. */
 const LINEAS: LineaServicio[] = ['pumping', 'ctu', 'fishing', 'completion'];
+const MAPA_VACIO: CoberturaMapa = { pumping: [], ctu: [], fishing: [], completion: [] };
 
 /**
  * Editar el mapeo abre solicitudes de matriz — mismo criterio que aprobar
@@ -50,7 +51,6 @@ interface LineaVista {
   actividades: ActividadVista[];
   cobertura: 'ok' | 'incompleta';
   vacia: boolean;
-  dirty: boolean;
   opciones: DynadrillSelectOption[];
 }
 
@@ -64,9 +64,10 @@ const ESTADO_TAG: Record<ActividadEstado, { label: string; variant: DynadrillTag
  * QHSE ▸ Planificación ▸ Cobertura IPERC por línea. Configura qué
  * actividades de la Matriz Maestra (DYN-SGI-RE-087) exige cada línea de
  * servicio; el puente Facturación→QHSE lo lee al crear un ticket de
- * Pumping/FCR para decidir si el trabajo puede arrancar. Agregar una
- * actividad que todavía no tiene matriz abre la solicitud (borrador) para
- * que HSE la evalúe y apruebe.
+ * Pumping/FCR para decidir si el trabajo puede arrancar. Cada alta/baja se
+ * guarda al instante (sin botón "Guardar"). Agregar una actividad que
+ * todavía no tiene matriz abre su solicitud (borrador) para que HSE la
+ * evalúe y apruebe.
  */
 @Component({
   selector: 'app-iperc-cobertura-page',
@@ -78,7 +79,6 @@ const ESTADO_TAG: Record<ActividadEstado, { label: string; variant: DynadrillTag
     DynadrillCardComponent,
     DynadrillTagComponent,
     DynadrillSelectComponent,
-    DynadrillButtonComponent,
     DynadrillIconButtonComponent,
     DynadrillSpinnerComponent,
   ],
@@ -90,14 +90,13 @@ export class IpercCoberturaPage {
   private readonly ipercService = inject(IpercService);
   private readonly auth = inject(AuthService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly dialog = inject(DynadrillDialogService);
 
   protected readonly loading = signal(true);
   protected readonly saving = signal<LineaServicio | null>(null);
   private readonly matrices = signal<IpercMatrix[]>([]);
-  /** Estado guardado en el servidor. */
-  private readonly guardado = signal<CoberturaMapa>({ pumping: [], ctu: [], fishing: [], completion: [] });
-  /** Copia editable — se sincroniza con `guardado` al cargar y al guardar cada línea. */
-  private readonly draft = signal<Record<LineaServicio, string[]>>({ pumping: [], ctu: [], fishing: [], completion: [] });
+  /** Estado guardado en el servidor — es la única fuente de verdad de la pantalla. */
+  private readonly mapa = signal<CoberturaMapa>(MAPA_VACIO);
 
   protected readonly puedeEditar = computed(() => EDIT_ROLES.includes(this.auth.currentUser()?.roleName ?? ''));
 
@@ -119,17 +118,15 @@ export class IpercCoberturaPage {
 
   protected readonly lineas = computed<LineaVista[]>(() =>
     LINEAS.map(linea => {
-      const draftList = this.draft()[linea] ?? [];
-      const savedList = this.guardado()[linea] ?? [];
-      const actividades = draftList.map(n => this.estadoActividad(n));
-      const enUso = new Set(draftList.map(norm));
+      const lista = this.mapa()[linea] ?? [];
+      const actividades = lista.map(n => this.estadoActividad(n));
+      const enUso = new Set(lista.map(norm));
       return {
         linea,
         label: LINEA_SERVICIO_LABELS[linea],
         actividades,
         cobertura: actividades.every(a => a.estado === 'aprobada') ? 'ok' : 'incompleta',
-        vacia: draftList.length === 0,
-        dirty: JSON.stringify(draftList) !== JSON.stringify(savedList),
+        vacia: lista.length === 0,
         opciones: this.actividadesConocidas()
           .filter(a => !enUso.has(norm(a)))
           .map(a => ({ label: a, value: a })),
@@ -141,21 +138,20 @@ export class IpercCoberturaPage {
     forkJoin({ mapa: this.coberturaService.getAll(), matrices: this.ipercService.list() }).subscribe({
       next: ({ mapa, matrices }) => {
         this.matrices.set(matrices);
-        this.setMapa(mapa);
+        this.mapa.set(this.normalizarMapa(mapa));
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
     });
   }
 
-  private setMapa(mapa: CoberturaMapa): void {
-    this.guardado.set(mapa);
-    this.draft.set({
+  private normalizarMapa(mapa: CoberturaMapa): CoberturaMapa {
+    return {
       pumping: [...(mapa.pumping ?? [])],
       ctu: [...(mapa.ctu ?? [])],
       fishing: [...(mapa.fishing ?? [])],
       completion: [...(mapa.completion ?? [])],
-    });
+    };
   }
 
   private estadoActividad(nombre: string): ActividadVista {
@@ -168,36 +164,44 @@ export class IpercCoberturaPage {
 
   protected agregar(linea: LineaServicio, nombre: string | null | undefined): void {
     const value = (nombre ?? '').trim();
-    if (!value) return;
-    if ((this.draft()[linea] ?? []).some(n => norm(n) === norm(value))) return;
-    this.draft.update(d => ({ ...d, [linea]: [...(d[linea] ?? []), value] }));
+    if (!value || this.saving()) return;
+    const actual = this.mapa()[linea] ?? [];
+    if (actual.some(n => norm(n) === norm(value))) return;
+    this.persistir(linea, [...actual, value], `«${value}» agregada a ${LINEA_SERVICIO_LABELS[linea]}.`);
   }
 
-  protected quitar(linea: LineaServicio, nombre: string): void {
-    this.draft.update(d => ({ ...d, [linea]: (d[linea] ?? []).filter(n => n !== nombre) }));
-  }
-
-  protected descartar(linea: LineaServicio): void {
-    this.draft.update(d => ({ ...d, [linea]: [...(this.guardado()[linea] ?? [])] }));
-  }
-
-  protected guardar(linea: LineaServicio): void {
+  protected async quitar(linea: LineaServicio, nombre: string): Promise<void> {
     if (this.saving()) return;
+    const ok = await this.dialog.confirm({
+      title: `Quitar «${nombre}»`,
+      content: `${LINEA_SERVICIO_LABELS[linea]} dejará de exigir esta actividad al crear un ticket. La matriz IPERC no se borra.`,
+      okText: 'Quitar',
+      cancelText: 'Cancelar',
+      danger: true,
+    });
+    if (!ok) return;
+    const restante = (this.mapa()[linea] ?? []).filter(n => n !== nombre);
+    this.persistir(linea, restante, `«${nombre}» quitada de ${LINEA_SERVICIO_LABELS[linea]}.`);
+  }
+
+  /** Guarda la lista de una línea y refleja la respuesta del servidor. Revierte si falla. */
+  private persistir(linea: LineaServicio, actividades: string[], mensajeOk: string): void {
+    const previo = this.mapa();
     this.saving.set(linea);
-    this.coberturaService.setLinea(linea, this.draft()[linea] ?? []).subscribe({
+    // Optimista: se ve el cambio de inmediato.
+    this.mapa.set({ ...previo, [linea]: actividades });
+    this.coberturaService.setLinea(linea, actividades).subscribe({
       next: mapa => {
+        this.mapa.set(this.normalizarMapa(mapa));
         // Pudieron crearse borradores nuevos → refrescar la lista de matrices.
         this.ipercService.list().subscribe(matrices => this.matrices.set(matrices));
-        this.setMapa(mapa);
         this.saving.set(null);
-        this.notify.success(
-          'Mapeo actualizado',
-          `${LINEA_SERVICIO_LABELS[linea]}: las actividades nuevas quedaron como solicitud (borrador) pendiente de que Coordinador/Gerente HSE las apruebe.`,
-        );
+        this.notify.success('Cobertura actualizada', mensajeOk);
       },
       error: () => {
+        this.mapa.set(previo);
         this.saving.set(null);
-        this.notify.error('No se pudo guardar', `No se actualizó el mapeo de ${LINEA_SERVICIO_LABELS[linea]}.`);
+        this.notify.error('No se pudo guardar', `Se revirtió el cambio en ${LINEA_SERVICIO_LABELS[linea]}.`);
       },
     });
   }

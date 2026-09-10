@@ -32,6 +32,13 @@
   font-weight: 600;
 }
 
+.cobertura__card-title-tags {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .cobertura__empty {
   margin: 0;
   font-size: 13px;
@@ -93,11 +100,4 @@
   margin: 0;
   font-size: 12px;
   color: var(--text-muted, #5c5870);
-}
-
-.cobertura__acciones-linea {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 12px;
 }

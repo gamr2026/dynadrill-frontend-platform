@@ -15,6 +15,8 @@
       <p class="cobertura__solo-lectura">
         Vista de sólo lectura — el mapeo lo edita Coordinador o Gerente HSE (mismo criterio que aprobar una matriz).
       </p>
+    } @else {
+      <p class="cobertura__solo-lectura">Cada actividad que agregás o quitás se guarda al instante.</p>
     }
   </div>
 
@@ -23,10 +25,15 @@
       <dynadrill-card [accent]="l.cobertura === 'ok' ? 'success' : 'warning'">
         <div card-title class="cobertura__card-title">
           <span>{{ l.label }}</span>
-          <dynadrill-tag
-            [label]="l.cobertura === 'ok' ? 'Cobertura OK' : 'Cobertura incompleta'"
-            [variant]="l.cobertura === 'ok' ? 'success' : 'warning'"
-          />
+          <span class="cobertura__card-title-tags">
+            @if (saving() === l.linea) {
+              <dynadrill-tag label="Guardando…" variant="info" />
+            }
+            <dynadrill-tag
+              [label]="l.cobertura === 'ok' ? 'Cobertura OK' : 'Cobertura incompleta'"
+              [variant]="l.cobertura === 'ok' ? 'success' : 'warning'"
+            />
+          </span>
         </div>
 
         @if (l.vacia) {
@@ -41,11 +48,7 @@
                 <span class="cobertura__item-acciones">
                   <dynadrill-tag [label]="estadoTag(act.estado).label" [variant]="estadoTag(act.estado).variant" />
                   @if (act.ipercId !== null) {
-                    <a
-                      class="cobertura__ver"
-                      [routerLink]="['/dashboard/qhse/iperc', act.ipercId]"
-                      >Ver matriz</a
-                    >
+                    <a class="cobertura__ver" [routerLink]="['/dashboard/qhse/iperc', act.ipercId]">Ver matriz</a>
                   }
                   @if (puedeEditar()) {
                     <dynadrill-icon-button
@@ -69,6 +72,7 @@
               [value]="null"
               [searchable]="true"
               [creatable]="true"
+              [disabled]="saving() !== null"
               (valueChange)="agregar(l.linea, $any($event))"
               (itemCreated)="agregar(l.linea, $event)"
             />
@@ -77,18 +81,6 @@
               aprobarla antes de que deje de bloquear los trabajos de esta línea.
             </p>
           </div>
-
-          @if (l.dirty) {
-            <div class="cobertura__acciones-linea">
-              <dynadrill-button variant="secondary" size="small" (clicked)="descartar(l.linea)">Descartar</dynadrill-button>
-              <dynadrill-button
-                size="small"
-                [disabled]="saving() !== null"
-                (clicked)="guardar(l.linea)"
-                >{{ saving() === l.linea ? 'Guardando…' : 'Guardar cambios' }}</dynadrill-button
-              >
-            </div>
-          }
         }
       </dynadrill-card>
     }

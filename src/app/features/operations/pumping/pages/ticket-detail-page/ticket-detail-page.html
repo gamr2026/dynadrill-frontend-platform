@@ -46,7 +46,9 @@
         </dynadrill-text>
       }
     </div>
-    <dynadrill-button variant="secondary" size="small" (clicked)="verMatrizIperc()">Ver matriz</dynadrill-button>
+    @if (puedeVerMatrizIperc()) {
+      <dynadrill-button variant="secondary" size="small" (clicked)="verMatrizIperc()">Ver matriz</dynadrill-button>
+    }
   </section>
 }
 

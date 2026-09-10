@@ -197,9 +197,13 @@ export class TicketDetailPage {
   protected ipercEstadoLabel(estado: string): string {
     return this.IPERC_ESTADO_LABELS[estado] ?? estado;
   }
+  /** El módulo QHSE (y su endpoint) solo lo abren estos roles — para el resto
+   *  el banner con código + estado es suficiente, la matriz la trabaja HSE. */
+  private readonly QHSE_VIEWER_ROLES = ['Técnico HSE', 'Coordinador HSE', 'Gerente HSE', 'Superadmin', 'Jefe de Base'];
+  protected readonly puedeVerMatrizIperc = computed(() => this.QHSE_VIEWER_ROLES.includes(this.roleName()));
   protected verMatrizIperc(): void {
     const id = this.ipercVinculo()?.ipercMatrixId;
-    if (id) this.router.navigate(['/dashboard/qhse/iperc', id]);
+    if (id && this.puedeVerMatrizIperc()) this.router.navigate(['/dashboard/qhse/iperc', id]);
   }
 
   private readonly unitReportsService = inject(UnitReportsService);

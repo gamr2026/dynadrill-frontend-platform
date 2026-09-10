@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 import {
   DynadrillButtonComponent,
   DynadrillDataTableColumn,
@@ -35,6 +35,7 @@ import { HistorialDialog, HistorialDialogData } from '../components/historial-di
 import { VehicleInspectionsTable } from '../components/vehicle-inspections-table';
 import { VehicleInspectionsService } from '../services/vehicle-inspections.service';
 import { ConductorPermisos, VehicleInspection, conductorPermisosPorVencer } from '../models/vehicle-inspection.model';
+import { SolicitudReparacionHse, SolicitudesHseService, criteriosFallidos } from '../services/solicitudes-hse.service';
 import { VehicleInspectionDetailDialog, VehicleInspectionDetailDialogData } from '../components/vehicle-inspection-detail-dialog';
 
 function formatDate(iso: string): string {
@@ -63,6 +64,7 @@ export class MaintenanceListPage {
   private readonly unitReportsService = inject(UnitReportsService);
   private readonly unidadesService = inject(UnidadesService);
   private readonly inspectionsService = inject(VehicleInspectionsService);
+  private readonly solicitudesHseService = inject(SolicitudesHseService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly drawer = inject(DynadrillDrawerService);
   private readonly dialogService = inject(DynadrillDialogService);
@@ -78,6 +80,9 @@ export class MaintenanceListPage {
   protected readonly inspections = signal<VehicleInspection[]>([]);
   /** Base de RRHH/QHSE simulada (ver vehicle-inspection.model.ts) — se carga acá también para poder alimentar la campana sin que nadie tenga que abrir una inspección primero. */
   protected readonly conductoresPermisos = signal<ConductorPermisos[]>([]);
+  /** HSE-004: inspecciones QHSE de vehículo-grúa rechazadas, pendientes de atender. */
+  protected readonly solicitudesHse = signal<SolicitudReparacionHse[]>([]);
+  protected readonly criteriosFallidos = criteriosFallidos;
 
   protected readonly alertas = computed<AlertaPreventiva[]>(() =>
     this.unidades().flatMap(u => calcularAlertas(u)).sort((a, b) => a.restante - b.restante)
@@ -380,6 +385,16 @@ export class MaintenanceListPage {
       }
     }
 
+    for (const s of this.solicitudesHse()) {
+      items.push({
+        id: `solicitud-hse-${s.id}`,
+        title: `Solicitud de reparación desde HSE — ${s.equipoCodigo}`,
+        description: `${s.code} · inspección de vehículo-grúa rechazada (${criteriosFallidos(s).join(', ') || 'ver detalle'})`,
+        tone: 'error',
+        link: '/dashboard/mantenimiento',
+      });
+    }
+
     return items;
   });
 
@@ -398,19 +413,39 @@ export class MaintenanceListPage {
       unidades: this.unidadesService.list(),
       inspections: this.inspectionsService.list(),
       conductoresPermisos: this.inspectionsService.listConductoresPermisos(),
+      solicitudesHse: this.solicitudesHseService.list().pipe(catchError(() => of<SolicitudReparacionHse[]>([]))),
     }).subscribe({
-      next: ({ orders, unitReports, unidades, inspections, conductoresPermisos }) => {
+      next: ({ orders, unitReports, unidades, inspections, conductoresPermisos, solicitudesHse }) => {
         this.orders.set(orders);
         this.unitReports.set(unitReports);
         this.unidades.set(unidades);
         this.inspections.set(inspections);
         this.conductoresPermisos.set(conductoresPermisos);
+        this.solicitudesHse.set(solicitudesHse);
         this.loading.set(false);
       },
       error: () => {
         this.loading.set(false);
         this.notify.error('Error', 'No se pudo cargar la bandeja de órdenes.');
       },
+    });
+  }
+
+  /** HSE-004: el Jefe marca atendida la solicitud (tras crear/asignar la orden por su cuenta). */
+  protected async atenderSolicitudHse(s: SolicitudReparacionHse): Promise<void> {
+    const ok = await this.dialogService.confirm({
+      title: `Marcar atendida — ${s.equipoCodigo}`,
+      content: `La solicitud ${s.code} deja la bandeja. Registrá primero la orden de mantenimiento del vehículo si corresponde.`,
+      okText: 'Marcar atendida',
+      cancelText: 'Cancelar',
+    });
+    if (!ok) return;
+    this.solicitudesHseService.atender(s.id, this.roleName()).subscribe({
+      next: () => {
+        this.solicitudesHse.update(list => list.filter(x => x.id !== s.id));
+        this.notify.success('Solicitud atendida', `${s.code} salió de la bandeja de HSE.`);
+      },
+      error: () => this.notify.error('Error', 'No se pudo actualizar la solicitud.'),
     });
   }
 

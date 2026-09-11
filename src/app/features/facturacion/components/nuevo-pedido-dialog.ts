@@ -14,6 +14,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { LINEA_SERVICIO_LABELS, LineaServicio, Pedido } from '../models/pedido.model';
 import { ListaPrecios } from '../models/lista-precios.model';
 import { ListaPreciosService, PedidoService } from '../services/pedido.service';
+import { RolesService } from '../../users/services/users.service';
 import { UBICACION_VACIA, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../shared/index';
 
 /** Clientes conocidos — hasta que exista el catálogo real de AS2. */
@@ -46,6 +47,7 @@ const CLIENTES: { nombre: string; ruc: string }[] = [
 export class NuevoPedidoDialog {
   private readonly pedidoService = inject(PedidoService);
   private readonly listaService = inject(ListaPreciosService);
+  private readonly rolesService = inject(RolesService);
   private readonly auth = inject(AuthService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<NuevoPedidoDialog, Pedido | undefined>);
@@ -73,6 +75,13 @@ export class NuevoPedidoDialog {
   protected readonly representanteCampo = signal('');
   protected readonly representanteQuito = signal('');
   protected readonly analistaFacturacion = signal('');
+  /**
+   * FACT-001 Fase 2/3: "Asignar Técnico HSE responsable" — el sistema no
+   * activa/distribuye el ticket sin uno con rol activo. El backend
+   * re-valida contra el usuario real; acá solo se lista para elegir.
+   */
+  protected readonly tecnicoHseResponsableId = signal<number | null>(null);
+  protected readonly tecnicoHseOptions = signal<DynadrillSelectOption[]>([]);
 
   // ── Administrativos ──
   protected readonly condicionPago = signal('30 días');
@@ -143,12 +152,16 @@ export class NuevoPedidoDialog {
       this.agenteComercial().trim().length > 0 &&
       this.representanteCampo().trim().length > 0 &&
       this.representanteQuito().trim().length > 0 &&
+      this.tecnicoHseResponsableId() !== null &&
       this.lineasTodasValidas(),
   );
 
   constructor() {
     this.listaService.list().subscribe(listas => {
       this.actualizarListaCliente(listas);
+    });
+    this.rolesService.usuariosPorRol('tecnico_hse').subscribe(usuarios => {
+      this.tecnicoHseOptions.set(usuarios.map(u => ({ label: u.name, value: u.id })));
     });
   }
 
@@ -215,6 +228,7 @@ export class NuevoPedidoDialog {
         representanteCampo: this.representanteCampo().trim(),
         representanteQuito: this.representanteQuito().trim(),
         analistaFacturacion: this.analistaFacturacion().trim() || undefined,
+        tecnicoHseResponsableId: this.tecnicoHseResponsableId()!,
         condicionPago: this.condicionPago().trim() || undefined,
         solicitudMedio: this.solicitudMedio(),
         zona: this.zona().trim() || undefined,

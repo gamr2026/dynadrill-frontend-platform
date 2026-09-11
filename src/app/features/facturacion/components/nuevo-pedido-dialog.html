@@ -30,6 +30,13 @@
       <dynadrill-input label="Representante en campo (PEC)" [value]="representanteCampo()" (valueChange)="representanteCampo.set($event)" />
       <dynadrill-input label="Representante en Quito (PEC)" [value]="representanteQuito()" (valueChange)="representanteQuito.set($event)" />
       <dynadrill-input label="Analista de facturación" [value]="analistaFacturacion()" (valueChange)="analistaFacturacion.set($event)" />
+      <dynadrill-select
+        label="Técnico HSE responsable"
+        placeholder="Selecciona un Técnico HSE activo"
+        [options]="tecnicoHseOptions()"
+        [value]="tecnicoHseResponsableId()"
+        (valueChange)="tecnicoHseResponsableId.set($any($event))"
+      />
     </div>
   </fieldset>
 

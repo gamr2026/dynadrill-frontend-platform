@@ -118,6 +118,14 @@ export interface Pedido {
   representanteCampo: string;
   representanteQuito: string;
   analistaFacturacion?: string;
+  /**
+   * FACT-001 Fase 2/3: "Asignar Técnico HSE responsable" + "el sistema
+   * valida que tenga el rol correspondiente activo antes de activar el
+   * ticket". El backend resuelve `Nombre` desde el usuario real al crear
+   * el pedido — no se manda como texto libre.
+   */
+  tecnicoHseResponsableId: number;
+  tecnicoHseResponsableNombre?: string;
 
   // ── Administrativos (del formulario de prefactura de AS2) ──
   condicionPago?: string;
@@ -146,7 +154,16 @@ export interface Pedido {
 
 export type CreatePedidoInput = Omit<
   Pedido,
-  'id' | 'code' | 'estado' | 'historialEstados' | 'createdAt' | 'lastSyncedAt' | 'as2Ref' | 'itemEstimado'
+  | 'id'
+  | 'code'
+  | 'estado'
+  | 'historialEstados'
+  | 'createdAt'
+  | 'lastSyncedAt'
+  | 'as2Ref'
+  | 'itemEstimado'
+  // El nombre del Técnico HSE lo resuelve el backend contra el usuario real (FACT-001) — el cliente sólo manda el id.
+  | 'tecnicoHseResponsableNombre'
 >;
 
 /** Líneas estimadas del Pedido, tolerante al shape viejo (`itemEstimado` única). */

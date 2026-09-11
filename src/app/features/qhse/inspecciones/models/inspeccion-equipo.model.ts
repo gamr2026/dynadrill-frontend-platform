@@ -59,13 +59,12 @@ export interface InspeccionEquipo {
   vigenciaHasta: string;
 
   /**
-   * HSE-004: un vehículo-grúa rechazado es una solicitud de reparación para
-   * el módulo de Mantenimiento. `mantenimientoResuelto` lo marca el Jefe de
-   * Mantenimiento cuando la atiende.
+   * HSE-004: un vehículo-grúa rechazado es una solicitud de reparación —
+   * genera un Reporte de Unidad en la bandeja de Mantenimiento (misma
+   * bandeja y flujo que un reporte de Pumping/FCR: Orden + sub-órdenes). El
+   * seguimiento posterior vive ahí, no en la inspección.
    */
   requiereMantenimiento?: boolean;
-  mantenimientoResuelto?: boolean;
-  mantenimientoResueltoAt?: string;
 }
 
 export type CreateInspeccionInput = Omit<InspeccionEquipo, 'id' | 'code' | 'vigenciaHasta'>;

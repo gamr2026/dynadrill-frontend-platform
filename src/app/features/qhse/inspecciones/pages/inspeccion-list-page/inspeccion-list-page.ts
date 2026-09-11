@@ -89,11 +89,12 @@ export class InspeccionListPage {
       else if (inspeccionVencida(i)) estado = { text: 'Vencida', tone: 'warning' };
       else estado = { text: 'Vigente', tone: 'success' };
 
-      const mantenimiento: { text: string; tone: DynadrillTagVariant } = !i.requiereMantenimiento
-        ? { text: '—', tone: 'neutral' }
-        : i.mantenimientoResuelto
-          ? { text: 'Atendida por Mantenimiento', tone: 'success' }
-          : { text: 'Derivada a Mantenimiento', tone: 'warning' };
+      // El seguimiento post-derivación (clasificar, ejecutar, cerrar) vive
+      // en la Orden/Sub-orden de Mantenimiento, no acá — ver bandeja de
+      // Mantenimiento para el estado real de la reparación.
+      const mantenimiento: { text: string; tone: DynadrillTagVariant } = i.requiereMantenimiento
+        ? { text: 'Derivada a Mantenimiento', tone: 'warning' }
+        : { text: '—', tone: 'neutral' };
 
       return {
         id: i.id,

@@ -256,6 +256,26 @@ export class TravelManagementDialog {
     this.selectedOptionIndexByQuestion.update(byQuestion => ({ ...byQuestion, [questionId]: optionIndex }));
   }
 
+  /**
+   * Llenado rápido: responde de una sola vez cada pregunta que aún no
+   * tiene respuesta, con su opción de menor riesgo (nunca una que bloquee
+   * el viaje) — para no tener que clickear una por una las 12 preguntas en
+   * cada prueba. No pisa respuestas ya elegidas a mano.
+   */
+  protected llenadoRapidoRiesgo(): void {
+    const nuevosIndices: Record<number, number> = {};
+    this.riskQuestions.update(questions =>
+      questions.map(q => {
+        if (q.selectedValue !== null) return q;
+        const optionIndex = q.options.findIndex(o => o.value !== BLOCKING_RISK_VALUE);
+        const chosen = optionIndex >= 0 ? optionIndex : 0;
+        nuevosIndices[q.id] = chosen;
+        return { ...q, selectedValue: q.options[chosen].value, selectedLabel: q.options[chosen].label };
+      }),
+    );
+    this.selectedOptionIndexByQuestion.update(byQuestion => ({ ...byQuestion, ...nuevosIndices }));
+  }
+
   protected isOptionSelected(question: TravelRiskQuestion, optionIndex: number): boolean {
     return this.selectedOptionIndexByQuestion()[question.id] === optionIndex;
   }

@@ -7,28 +7,6 @@
 
   <dynadrill-kpi-row [items]="kpis()" />
 
-  @if (solicitudesHse().length > 0) {
-    <section class="maintenance-list-page__hse">
-      <h3>⚠ Solicitudes de reparación desde HSE ({{ solicitudesHse().length }})</h3>
-      <p class="maintenance-list-page__hse-sub">
-        Inspecciones de vehículo-grúa rechazadas (HSE-SEGUIMIENTO-001). Registrá la orden de mantenimiento del vehículo y
-        marcá la solicitud como atendida.
-      </p>
-      <ul>
-        @for (s of solicitudesHse(); track s.id) {
-          <li>
-            <div class="maintenance-list-page__hse-info">
-              <strong>{{ s.equipoCodigo }}</strong> · {{ s.code }} · inspección de {{ s.inspectorNombre }} el
-              {{ s.fecha.slice(0, 10) }}
-              <span class="maintenance-list-page__hse-fail">Falló: {{ criteriosFallidos(s).join(', ') || '—' }}</span>
-            </div>
-            <dynadrill-button variant="secondary" size="small" (clicked)="atenderSolicitudHse(s)">Marcar atendida</dynadrill-button>
-          </li>
-        }
-      </ul>
-    </section>
-  }
-
   <dynadrill-tabs
     [tabs]="tabs"
     [activeIndex]="activeTab()"

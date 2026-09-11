@@ -159,6 +159,11 @@
           </dl>
         } @else if (puedeGenerarPrefactura()) {
           <dynadrill-text variant="caption">La documentación de respaldo está completa — puedes generar la prefactura.</dynadrill-text>
+        } @else if (avance()?.ptwAplica && !avance()?.ptwsCerrados) {
+          <dynadrill-banner
+            variant="warning"
+            message="Falta cerrar el PTW del servicio: HSE-SITIO-001 exige el PTW cerrado y el Acta de Devolución de Sitio firmada (FACT-002/004) antes de poder generar la prefactura."
+          />
         } @else {
           <dynadrill-banner variant="info" message="La prefactura se habilita cuando la documentación de respaldo (y la guía de remisión, si aplica) está completa." />
         }

@@ -136,8 +136,11 @@ export class DailyActivityReportDialog {
   protected readonly observaciones = signal(this.data.existing?.observaciones ?? '');
 
   // ── Signatures ──
+  // "Nombre (Representante Cliente)" NO es un campo propio acá: es la misma
+  // persona que ya se anotó en "Información general" (representanteCliente)
+  // — antes eran dos signals separados y el formulario pedía escribir el
+  // mismo nombre dos veces. Firmas solo agrega lo que falta: la C.I.
   protected readonly nombreSupervisor = signal(this.data.existing?.nombreSupervisor ?? this.data.supervisor);
-  protected readonly nombreCliente = signal(this.data.existing?.nombreCliente ?? '');
   protected readonly ciSupervisor = signal(this.data.existing?.ciSupervisor ?? '');
   protected readonly ciCliente = signal(this.data.existing?.ciCliente ?? '');
 
@@ -183,9 +186,9 @@ export class DailyActivityReportDialog {
       tiempoTotal: this.tiempoTotal(),
       observaciones: this.observaciones(),
       nombreSupervisor: this.nombreSupervisor(),
-      nombreCliente: this.nombreCliente(),
+      nombreCliente: this.representanteCliente(),
       firmaSupervisor: this.nombreSupervisor(),
-      firmaCliente: this.nombreCliente(),
+      firmaCliente: this.representanteCliente(),
       ciSupervisor: this.ciSupervisor(),
       ciCliente: this.ciCliente(),
       archivoAdjunto: this.uploadedFileData(),

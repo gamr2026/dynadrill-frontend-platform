@@ -371,12 +371,14 @@ export class TicketDetailPage {
   ];
   protected readonly selectedOperators = signal<number[]>([]);
 
+  // Ids reales del catálogo `Unidad` (ver prisma/seed.ts UNIDADES) — GEN-01/
+  // GEN-02 ocupan el 4 y 5, así que CAM-04/CAM-08 son 6 y 7, no 4 y 5.
   protected readonly unitOptions: DynadrillSelectOption[] = [
     { label: 'PUM-07', value: 1 },
     { label: 'PUM-15', value: 2 },
     { label: '4-CTV-03', value: 3 },
-    { label: 'CAM-04', value: 4 },
-    { label: 'CAM-08', value: 5 },
+    { label: 'CAM-04', value: 6 },
+    { label: 'CAM-08', value: 7 },
   ];
   protected readonly selectedUnits = signal<number[]>([]);
 

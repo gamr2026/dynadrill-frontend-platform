@@ -20,7 +20,7 @@
   <dynadrill-text variant="h2">Información general</dynadrill-text>
   <div class="daily-report__form-grid">
     <dynadrill-datetime-picker mode="date" label="Fecha" [value]="$any(fecha())" (valueChange)="fecha.set($event)" />
-    <dynadrill-input label="N°" [value]="numero()" (valueChange)="numero.set($event)" />
+    <dynadrill-input label="N°" placeholder="Folio/consecutivo de este reporte (no es el contrato)" [value]="numero()" (valueChange)="numero.set($event)" />
     <dynadrill-input label="Cliente" [value]="cliente()" (valueChange)="cliente.set($event)" />
     <dynadrill-input label="Orden/Contrato N°" [value]="ordenContrato()" (valueChange)="ordenContrato.set($event)" />
     <dynadrill-input label="Representante del Cliente" [value]="representanteCliente()" (valueChange)="representanteCliente.set($event)" />
@@ -96,7 +96,7 @@
       </div>
     </div>
     <div class="daily-report__signature-col">
-      <dynadrill-input label="Nombre (Representante Cliente)" [value]="nombreCliente()" (valueChange)="nombreCliente.set($event)" />
+      <dynadrill-input label="Nombre (Representante Cliente)" [value]="representanteCliente()" [disabled]="true" />
       <dynadrill-input label="C.I." [value]="ciCliente()" (valueChange)="ciCliente.set($event)" />
       <div class="daily-report__signature-line">
         <dynadrill-text variant="caption">Firma:</dynadrill-text>

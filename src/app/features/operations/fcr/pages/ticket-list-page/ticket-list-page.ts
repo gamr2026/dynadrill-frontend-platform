@@ -12,13 +12,17 @@ import {
   DynadrillSkeletonComponent,
   type DynadrillKpiRowItem,
 } from '@digitec-it-projects/dynadrill-ui';
-import { FcrTicket, FCR_PHASE_LABELS, FCR_PHASE_ROLE, type FcrPhase } from '../../models/fcr.model';
+import { FcrTicket, FCR_PHASE_LABELS, FCR_PHASE_ROLE, type FcrPhase, type TipoOt } from '../../models/fcr.model';
 import { FcrService } from '../../services/fcr.service';
 import { AuthService } from '../../../../../core/services/auth.service';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
 
 const PHASE_BADGES: Record<FcrPhase, { text: string; tone: BadgeTone }> = {
+  tipo_operador: { text: 'Tipo de Operador', tone: 'warning' },
+  reparacion: { text: 'Reparación', tone: 'info' },
+  inspeccion: { text: 'Formulario de Inspección', tone: 'info' },
+  aprobacion_supervisor_operaciones: { text: 'Aprobación de Supervisor', tone: 'warning' },
   validacion: { text: 'Validación', tone: 'warning' },
   preparacion_herramientas: { text: 'Preparación de Herramientas', tone: 'info' },
   asignacion_operador: { text: 'Asignación de Operador', tone: 'info' },
@@ -27,6 +31,11 @@ const PHASE_BADGES: Record<FcrPhase, { text: string; tone: BadgeTone }> = {
   revision_reportes: { text: 'Revisión de Reportes', tone: 'warning' },
   control_retorno: { text: 'Control de Retorno', tone: 'info' },
   cierre: { text: 'Cierre', tone: 'success' },
+};
+
+const TIPO_OT_BADGES: Record<TipoOt, { text: string; tone: BadgeTone }> = {
+  venta: { text: 'Venta', tone: 'brand' },
+  servicio: { text: 'Servicio', tone: 'neutral' },
 };
 
 const QUICK_FILTERS = ['Todos', 'Pendiente de mí', 'En Bodega', 'En campo', 'Cerrados'] as const;
@@ -75,6 +84,7 @@ export class FcrTicketListPage {
     { key: 'code', header: 'Ticket', sortable: true, searchable: true },
     { key: 'clientName', header: 'Cliente', searchable: true },
     { key: 'wellName', header: 'Pozo', searchable: true },
+    { key: 'tipoOtBadge', header: 'Tipo', type: 'badge' },
     { key: 'phase', header: 'Fase' },
     { key: 'statusBadge', header: 'Estado', type: 'badge' },
   ];
@@ -85,6 +95,8 @@ export class FcrTicketListPage {
       code: t.code,
       clientName: t.clientName,
       wellName: t.wellName,
+      // Tickets sembrados antes de este campo no traen tipoOt — mismo default que Pedido.tipoOt en el backend ('venta').
+      tipoOtBadge: TIPO_OT_BADGES[t.tipoOt ?? 'venta'],
       phase: FCR_PHASE_LABELS[t.currentPhase],
       statusBadge: PHASE_BADGES[t.currentPhase],
     })),

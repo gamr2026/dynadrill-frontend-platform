@@ -1,7 +1,20 @@
 import { Routes } from '@angular/router';
 import { roleGuard } from '../../../core/guards/role.guard';
 
-const FCR_ROLES = ['Superadmin', 'Jefe de Base', 'Supervisor', 'Operador', 'Bodeguero', 'Ingeniería de Ventas', 'Control de Herramientas'];
+const FCR_ROLES = [
+  'Superadmin',
+  'Jefe de Base',
+  'Supervisor',
+  'Operador',
+  'Bodeguero',
+  'Ingeniería de Ventas',
+  'Control de Herramientas',
+  'Supervisor Operaciones FCR',
+  // Firman "Liberado por QHSE" en el checklist de inspección por herramienta.
+  'Técnico HSE',
+  'Coordinador HSE',
+  'Gerente HSE',
+];
 
 export const fcrRoutes: Routes = [
   {

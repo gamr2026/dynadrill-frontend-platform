@@ -13,14 +13,19 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { ArticulosService } from '../../services/articulos.service';
 import { MovimientosInventarioService } from '../../services/movimientos-inventario.service';
+import { ArticuloPartesService } from '../../services/articulo-partes.service';
 import { Articulo, MOVIMIENTO_TIPO_LABELS, MovimientoInventario } from '../../models/articulo.model';
+import { ArticuloParte } from '../../models/articulo-parte.model';
 import { ArticuloFormDialog, ArticuloFormDialogData } from '../../components/articulo-form-dialog';
 import { MovimientoDialog, MovimientoDialogData } from '../../components/movimiento-dialog';
+import { ArticuloParteFormDialog, ArticuloParteFormDialogData } from '../../components/articulo-parte-form-dialog';
 
 const TIPO_TONE: Record<MovimientoInventario['tipo'], DynadrillTagVariant> = {
   entrada: 'success',
   salida: 'warning',
 };
+
+const CATEGORIA_HERRAMIENTAS = 'HERRAMIENTAS';
 
 @Component({
   selector: 'app-articulo-detail-page',
@@ -39,6 +44,7 @@ export class ArticuloDetailPage {
   private readonly router = inject(Router);
   private readonly articulosService = inject(ArticulosService);
   private readonly movimientosService = inject(MovimientosInventarioService);
+  private readonly partesService = inject(ArticuloPartesService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
 
@@ -47,6 +53,10 @@ export class ArticuloDetailPage {
   protected readonly loading = signal(true);
   protected readonly articulo = signal<Articulo | null>(null);
   protected readonly movimientos = signal<MovimientoInventario[]>([]);
+  protected readonly partes = signal<ArticuloParte[]>([]);
+  protected readonly loadingPartes = signal(false);
+
+  protected readonly esHerramienta = computed(() => this.articulo()?.categoria === CATEGORIA_HERRAMIENTAS);
 
   protected readonly contextItems = computed<DynadrillContextCardItem[]>(() => {
     const a = this.articulo();
@@ -86,6 +96,27 @@ export class ArticuloDetailPage {
 
   protected readonly kardexRowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
+  protected readonly partesColumns: DynadrillDataTableColumn[] = [
+    { key: 'item', header: 'Ítem', sortable: true },
+    { key: 'codigo', header: 'Código', searchable: true },
+    { key: 'descripcion', header: 'Descripción', searchable: true },
+    { key: 'cantidadEsperada', header: 'Cantidad esperada' },
+  ];
+
+  protected readonly partesRows = computed(() =>
+    [...this.partes()]
+      .sort((a, b) => a.orden - b.orden)
+      .map(p => ({
+        id: p.id,
+        item: p.item,
+        codigo: p.codigo,
+        descripcion: p.descripcion,
+        cantidadEsperada: p.cantidadEsperada,
+      })),
+  );
+
+  protected readonly partesRowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
+
   constructor() {
     if (Number.isNaN(this.articuloId)) {
       this.notify.error('Error', 'El artículo solicitado no es válido.');
@@ -101,6 +132,7 @@ export class ArticuloDetailPage {
       next: articulo => {
         this.articulo.set(articulo);
         this.loading.set(false);
+        if (articulo.categoria === CATEGORIA_HERRAMIENTAS) this.reloadPartes();
       },
       error: () => {
         this.loading.set(false);
@@ -110,6 +142,20 @@ export class ArticuloDetailPage {
     this.movimientosService.list(this.articuloId).subscribe({
       next: movimientos => this.movimientos.set(movimientos),
       error: () => this.notify.error('Error', 'No se pudo cargar el historial de movimientos.'),
+    });
+  }
+
+  private reloadPartes(): void {
+    this.loadingPartes.set(true);
+    this.partesService.list(this.articuloId).subscribe({
+      next: partes => {
+        this.partes.set(partes);
+        this.loadingPartes.set(false);
+      },
+      error: () => {
+        this.loadingPartes.set(false);
+        this.notify.error('Error', 'No se pudo cargar el catálogo de partes.');
+      },
     });
   }
 
@@ -142,6 +188,52 @@ export class ArticuloDetailPage {
     });
     ref.afterClose.subscribe(created => {
       if (created) this.reload();
+    });
+  }
+
+  protected nuevaParte(): void {
+    const ref = this.dialog.open<ArticuloParteFormDialog, ArticuloParteFormDialogData>({
+      title: 'Nueva parte',
+      content: ArticuloParteFormDialog,
+      data: { articuloId: this.articuloId },
+      footer: false,
+    });
+    ref.afterClose.subscribe(created => {
+      if (created) this.reloadPartes();
+    });
+  }
+
+  protected editarParte(row: Record<string, unknown>): void {
+    const parte = this.partes().find(p => p.id === row['id']);
+    if (!parte) return;
+    const ref = this.dialog.open<ArticuloParteFormDialog, ArticuloParteFormDialogData>({
+      title: 'Editar parte',
+      content: ArticuloParteFormDialog,
+      data: { articuloId: this.articuloId, parte },
+      footer: false,
+    });
+    ref.afterClose.subscribe(updated => {
+      if (updated) this.reloadPartes();
+    });
+  }
+
+  protected async eliminarParte(row: Record<string, unknown>): Promise<void> {
+    const parte = this.partes().find(p => p.id === row['id']);
+    if (!parte) return;
+    const confirmed = await this.dialog.confirm({
+      title: `¿Eliminar la parte "${parte.descripcion}"?`,
+      content: 'Esta acción no se puede deshacer.',
+      okText: 'Eliminar',
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    this.partesService.delete(this.articuloId, parte.id).subscribe({
+      next: () => {
+        this.notify.success('Eliminada', 'Parte eliminada del catálogo.');
+        this.reloadPartes();
+      },
+      error: () => this.notify.error('Error', 'No se pudo eliminar la parte.'),
     });
   }
 }

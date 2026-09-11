@@ -27,3 +27,18 @@
   font-size: 0.85rem;
   margin: 0;
 }
+
+.articulo-detail-page__partes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.articulo-detail-page__partes-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--dynadrill-navy, #131529);
+}

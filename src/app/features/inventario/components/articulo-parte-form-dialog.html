@@ -1,0 +1,16 @@
+<div class="articulo-parte-form-dialog">
+  <div class="articulo-parte-form-dialog__row">
+    <dynadrill-input label="Ítem" placeholder="Ej. 1, 21*, A" [value]="item()" (valueChange)="item.set($event)" />
+    <dynadrill-input label="Cantidad esperada" type="number" [value]="cantidadEsperada()" (valueChange)="cantidadEsperada.set($event)" />
+  </div>
+
+  <dynadrill-input label="Código" placeholder="Ej. HTA-0021-P01" [value]="codigo()" (valueChange)="codigo.set($event)" />
+  <dynadrill-input label="Descripción" placeholder="Ej. Perno de sujeción" [value]="descripcion()" (valueChange)="descripcion.set($event)" />
+
+  <div class="articulo-parte-form-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!canSave() || submitting()" (clicked)="save()">
+      {{ submitting() ? 'Guardando…' : isEditMode ? 'Guardar cambios' : 'Agregar parte' }}
+    </dynadrill-button>
+  </div>
+</div>

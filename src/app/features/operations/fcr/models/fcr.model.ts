@@ -6,10 +6,20 @@ import {
   type OperativoToolUsageEntry,
   type ToolDailyStatus,
 } from '../../../../shared/models/operativo-docs.model';
+import type { TipoCompletacion, TipoOperador, TipoPicker, TipoTrabajo } from './fcr-catalogos.model';
+
+/** Decide qué entrada de FcrPhase usa este ticket — lo elige Ventas al crear el Pedido, no editable desde FCR. */
+export type TipoOt = 'venta' | 'servicio';
 
 // ── Fases del ticket FCR (FCR-MASTER-001) ──
 
 export type FcrPhase =
+  // ── Entrada SERVICIOS (nueva) — arranca en preparacion_herramientas ──
+  | 'tipo_operador'
+  | 'reparacion'
+  | 'inspeccion'
+  | 'aprobacion_supervisor_operaciones'
+  // ── Entrada VENTA + tronco común (ya existían) ──
   | 'validacion'
   | 'preparacion_herramientas'
   | 'asignacion_operador'
@@ -20,6 +30,10 @@ export type FcrPhase =
   | 'cierre';
 
 export const FCR_PHASE_LABELS: Record<FcrPhase, string> = {
+  tipo_operador: 'Tipo de Operador',
+  reparacion: 'Reparación',
+  inspeccion: 'Formulario de Inspección',
+  aprobacion_supervisor_operaciones: 'Aprobación de Supervisor de Operaciones',
   validacion: 'Validación',
   preparacion_herramientas: 'Preparación de Herramientas',
   asignacion_operador: 'Asignación de Operador',
@@ -33,9 +47,14 @@ export const FCR_PHASE_LABELS: Record<FcrPhase, string> = {
 /**
  * Rol responsable de actuar en cada fase — usado tanto para el banner
  * "Esperando acción de" como para el auto-switch de rol en la demo
- * (mismo patrón que PUMPING_STEP_ROLE en pumping.model.ts).
+ * (mismo patrón que PUMPING_STEP_ROLE en pumping.model.ts). En sync manual
+ * con FCR_PHASE_ROLE en dynadrill-backend (workflow-role.maps.ts).
  */
 export const FCR_PHASE_ROLE: Record<FcrPhase, { roleName: string; roleId: number }> = {
+  tipo_operador: { roleName: 'Supervisor', roleId: 1 },
+  reparacion: { roleName: 'Operador', roleId: 2 },
+  inspeccion: { roleName: 'Operador', roleId: 2 },
+  aprobacion_supervisor_operaciones: { roleName: 'Supervisor Operaciones FCR', roleId: 15 },
   validacion: { roleName: 'Supervisor', roleId: 1 },
   preparacion_herramientas: { roleName: 'Supervisor', roleId: 1 },
   asignacion_operador: { roleName: 'Supervisor', roleId: 1 },
@@ -60,6 +79,12 @@ export const FCR_TOOL_STATUS_LABELS: Record<FcrToolStatus, string> = {
 
 export interface FcrTool {
   id: number;
+  /**
+   * Referencia al catálogo real de Inventario (`Articulo`, `categoria='HERRAMIENTAS'`).
+   * Opcional porque los tickets FCR sembrados antes de este cambio no lo tienen
+   * (no se hizo backfill) — el checklist de inspección queda deshabilitado para esas herramientas.
+   */
+  articuloId?: number;
   name: string;
   status: FcrToolStatus;
   missingReason?: string;
@@ -101,21 +126,58 @@ export interface FcrPhaseApproval {
 
 export type FcrActivityLogEntry = OperativoActivityLogEntry;
 export type FcrToolDailyStatus = ToolDailyStatus;
-export type FcrToolUsageEntry = OperativoToolUsageEntry;
 export const FCR_TOOL_DAILY_STATUS_LABELS = TOOL_DAILY_STATUS_LABELS;
 export const FCR_TOOL_DAILY_STATUS_CODE = TOOL_DAILY_STATUS_CODE;
+
+/**
+ * Extiende el tipo compartido (`OperativoToolUsageEntry`, también usado por Pumping/Facturación) con los
+ * campos propios de FCR del tronco compartido — completación/trabajo + picker + presión/peso/observación,
+ * "por herramienta" y no general al ticket (confirmado con el usuario). No se tocó el tipo compartido para
+ * no filtrar conceptos de FCR (tipoOt no existe en Pumping) al resto de consumidores.
+ */
+export interface FcrToolUsageEntry extends OperativoToolUsageEntry {
+  tipoCompletacion?: TipoCompletacion;
+  tipoTrabajo?: TipoTrabajo;
+  tipoPicker?: TipoPicker;
+  presion?: string;
+  peso?: string;
+  /** Solo se llena si hubo alguna novedad durante el uso de la herramienta. */
+  observacion?: string;
+}
 
 // ── Ticket FCR ──
 
 export interface FcrTicket extends Ticket {
   currentPhase: FcrPhase;
+  /** Decide qué entrada usa este ticket (preparacion_herramientas vs. validacion) — viene del Pedido, no editable aquí. */
+  tipoOt: TipoOt;
   proposalVersion: number;
   /** Código del Pedido de Facturación asociado — link para el puente FCR → Facturación. */
   pedidoCode?: string;
+  /** FK real del Pedido asociado (columna escalar del ticket) — se usa para traer el detalle completo de solo lectura en 'validacion'. */
+  pedidoId?: number | null;
   tools: FcrTool[];
+  // ── Entrada SERVICIOS ──
+  tipoOperador?: TipoOperador;
+  reparacionDescripcion?: string;
+  formularioInspeccionExternoUploaded?: boolean;
+  formularioInspeccionExternoNombreArchivo?: string;
+  formatoDimensionamientoServicioUploaded?: boolean;
+  formatoDimensionamientoServicioNombreArchivo?: string;
+  formatoDurezaServicioUploaded?: boolean;
+  formatoDurezaServicioNombreArchivo?: string;
+  inspeccionAprobada?: boolean;
+  // ── Documentos de VENTA que faltaban ──
+  registroDurezaUploaded?: boolean;
+  registroDurezaNombreArchivo?: string;
+  registroQaqcUploaded?: boolean;
+  registroQaqcNombreArchivo?: string;
+  /** "Todo el listado está completo" (venta) / "El listado está completo de uso" (servicio). */
+  pickerUsageListConfirmed?: boolean;
   /** RN-FCR-005 / SP7: declaración explícita del Supervisor de que no quedan herramientas por agregar. */
   toolListConfirmed: boolean;
   inspectionDocumentUploaded: boolean;
+  inspectionDocumentNombreArchivo?: string;
   movementGuideGenerated: boolean;
   reviewGuideGenerated: boolean;
   operationalMeetingDate: string;

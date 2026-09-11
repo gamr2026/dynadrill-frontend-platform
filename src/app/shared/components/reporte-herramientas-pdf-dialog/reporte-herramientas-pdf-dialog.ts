@@ -25,6 +25,33 @@ interface ToolRow {
 }
 
 /**
+ * Campos opcionales que solo el flujo FCR agrega a sus entradas de uso
+ * (completación/trabajo + picker + presión/peso/observación, "por
+ * herramienta") — Pumping no los tiene. No se declaran en
+ * `OperativoToolUsageEntry` (el tipo compartido) para no filtrar conceptos
+ * de FCR a otros consumidores; este diálogo los lee de forma defensiva y
+ * solo muestra la sección de detalle si al menos una entrada los trae.
+ */
+type FcrUsageExtras = {
+  tipoCompletacion?: string;
+  tipoTrabajo?: string;
+  tipoPicker?: string;
+  presion?: string;
+  peso?: string;
+  observacion?: string;
+};
+
+interface DetailRow {
+  toolName: string;
+  date: string;
+  tipo: string;
+  picker: string;
+  presion: string;
+  peso: string;
+  observacion: string;
+}
+
+/**
  * Vista imprimible del Reporte Diario de Herramientas en Renta
  * (DYN-FCR-RE-008) — matriz herramienta × día con el código de una letra
  * (O/S/D/V). Compartido entre FCR y Facturación (Pumping no aplica).
@@ -62,6 +89,21 @@ export class ReporteHerramientasPdfDialog {
         total: counts.operacion + counts.daily_charge + counts.venta,
       };
     }),
+  );
+
+  /** Detalle por herramienta+día — solo filas con completación/trabajo o picker registrado (dato propio de FCR). */
+  protected readonly detailRows = computed<DetailRow[]>(() =>
+    this.data.usageLog
+      .filter((e): e is OperativoToolUsageEntry & FcrUsageExtras => !!(e as FcrUsageExtras).tipoPicker)
+      .map(e => ({
+        toolName: this.data.tools.find(t => t.id === e.toolId)?.name ?? `#${e.toolId}`,
+        date: this.formatShort(e.date),
+        tipo: e.tipoTrabajo ?? e.tipoCompletacion ?? '—',
+        picker: e.tipoPicker ?? '—',
+        presion: e.presion ?? '—',
+        peso: e.peso ?? '—',
+        observacion: e.observacion ?? '—',
+      })),
   );
 
   protected formatShort(iso: string): string {

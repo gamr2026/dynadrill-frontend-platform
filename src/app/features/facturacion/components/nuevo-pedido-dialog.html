@@ -17,6 +17,7 @@
     <legend>Servicio</legend>
     <div class="nuevo-pedido__grid">
       <dynadrill-select label="Línea de servicio" placeholder="Selecciona" [options]="lineaOptions" [value]="lineaServicio()" (valueChange)="lineaServicio.set($any($event))" />
+      <dynadrill-select label="Tipo de OT" placeholder="Selecciona" [options]="tipoOtOptions" [value]="tipoOt()" (valueChange)="tipoOt.set($any($event))" />
       <dynadrill-datetime-picker mode="date" label="Inicio de servicio" [value]="fechaInicioServicio()!" (valueChange)="fechaInicioServicio.set($event)" />
       <dynadrill-datetime-picker mode="date" label="Fin de servicio" [value]="fechaFinServicio()!" (valueChange)="fechaFinServicio.set($event)" />
     </div>

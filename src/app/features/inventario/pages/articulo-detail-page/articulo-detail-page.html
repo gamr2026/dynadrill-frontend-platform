@@ -20,4 +20,30 @@
       <p class="articulo-detail-page__empty">Sin movimientos registrados todavía.</p>
     }
   </section>
+
+  @if (esHerramienta()) {
+    <section class="articulo-detail-page__partes">
+      <div class="articulo-detail-page__partes-header">
+        <h3 class="articulo-detail-page__partes-title">Partes</h3>
+        <dynadrill-button size="small" (clicked)="nuevaParte()">+ Agregar parte</dynadrill-button>
+      </div>
+
+      <ng-template #partesActionsTpl let-row>
+        <dynadrill-button variant="secondary" size="small" (clicked)="editarParte(row)">Editar</dynadrill-button>
+        <dynadrill-button variant="secondary" size="small" (clicked)="eliminarParte(row)">Eliminar</dynadrill-button>
+      </ng-template>
+
+      @if (partesRows().length > 0) {
+        <dynadrill-data-table
+          [columns]="partesColumns"
+          [rows]="partesRows()"
+          [rowKey]="partesRowKeyFn"
+          [pageSize]="10"
+          [actionsTemplate]="partesActionsTpl"
+        />
+      } @else if (!loadingPartes()) {
+        <p class="articulo-detail-page__empty">Sin partes registradas todavía.</p>
+      }
+    </section>
+  }
 }

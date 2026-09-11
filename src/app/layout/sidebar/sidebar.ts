@@ -180,8 +180,13 @@ export class Sidebar {
       return [dashboard, FCR_ONLY_ITEM];
     }
 
+    if (roleName === 'Supervisor Operaciones FCR') {
+      return [dashboard, FCR_ONLY_ITEM];
+    }
+
     if (roleName === 'Técnico HSE' || roleName === 'Coordinador HSE' || roleName === 'Gerente HSE') {
-      return [dashboard, QHSE_ITEM];
+      // FCR_ONLY_ITEM: firman "Liberado por QHSE" en el checklist de inspección por herramienta.
+      return [dashboard, QHSE_ITEM, FCR_ONLY_ITEM];
     }
 
     if (roleName === 'Facturación') {

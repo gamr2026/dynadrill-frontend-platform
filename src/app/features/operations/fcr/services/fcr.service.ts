@@ -3,6 +3,21 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { FcrPhase, FcrTicket, type FcrToolDailyStatus, type FcrToolStatus } from '../models/fcr.model';
 import { environment } from '@env';
+import type { TipoCompletacion, TipoOperador, TipoPicker, TipoTrabajo } from '../models/fcr-catalogos.model';
+
+/**
+ * Los 6 campos de FCR con subida real de archivo (fcr-adjuntos-reales) —
+ * nombres cortos, sin el sufijo "Uploaded" (mismo criterio que
+ * `CAMPOS_DOCUMENTO_FCR` en el backend). `fcr.model.ts` no cambia: los 6
+ * booleanos `...Uploaded` siguen viniendo del backend igual que siempre.
+ */
+export type CampoDocumentoFcr =
+  | 'formularioInspeccionExterno'
+  | 'formatoDimensionamientoServicio'
+  | 'formatoDurezaServicio'
+  | 'inspectionDocument'
+  | 'registroDureza'
+  | 'registroQaqc';
 
 @Injectable({ providedIn: 'root' })
 export class FcrService {
@@ -37,8 +52,8 @@ export class FcrService {
    * herramienta nueva) pisaría silenciosamente ese cambio ajeno al
    * guardar su propia copia obsoleta.
    */
-  addTool(ticketId: number, name: string): Observable<FcrTicket> {
-    return this.http.post<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools`, { name });
+  addTool(ticketId: number, articuloId: number): Observable<FcrTicket> {
+    return this.http.post<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools`, { articuloId });
   }
 
   removeTool(ticketId: number, toolId: number): Observable<FcrTicket> {
@@ -70,12 +85,32 @@ export class FcrService {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/confirm-list`, { confirmed });
   }
 
+  /**
+   * Solo dispara el efecto colateral que sigue fuera del alcance de
+   * fcr-adjuntos-reales: generar `movementGuideGenerated` /
+   * `reviewGuideGenerated`. El archivo real del documento de inspección se
+   * sube aparte con `subirDocumento(ticketId, 'inspectionDocument', file)`.
+   */
   markInspectionUploaded(ticketId: number): Observable<FcrTicket> {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/inspection-document`, {});
   }
 
   assignOperator(ticketId: number, operatorName: string): Observable<FcrTicket> {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/assign-operator`, { operatorName });
+  }
+
+  // ── Entrada SERVICIOS ──
+
+  setTipoOperador(ticketId: number, tipoOperador: TipoOperador): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tipo-operador`, { tipoOperador });
+  }
+
+  registrarReparacion(ticketId: number, descripcion: string): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/reparacion`, { descripcion });
+  }
+
+  reviewInspeccion(ticketId: number, decision: 'approved' | 'rejected', observation?: string): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/review-inspeccion`, { decision, observation });
   }
 
   confirmActa(ticketId: number, meetingDate: string): Observable<FcrTicket> {
@@ -95,8 +130,25 @@ export class FcrService {
     return this.http.delete<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/activity-log/${entryId}`);
   }
 
-  /** Registrar de nuevo (misma herramienta, misma fecha) reemplaza el estado de ese día en vez de duplicarlo. */
-  addToolUsageEntry(ticketId: number, entry: { toolId: number; date: string; status: FcrToolDailyStatus }): Observable<FcrTicket> {
+  /**
+   * Registrar de nuevo (misma herramienta, misma fecha) reemplaza la fila de ese día en vez de duplicarla.
+   * Los campos de completación/trabajo + picker + presión/peso/observación son "por herramienta" — van en
+   * esta misma entrada, no en un campo general del ticket.
+   */
+  addToolUsageEntry(
+    ticketId: number,
+    entry: {
+      toolId: number;
+      date: string;
+      status: FcrToolDailyStatus;
+      tipoCompletacion?: TipoCompletacion;
+      tipoTrabajo?: TipoTrabajo;
+      tipoPicker?: TipoPicker;
+      presion?: string;
+      peso?: string;
+      observacion?: string;
+    },
+  ): Observable<FcrTicket> {
     return this.http.post<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tool-usage`, entry);
   }
 
@@ -106,6 +158,10 @@ export class FcrService {
 
   reviewReports(ticketId: number, decision: 'approved' | 'rejected', observation?: string): Observable<FcrTicket> {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/review-reports`, { decision, observation });
+  }
+
+  confirmPickerUsageList(ticketId: number, confirmed: boolean): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/confirm-picker-usage-list`, { confirmed });
   }
 
   registerMissingTool(ticketId: number, toolId: number, reason: string): Observable<FcrTicket> {
@@ -118,5 +174,28 @@ export class FcrService {
 
   closeTicket(ticketId: number): Observable<FcrTicket> {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/close`, {});
+  }
+
+  // ── Adjuntos reales (fcr-adjuntos-reales) ──
+
+  /** Sube (o reemplaza) el archivo real de uno de los 6 campos de documento de FCR. Máx. 2MB — validado también en el backend. */
+  subirDocumento(ticketId: number, campo: CampoDocumentoFcr, file: File): Observable<FcrTicket> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/documentos/${campo}`, formData);
+  }
+
+  eliminarDocumento(ticketId: number, campo: CampoDocumentoFcr): Observable<FcrTicket> {
+    return this.http.delete<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/documentos/${campo}`);
+  }
+
+  /**
+   * Descarga el archivo real de uno de los 6 campos de documento de FCR.
+   * `responseType: 'blob'` para que pase por `HttpClient` (y por lo tanto
+   * por el `authInterceptor` que adjunta el Bearer) — un `<a href>` directo
+   * al endpoint no llevaría el token y el backend respondería 401.
+   */
+  descargarDocumento(ticketId: number, campo: CampoDocumentoFcr): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/tickets/${ticketId}/documentos/${campo}`, { responseType: 'blob' });
   }
 }

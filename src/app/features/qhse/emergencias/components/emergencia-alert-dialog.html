@@ -6,6 +6,19 @@
   <dynadrill-input label="Ubicación" [value]="ubicacion()" (valueChange)="ubicacion.set($event)" />
   <dynadrill-input label="Activado por" [value]="activadoPorNombre()" (valueChange)="activadoPorNombre.set($event)" />
 
+  @if (servicioHeredado) {
+    <dynadrill-input label="Servicio afectado" [value]="data?.ticketCode ?? ''" [disabled]="true" />
+  } @else if (servicioOptions().length > 0) {
+    <dynadrill-select
+      label="Servicio afectado (opcional)"
+      placeholder="Ligar la emergencia a un ticket de Pumping/FCR en curso — lo detiene"
+      [options]="servicioOptions()"
+      [value]="servicio()"
+      [searchable]="true"
+      (valueChange)="servicio.set($any($event) ?? '')"
+    />
+  }
+
   <div class="emergencia-alert-dialog__actions">
     <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
     <dynadrill-button variant="error" [disabled]="!puedeActivar() || submitting()" (clicked)="activar()">

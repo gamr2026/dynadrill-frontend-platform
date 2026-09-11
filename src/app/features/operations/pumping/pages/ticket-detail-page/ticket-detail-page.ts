@@ -247,11 +247,21 @@ export class TicketDetailPage {
     if (p && this.puedeVerMatrizIperc()) this.router.navigate(['/dashboard/qhse/ptw', p.id]);
   }
 
-  // ── Stop Work Authority (HSE-SEGUIMIENTO-003) ──
+  // ── Eventos críticos: Stop Work (HSE-SEGUIMIENTO-003) y Emergencia (HSE-TRIAGE-001) ──
   /** Evento Stop Work abierto contra este servicio — mientras exista, el trabajo está detenido. */
   protected readonly swaActivo = computed(() => this.ipercVinculo()?.swa ?? null);
-  /** Guard común: con un Stop Work abierto ningún paso del flujo avanza. Devuelve `true` (y avisa) si está bloqueado. */
+  /** Emergencia abierta ('activa' o 'controlada') contra este servicio — mismo criterio que un SWA, con mayor severidad. */
+  protected readonly emergenciaActiva = computed(() => this.ipercVinculo()?.emergencia ?? null);
+  /** Guard común: con un SWA o una Emergencia abiertos, ningún paso del flujo avanza. Devuelve `true` (y avisa) si está bloqueado. */
   private bloqueadoPorSwa(): boolean {
+    const e = this.emergenciaActiva();
+    if (e) {
+      this.notify.error(
+        'Emergencia activa',
+        `Emergencia ${e.code} abierta. El servicio no puede avanzar hasta que se cierre en QHSE.`,
+      );
+      return true;
+    }
     const s = this.swaActivo();
     if (!s) return false;
     this.notify.error(
@@ -263,6 +273,10 @@ export class TicketDetailPage {
   protected verSwa(): void {
     const s = this.swaActivo();
     if (s && this.puedeVerMatrizIperc()) this.router.navigate(['/dashboard/qhse/swa', s.id]);
+  }
+  protected verEmergencia(): void {
+    const e = this.emergenciaActiva();
+    if (e && this.puedeVerMatrizIperc()) this.router.navigate(['/dashboard/qhse/emergencias', e.id]);
   }
 
   private readonly unitReportsService = inject(UnitReportsService);

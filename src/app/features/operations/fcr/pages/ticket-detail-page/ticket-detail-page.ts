@@ -44,6 +44,7 @@ import {
   QHSE_VIEWER_ROLES,
   actividadesPendientesTexto,
   coberturaOk,
+  emergenciaActiva,
   ptwFaseLabel,
   ptwFirmadoOk,
   swaActivo,
@@ -140,11 +141,12 @@ export class FcrTicketDetailPage {
   protected readonly loading = signal(true);
   protected readonly ticket = signal<FcrTicket | null>(null);
 
-  // ── Gates QHSE (HSE-PLAN-001 cobertura IPERC + HSE-SITIO-001 PTW + HSE-SEGUIMIENTO-003 SWA) ──
+  // ── Gates QHSE (HSE-PLAN-001 cobertura IPERC + HSE-SITIO-001 PTW + HSE-SEGUIMIENTO-003 SWA + HSE-TRIAGE-001 Emergencia) ──
   protected readonly qhseVinculo = computed(() => this.ticket()?.qhse ?? null);
   protected readonly coberturaOk = computed(() => coberturaOk(this.qhseVinculo()));
   protected readonly ptwFirmadoOk = computed(() => ptwFirmadoOk(this.qhseVinculo()));
   protected readonly swa = computed(() => swaActivo(this.qhseVinculo()));
+  protected readonly emergencia = computed(() => emergenciaActiva(this.qhseVinculo()));
   protected readonly puedeVerQhse = computed(() => QHSE_VIEWER_ROLES.includes(this.roleName()));
 
   // ── Tracker de fases ──
@@ -826,6 +828,12 @@ export class FcrTicketDetailPage {
     const t = this.ticket();
     if (!t || !this.isMyTurn()) return;
 
+    // Gate HSE-TRIAGE-001: con una emergencia abierta, nada avanza (mayor severidad que un SWA).
+    const e = this.emergencia();
+    if (e) {
+      this.notify.error('Emergencia activa', `Emergencia ${e.code} abierta. El servicio no puede avanzar hasta que se cierre en QHSE.`);
+      return;
+    }
     // Gate HSE-SEGUIMIENTO-003: con un Stop Work abierto, nada avanza.
     const s = this.swa();
     if (s) {

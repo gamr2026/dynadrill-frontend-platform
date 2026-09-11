@@ -1,3 +1,19 @@
+@if (emergencia(); as e) {
+  <section class="ticket-qhse-banner ticket-qhse-banner--detenido">
+    <div class="ticket-qhse-banner__text">
+      <dynadrill-text variant="body">
+        <strong>🚨 EMERGENCIA — {{ e.code }}</strong> ({{ emergenciaEstadoLabel(e.estado) }}).
+      </dynadrill-text>
+      <dynadrill-text variant="caption">
+        Ningún paso del servicio puede avanzar hasta que la emergencia se cierre en QHSE.
+        @if (canView()) {
+          <button type="button" class="ticket-qhse-banner__link" (click)="verEmergencia()">Ver evento</button>
+        }
+      </dynadrill-text>
+    </div>
+  </section>
+}
+
 @if (swa(); as s) {
   <section class="ticket-qhse-banner ticket-qhse-banner--detenido">
     <div class="ticket-qhse-banner__text">
@@ -11,6 +27,27 @@
           <button type="button" class="ticket-qhse-banner__link" (click)="verSwa()">Ver evento</button>
         }
       </dynadrill-text>
+    </div>
+  </section>
+}
+
+@if (derrames().length > 0) {
+  <section class="ticket-qhse-banner ticket-qhse-banner--pendiente">
+    <div class="ticket-qhse-banner__text">
+      <dynadrill-text variant="body">
+        <strong>Incidente ambiental durante el servicio</strong> — {{ derrames().length }} derrame(s) registrado(s)
+        (HSE-AMBIENTAL-002).
+      </dynadrill-text>
+      <ul class="ticket-qhse-banner__pendientes">
+        @for (d of derrames(); track d.id) {
+          <li>
+            {{ d.code }} <em>(volumen {{ d.volumen }} · {{ d.estado }})</em>
+            @if (canView()) {
+              <button type="button" class="ticket-qhse-banner__link" (click)="verDerrame(d.id)">Ver</button>
+            }
+          </li>
+        }
+      </ul>
     </div>
   </section>
 }

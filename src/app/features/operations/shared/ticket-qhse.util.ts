@@ -1,4 +1,4 @@
-import { TicketQhseActividad, TicketQhseVinculo } from '../../../shared/models/ticket.model';
+import { TicketQhseActividad, TicketQhseEmergencia, TicketQhseSwa, TicketQhseVinculo } from '../../../shared/models/ticket.model';
 
 /**
  * Helpers compartidos por los detalles de ticket de Pumping y FCR para los
@@ -75,7 +75,7 @@ export function ptwFirmadoOk(vinculo: TicketQhseVinculo | null | undefined): boo
  * el trabajo del ticket está detenido — cualquier avance se bloquea hasta
  * que HSE + Company Man autoricen la reanudación.
  */
-export function swaActivo(vinculo: TicketQhseVinculo | null | undefined) {
+export function swaActivo(vinculo: TicketQhseVinculo | null | undefined): TicketQhseSwa | null {
   return vinculo?.swa ?? null;
 }
 
@@ -84,3 +84,24 @@ export const SWA_ESTADO_LABELS: Record<string, string> = {
   evaluado: 'riesgo evaluado — pendiente de reanudación',
   cerrado: 'reanudado',
 };
+
+/**
+ * Emergencia abierta contra el servicio (HSE-TRIAGE-001). El backend sólo
+ * la adjunta mientras no esté cerrada ('activa' y 'controlada' cuentan
+ * como abierta). Mismo criterio que un SWA — detiene todo el trabajo —
+ * pero con mayor severidad ("amenaza vidas y operación").
+ */
+export function emergenciaActiva(vinculo: TicketQhseVinculo | null | undefined): TicketQhseEmergencia | null {
+  return vinculo?.emergencia ?? null;
+}
+
+export const EMERGENCIA_ESTADO_LABELS: Record<string, string> = {
+  activa: 'emergencia activa',
+  controlada: 'controlada — pendiente de cierre',
+  cerrada: 'cerrada',
+};
+
+/** `true` si el ticket puede avanzar por el lado de eventos críticos (ni SWA ni emergencia abiertos). */
+export function sinEventoCritico(vinculo: TicketQhseVinculo | null | undefined): boolean {
+  return !swaActivo(vinculo) && !emergenciaActiva(vinculo);
+}

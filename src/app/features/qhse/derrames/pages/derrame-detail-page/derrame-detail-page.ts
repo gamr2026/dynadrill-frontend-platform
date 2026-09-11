@@ -160,6 +160,8 @@ export class DerrameDetailPage {
         origenDerrameId: e.id,
         tipoSugerido: 'Derrame mayor',
         descripcionSugerida: `Escalado desde derrame ${e.code}: ${e.descripcion}`,
+        ticketTipo: e.ticketTipo,
+        ticketCode: e.ticketCode,
       },
       footer: false,
     });

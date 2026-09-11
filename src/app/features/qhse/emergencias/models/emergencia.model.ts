@@ -156,11 +156,17 @@ export interface EmergenciaEvento {
 
   /** Se llena al cerrar — HSE-TRIAGE-002 se activa automáticamente para Nivel 2/3. */
   investigacionId?: number;
+
+  /** Servicio operativo durante el que ocurrió (HSE-TRIAGE-001 puede activarse "durante HSE-SITIO-001"). */
+  ticketTipo?: 'pumping' | 'fcr';
+  ticketCode?: string;
 }
 
 export type CreateEmergenciaInput = Pick<EmergenciaEvento, 'tipo' | 'descripcion' | 'ubicacion' | 'activadoPorNombre'> & {
   origenSwaId?: number;
   origenDerrameId?: number;
+  ticketTipo?: 'pumping' | 'fcr';
+  ticketCode?: string;
 };
 
 /**

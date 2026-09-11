@@ -9,6 +9,7 @@ export type {
   TicketPtwFase,
   TicketQhseSwa,
   TicketQhseDerrame,
+  TicketQhseEmergencia,
 } from './models/ticket.model';
 export type { Unit, UnitStatus } from './models/unit.model';
 export * from './models/operativo-docs.model';

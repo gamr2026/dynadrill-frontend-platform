@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
 import { TicketQhseVinculo } from '../../../../shared/models/ticket.model';
 import {
+  EMERGENCIA_ESTADO_LABELS,
   SWA_ESTADO_LABELS,
   actividadesPendientes,
   coberturaOk,
@@ -34,10 +35,13 @@ export class TicketQhseBanner {
   protected readonly pendientes = computed(() => actividadesPendientes(this.vinculo()));
   protected readonly ptw = computed(() => this.vinculo()?.ptw ?? null);
   protected readonly swa = computed(() => this.vinculo()?.swa ?? null);
+  protected readonly derrames = computed(() => this.vinculo()?.derrames ?? []);
+  protected readonly emergencia = computed(() => this.vinculo()?.emergencia ?? null);
 
   protected readonly ipercEstadoLabel = ipercEstadoLabel;
   protected readonly ptwFaseLabel = ptwFaseLabel;
   protected readonly swaEstadoLabel = (estado: string): string => SWA_ESTADO_LABELS[estado] ?? estado;
+  protected readonly emergenciaEstadoLabel = (estado: string): string => EMERGENCIA_ESTADO_LABELS[estado] ?? estado;
 
   protected verMatriz(ipercMatrixId: number): void {
     if (this.canView()) this.router.navigate(['/dashboard/qhse/iperc', ipercMatrixId]);
@@ -51,5 +55,14 @@ export class TicketQhseBanner {
   protected verSwa(): void {
     const s = this.swa();
     if (s && this.canView()) this.router.navigate(['/dashboard/qhse/swa', s.id]);
+  }
+
+  protected verDerrame(id: number): void {
+    if (this.canView()) this.router.navigate(['/dashboard/qhse/derrames', id]);
+  }
+
+  protected verEmergencia(): void {
+    const e = this.emergencia();
+    if (e && this.canView()) this.router.navigate(['/dashboard/qhse/emergencias', e.id]);
   }
 }

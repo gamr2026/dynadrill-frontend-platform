@@ -58,6 +58,20 @@ export interface TicketQhseDerrame {
 }
 
 /**
+ * Emergencia (HSE-TRIAGE-001) ABIERTA contra este servicio. El backend
+ * sólo la adjunta mientras no esté cerrada; mientras exista, detiene el
+ * trabajo — igual criterio que un SWA, con mayor motivo.
+ */
+export interface TicketQhseEmergencia {
+  id: number;
+  code: string;
+  /** 'activa' | 'controlada' (ambas detienen el trabajo) — sólo 'cerrada' lo libera. */
+  estado: string;
+  nivel: number | null;
+  activadoAt: string;
+}
+
+/**
  * Vínculo del ticket operativo (Pumping/FCR) con QHSE — HSE-PLAN-001. El
  * backend verifica que la Matriz Maestra IPERC (DYN-SGI-RE-087) cubra
  * —aprobadas— todas las actividades que implica la línea de servicio.
@@ -74,6 +88,7 @@ export interface TicketQhseVinculo {
   ptw?: TicketQhsePtw | null;
   swa?: TicketQhseSwa | null;
   derrames?: TicketQhseDerrame[];
+  emergencia?: TicketQhseEmergencia | null;
 }
 
 export interface Ticket {

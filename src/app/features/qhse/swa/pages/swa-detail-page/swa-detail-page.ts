@@ -136,6 +136,8 @@ export class SwaDetailPage {
         origenSwaId: e.id,
         tipoSugerido: e.tipoPeligro,
         descripcionSugerida: `Escalado desde SWA ${e.code}: ${e.descripcion}`,
+        ticketTipo: e.ticketTipo,
+        ticketCode: e.ticketCode,
       },
       footer: false,
     });

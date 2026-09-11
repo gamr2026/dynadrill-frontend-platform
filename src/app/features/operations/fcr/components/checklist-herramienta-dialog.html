@@ -53,6 +53,11 @@
     <fieldset class="checklist-dialog__section" [disabled]="formularioBloqueado()">
       <legend><dynadrill-text variant="h2">Partes de la herramienta</dynadrill-text></legend>
 
+      <div class="checklist-dialog__bulk-actions">
+        <dynadrill-button variant="secondary" size="small" (clicked)="marcarTodoOk()">Marcar todo OK</dynadrill-button>
+        <dynadrill-text variant="caption">Marca todas las partes como OK y después corregí a mano las que estén defectuosas.</dynadrill-text>
+      </div>
+
       <div class="checklist-dialog__table-wrap">
         <table class="checklist-dialog__table">
           <thead>
@@ -70,25 +75,35 @@
           <tbody>
             @for (parte of partes(); track parte.id) {
               <tr>
-                <td>{{ parte.item }}</td>
-                <td>{{ parte.codigo }}</td>
-                <td>{{ parte.descripcion }}</td>
-                <td>{{ parte.cantidadEsperada }}</td>
-                <td>
-                  <dynadrill-select
-                    [options]="visualEndOptions"
-                    [value]="parte.visualResultado"
-                    (valueChange)="onVisualChange(parte.id, $event)"
-                  />
+                <td data-label="Item">{{ parte.item }}</td>
+                <td data-label="Código">{{ parte.codigo }}</td>
+                <td data-label="Descripción">{{ parte.descripcion }}</td>
+                <td data-label="Cant. esperada">{{ parte.cantidadEsperada }}</td>
+                <td data-label="Visual">
+                  <div class="checklist-dialog__radio-group" role="radiogroup" [attr.aria-label]="'Visual — ' + parte.descripcion">
+                    <label class="checklist-dialog__radio">
+                      <input type="radio" [name]="'visual-' + parte.id" [checked]="parte.visualResultado === 'ok'" (change)="onVisualChange(parte.id, 'ok')" />
+                      OK
+                    </label>
+                    <label class="checklist-dialog__radio checklist-dialog__radio--defectuoso">
+                      <input type="radio" [name]="'visual-' + parte.id" [checked]="parte.visualResultado === 'defectuoso'" (change)="onVisualChange(parte.id, 'defectuoso')" />
+                      Defectuoso
+                    </label>
+                  </div>
                 </td>
-                <td>
-                  <dynadrill-select
-                    [options]="visualEndOptions"
-                    [value]="parte.endResultado"
-                    (valueChange)="onEndChange(parte.id, $event)"
-                  />
+                <td data-label="End">
+                  <div class="checklist-dialog__radio-group" role="radiogroup" [attr.aria-label]="'End — ' + parte.descripcion">
+                    <label class="checklist-dialog__radio">
+                      <input type="radio" [name]="'end-' + parte.id" [checked]="parte.endResultado === 'ok'" (change)="onEndChange(parte.id, 'ok')" />
+                      OK
+                    </label>
+                    <label class="checklist-dialog__radio checklist-dialog__radio--defectuoso">
+                      <input type="radio" [name]="'end-' + parte.id" [checked]="parte.endResultado === 'defectuoso'" (change)="onEndChange(parte.id, 'defectuoso')" />
+                      Defectuoso
+                    </label>
+                  </div>
                 </td>
-                <td>
+                <td data-label="Cambio · Cantidad">
                   <dynadrill-input
                     type="number"
                     placeholder="—"
@@ -96,7 +111,7 @@
                     (valueChange)="onCambioCantidadChange(parte.id, $event)"
                   />
                 </td>
-                <td>
+                <td data-label="Acción">
                   <dynadrill-input placeholder="Acción tomada" [value]="parte.accion" (valueChange)="onAccionChange(parte.id, $event)" />
                 </td>
               </tr>
@@ -104,6 +119,14 @@
           </tbody>
         </table>
       </div>
+
+      <dynadrill-textarea
+        label="Observación"
+        placeholder="Notas generales sobre la inspección/reparación de esta herramienta…"
+        [rows]="3"
+        [value]="observaciones()"
+        (valueChange)="observaciones.set($event)"
+      />
 
       @if (!formularioBloqueado()) {
         <footer class="checklist-dialog__actions">
@@ -140,7 +163,7 @@
 
 <footer class="checklist-dialog__footer-actions">
   <dynadrill-button variant="secondary" (clicked)="cancelar()">Cerrar</dynadrill-button>
-  @if (!loading() && !yaEnviado()) {
+  @if (!loading() && !yaEnviado() && tieneRolParaFirmar('liberadoQhse')) {
     <dynadrill-button variant="primary" [disabled]="!canEnviar() || saving()" (clicked)="enviarChecklist()">Enviar checklist</dynadrill-button>
   }
 </footer>

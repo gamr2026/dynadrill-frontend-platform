@@ -6,11 +6,13 @@ import {
   DynadrillButtonComponent,
   DynadrillCheckboxComponent,
   DynadrillDatetimePickerComponent,
+  DynadrillDialogService,
   DynadrillInputComponent,
   DynadrillNotificationService,
   DynadrillSelectComponent,
   DynadrillSkeletonComponent,
   DynadrillTextComponent,
+  DynadrillTextareaComponent,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import {
@@ -38,12 +40,6 @@ export interface ChecklistHerramientaDialogData {
 export interface ChecklistHerramientaDialogResult {
   inspection: FcrToolInspection;
 }
-
-const VISUAL_END_OPTIONS: DynadrillSelectOption[] = [
-  { label: '—', value: '' },
-  { label: 'OK', value: 'ok' },
-  { label: 'Defectuoso', value: 'defectuoso' },
-];
 
 const INSPECCIONADO_POR_OPTIONS: DynadrillSelectOption[] = [
   { label: '—', value: '' },
@@ -100,6 +96,7 @@ function parseCambioCantidad(raw: string): number | null {
     DynadrillBannerComponent,
     DynadrillButtonComponent,
     DynadrillSkeletonComponent,
+    DynadrillTextareaComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './checklist-herramienta-dialog.html',
@@ -111,8 +108,8 @@ export class ChecklistHerramientaDialog {
   private readonly toolInspecciones = inject(FcrToolInspeccionesService);
   private readonly auth = inject(AuthService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly dialog = inject(DynadrillDialogService);
 
-  protected readonly visualEndOptions = VISUAL_END_OPTIONS;
   protected readonly inspeccionadoPorOptions = INSPECCIONADO_POR_OPTIONS;
   protected readonly firmaLabels = FCR_TOOL_INSPECTION_FIRMA_LABELS;
   /** Orden de la secuencia — el mismo `@for` del template las recorre en este orden. */
@@ -132,6 +129,7 @@ export class ChecklistHerramientaDialog {
   protected readonly numeroSerie = signal('');
   protected readonly inspeccionadoPor = signal<FcrToolInspectionResponsable>('');
   protected readonly reparadoPor = signal('');
+  protected readonly observaciones = signal('');
 
   protected readonly partes = signal<FcrToolInspectionParte[]>([]);
 
@@ -176,6 +174,7 @@ export class ChecklistHerramientaDialog {
     this.numeroSerie.set(inspection.numeroSerie);
     this.inspeccionadoPor.set(inspection.inspeccionadoPor);
     this.reparadoPor.set(inspection.reparadoPor);
+    this.observaciones.set(inspection.observaciones);
     this.partes.set(inspection.partes);
     this.firmas.set(inspection.firmas);
   }
@@ -223,6 +222,11 @@ export class ChecklistHerramientaDialog {
     this.partes.update(rows => rows.map(row => (row.id === id ? { ...row, ...patch } : row)));
   }
 
+  /** Llenar 30-50 partes una por una es la queja más común del checklist en papel — esto marca todas OK de una vez, y el operador solo corrige las excepciones a "Defectuoso". */
+  protected marcarTodoOk(): void {
+    this.partes.update(rows => rows.map(row => ({ ...row, visualResultado: 'ok', endResultado: 'ok' })));
+  }
+
   protected onVisualChange(id: number, value: unknown): void {
     this.updateParte(id, { visualResultado: value as FcrToolInspectionParteResultado });
   }
@@ -256,6 +260,7 @@ export class ChecklistHerramientaDialog {
         numeroSerie: this.numeroSerie(),
         inspeccionadoPor: this.inspeccionadoPor(),
         reparadoPor: this.reparadoPor(),
+        observaciones: this.observaciones(),
       }),
     );
 
@@ -286,9 +291,16 @@ export class ChecklistHerramientaDialog {
     }
   }
 
-  /** Handler del checkbox de firma: solo actúa al tildar (nunca al destildar) y solo si el paso realmente está habilitado. */
-  protected onFirmaChange(rol: FcrToolInspectionFirmaRol, checked: boolean): void {
+  /** Handler del checkbox de firma: solo actúa al tildar (nunca al destildar) y solo si el paso realmente está habilitado. Pide confirmación antes de firmar — es irreversible (bloquea el formulario si es "Reparado por", o queda registrado a nombre de quien firma). */
+  protected async onFirmaChange(rol: FcrToolInspectionFirmaRol, checked: boolean): Promise<void> {
     if (!checked || !this.puedeFirmar(rol)) return;
+    const nombre = this.auth.currentUser()?.name ?? this.roleName();
+    const contenido =
+      rol === 'reparadoPor'
+        ? `Vas a firmar "Reparado por" como ${nombre}. Esto certifica los datos y las partes tal como quedaron — a partir de acá se bloquean para edición, solo faltarán las firmas restantes.`
+        : `Vas a firmar "${this.firmaLabels[rol]}" como ${nombre}. No se puede deshacer.`;
+    const ok = await this.dialog.confirm({ title: 'Confirmar firma', content: contenido, okText: 'Firmar', cancelText: 'Cancelar' });
+    if (!ok) return;
     void this.firmar(rol);
   }
 
@@ -312,14 +324,18 @@ export class ChecklistHerramientaDialog {
 
   /** Ya no firma nada: las 3 firmas se hacen una a una al tildar cada checkbox. Solo persiste cabecera/partes y envía. */
   protected async enviarChecklist(): Promise<void> {
-    if (this.saving() || !this.canEnviar()) return;
+    if (this.saving() || !this.canEnviar() || !this.tieneRolParaFirmar('liberadoQhse')) return;
     const ticketId = this.data.ticketId;
     const inspectionId = this.inspectionId();
     if (!inspectionId) return;
 
     this.saving.set(true);
     try {
-      await this.persistirCambios();
+      // Una vez firmado "Reparado por" el formulario queda bloqueado server-side
+      // (`assertFormularioEditable`) — reintentar guardar cabecera/partes acá
+      // pisa esa protección y el backend responde 400 (bug reportado: "no se
+      // pudo enviar el checklist" con las 3 firmas ya puestas).
+      if (!this.formularioBloqueado()) await this.persistirCambios();
       const enviado = await firstValueFrom(this.toolInspecciones.enviar(ticketId, inspectionId));
       this.notify.success('Checklist enviado', 'El checklist de esta herramienta quedó enviado.');
       this.modalRef.close({ inspection: enviado });

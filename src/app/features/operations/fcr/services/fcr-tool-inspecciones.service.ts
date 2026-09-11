@@ -7,12 +7,13 @@ import {
   FcrToolInspectionHeaderInput,
   FcrToolInspectionParteInput,
 } from '../models/fcr-tool-inspeccion.model';
+import { environment } from '@env';
 
 /** Servicio HTTP puro para el checklist de inspección por herramienta — mismo patrón que `FcrService`. */
 @Injectable({ providedIn: 'root' })
 export class FcrToolInspeccionesService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/operations/fcr/tickets';
+  private readonly baseUrl = `${environment.apiUrl}/operations/fcr/tickets`;
 
   listByTicket(ticketId: number): Observable<FcrToolInspection[]> {
     return this.http.get<FcrToolInspection[]>(`${this.baseUrl}/${ticketId}/tool-inspections`);

@@ -31,11 +31,11 @@ export class UnidadesService {
   }
 
   registrarMantenimiento(unidadId: number, input: RegistrarPMInput): Observable<Unidad> {
-    return this.http.patch<Unidad>(`/api/unidades/${unidadId}/mantenimiento`, input);
+    return this.http.patch<Unidad>(`${environment.apiUrl}/unidades/${unidadId}/mantenimiento`, input);
   }
 
   /** Módulo Inventario — solo los campos patrimoniales, nunca los operativos. */
   updatePatrimonio(unidadId: number, input: UpdatePatrimonioInput): Observable<Unidad> {
-    return this.http.patch<Unidad>(`/api/unidades/${unidadId}/patrimonio`, input);
+    return this.http.patch<Unidad>(`${environment.apiUrl}/unidades/${unidadId}/patrimonio`, input);
   }
 }

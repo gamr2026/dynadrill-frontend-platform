@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { environment } from '@env';
 
 /** Las 4 líneas de servicio que arma Facturación (mismo orden que el backend). */
 export type LineaServicio = 'pumping' | 'ctu' | 'fishing' | 'completion';
@@ -24,7 +25,7 @@ export type CoberturaMapa = Record<LineaServicio, string[]>;
 @Injectable({ providedIn: 'root' })
 export class IpercCoberturaService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/qhse/iperc-cobertura';
+  private readonly baseUrl = `${environment.apiUrl}/qhse/iperc-cobertura`;
 
   getAll(): Observable<CoberturaMapa> {
     return this.http.get<CoberturaMapa>(this.baseUrl);

@@ -38,7 +38,7 @@ export class MaintenanceOrdersService {
   }
 
   get(id: number): Observable<MaintenanceOrderWithSubOrders> {
-    return this.http.get<MaintenanceOrderWithSubOrders>(`/api/maintenance-orders/${id}`);
+    return this.http.get<MaintenanceOrderWithSubOrders>(`${environment.apiUrl}/maintenance-orders/${id}`);
   }
 
   /** MAN-001-A: crea la orden + una sub-orden por cada tipo seleccionado. */
@@ -58,7 +58,7 @@ export class MaintenanceOrdersService {
     assignments: ClassifyTypeAssignment[],
     assignedByName: string,
   ): Observable<MaintenanceOrderWithSubOrders> {
-    return this.http.post<MaintenanceOrderWithSubOrders>(`/api/maintenance-orders/${orderId}/classification`, {
+    return this.http.post<MaintenanceOrderWithSubOrders>(`${environment.apiUrl}/maintenance-orders/${orderId}/classification`, {
       assignments,
       assignedByName,
     });
@@ -66,31 +66,31 @@ export class MaintenanceOrdersService {
 
   /** MAN-001-B paso 1: guarda diagnóstico, actividades, horas, repuestos y trabajos adicionales. Sub-orden pasa a "En Ejecución". */
   updateSubOrder(id: number, input: Pick<SubOrder, 'diagnostico' | 'actividadesCorrectivas' | 'horasTrabajo' | 'repuestos' | 'trabajosAdicionales'>): Observable<SubOrder> {
-    return this.http.put<SubOrder>(`/api/maintenance-suborders/${id}`, input);
+    return this.http.put<SubOrder>(`${environment.apiUrl}/maintenance-suborders/${id}`, input);
   }
 
   /** MAN-001-B paso 2: operador declara la ejecución terminada — sub-orden pasa a "En Revisión de Cierre". */
   submitSubOrderForReview(id: number): Observable<SubOrder> {
-    return this.http.post<SubOrder>(`/api/maintenance-suborders/${id}/submit`, {});
+    return this.http.post<SubOrder>(`${environment.apiUrl}/maintenance-suborders/${id}/submit`, {});
   }
 
   /** MAN-001-C: aprueba (cierra) o rechaza (vuelve a "Corrección Solicitada", con motivo) la sub-orden. */
   reviewSubOrder(id: number, decision: 'approved' | 'rejected', correctionNote?: string): Observable<SubOrder> {
-    return this.http.post<SubOrder>(`/api/maintenance-suborders/${id}/review`, { decision, correctionNote });
+    return this.http.post<SubOrder>(`${environment.apiUrl}/maintenance-suborders/${id}/review`, { decision, correctionNote });
   }
 
   /** Fin Correctivo: cierra la orden padre y la devuelve a Operaciones. */
   closeOrder(orderId: number, input: CloseOrderInput): Observable<MaintenanceOrderWithSubOrders> {
-    return this.http.post<MaintenanceOrderWithSubOrders>(`/api/maintenance-orders/${orderId}/close`, input);
+    return this.http.post<MaintenanceOrderWithSubOrders>(`${environment.apiUrl}/maintenance-orders/${orderId}/close`, input);
   }
 
   /** El Jefe deriva una sub-orden Operativo a Pumping — sale del flujo de Mantenimiento. */
   deriveToOperations(subOrderId: number, note: string): Observable<SubOrder> {
-    return this.http.post<SubOrder>(`/api/maintenance-suborders/${subOrderId}/derive`, { note });
+    return this.http.post<SubOrder>(`${environment.apiUrl}/maintenance-suborders/${subOrderId}/derive`, { note });
   }
 
   /** Reasigna el operador de una sub-orden sin cambiar su tipo ni estado. */
   reassignOperator(subOrderId: number, userId: number, userName: string, assignedByName: string): Observable<SubOrder> {
-    return this.http.patch<SubOrder>(`/api/maintenance-suborders/${subOrderId}/operator`, { userId, userName, assignedByName });
+    return this.http.patch<SubOrder>(`${environment.apiUrl}/maintenance-suborders/${subOrderId}/operator`, { userId, userName, assignedByName });
   }
 }

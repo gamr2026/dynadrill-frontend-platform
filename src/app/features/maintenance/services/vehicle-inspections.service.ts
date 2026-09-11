@@ -22,11 +22,11 @@ export class VehicleInspectionsService {
   }
 
   update(id: number, input: CreateVehicleInspectionInput): Observable<VehicleInspection> {
-    return this.http.put<VehicleInspection>(`/api/vehicle-inspections/${id}`, input);
+    return this.http.put<VehicleInspection>(`${environment.apiUrl}/vehicle-inspections/${id}`, input);
   }
 
   /** Firma del Supervisor (Plan 2026, 5.3). */
   approve(id: number, supervisorName: string): Observable<VehicleInspection> {
-    return this.http.patch<VehicleInspection>(`/api/vehicle-inspections/${id}/approve`, { supervisorName });
+    return this.http.patch<VehicleInspection>(`${environment.apiUrl}/vehicle-inspections/${id}/approve`, { supervisorName });
   }
 }

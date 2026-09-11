@@ -13,7 +13,7 @@ export class UnitReportsService {
   }
 
   get(id: number): Observable<UnitReport> {
-    return this.http.get<UnitReport>(`/api/unit-reports/${id}`);
+    return this.http.get<UnitReport>(`${environment.apiUrl}/unit-reports/${id}`);
   }
 
   create(input: CreateUnitReportInput): Observable<UnitReport> {
@@ -21,11 +21,11 @@ export class UnitReportsService {
   }
 
   update(id: number, input: CreateUnitReportInput): Observable<UnitReport> {
-    return this.http.put<UnitReport>(`/api/unit-reports/${id}`, input);
+    return this.http.put<UnitReport>(`${environment.apiUrl}/unit-reports/${id}`, input);
   }
 
   /** MAN-001-A, rama "No requiere mantenimiento": descarta el reporte sin generar orden, con motivo obligatorio. */
   dismiss(id: number, reason: string): Observable<void> {
-    return this.http.post<void>(`/api/unit-reports/${id}/dismiss`, { reason });
+    return this.http.post<void>(`${environment.apiUrl}/unit-reports/${id}/dismiss`, { reason });
   }
 }

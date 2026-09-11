@@ -13,7 +13,7 @@ export class UsersService {
   }
 
   get(id: number): Observable<User> {
-    return this.http.get<User>(`/api/users/${id}`);
+    return this.http.get<User>(`${environment.apiUrl}/users/${id}`);
   }
 
   create(input: CreateUserInput): Observable<User> {
@@ -21,11 +21,11 @@ export class UsersService {
   }
 
   update(id: number, input: UpdateUserInput): Observable<User> {
-    return this.http.put<User>(`/api/users/${id}`, input);
+    return this.http.put<User>(`${environment.apiUrl}/users/${id}`, input);
   }
 
   delete(id: number): Observable<void> {
-    return this.http.delete<void>(`/api/users/${id}`);
+    return this.http.delete<void>(`${environment.apiUrl}/users/${id}`);
   }
 }
 
@@ -43,6 +43,8 @@ export class RolesService {
    * (Superadmin únicamente).
    */
   usuariosPorRol(code: string): Observable<{ id: number; name: string; specialty?: string | null }[]> {
-    return this.http.get<{ id: number; name: string; specialty?: string | null }[]>(`/api/roles/${code}/usuarios`);
+    return this.http.get<{ id: number; name: string; specialty?: string | null }[]>(
+      `${environment.apiUrl}/roles/${code}/usuarios`,
+    );
   }
 }

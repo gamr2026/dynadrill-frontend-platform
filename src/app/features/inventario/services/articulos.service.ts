@@ -2,13 +2,14 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Articulo, CreateArticuloInput } from '../models/articulo.model';
+import { environment } from '@env';
 
 @Injectable({ providedIn: 'root' })
 export class ArticulosService {
   private readonly http = inject(HttpClient);
 
   list(): Observable<Articulo[]> {
-    return this.http.get<Articulo[]>('/api/articulos');
+    return this.http.get<Articulo[]>(`${environment.apiUrl}/articulos`);
   }
 
   get(id: number): Observable<Articulo> {
@@ -16,7 +17,7 @@ export class ArticulosService {
   }
 
   create(input: CreateArticuloInput): Observable<Articulo> {
-    return this.http.post<Articulo>('/api/articulos', input);
+    return this.http.post<Articulo>(`${environment.apiUrl}/articulos`, input);
   }
 
   update(id: number, input: CreateArticuloInput): Observable<Articulo> {

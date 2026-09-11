@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { CreateIpercMatrixInput, IpercMatrix, IpercStatus } from '../models/iperc.model';
+import { environment } from '@env';
 
 /**
  * El backend guarda el estado de la matriz en la columna `estado` (igual que
@@ -25,7 +26,7 @@ function toApi(changes: Partial<IpercMatrix>): Record<string, unknown> {
 @Injectable({ providedIn: 'root' })
 export class IpercService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/qhse/iperc';
+  private readonly baseUrl = `${environment.apiUrl}/qhse/iperc`;
 
   list(): Observable<IpercMatrix[]> {
     return this.http.get<RawIperc[]>(this.baseUrl).pipe(map(rows => rows.map(fromApi)));

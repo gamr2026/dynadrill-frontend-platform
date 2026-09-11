@@ -2,13 +2,14 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { CreateUserInput, Role, UpdateUserInput, User } from '../models/user.model';
+import { environment } from '@env';
 
 @Injectable({ providedIn: 'root' })
 export class UsersService {
   private readonly http = inject(HttpClient);
 
   list(): Observable<User[]> {
-    return this.http.get<User[]>('/api/users');
+    return this.http.get<User[]>(`${environment.apiUrl}/users`);
   }
 
   get(id: number): Observable<User> {
@@ -16,7 +17,7 @@ export class UsersService {
   }
 
   create(input: CreateUserInput): Observable<User> {
-    return this.http.post<User>('/api/users', input);
+    return this.http.post<User>(`${environment.apiUrl}/users`, input);
   }
 
   update(id: number, input: UpdateUserInput): Observable<User> {
@@ -33,7 +34,7 @@ export class RolesService {
   private readonly http = inject(HttpClient);
 
   list(): Observable<Role[]> {
-    return this.http.get<Role[]>('/api/roles');
+    return this.http.get<Role[]>(`${environment.apiUrl}/roles`);
   }
 
   /**

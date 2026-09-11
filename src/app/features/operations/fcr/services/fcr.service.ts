@@ -2,11 +2,12 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { FcrPhase, FcrTicket, type FcrToolDailyStatus, type FcrToolStatus } from '../models/fcr.model';
+import { environment } from '@env';
 
 @Injectable({ providedIn: 'root' })
 export class FcrService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/operations/fcr';
+  private readonly baseUrl = `${environment.apiUrl}/operations/fcr`;
 
   listTickets(): Observable<FcrTicket[]> {
     return this.http.get<FcrTicket[]>(`${this.baseUrl}/tickets`);

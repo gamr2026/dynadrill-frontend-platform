@@ -7,6 +7,7 @@ import { AvanceDocumental, DocumentoOperativo, PushDocumentoOperativoInput } fro
 import { Prefactura } from '../models/prefactura.model';
 import { CreateGuiaRemisionInput, GuiaRemision } from '../models/guia-remision.model';
 import { Aot } from '../models/aot.model';
+import { environment } from '@env';
 
 /**
  * Fase 0 — Servicios de la reescritura del módulo de Facturación.
@@ -18,7 +19,7 @@ import { Aot } from '../models/aot.model';
 @Injectable({ providedIn: 'root' })
 export class PedidoService {
   private readonly http = inject(HttpClient);
-  private readonly base = '/api/facturacion/pedidos';
+  private readonly base = `${environment.apiUrl}/facturacion/pedidos`;
 
   list(): Observable<Pedido[]> {
     return this.http.get<Pedido[]>(this.base);
@@ -46,7 +47,7 @@ export class PedidoService {
 @Injectable({ providedIn: 'root' })
 export class ListaPreciosService {
   private readonly http = inject(HttpClient);
-  private readonly base = '/api/facturacion/listas-precios';
+  private readonly base = `${environment.apiUrl}/facturacion/listas-precios`;
 
   list(): Observable<ListaPrecios[]> {
     return this.http.get<ListaPrecios[]>(this.base);
@@ -82,7 +83,7 @@ export class DocumentoOperativoService {
   private readonly http = inject(HttpClient);
 
   listTodos(): Observable<DocumentoOperativo[]> {
-    return this.http.get<DocumentoOperativo[]>('/api/facturacion/documentos-operativos');
+    return this.http.get<DocumentoOperativo[]>(`${environment.apiUrl}/facturacion/documentos-operativos`);
   }
 
   listDePedido(pedidoId: number): Observable<DocumentoOperativo[]> {
@@ -95,7 +96,7 @@ export class DocumentoOperativoService {
 
   /** Lo llaman FCR / Pumping cuando el operador firma un documento (mock). */
   push(input: PushDocumentoOperativoInput): Observable<DocumentoOperativo> {
-    return this.http.post<DocumentoOperativo>('/api/facturacion/documentos-operativos', input);
+    return this.http.post<DocumentoOperativo>(`${environment.apiUrl}/facturacion/documentos-operativos`, input);
   }
 }
 
@@ -105,7 +106,7 @@ export class PrefacturaService {
   private readonly http = inject(HttpClient);
 
   list(): Observable<Prefactura[]> {
-    return this.http.get<Prefactura[]>('/api/facturacion/prefacturas');
+    return this.http.get<Prefactura[]>(`${environment.apiUrl}/facturacion/prefacturas`);
   }
 
   get(id: number): Observable<Prefactura> {
@@ -163,7 +164,7 @@ export class AotService {
   private readonly http = inject(HttpClient);
 
   list(): Observable<Aot[]> {
-    return this.http.get<Aot[]>('/api/facturacion/aots');
+    return this.http.get<Aot[]>(`${environment.apiUrl}/facturacion/aots`);
   }
 
   get(id: number): Observable<Aot> {

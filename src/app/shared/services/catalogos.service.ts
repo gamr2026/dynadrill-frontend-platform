@@ -2,12 +2,13 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import type { Bloque, Campo, Pozo, Taladro } from '../models/catalogos.model';
+import { environment } from '@env';
 
 /** Catálogos de ubicación operativa (Campo / Bloque / Taladro / Pozo). */
 @Injectable({ providedIn: 'root' })
 export class CatalogosService {
   private readonly http = inject(HttpClient);
-  private readonly base = '/api/catalogos';
+  private readonly base = `${environment.apiUrl}/catalogos`;
 
   bloques(): Observable<Bloque[]> {
     return this.http.get<Bloque[]>(`${this.base}/bloques`);

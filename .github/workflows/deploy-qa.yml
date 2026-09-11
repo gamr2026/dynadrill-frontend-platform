@@ -1,0 +1,63 @@
+name: Deploy QA (Static Website)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+env:
+  STORAGE_ACCOUNT: stperfevalqa83squ8fg
+  RESOURCE_GROUP: rg-int-frontend-qa
+  # dist/<project>/browser — así saca la salida el builder @angular/build:application
+  # (angular.json → projects.dynadrill-frontend), con o sin SSR.
+  DIST_DIR: dist/dynadrill-frontend/browser
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      # @digitec-it-projects/dynadrill-ui vive en GitHub Packages (ver
+      # .npmrc) — npm ci necesita un token con scope read:packages.
+      - name: Instalar dependencias
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+
+      # "qa" (no "production"): trae el fileReplacement que apunta
+      # environment.ts -> environment.qa.ts (apiUrl del backend en QA).
+      - name: Build de QA
+        run: npm run build -- --configuration qa
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Requiere que el Service Principal de AZURE_CREDENTIALS tenga el rol
+      # "Storage Blob Data Contributor" sobre esta storage account (un rol
+      # de Contributor a secas NO alcanza para operaciones de datos con
+      # --auth-mode login).
+      - name: Subir estáticos al contenedor $web
+        run: |
+          az storage blob upload-batch \
+            --account-name "$STORAGE_ACCOUNT" \
+            --destination '$web' \
+            --source "$DIST_DIR" \
+            --auth-mode login \
+            --overwrite true
+
+      - name: Azure Logout
+        if: always()
+        run: az logout

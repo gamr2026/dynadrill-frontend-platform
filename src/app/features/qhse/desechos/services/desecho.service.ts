@@ -2,11 +2,12 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { CreateDesechoInput, Desecho } from '../models/desecho.model';
+import { environment } from '@env';
 
 @Injectable({ providedIn: 'root' })
 export class DesechoService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/qhse/desechos';
+  private readonly baseUrl = `${environment.apiUrl}/qhse/desechos`;
 
   list(): Observable<Desecho[]> {
     return this.http.get<Desecho[]>(this.baseUrl);

@@ -101,6 +101,8 @@ export interface FcrToolInspectionHeaderInput {
   numeroSerie?: string;
   inspeccionadoPor?: FcrToolInspectionResponsable;
   reparadoPor?: string;
+  /** Nota general del checklist (mismo campo "NOTA:" del formulario en papel). */
+  observaciones?: string;
 }
 
 export interface FcrToolInspectionParteInput {

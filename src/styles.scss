@@ -8,3 +8,64 @@ body {
   height: 100%;
   font-family: var(--font-body, 'Lato', sans-serif);
 }
+
+/**
+ * Vista de impresión de los diálogos "Reporte — Vista de impresión" (`.reporte-pdf`,
+ * FCR/Facturación/Mantenimiento). Estos diálogos se renderizan dentro del overlay
+ * CDK/ng-zorro (`.cdk-overlay-container` → ... → `nz-modal-container` → `.ant-modal`),
+ * que vive FUERA del árbol de plantilla del propio componente — un `@media print`
+ * dentro del .scss de cada componente queda con el encapsulamiento de estilos de
+ * Angular (`[_ngcontent-xxx]`) y nunca llega a esos elementos, así que el diálogo
+ * imprime exactamente como se ve en pantalla (título, fondo oscuro, tarjeta
+ * redondeada) en vez de como una hoja de reporte. Por eso vive acá, sin encapsular.
+ */
+@media print {
+  // `visibility` en vez de `display: none` — la cadena de ancestros CDK/ng-zorro
+  // usa `display: flex` + `position: absolute/fixed` con anchos fijados por
+  // configuración del diálogo (ej. `width: '820px'`); forzar esos ancestros a
+  // `display: block` los colapsa a altura 0 en vez de mostrar el contenido
+  // (probado: página en blanco). `visibility` no saca nada del flujo, así que
+  // el contenido conserva su tamaño real mientras se ocultan sus hermanos.
+  body * {
+    visibility: hidden;
+  }
+
+  .reporte-pdf,
+  .reporte-pdf * {
+    visibility: visible;
+  }
+
+  .cdk-overlay-container,
+  .cdk-global-overlay-wrapper,
+  .cdk-overlay-pane,
+  nz-modal-container,
+  .ant-modal-wrap,
+  .ant-modal,
+  .ant-modal-content,
+  .ant-modal-body {
+    position: static !important;
+    inset: auto !important;
+    overflow: visible !important;
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    box-shadow: none !important;
+    background: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .reporte-pdf {
+    position: relative;
+    width: 100%;
+  }
+
+  .ant-modal-header,
+  .ant-modal-footer,
+  .ant-modal-close,
+  .cdk-overlay-backdrop,
+  .no-print {
+    display: none !important;
+  }
+}

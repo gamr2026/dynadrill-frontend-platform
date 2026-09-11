@@ -44,7 +44,12 @@ import { FcrService, type CampoDocumentoFcr } from '../../services/fcr.service';
 import { PedidoService } from '../../../../facturacion/services/pedido.service';
 import { itemsEstimadosDe, LINEA_SERVICIO_LABELS, type Pedido } from '../../../../facturacion/models/pedido.model';
 import { FcrToolInspeccionesService } from '../../services/fcr-tool-inspecciones.service';
-import type { FcrToolInspection } from '../../models/fcr-tool-inspeccion.model';
+import {
+  FCR_TOOL_INSPECTION_FIRMA_ROLES,
+  FCR_TOOL_INSPECTION_FIRMA_ROLES_REQUERIDOS,
+  FCR_TOOL_INSPECTION_FIRMA_ROL_ANTERIOR,
+  type FcrToolInspection,
+} from '../../models/fcr-tool-inspeccion.model';
 import {
   TIPO_COMPLETACION_LABELS,
   TIPO_OPERADOR_LABELS,
@@ -1177,10 +1182,19 @@ export class FcrTicketDetailPage {
   }
 
   protected toolChecklistButtonLabel(toolId: number): string {
-    const estado = this.toolInspectionEstado(toolId);
-    if (estado === 'enviado' || estado === 'aprobado') return 'Ver checklist';
-    if (estado === 'borrador') return 'Continuar checklist';
-    return 'Iniciar checklist';
+    const inspection = this.toolInspectionByToolId().get(toolId);
+    if (!inspection) return 'Iniciar checklist';
+    if (inspection.estado === 'enviado' || inspection.estado === 'aprobado') return 'Ver checklist';
+    // 'borrador': si ya está todo llenado y le toca firmar al rol actual, el botón lo dice explícito en vez de un genérico "Continuar".
+    const rolPendiente = FCR_TOOL_INSPECTION_FIRMA_ROLES.find(rol => !inspection.firmas[rol]?.firmado);
+    if (rolPendiente) {
+      const anterior = FCR_TOOL_INSPECTION_FIRMA_ROL_ANTERIOR[rolPendiente];
+      const pasoHabilitado = !anterior || !!inspection.firmas[anterior]?.firmado;
+      if (pasoHabilitado && FCR_TOOL_INSPECTION_FIRMA_ROLES_REQUERIDOS[rolPendiente].includes(this.roleName())) {
+        return 'Firmar checklist';
+      }
+    }
+    return 'Continuar checklist';
   }
 
   /** RN (fcr-checklist-inspeccion): la fase no avanza a Aprobación de Supervisor si falta el checklist "enviado" de alguna herramienta. */
@@ -1189,7 +1203,58 @@ export class FcrTicketDetailPage {
     return tools.length > 0 && tools.every(tool => this.toolInspectionByToolId().get(tool.id)?.estado === 'enviado');
   });
 
+  /** Nombres de las herramientas cuyo checklist todavía no está "enviado" — para nombrarlas en vez de un aviso genérico. */
+  protected readonly checklistsPendientesNombres = computed(() => {
+    const tools = this.ticket()?.tools ?? [];
+    return tools.filter(tool => this.toolInspectionByToolId().get(tool.id)?.estado !== 'enviado').map(tool => tool.name);
+  });
+
   protected readonly puedeEnviarInspeccionServicio = computed(() => this.inspeccionServicioCompleta() && this.allChecklistsEnviados());
+
+  /**
+   * En 'inspeccion' el rol "responsable" de la fase (Operador, fijo en
+   * `FCR_PHASE_ROLE`) no alcanza para el banner: una vez que el Operador ya
+   * firmó "Reparado por" de una herramienta, lo que realmente falta es la
+   * firma de Supervisor o QHSE — mostrar "Operador" ahí es directamente
+   * incorrecto (bug reportado). Recorre cada herramienta y junta el rol
+   * pendiente CON el nombre de la herramienta — el checklist es por
+   * herramienta, así que "firmé como Supervisor" en una herramienta no
+   * resuelve la firma de Supervisor pendiente en otra distinta; sin el
+   * nombre de la herramienta el mensaje parece "no cambió nada" (bug
+   * reportado: "el operador ya firmó, faltan las otras firmas" seguía
+   * mostrando el mismo rol tras firmar, porque era el mismo rol pero en
+   * OTRA herramienta).
+   */
+  protected readonly rolesConAccionPendienteEnInspeccion = computed(() => {
+    const porRol = new Map<string, string[]>();
+    const agregar = (rol: string, toolName: string) => {
+      const nombres = porRol.get(rol) ?? [];
+      if (!nombres.includes(toolName)) nombres.push(toolName);
+      porRol.set(rol, nombres);
+    };
+    for (const tool of this.ticket()?.tools ?? []) {
+      const inspection = this.toolInspectionByToolId().get(tool.id);
+      if (!inspection) {
+        agregar('Operador', tool.name); // checklist ni siquiera iniciado
+        continue;
+      }
+      if (inspection.estado === 'enviado' || inspection.estado === 'aprobado') continue;
+      const rolPendiente = FCR_TOOL_INSPECTION_FIRMA_ROLES.find(rol => !inspection.firmas[rol]?.firmado);
+      if (!rolPendiente) continue;
+      const anterior = FCR_TOOL_INSPECTION_FIRMA_ROL_ANTERIOR[rolPendiente];
+      const habilitado = !anterior || !!inspection.firmas[anterior]?.firmado;
+      if (habilitado) agregar(FCR_TOOL_INSPECTION_FIRMA_ROLES_REQUERIDOS[rolPendiente][0], tool.name);
+    }
+    return [...porRol.entries()].map(([rol, toolNames]) => `${rol} (${toolNames.join(', ')})`);
+  });
+
+  protected readonly bannerAccionEsperada = computed(() => {
+    if (this.currentPhase() === 'inspeccion') {
+      const roles = this.rolesConAccionPendienteEnInspeccion();
+      if (roles.length > 0) return `Esperando firma de checklist: ${roles.join(', ')}`;
+    }
+    return `Esperando acción de: ${this.responsibleRole()}`;
+  });
 
   private loadToolInspections(ticketId: number): void {
     this.toolInspeccionesService.listByTicket(ticketId).subscribe({
@@ -1206,7 +1271,7 @@ export class FcrTicketDetailPage {
       content: ChecklistHerramientaDialog,
       data: { ticketId: t.id, toolId: tool.id, articuloId: tool.articuloId, toolName: tool.name },
       footer: false,
-      width: 960,
+      width: '90vw',
     });
     ref.afterClose.subscribe(() => {
       // Se recarga la lista completa aunque el diálogo se haya cerrado sin

@@ -136,26 +136,5 @@
   }
 }
 
-@media print {
-  .no-print { display: none !important; }
-
-  body > * { display: none !important; }
-
-  nz-modal-container,
-  .ant-modal-wrap,
-  .ant-modal,
-  .ant-modal-content {
-    display: block !important;
-    position: static !important;
-    box-shadow: none !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-
-  .ant-modal-header,
-  .ant-modal-footer { display: none !important; }
-
-  .ant-modal-body { padding: 0 !important; }
-}
+// La regla de impresión (ocultar el resto de la app y el chrome del modal)
+// vive en `src/styles.scss`, sin encapsular — ver comentario ahí.

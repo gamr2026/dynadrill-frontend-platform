@@ -48,7 +48,7 @@
 
   <dynadrill-banner
     [variant]="isMyTurn() ? 'warning' : 'info'"
-    [message]="'Esperando acción de: ' + responsibleRole()"
+    [message]="bannerAccionEsperada()"
   />
 
   <app-ticket-qhse-banner [vinculo]="qhseVinculo()" [canView]="puedeVerQhse()" />
@@ -189,7 +189,7 @@
         </div>
 
         @if (!allChecklistsEnviados()) {
-          <dynadrill-banner variant="warning" message="Falta enviar el checklist de inspección de al menos una herramienta." />
+          <dynadrill-banner variant="warning" [message]="'Falta enviar el checklist de inspección de: ' + checklistsPendientesNombres().join(', ')" />
         }
 
         @if (isMyTurn()) {

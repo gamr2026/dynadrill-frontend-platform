@@ -8,12 +8,10 @@ import {
   DynadrillIconButtonComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
-  DynadrillSelectComponent,
   DynadrillSpinnerComponent,
-  type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import { CatalogosService } from '../../../../shared/services/catalogos.service';
-import { ClienteCatalogo, PersonaContacto, TIPO_PERSONA_LABELS, TipoPersonaContacto } from '../../../../shared/models/catalogos.model';
+import { ClienteCatalogo, PersonaContacto, TIPO_PERSONA_LABELS } from '../../../../shared/models/catalogos.model';
 import { PersonaFormDialog, PersonaFormDialogData } from '../../components/persona-form-dialog';
 import { ClienteFormDialog, ClienteFormDialogData } from '../../components/cliente-form-dialog';
 
@@ -30,7 +28,6 @@ import { ClienteFormDialog, ClienteFormDialogData } from '../../components/clien
     DynadrillButtonComponent,
     DynadrillDataTableComponent,
     DynadrillIconButtonComponent,
-    DynadrillSelectComponent,
     DynadrillSpinnerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -47,24 +44,22 @@ export class CatalogosVentasPage {
   protected readonly clientes = signal<ClienteCatalogo[]>([]);
 
   // ── Personas ──
-  protected readonly filtroTipo = signal<TipoPersonaContacto | null>(null);
-  protected readonly tipoOptions: DynadrillSelectOption[] = (Object.entries(TIPO_PERSONA_LABELS) as [TipoPersonaContacto, string][]).map(
-    ([value, label]) => ({ label, value }),
-  );
-
-  protected readonly personasColumns: DynadrillDataTableColumn[] = [
+  /** El filtro de Tipo vive en el propio header de columna (nz-table nativo) — ver `filters` abajo. */
+  protected readonly personasColumns = computed<DynadrillDataTableColumn[]>(() => [
     { key: 'nombre', header: 'Nombre', sortable: true, searchable: true },
-    { key: 'tipoBadge', header: 'Tipo', type: 'badge' },
+    {
+      key: 'tipoBadge',
+      header: 'Tipo',
+      type: 'badge',
+      filters: [...new Set(this.personas().map(p => p.tipo))]
+        .sort()
+        .map(t => ({ text: TIPO_PERSONA_LABELS[t], value: TIPO_PERSONA_LABELS[t] })),
+    },
     { key: 'activoBadge', header: 'Estado', type: 'badge' },
-  ];
-
-  protected readonly personasFiltradas = computed(() => {
-    const t = this.filtroTipo();
-    return t ? this.personas().filter(p => p.tipo === t) : this.personas();
-  });
+  ]);
 
   protected readonly personasRows = computed(() =>
-    this.personasFiltradas().map(p => ({
+    this.personas().map(p => ({
       id: p.id,
       nombre: p.nombre,
       tipoBadge: { text: TIPO_PERSONA_LABELS[p.tipo], tone: 'brand' as const },
@@ -136,7 +131,7 @@ export class CatalogosVentasPage {
     const ref = this.dialog.open<PersonaFormDialog, PersonaFormDialogData>({
       title: persona ? 'Editar persona' : 'Nueva persona',
       content: PersonaFormDialog,
-      data: { persona, tipoInicial: this.filtroTipo() ?? undefined },
+      data: { persona },
       footer: false,
     });
     ref.afterClose.subscribe(guardado => {

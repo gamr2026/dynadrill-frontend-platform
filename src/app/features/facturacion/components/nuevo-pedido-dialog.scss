@@ -37,6 +37,26 @@
     @include f.field-grid(240px);
   }
 
+  /** 6 campos por línea (código/descripción/unidad/cantidad/precio/descuento) — mínimo más angosto para que entren más por fila. */
+  &__grid--linea {
+    @include f.field-grid(140px);
+  }
+
+  &__plantilla {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 10px 0 14px;
+    border-bottom: 1px solid var(--color-border, #e0e0e0);
+    margin-bottom: 10px;
+
+    dynadrill-text {
+      flex: 1 1 320px;
+    }
+  }
+
   &__linea {
     padding: 10px 0;
 

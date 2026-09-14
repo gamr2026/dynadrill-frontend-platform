@@ -25,7 +25,8 @@
     "ng-zorro-antd": "^21.0.0",
     "ngx-echarts": "^21.0.0",
     "rxjs": "~7.8.0",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@angular/build": "^21.2.21",

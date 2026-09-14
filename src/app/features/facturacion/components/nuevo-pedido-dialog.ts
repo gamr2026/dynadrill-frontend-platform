@@ -1,6 +1,8 @@
 import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
+import type { NzUploadFile } from 'ng-zorro-antd/upload';
+import * as XLSX from 'xlsx';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
@@ -9,10 +11,11 @@ import {
   DynadrillNotificationService,
   DynadrillSelectComponent,
   DynadrillTextComponent,
+  DynadrillUploadZoneComponent,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../core/services/auth.service';
-import { LINEA_SERVICIO_LABELS, LineaServicio, Pedido, TIPO_OT_LABELS, TipoOt } from '../models/pedido.model';
+import { ItemEstimado, LINEA_SERVICIO_LABELS, LineaServicio, Pedido, TIPO_OT_LABELS, TipoOt } from '../models/pedido.model';
 import { ListaPrecios } from '../models/lista-precios.model';
 import { Prefactura } from '../models/prefactura.model';
 import { ListaPreciosService, PedidoService, PrefacturaService } from '../services/pedido.service';
@@ -25,6 +28,37 @@ import {
   type TipoPersonaContacto,
   type UbicacionSeleccion,
 } from '../../../shared/index';
+
+/**
+ * Línea estimada en edición — todos los campos como texto libre (mismo
+ * patrón que unit-report-dialog: bindear un number a [value] de un
+ * <input type="number"> hace que el valor tipeado "no pegue"). Ya NO se
+ * deriva de un código elegido de la Lista de Precios interna — la
+ * plantilla real de AS2 (ver `onCargarPlantilla`) trae su propia
+ * descripción/precio/descuento, que puede no coincidir con ningún código
+ * de esa lista.
+ */
+interface LineaEstimadaDraft {
+  codigo: string;
+  descripcion: string;
+  unidad: string;
+  cantidad: string;
+  valorUnitario: string;
+  descuentoPorcentaje: string;
+}
+
+const LINEA_ESTIMADA_VACIA: LineaEstimadaDraft = {
+  codigo: '',
+  descripcion: '',
+  unidad: '',
+  cantidad: '1',
+  valorUnitario: '0',
+  descuentoPorcentaje: '0',
+};
+
+/** Cabecera real de la plantilla descargable de AS2 (hoja "Ventas", fila 4) — "AS2 Pedido Cliente.xlsx". */
+const CABECERA_PLANTILLA_AS2 = 'Codigo Producto AS2';
+const MAX_PLANTILLA_BYTES = 5 * 1024 * 1024;
 
 /** Condición de pago — dos categorías a pedido del cliente: normal vs. "SIN CRÉDITO" (plazos largos, sin línea de crédito). */
 const CONDICION_PAGO_OPTIONS: DynadrillSelectOption[] = [
@@ -64,6 +98,7 @@ export interface NuevoPedidoDialogData {
     DynadrillDatetimePickerComponent,
     DynadrillButtonComponent,
     DynadrillTextComponent,
+    DynadrillUploadZoneComponent,
     UbicacionSelectorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -153,52 +188,105 @@ export class NuevoPedidoDialog {
     { label: 'Verbal', value: 'verbal' },
   ];
 
-  // ── Estimado (1 o varias líneas, desde la Lista de Precios del cliente) ──
+  // ── Estimado (1 o varias líneas — texto libre, o cargadas desde la plantilla real de AS2) ──
+  /** Solo para la advertencia "no está en la Lista de Precios de Dynadrill" — ya no restringe qué se puede tipear/cargar. */
   protected readonly listaCliente = signal<ListaPrecios | null>(null);
-  protected readonly itemOptions = computed<DynadrillSelectOption[]>(() =>
-    (this.listaCliente()?.items ?? []).map(i => ({ label: `${i.codigo} — ${i.descripcion}`, value: i.codigo })),
-  );
 
-  /**
-   * Líneas estimadas. Cantidad/valor como string (mismo patrón que
-   * unit-report-dialog): bindear un number a [value] de un <input type="number">
-   * hace que el valor tipeado "no pegue" y quede en el default.
-   */
-  protected readonly lineasEstimadas = signal<{ codigo: string | null; cantidad: string; valorUnitario: string }[]>([
-    { codigo: null, cantidad: '1', valorUnitario: '0' },
-  ]);
+  protected readonly lineasEstimadas = signal<LineaEstimadaDraft[]>([{ ...LINEA_ESTIMADA_VACIA }]);
 
-  protected itemDeLinea(codigo: string | null) {
-    return this.listaCliente()?.items.find(i => i.codigo === codigo) ?? null;
+  /** true si el código NO está en la Lista de Precios interna del cliente — esa línea no entrará a la prefactura automática (armarPrefacturaItems solo toma códigos conocidos). */
+  protected codigoFueraDeListaPrecios(codigo: string): boolean {
+    const lista = this.listaCliente();
+    if (!lista || !codigo.trim()) return false;
+    return !lista.items.some(i => i.codigo === codigo.trim());
   }
 
   protected agregarLinea(): void {
-    this.lineasEstimadas.update(ls => [...ls, { codigo: null, cantidad: '1', valorUnitario: '0' }]);
+    this.lineasEstimadas.update(ls => [...ls, { ...LINEA_ESTIMADA_VACIA }]);
   }
 
   protected quitarLinea(index: number): void {
     this.lineasEstimadas.update(ls => (ls.length > 1 ? ls.filter((_, i) => i !== index) : ls));
   }
 
-  protected onLineaCodigoChange(index: number, codigo: string): void {
-    const precio = this.itemDeLinea(codigo)?.precio;
-    this.lineasEstimadas.update(ls =>
-      ls.map((l, i) => (i === index ? { ...l, codigo, valorUnitario: precio != null ? String(precio) : l.valorUnitario } : l)),
-    );
-  }
-
-  protected onLineaCampoChange(index: number, campo: 'cantidad' | 'valorUnitario', valor: string): void {
+  protected onLineaCampoChange<K extends keyof LineaEstimadaDraft>(index: number, campo: K, valor: LineaEstimadaDraft[K]): void {
     this.lineasEstimadas.update(ls => ls.map((l, i) => (i === index ? { ...l, [campo]: valor } : l)));
   }
 
-  private lineaValida(l: { codigo: string | null; cantidad: string; valorUnitario: string }): boolean {
-    return !!l.codigo && Number(l.cantidad) > 0 && Number(l.valorUnitario) > 0;
+  private lineaValida(l: LineaEstimadaDraft): boolean {
+    return !!l.codigo.trim() && !!l.descripcion.trim() && Number(l.cantidad) > 0 && Number(l.valorUnitario) > 0;
   }
 
   protected readonly lineasTodasValidas = computed(() => this.lineasEstimadas().every(l => this.lineaValida(l)));
   protected readonly valorEstimadoTotal = computed(() =>
     Math.round(this.lineasEstimadas().reduce((s, l) => s + Number(l.cantidad) * Number(l.valorUnitario), 0) * 100) / 100,
   );
+
+  /**
+   * Carga la plantilla real "AS2 Pedido Cliente.xlsx" (hoja "Ventas": Codigo
+   * Producto AS2, Codigo UN, Cantidad, Descripción, Precio, Porcentaje
+   * Descuento) — reemplaza las líneas actuales por TODOS los registros del
+   * archivo, tal como pidió el cliente.
+   */
+  protected onCargarPlantilla(file: NzUploadFile): void {
+    const archivo = (file.originFileObj as File | undefined) ?? (file as unknown as File);
+    if (!archivo || typeof archivo.size !== 'number') {
+      this.notify.error('Archivo no reconocido', 'No se pudo leer el archivo seleccionado. Probá de nuevo.');
+      return;
+    }
+    if (archivo.size > MAX_PLANTILLA_BYTES) {
+      this.notify.error('Archivo demasiado grande', 'El archivo supera el máximo permitido de 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = evento => {
+      try {
+        const datos = new Uint8Array(evento.target!.result as ArrayBuffer);
+        const libro = XLSX.read(datos, { type: 'array' });
+        const hoja = libro.Sheets[libro.SheetNames[0]];
+        const filas = XLSX.utils.sheet_to_json<unknown[]>(hoja, { header: 1, defval: '', raw: false });
+
+        const idxCabecera = filas.findIndex(f => (f[0] ?? '').toString().trim() === CABECERA_PLANTILLA_AS2);
+        if (idxCabecera === -1) {
+          this.notify.error(
+            'Plantilla no reconocida',
+            `No se encontró el encabezado "${CABECERA_PLANTILLA_AS2}" — ¿es la plantilla de AS2 Pedido Cliente?`,
+          );
+          return;
+        }
+
+        const lineas: LineaEstimadaDraft[] = [];
+        for (const fila of filas.slice(idxCabecera + 1)) {
+          const codigo = (fila[0] ?? '').toString().trim();
+          if (!codigo) break; // primera fila vacía = fin de los datos
+          const unidad = (fila[1] ?? '').toString().trim();
+          const cantidad = (fila[2] ?? '').toString().trim();
+          const descripcion = (fila[3] ?? '').toString().trim();
+          const precio = (fila[4] ?? '').toString().trim();
+          const descuento = (fila[5] ?? '').toString().trim();
+          lineas.push({
+            codigo,
+            descripcion,
+            unidad,
+            cantidad: cantidad || '1',
+            valorUnitario: precio || '0',
+            descuentoPorcentaje: descuento || '0',
+          });
+        }
+
+        if (!lineas.length) {
+          this.notify.error('Sin registros', 'La plantilla no trae ninguna línea después del encabezado.');
+          return;
+        }
+        this.lineasEstimadas.set(lineas);
+        this.notify.success('Plantilla cargada', `${lineas.length} línea(s) cargada(s) desde el archivo.`);
+      } catch {
+        this.notify.error('Error al leer el archivo', 'No se pudo procesar el Excel. Verificá que no esté dañado.');
+      }
+    };
+    reader.readAsArrayBuffer(archivo);
+  }
 
   protected readonly submitting = signal(false);
 
@@ -302,37 +390,37 @@ export class NuevoPedidoDialog {
     this.bodega.set(p.bodega ?? '');
     this.solicitudMedio.set(p.solicitudMedio ?? 'escrita');
     if (p.itemsEstimados?.length) {
-      this.lineasPrefill = p.itemsEstimados.map(it => ({
-        codigo: it.codigo,
-        cantidad: String(it.cantidad),
-        valorUnitario: String(it.valorUnitario),
-      }));
+      this.lineasEstimadas.set(
+        p.itemsEstimados.map(it => ({
+          codigo: it.codigo,
+          descripcion: it.descripcion,
+          unidad: it.unidad,
+          cantidad: String(it.cantidad),
+          valorUnitario: String(it.valorUnitario),
+          descuentoPorcentaje: it.descuentoPorcentaje != null ? String(it.descuentoPorcentaje) : '0',
+        })),
+      );
     }
   }
 
   private todasLasListas: ListaPrecios[] = [];
-  /**
-   * Líneas del pedido en edición, fijadas por `prefillDesdePedido` ANTES de
-   * que la lista de precios cargue (async) — sin esto, el primer
-   * `emparejarLista()` automático (dispara al llegar `listaService.list()`)
-   * las pisaría con el default en blanco. Se consume una sola vez.
-   */
-  private lineasPrefill: { codigo: string | null; cantidad: string; valorUnitario: string }[] | null = null;
 
   private actualizarListaCliente(listas: ListaPrecios[]): void {
     this.todasLasListas = listas;
     this.emparejarLista();
   }
 
+  /**
+   * Solo actualiza `listaCliente` (para la advertencia de "código fuera de
+   * la Lista de Precios") — ya NO toca `lineasEstimadas`: los códigos son
+   * texto libre, no dependen de que existan en la lista del cliente elegido.
+   */
   private emparejarLista(): void {
-    const match =
+    this.listaCliente.set(
       this.todasLasListas.find(l => l.cliente === this.cliente() && l.numeroContrato === this.numeroContrato() && l.activa) ??
-      this.todasLasListas.find(l => l.cliente === this.cliente() && l.activa) ??
-      null;
-    this.listaCliente.set(match);
-    // Al cambiar de lista se limpian los códigos elegidos (pueden no existir en la nueva) — salvo el prefill de edición, que se consume una sola vez.
-    this.lineasEstimadas.set(this.lineasPrefill ?? [{ codigo: null, cantidad: '1', valorUnitario: '0' }]);
-    this.lineasPrefill = null;
+        this.todasLasListas.find(l => l.cliente === this.cliente() && l.activa) ??
+        null,
+    );
   }
 
   protected onClienteChange(value: string): void {
@@ -349,16 +437,14 @@ export class NuevoPedidoDialog {
     this.submitting.set(true);
 
     const nombre = this.auth.currentUser()?.name ?? 'Ventas';
-    const itemsEstimados = this.lineasEstimadas().map(l => {
-      const it = this.itemDeLinea(l.codigo)!;
-      return {
-        codigo: it.codigo,
-        descripcion: it.descripcion,
-        unidad: it.unidad,
-        cantidad: Number(l.cantidad),
-        valorUnitario: Number(l.valorUnitario),
-      };
-    });
+    const itemsEstimados: ItemEstimado[] = this.lineasEstimadas().map(l => ({
+      codigo: l.codigo.trim(),
+      descripcion: l.descripcion.trim(),
+      unidad: l.unidad.trim(),
+      cantidad: Number(l.cantidad),
+      valorUnitario: Number(l.valorUnitario),
+      descuentoPorcentaje: Number(l.descuentoPorcentaje) || 0,
+    }));
 
     const payload = {
       origen: 'portal' as const,

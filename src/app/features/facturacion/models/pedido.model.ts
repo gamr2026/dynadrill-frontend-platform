@@ -85,6 +85,8 @@ export interface ItemEstimado {
   unidad: string;
   cantidad: number;
   valorUnitario: number;
+  /** % de descuento de la línea — de la plantilla "AS2 Pedido Cliente.xlsx" ("Porcentaje Descuento"). No todas las líneas lo traen. */
+  descuentoPorcentaje?: number;
 }
 
 export interface CambioEstado {

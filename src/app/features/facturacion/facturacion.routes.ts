@@ -6,6 +6,8 @@ import { roleGuard } from '../../core/guards/role.guard';
 const FACTURACION_ROLES = ['Facturación', 'Superadmin', 'Jefe de Base'];
 /** Ventas también abre y consulta Pedidos (FACT-001), pero no prefacturas/AOT/reportería. */
 const PEDIDO_ROLES = [...FACTURACION_ROLES, 'Ingeniería de Ventas'];
+/** Catálogos de personas/clientes del Pedido — a pedido del cliente, solo Ventas los gestiona (ni Facturación). */
+const VENTAS_CATALOGOS_ROLES = ['Superadmin', 'Jefe de Base', 'Ingeniería de Ventas'];
 
 export const facturacionRoutes: Routes = [
   { path: '', redirectTo: 'pedidos', pathMatch: 'full' },
@@ -20,6 +22,12 @@ export const facturacionRoutes: Routes = [
     loadComponent: () => import('./pages/pedido-detail-page/pedido-detail-page').then(m => m.PedidoDetailPage),
     canActivate: [roleGuard],
     data: { allowedRoles: PEDIDO_ROLES },
+  },
+  {
+    path: 'catalogos',
+    loadComponent: () => import('./pages/catalogos-ventas-page/catalogos-ventas-page').then(m => m.CatalogosVentasPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: VENTAS_CATALOGOS_ROLES },
   },
   {
     path: 'lista-precios',

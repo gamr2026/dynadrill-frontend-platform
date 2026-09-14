@@ -1,0 +1,13 @@
+<div class="cliente-form">
+  <dynadrill-input label="Tipo de identificación" [value]="tipoIdentificacion()" (valueChange)="tipoIdentificacion.set($event)" />
+  <dynadrill-input label="Identificación (RUC/cédula/pasaporte)" [value]="identificacion()" (valueChange)="identificacion.set($event)" />
+  <dynadrill-input label="Nombre comercial" [value]="nombreComercial()" (valueChange)="nombreComercial.set($event)" />
+  <dynadrill-input label="Nombre fiscal" [value]="nombreFiscal()" (valueChange)="nombreFiscal.set($event)" />
+
+  <div class="cliente-form__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">
+      {{ submitting() ? 'Guardando…' : 'Guardar' }}
+    </dynadrill-button>
+  </div>
+</div>

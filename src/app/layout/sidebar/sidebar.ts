@@ -103,6 +103,17 @@ const FACTURACION_ITEM: DynadrillMenuItem = {
   ],
 };
 
+/**
+ * Con "Catálogos" (personas/clientes de Pedido) — solo para quien puede
+ * gestionarlos (Ventas + admins, ver ModuleRoles.personasWrite en el
+ * backend). Facturación usa `FACTURACION_ITEM` a secas: el link llevaría a
+ * una pantalla que el roleGuard le rebota igual.
+ */
+const FACTURACION_ITEM_ADMIN: DynadrillMenuItem = {
+  ...FACTURACION_ITEM,
+  children: [...FACTURACION_ITEM.children!, { label: 'Catálogos', link: '/dashboard/facturacion/catalogos' }],
+};
+
 const ADMINISTRACION_ITEM: DynadrillMenuItem = {
   label: 'Administración',
   icon: 'settings',
@@ -172,7 +183,14 @@ export class Sidebar {
       return [
         dashboard,
         FCR_ONLY_ITEM,
-        { label: 'Facturación', icon: 'file-text' as DynadrillIconName, children: [{ label: 'Pedidos', link: '/dashboard/facturacion/pedidos' }] },
+        {
+          label: 'Facturación',
+          icon: 'file-text' as DynadrillIconName,
+          children: [
+            { label: 'Pedidos', link: '/dashboard/facturacion/pedidos' },
+            { label: 'Catálogos', link: '/dashboard/facturacion/catalogos' },
+          ],
+        },
       ];
     }
 
@@ -206,7 +224,7 @@ export class Sidebar {
         {
           label: 'Módulos',
           icon: 'modules',
-          children: [OPERATIVO_ITEM, MANTENIMIENTO_ITEM, INVENTARIO_ITEM, QHSE_ITEM, FACTURACION_ITEM],
+          children: [OPERATIVO_ITEM, MANTENIMIENTO_ITEM, INVENTARIO_ITEM, QHSE_ITEM, FACTURACION_ITEM_ADMIN],
         },
       ];
     }

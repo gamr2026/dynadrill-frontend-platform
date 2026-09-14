@@ -90,3 +90,10 @@ export interface ClienteCatalogo {
   nombreFiscal?: string | null;
   activo: boolean;
 }
+
+export const TIPO_PERSONA_LABELS: Record<TipoPersonaContacto, string> = {
+  representante_campo: 'Representante Campo (Company Man)',
+  representante_quito: 'Representante Quito',
+  analista_facturacion: 'Analista de Facturación',
+  agente_comercial: 'Agente Comercial',
+};

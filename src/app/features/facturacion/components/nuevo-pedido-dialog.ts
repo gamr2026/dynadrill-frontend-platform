@@ -2,6 +2,7 @@ import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import {
+  DynadrillBannerComponent,
   DynadrillButtonComponent,
   DynadrillDatetimePickerComponent,
   DynadrillInputComponent,
@@ -13,7 +14,8 @@ import {
 import { AuthService } from '../../../core/services/auth.service';
 import { LINEA_SERVICIO_LABELS, LineaServicio, Pedido, TIPO_OT_LABELS, TipoOt } from '../models/pedido.model';
 import { ListaPrecios } from '../models/lista-precios.model';
-import { ListaPreciosService, PedidoService } from '../services/pedido.service';
+import { Prefactura } from '../models/prefactura.model';
+import { ListaPreciosService, PedidoService, PrefacturaService } from '../services/pedido.service';
 import { RolesService } from '../../users/services/users.service';
 import { UBICACION_VACIA, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../shared/index';
 
@@ -57,6 +59,7 @@ export interface NuevoPedidoDialogData {
   selector: 'app-nuevo-pedido-dialog',
   imports: [
     DecimalPipe,
+    DynadrillBannerComponent,
     DynadrillInputComponent,
     DynadrillSelectComponent,
     DynadrillDatetimePickerComponent,
@@ -70,6 +73,7 @@ export interface NuevoPedidoDialogData {
 })
 export class NuevoPedidoDialog {
   private readonly pedidoService = inject(PedidoService);
+  private readonly prefacturaService = inject(PrefacturaService);
   private readonly listaService = inject(ListaPreciosService);
   private readonly rolesService = inject(RolesService);
   private readonly auth = inject(AuthService);
@@ -211,6 +215,30 @@ export class NuevoPedidoDialog {
     };
   });
 
+  /** Solo se consulta en edición — si el pedido ya tiene prefactura, decide el aviso sobre "Líneas estimadas". */
+  protected readonly prefacturaExistente = signal<Prefactura | null>(null);
+
+  /**
+   * Mientras la prefactura sigue en 'generada' (no salió al cliente), editar
+   * el pedido SÍ actualiza su valor (ver `recalcularPrefacturaSiAplica` en
+   * el backend) — de ahí el aviso, no un bloqueo. Una vez enviada/firmada
+   * queda congelada a propósito y el aviso lo dice explícito.
+   */
+  protected readonly avisoPrefactura = computed<{ variant: 'warning' | 'info'; mensaje: string } | null>(() => {
+    const pf = this.prefacturaExistente();
+    if (!pf) return null;
+    if (pf.estado === 'generada') {
+      return {
+        variant: 'warning',
+        mensaje: `Este pedido ya tiene la prefactura ${pf.code} generada — al guardar, su valor se actualiza con estos cambios.`,
+      };
+    }
+    return {
+      variant: 'info',
+      mensaje: `Este pedido ya tiene la prefactura ${pf.code} (${pf.estado.replace(/_/g, ' ')}) — ya no se actualiza automáticamente al editar.`,
+    };
+  });
+
   constructor() {
     this.listaService.list().subscribe(listas => {
       this.actualizarListaCliente(listas);
@@ -220,7 +248,10 @@ export class NuevoPedidoDialog {
     });
 
     const p = this.data?.pedido;
-    if (p) this.prefillDesdePedido(p);
+    if (p) {
+      this.prefillDesdePedido(p);
+      this.prefacturaService.dePedido(p.id).subscribe(pf => this.prefacturaExistente.set(pf));
+    }
   }
 
   /** Modo edición — vuelca el pedido ya creado a las señales del formulario. `ubicacion`/`ubicacionInicial` los resuelve <app-ubicacion-selector>. */

@@ -66,6 +66,9 @@
 
   <fieldset class="nuevo-pedido__group">
     <legend>Líneas estimadas (cotizado)</legend>
+    @if (avisoPrefactura(); as aviso) {
+      <dynadrill-banner [variant]="aviso.variant" [message]="aviso.mensaje" />
+    }
     @if (!listaCliente()) {
       <dynadrill-text variant="caption">Selecciona un cliente con lista de precios para elegir los códigos.</dynadrill-text>
     }

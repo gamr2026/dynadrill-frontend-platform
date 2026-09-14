@@ -21,7 +21,12 @@
       <dynadrill-datetime-picker mode="date" label="Inicio de servicio" [value]="fechaInicioServicio()!" (valueChange)="fechaInicioServicio.set($event)" />
       <dynadrill-datetime-picker mode="date" label="Fin de servicio" [value]="fechaFinServicio()!" (valueChange)="fechaFinServicio.set($event)" />
     </div>
-    <app-ubicacion-selector [requiereTaladro]="true" (seleccionChange)="ubicacion.set($event)" />
+    <app-ubicacion-selector
+      [requiereTaladro]="true"
+      [mostrarRigContractual]="false"
+      [valorInicial]="ubicacionInicial()"
+      (seleccionChange)="ubicacion.set($event)"
+    />
   </fieldset>
 
   <fieldset class="nuevo-pedido__group">
@@ -41,16 +46,23 @@
     </div>
   </fieldset>
 
-  <fieldset class="nuevo-pedido__group">
-    <legend>Administrativos (AS2)</legend>
-    <div class="nuevo-pedido__grid">
-      <dynadrill-input label="Condición de pago" [value]="condicionPago()" (valueChange)="condicionPago.set($event)" />
-      <dynadrill-input label="Zona" [value]="zona()" (valueChange)="zona.set($event)" />
-      <dynadrill-input label="Canal" [value]="canal()" (valueChange)="canal.set($event)" />
-      <dynadrill-input label="Bodega" [value]="bodega()" (valueChange)="bodega.set($event)" />
-      <dynadrill-select label="Solicitud" [options]="solicitudMedioOptions" [value]="solicitudMedio()" (valueChange)="solicitudMedio.set($any($event))" />
-    </div>
-  </fieldset>
+  @if (puedeVerAdministrativos()) {
+    <fieldset class="nuevo-pedido__group">
+      <legend>Administrativos (AS2)</legend>
+      <div class="nuevo-pedido__grid">
+        <dynadrill-select
+          label="Condición de pago"
+          [options]="condicionPagoOptions"
+          [grouped]="true"
+          [value]="condicionPago()"
+          (valueChange)="condicionPago.set($any($event))"
+        />
+        <dynadrill-input label="Zona" [value]="zona()" (valueChange)="zona.set($event)" />
+        <dynadrill-input label="Bodega" [value]="bodega()" (valueChange)="bodega.set($event)" />
+        <dynadrill-select label="Solicitud" [options]="solicitudMedioOptions" [value]="solicitudMedio()" (valueChange)="solicitudMedio.set($any($event))" />
+      </div>
+    </fieldset>
+  }
 
   <fieldset class="nuevo-pedido__group">
     <legend>Líneas estimadas (cotizado)</legend>
@@ -91,7 +103,7 @@
   <div class="nuevo-pedido__actions">
     <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
     <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">
-      {{ submitting() ? 'Guardando…' : 'Crear pedido' }}
+      {{ submitting() ? 'Guardando…' : editando() ? 'Guardar cambios' : 'Crear pedido' }}
     </dynadrill-button>
   </div>
 </div>

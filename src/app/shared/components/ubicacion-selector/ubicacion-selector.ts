@@ -49,7 +49,7 @@ import { UBICACION_VACIA, type Campo, type Pozo, type Taladro, type UbicacionSel
           [searchable]="true"
           (valueChange)="onTaladroChange($any($event))"
         />
-        @if (rigContractual()) {
+        @if (mostrarRigContractual() && rigContractual()) {
           <dynadrill-input label="Rig contractual" [value]="rigContractual()" [disabled]="true" />
         }
       }
@@ -72,6 +72,8 @@ export class UbicacionSelectorComponent {
   readonly requiereTaladro = input(false);
   /** false = oculta el select de Taladro (formularios donde no aplica, ej. Reporte de Unidad). */
   readonly mostrarTaladro = input(true);
+  /** false = oculta el campo de solo lectura "Rig contractual" (ej. alta de Pedido — a pedido del cliente, ver FACT-001). */
+  readonly mostrarRigContractual = input(true);
 
   readonly seleccionChange = output<UbicacionSeleccion>();
 

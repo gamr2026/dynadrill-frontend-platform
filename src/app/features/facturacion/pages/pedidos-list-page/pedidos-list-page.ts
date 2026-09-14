@@ -27,6 +27,7 @@ import { DocumentoOperativo, TIPO_DOCUMENTO_OPERATIVO_LABELS } from '../../model
 import { DocumentoOperativoService, PedidoService } from '../../services/pedido.service';
 import { NuevoPedidoDialog } from '../../components/nuevo-pedido-dialog';
 import { AppNotificationItem, NotificationsService } from '../../../../core/services/notifications.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 /** Días entre `desde` y hoy (0 si no hay fecha). */
 function diasDesde(desde?: string): number {
@@ -59,6 +60,10 @@ export class PedidosListPage {
   private readonly notify = inject(DynadrillNotificationService);
   private readonly notifications = inject(NotificationsService);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+
+  /** El alta de pedido es solo de Ventas — Facturación ve/edita lo que Ventas registra, pero no lo crea (a pedido del cliente). */
+  protected readonly puedeCrearPedido = computed(() => this.auth.currentUser()?.roleName !== 'Facturación');
 
   protected readonly loading = signal(true);
   protected readonly sincronizando = signal(false);

@@ -139,7 +139,6 @@ export interface Pedido {
   // ── Administrativos (del formulario de prefactura de AS2) ──
   condicionPago?: string;
   zona?: string;
-  canal?: string;
   bodega?: string;
   /** "Verbal ( ) / Escrita ( x )" del formato real de prefactura — cómo llegó la solicitud del servicio. */
   solicitudMedio?: 'verbal' | 'escrita';

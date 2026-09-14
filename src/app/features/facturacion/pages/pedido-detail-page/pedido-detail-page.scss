@@ -9,6 +9,11 @@
   &__defs { @include f.defs; }
   &__table { @include f.table; }
 
+  &__toolbar {
+    display: flex;
+    justify-content: flex-end;
+  }
+
   &__head-actions {
     display: flex;
     flex-wrap: wrap;

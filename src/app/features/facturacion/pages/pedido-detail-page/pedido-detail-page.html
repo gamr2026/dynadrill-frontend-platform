@@ -6,6 +6,10 @@
       [subtitle]="p.cliente + ' — ' + p.campo + ' / ' + p.pozo"
     />
 
+    <div class="pedido-detail__toolbar">
+      <dynadrill-button variant="secondary" (clicked)="editarPedido()">Editar pedido</dynadrill-button>
+    </div>
+
     <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
       <section class="fact-card" [class.fact-card--brand]="!estadoFueraDeAlcance()">
         <header class="pedido-detail__head">

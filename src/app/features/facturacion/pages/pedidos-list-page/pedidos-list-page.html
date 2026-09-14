@@ -9,7 +9,9 @@
     <dynadrill-button variant="secondary" [disabled]="sincronizando()" (clicked)="sincronizar()">
       {{ sincronizando() ? 'Sincronizando…' : 'Sincronizar con AS2' }}
     </dynadrill-button>
-    <dynadrill-button (clicked)="nuevoPedido()">+ Nuevo pedido</dynadrill-button>
+    @if (puedeCrearPedido()) {
+      <dynadrill-button (clicked)="nuevoPedido()">+ Nuevo pedido</dynadrill-button>
+    }
   </div>
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">

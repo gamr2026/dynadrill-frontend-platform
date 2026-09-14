@@ -38,6 +38,7 @@ import { GuiaRemisionDialog, GuiaRemisionDialogData } from '../../components/gui
 import { GuiaRemisionPdfDialog, GuiaRemisionPdfDialogData } from '../../components/guia-remision-pdf-dialog';
 import { FCR_PHASE_LABELS, FcrTicket } from '../../../operations/fcr/models/fcr.model';
 import { FcrService } from '../../../operations/fcr/services/fcr.service';
+import { NuevoPedidoDialog } from '../../components/nuevo-pedido-dialog';
 
 interface Dato {
   label: string;
@@ -163,7 +164,6 @@ export class PedidoDetailPage {
     return [
       { label: 'Condición de pago', value: p.condicionPago ?? '—' },
       { label: 'Zona', value: p.zona ?? '—' },
-      { label: 'Canal', value: p.canal ?? '—' },
       { label: 'Bodega', value: p.bodega ?? '—' },
       { label: 'Origen', value: p.origen === 'as2' ? 'AS2' : 'Portal' },
       { label: 'Referencia AS2', value: p.as2Ref ?? '—' },
@@ -211,6 +211,22 @@ export class PedidoDetailPage {
         this.loading.set(false);
         this.notify.error('Error', 'No se pudo cargar el pedido.');
       },
+    });
+  }
+
+  /** Ventas y Facturación pueden editar (ver ModuleRoles.pedidos) — solo Ventas gestiona Administrativos, ver NuevoPedidoDialog. */
+  protected editarPedido(): void {
+    const p = this.pedido();
+    if (!p) return;
+    const ref = this.dialog.open<NuevoPedidoDialog>({
+      title: `Editar pedido ${p.code}`,
+      content: NuevoPedidoDialog,
+      data: { pedido: p },
+      footer: false,
+      width: '760px',
+    });
+    ref.afterClose.subscribe(actualizado => {
+      if (actualizado) this.reload();
     });
   }
 

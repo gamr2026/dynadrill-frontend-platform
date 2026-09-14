@@ -34,6 +34,11 @@ export class PedidoService {
     return this.http.post<Pedido>(this.base, input);
   }
 
+  /** Edición de un pedido ya creado — Ventas y Facturación (ver ModuleRoles.pedidos en el backend). */
+  update(id: number, input: Partial<CreatePedidoInput>): Observable<Pedido> {
+    return this.http.put<Pedido>(`${this.base}/${id}`, input);
+  }
+
   cambiarEstado(id: number, estado: EstadoPedido, usuario: string, motivo?: string): Observable<Pedido> {
     return this.http.patch<Pedido>(`${this.base}/${id}/estado`, { estado, usuario, motivo });
   }

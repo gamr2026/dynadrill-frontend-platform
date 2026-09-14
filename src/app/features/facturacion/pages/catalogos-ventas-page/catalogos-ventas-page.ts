@@ -73,28 +73,24 @@ export class CatalogosVentasPage {
   );
 
   // ── Clientes ──
-  protected readonly filtroTipoIdentificacion = signal<string | null>(null);
-  protected readonly tipoIdentificacionOptions = computed<DynadrillSelectOption[]>(() =>
-    [...new Set(this.clientes().map(c => c.tipoIdentificacion))]
-      .sort()
-      .map(t => ({ label: t.toUpperCase(), value: t })),
-  );
-
-  protected readonly clientesColumns: DynadrillDataTableColumn[] = [
+  /** El filtro de Tipo vive en el propio header de columna (nz-table nativo) — ver `filters` abajo. */
+  protected readonly clientesColumns = computed<DynadrillDataTableColumn[]>(() => [
     { key: 'nombreComercial', header: 'Nombre comercial', sortable: true, searchable: true },
     { key: 'nombreFiscal', header: 'Nombre fiscal', searchable: true },
-    { key: 'tipoBadge', header: 'Tipo', type: 'badge' },
+    {
+      key: 'tipoBadge',
+      header: 'Tipo',
+      type: 'badge',
+      filters: [...new Set(this.clientes().map(c => c.tipoIdentificacion.toUpperCase()))]
+        .sort()
+        .map(t => ({ text: t, value: t })),
+    },
     { key: 'identificacion', header: 'Identificación', searchable: true },
     { key: 'activoBadge', header: 'Estado', type: 'badge' },
-  ];
-
-  protected readonly clientesFiltrados = computed(() => {
-    const t = this.filtroTipoIdentificacion();
-    return t ? this.clientes().filter(c => c.tipoIdentificacion === t) : this.clientes();
-  });
+  ]);
 
   protected readonly clientesRows = computed(() =>
-    this.clientesFiltrados().map(c => ({
+    this.clientes().map(c => ({
       id: c.id,
       nombreComercial: c.nombreComercial,
       nombreFiscal: c.nombreFiscal ?? '—',

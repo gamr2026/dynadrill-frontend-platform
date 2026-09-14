@@ -110,34 +110,60 @@
         Cargá la plantilla de AS2 ("Codigo Producto AS2", Cantidad, Descripción, Precio, % Descuento) para traer todas las
         líneas de una vez — se puede editar cualquier campo después.
       </dynadrill-text>
-      <dynadrill-upload-zone state="idle" (fileSelected)="onCargarPlantilla($event)" />
+      <div class="nuevo-pedido__plantilla-acciones">
+        <dynadrill-button variant="secondary" size="small" (clicked)="descargarPlantilla()">Descargar plantilla</dynadrill-button>
+        <dynadrill-upload-zone state="idle" (fileSelected)="onCargarPlantilla($event)" />
+      </div>
     </div>
 
-    @for (l of lineasEstimadas(); track $index) {
-      <div class="nuevo-pedido__linea">
-        <div class="nuevo-pedido__grid nuevo-pedido__grid--linea">
-          <dynadrill-input label="Código" [value]="l.codigo" (valueChange)="onLineaCampoChange($index, 'codigo', $event)" />
-          <dynadrill-input label="Descripción" [value]="l.descripcion" (valueChange)="onLineaCampoChange($index, 'descripcion', $event)" />
-          <dynadrill-input label="Unidad" [value]="l.unidad" (valueChange)="onLineaCampoChange($index, 'unidad', $event)" />
-          <dynadrill-input label="Cantidad" type="number" [value]="l.cantidad" (valueChange)="onLineaCampoChange($index, 'cantidad', $event)" />
-          <dynadrill-input label="Precio unitario" type="number" [value]="l.valorUnitario" (valueChange)="onLineaCampoChange($index, 'valorUnitario', $event)" />
-          <dynadrill-input label="% Descuento" type="number" [value]="l.descuentoPorcentaje" (valueChange)="onLineaCampoChange($index, 'descuentoPorcentaje', $event)" />
-        </div>
-        <div class="nuevo-pedido__linea-foot">
-          @if (codigoFueraDeListaPrecios(l.codigo)) {
-            <dynadrill-text variant="caption">⚠ Código fuera de la Lista de Precios de Dynadrill del cliente — no entra a la prefactura automática.</dynadrill-text>
-          } @else {
-            <span></span>
+    <div class="table-scroll">
+      <table class="nuevo-pedido__lineas-table">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Descripción</th>
+            <th>Unidad</th>
+            <th class="num">Cantidad</th>
+            <th class="num">Precio unitario</th>
+            <th class="num">% Descuento</th>
+            <th class="num">Total</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (l of lineasEstimadas(); track $index) {
+            <tr>
+              <td>
+                <dynadrill-input label="" [value]="l.codigo" (valueChange)="onLineaCampoChange($index, 'codigo', $event)" />
+                @if (codigoFueraDeListaPrecios(l.codigo)) {
+                  <dynadrill-text variant="caption">⚠ Fuera de la Lista de Precios — no entra a la prefactura automática.</dynadrill-text>
+                }
+              </td>
+              <td><dynadrill-input label="" [value]="l.descripcion" (valueChange)="onLineaCampoChange($index, 'descripcion', $event)" /></td>
+              <td><dynadrill-input label="" [value]="l.unidad" (valueChange)="onLineaCampoChange($index, 'unidad', $event)" /></td>
+              <td class="num"><dynadrill-input label="" type="number" [value]="l.cantidad" (valueChange)="onLineaCampoChange($index, 'cantidad', $event)" /></td>
+              <td class="num"><dynadrill-input label="" type="number" [value]="l.valorUnitario" (valueChange)="onLineaCampoChange($index, 'valorUnitario', $event)" /></td>
+              <td class="num"><dynadrill-input label="" type="number" [value]="l.descuentoPorcentaje" (valueChange)="onLineaCampoChange($index, 'descuentoPorcentaje', $event)" /></td>
+              <td class="num">${{ (+l.cantidad || 0) * (+l.valorUnitario || 0) | number: '1.2-2' }}</td>
+              <td>
+                @if (lineasEstimadas().length > 1) {
+                  <dynadrill-icon-button icon="delete" tooltip="Quitar línea" (clicked)="quitarLinea($index)" />
+                }
+              </td>
+            </tr>
           }
-          @if (lineasEstimadas().length > 1) {
-            <dynadrill-button variant="secondary" size="small" (clicked)="quitarLinea($index)">Quitar</dynadrill-button>
-          }
-        </div>
-      </div>
-    }
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="6" class="num"><strong>Valor estimado total</strong></td>
+            <td class="num"><strong>${{ valorEstimadoTotal() | number: '1.2-2' }}</strong></td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
     <div class="nuevo-pedido__linea-actions">
       <dynadrill-button variant="secondary" size="small" (clicked)="agregarLinea()">+ Agregar línea</dynadrill-button>
-      <dynadrill-text variant="caption">Valor estimado total ${{ valorEstimadoTotal() | number: '1.2-2' }}</dynadrill-text>
     </div>
   </fieldset>
 

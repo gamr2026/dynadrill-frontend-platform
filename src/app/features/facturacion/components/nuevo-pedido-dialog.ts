@@ -7,6 +7,7 @@ import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
   DynadrillDatetimePickerComponent,
+  DynadrillIconButtonComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
   DynadrillSelectComponent,
@@ -59,6 +60,8 @@ const LINEA_ESTIMADA_VACIA: LineaEstimadaDraft = {
 /** Cabecera real de la plantilla descargable de AS2 (hoja "Ventas", fila 4) — "AS2 Pedido Cliente.xlsx". */
 const CABECERA_PLANTILLA_AS2 = 'Codigo Producto AS2';
 const MAX_PLANTILLA_BYTES = 5 * 1024 * 1024;
+/** Copia estática de la plantilla real de AS2 — ver public/plantillas/. */
+const URL_PLANTILLA_AS2 = '/plantillas/as2-pedido-cliente.xlsx';
 
 /** Condición de pago — dos categorías a pedido del cliente: normal vs. "SIN CRÉDITO" (plazos largos, sin línea de crédito). */
 const CONDICION_PAGO_OPTIONS: DynadrillSelectOption[] = [
@@ -97,6 +100,7 @@ export interface NuevoPedidoDialogData {
     DynadrillSelectComponent,
     DynadrillDatetimePickerComponent,
     DynadrillButtonComponent,
+    DynadrillIconButtonComponent,
     DynadrillTextComponent,
     DynadrillUploadZoneComponent,
     UbicacionSelectorComponent,
@@ -228,6 +232,14 @@ export class NuevoPedidoDialog {
    * Descuento) — reemplaza las líneas actuales por TODOS los registros del
    * archivo, tal como pidió el cliente.
    */
+  /** Copia estática servida por el propio frontend (public/plantillas/) — el mismo formato que espera `onCargarPlantilla`. */
+  protected descargarPlantilla(): void {
+    const a = document.createElement('a');
+    a.href = URL_PLANTILLA_AS2;
+    a.download = 'AS2 Pedido Cliente.xlsx';
+    a.click();
+  }
+
   protected onCargarPlantilla(file: NzUploadFile): void {
     const archivo = (file.originFileObj as File | undefined) ?? (file as unknown as File);
     if (!archivo || typeof archivo.size !== 'number') {

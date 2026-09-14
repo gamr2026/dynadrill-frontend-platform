@@ -37,11 +37,6 @@
     @include f.field-grid(240px);
   }
 
-  /** 6 campos por línea (código/descripción/unidad/cantidad/precio/descuento) — mínimo más angosto para que entren más por fila. */
-  &__grid--linea {
-    @include f.field-grid(140px);
-  }
-
   &__plantilla {
     display: flex;
     align-items: center;
@@ -57,26 +52,40 @@
     }
   }
 
-  &__linea {
-    padding: 10px 0;
-
-    & + & {
-      border-top: 1px solid var(--color-border, #e0e0e0);
-    }
-  }
-
-  &__linea-foot {
+  &__plantilla-acciones {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-top: 6px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /**
+   * Tabla de líneas estimadas: cada celda lleva un <dynadrill-input> con
+   * label="" (la columna ya la rotula el thead) — mismo patrón que
+   * lista-precios-detail-page. Se le saca el padding vertical extra del
+   * input para que no infle la altura de la fila.
+   */
+  &__lineas-table {
+    @include f.table;
+
+    td {
+      vertical-align: top;
+      min-width: 110px;
+    }
+
+    dynadrill-input {
+      display: block;
+    }
+
+    tfoot td {
+      border-top: 1px solid var(--color-border, #e0e0e0);
+      padding-top: 8px;
+    }
   }
 
   &__linea-actions {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 12px;
     margin-top: 8px;
   }
@@ -84,4 +93,8 @@
   &__actions {
     @include f.dialog-actions;
   }
+}
+
+.table-scroll {
+  overflow-x: auto;
 }

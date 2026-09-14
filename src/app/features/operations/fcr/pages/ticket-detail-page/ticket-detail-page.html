@@ -24,7 +24,7 @@
   </div>
 } @else if (ticket()) {
 
-  <div class="fcr-detail__tracker">
+  <div class="fcr-detail__tracker" #trackerScroll>
     @for (label of phaseLabels(); track $index; let last = $last) {
       <div
         class="fcr-detail__phase"
@@ -117,32 +117,34 @@
         <dynadrill-text variant="caption">Completa el checklist de cada herramienta y adjunta los 3 documentos requeridos antes de enviar a Supervisor.</dynadrill-text>
 
         <dynadrill-text variant="subtitle">Herramientas a inspeccionar</dynadrill-text>
-        <table class="fcr-detail__table">
-          <thead>
-            <tr><th>Herramienta</th><th>Checklist</th><th></th></tr>
-          </thead>
-          <tbody>
-            @for (tool of ticket()!.tools; track tool.id) {
-              <tr>
-                <td>{{ tool.name }}</td>
-                <td>
-                  @if (toolInspectionEstado(tool.id); as estado) {
-                    <dynadrill-tag [label]="estado" [variant]="estado === 'enviado' ? 'success' : 'warning'" />
-                  } @else {
-                    <dynadrill-tag label="Sin iniciar" variant="warning" />
-                  }
-                </td>
-                <td>
-                  @if (tool.articuloId) {
-                    <dynadrill-button variant="secondary" size="small" (clicked)="openChecklistHerramienta(tool)">{{ toolChecklistButtonLabel(tool.id) }}</dynadrill-button>
-                  } @else {
-                    <dynadrill-text variant="caption">Sin artículo de inventario vinculado — no se puede completar el checklist.</dynadrill-text>
-                  }
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
+        <div class="fcr-detail__table-scroll">
+          <table class="fcr-detail__table">
+            <thead>
+              <tr><th>Herramienta</th><th>Checklist</th><th></th></tr>
+            </thead>
+            <tbody>
+              @for (tool of ticket()!.tools; track tool.id) {
+                <tr>
+                  <td>{{ tool.name }}</td>
+                  <td>
+                    @if (toolInspectionEstado(tool.id); as estado) {
+                      <dynadrill-tag [label]="estado" [variant]="estado === 'enviado' ? 'success' : 'warning'" />
+                    } @else {
+                      <dynadrill-tag label="Sin iniciar" variant="warning" />
+                    }
+                  </td>
+                  <td>
+                    @if (tool.articuloId) {
+                      <dynadrill-button variant="secondary" size="small" (clicked)="openChecklistHerramienta(tool)">{{ toolChecklistButtonLabel(tool.id) }}</dynadrill-button>
+                    } @else {
+                      <dynadrill-text variant="caption">Sin artículo de inventario vinculado — no se puede completar el checklist.</dynadrill-text>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
 
         <div class="fcr-detail__inspection">
           <dynadrill-text variant="subtitle">Formulario de inspección externo</dynadrill-text>
@@ -295,28 +297,30 @@
 
             <div class="fcr-detail__pedido-items">
               <dynadrill-text variant="caption" class="fcr-detail__pedido-items-label">Ítems estimados</dynadrill-text>
-              <table class="fcr-detail__table fcr-detail__table--pedido">
-                <thead>
-                  <tr><th>Código</th><th>Descripción</th><th>Unidad</th><th>Cantidad</th><th>Valor unitario</th><th>Subtotal</th></tr>
-                </thead>
-                <tbody>
-                  @for (item of pedidoItems(); track item.codigo) {
-                    <tr>
-                      <td>{{ item.codigo }}</td>
-                      <td>{{ item.descripcion }}</td>
-                      <td>{{ item.unidad }}</td>
-                      <td>{{ item.cantidad }}</td>
-                      <td>{{ item.valorUnitario.toFixed(2) }}</td>
-                      <td>{{ (item.cantidad * item.valorUnitario).toFixed(2) }}</td>
-                    </tr>
-                  } @empty {
-                    <tr><td colspan="6">Sin ítems estimados registrados.</td></tr>
-                  }
-                </tbody>
-                <tfoot>
-                  <tr><td colspan="5">Total estimado</td><td>{{ pedidoItemsTotal().toFixed(2) }}</td></tr>
-                </tfoot>
-              </table>
+              <div class="fcr-detail__table-scroll">
+                <table class="fcr-detail__table fcr-detail__table--pedido">
+                  <thead>
+                    <tr><th>Código</th><th>Descripción</th><th>Unidad</th><th>Cantidad</th><th>Valor unitario</th><th>Subtotal</th></tr>
+                  </thead>
+                  <tbody>
+                    @for (item of pedidoItems(); track item.codigo) {
+                      <tr>
+                        <td>{{ item.codigo }}</td>
+                        <td>{{ item.descripcion }}</td>
+                        <td>{{ item.unidad }}</td>
+                        <td>{{ item.cantidad }}</td>
+                        <td>{{ item.valorUnitario.toFixed(2) }}</td>
+                        <td>{{ (item.cantidad * item.valorUnitario).toFixed(2) }}</td>
+                      </tr>
+                    } @empty {
+                      <tr><td colspan="6">Sin ítems estimados registrados.</td></tr>
+                    }
+                  </tbody>
+                  <tfoot>
+                    <tr><td colspan="5">Total estimado</td><td>{{ pedidoItemsTotal().toFixed(2) }}</td></tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
           </div>
         } @else {
@@ -372,29 +376,33 @@
           </div>
         }
 
-        <table class="fcr-detail__table">
-          <thead>
-            <tr><th>Herramienta</th><th>Estado</th><th></th></tr>
-          </thead>
-          <tbody>
-            @for (tool of originalTools(); track tool.id) {
-              <ng-container [ngTemplateOutlet]="toolRow" [ngTemplateOutletContext]="{ $implicit: tool }" />
-            }
-          </tbody>
-        </table>
-
-        @if (lateTools().length > 0) {
-          <dynadrill-text variant="caption">Agregadas después — el resto del proceso ya había avanzado cuando se sumaron</dynadrill-text>
+        <div class="fcr-detail__table-scroll">
           <table class="fcr-detail__table">
             <thead>
               <tr><th>Herramienta</th><th>Estado</th><th></th></tr>
             </thead>
             <tbody>
-              @for (tool of lateTools(); track tool.id) {
+              @for (tool of originalTools(); track tool.id) {
                 <ng-container [ngTemplateOutlet]="toolRow" [ngTemplateOutletContext]="{ $implicit: tool }" />
               }
             </tbody>
           </table>
+        </div>
+
+        @if (lateTools().length > 0) {
+          <dynadrill-text variant="caption">Agregadas después — el resto del proceso ya había avanzado cuando se sumaron</dynadrill-text>
+          <div class="fcr-detail__table-scroll">
+            <table class="fcr-detail__table">
+              <thead>
+                <tr><th>Herramienta</th><th>Estado</th><th></th></tr>
+              </thead>
+              <tbody>
+                @for (tool of lateTools(); track tool.id) {
+                  <ng-container [ngTemplateOutlet]="toolRow" [ngTemplateOutletContext]="{ $implicit: tool }" />
+                }
+              </tbody>
+            </table>
+          </div>
         }
 
         <ng-template #toolRow let-tool>
@@ -630,25 +638,27 @@
           }
 
           @if (sortedActivityLog().length > 0) {
-            <table class="fcr-detail__table">
-              <thead><tr><th>Fecha</th><th>Inicio</th><th>Fin</th><th>Horas</th><th>Detalle</th><th></th></tr></thead>
-              <tbody>
-                @for (entry of sortedActivityLog(); track entry.id) {
-                  <tr>
-                    <td>{{ formatDate(entry.date) }}</td>
-                    <td>{{ entry.startTime }}</td>
-                    <td>{{ entry.endTime }}</td>
-                    <td>{{ entry.durationHours }}</td>
-                    <td>{{ entry.detail }}</td>
-                    <td>
-                      @if (isMyTurn()) {
-                        <dynadrill-icon-button class="fcr-detail__tool-delete" icon="delete" tooltip="Quitar actividad" (clicked)="removeActivityLogEntry(entry.id)" />
-                      }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+            <div class="fcr-detail__table-scroll">
+              <table class="fcr-detail__table">
+                <thead><tr><th>Fecha</th><th>Inicio</th><th>Fin</th><th>Horas</th><th>Detalle</th><th></th></tr></thead>
+                <tbody>
+                  @for (entry of sortedActivityLog(); track entry.id) {
+                    <tr>
+                      <td>{{ formatDate(entry.date) }}</td>
+                      <td>{{ entry.startTime }}</td>
+                      <td>{{ entry.endTime }}</td>
+                      <td>{{ entry.durationHours }}</td>
+                      <td>{{ entry.detail }}</td>
+                      <td>
+                        @if (isMyTurn()) {
+                          <dynadrill-icon-button class="fcr-detail__tool-delete" icon="delete" tooltip="Quitar actividad" (clicked)="removeActivityLogEntry(entry.id)" />
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
           }
 
           @if (isMyTurn()) {
@@ -681,34 +691,36 @@
           }
 
           @if (sortedToolUsageLog().length > 0) {
-            <table class="fcr-detail__table">
-              <thead>
-                <tr>
-                  <th>Herramienta</th><th>Fecha</th><th>Estado</th>
-                  <th>{{ ticket()!.tipoOt === 'servicio' ? 'Tipo de trabajo' : 'Tipo de completación' }}</th>
-                  <th>Picker</th><th>Presión</th><th>Peso</th><th>Observación</th><th></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (entry of sortedToolUsageLog(); track entry.id) {
+            <div class="fcr-detail__table-scroll">
+              <table class="fcr-detail__table">
+                <thead>
                   <tr>
-                    <td>{{ entry.toolName }}</td>
-                    <td>{{ formatDate(entry.date) }}</td>
-                    <td>{{ toolDailyStatusLabel(entry.status) }}</td>
-                    <td>{{ entry.tipoTrabajo ? tipoTrabajoLabel(entry.tipoTrabajo) : entry.tipoCompletacion ? tipoCompletacionLabel(entry.tipoCompletacion) : '—' }}</td>
-                    <td>{{ entry.tipoPicker ?? '—' }}</td>
-                    <td>{{ entry.presion ?? '—' }}</td>
-                    <td>{{ entry.peso ?? '—' }}</td>
-                    <td>{{ entry.observacion ?? '—' }}</td>
-                    <td>
-                      @if (isMyTurn()) {
-                        <dynadrill-icon-button class="fcr-detail__tool-delete" icon="delete" tooltip="Quitar registro" (clicked)="removeToolUsageEntry(entry.id)" />
-                      }
-                    </td>
+                    <th>Herramienta</th><th>Fecha</th><th>Estado</th>
+                    <th>{{ ticket()!.tipoOt === 'servicio' ? 'Tipo de trabajo' : 'Tipo de completación' }}</th>
+                    <th>Picker</th><th>Presión</th><th>Peso</th><th>Observación</th><th></th>
                   </tr>
-                }
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  @for (entry of sortedToolUsageLog(); track entry.id) {
+                    <tr>
+                      <td>{{ entry.toolName }}</td>
+                      <td>{{ formatDate(entry.date) }}</td>
+                      <td>{{ toolDailyStatusLabel(entry.status) }}</td>
+                      <td>{{ entry.tipoTrabajo ? tipoTrabajoLabel(entry.tipoTrabajo) : entry.tipoCompletacion ? tipoCompletacionLabel(entry.tipoCompletacion) : '—' }}</td>
+                      <td>{{ entry.tipoPicker ?? '—' }}</td>
+                      <td>{{ entry.presion ?? '—' }}</td>
+                      <td>{{ entry.peso ?? '—' }}</td>
+                      <td>{{ entry.observacion ?? '—' }}</td>
+                      <td>
+                        @if (isMyTurn()) {
+                          <dynadrill-icon-button class="fcr-detail__tool-delete" icon="delete" tooltip="Quitar registro" (clicked)="removeToolUsageEntry(entry.id)" />
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
           }
 
           @if (isMyTurn()) {
@@ -808,28 +820,30 @@
         <dynadrill-text variant="h2">Control de Retorno de Herramientas</dynadrill-text>
         <dynadrill-text variant="caption">Conciliación contra la Guía de Movimiento Local de Envío y Retorno</dynadrill-text>
 
-        <table class="fcr-detail__table">
-          <thead>
-            <tr><th>Herramienta</th><th>Estado</th><th>Motivo si falta</th><th></th></tr>
-          </thead>
-          <tbody>
-            @for (tool of ticket()!.tools; track tool.id) {
-              <tr>
-                <td>{{ tool.name }}</td>
-                <td><dynadrill-tag [label]="toolStatusLabel(tool.status)" [variant]="tool.status === 'devuelta' ? 'success' : (tool.status === 'faltante' ? 'warning' : 'neutral')" /></td>
-                <td>{{ tool.missingReason ?? '—' }}</td>
-                <td>
-                  @if (isMyTurn() && tool.status === 'recibida') {
-                    <dynadrill-button variant="secondary" size="small" (clicked)="markToolReturned(tool.id)">Devuelta</dynadrill-button>
-                  }
-                  @if (roleName() === 'Bodeguero' && tool.status === 'faltante' && !ticket()!.bodegaExitGuideGenerated && tool.missingReason?.startsWith('Venta de herramienta complementaria')) {
-                    <dynadrill-button variant="secondary" size="small" (clicked)="openGuiaSalidaBodega(tool)">Generar Guía de Salida</dynadrill-button>
-                  }
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
+        <div class="fcr-detail__table-scroll">
+          <table class="fcr-detail__table">
+            <thead>
+              <tr><th>Herramienta</th><th>Estado</th><th>Motivo si falta</th><th></th></tr>
+            </thead>
+            <tbody>
+              @for (tool of ticket()!.tools; track tool.id) {
+                <tr>
+                  <td>{{ tool.name }}</td>
+                  <td><dynadrill-tag [label]="toolStatusLabel(tool.status)" [variant]="tool.status === 'devuelta' ? 'success' : (tool.status === 'faltante' ? 'warning' : 'neutral')" /></td>
+                  <td>{{ tool.missingReason ?? '—' }}</td>
+                  <td>
+                    @if (isMyTurn() && tool.status === 'recibida') {
+                      <dynadrill-button variant="secondary" size="small" (clicked)="markToolReturned(tool.id)">Devuelta</dynadrill-button>
+                    }
+                    @if (roleName() === 'Bodeguero' && tool.status === 'faltante' && !ticket()!.bodegaExitGuideGenerated && tool.missingReason?.startsWith('Venta de herramienta complementaria')) {
+                      <dynadrill-button variant="secondary" size="small" (clicked)="openGuiaSalidaBodega(tool)">Generar Guía de Salida</dynadrill-button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
 
         @if (isMyTurn() && pendingReturnTools().length > 0) {
           <dynadrill-button variant="secondary" (clicked)="openHerramientaFaltante()">Registrar herramienta faltante</dynadrill-button>
@@ -869,23 +883,25 @@
           <!-- Línea de tiempo de fases — "gente que interactuó" en el ticket -->
           <div class="fcr-detail__dashboard-section">
             <dynadrill-text variant="subtitle">Línea de tiempo — quién actuó en cada fase</dynadrill-text>
-            <table class="fcr-detail__table">
-              <thead>
-                <tr><th>Fase</th><th>Responsable</th><th>Rol</th><th>Fecha</th></tr>
-              </thead>
-              <tbody>
-                @for (approval of ticket()!.phaseHistory; track $index) {
-                  <tr>
-                    <td>{{ phaseLabel(approval.phase) }}</td>
-                    <td>{{ approval.approvedBy }}</td>
-                    <td>{{ approval.approvedByRole }}</td>
-                    <td>{{ formatDate(approval.date) }}</td>
-                  </tr>
-                } @empty {
-                  <tr><td colspan="4">Sin fases registradas todavía.</td></tr>
-                }
-              </tbody>
-            </table>
+            <div class="fcr-detail__table-scroll">
+              <table class="fcr-detail__table">
+                <thead>
+                  <tr><th>Fase</th><th>Responsable</th><th>Rol</th><th>Fecha</th></tr>
+                </thead>
+                <tbody>
+                  @for (approval of ticket()!.phaseHistory; track $index) {
+                    <tr>
+                      <td>{{ phaseLabel(approval.phase) }}</td>
+                      <td>{{ approval.approvedBy }}</td>
+                      <td>{{ approval.approvedByRole }}</td>
+                      <td>{{ formatDate(approval.date) }}</td>
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="4">Sin fases registradas todavía.</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <!-- Checklists + documentos de inspección (SERVICIOS) — mismo bloque reusado en aprobacion_supervisor_operaciones / asignacion_operador / ejecucion_campo -->
@@ -951,42 +967,46 @@
           <!-- Herramientas del ticket -->
           <div class="fcr-detail__dashboard-section">
             <dynadrill-text variant="subtitle">Herramientas del ticket</dynadrill-text>
-            <table class="fcr-detail__table">
-              <thead>
-                <tr><th>Herramienta</th><th>Estado</th></tr>
-              </thead>
-              <tbody>
-                @for (tool of ticket()!.tools; track tool.id) {
-                  <tr>
-                    <td>{{ tool.name }}</td>
-                    <td><dynadrill-tag [label]="toolStatusLabel(tool.status)" [variant]="tool.status === 'devuelta' ? 'success' : (tool.status === 'faltante' ? 'warning' : 'neutral')" /></td>
-                  </tr>
-                } @empty {
-                  <tr><td colspan="2">Sin herramientas registradas.</td></tr>
-                }
-              </tbody>
-            </table>
+            <div class="fcr-detail__table-scroll">
+              <table class="fcr-detail__table">
+                <thead>
+                  <tr><th>Herramienta</th><th>Estado</th></tr>
+                </thead>
+                <tbody>
+                  @for (tool of ticket()!.tools; track tool.id) {
+                    <tr>
+                      <td>{{ tool.name }}</td>
+                      <td><dynadrill-tag [label]="toolStatusLabel(tool.status)" [variant]="tool.status === 'devuelta' ? 'success' : (tool.status === 'faltante' ? 'warning' : 'neutral')" /></td>
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="2">Sin herramientas registradas.</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <!-- Bitácora de actividades -->
           @if (sortedActivityLog().length > 0) {
             <div class="fcr-detail__dashboard-section">
               <dynadrill-text variant="subtitle">Bitácora de actividades</dynadrill-text>
-              <table class="fcr-detail__table">
-                <thead><tr><th>Fecha</th><th>Inicio</th><th>Fin</th><th>Horas</th><th>Detalle</th><th>Registrado por</th></tr></thead>
-                <tbody>
-                  @for (entry of sortedActivityLog(); track entry.id) {
-                    <tr>
-                      <td>{{ formatDate(entry.date) }}</td>
-                      <td>{{ entry.startTime }}</td>
-                      <td>{{ entry.endTime }}</td>
-                      <td>{{ entry.durationHours }}</td>
-                      <td>{{ entry.detail }}</td>
-                      <td>{{ entry.author }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
+              <div class="fcr-detail__table-scroll">
+                <table class="fcr-detail__table">
+                  <thead><tr><th>Fecha</th><th>Inicio</th><th>Fin</th><th>Horas</th><th>Detalle</th><th>Registrado por</th></tr></thead>
+                  <tbody>
+                    @for (entry of sortedActivityLog(); track entry.id) {
+                      <tr>
+                        <td>{{ formatDate(entry.date) }}</td>
+                        <td>{{ entry.startTime }}</td>
+                        <td>{{ entry.endTime }}</td>
+                        <td>{{ entry.durationHours }}</td>
+                        <td>{{ entry.detail }}</td>
+                        <td>{{ entry.author }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
             </div>
           }
 
@@ -994,18 +1014,20 @@
           @if (sortedToolUsageLog().length > 0) {
             <div class="fcr-detail__dashboard-section">
               <dynadrill-text variant="subtitle">Registro de uso de herramientas</dynadrill-text>
-              <table class="fcr-detail__table">
-                <thead><tr><th>Herramienta</th><th>Fecha</th><th>Estado</th></tr></thead>
-                <tbody>
-                  @for (entry of sortedToolUsageLog(); track entry.id) {
-                    <tr>
-                      <td>{{ entry.toolName }}</td>
-                      <td>{{ formatDate(entry.date) }}</td>
-                      <td>{{ toolDailyStatusLabel(entry.status) }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
+              <div class="fcr-detail__table-scroll">
+                <table class="fcr-detail__table">
+                  <thead><tr><th>Herramienta</th><th>Fecha</th><th>Estado</th></tr></thead>
+                  <tbody>
+                    @for (entry of sortedToolUsageLog(); track entry.id) {
+                      <tr>
+                        <td>{{ entry.toolName }}</td>
+                        <td>{{ formatDate(entry.date) }}</td>
+                        <td>{{ toolDailyStatusLabel(entry.status) }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
             </div>
           }
 
@@ -1044,30 +1066,32 @@
   <!-- ═══════════════════════════════════════════════════════════ -->
   <ng-template #checklistDocumentosReadOnly>
     <dynadrill-text variant="subtitle">Checklists de inspección por herramienta</dynadrill-text>
-    <table class="fcr-detail__table">
-      <thead>
-        <tr><th>Herramienta</th><th>Checklist</th><th></th></tr>
-      </thead>
-      <tbody>
-        @for (tool of ticket()!.tools; track tool.id) {
-          <tr>
-            <td>{{ tool.name }}</td>
-            <td>
-              @if (toolInspectionEstado(tool.id); as estado) {
-                <dynadrill-tag [label]="estado" [variant]="estado === 'enviado' ? 'success' : 'warning'" />
-              } @else {
-                <dynadrill-tag label="Sin iniciar" variant="warning" />
-              }
-            </td>
-            <td>
-              @if (tool.articuloId) {
-                <dynadrill-button variant="secondary" size="small" (clicked)="openChecklistHerramienta(tool)">{{ toolChecklistButtonLabel(tool.id) }}</dynadrill-button>
-              }
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
+    <div class="fcr-detail__table-scroll">
+      <table class="fcr-detail__table">
+        <thead>
+          <tr><th>Herramienta</th><th>Checklist</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (tool of ticket()!.tools; track tool.id) {
+            <tr>
+              <td>{{ tool.name }}</td>
+              <td>
+                @if (toolInspectionEstado(tool.id); as estado) {
+                  <dynadrill-tag [label]="estado" [variant]="estado === 'enviado' ? 'success' : 'warning'" />
+                } @else {
+                  <dynadrill-tag label="Sin iniciar" variant="warning" />
+                }
+              </td>
+              <td>
+                @if (tool.articuloId) {
+                  <dynadrill-button variant="secondary" size="small" (clicked)="openChecklistHerramienta(tool)">{{ toolChecklistButtonLabel(tool.id) }}</dynadrill-button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
 
     <dynadrill-text variant="subtitle">Documentos de inspección</dynadrill-text>
     <div class="fcr-detail__docs">

@@ -27,13 +27,25 @@
   }
 }
 
-// ── Tracker de 8 fases, con etiqueta siempre visible (no solo tooltip) ──
+// ── Tracker de fases, con etiqueta siempre visible (no solo tooltip) ──
+//
+// Mobile first: en un viewport angosto el tronco completo (hasta 12 fases)
+// no entra en una sola fila sin achicar el texto a ilegible, así que el
+// tracker hace scroll horizontal con snap por fase — la fase activa se
+// centra automáticamente al cargar (ver afterRenderEffect en el .ts).
 
 .fcr-detail__tracker {
   display: flex;
   align-items: flex-start;
   margin: 1.5rem 0;
-  padding: 0;
+  padding: 0.25rem 0.125rem 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+
+  @media (max-width: 480px) {
+    padding-right: 45%;
+  }
 }
 
 .fcr-detail__phase {
@@ -43,6 +55,11 @@
   align-items: center;
   flex-shrink: 0;
   width: 5.5rem;
+  scroll-snap-align: center;
+
+  @media (max-width: 480px) {
+    width: 4.25rem;
+  }
 }
 
 .fcr-detail__phase-dot {
@@ -83,6 +100,10 @@
     color: var(--dynadrill-purple, #662e9b);
     font-weight: 600;
   }
+
+  @media (max-width: 480px) {
+    font-size: 0.625rem;
+  }
 }
 
 .fcr-detail__phase-line {
@@ -95,6 +116,10 @@
 
   &--completed {
     background: var(--dynadrill-purple, #662e9b);
+  }
+
+  @media (max-width: 480px) {
+    min-width: 8px;
   }
 }
 
@@ -403,9 +428,22 @@
 }
 
 // ── Tablas de herramientas ──
+//
+// Mobile first: la tabla nunca se aplasta ni rompe el layout de la página
+// en pantallas angostas — el wrapper hace scroll horizontal contenido y la
+// tabla conserva su ancho natural (min-width) para que las columnas sigan
+// siendo legibles en vez de comprimirse hasta ilegibilidad.
+
+.fcr-detail__table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -0.25rem;
+  padding: 0 0.25rem;
+}
 
 .fcr-detail__table {
   width: 100%;
+  min-width: 32rem;
   border-collapse: collapse;
   font-size: 0.8125rem;
 
@@ -419,5 +457,15 @@
   th {
     font-weight: 600;
     color: var(--text-secondary, #666);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 0.75rem;
+
+    th,
+    td {
+      padding: 0.4rem 0.5rem;
+    }
   }
 }

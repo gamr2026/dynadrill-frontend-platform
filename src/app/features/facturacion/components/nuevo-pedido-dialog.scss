@@ -25,6 +25,18 @@
     @include f.field-grid(200px);
   }
 
+  /**
+   * Labels más largos ("Representante en Quito (PEC)", "Analista de
+   * facturación", "Técnico HSE responsable") — con minmax(200px) a veces
+   * entraban 3 por fila y el label hacía wrap a 2 líneas en una sola
+   * columna, desalineando verticalmente su select respecto a los vecinos
+   * de la misma fila (que sí entraban en una línea). Más ancho mínimo de
+   * columna evita el wrap desparejo.
+   */
+  &__grid--ancho {
+    @include f.field-grid(240px);
+  }
+
   &__linea {
     padding: 10px 0;
 

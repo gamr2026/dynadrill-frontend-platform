@@ -32,12 +32,12 @@ const CONDICION_PAGO_OPTIONS: DynadrillSelectOption[] = [
   { label: '15 días', value: '15 días', group: 'Con crédito' },
   { label: '30 días', value: '30 días', group: 'Con crédito' },
   { label: '45 días', value: '45 días', group: 'Con crédito' },
-  { label: '60 días', value: '60 días', group: 'SIN CRÉDITO' },
-  { label: '90 días', value: '90 días', group: 'SIN CRÉDITO' },
-  { label: '120 días', value: '120 días', group: 'SIN CRÉDITO' },
-  { label: '150 días', value: '150 días', group: 'SIN CRÉDITO' },
-  { label: '180 días', value: '180 días', group: 'SIN CRÉDITO' },
-  { label: '210 días', value: '210 días', group: 'SIN CRÉDITO' },
+  { label: '60 días', value: '60 días', group: 'Sin crédito' },
+  { label: '90 días', value: '90 días', group: 'Sin crédito' },
+  { label: '120 días', value: '120 días', group: 'Sin crédito' },
+  { label: '150 días', value: '150 días', group: 'Sin crédito' },
+  { label: '180 días', value: '180 días', group: 'Sin crédito' },
+  { label: '210 días', value: '210 días', group: 'Sin crédito' },
 ];
 
 /** Se pasa al abrir el diálogo en modo edición (ver pedido-detail-page). Sin `data`/`data.pedido`, arranca en modo alta. */

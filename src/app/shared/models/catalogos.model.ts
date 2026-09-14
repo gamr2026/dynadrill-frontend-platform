@@ -92,7 +92,7 @@ export interface ClienteCatalogo {
 }
 
 export const TIPO_PERSONA_LABELS: Record<TipoPersonaContacto, string> = {
-  representante_campo: 'Representante Campo (Company Man)',
+  representante_campo: 'Representante Campo',
   representante_quito: 'Representante Quito',
   analista_facturacion: 'Analista de Facturación',
   agente_comercial: 'Agente Comercial',

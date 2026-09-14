@@ -38,7 +38,7 @@
 
   <fieldset class="nuevo-pedido__group">
     <legend>Comercial y responsables</legend>
-    <div class="nuevo-pedido__grid">
+    <div class="nuevo-pedido__grid nuevo-pedido__grid--ancho">
       <dynadrill-select
         label="Agente comercial (Dynadrill)"
         placeholder="Busca un agente comercial"
@@ -48,7 +48,7 @@
         (valueChange)="agenteComercial.set($any($event))"
       />
       <dynadrill-select
-        label="Representante en campo (PEC) / Company Man"
+        label="Representante en campo"
         placeholder="Busca un representante de campo"
         [options]="representanteCampoOptions()"
         [value]="representanteCampo()"

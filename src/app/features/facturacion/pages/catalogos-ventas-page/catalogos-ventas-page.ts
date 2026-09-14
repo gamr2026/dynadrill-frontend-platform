@@ -73,19 +73,33 @@ export class CatalogosVentasPage {
   );
 
   // ── Clientes ──
+  protected readonly filtroTipoIdentificacion = signal<string | null>(null);
+  protected readonly tipoIdentificacionOptions = computed<DynadrillSelectOption[]>(() =>
+    [...new Set(this.clientes().map(c => c.tipoIdentificacion))]
+      .sort()
+      .map(t => ({ label: t.toUpperCase(), value: t })),
+  );
+
   protected readonly clientesColumns: DynadrillDataTableColumn[] = [
     { key: 'nombreComercial', header: 'Nombre comercial', sortable: true, searchable: true },
     { key: 'nombreFiscal', header: 'Nombre fiscal', searchable: true },
+    { key: 'tipoBadge', header: 'Tipo', type: 'badge' },
     { key: 'identificacion', header: 'Identificación', searchable: true },
     { key: 'activoBadge', header: 'Estado', type: 'badge' },
   ];
 
+  protected readonly clientesFiltrados = computed(() => {
+    const t = this.filtroTipoIdentificacion();
+    return t ? this.clientes().filter(c => c.tipoIdentificacion === t) : this.clientes();
+  });
+
   protected readonly clientesRows = computed(() =>
-    this.clientes().map(c => ({
+    this.clientesFiltrados().map(c => ({
       id: c.id,
       nombreComercial: c.nombreComercial,
       nombreFiscal: c.nombreFiscal ?? '—',
-      identificacion: `${c.tipoIdentificacion}: ${c.identificacion}`,
+      tipoBadge: { text: c.tipoIdentificacion.toUpperCase(), tone: 'brand' as const },
+      identificacion: c.identificacion,
       activoBadge: c.activo ? { text: 'Activo', tone: 'success' as const } : { text: 'Inactivo', tone: 'neutral' as const },
     })),
   );

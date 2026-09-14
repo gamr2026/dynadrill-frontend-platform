@@ -33,7 +33,15 @@
     <section class="fact-card">
       <header class="catalogos-ventas-page__head">
         <h2>Clientes</h2>
-        <dynadrill-button (clicked)="nuevoCliente()">+ Nuevo cliente</dynadrill-button>
+        <div class="catalogos-ventas-page__toolbar">
+          <dynadrill-select
+            placeholder="Todos los tipos"
+            [options]="tipoIdentificacionOptions()"
+            [value]="filtroTipoIdentificacion()"
+            (valueChange)="filtroTipoIdentificacion.set($any($event))"
+          />
+          <dynadrill-button (clicked)="nuevoCliente()">+ Nuevo cliente</dynadrill-button>
+        </div>
       </header>
       <div class="table-scroll">
         <dynadrill-data-table

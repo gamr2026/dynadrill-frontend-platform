@@ -27,7 +27,8 @@
     </section>
 
     <ng-template #actionsTpl let-row>
-      <dynadrill-button variant="secondary" size="small" (clicked)="verDetalle(row)">Ver detalle</dynadrill-button>
+      <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="verDetalle(row)" />
+      <dynadrill-icon-button icon="edit" tooltip="Editar pedido" (clicked)="editarPedido(row)" />
     </ng-template>
 
     <section class="fact-card">

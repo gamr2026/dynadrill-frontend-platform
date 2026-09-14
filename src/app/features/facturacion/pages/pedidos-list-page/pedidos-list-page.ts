@@ -6,6 +6,7 @@ import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
+  DynadrillIconButtonComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
@@ -46,6 +47,7 @@ function diasDesde(desde?: string): number {
     DynadrillKpiRowComponent,
     DynadrillDataTableComponent,
     DynadrillButtonComponent,
+    DynadrillIconButtonComponent,
     DynadrillSelectComponent,
     DynadrillSpinnerComponent,
   ],
@@ -220,5 +222,21 @@ export class PedidosListPage {
 
   protected verDetalle(row: Record<string, unknown>): void {
     this.router.navigate(['/dashboard/facturacion/pedidos', row['id']]);
+  }
+
+  /** Ventas y Facturación pueden editar (ver ModuleRoles.pedidos) — solo Ventas gestiona Administrativos, ver NuevoPedidoDialog. */
+  protected editarPedido(row: Record<string, unknown>): void {
+    const pedido = this.pedidos().find(p => p.id === row['id']);
+    if (!pedido) return;
+    const ref = this.dialog.open<NuevoPedidoDialog>({
+      title: `Editar pedido ${pedido.code}`,
+      content: NuevoPedidoDialog,
+      data: { pedido },
+      footer: false,
+      width: '760px',
+    });
+    ref.afterClose.subscribe(actualizado => {
+      if (actualizado) this.reload();
+    });
   }
 }

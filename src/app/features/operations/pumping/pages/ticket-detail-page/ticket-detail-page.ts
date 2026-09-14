@@ -1,10 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import type { NzUploadFile } from 'ng-zorro-antd/upload';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { parseLocalDateString, toLocalDateString } from '../../../../../shared/utils';
 import {
   DynadrillApprovalActionsComponent,
+  DynadrillBannerComponent,
   DynadrillButtonComponent,
   DynadrillChipGroupComponent,
   DynadrillContextCardComponent,
@@ -46,6 +48,15 @@ import {
   type DailyActivityReport,
 } from '../../models/pumping.model';
 import { PumpingService } from '../../services/pumping.service';
+import { SolicitudCambioItemsService } from '../../services/solicitud-cambio-items.service';
+import type { SolicitudCambioItems } from '../../models/solicitud-cambio-items.model';
+import {
+  SolicitarCambioItemsDialog,
+  SolicitarCambioItemsDialogData,
+  SolicitarCambioItemsDialogResult,
+} from '../../components/solicitar-cambio-items-dialog';
+import { PedidoService } from '../../../../facturacion/services/pedido.service';
+import { itemsEstimadosDe, type Pedido } from '../../../../facturacion/models/pedido.model';
 import { TicketQhseBanner } from '../../../shared/ticket-qhse-banner/ticket-qhse-banner';
 import { OperativoDocsBridgeService, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../../../shared/index';
 import { CreateUnitReportInput, unitReportHasNovedades } from '../../../../maintenance/models/unit-report.model';
@@ -147,7 +158,9 @@ function toFuelReading(raw: string): number | null {
   selector: 'app-ticket-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    DatePipe,
     DynadrillScreenHeaderComponent,
+    DynadrillBannerComponent,
     DynadrillContextCardComponent,
     DynadrillDataTableComponent,
     DynadrillButtonComponent,
@@ -315,9 +328,20 @@ export class TicketDetailPage {
   private readonly articulosService = inject(ArticulosService);
   private readonly movimientosInventarioService = inject(MovimientosInventarioService);
 
+  private readonly pedidoService = inject(PedidoService);
+  private readonly solicitudCambioItemsService = inject(SolicitudCambioItemsService);
+
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
   protected readonly ticket = signal<PumpingTicket | null>(null);
+  /** Pedido de Ventas vinculado a este ticket — sus ítems son lo que el Operador puede pedir cambiar. */
+  protected readonly pedido = signal<Pedido | null>(null);
+  protected readonly pedidoItems = computed(() => {
+    const p = this.pedido();
+    return p ? itemsEstimadosDe(p) : [];
+  });
+  /** Solicitud de cambio de ítems todavía sin resolver por el Supervisor (si hay una). */
+  protected readonly solicitudPendiente = signal<SolicitudCambioItems | null>(null);
   protected readonly viewMode = signal<string>(''); // 'asignar' | 'resumen' | ''
   protected readonly maintenanceOrders = signal<MaintenanceOrderWithSubOrders[]>([]);
 
@@ -1567,6 +1591,13 @@ export class TicketDetailPage {
         this.loading.set(false);
         this.initFromTicket(ticket);
         this.loadMaintenanceOrders();
+        if (ticket.pedidoId) {
+          this.pedidoService.get(ticket.pedidoId).subscribe({
+            next: p => this.pedido.set(p),
+            error: () => this.pedido.set(null),
+          });
+        }
+        this.reloadSolicitudPendiente(ticket.id);
       },
       error: () => this.loading.set(false),
     });
@@ -1583,6 +1614,49 @@ export class TicketDetailPage {
     this.vehicleInspectionsService.list().subscribe(list => {
       this.realInspections.set(list);
       this.syncMockInspections();
+    });
+  }
+
+  // ══════════════════════════════════════════════
+  // Solicitud de cambio de ítems del pedido (Operador -> Supervisor)
+  // ══════════════════════════════════════════════
+
+  /** "El operador dispone todo el tiempo de una opción para ... solicitar la edición de los ítems del pedido" — botón permanente, visible en cualquier paso. */
+  protected readonly puedeSolicitarCambioItems = computed(() => this.isOperador() && !!this.ticket()?.pedidoId);
+
+  private reloadSolicitudPendiente(pumpingTicketId: number): void {
+    this.solicitudCambioItemsService.porTicket(pumpingTicketId).subscribe({
+      next: solicitudes => this.solicitudPendiente.set(solicitudes.find(s => s.estado === 'pendiente') ?? null),
+      error: () => this.solicitudPendiente.set(null),
+    });
+  }
+
+  protected abrirSolicitudCambioItems(): void {
+    const t = this.ticket();
+    const p = this.pedido();
+    if (!t || !p) return;
+
+    const ref = this.dialog.open<SolicitarCambioItemsDialog, SolicitarCambioItemsDialogData>({
+      title: 'Solicitar cambio de ítems del pedido',
+      content: SolicitarCambioItemsDialog,
+      data: { pedidoCode: p.code, cliente: p.cliente, itemsActuales: this.pedidoItems() },
+      footer: false,
+      width: '820px',
+    });
+
+    ref.afterClose.subscribe((result?: SolicitarCambioItemsDialogResult) => {
+      if (!result) return;
+      const usuario = this.auth.currentUser()?.name ?? 'Operador';
+      this.solicitudCambioItemsService
+        .proponer({ pumpingTicketId: t.id, itemsPropuestos: result.itemsPropuestos, motivo: result.motivo, solicitadoPor: usuario })
+        .subscribe({
+          next: solicitud => {
+            this.solicitudPendiente.set(solicitud);
+            this.notify.success('Solicitud enviada', 'Tu Supervisor debe aprobarla para que se actualice el pedido.');
+          },
+          error: err =>
+            this.notify.error('Error', err?.error?.message ?? 'No se pudo enviar la solicitud. Probá de nuevo.'),
+        });
     });
   }
 

@@ -51,10 +51,22 @@ import { UBICACION_VACIA, type Campo, type Pozo, type Taladro, type UbicacionSel
     </div>
   `,
   styles: [`
+    /**
+     * Fijo a 2 columnas (no auto-fit): con auto-fit(minmax(200px,...)) el
+     * número de campos visibles (3 a 5, según requiereTaladro/
+     * mostrarRigContractual) a veces entraba 3 por fila y dejaba el último
+     * solo en su propia fila — se veía desparejo. En celular colapsa a 1.
+     */
     .ubicacion-selector {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(2, 1fr);
       gap: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .ubicacion-selector {
+        grid-template-columns: 1fr;
+      }
     }
   `],
 })

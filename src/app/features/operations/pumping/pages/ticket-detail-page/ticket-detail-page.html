@@ -5,6 +5,19 @@
   [roleTag]="roleName()"
 />
 
+@if (solicitudPendiente(); as sp) {
+  <dynadrill-banner
+    variant="warning"
+    [message]="'Solicitud de cambio de ítems enviada el ' + (sp.fechaSolicitud | date: 'dd/MM/yyyy HH:mm') + ' — pendiente de aprobación del Supervisor.'"
+  />
+} @else if (puedeSolicitarCambioItems()) {
+  <div class="ticket-detail__toolbar">
+    <dynadrill-button variant="secondary" size="small" (clicked)="abrirSolicitudCambioItems()">
+      Ver / solicitar cambio de ítems del pedido
+    </dynadrill-button>
+  </div>
+}
+
 <div class="ticket-detail__stepper">
   @for (step of stepLabels; track $index; let last = $last) {
     <div

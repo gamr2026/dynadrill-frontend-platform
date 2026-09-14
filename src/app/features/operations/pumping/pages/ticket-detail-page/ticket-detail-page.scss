@@ -9,6 +9,12 @@
 
 // ── Stepper custom con leyenda ──
 
+.ticket-detail__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+}
+
 .ticket-detail__stepper {
   display: flex;
   align-items: flex-start;

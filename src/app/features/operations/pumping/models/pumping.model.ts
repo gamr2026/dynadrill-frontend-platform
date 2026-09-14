@@ -187,6 +187,8 @@ export interface PumpingTicket extends Ticket {
   operators: PumpingOperator[];
   unitReport: PumpingUnitReport | null;
   currentStep: PumpingStep;
+  /** Id del Pedido de Facturación asociado — link para el puente Pumping → Facturación (ver solicitud-cambio-items.model.ts). */
+  pedidoId?: number;
   /** Código del Pedido de Facturación asociado — link para el puente Pumping → Facturación. */
   pedidoCode?: string;
   /** Nº de contrato/OT — heredado del Pedido, prellena el Reporte Diario. */

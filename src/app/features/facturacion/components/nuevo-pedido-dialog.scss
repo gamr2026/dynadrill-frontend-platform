@@ -37,6 +37,31 @@
     @include f.field-grid(240px);
   }
 
+  /**
+   * Con auto-fit(minmax(200px,...)) un grupo de 4 campos a veces entra 3
+   * por fila y deja el 4to solo en su propia fila (se ve desparejo). Acá se
+   * fuerza siempre un número fijo de columnas (2 o 3, ver
+   * __grid--3col) — parejo sin importar cuántos campos entren — y se
+   * colapsa a 1 columna en pantallas angostas (celular).
+   */
+  &__grid--2col,
+  &__grid--3col {
+    display: grid;
+    gap: 12px;
+
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+  &__grid--2col {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  &__grid--3col {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
   &__plantilla {
     display: flex;
     align-items: center;

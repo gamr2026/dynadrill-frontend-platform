@@ -146,11 +146,12 @@ export class NuevoPedidoDialog {
   protected readonly lineaOptions: DynadrillSelectOption[] = (Object.entries(LINEA_SERVICIO_LABELS) as [LineaServicio, string][]).map(
     ([value, label]) => ({ label, value }),
   );
-  /** Decide qué entrada del FcrTicket derivado usa este pedido — la elige Ventas, no Operaciones. */
+  /** Decide qué entrada del FcrTicket derivado usa este pedido — la elige Ventas, no Operaciones. Solo aplica a FCR: Pumping no lo usa. */
   protected readonly tipoOt = signal<TipoOt | null>(null);
   protected readonly tipoOtOptions: DynadrillSelectOption[] = (Object.entries(TIPO_OT_LABELS) as [TipoOt, string][]).map(
     ([value, label]) => ({ label, value }),
   );
+  protected readonly esPumping = computed(() => this.lineaServicio() === 'pumping');
   /** Campo / Bloque / Pozo / Taladro — del catálogo, vía <app-ubicacion-selector>. */
   protected readonly ubicacion = signal<UbicacionSeleccion>(UBICACION_VACIA);
   protected readonly fechaInicioServicio = signal<Date | null>(null);
@@ -306,7 +307,7 @@ export class NuevoPedidoDialog {
     () =>
       !!this.cliente() &&
       !!this.lineaServicio() &&
-      !!this.tipoOt() &&
+      (this.esPumping() || !!this.tipoOt()) &&
       this.ubicacion().pozoId !== null &&
       this.ubicacion().taladroId !== null &&
       this.agenteComercial().trim().length > 0 &&
@@ -464,7 +465,8 @@ export class NuevoPedidoDialog {
       clienteRuc: this.clienteRuc() || undefined,
       subcliente: this.subcliente().trim() || undefined,
       lineaServicio: this.lineaServicio()!,
-      tipoOt: this.tipoOt()!,
+      // Pumping no usa tipoOt (solo decide la bifurcación del ticket FCR, ver crearTicketFcrSiAplica) — el backend lo exige igual, se manda un valor neutro.
+      tipoOt: this.tipoOt() ?? 'servicio',
       campo: this.ubicacion().campo,
       bloque: this.ubicacion().bloque,
       pozo: this.ubicacion().pozo,

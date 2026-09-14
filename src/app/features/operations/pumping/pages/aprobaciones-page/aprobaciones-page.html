@@ -1,0 +1,37 @@
+<dynadrill-screen-header
+  eyebrow="PUM-05"
+  title="Aprobaciones"
+  subtitle="Solicitudes de cambio de ítems propuestas por tus operadores"
+/>
+
+<dynadrill-tabs [tabs]="tabs()" [activeIndex]="activeTabIndex()" (activeIndexChange)="onTabChange($event)" />
+
+<ng-template #pendienteActionsTpl let-row>
+  <dynadrill-button variant="primary" size="small" (clicked)="revisar(row)">Revisar</dynadrill-button>
+</ng-template>
+
+<ng-template #resueltaActionsTpl let-row>
+  <dynadrill-button variant="secondary" size="small" (clicked)="revisar(row)">Ver detalle</dynadrill-button>
+</ng-template>
+
+@if (activeTabIndex() === 0) {
+  <dynadrill-data-table
+    [columns]="pendientesColumns"
+    [rows]="pendientesRows()"
+    [loading]="loading()"
+    [rowKey]="rowKeyFn"
+    [pageSize]="10"
+    actionsHeader="Acciones"
+    [actionsTemplate]="pendienteActionsTpl"
+  />
+} @else {
+  <dynadrill-data-table
+    [columns]="resueltasColumns"
+    [rows]="resueltasRows()"
+    [loading]="loading()"
+    [rowKey]="rowKeyFn"
+    [pageSize]="10"
+    actionsHeader="Acciones"
+    [actionsTemplate]="resueltaActionsTpl"
+  />
+}

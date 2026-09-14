@@ -22,6 +22,17 @@ const OPERATIVO_ITEM: DynadrillMenuItem = {
   ],
 };
 
+/** Supervisor: además de Pumping/FCR, su bandeja consolidada de solicitudes de cambio de ítems de sus operadores. */
+const SUPERVISOR_OPERATIVO_ITEM: DynadrillMenuItem = {
+  label: 'Operativo',
+  icon: 'file-text',
+  children: [
+    { label: 'Pumping', link: '/modulos/operativo/pumping' },
+    { label: 'FCR', link: '/modulos/operativo/fcr' },
+    { label: 'Aprobaciones', link: '/modulos/operativo/pumping/aprobaciones' },
+  ],
+};
+
 /** Para roles que solo tocan FCR dentro de Operativo (no Pumping): Bodega, Ingeniería de Ventas, Control de Herramientas. */
 const FCR_ONLY_ITEM: DynadrillMenuItem = {
   label: 'Operativo',
@@ -168,7 +179,7 @@ export class Sidebar {
     if (roleName === 'Supervisor') {
       // Sin PTW: "Firmar PTW y Actas" quedó mal asignado a este rol en una
       // iteración anterior (corregido también en qhse.routes.ts).
-      return [dashboard, { label: 'Módulos', icon: 'modules', children: [OPERATIVO_ITEM] }];
+      return [dashboard, { label: 'Módulos', icon: 'modules', children: [SUPERVISOR_OPERATIVO_ITEM] }];
     }
 
     if (roleName === 'Jefe de Mantenimiento') {

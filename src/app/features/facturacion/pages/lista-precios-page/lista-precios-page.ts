@@ -86,4 +86,9 @@ export class ListaPreciosPage {
   protected abrir(id: number): void {
     this.router.navigate(['/dashboard/facturacion/lista-precios', id]);
   }
+
+  /** Para el tag "X Servicio / Y Material" de cada card — a simple vista, sin entrar al detalle. */
+  protected contarPorTipo(l: ListaPrecios, tipo: 'Servicio' | 'Material'): number {
+    return l.items.filter(i => i.tipo === tipo).length;
+  }
 }

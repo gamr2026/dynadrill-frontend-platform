@@ -70,6 +70,16 @@
                 <tr><td [attr.colspan]="editando() ? 6 : 5">Sin ítems. {{ editando() ? 'Agrega el primero arriba.' : 'Pulsa "Editar ítems".' }}</td></tr>
               }
             </tbody>
+            @if (items().length) {
+              <tfoot>
+                <tr>
+                  <td [attr.colspan]="3"></td>
+                  <td class="num">Totales</td>
+                  <td>{{ totalServicio() }} Servicio · {{ totalMaterial() }} Material</td>
+                  @if (editando()) { <td></td> }
+                </tr>
+              </tfoot>
+            }
           </table>
         </div>
       </section>

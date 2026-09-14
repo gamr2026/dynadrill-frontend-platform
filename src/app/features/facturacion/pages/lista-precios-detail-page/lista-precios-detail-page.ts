@@ -54,6 +54,9 @@ export class ListaPreciosDetailPage {
   protected readonly nuevo = signal<ListaPreciosItemDraft>({ codigo: '', descripcion: '', unidad: '', precio: 0, tipo: 'Servicio' });
 
   protected readonly items = computed(() => (this.editando() ? this.borrador() : (this.lista()?.items ?? [])));
+  /** Totales por tipo — la Lista de Precios es un catálogo (código/descripción/unidad/precio/tipo), sin cantidad por ítem; esto es lo que sí se puede contar. */
+  protected readonly totalServicio = computed(() => this.items().filter(i => i.tipo === 'Servicio').length);
+  protected readonly totalMaterial = computed(() => this.items().filter(i => i.tipo === 'Material').length);
 
   constructor() {
     this.reload();

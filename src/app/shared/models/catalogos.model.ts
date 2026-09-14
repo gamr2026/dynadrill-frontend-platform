@@ -13,6 +13,8 @@ export interface Campo {
   nombre: string;
   /** Activo operativo de Petroecuador: AIT, AM, AP... */
   activo?: string | null;
+  /** Región comercial (ZONA OESTE/ESTE/NORTE/LITORAL/MACHALA...) — nullable, no todos los campos la traen. */
+  zona?: string | null;
 }
 
 export interface Taladro {
@@ -30,7 +32,7 @@ export interface Pozo {
   campoId: number;
   bloqueId: number;
   habilitado: boolean;
-  campo: { id: number; nombre: string; activo?: string | null } | null;
+  campo: { id: number; nombre: string; activo?: string | null; zona?: string | null } | null;
   bloque: { id: number; nombre: string } | null;
 }
 
@@ -52,6 +54,8 @@ export interface UbicacionSeleccion {
   taladroId: number | null;
   taladro: string;
   rigContractual: string;
+  /** Región comercial del Campo elegido — auto-completada, no se tipea (ver FACT-001). */
+  zona: string;
 }
 
 export const UBICACION_VACIA: UbicacionSeleccion = {
@@ -65,4 +69,24 @@ export const UBICACION_VACIA: UbicacionSeleccion = {
   taladroId: null,
   taladro: '',
   rigContractual: '',
+  zona: '',
 };
+
+/** 'representante_campo' (= Company Man, mismo rol) | 'representante_quito' | 'analista_facturacion' | 'agente_comercial'. */
+export type TipoPersonaContacto = 'representante_campo' | 'representante_quito' | 'analista_facturacion' | 'agente_comercial';
+
+export interface PersonaContacto {
+  id: number;
+  tipo: TipoPersonaContacto;
+  nombre: string;
+  activo: boolean;
+}
+
+export interface ClienteCatalogo {
+  id: number;
+  tipoIdentificacion: string;
+  identificacion: string;
+  nombreComercial: string;
+  nombreFiscal?: string | null;
+  activo: boolean;
+}

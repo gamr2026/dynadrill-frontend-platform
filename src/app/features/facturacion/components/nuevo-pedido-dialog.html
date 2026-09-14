@@ -6,7 +6,14 @@
   <fieldset class="nuevo-pedido__group">
     <legend>Cliente</legend>
     <div class="nuevo-pedido__grid">
-      <dynadrill-select label="Cliente" placeholder="Selecciona el cliente" [options]="clienteOptions" [value]="cliente()" (valueChange)="onClienteChange($any($event))" />
+      <dynadrill-select
+        label="Cliente"
+        placeholder="Busca un cliente"
+        [options]="clienteOptions()"
+        [value]="cliente()"
+        [searchable]="true"
+        (valueChange)="onClienteChange($any($event))"
+      />
       <dynadrill-input label="RUC" [value]="clienteRuc()" [disabled]="true" />
       <dynadrill-input label="Subcliente" [value]="subcliente()" (valueChange)="subcliente.set($event)" />
       <dynadrill-input label="Nº de contrato" [value]="numeroContrato()" (valueChange)="numeroContrato.set($event)" />
@@ -25,17 +32,45 @@
       [requiereTaladro]="true"
       [mostrarRigContractual]="false"
       [valorInicial]="ubicacionInicial()"
-      (seleccionChange)="ubicacion.set($event)"
+      (seleccionChange)="onUbicacionChange($event)"
     />
   </fieldset>
 
   <fieldset class="nuevo-pedido__group">
     <legend>Comercial y responsables</legend>
     <div class="nuevo-pedido__grid">
-      <dynadrill-input label="Agente comercial (Dynadrill)" [value]="agenteComercial()" (valueChange)="agenteComercial.set($event)" />
-      <dynadrill-input label="Representante en campo (PEC)" [value]="representanteCampo()" (valueChange)="representanteCampo.set($event)" />
-      <dynadrill-input label="Representante en Quito (PEC)" [value]="representanteQuito()" (valueChange)="representanteQuito.set($event)" />
-      <dynadrill-input label="Analista de facturación" [value]="analistaFacturacion()" (valueChange)="analistaFacturacion.set($event)" />
+      <dynadrill-select
+        label="Agente comercial (Dynadrill)"
+        placeholder="Busca un agente comercial"
+        [options]="agenteComercialOptions()"
+        [value]="agenteComercial()"
+        [searchable]="true"
+        (valueChange)="agenteComercial.set($any($event))"
+      />
+      <dynadrill-select
+        label="Representante en campo (PEC) / Company Man"
+        placeholder="Busca un representante de campo"
+        [options]="representanteCampoOptions()"
+        [value]="representanteCampo()"
+        [searchable]="true"
+        (valueChange)="representanteCampo.set($any($event))"
+      />
+      <dynadrill-select
+        label="Representante en Quito (PEC)"
+        placeholder="Busca un representante en Quito"
+        [options]="representanteQuitoOptions()"
+        [value]="representanteQuito()"
+        [searchable]="true"
+        (valueChange)="representanteQuito.set($any($event))"
+      />
+      <dynadrill-select
+        label="Analista de facturación"
+        placeholder="Busca un analista de facturación"
+        [options]="analistaFacturacionOptions()"
+        [value]="analistaFacturacion()"
+        [searchable]="true"
+        (valueChange)="analistaFacturacion.set($any($event))"
+      />
       <dynadrill-select
         label="Técnico HSE responsable"
         placeholder="Selecciona un Técnico HSE activo"

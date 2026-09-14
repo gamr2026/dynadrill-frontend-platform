@@ -187,6 +187,7 @@ export class UbicacionSelectorComponent {
       taladroId: taladro?.id ?? null,
       taladro: taladro?.nombre ?? '',
       rigContractual: taladro?.rigContractual ?? '',
+      zona: campo?.zona ?? pozo?.campo?.zona ?? '',
     });
   }
 }

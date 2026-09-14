@@ -17,15 +17,14 @@ import { ListaPrecios } from '../models/lista-precios.model';
 import { Prefactura } from '../models/prefactura.model';
 import { ListaPreciosService, PedidoService, PrefacturaService } from '../services/pedido.service';
 import { RolesService } from '../../users/services/users.service';
-import { UBICACION_VACIA, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../shared/index';
-
-/** Clientes conocidos — hasta que exista el catálogo real de AS2. */
-const CLIENTES: { nombre: string; ruc: string }[] = [
-  { nombre: 'EP Petroecuador', ruc: '1768153530001' },
-  { nombre: 'Petroandina', ruc: '1792060346001' },
-  { nombre: 'Schlumberger', ruc: '1791251237001' },
-  { nombre: 'Baker Hughes', ruc: '1790008959001' },
-];
+import {
+  CatalogosService,
+  UBICACION_VACIA,
+  UbicacionSelectorComponent,
+  type ClienteCatalogo,
+  type TipoPersonaContacto,
+  type UbicacionSeleccion,
+} from '../../../shared/index';
 
 /** Condición de pago — dos categorías a pedido del cliente: normal vs. "SIN CRÉDITO" (plazos largos, sin línea de crédito). */
 const CONDICION_PAGO_OPTIONS: DynadrillSelectOption[] = [
@@ -76,6 +75,7 @@ export class NuevoPedidoDialog {
   private readonly prefacturaService = inject(PrefacturaService);
   private readonly listaService = inject(ListaPreciosService);
   private readonly rolesService = inject(RolesService);
+  private readonly catalogosService = inject(CatalogosService);
   private readonly auth = inject(AuthService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<NuevoPedidoDialog, Pedido | undefined>);
@@ -93,8 +93,14 @@ export class NuevoPedidoDialog {
   protected readonly subcliente = signal('');
   protected readonly numeroContrato = signal('2025201');
 
-  protected readonly clienteOptions: DynadrillSelectOption[] = CLIENTES.map(c => ({ label: c.nombre, value: c.nombre }));
-  protected readonly clienteRuc = computed(() => CLIENTES.find(c => c.nombre === this.cliente())?.ruc ?? '');
+  /** Catálogo real de clientes (ClientesController) — antes un array CLIENTES hardcodeado de 4 entradas. */
+  private readonly clientesCatalogo = signal<ClienteCatalogo[]>([]);
+  protected readonly clienteOptions = computed<DynadrillSelectOption[]>(() =>
+    this.clientesCatalogo().map(c => ({ label: c.nombreComercial, value: c.nombreComercial })),
+  );
+  protected readonly clienteRuc = computed(
+    () => this.clientesCatalogo().find(c => c.nombreComercial === this.cliente())?.identificacion ?? '',
+  );
 
   // ── Servicio ──
   protected readonly lineaServicio = signal<LineaServicio | null>(null);
@@ -111,11 +117,22 @@ export class NuevoPedidoDialog {
   protected readonly fechaInicioServicio = signal<Date | null>(null);
   protected readonly fechaFinServicio = signal<Date | null>(null);
 
-  // ── Comercial / responsables ──
+  // ── Comercial / responsables — selects con búsqueda desde PersonaContacto (antes texto libre) ──
   protected readonly agenteComercial = signal('');
-  protected readonly representanteCampo = signal('');
+  protected readonly representanteCampo = signal(''); // = "Company Man" (mismo rol, un solo catálogo)
   protected readonly representanteQuito = signal('');
   protected readonly analistaFacturacion = signal('');
+
+  protected readonly agenteComercialOptions = signal<DynadrillSelectOption[]>([]);
+  protected readonly representanteCampoOptions = signal<DynadrillSelectOption[]>([]);
+  protected readonly representanteQuitoOptions = signal<DynadrillSelectOption[]>([]);
+  protected readonly analistaFacturacionOptions = signal<DynadrillSelectOption[]>([]);
+
+  private cargarPersonas(tipo: TipoPersonaContacto, destino: typeof this.agenteComercialOptions): void {
+    this.catalogosService.personas(tipo).subscribe(personas => {
+      destino.set(personas.map(p => ({ label: p.nombre, value: p.nombre })));
+    });
+  }
   /**
    * FACT-001 Fase 2/3: "Asignar Técnico HSE responsable" — el sistema no
    * activa/distribuye el ticket sin uno con rol activo. El backend
@@ -127,7 +144,8 @@ export class NuevoPedidoDialog {
   // ── Administrativos ──
   protected readonly condicionPago = signal('30 días');
   protected readonly condicionPagoOptions = CONDICION_PAGO_OPTIONS;
-  protected readonly zona = signal('Zona Centro');
+  /** Se autocompleta al elegir el Pozo (Campo -> Zona, ver onUbicacionChange) — editable para el ~7% de campos sin zona mapeada en el Excel. */
+  protected readonly zona = signal('');
   protected readonly bodega = signal('BODEGA ORION');
   protected readonly solicitudMedio = signal<'verbal' | 'escrita'>('escrita');
   protected readonly solicitudMedioOptions: DynadrillSelectOption[] = [
@@ -246,12 +264,23 @@ export class NuevoPedidoDialog {
     this.rolesService.usuariosPorRol('tecnico_hse').subscribe(usuarios => {
       this.tecnicoHseOptions.set(usuarios.map(u => ({ label: u.name, value: u.id })));
     });
+    this.catalogosService.clientes().subscribe(clientes => this.clientesCatalogo.set(clientes));
+    this.cargarPersonas('agente_comercial', this.agenteComercialOptions);
+    this.cargarPersonas('representante_campo', this.representanteCampoOptions);
+    this.cargarPersonas('representante_quito', this.representanteQuitoOptions);
+    this.cargarPersonas('analista_facturacion', this.analistaFacturacionOptions);
 
     const p = this.data?.pedido;
     if (p) {
       this.prefillDesdePedido(p);
       this.prefacturaService.dePedido(p.id).subscribe(pf => this.prefacturaExistente.set(pf));
     }
+  }
+
+  /** Autocompleta Zona (Campo -> Zona, ver FACT-001) — solo si el campo elegido tiene una zona mapeada; si no, se deja como estaba para que Ventas la complete a mano. */
+  protected onUbicacionChange(sel: UbicacionSeleccion): void {
+    this.ubicacion.set(sel);
+    if (sel.zona) this.zona.set(sel.zona);
   }
 
   /** Modo edición — vuelca el pedido ya creado a las señales del formulario. `ubicacion`/`ubicacionInicial` los resuelve <app-ubicacion-selector>. */

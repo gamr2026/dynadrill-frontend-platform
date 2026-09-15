@@ -220,8 +220,13 @@ export class Sidebar {
     }
 
     if (roleName === 'Técnico HSE' || roleName === 'Coordinador HSE' || roleName === 'Gerente HSE') {
-      // FCR_ONLY_ITEM: firman "Liberado por QHSE" en el checklist de inspección por herramienta.
-      return [dashboard, QHSE_ITEM, FCR_ONLY_ITEM];
+      // Sin FCR_ONLY_ITEM a propósito: QHSE no debe navegar la lista general
+      // de tickets Operativo. Sigue teniendo el permiso de backend
+      // (ModuleRoles.fcr/fcrRead) para entrar al detalle puntual de un
+      // ticket y firmar "Liberado por QHSE" en el checklist de inspección
+      // por herramienta cuando le corresponde — solo se le saca el acceso
+      // de navegación libre por el menú.
+      return [dashboard, QHSE_ITEM];
     }
 
     if (roleName === 'Facturación') {

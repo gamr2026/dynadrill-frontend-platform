@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, afterRenderEffect, computed, inject, signal, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -127,6 +127,18 @@ function todayIso(): string {
   return toIso(new Date());
 }
 
+/**
+ * FCR nunca tiene un paso explícito de "asignar supervisor" (a diferencia de
+ * Pumping): el ticket nace con `assignedSupervisor` vacío desde el puente
+ * Facturación → FCR y nada lo llena después. El nombre real sí queda
+ * registrado en `phaseHistory` cada vez que un Supervisor aprueba un avance
+ * de fase — se usa como respaldo para no mostrar "—" cuando ese dato existe.
+ */
+function resolveSupervisorName(t: FcrTicket): string {
+  if (t.assignedSupervisor) return t.assignedSupervisor;
+  return t.phaseHistory.find(p => p.approvedByRole === 'Supervisor')?.approvedBy ?? '';
+}
+
 /** Entrada VENTA — sin cambios respecto al flujo original. */
 const PHASE_KEYS_VENTA: FcrPhase[] = [
   'validacion',
@@ -226,6 +238,11 @@ export class FcrTicketDetailPage {
     return t ? this.phaseKeys().indexOf(t.currentPhase) : 0;
   });
 
+  // El tracker hace scroll horizontal en mobile (ver .scss) — sin esto, en
+  // fases avanzadas la fase activa queda fuera de vista y el usuario tiene
+  // que descubrir por su cuenta que hay que deslizar para encontrarla.
+  private readonly trackerScrollEl = viewChild<ElementRef<HTMLElement>>('trackerScroll');
+
   protected readonly currentPhase = computed<FcrPhase>(() => this.ticket()?.currentPhase ?? 'validacion');
 
   /**
@@ -305,7 +322,7 @@ export class FcrTicketDetailPage {
     if (!t) return [];
     return [
       { label: 'Propuesta', value: `V${t.proposalVersion} · aprobada` },
-      { label: 'Supervisor', value: t.assignedSupervisor || '—' },
+      { label: 'Supervisor', value: resolveSupervisorName(t) || '—' },
       { label: 'Operador asignado', value: t.assignedOperator || 'Sin asignar' },
       { label: 'Herramientas', value: `${t.tools.filter(tool => tool.status === 'recibida').length} de ${t.tools.length} recibidas` },
     ];
@@ -793,7 +810,7 @@ export class FcrTicketDetailPage {
       title: 'Reporte de Trabajo — Vista de impresión',
       content: ReporteJobPdfDialog,
       data: {
-        header: { code: t.code, cliente: t.clientName, pozo: t.wellName, supervisor: t.assignedSupervisor, operador: t.assignedOperator },
+        header: { code: t.code, cliente: t.clientName, pozo: t.wellName, supervisor: resolveSupervisorName(t), operador: t.assignedOperator },
         log: t.activityLog,
       },
       footer: false,
@@ -808,7 +825,7 @@ export class FcrTicketDetailPage {
       title: 'Reporte de Herramientas — Vista de impresión',
       content: ReporteHerramientasPdfDialog,
       data: {
-        header: { code: t.code, cliente: t.clientName, pozo: t.wellName, supervisor: t.assignedSupervisor, operador: t.assignedOperator },
+        header: { code: t.code, cliente: t.clientName, pozo: t.wellName, supervisor: resolveSupervisorName(t), operador: t.assignedOperator },
         tools: t.tools.map(tool => ({ id: tool.id, name: tool.name })),
         usageLog: t.toolUsageLog,
       },
@@ -858,7 +875,7 @@ export class FcrTicketDetailPage {
   /** Puente FCR → Facturación: al aprobar los reportes, se empujan al Pedido vinculado. */
   private enviarReportesAFacturacion(t: FcrTicket): void {
     if (!t.pedidoCode) return;
-    const header = { code: t.code, cliente: t.clientName, pozo: t.wellName, supervisor: t.assignedSupervisor, operador: t.assignedOperator };
+    const header = { code: t.code, cliente: t.clientName, pozo: t.wellName, supervisor: resolveSupervisorName(t), operador: t.assignedOperator };
 
     const porDia = new Map<string, typeof t.activityLog>();
     for (const e of t.activityLog) {
@@ -872,7 +889,7 @@ export class FcrTicketDetailPage {
         origen: 'fcr',
         ticketOperativoId: t.id,
         fecha,
-        firmadoPor: t.assignedSupervisor,
+        firmadoPor: resolveSupervisorName(t),
         header,
         actividades,
       });
@@ -883,7 +900,7 @@ export class FcrTicketDetailPage {
         pedidoCode: t.pedidoCode,
         origen: 'fcr',
         ticketOperativoId: t.id,
-        firmadoPor: t.assignedSupervisor,
+        firmadoPor: resolveSupervisorName(t),
         header,
         herramientas: t.tools.map(tool => ({ id: tool.id, name: tool.name })),
         usoHerramientas: t.toolUsageLog,
@@ -1032,7 +1049,7 @@ export class FcrTicketDetailPage {
       title: 'Resumen de Cierre — Vista de impresión',
       content: ReporteCierrePdfDialog,
       data: {
-        header: { code: t.code, cliente: t.clientName, pozo: t.wellName, supervisor: t.assignedSupervisor, operador: t.assignedOperator },
+        header: { code: t.code, cliente: t.clientName, pozo: t.wellName, supervisor: resolveSupervisorName(t), operador: t.assignedOperator },
         tipoOtLabel: t.tipoOt === 'servicio' ? 'Servicio' : 'Venta',
         estimatedDate: t.estimatedDate,
         phases: t.phaseHistory.map(p => ({ label: this.phaseLabel(p.phase), approvedBy: p.approvedBy, approvedByRole: p.approvedByRole, date: p.date })),
@@ -1477,6 +1494,13 @@ export class FcrTicketDetailPage {
         }
       },
       error: () => this.loading.set(false),
+    });
+
+    afterRenderEffect(() => {
+      this.currentPhaseIndex();
+      const container = this.trackerScrollEl()?.nativeElement;
+      const active = container?.querySelector<HTMLElement>('.fcr-detail__phase--active');
+      active?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     });
   }
 

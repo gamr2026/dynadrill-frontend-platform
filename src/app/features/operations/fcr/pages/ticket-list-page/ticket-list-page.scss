@@ -14,3 +14,11 @@
   flex-wrap: wrap;
   margin-bottom: 4px;
 }
+
+// Mismo patrón que maintenance-list-page: overflow-x contenido en el
+// wrapper en vez de scrollX de nz-table (su auto-medición de columnas no
+// es confiable con contenido dinámico dentro del actionsTemplate).
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}

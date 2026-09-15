@@ -170,6 +170,12 @@
         {{ openingPtw() ? 'Abriendo PTW…' : 'Abrir Recibimiento de Sitio (PTW)' }}
       </dynadrill-button>
     }
+    @if (canReopenForEdit()) {
+      <dynadrill-button variant="secondary" (click)="reopenForEdit()">Editar matriz</dynadrill-button>
+      <span class="iperc-detail-page__actions-hint">
+        Agrega una tarea, un peligro o corrige un dato — la matriz vuelve a "En evaluación" hasta que se apruebe de nuevo. Los PTW ya abiertos no se ven afectados.
+      </span>
+    }
   </section>
 
   @if (openPtwError()) {

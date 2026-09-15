@@ -180,6 +180,17 @@ export class IpercDetailPage {
   protected readonly canReviewNow = computed(() => this.matrix()?.status === 'en_revision');
   protected readonly canResumeEvaluation = computed(() => this.matrix()?.status === 'rechazada');
 
+  /**
+   * La matriz es un documento vivo, reutilizado por todas las actividades
+   * iguales de aquí en más (no por ticket) — con el tiempo hace falta
+   * agregar una tarea o corregir un dato aunque ya esté Aprobada. "Editar
+   * matriz" la vuelve a "En evaluación" (mismo estado editable de
+   * siempre); no cubre nuevos PTW hasta que Coordinador/Gerente HSE la
+   * vuelva a aprobar. Los PTW ya abiertos con la versión anterior no se
+   * tocan — no tienen un vínculo vivo al estado actual de la matriz.
+   */
+  protected readonly canReopenForEdit = computed(() => this.matrix()?.status === 'aprobada');
+
   protected readonly canApprove = computed(() => {
     const roleName = this.auth.currentUser()?.roleName;
     return roleName === 'Coordinador HSE' || roleName === 'Gerente HSE';
@@ -307,6 +318,11 @@ export class IpercDetailPage {
 
   /** El equipo evaluador retoma la matriz rechazada de vuelta a "en_evaluacion" para corregirla. */
   protected resumeEvaluation(): void {
+    this.transitionTo('en_evaluacion');
+  }
+
+  /** Reabre una matriz ya Aprobada para agregar una tarea o corregir un dato — ver canReopenForEdit(). */
+  protected reopenForEdit(): void {
     this.transitionTo('en_evaluacion');
   }
 

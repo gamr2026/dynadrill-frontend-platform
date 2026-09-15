@@ -152,7 +152,7 @@ export class PedidoDetailPage {
     if (!p) return [];
     return [
       { label: 'Agente comercial', value: p.agenteComercial },
-      { label: 'Representante en campo (PEC)', value: p.representanteCampo },
+      { label: 'Representante en campo', value: p.representanteCampo },
       { label: 'Representante en Quito (PEC)', value: p.representanteQuito },
       { label: 'Analista de facturación', value: p.analistaFacturacion ?? '—' },
     ];

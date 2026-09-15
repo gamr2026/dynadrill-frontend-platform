@@ -14,7 +14,7 @@ import {
   type DynadrillKpiRowItem,
   type DynadrillTab,
 } from '@digitec-it-projects/dynadrill-ui';
-import { ESTADO_PEDIDO_LABELS, LINEA_SERVICIO_LABELS, Pedido, valorEstimadoPedido } from '../../models/pedido.model';
+import { ESTADO_PEDIDO_LABELS, LINEA_SERVICIO_LABELS, Pedido, TIPO_OT_LABELS, TipoOt, valorEstimadoPedido } from '../../models/pedido.model';
 import { Prefactura } from '../../models/prefactura.model';
 import { PedidoService, PrefacturaService } from '../../services/pedido.service';
 
@@ -76,6 +76,7 @@ export class ReporteriaPage {
     { label: 'Estado por cliente' },
     { label: 'Cotizado vs. real' },
     { label: 'Control de tickets' },
+    { label: 'Servicio vs. Venta' },
   ];
 
   private pedidoDe(id: number): Pedido | undefined {
@@ -255,6 +256,51 @@ export class ReporteriaPage {
     return [{ name: 'Tickets', data: [contar('success'), contar('warning'), contar('error'), contar('neutral')] }];
   });
 
+  // ── 6. Servicio vs. Venta ──
+  /** `tipoOt` solo decide la bifurcación del ticket FCR (ver crearTicketFcrSiAplica) — en Pumping no aplica, se excluye del corte. */
+  private readonly pedidosFcr = computed(() => this.pedidos().filter(p => p.lineaServicio !== 'pumping'));
+  protected readonly servicioVentaRows = computed(() => {
+    const acc = new Map<TipoOt, { pedidos: number; facturados: number; cotizado: number; real: number }>();
+    for (const p of this.pedidosFcr()) {
+      const pf = this.prefacturas().find(x => x.pedidoId === p.id && x.estado === 'firmada');
+      const cur = acc.get(p.tipoOt) ?? { pedidos: 0, facturados: 0, cotizado: 0, real: 0 };
+      cur.pedidos += 1;
+      cur.cotizado += valorEstimadoPedido(p);
+      if (pf) {
+        cur.facturados += 1;
+        cur.real += pf.subtotal;
+      }
+      acc.set(p.tipoOt, cur);
+    }
+    return (['venta', 'servicio'] as TipoOt[])
+      .filter(tipo => acc.has(tipo))
+      .map(tipo => {
+        const v = acc.get(tipo)!;
+        return {
+          id: tipo,
+          tipo: TIPO_OT_LABELS[tipo],
+          pedidos: v.pedidos,
+          facturados: v.facturados,
+          cotizado: '$' + v.cotizado.toFixed(2),
+          real: '$' + v.real.toFixed(2),
+          _pedidos: v.pedidos,
+          _real: v.real,
+        };
+      });
+  });
+  protected readonly servicioVentaColumns: DynadrillDataTableColumn[] = [
+    { key: 'tipo', header: 'Tipo de OT' },
+    { key: 'pedidos', header: 'Nº de pedidos' },
+    { key: 'facturados', header: 'Facturados (prefactura firmada)' },
+    { key: 'cotizado', header: 'Cotizado (Ventas)' },
+    { key: 'real', header: 'Revenue real' },
+  ];
+  protected readonly servicioVentaChartCategories = computed(() => this.servicioVentaRows().map(r => r.tipo));
+  protected readonly servicioVentaChartSeries = computed<DynadrillChartSeries[]>(() => [
+    { name: 'Nº de pedidos', data: this.servicioVentaRows().map(r => r._pedidos) },
+    { name: 'Revenue real', data: this.servicioVentaRows().map(r => r._real) },
+  ]);
+
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
@@ -299,11 +345,17 @@ export class ReporteriaPage {
         return descargarCsv(`estado-por-cliente-${hoy}.csv`, ['Cliente', 'Estado', 'Nº tickets', 'Accrual'], this.estadoClienteRows().map(r => [r.cliente, r.estado, r.tickets, r._a]));
       case 3:
         return descargarCsv(`cotizado-vs-real-${hoy}.csv`, ['Pedido', 'Cliente', 'Cotizado', 'Real', 'Desviación'], this.cotizadoRealRows().map(r => [r.code, r.cliente, r.cotizado, r.real, r.desviacion]));
-      default:
+      case 4:
         return descargarCsv(
           `control-tickets-${hoy}.csv`,
           ['Ticket', 'Cliente', 'Línea', 'Pozo', 'Analista', 'Vendedor', 'Estado', 'Días prefact.', 'Días firma'],
           this.controlRows().map(r => [r.code, r.cliente, r.linea, r.pozo, r.analista, r.vendedor, r.estado, r.diasPrefBadge.text, r.diasFirmaBadge.text]),
+        );
+      default:
+        return descargarCsv(
+          `servicio-vs-venta-${hoy}.csv`,
+          ['Tipo de OT', 'Nº de pedidos', 'Facturados', 'Cotizado', 'Real'],
+          this.servicioVentaRows().map(r => [r.tipo, r.pedidos, r.facturados, r.cotizado, r.real]),
         );
     }
   }

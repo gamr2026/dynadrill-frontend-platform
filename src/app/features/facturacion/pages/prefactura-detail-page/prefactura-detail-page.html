@@ -46,6 +46,16 @@
       </section>
 
       <section class="fact-card">
+        <header class="pf-detail__head">
+          <h2>Comercial y responsables</h2>
+          <dynadrill-button variant="secondary" size="small" (clicked)="editarRepresentantes()">Editar representantes</dynadrill-button>
+        </header>
+        <dl class="pf-detail__defs">
+          @for (d of datosComercial(); track d.label) { <div><dt>{{ d.label }}</dt><dd>{{ d.value }}</dd></div> }
+        </dl>
+      </section>
+
+      <section class="fact-card">
         <header class="pf-detail__head"><h2>Liquidación</h2></header>
         <div class="pf-detail__liquidacion">
           <dl class="pf-detail__totals">

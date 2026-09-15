@@ -23,6 +23,12 @@ import { EnviarClienteDialog, EnviarClienteDialogData } from '../../components/e
 import { RespuestaClienteDialog, RespuestaClienteDialogData } from '../../components/respuesta-cliente-dialog';
 import { GuiaRemisionPdfDialog, GuiaRemisionPdfDialogData } from '../../components/guia-remision-pdf-dialog';
 import { AotGenerarDialog, AotGenerarDialogData } from '../../components/aot-generar-dialog';
+import { EditarRepresentantesDialog, EditarRepresentantesDialogData } from '../../components/editar-representantes-dialog';
+
+interface Dato {
+  label: string;
+  value: string;
+}
 
 /** Plantilla de carga a AS2 (Fase 8) — mismas columnas que `AS2 Prefactura Cliente.xlsx`. */
 function exportarAs2(code: string, items: { codigo: string; unidad: string; cantidad: number; descripcion: string; precioUnitario: number }[]): void {
@@ -78,6 +84,18 @@ export class PrefacturaDetailPage {
   protected readonly aot = signal<Aot | null>(null);
 
   protected readonly puedeGenerarAot = computed(() => this.prefactura()?.estado === 'firmada' && !this.aot());
+
+  /** FACT #9 — igual criterio de labels que pedido-detail-page.ts. */
+  protected readonly datosComercial = computed<Dato[]>(() => {
+    const p = this.pedido();
+    if (!p) return [];
+    return [
+      { label: 'Agente comercial', value: p.agenteComercial },
+      { label: 'Representante en campo', value: p.representanteCampo },
+      { label: 'Representante en Quito (PEC)', value: p.representanteQuito },
+      { label: 'Analista de facturación', value: p.analistaFacturacion ?? '—' },
+    ];
+  });
 
   /** Checklist de revisión (FACT-003) — cliente-side; habilita "Enviar al cliente". */
   protected readonly checklist = signal<Record<string, boolean>>({
@@ -201,6 +219,22 @@ export class PrefacturaDetailPage {
       data: { prefactura: pf, pedido: p },
       footer: false,
       width: '900px',
+    });
+  }
+
+  /** FACT #9 — corregir representantes sin salir de la prefactura ni abrir el diálogo completo del pedido. */
+  protected editarRepresentantes(): void {
+    const p = this.pedido();
+    if (!p) return;
+    const ref = this.dialog.open<EditarRepresentantesDialog, EditarRepresentantesDialogData>({
+      title: 'Editar representantes',
+      content: EditarRepresentantesDialog,
+      data: { pedido: p },
+      footer: false,
+      width: '520px',
+    });
+    ref.afterClose.subscribe(pedido => {
+      if (pedido) this.pedido.set(pedido);
     });
   }
 

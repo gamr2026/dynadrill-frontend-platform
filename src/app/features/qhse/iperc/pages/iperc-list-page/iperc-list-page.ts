@@ -7,6 +7,7 @@ import {
   DynadrillDialogService,
   DynadrillIconButtonComponent,
   DynadrillKpiRowComponent,
+  DynadrillNotificationService,
   DynadrillPhaseTrackComponent,
   DynadrillScreenHeaderComponent,
   type DynadrillKpiRowItem,
@@ -70,6 +71,7 @@ export class IpercListPage {
   private readonly route = inject(ActivatedRoute);
   private readonly auth = inject(AuthService);
   private readonly notifications = inject(NotificationsService);
+  private readonly notify = inject(DynadrillNotificationService);
 
   protected readonly loading = signal(true);
   protected readonly matrices = signal<IpercMatrix[]>([]);
@@ -167,6 +169,25 @@ export class IpercListPage {
 
   protected viewDetail(row: Record<string, unknown>): void {
     this.router.navigate([String(row['id'])], { relativeTo: this.route });
+  }
+
+  /**
+   * Si está Aprobada, la reabre (vuelve a "en_evaluacion" — mismo criterio
+   * que "Editar matriz" en el detalle, ver IpercDetailPage.reopenForEdit())
+   * antes de entrar, para no obligar a repetir el paso ahí adentro. En
+   * cualquier otro estado ya es editable, así que solo navega.
+   */
+  protected editarMatriz(row: Record<string, unknown>): void {
+    const matrix = this.matrices().find(m => m.id === row['id']);
+    if (!matrix) return;
+    if (matrix.status !== 'aprobada') {
+      this.viewDetail(row);
+      return;
+    }
+    this.ipercService.update(matrix.id, { status: 'en_evaluacion' }).subscribe({
+      next: () => this.viewDetail(row),
+      error: () => this.notify.error('Error', 'No se pudo reabrir la matriz para editarla. Inténtalo de nuevo.'),
+    });
   }
 
   /** Réplica imprimible de la matriz, formato DYN-SGI-RE-087 (GTC 45) — ver IpercMatrixPdfDialog. */

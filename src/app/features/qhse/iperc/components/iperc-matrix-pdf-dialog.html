@@ -59,19 +59,29 @@
           <th rowspan="2">Zona / Lugar</th>
           <th rowspan="2">Actividad</th>
           <th rowspan="2">Tarea</th>
+          <th rowspan="2">Rutinaria</th>
+          <th rowspan="2">Área / Puesto de trabajo</th>
+          <th rowspan="2">Cargos expuestos</th>
           <th colspan="2">Peligro</th>
           <th rowspan="2">Fuente de riesgo</th>
-          <th rowspan="2">Controles existentes</th>
+          <th rowspan="2">Generado en</th>
+          <th rowspan="2">Efectos posibles</th>
+          <th colspan="3">Controles existentes</th>
           <th colspan="7">Valoración del riesgo — inicial</th>
           <th rowspan="2">N° expuestos</th>
           <th rowspan="2">Peor consecuencia</th>
           <th rowspan="2">Requisito legal</th>
           <th colspan="5">Medidas de intervención</th>
+          <th rowspan="2">Seguimiento</th>
           <th colspan="7">Valoración del riesgo — residual</th>
+          <th rowspan="2">Seguimiento</th>
         </tr>
         <tr>
           <th>Descripción</th>
           <th>Clasificación</th>
+          <th>Fuente</th>
+          <th>Medio</th>
+          <th>Individuo</th>
           <th>ND</th>
           <th>NE</th>
           <th>NP</th>
@@ -100,10 +110,17 @@
             <td>{{ data.matrix.ubicacion }}</td>
             <td>{{ data.matrix.actividad }}</td>
             <td>{{ row.tarea }}</td>
+            <td>{{ row.rutinaria === true ? 'SI' : row.rutinaria === false ? 'NO' : '—' }}</td>
+            <td>{{ row.areaPuestoTrabajo || '—' }}</td>
+            <td>{{ row.cargosExpuestos || '—' }}</td>
             <td>{{ row.hazard.peligro }}</td>
             <td>{{ row.hazard.clasificacionPeligro || '—' }}</td>
             <td>{{ row.hazard.fuenteRiesgo }}</td>
+            <td>{{ row.hazard.generadoEn || '—' }}</td>
+            <td>{{ row.hazard.efectosPosibles || '—' }}</td>
             <td>{{ row.hazard.controlesExistentes || '—' }}</td>
+            <td>{{ row.hazard.controlesExistentesMedio || '—' }}</td>
+            <td>{{ row.hazard.controlesExistentesIndividuo || '—' }}</td>
             <td class="num">{{ nd(row.hazard, 'inicial') }}</td>
             <td class="num">{{ ne(row.hazard, 'inicial') }}</td>
             <td class="num">{{ np(row.hazard, 'inicial') }}</td>
@@ -119,6 +136,7 @@
             <td>{{ controlesDe(row.hazard, 'ingenieria') }}</td>
             <td>{{ controlesDe(row.hazard, 'administrativo') }}</td>
             <td>{{ controlesDe(row.hazard, 'epp') }}</td>
+            <td>{{ row.hazard.seguimiento || '—' }}</td>
             <td class="num">{{ nd(row.hazard, 'residual') }}</td>
             <td class="num">{{ ne(row.hazard, 'residual') }}</td>
             <td class="num">{{ np(row.hazard, 'residual') }}</td>
@@ -126,9 +144,10 @@
             <td class="num">{{ nc(row.hazard, 'residual') }}</td>
             <td class="num">{{ nr(row.hazard, 'residual') }}</td>
             <td>{{ aceptabilidad(row.hazard, 'residual') }}</td>
+            <td>{{ row.hazard.seguimiento || '—' }}</td>
           </tr>
         } @empty {
-          <tr><td colspan="29">Sin peligros identificados todavía.</td></tr>
+          <tr><td colspan="37">Sin peligros identificados todavía.</td></tr>
         }
       </tbody>
     </table>

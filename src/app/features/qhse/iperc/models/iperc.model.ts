@@ -125,14 +125,24 @@ export interface IpercHazard {
   clasificacionPeligro?: string;
   /** Fuente/origen del riesgo. */
   fuenteRiesgo: string;
-  /** Controles que ya existían antes de esta evaluación (texto libre, Fase 1-2). */
+  /** Controles que ya existían antes de esta evaluación — "Fuente" del Excel real (texto libre, Fase 1-2). */
   controlesExistentes: string;
+  /** Controles existentes a nivel del medio de propagación (columna "Medio" del Excel real). */
+  controlesExistentesMedio?: string;
+  /** Controles existentes a nivel del individuo expuesto (columna "Individuo" del Excel real). */
+  controlesExistentesIndividuo?: string;
+  /** Dónde se genera el riesgo respecto al trabajador — ej. "Sitio de trabajo" (columna "Generado en" del Excel real). */
+  generadoEn?: string;
+  /** Efectos posibles del peligro en texto libre (columna del Excel real, distinta de "Peor consecuencia"). */
+  efectosPosibles?: string;
   /** N° de personas expuestas (columna del Excel real). */
   numeroExpuestos?: number;
   /** Peor consecuencia posible en texto libre (columna del Excel real, distinta de la banda NC). */
   peorConsecuencia?: string;
   /** ¿Existe requisito legal específico asociado? (columna del Excel real). */
   requisitoLegal?: boolean;
+  /** Seguimiento — columna "SEGUIMIENTO" del Excel real (aparece dos veces en el archivo, misma info en ambas). */
+  seguimiento?: string;
   /** Riesgo inicial — Fase 2, sin los controles nuevos definidos en Fase 3. */
   riesgoInicial: GtcEvaluacion;
   /** Controles nuevos definidos en Fase 3, jerarquía completa de 5 niveles. */
@@ -145,6 +155,12 @@ export interface IpercTask {
   id: number;
   /** Tarea dentro del desglose de la actividad (Fase 1). */
   descripcion: string;
+  /** ¿Es rutinaria? (columna "Rutinaria (Si ó Nó)" del Excel real). */
+  rutinaria?: boolean;
+  /** Área o puesto de trabajo donde se realiza la tarea (columna del Excel real). */
+  areaPuestoTrabajo?: string;
+  /** Cargos expuestos a los peligros de esta tarea (columna del Excel real). */
+  cargosExpuestos?: string;
   hazards: IpercHazard[];
 }
 

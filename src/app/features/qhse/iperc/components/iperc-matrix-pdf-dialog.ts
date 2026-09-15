@@ -22,6 +22,9 @@ export interface IpercMatrixPdfDialogData {
 
 interface HazardRow {
   tarea: string;
+  rutinaria?: boolean;
+  areaPuestoTrabajo?: string;
+  cargosExpuestos?: string;
   hazard: IpercHazard;
 }
 
@@ -30,13 +33,9 @@ interface HazardRow {
  * `DYN-SGI-RE-087` (GTC 45): mismo encabezado, mismas tablas de referencia
  * ND/NE/NC (tomadas de `ND_OPCIONES`/`NE_OPCIONES`/`NC_OPCIONES`, no
  * reescritas a mano) y la tabla ancha por peligro con las columnas del
- * Excel real, mapeadas a mano contra el archivo original (columnas A-AM de
+ * Excel real, mapeadas a mano contra el archivo original (columnas A-AS de
  * la hoja "GTC 45"). Sin librería de PDF: `window.print()` (mismo patrón
  * que `PrefacturaPdfDialog`).
- *
- * Columnas del Excel sin equivalente en el modelo de datos actual
- * (Rutinaria, Área/Puesto de trabajo, Cargos expuestos, Generado en,
- * Efectos posibles) se muestran en blanco — no se inventan valores.
  */
 @Component({
   selector: 'app-iperc-matrix-pdf-dialog',
@@ -57,7 +56,15 @@ export class IpercMatrixPdfDialog {
   protected readonly neOpciones = NE_OPCIONES;
   protected readonly ncOpciones = NC_OPCIONES;
 
-  protected readonly hazardRows: HazardRow[] = this.data.matrix.tasks.flatMap(t => t.hazards.map(hazard => ({ tarea: t.descripcion, hazard })));
+  protected readonly hazardRows: HazardRow[] = this.data.matrix.tasks.flatMap(t =>
+    t.hazards.map(hazard => ({
+      tarea: t.descripcion,
+      rutinaria: t.rutinaria,
+      areaPuestoTrabajo: t.areaPuestoTrabajo,
+      cargosExpuestos: t.cargosExpuestos,
+      hazard,
+    })),
+  );
 
   protected nd(h: IpercHazard, cual: 'inicial' | 'residual'): string {
     const v = (cual === 'inicial' ? h.riesgoInicial : h.riesgoResidual).nd;

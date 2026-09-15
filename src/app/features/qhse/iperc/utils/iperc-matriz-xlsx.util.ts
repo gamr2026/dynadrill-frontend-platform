@@ -12,9 +12,7 @@ import { calcularNP, calcularNR, ControlType, GtcEvaluacion, interpretarNP, inte
  * ~885 filas históricas reales de la empresa, ver el script que la generó.
  *
  * Mapeo de columnas verificado a mano contra el archivo original (hoja
- * "GTC 45 - Julio 2026", filas 18-19 = encabezados). Columnas del Excel
- * sin equivalente en el modelo actual (Rutinaria, Área/Puesto de trabajo,
- * Cargos expuestos, Generado en, Efectos posibles) quedan en blanco.
+ * "GTC 45 - Julio 2026", filas 18-19 = encabezados).
  */
 const TEMPLATE_URL = '/plantillas/iperc-matriz-gtc45.xlsx';
 const SHEET_NAME = 'GTC 45 - Julio 2026';
@@ -23,6 +21,9 @@ const LAST_COL = 45; // AS
 
 interface HazardRow {
   tarea: string;
+  rutinaria?: boolean;
+  areaPuestoTrabajo?: string;
+  cargosExpuestos?: string;
   hazard: IpercHazard;
 }
 
@@ -58,10 +59,17 @@ function setHazardRow(ws: Worksheet, excelRow: number, matrix: IpercMatrix, row:
   ws.getCell(`B${excelRow}`).value = matrix.ubicacion;
   ws.getCell(`C${excelRow}`).value = matrix.actividad;
   ws.getCell(`D${excelRow}`).value = row.tarea;
+  ws.getCell(`E${excelRow}`).value = row.rutinaria === true ? 'SI' : row.rutinaria === false ? 'NO' : undefined;
+  ws.getCell(`F${excelRow}`).value = row.areaPuestoTrabajo;
+  ws.getCell(`G${excelRow}`).value = row.cargosExpuestos;
   ws.getCell(`H${excelRow}`).value = h.peligro;
   ws.getCell(`I${excelRow}`).value = h.clasificacionPeligro;
   ws.getCell(`J${excelRow}`).value = h.fuenteRiesgo;
+  ws.getCell(`K${excelRow}`).value = h.generadoEn;
+  ws.getCell(`L${excelRow}`).value = h.efectosPosibles;
   ws.getCell(`M${excelRow}`).value = h.controlesExistentes;
+  ws.getCell(`N${excelRow}`).value = h.controlesExistentesMedio;
+  ws.getCell(`O${excelRow}`).value = h.controlesExistentesIndividuo;
 
   setEvaluacion(ws, excelRow, { nd: 'P', ne: 'Q', np: 'R', interpNp: 'S', nc: 'T', nr: 'U', interpNr: 'V', aceptabilidad: 'W' }, h.riesgoInicial);
 
@@ -74,6 +82,7 @@ function setHazardRow(ws: Worksheet, excelRow: number, matrix: IpercMatrix, row:
   ws.getCell(`AC${excelRow}`).value = controlesDe(h, 'ingenieria');
   ws.getCell(`AD${excelRow}`).value = controlesDe(h, 'administrativo');
   ws.getCell(`AE${excelRow}`).value = controlesDe(h, 'epp');
+  ws.getCell(`AF${excelRow}`).value = h.seguimiento;
 
   setEvaluacion(ws, excelRow, { nd: 'AG', ne: 'AH', np: 'AI', interpNp: 'AJ', nc: 'AK', nr: 'AL', aceptabilidad: 'AM' }, h.riesgoResidual);
 
@@ -83,6 +92,7 @@ function setHazardRow(ws: Worksheet, excelRow: number, matrix: IpercMatrix, row:
   ws.getCell(`AP${excelRow}`).value = controlesDe(h, 'ingenieria');
   ws.getCell(`AQ${excelRow}`).value = controlesDe(h, 'administrativo');
   ws.getCell(`AR${excelRow}`).value = controlesDe(h, 'epp');
+  ws.getCell(`AS${excelRow}`).value = h.seguimiento;
 }
 
 export async function exportarMatrizIpercXlsx(matrix: IpercMatrix): Promise<void> {
@@ -99,7 +109,15 @@ export async function exportarMatrizIpercXlsx(matrix: IpercMatrix): Promise<void
   ws.getCell('C7').value = matrix.equipoEvaluador.join(', ') || undefined;
   ws.getCell('C10').value = matrix.ubicacion;
 
-  const hazardRows: HazardRow[] = matrix.tasks.flatMap(t => t.hazards.map(hazard => ({ tarea: t.descripcion, hazard })));
+  const hazardRows: HazardRow[] = matrix.tasks.flatMap(t =>
+    t.hazards.map(hazard => ({
+      tarea: t.descripcion,
+      rutinaria: t.rutinaria,
+      areaPuestoTrabajo: t.areaPuestoTrabajo,
+      cargosExpuestos: t.cargosExpuestos,
+      hazard,
+    })),
+  );
   const moldeRow = ws.getRow(MOLDE_ROW);
 
   hazardRows.forEach((row, i) => {

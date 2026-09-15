@@ -140,6 +140,30 @@ export class IpercHazardPanel {
     this.patchHazard({ requisitoLegal: valor });
   }
 
+  protected setControlesExistentes(valor: string): void {
+    this.patchHazard({ controlesExistentes: valor });
+  }
+
+  protected setGeneradoEn(valor: string): void {
+    this.patchHazard({ generadoEn: valor || undefined });
+  }
+
+  protected setEfectosPosibles(valor: string): void {
+    this.patchHazard({ efectosPosibles: valor || undefined });
+  }
+
+  protected setControlesExistentesMedio(valor: string): void {
+    this.patchHazard({ controlesExistentesMedio: valor || undefined });
+  }
+
+  protected setControlesExistentesIndividuo(valor: string): void {
+    this.patchHazard({ controlesExistentesIndividuo: valor || undefined });
+  }
+
+  protected setSeguimiento(valor: string): void {
+    this.patchHazard({ seguimiento: valor || undefined });
+  }
+
   protected agregarControl(): void {
     if (!this.controlDescription().trim()) return;
     const nuevoControl: IpercControl = { id: this.nextLocalId(), type: this.controlType(), description: this.controlDescription().trim() };

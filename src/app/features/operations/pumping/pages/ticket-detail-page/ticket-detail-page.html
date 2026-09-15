@@ -5,17 +5,21 @@
   [roleTag]="roleName()"
 />
 
+@if (pedido()) {
+  <div class="ticket-detail__toolbar">
+    <dynadrill-button variant="secondary" size="small" (clicked)="abrirVerPedido()">Ver pedido de Ventas</dynadrill-button>
+    @if (puedeSolicitarCambioItems()) {
+      <dynadrill-button variant="secondary" size="small" (clicked)="abrirSolicitudCambioItems()">
+        Ver / solicitar cambio de ítems del pedido
+      </dynadrill-button>
+    }
+  </div>
+}
 @if (solicitudPendiente(); as sp) {
   <dynadrill-banner
     variant="warning"
     [message]="'Solicitud de cambio de ítems enviada el ' + (sp.fechaSolicitud | date: 'dd/MM/yyyy HH:mm') + ' — pendiente de aprobación del Supervisor.'"
   />
-} @else if (puedeSolicitarCambioItems()) {
-  <div class="ticket-detail__toolbar">
-    <dynadrill-button variant="secondary" size="small" (clicked)="abrirSolicitudCambioItems()">
-      Ver / solicitar cambio de ítems del pedido
-    </dynadrill-button>
-  </div>
 }
 
 <div class="ticket-detail__stepper">
@@ -121,23 +125,55 @@
       }
 
       <section class="ticket-detail__section">
-        <dynadrill-text variant="h2">Asignar químicos</dynadrill-text>
-        <dynadrill-text variant="caption">Catálogo real de Inventario (Bodeguero) — la cantidad retirada se descuenta de bodega al guardar.</dynadrill-text>
-        <dynadrill-select label="Químicos" placeholder="Seleccionar químicos" [options]="chemicalOptions()" [value]="selectedChemicals()" [multiple]="true" (valueChange)="onChemicalsChange($event)" />
+        <dynadrill-text variant="h2">Químicos del pedido</dynadrill-text>
+        <dynadrill-text variant="caption">
+          Definidos por Ventas al crear el pedido — se precargan solos contra el catálogo real de Inventario. Ajustá la
+          cantidad a retirar si hace falta.
+        </dynadrill-text>
+        @if (chemicalsPedido().length === 0) {
+          <dynadrill-text variant="caption">Este pedido no tiene ítems marcados como químico.</dynadrill-text>
+        }
+        @for (r of chemicalsPedidoResueltos(); track r.item.codigo) {
+          @if (r.articulo; as articulo) {
+            <dynadrill-input
+              [label]="'Cantidad a retirar — ' + articulo.nombre + ' (' + articulo.unidadStock + ', stock: ' + articulo.stockActual + ')'"
+              type="number"
+              placeholder="0"
+              [value]="chemicalQuantity(articulo.id)"
+              (valueChange)="onChemicalQuantityChange(articulo.id, $event)"
+            />
+          } @else {
+            <div class="ticket-detail__quimico-sin-match">
+              <dynadrill-text variant="caption">
+                ⚠ "{{ r.item.descripcion }}" ({{ r.item.codigo }}) no coincide con ningún químico activo de Inventario —
+                elegí a cuál corresponde:
+              </dynadrill-text>
+              <dynadrill-select placeholder="Químico real de Inventario" [options]="chemicalOptions()" [value]="null" (valueChange)="onResolverQuimicoManual(r.item, $any($event))" />
+            </div>
+          }
+        }
       </section>
 
-      <!-- Cantidad a retirar de bodega, por cada químico seleccionado -->
+      <!-- Cantidad a retirar de químicos agregados manualmente (no venían marcados en el pedido) -->
       @for (articulo of selectedChemicalRows(); track articulo.id) {
-        <section class="ticket-detail__section">
-          <dynadrill-input
-            [label]="'Cantidad a retirar — ' + articulo.nombre + ' (' + articulo.unidadStock + ', stock: ' + articulo.stockActual + ')'"
-            type="number"
-            placeholder="0"
-            [value]="chemicalQuantity(articulo.id)"
-            (valueChange)="onChemicalQuantityChange(articulo.id, $event)"
-          />
-        </section>
+        @if (!chemicalsPedidoResueltos().some(r => r.articulo?.id === articulo.id)) {
+          <section class="ticket-detail__section">
+            <dynadrill-input
+              [label]="'Cantidad a retirar — ' + articulo.nombre + ' (' + articulo.unidadStock + ', stock: ' + articulo.stockActual + ')'"
+              type="number"
+              placeholder="0"
+              [value]="chemicalQuantity(articulo.id)"
+              (valueChange)="onChemicalQuantityChange(articulo.id, $event)"
+            />
+          </section>
+        }
       }
+
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="h2">Agregar otro químico</dynadrill-text>
+        <dynadrill-text variant="caption">Solo si hace falta algo que no venía marcado en el pedido.</dynadrill-text>
+        <dynadrill-select label="Químicos" placeholder="Seleccionar químicos adicionales" [options]="chemicalOptions()" [value]="selectedChemicals()" [multiple]="true" (valueChange)="onChemicalsChange($event)" />
+      </section>
 
       @if (selectedChemicals().length > 0) {
         <section class="ticket-detail__section">
@@ -566,7 +602,7 @@
         (seleccionChange)="onUbicacionChange($event)"
       />
       <div class="ticket-detail__form-grid">
-        <dynadrill-input label="Cabezal" [value]="reportHeaderCode()" (valueChange)="reportHeaderCode.set($event)" />
+        <dynadrill-input label="Cabezal" placeholder="Código del cabezal" [value]="reportHeaderCode()" (valueChange)="reportHeaderCode.set($event)" />
         <dynadrill-input label="Cliente" [value]="reportClientName()" (valueChange)="reportClientName.set($event)" />
         <dynadrill-input label="Unidad" [value]="reportUnitCode()" (valueChange)="reportUnitCode.set($event)" />
       </div>
@@ -577,7 +613,7 @@
       <dynadrill-text variant="h2">Fecha y combustible</dynadrill-text>
       <div class="ticket-detail__form-grid">
         <dynadrill-datetime-picker mode="date" label="Fecha de salida" [value]="$any(reportDepartureDate())" (valueChange)="reportDepartureDate.set($event)" />
-        <dynadrill-input type="number" label="Combustible salida (gal)" [value]="reportFuelDeparture()" (valueChange)="reportFuelDeparture.set($event)" />
+        <dynadrill-input type="number" label="Combustible salida (gal)" placeholder="Ej. 45" [value]="reportFuelDeparture()" (valueChange)="reportFuelDeparture.set($event)" />
       </div>
     </section>
 
@@ -618,7 +654,9 @@
           </div>
         }
       </div>
-      <dynadrill-button variant="secondary" size="small" (clicked)="addHubodometroAxle()">+ Agregar lectura de eje</dynadrill-button>
+      <div class="ticket-detail__hubodometro-actions">
+        <dynadrill-button variant="secondary" size="small" (clicked)="addHubodometroAxle()">+ Agregar lectura de eje</dynadrill-button>
+      </div>
     </section>
 
 
@@ -716,7 +754,7 @@
       <dynadrill-context-card [items]="arrivalFuelReadonlyItems()" />
       <div class="ticket-detail__form-grid">
         <dynadrill-datetime-picker mode="date" label="Fecha de llegada" [value]="$any(reportArrivalDate())" (valueChange)="reportArrivalDate.set($event)" />
-        <dynadrill-input type="number" label="Combustible llegada (gal)" [value]="reportFuelArrival()" (valueChange)="reportFuelArrival.set($event)" />
+        <dynadrill-input type="number" label="Combustible llegada (gal)" placeholder="Ej. 12" [value]="reportFuelArrival()" (valueChange)="reportFuelArrival.set($event)" />
       </div>
     </section>
 
@@ -839,45 +877,52 @@
 
     <!-- Novedades -->
     <section class="ticket-detail__section">
-      <dynadrill-text variant="h2">Novedades — Describa en forma clara los problemas acontecidos</dynadrill-text>
-      <dynadrill-textarea label="Mecánica" placeholder="Ej: Fuga de aceite en área de freno..." [value]="noveltiesMecanica()" (valueChange)="noveltiesMecanica.set($event)" />
-      <dynadrill-textarea label="Instrumentación" placeholder="Ej: Display de cabina no funciona..." [value]="noveltiesInstrumentacion()" (valueChange)="noveltiesInstrumentacion.set($event)" />
-      <dynadrill-textarea label="Operaciones" placeholder="Ej: Válvulas mal mantenidas, conectores dañados..." [value]="noveltiesOperaciones()" (valueChange)="noveltiesOperaciones.set($event)" />
+      <dynadrill-text variant="h2">¿Hay novedades que reportar?</dynadrill-text>
+      <dynadrill-chip-group [options]="['No', 'Sí']" mode="single" [selected]="[hayNovedades() ? 'Sí' : 'No']" (selectedChange)="onHayNovedadesChange($event[0] === 'Sí')" />
+      @if (hayNovedades()) {
+        <dynadrill-textarea label="Mecánica" placeholder="Ej: Fuga de aceite en área de freno..." [value]="noveltiesMecanica()" (valueChange)="noveltiesMecanica.set($event)" />
+        <dynadrill-textarea label="Instrumentación" placeholder="Ej: Display de cabina no funciona..." [value]="noveltiesInstrumentacion()" (valueChange)="noveltiesInstrumentacion.set($event)" />
+        <dynadrill-textarea label="Operaciones" placeholder="Ej: Válvulas mal mantenidas, conectores dañados..." [value]="noveltiesOperaciones()" (valueChange)="noveltiesOperaciones.set($event)" />
+      }
     </section>
 
-    <!-- Operatividad -->
+    <!-- Operatividad — 2 preguntas cortas en una sola sección/fila, antes ocupaban una sección completa cada una -->
     <section class="ticket-detail__section">
-      <dynadrill-text variant="h2">¿La unidad está lista y operativa para la siguiente operación?</dynadrill-text>
-      <dynadrill-chip-group [options]="unitReadyOptions" mode="single" [selected]="unitReadySelection()" (selectedChange)="unitReadySelection.set($event)" />
-    </section>
-
-    <section class="ticket-detail__section">
-      <dynadrill-text variant="h2">¿Alguno de los problemas de arriba interrumpió/atrasó la operación?</dynadrill-text>
-      <dynadrill-chip-group [options]="operationInterruptedOptions" mode="single" [selected]="operationInterruptedSelection()" (selectedChange)="operationInterruptedSelection.set($event)" />
+      <div class="ticket-detail__operatividad-row">
+        <div class="ticket-detail__operatividad-item">
+          <dynadrill-text variant="caption">¿Unidad lista y operativa?</dynadrill-text>
+          <dynadrill-chip-group [options]="unitReadyOptions" mode="single" [selected]="unitReadySelection()" (selectedChange)="unitReadySelection.set($event)" />
+        </div>
+        <div class="ticket-detail__operatividad-item">
+          <dynadrill-text variant="caption">¿Algún problema interrumpió la operación?</dynadrill-text>
+          <dynadrill-chip-group [options]="operationInterruptedOptions" mode="single" [selected]="operationInterruptedSelection()" (selectedChange)="operationInterruptedSelection.set($event)" />
+        </div>
+      </div>
       @if (operationInterruptedSelection()[0] === 'Sí') {
         <dynadrill-textarea label="¿Cuál?" placeholder="Describa qué problema interrumpió la operación..." [value]="interruptionDetail()" (valueChange)="interruptionDetail.set($event)" />
       }
     </section>
 
-    <!-- Firma Salida -->
-    <section class="ticket-detail__section ticket-detail__signature">
-      <dynadrill-text variant="h2">Firma — Salida</dynadrill-text>
-      <div class="ticket-detail__signature-block">
-        <div class="ticket-detail__signature-line"></div>
-        <dynadrill-text variant="body">{{ departureSignatureName() }}</dynadrill-text>
-        <dynadrill-text variant="caption">{{ departureSignatureDate() }}</dynadrill-text>
-      </div>
-    </section>
+    <!-- Firmas Salida + Llegada — una junto a la otra, no una sobre otra -->
+    <div class="ticket-detail__signatures-row">
+      <section class="ticket-detail__section ticket-detail__signature">
+        <dynadrill-text variant="h2">Firma — Salida</dynadrill-text>
+        <div class="ticket-detail__signature-block">
+          <div class="ticket-detail__signature-line"></div>
+          <dynadrill-text variant="body">{{ departureSignatureName() }}</dynadrill-text>
+          <dynadrill-text variant="caption">{{ departureSignatureDate() }}</dynadrill-text>
+        </div>
+      </section>
 
-    <!-- Firma Llegada -->
-    <section class="ticket-detail__section ticket-detail__signature">
-      <dynadrill-text variant="h2">Firma — Llegada</dynadrill-text>
-      <div class="ticket-detail__signature-block">
-        <div class="ticket-detail__signature-line"></div>
-        <dynadrill-text variant="body">{{ arrivalSignatureName() }}</dynadrill-text>
-        <dynadrill-text variant="caption">{{ arrivalSignatureDate() }}</dynadrill-text>
-      </div>
-    </section>
+      <section class="ticket-detail__section ticket-detail__signature">
+        <dynadrill-text variant="h2">Firma — Llegada</dynadrill-text>
+        <div class="ticket-detail__signature-block">
+          <div class="ticket-detail__signature-line"></div>
+          <dynadrill-text variant="body">{{ arrivalSignatureName() }}</dynadrill-text>
+          <dynadrill-text variant="caption">{{ arrivalSignatureDate() }}</dynadrill-text>
+        </div>
+      </section>
+    </div>
 
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>

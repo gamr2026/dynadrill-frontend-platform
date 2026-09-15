@@ -110,16 +110,16 @@
             <h2>Firma del cliente</h2>
             <div class="pf-detail__head-actions">
               @if (aot()) {
-                <dynadrill-button variant="secondary" size="small" (clicked)="verAot()">Ver AOT</dynadrill-button>
+                <dynadrill-button variant="secondary" size="small" (clicked)="verAot()">Ver OT</dynadrill-button>
               } @else if (puedeGenerarAot()) {
-                <dynadrill-button size="small" (clicked)="generarAot()">Generar AOT</dynadrill-button>
+                <dynadrill-button size="small" (clicked)="generarAot()">Generar OT</dynadrill-button>
               }
             </div>
           </header>
           <dynadrill-text variant="body">{{ f.nombre }} · {{ f.cargo }}</dynadrill-text>
           <dynadrill-text variant="caption">{{ f.firmadoAt | date: 'dd/MM/yyyy HH:mm' }}</dynadrill-text>
           @if (aot(); as a) {
-            <dynadrill-text variant="caption">AOT {{ a.numeroOpr }} — {{ a.estado }}</dynadrill-text>
+            <dynadrill-text variant="caption">OT {{ a.numeroOpr }} — {{ a.estado }}</dynadrill-text>
           }
         </section>
       }

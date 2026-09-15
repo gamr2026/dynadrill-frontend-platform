@@ -1,0 +1,27 @@
+<div class="ticket-documentos">
+  <dynadrill-text variant="caption">Documentos generados para el ticket {{ data.ticketCode }}.</dynadrill-text>
+
+  <dynadrill-text variant="h2">Reporte Job (diario)</dynadrill-text>
+  <table class="ticket-documentos__table">
+    <thead><tr><th>Fecha</th><th>Firmado por</th><th aria-label="Acciones"></th></tr></thead>
+    <tbody>
+      @for (d of data.reporteJobDocs; track d.id) {
+        <tr>
+          <td>{{ d.fecha }}</td>
+          <td>{{ d.firmadoPor || '—' }}</td>
+          <td><dynadrill-button variant="secondary" size="small" (clicked)="verReporteJob(d)">Ver PDF</dynadrill-button></td>
+        </tr>
+      } @empty {
+        <tr><td colspan="3">Todavía no se generó ningún Reporte Job para este ticket.</td></tr>
+      }
+    </tbody>
+  </table>
+
+  <dynadrill-text variant="caption">
+    Inspecciones de vehículo (salida/llegada): próximamente acá — hoy no quedan vinculadas a un ticket puntual.
+  </dynadrill-text>
+</div>
+
+<footer class="ticket-documentos__actions">
+  <dynadrill-button variant="secondary" (clicked)="cerrar()">Cerrar</dynadrill-button>
+</footer>

@@ -18,6 +18,14 @@
     gap: 0.75rem;
   }
 
+  &__section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
   &__form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -39,10 +47,12 @@
     display: grid;
     grid-template-columns: 100px 100px 60px 1fr 40px;
     gap: 0.75rem;
-    align-items: stretch;
-    padding: 0.5rem 0;
-    min-height: 80px;
-    border-bottom: 1px solid var(--color-border, #f0f0f0);
+    align-items: center;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--color-border, #f0f0f0);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    background: var(--surface, #fff);
   }
 
   &__col-time,
@@ -138,4 +148,29 @@
     padding-top: 1rem;
     border-top: 1px solid var(--color-border, #e0e0e0);
   }
+}
+
+// Debajo de ~640px las 3 columnas fijas (100+100+60px) más el detalle y la
+// acción no entran — cada fila pasa a apilarse con su propio label, mismo
+// patrón que las tablas responsive de QHSE. Va al final del archivo (no
+// anidado en .daily-report) para ganarle en cascada a las reglas base de
+// arriba con la misma especificidad.
+@media (max-width: 640px) {
+  .daily-report__activities-header {
+    display: none;
+  }
+
+  .daily-report__activity-row {
+    grid-template-columns: 1fr 1fr auto;
+    grid-template-areas:
+      'inicio fin accion'
+      'detalle detalle detalle';
+    row-gap: 0.5rem;
+  }
+
+  .daily-report__col-time:nth-child(1) { grid-area: inicio; }
+  .daily-report__col-time:nth-child(2) { grid-area: fin; }
+  .daily-report__col-hours { display: none; }
+  .daily-report__col-detail { grid-area: detalle; }
+  .daily-report__col-action { grid-area: accion; justify-content: flex-end; }
 }

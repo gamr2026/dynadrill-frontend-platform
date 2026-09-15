@@ -6,8 +6,13 @@
 
 <!-- ═══ Subir documento ═══ -->
 <section class="daily-report__section">
-  <dynadrill-text variant="h2">Cargar documento</dynadrill-text>
-  <dynadrill-text variant="caption">Suba el reporte diario escaneado o en formato digital para llenar los datos automáticamente.</dynadrill-text>
+  <div class="daily-report__section-head">
+    <dynadrill-text variant="h2">Cargar documento</dynadrill-text>
+    <dynadrill-button variant="secondary" size="small" (clicked)="descargarPlantilla()">⬇ Descargar formato en blanco</dynadrill-button>
+  </div>
+  <dynadrill-text variant="caption">
+    ¿Preferís llenarlo a mano? Descargá el formato, completalo y subilo acá — o completá el formulario directamente abajo.
+  </dynadrill-text>
   <dynadrill-upload-zone
     [state]="uploadState()"
     [fileName]="uploadFileName()"
@@ -57,7 +62,9 @@
         <dynadrill-textarea label="" placeholder="Describa la actividad..." [value]="activity.detalle" (valueChange)="onActivityChange($index, 'detalle', $event)" />
       </div>
       <div class="daily-report__col-action">
-        <dynadrill-button variant="error" size="small" (clicked)="removeActivity($index)">✕</dynadrill-button>
+        @if (actividades().length > 1) {
+          <dynadrill-icon-button icon="delete" tooltip="Quitar actividad" (clicked)="removeActivity($index)" />
+        }
       </div>
     </div>
   }
@@ -79,8 +86,16 @@
 
 <!-- ═══ Observaciones ═══ -->
 <section class="daily-report__section">
-  <dynadrill-text variant="h2">Observaciones</dynadrill-text>
-  <dynadrill-textarea label="Observaciones" placeholder="Ingrese observaciones generales del día..." [value]="observaciones()" (valueChange)="observaciones.set($event)" />
+  <dynadrill-text variant="h2">¿Tiene observaciones del día?</dynadrill-text>
+  <dynadrill-chip-group
+    [options]="['No', 'Sí']"
+    mode="single"
+    [selected]="[tieneObservaciones() ? 'Sí' : 'No']"
+    (selectedChange)="onTieneObservacionesChange($event[0] === 'Sí')"
+  />
+  @if (tieneObservaciones()) {
+    <dynadrill-textarea label="" placeholder="Ingrese observaciones generales del día..." [value]="observaciones()" (valueChange)="observaciones.set($event)" />
+  }
 </section>
 
 <!-- ═══ Firmas ═══ -->

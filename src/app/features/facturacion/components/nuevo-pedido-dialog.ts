@@ -46,6 +46,8 @@ interface LineaEstimadaDraft {
   cantidad: string;
   valorUnitario: string;
   descuentoPorcentaje: string;
+  /** Pumping precarga estas líneas en "Asignar recursos" — ver ticket-detail-page.ts del módulo Pumping. */
+  esQuimico: boolean;
 }
 
 const LINEA_ESTIMADA_VACIA: LineaEstimadaDraft = {
@@ -55,6 +57,7 @@ const LINEA_ESTIMADA_VACIA: LineaEstimadaDraft = {
   cantidad: '1',
   valorUnitario: '0',
   descuentoPorcentaje: '0',
+  esQuimico: false,
 };
 
 /** Cabecera real de la plantilla descargable de AS2 (hoja "Ventas", fila 4) — "AS2 Pedido Cliente.xlsx". */
@@ -285,6 +288,7 @@ export class NuevoPedidoDialog {
             cantidad: cantidad || '1',
             valorUnitario: precio || '0',
             descuentoPorcentaje: descuento || '0',
+            esQuimico: false,
           });
         }
 
@@ -411,6 +415,7 @@ export class NuevoPedidoDialog {
           cantidad: String(it.cantidad),
           valorUnitario: String(it.valorUnitario),
           descuentoPorcentaje: it.descuentoPorcentaje != null ? String(it.descuentoPorcentaje) : '0',
+          esQuimico: it.esQuimico ?? false,
         })),
       );
     }
@@ -457,6 +462,7 @@ export class NuevoPedidoDialog {
       cantidad: Number(l.cantidad),
       valorUnitario: Number(l.valorUnitario),
       descuentoPorcentaje: Number(l.descuentoPorcentaje) || 0,
+      esQuimico: l.esQuimico,
     }));
 
     const payload = {

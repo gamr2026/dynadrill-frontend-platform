@@ -126,6 +126,11 @@ export interface PtwMatrix {
   actividad: string;
   ubicacion: string;
 
+  /** A qué ticket operativo (Pumping/FCR) y pedido de Ventas corresponde este PTW — visible para que el usuario confirme la vinculación. */
+  ticketTipo?: 'pumping' | 'fcr';
+  ticketCode?: string;
+  pedidoCode?: string;
+
   /** Vínculo obligatorio con la Matriz IPERC aprobada que originó este PTW (HSE-PLAN-001 → HSE-SITIO-001). */
   ipercMatrixId: number;
   ipercCode: string;

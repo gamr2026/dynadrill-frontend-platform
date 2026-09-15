@@ -1,0 +1,38 @@
+<div class="ver-pedido">
+  <dl class="ver-pedido__defs">
+    <div><dt>Pedido</dt><dd>{{ data.pedido.code }}</dd></div>
+    <div><dt>Cliente</dt><dd>{{ data.pedido.cliente }}</dd></div>
+    <div><dt>Línea de servicio</dt><dd>{{ lineaServicioLabels[data.pedido.lineaServicio] }}</dd></div>
+    <div><dt>Pozo / Campo / Bloque</dt><dd>{{ data.pedido.pozo }} / {{ data.pedido.campo }} / {{ data.pedido.bloque }}</dd></div>
+    <div><dt>Taladro</dt><dd>{{ data.pedido.taladroRig }}</dd></div>
+    <div><dt>Nº de contrato</dt><dd>{{ data.pedido.numeroContrato || '—' }}</dd></div>
+    <div><dt>Agente comercial</dt><dd>{{ data.pedido.agenteComercial }}</dd></div>
+    <div><dt>Representante en campo</dt><dd>{{ data.pedido.representanteCampo }}</dd></div>
+    <div><dt>Representante en Quito</dt><dd>{{ data.pedido.representanteQuito }}</dd></div>
+    <div><dt>Zona</dt><dd>{{ data.pedido.zona || '—' }}</dd></div>
+  </dl>
+
+  <dynadrill-text variant="h2">Ítems estimados (cotizado por Ventas)</dynadrill-text>
+  <div class="table-scroll">
+    <table class="ver-pedido__table">
+      <thead><tr><th>Código</th><th>Descripción</th><th>Unidad</th><th class="num">Cantidad</th><th class="num">Precio unitario</th></tr></thead>
+      <tbody>
+        @for (it of items; track $index) {
+          <tr>
+            <td>{{ it.codigo }}</td>
+            <td>{{ it.descripcion }}</td>
+            <td>{{ it.unidad }}</td>
+            <td class="num">{{ it.cantidad }}</td>
+            <td class="num">${{ it.valorUnitario | number: '1.2-2' }}</td>
+          </tr>
+        } @empty {
+          <tr><td colspan="5">Sin ítems estimados registrados.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<footer class="ver-pedido__actions">
+  <dynadrill-button variant="secondary" (clicked)="cerrar()">Cerrar</dynadrill-button>
+</footer>

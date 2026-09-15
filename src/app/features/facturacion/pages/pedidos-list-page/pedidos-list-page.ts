@@ -145,7 +145,7 @@ export class PedidosListPage {
     return [
       { label: 'Pedidos', value: ps.length, tone: 'neutral' },
       { label: 'En proceso', value: enProceso.length, tone: 'brand' },
-      { label: 'Firmados / con AOT', value: ps.filter(p => p.estado === 'ticket_firmado' || p.estado === 'aot_generada').length, tone: 'success' },
+      { label: 'Firmados / con OT', value: ps.filter(p => p.estado === 'ticket_firmado' || p.estado === 'aot_generada').length, tone: 'success' },
       { label: 'Origen AS2', value: ps.filter(p => p.origen === 'as2').length, tone: 'neutral' },
     ];
   });

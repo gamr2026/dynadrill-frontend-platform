@@ -7,6 +7,7 @@ import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
+  DynadrillIconButtonComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
@@ -27,6 +28,8 @@ import { AuthService } from '../../../../../core/services/auth.service';
 import { MaintenanceOrderWithSubOrders, SubOrder } from '../../../../maintenance/models/maintenance-order.model';
 import { MaintenanceOrdersService } from '../../../../maintenance/services/maintenance-orders.service';
 import { SuborderReviewDialog, SuborderReviewDialogData } from '../../../../maintenance/components/suborder-review-dialog';
+import { DocumentoOperativoService } from '../../../../facturacion/services/pedido.service';
+import { TicketDocumentosDialog, TicketDocumentosDialogData } from '../../components/ticket-documentos-dialog';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
 
@@ -62,6 +65,7 @@ const STEP_FILTERS = Object.entries(PUMPING_STEP_LABELS).map(
     DynadrillDataTableComponent,
     DynadrillTabsComponent,
     DynadrillButtonComponent,
+    DynadrillIconButtonComponent,
     DynadrillTagComponent,
   ],
   templateUrl: './ticket-list-page.html',
@@ -76,6 +80,7 @@ export class TicketListPage {
 
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly docService = inject(DocumentoOperativoService);
 
   // ── Rol actual ──
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
@@ -217,8 +222,40 @@ export class TicketListPage {
       serviceType: { text: PUMPING_SERVICE_TYPE_LABELS[t.serviceType], tone: 'brand' as const },
       statusBadge: { text: 'Finalizado', tone: 'success' as const },
       step: 'aprobado',
+      pedidoId: t.pedidoId,
     })),
   );
+
+  /**
+   * "Al finalizar, que se puedan ver los documentos generados" — por ahora
+   * solo Reporte Job (vía DocumentoOperativo.ticketOperativoId, bien
+   * vinculado); las inspecciones de vehículo todavía no guardan a qué
+   * ticket de Pumping pertenecen, ver comentario en ticket-documentos-dialog.ts.
+   */
+  protected verDocumentos(row: Record<string, unknown>): void {
+    const pedidoId = row['pedidoId'] as number | undefined;
+    const ticketId = row['id'] as number;
+    const ticketCode = row['code'] as string;
+    if (!pedidoId) {
+      this.notify.error('Sin pedido vinculado', 'Este ticket no tiene un Pedido de Facturación asociado.');
+      return;
+    }
+    this.docService.listDePedido(pedidoId).subscribe({
+      next: docs => {
+        const reporteJobDocs = docs
+          .filter(d => d.tipo === 'reporte_job' && d.ticketOperativoId === ticketId)
+          .sort((a, b) => (a.fecha ?? '').localeCompare(b.fecha ?? ''));
+        this.dialog.open<TicketDocumentosDialog, TicketDocumentosDialogData>({
+          title: `Documentos — ${ticketCode}`,
+          content: TicketDocumentosDialog,
+          data: { ticketCode, reporteJobDocs },
+          footer: false,
+          width: '640px',
+        });
+      },
+      error: () => this.notify.error('Error', 'No se pudieron cargar los documentos de este ticket.'),
+    });
+  }
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 

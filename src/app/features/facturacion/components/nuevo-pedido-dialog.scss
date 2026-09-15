@@ -84,6 +84,18 @@
     flex-wrap: wrap;
   }
 
+  // Checkbox "Químico" — Pumping lo usa para precargar la asignación de
+  // recursos sin tener que volver a elegirlos del catálogo de Inventario.
+  &__quimico-cell {
+    text-align: center;
+
+    input[type='checkbox'] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+  }
+
   /**
    * Tabla de líneas estimadas: cada celda lleva un <dynadrill-input> con
    * label="" (la columna ya la rotula el thead) — mismo patrón que

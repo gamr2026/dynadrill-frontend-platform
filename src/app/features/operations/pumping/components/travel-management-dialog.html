@@ -92,9 +92,9 @@
   }
 
   @if (currentStep() === 2) {
-    <!-- ═══ Plan de gestión de viajes terrestres ═══ -->
-    <section class="travel-dialog__section">
-      <dynadrill-text variant="h2">Plan de gestión de viajes terrestres</dynadrill-text>
+    <!-- ═══ Pasajeros y logística ═══ -->
+    <section class="travel-dialog__section travel-dialog__section--tight">
+      <dynadrill-text variant="h2">Pasajeros y logística</dynadrill-text>
 
       <div class="travel-dialog__field-group">
         <div class="travel-dialog__passenger-input-row">
@@ -127,11 +127,11 @@
       </div>
     </section>
 
-    <!-- ═══ Información de la ruta ═══ -->
-    <section class="travel-dialog__section">
-      <dynadrill-text variant="h2">Información de la ruta</dynadrill-text>
+    <!-- ═══ Ruta y comunicación — un solo grid, sin repetir tarjetas para 7 campos cortos ═══ -->
+    <section class="travel-dialog__section travel-dialog__section--tight">
+      <dynadrill-text variant="h2">Ruta y comunicación</dynadrill-text>
       <div class="travel-dialog__form-grid">
-        <dynadrill-input label="Locación" [value]="routeLocation()" (valueChange)="routeLocation.set($event)" />
+        <dynadrill-input label="Locación" placeholder="Ej. Base Coco" [value]="routeLocation()" (valueChange)="routeLocation.set($event)" />
         <div class="travel-dialog__time-field">
           <label class="travel-dialog__time-label">Hora arribo</label>
           <input type="time" class="travel-dialog__time-input" [value]="routeArrivalTime()" (input)="routeArrivalTime.set($any($event.target).value)" />
@@ -140,17 +140,10 @@
           <label class="travel-dialog__time-label">Hora salida</label>
           <input type="time" class="travel-dialog__time-input" [value]="routeDepartureTime()" (input)="routeDepartureTime.set($any($event.target).value)" />
         </div>
-        <dynadrill-input label="Datos pernoctación (domicilio, telf., etc.)" [value]="routeOvernightDetails()" (valueChange)="routeOvernightDetails.set($event)" />
-      </div>
-    </section>
-
-    <!-- ═══ Detalles de la comunicación ═══ -->
-    <section class="travel-dialog__section">
-      <dynadrill-text variant="h2">Detalles de la comunicación</dynadrill-text>
-      <div class="travel-dialog__form-grid">
-        <dynadrill-input label="Frecuencia del contacto" [value]="commFrequency()" (valueChange)="commFrequency.set($event)" />
-        <dynadrill-input label="Persona de contacto" [value]="commContactPerson()" (valueChange)="commContactPerson.set($event)" />
-        <dynadrill-input label="Detalles del contacto (Ej. Tel., radio)" [value]="commContactDetails()" (valueChange)="commContactDetails.set($event)" />
+        <dynadrill-input label="Datos pernoctación" placeholder="Domicilio, teléfono, etc." [value]="routeOvernightDetails()" (valueChange)="routeOvernightDetails.set($event)" />
+        <dynadrill-input label="Frecuencia del contacto" placeholder="Ej. Cada 2 horas" [value]="commFrequency()" (valueChange)="commFrequency.set($event)" />
+        <dynadrill-input label="Persona de contacto" placeholder="Nombre del contacto en base" [value]="commContactPerson()" (valueChange)="commContactPerson.set($event)" />
+        <dynadrill-input label="Detalles del contacto" placeholder="Ej. Teléfono, radio" [value]="commContactDetails()" (valueChange)="commContactDetails.set($event)" />
       </div>
     </section>
   }

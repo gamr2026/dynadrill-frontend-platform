@@ -151,6 +151,34 @@
   }
 }
 
+// Antes cada firma era su propia <section> apilada verticalmente — se veían
+// una encima de la otra en vez de comparadas lado a lado.
+.ticket-detail__signatures-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+
+  .ticket-detail__section {
+    flex: 1 1 260px;
+    margin-top: 2rem;
+  }
+}
+
+// Antes cada pregunta era su propia sección completa (título + chip-group) —
+// dos preguntas cortas de Sí/No no necesitan tanto espacio vertical.
+.ticket-detail__operatividad-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.ticket-detail__operatividad-item {
+  flex: 1 1 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .ticket-detail__signature-block {
   display: flex;
   flex-direction: column;
@@ -247,6 +275,23 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+// El botón de agregar eje quedaba pegado justo debajo del último input de
+// Origen — sin este margen se leía como si fuera parte de esa fila.
+.ticket-detail__hubodometro-actions {
+  margin-top: 12px;
+}
+
+.ticket-detail__quimico-sin-match {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--warning, #faad14);
+  border-radius: 8px;
+  background: rgba(250, 173, 20, 0.06);
+  margin-bottom: 10px;
 }
 
 .ticket-detail__hubodometro-axle-row {

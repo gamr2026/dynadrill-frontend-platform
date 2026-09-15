@@ -81,6 +81,12 @@
     padding-top: 6px;
   }
 
+  &__hint {
+    display: block;
+    margin-top: -8px;
+    color: var(--text-muted, #5c5870) !important;
+  }
+
   &__actions {
     display: flex;
     align-items: center;

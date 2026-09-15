@@ -128,6 +128,9 @@
             <th class="num">Cantidad</th>
             <th class="num">Precio unitario</th>
             <th class="num">% Descuento</th>
+            @if (esPumping()) {
+              <th>Químico</th>
+            }
             <th class="num">Total</th>
             <th></th>
           </tr>
@@ -146,6 +149,11 @@
               <td class="num"><dynadrill-input label="" type="number" [value]="l.cantidad" (valueChange)="onLineaCampoChange($index, 'cantidad', $event)" /></td>
               <td class="num"><dynadrill-input label="" type="number" [value]="l.valorUnitario" (valueChange)="onLineaCampoChange($index, 'valorUnitario', $event)" /></td>
               <td class="num"><dynadrill-input label="" type="number" [value]="l.descuentoPorcentaje" (valueChange)="onLineaCampoChange($index, 'descuentoPorcentaje', $event)" /></td>
+              @if (esPumping()) {
+                <td class="nuevo-pedido__quimico-cell">
+                  <input type="checkbox" [checked]="l.esQuimico" (change)="onLineaCampoChange($index, 'esQuimico', $any($event.target).checked)" aria-label="Es químico" />
+                </td>
+              }
               <td class="num">${{ (+l.cantidad || 0) * (+l.valorUnitario || 0) | number: '1.2-2' }}</td>
               <td>
                 @if (lineasEstimadas().length > 1) {
@@ -157,7 +165,7 @@
         </tbody>
         <tfoot>
           <tr>
-            <td colspan="6" class="num"><strong>Valor estimado total</strong></td>
+            <td [attr.colspan]="esPumping() ? 7 : 6" class="num"><strong>Valor estimado total</strong></td>
             <td class="num"><strong>${{ valorEstimadoTotal() | number: '1.2-2' }}</strong></td>
             <td></td>
           </tr>

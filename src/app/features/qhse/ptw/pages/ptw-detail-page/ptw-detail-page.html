@@ -14,8 +14,14 @@
   </div>
 
   <section class="ptw-detail-page__meta">
+    @if (p.ticketCode) {
+      <p>
+        <strong>Ticket vinculado:</strong> {{ p.ticketCode }} ({{ p.ticketTipo === 'pumping' ? 'Pumping' : 'FCR' }})
+        @if (p.pedidoCode) { — Pedido {{ p.pedidoCode }} }
+      </p>
+    }
     <p><strong>Orden de trabajo:</strong> {{ p.ordenTrabajo }}</p>
-    <p><strong>IPERC origen:</strong> {{ p.ipercCode }} (HSE-PLAN-001)</p>
+    <p><strong>IPERC origen:</strong> {{ p.ipercCode }} — "{{ p.actividad }}" (HSE-PLAN-001)</p>
     @if (diasEjecucionRegistrados() > 0 || p.fase === 'ejecucion') {
       <p>
         <strong>Ejecución:</strong>
@@ -29,7 +35,12 @@
 
   <!-- Fase 1: Gabinete -->
   <section class="ptw-detail-page__fase">
-    <h3 class="ptw-detail-page__fase-title">1. Preparación en gabinete</h3>
+    <header class="ptw-detail-page__fase-head">
+      <h3 class="ptw-detail-page__fase-title">1. Preparación en gabinete</h3>
+      @if (p.fase === 'gabinete') {
+        <dynadrill-button variant="secondary" size="small" (clicked)="simularCargaDocumentos()">Simular carga de documentos</dynadrill-button>
+      }
+    </header>
     <p class="ptw-detail-page__fase-note">
       Formato de Recepción, ART, PTW pre-llenado y Carnet de Vacunas son formatos del cliente o estándares externos
       (MSP) — el sistema los carga, valida y archiva, no los construye como formulario propio.
@@ -62,7 +73,12 @@
 
   <!-- Fase 2: Ingreso -->
   <section class="ptw-detail-page__fase">
-    <h3 class="ptw-detail-page__fase-title">2. Ingreso a locación</h3>
+    <header class="ptw-detail-page__fase-head">
+      <h3 class="ptw-detail-page__fase-title">2. Ingreso a locación</h3>
+      @if (p.fase === 'ingreso') {
+        <dynadrill-button variant="secondary" size="small" (clicked)="marcarTodoIngreso()">Marcar todo</dynadrill-button>
+      }
+    </header>
     <p class="ptw-detail-page__fase-note">Check-in con Company Man, Toolbox Talk y validaciones iniciales de campo.</p>
 
     <dynadrill-checklist [items]="ingresoChecklist()" (itemToggle)="onIngresoToggle($event)" />

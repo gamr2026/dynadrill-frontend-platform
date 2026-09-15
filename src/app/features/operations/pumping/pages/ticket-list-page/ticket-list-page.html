@@ -95,13 +95,16 @@
     [expandedRowTemplate]="maintenanceExpandTpl"
   />
 } @else {
+  <ng-template #approvedActionsTpl let-row>
+    <dynadrill-icon-button icon="eye" tooltip="Ver documentos generados" (clicked)="verDocumentos(row)" />
+  </ng-template>
   <dynadrill-data-table
     [columns]="approvedColumns"
     [rows]="approvedRows()"
     [loading]="loading()"
     [rowKey]="rowKeyFn"
     [pageSize]="10"
-    actionsHeader="Acciones"
-    [actionsTemplate]="actionsTpl"
+    actionsHeader="Documentos"
+    [actionsTemplate]="approvedActionsTpl"
   />
 }

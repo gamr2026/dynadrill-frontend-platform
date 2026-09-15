@@ -3,8 +3,10 @@ import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import { NzUploadFile } from 'ng-zorro-antd/upload';
 import {
   DynadrillButtonComponent,
+  DynadrillChipGroupComponent,
   DynadrillContextCardComponent,
   DynadrillDatetimePickerComponent,
+  DynadrillIconButtonComponent,
   DynadrillInputComponent,
   DynadrillTextComponent,
   DynadrillTextareaComponent,
@@ -26,6 +28,8 @@ export interface DailyActivityReportDialogData {
   /** Taladro heredado del Pedido/Ticket — prellena el selector de ubicación. */
   taladro?: string;
   taladroId?: number;
+  /** Representante de campo / Company Man ya definido en el Pedido — prellena "Representante del Cliente". */
+  representanteCliente?: string;
   /** Pre-fill from existing report if editing */
   existing?: DailyActivityReport;
 }
@@ -35,12 +39,17 @@ export interface DailyActivityReportDialogResult {
   report?: DailyActivityReport;
 }
 
+/** Copia estática del formato real DYN-SGI-RE-047 — ver public/plantillas/. */
+const URL_PLANTILLA_REPORTE_DIARIO = '/plantillas/reporte-diario-actividades.xlsx';
+
 @Component({
   selector: 'app-daily-activity-report-dialog',
   imports: [
     DynadrillTextComponent,
     DynadrillContextCardComponent,
     DynadrillButtonComponent,
+    DynadrillIconButtonComponent,
+    DynadrillChipGroupComponent,
     DynadrillInputComponent,
     DynadrillDatetimePickerComponent,
     DynadrillTextareaComponent,
@@ -63,8 +72,11 @@ export class DailyActivityReportDialog {
   protected readonly numero = signal(this.data.existing?.numero ?? '');
   protected readonly cliente = signal(this.data.existing?.cliente ?? this.data.cliente);
   protected readonly ordenContrato = signal(this.data.existing?.ordenContrato ?? this.data.numeroContrato ?? '');
-  protected readonly representanteCliente = signal(this.data.existing?.representanteCliente ?? '');
-  protected readonly cargo = signal(this.data.existing?.cargo ?? '');
+  /** Ya definido en el Pedido (Company Man / Representante de Campo) — se precarga, queda editable por si cambió en sitio. */
+  protected readonly representanteCliente = signal(this.data.existing?.representanteCliente ?? this.data.representanteCliente ?? '');
+  protected readonly cargo = signal(
+    this.data.existing?.cargo ?? (this.data.representanteCliente ? 'Representante de Campo' : ''),
+  );
 
   /** Pozo / Campo / Bloque / Taladro — del catálogo. Prellena con lo que trae el ticket. */
   protected readonly ubicacionInicial: Partial<UbicacionSeleccion> = {
@@ -83,13 +95,18 @@ export class DailyActivityReportDialog {
     { label: 'Ticket', value: this.data.ticketCode },
   ]);
 
-  // ── Activities ──
+  // ── Activities ── (una sola fila por defecto — "+ Agregar" cubre el resto, no hace falta arrancar con 2)
   protected readonly actividades = signal<DailyActivityEntry[]>(
-    this.data.existing?.actividades ?? [
-      { inicio: '', fin: '', horas: null, detalle: '' },
-      { inicio: '', fin: '', horas: null, detalle: '' },
-    ],
+    this.data.existing?.actividades ?? [{ inicio: '', fin: '', horas: null, detalle: '' }],
   );
+
+  /** Descarga el formato físico DYN-SGI-RE-047 en blanco — para quien prefiera llenarlo a mano y adjuntarlo. */
+  protected descargarPlantilla(): void {
+    const a = document.createElement('a');
+    a.href = URL_PLANTILLA_REPORTE_DIARIO;
+    a.download = 'DYN-SGI-RE-047 Reporte diario actividades.xlsx';
+    a.click();
+  }
 
   protected addActivity(): void {
     this.actividades.update(list => [...list, { inicio: '', fin: '', horas: null, detalle: '' }]);
@@ -132,8 +149,14 @@ export class DailyActivityReportDialog {
     return Math.round(totalFromActivities * 100) / 100;
   });
 
-  // ── Observations ──
+  // ── Observations ── (radio Sí/No en vez de un textarea siempre visible — la mayoría de los días no tiene novedades)
   protected readonly observaciones = signal(this.data.existing?.observaciones ?? '');
+  protected readonly tieneObservaciones = signal(!!this.data.existing?.observaciones);
+
+  protected onTieneObservacionesChange(tiene: boolean): void {
+    this.tieneObservaciones.set(tiene);
+    if (!tiene) this.observaciones.set('');
+  }
 
   // ── Signatures ──
   // "Nombre (Representante Cliente)" NO es un campo propio acá: es la misma

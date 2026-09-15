@@ -63,7 +63,7 @@ export const ESTADO_PEDIDO_LABELS: Record<EstadoPedido, string> = {
   enviado_para_firmas: 'Enviado para firmas',
   rechazado_por_cliente: 'Rechazado por el cliente',
   ticket_firmado: 'Ticket firmado',
-  aot_generada: 'AOT generada',
+  aot_generada: 'OT generada',
   enviado_a_control_de_costos: 'Enviado a Control de Costos',
   listo_para_facturar: 'Listo para facturar',
   facturado: 'Facturado',
@@ -87,6 +87,8 @@ export interface ItemEstimado {
   valorUnitario: number;
   /** % de descuento de la línea — de la plantilla "AS2 Pedido Cliente.xlsx" ("Porcentaje Descuento"). No todas las líneas lo traen. */
   descuentoPorcentaje?: number;
+  /** Ventas marca acá qué líneas son químicos — Pumping los precarga en "Asignar recursos" en vez de tener que volver a elegirlos del catálogo de Inventario. */
+  esQuimico?: boolean;
 }
 
 export interface CambioEstado {

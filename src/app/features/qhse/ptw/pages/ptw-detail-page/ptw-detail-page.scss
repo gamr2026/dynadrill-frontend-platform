@@ -19,17 +19,37 @@
   font-size: 0.875rem;
 }
 
+// Mismo look de card que Facturación ($fact-radius/$fact-shadow en
+// _facturacion-ui.scss) — antes era un borde plano sin sombra, hacía ruido
+// visual junto a las páginas de Facturación que sí usan ese sistema.
 .ptw-detail-page__fase {
-  border: var(--border-width, 1px) solid var(--border, #e5e4ea);
-  border-radius: var(--radius-md, 6px);
+  border: 1px solid #ecebf1;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(19, 21, 41, 0.04), 0 12px 32px -16px rgba(19, 21, 41, 0.18);
   padding: 1.25rem;
   margin-top: 1.5rem;
   background: var(--surface, #fff);
 }
 
+.ptw-detail-page__fase-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+// Antes usaba --font-heading (D-DIN, reservado para héroes/dashboard) en vez
+// de --font-subheading (Oswald) que usa Facturación para sus títulos de
+// sección (@mixin card-head) — dos tipografías distintas para el mismo rol
+// visual. Mismos valores que esa mixin para que ambos módulos se vean iguales.
 .ptw-detail-page__fase-title {
-  margin: 0 0 0.5rem;
-  font-family: var(--font-heading, sans-serif);
+  margin: 0;
+  font-family: var(--font-subheading, 'Oswald', sans-serif);
+  font-weight: 500;
+  font-size: 15px;
+  letter-spacing: 0.02em;
   color: var(--dynadrill-navy, #131529);
 }
 
@@ -47,7 +67,10 @@
 
 .ptw-detail-page__documentos {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  // 280px (antes 220px): a 220px el botón "Descargar formato" no entraba
+  // junto al label y se apilaba encima de la zona de carga, pegado y sin
+  // orden — con 280px cada tarjeta tiene aire para las dos cosas.
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1rem;
 }
 
@@ -57,6 +80,16 @@
   justify-content: space-between;
   gap: 8px;
   flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+// Aun con 280px, en celular angosto (label largo + botón) se ve mejor
+// apilado en columna que forzado a compartir una fila muy justa.
+@media (max-width: 420px) {
+  .ptw-detail-page__documento-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 .ptw-detail-page__documento-label {

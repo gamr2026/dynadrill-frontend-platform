@@ -56,7 +56,8 @@ import {
   SolicitarCambioItemsDialogResult,
 } from '../../components/solicitar-cambio-items-dialog';
 import { PedidoService } from '../../../../facturacion/services/pedido.service';
-import { itemsEstimadosDe, type Pedido } from '../../../../facturacion/models/pedido.model';
+import { itemsEstimadosDe, type ItemEstimado, type Pedido } from '../../../../facturacion/models/pedido.model';
+import { VerPedidoDialog, VerPedidoDialogData } from '../../components/ver-pedido-dialog';
 import { TicketQhseBanner } from '../../../shared/ticket-qhse-banner/ticket-qhse-banner';
 import { OperativoDocsBridgeService, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../../../shared/index';
 import { CreateUnitReportInput, unitReportHasNovedades } from '../../../../maintenance/models/unit-report.model';
@@ -426,8 +427,35 @@ export class TicketDetailPage {
 
   private loadChemicalArticulos(): void {
     this.articulosService.list().subscribe({
-      next: articulos => this.chemicalArticulos.set(articulos.filter(a => a.categoria === 'QUIMICA' && a.activo)),
+      next: articulos => {
+        this.chemicalArticulos.set(articulos.filter(a => a.categoria === 'QUIMICA' && a.activo));
+        this.sincronizarQuimicosDelPedido();
+      },
     });
+  }
+
+  // ── Químicos del pedido — Ventas los marca en Líneas Estimadas (esQuimico); ── //
+  // ── se precargan acá en vez de tener que volver a elegirlos del catálogo.  ── //
+
+  /** Líneas del pedido que Ventas marcó como químico. */
+  protected readonly chemicalsPedido = computed(() => this.pedidoItems().filter(it => it.esQuimico));
+
+  /** Cada línea de químico del pedido, emparejada con su Articulo real de Inventario por código (o `undefined` si no hay coincidencia — Ventas y Bodega no siempre usan el mismo código). */
+  protected readonly chemicalsPedidoResueltos = computed(() =>
+    this.chemicalsPedido().map(item => ({ item, articulo: this.chemicalArticulos().find(a => a.codigo === item.codigo) })),
+  );
+
+  private chemicalesPrecargados = false;
+
+  /** Se corre una sola vez, apenas están disponibles tanto el pedido como el catálogo de químicos (llegan de dos cargas async independientes, en cualquier orden). */
+  private sincronizarQuimicosDelPedido(): void {
+    if (this.chemicalesPrecargados) return;
+    const resueltos = this.chemicalsPedidoResueltos().filter(r => !!r.articulo);
+    if (!this.pedido() || this.chemicalArticulos().length === 0) return; // todavía falta una de las dos cargas
+    this.chemicalesPrecargados = true;
+    if (!resueltos.length) return;
+    this.selectedChemicals.set(resueltos.map(r => r.articulo!.id));
+    this.chemicalQuantities.set(new Map(resueltos.map(r => [r.articulo!.id, r.item.cantidad])));
   }
 
   protected chemicalArticulo(articuloId: number): Articulo | undefined {
@@ -455,6 +483,12 @@ export class TicketDetailPage {
       }
       return updated;
     });
+  }
+
+  /** Resuelve a mano una línea de químico del pedido que no cruzó por código contra Inventario. */
+  protected onResolverQuimicoManual(item: ItemEstimado, articuloId: number): void {
+    this.selectedChemicals.update(ids => (ids.includes(articuloId) ? ids : [...ids, articuloId]));
+    this.chemicalQuantities.update(map => new Map(map).set(articuloId, item.cantidad));
   }
 
   protected onChemicalMixtureDocumentSelected(file: NzUploadFile): void {
@@ -816,13 +850,26 @@ export class TicketDetailPage {
     travelRef.afterClose.subscribe((travelResult: TravelManagementDialogResult | undefined) => {
       if (!travelResult?.completed || !travelResult.travelManagement) return;
 
-      const riskLevel = travelResult.travelManagement.riskLevel;
+      const tm = travelResult.travelManagement;
 
-      // Todo gerenciamiento queda pendiente hasta que el Jefe de Base lo
-      // autorice desde la tabla de personal ("Autorizar gerenciamiento").
+      // BAJO: el supervisor directo lo cierra, sin pasar por el Jefe de
+      // Base (antes quedaba pendiente igual sin importar el riesgo — el
+      // comentario ya decía esto pero el código no lo aplicaba).
+      if (tm.riskLevel === 'BAJO') {
+        this.travelManagements.update(map => {
+          const updated = new Map(map);
+          updated.set(operatorId, tm);
+          return updated;
+        });
+        this.notify.success('Gerenciamiento de viaje guardado', `Riesgo BAJO — cerrado directamente por el Supervisor.`);
+        return;
+      }
+
+      // MEDIO/ALTO: queda pendiente hasta que el Jefe de Base lo autorice
+      // desde la tabla de personal ("Autorizar gerenciamiento").
       this.travelPendingManagements.update(map => {
         const updated = new Map(map);
-        updated.set(operatorId, travelResult.travelManagement!);
+        updated.set(operatorId, tm);
         return updated;
       });
       this.travelPendingApproval.update(set => {
@@ -832,7 +879,7 @@ export class TicketDetailPage {
       });
       this.notify.info(
         'Enviado al Jefe de Base',
-        `Gerenciamiento de viaje de ${row['name']} (riesgo ${riskLevel}) — pendiente de autorización del Jefe de Base.`,
+        `Gerenciamiento de viaje de ${row['name']} (riesgo ${tm.riskLevel}) — pendiente de autorización del Jefe de Base.`,
       );
     });
   }
@@ -980,6 +1027,8 @@ export class TicketDetailPage {
     const t = this.ticket();
     if (!t) return;
     const operatorId = row['id'] as number;
+    /** El gerenciamiento de ida de este mismo operador — motivo/plan y ruta se precargan desde ahí, editables. */
+    const gerenciamientoIda = this.travelManagements().get(operatorId);
 
     const travelRef = this.dialog.open<TravelManagementDialog, TravelManagementDialogData>({
       title: 'Gerenciamiento de Viaje de Retorno — DYN-SGI-RE-049',
@@ -996,6 +1045,7 @@ export class TicketDetailPage {
         conductor: this.conductorDeOperador(operatorId, true),
         conductores: row['name'] as string,
         placas: '',
+        previousTravelManagement: gerenciamientoIda,
       },
       size: 'large',
       footer: false,
@@ -1004,11 +1054,23 @@ export class TicketDetailPage {
     travelRef.afterClose.subscribe((travelResult: TravelManagementDialogResult | undefined) => {
       if (!travelResult?.completed || !travelResult.travelManagement) return;
 
-      const riskLevel = travelResult.travelManagement.riskLevel;
+      const tm = travelResult.travelManagement;
+
+      // Mismo criterio que el gerenciamiento de ida: BAJO lo cierra el
+      // supervisor directo, sin pasar por el Jefe de Base.
+      if (tm.riskLevel === 'BAJO') {
+        this.returnTravelManagements.update(map => {
+          const updated = new Map(map);
+          updated.set(operatorId, tm);
+          return updated;
+        });
+        this.notify.success('Gerenciamiento de retorno guardado', `Riesgo BAJO — cerrado directamente por el Supervisor.`);
+        return;
+      }
 
       this.returnTravelPendingManagements.update(map => {
         const updated = new Map(map);
-        updated.set(operatorId, travelResult.travelManagement!);
+        updated.set(operatorId, tm);
         return updated;
       });
       this.returnTravelPendingApproval.update(set => {
@@ -1018,7 +1080,7 @@ export class TicketDetailPage {
       });
       this.notify.info(
         'Enviado al Jefe de Base',
-        `Gerenciamiento de retorno de ${row['name']} (riesgo ${riskLevel}) — pendiente de autorización del Jefe de Base.`,
+        `Gerenciamiento de retorno de ${row['name']} (riesgo ${tm.riskLevel}) — pendiente de autorización del Jefe de Base.`,
       );
     });
   }
@@ -1177,6 +1239,8 @@ export class TicketDetailPage {
         numeroContrato: t.numeroContrato,
         taladro: t.taladroRig,
         taladroId: t.taladroId,
+        // Representante del cliente ya se definió en el Pedido (Company Man / Representante de Campo) — no hace falta re-tipearlo acá.
+        representanteCliente: this.pedido()?.representanteCampo,
         existing: undefined,
       },
       size: 'large',
@@ -1415,8 +1479,9 @@ export class TicketDetailPage {
   protected readonly reportUnitCode = signal('');
   // dynadrill-datetime-picker trabaja con Date, no con el string ISO que guarda
   // PumpingUnitReport — se convierte en los límites (initFromTicket / saveUnitReport).
-  protected readonly reportDepartureDate = signal<Date | null>(null);
-  protected readonly reportArrivalDate = signal<Date | null>(null);
+  // Arrancan en hoy (editable) — initFromTicket las pisa si ya existe un reporte guardado con su propia fecha.
+  protected readonly reportDepartureDate = signal<Date | null>(new Date());
+  protected readonly reportArrivalDate = signal<Date | null>(new Date());
   protected readonly reportFuelDeparture = signal('');
   protected readonly reportFuelArrival = signal('');
   protected readonly reportOrigin = signal('');
@@ -1476,6 +1541,17 @@ export class TicketDetailPage {
   protected readonly noveltiesMecanica = signal('');
   protected readonly noveltiesInstrumentacion = signal('');
   protected readonly noveltiesOperaciones = signal('');
+  /** Oculta las 3 textareas de novedades hasta que el operador confirme que hay algo que reportar — la mayoría de los días no hay. */
+  protected readonly hayNovedades = signal(false);
+
+  protected onHayNovedadesChange(hay: boolean): void {
+    this.hayNovedades.set(hay);
+    if (!hay) {
+      this.noveltiesMecanica.set('');
+      this.noveltiesInstrumentacion.set('');
+      this.noveltiesOperaciones.set('');
+    }
+  }
 
   // Operatividad
   protected readonly unitReadyOptions = ['Sí', 'No'];
@@ -1593,7 +1669,10 @@ export class TicketDetailPage {
         this.loadMaintenanceOrders();
         if (ticket.pedidoId) {
           this.pedidoService.get(ticket.pedidoId).subscribe({
-            next: p => this.pedido.set(p),
+            next: p => {
+              this.pedido.set(p);
+              this.sincronizarQuimicosDelPedido();
+            },
             error: () => this.pedido.set(null),
           });
         }
@@ -1623,6 +1702,19 @@ export class TicketDetailPage {
 
   /** "El operador dispone todo el tiempo de una opción para ... solicitar la edición de los ítems del pedido" — botón permanente, visible en cualquier paso. */
   protected readonly puedeSolicitarCambioItems = computed(() => this.isOperador() && !!this.ticket()?.pedidoId);
+
+  /** "El botón junto a Reportar para ver el pedido de Ventas... siempre que quieran" — visible a cualquier rol, en cualquier paso. */
+  protected abrirVerPedido(): void {
+    const p = this.pedido();
+    if (!p) return;
+    this.dialog.open<VerPedidoDialog, VerPedidoDialogData>({
+      title: `Pedido ${p.code} — ${p.cliente}`,
+      content: VerPedidoDialog,
+      data: { pedido: p },
+      footer: false,
+      width: '760px',
+    });
+  }
 
   private reloadSolicitudPendiente(pumpingTicketId: number): void {
     this.solicitudCambioItemsService.porTicket(pumpingTicketId).subscribe({
@@ -2178,6 +2270,7 @@ export class TicketDetailPage {
         unidadCodeAsignada: row['unitCode'] as string,
         lockUnidad: !!(row['unitCode'] as string) || (mode === 'llegada' && !!prefill),
         supervisorNombre,
+        modo: mode,
       },
       size: 'large',
       footer: false,
@@ -2306,6 +2399,7 @@ export class TicketDetailPage {
       this.noveltiesMecanica.set(r.novelties.mecanica);
       this.noveltiesInstrumentacion.set(r.novelties.instrumentacion);
       this.noveltiesOperaciones.set(r.novelties.operaciones);
+      this.hayNovedades.set(!!(r.novelties.mecanica || r.novelties.instrumentacion || r.novelties.operaciones));
       this.unitReadySelection.set(r.unitReady === true ? ['Sí'] : r.unitReady === false ? ['No'] : []);
       this.operationInterruptedSelection.set(r.operationInterrupted === true ? ['Sí'] : r.operationInterrupted === false ? ['No'] : []);
       this.interruptionDetail.set(r.interruptionDetail);

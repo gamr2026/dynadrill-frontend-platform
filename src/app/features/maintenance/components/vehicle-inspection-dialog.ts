@@ -50,6 +50,8 @@ export interface VehicleInspectionDialogData {
   unidadCodeAsignada?: string;
   /** Nombre del supervisor a dejar preseleccionado en el paso "Conductor" (ej. el supervisor asignado al ticket de Pumping). */
   supervisorNombre?: string;
+  /** 'salida' (default): solo pide kilometraje inicial. 'llegada': pide el final — pedirlos juntos en la salida no tiene sentido si recién va a viajar. */
+  modo?: 'salida' | 'llegada';
 }
 
 function toChecklistItems(labels: string[]): VehicleChecklistItem[] {
@@ -105,6 +107,8 @@ export class VehicleInspectionDialog {
   protected readonly isEditMode = this.existingId !== null;
   protected readonly readonly = this.data?.readonly ?? false;
   protected readonly unidadLocked = this.data?.lockUnidad ?? false;
+  /** Kilometraje final (odómetro de regreso) solo tiene sentido en la inspección de llegada. */
+  protected readonly esLlegada = this.data?.modo === 'llegada';
 
   protected readonly steps = STEPS;
   protected readonly currentStep = signal(0);
@@ -143,6 +147,8 @@ export class VehicleInspectionDialog {
   protected readonly kmInicial = signal('');
   protected readonly kmFinal = signal('');
   protected readonly proximoMantenimiento = signal<Date | null>(null);
+  /** Explica de dónde sale la fecha auto-calculada de próximo mantenimiento (o por qué no se pudo calcular). */
+  protected readonly proximoMantenimientoLeyenda = signal('');
 
   protected readonly checklistVehiculo = signal<VehicleChecklistItem[]>(toChecklistItems(VEHICLE_CHECKLIST_VEHICULO));
   protected readonly checklistEquipo = signal<VehicleChecklistItem[]>(toChecklistItems(VEHICLE_CHECKLIST_EQUIPO));
@@ -215,6 +221,38 @@ export class VehicleInspectionDialog {
     // y `Unidad.kmActual` puede estar desactualizado — el inspector lo
     // ajusta contra el tablero.
     if (unidad.kmActual != null && !this.kmInicial()) this.kmInicial.set(String(unidad.kmActual));
+    this.calcularProximoMantenimiento(unidad);
+  }
+
+  /**
+   * Misma regla de "6 meses" ya usada en calcularAlertas() (unidad.model.ts,
+   * MESES_SIN_HORAS/diasLimite = 6*30) — Servicio la usa como respaldo por
+   * tiempo cuando no llega a las 250h, y Auxiliar la usa como su regla
+   * principal. Es la única regla de las 3 que da una FECHA calculable;
+   * Transporte se controla por kilometraje (cada 5.000 km), no por
+   * calendario, así que ahí se deja manual — inventar una fecha a partir de
+   * un supuesto de km/día no está respaldado por ninguna regla real.
+   */
+  private calcularProximoMantenimiento(unidad: Unidad): void {
+    if (this.proximoMantenimiento()) return; // no pisa un valor ya cargado (edición)
+    const DIAS_INTERVALO = 180;
+    const base = unidad.tipo === 'Servicio' ? unidad.fechaUltimoMantenimiento : unidad.tipo === 'Auxiliar' ? unidad.fechaUltimoMantenimientoAux : undefined;
+    if (!base) {
+      this.proximoMantenimientoLeyenda.set(
+        unidad.tipo === 'Transporte'
+          ? 'Transporte se controla por kilometraje (cada 5.000 km), no por fecha calendario — completar manualmente según el odómetro.'
+          : '',
+      );
+      return;
+    }
+    const fecha = new Date(base);
+    fecha.setDate(fecha.getDate() + DIAS_INTERVALO);
+    this.proximoMantenimiento.set(fecha);
+    this.proximoMantenimientoLeyenda.set(
+      unidad.tipo === 'Servicio'
+        ? `Calculado: 6 meses (180 días) desde el último mantenimiento (${base}) — regla de respaldo por tiempo si no se alcanzan antes las 250h de horómetro.`
+        : `Calculado: 6 meses (180 días) desde el último mantenimiento (${base}) — regla semestral para unidades Auxiliares.`,
+    );
   }
 
   constructor() {

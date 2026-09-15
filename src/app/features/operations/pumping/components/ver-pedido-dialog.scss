@@ -1,0 +1,61 @@
+.ver-pedido {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__defs {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px 28px;
+
+    div {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    dt {
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-muted, #5c5870);
+      margin: 0;
+    }
+
+    dd {
+      margin: 0;
+      font-size: 14px;
+      color: var(--text, #2c2b35);
+    }
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+
+    th, td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid #ecebf1;
+    }
+
+    th.num, td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
+.ver-pedido__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #ecebf1;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}

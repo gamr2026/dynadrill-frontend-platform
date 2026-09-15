@@ -14,6 +14,7 @@ import {
 import { calcularNR, interpretarNR, IPERC_STATUS_LABELS, IpercMatrix, IpercStatus, NivelRiesgo } from '../../models/iperc.model';
 import { IpercService } from '../../services/iperc.service';
 import { IpercMatrixDialog } from '../../components/iperc-matrix-dialog';
+import { IpercMatrixPdfDialog, IpercMatrixPdfDialogData } from '../../components/iperc-matrix-pdf-dialog';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { AppNotificationItem, NotificationsService } from '../../../../../core/services/notifications.service';
 
@@ -166,6 +167,19 @@ export class IpercListPage {
 
   protected viewDetail(row: Record<string, unknown>): void {
     this.router.navigate([String(row['id'])], { relativeTo: this.route });
+  }
+
+  /** Réplica imprimible de la matriz, formato DYN-SGI-RE-087 (GTC 45) — ver IpercMatrixPdfDialog. */
+  protected imprimirMatriz(row: Record<string, unknown>): void {
+    const matrix = this.matrices().find(m => m.id === row['id']);
+    if (!matrix) return;
+    this.dialogService.open<IpercMatrixPdfDialog, IpercMatrixPdfDialogData>({
+      title: `Matriz IPERC ${matrix.code} — Vista de impresión`,
+      content: IpercMatrixPdfDialog,
+      data: { matrix },
+      footer: false,
+      width: '95vw',
+    });
   }
 
   /**

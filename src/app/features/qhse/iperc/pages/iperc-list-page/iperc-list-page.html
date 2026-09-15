@@ -12,7 +12,10 @@
 <dynadrill-kpi-row [items]="kpis()" />
 
 <ng-template #actionsTpl let-row>
-  <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
+  <div class="iperc-list-page__row-actions">
+    <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
+    <dynadrill-icon-button icon="file-text" tooltip="Imprimir matriz" tooltipPlacement="top" (clicked)="imprimirMatriz(row)" />
+  </div>
 </ng-template>
 
 <ng-template #faseTpl let-row>

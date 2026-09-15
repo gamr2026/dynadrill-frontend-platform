@@ -1,0 +1,140 @@
+<div class="iperc-pdf">
+  <!-- ── Cabecera ── -->
+  <div class="iperc-pdf__brand-row">
+    <div class="iperc-pdf__brand">
+      <dynadrill-text variant="h2">Dynadrill</dynadrill-text>
+      <dynadrill-text variant="caption">Vía Coca Lago Km 2, Orellana - Ecuador · dynadrillecuador&#64;dynadrill.com.ec · www.dynadrill.com.ec</dynadrill-text>
+    </div>
+    <dynadrill-text variant="h1" class="iperc-pdf__title">Matriz de Identificación de Peligros y Evaluación de Riesgos — GTC 45</dynadrill-text>
+    <div class="iperc-pdf__doc-code">
+      <dynadrill-text variant="caption">Réplica de formato DYN-SGI-RE-087</dynadrill-text>
+      <dynadrill-text variant="caption">Generada desde el sistema — no reemplaza el documento controlado</dynadrill-text>
+    </div>
+  </div>
+
+  <div class="iperc-pdf__meta-grid">
+    <div class="iperc-pdf__field"><dynadrill-text variant="caption">CÓDIGO</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.code }}</dynadrill-text></div>
+    <div class="iperc-pdf__field"><dynadrill-text variant="caption">ACTIVIDAD</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.actividad }}</dynadrill-text></div>
+    <div class="iperc-pdf__field"><dynadrill-text variant="caption">BASE / LOCACIÓN</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.ubicacion }}</dynadrill-text></div>
+    <div class="iperc-pdf__field"><dynadrill-text variant="caption">EQUIPO EVALUADOR</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.equipoEvaluador.join(', ') || '—' }}</dynadrill-text></div>
+    <div class="iperc-pdf__field"><dynadrill-text variant="caption">FECHA DE ACTUALIZACIÓN</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.updatedAt | date: 'dd/MM/yyyy' }}</dynadrill-text></div>
+    <div class="iperc-pdf__field"><dynadrill-text variant="caption">APROBADA POR</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.approvedByName ? (data.matrix.approvedByName + ' — ' + (data.matrix.approvedAt | date: 'dd/MM/yyyy')) : '—' }}</dynadrill-text></div>
+  </div>
+
+  <!-- ── Tablas de referencia GTC 45 — mismos valores que ND_OPCIONES/NE_OPCIONES/NC_OPCIONES, no reescritos a mano ── -->
+  <div class="iperc-pdf__legend-row">
+    <table class="iperc-pdf__legend-table">
+      <thead><tr><th colspan="2">Nivel de Deficiencia (ND)</th></tr></thead>
+      <tbody>
+        @for (o of ndOpciones; track o.valor) {
+          <tr><td class="num">{{ o.valor }} — {{ o.label }}</td><td>{{ o.descripcion }}</td></tr>
+        }
+      </tbody>
+    </table>
+    <table class="iperc-pdf__legend-table">
+      <thead><tr><th colspan="2">Nivel de Exposición (NE)</th></tr></thead>
+      <tbody>
+        @for (o of neOpciones; track o.valor) {
+          <tr><td class="num">{{ o.valor }} — {{ o.label }}</td><td>{{ o.descripcion }}</td></tr>
+        }
+      </tbody>
+    </table>
+    <table class="iperc-pdf__legend-table">
+      <thead><tr><th colspan="2">Nivel de Consecuencias (NC)</th></tr></thead>
+      <tbody>
+        @for (o of ncOpciones; track o.valor) {
+          <tr><td class="num">{{ o.valor }} — {{ o.label }}</td><td>{{ o.descripcion }}</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Tabla ancha por peligro — columnas del Excel real, mapeadas a mano ── -->
+  <div class="iperc-pdf__table-scroll">
+    <table class="iperc-pdf__table">
+      <thead>
+        <tr>
+          <th rowspan="2">Zona / Lugar</th>
+          <th rowspan="2">Actividad</th>
+          <th rowspan="2">Tarea</th>
+          <th colspan="2">Peligro</th>
+          <th rowspan="2">Fuente de riesgo</th>
+          <th rowspan="2">Controles existentes</th>
+          <th colspan="7">Valoración del riesgo — inicial</th>
+          <th rowspan="2">N° expuestos</th>
+          <th rowspan="2">Peor consecuencia</th>
+          <th rowspan="2">Requisito legal</th>
+          <th colspan="5">Medidas de intervención</th>
+          <th colspan="7">Valoración del riesgo — residual</th>
+        </tr>
+        <tr>
+          <th>Descripción</th>
+          <th>Clasificación</th>
+          <th>ND</th>
+          <th>NE</th>
+          <th>NP</th>
+          <th>Interpretación NP</th>
+          <th>NC</th>
+          <th>NR</th>
+          <th>Aceptabilidad</th>
+          <th>Eliminación</th>
+          <th>Sustitución</th>
+          <th>Control ingeniería</th>
+          <th>Señalización / Adm.</th>
+          <th>EPP</th>
+          <th>ND</th>
+          <th>NE</th>
+          <th>NP</th>
+          <th>Interpretación NP</th>
+          <th>NC</th>
+          <th>NR</th>
+          <th>Aceptabilidad</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of hazardRows; track row.hazard.id) {
+          <tr>
+            <td>{{ data.matrix.ubicacion }}</td>
+            <td>{{ data.matrix.actividad }}</td>
+            <td>{{ row.tarea }}</td>
+            <td>{{ row.hazard.peligro }}</td>
+            <td>{{ row.hazard.clasificacionPeligro || '—' }}</td>
+            <td>{{ row.hazard.fuenteRiesgo }}</td>
+            <td>{{ row.hazard.controlesExistentes || '—' }}</td>
+            <td class="num">{{ nd(row.hazard, 'inicial') }}</td>
+            <td class="num">{{ ne(row.hazard, 'inicial') }}</td>
+            <td class="num">{{ np(row.hazard, 'inicial') }}</td>
+            <td>{{ npLabel(row.hazard, 'inicial') }}</td>
+            <td class="num">{{ nc(row.hazard, 'inicial') }}</td>
+            <td class="num">{{ nr(row.hazard, 'inicial') }}</td>
+            <td>{{ aceptabilidad(row.hazard, 'inicial') }}</td>
+            <td class="num">{{ row.hazard.numeroExpuestos ?? '—' }}</td>
+            <td>{{ row.hazard.peorConsecuencia || '—' }}</td>
+            <td>{{ row.hazard.requisitoLegal === true ? 'SI' : row.hazard.requisitoLegal === false ? 'NO' : '—' }}</td>
+            <td>{{ controlesDe(row.hazard, 'eliminacion') }}</td>
+            <td>{{ controlesDe(row.hazard, 'sustitucion') }}</td>
+            <td>{{ controlesDe(row.hazard, 'ingenieria') }}</td>
+            <td>{{ controlesDe(row.hazard, 'administrativo') }}</td>
+            <td>{{ controlesDe(row.hazard, 'epp') }}</td>
+            <td class="num">{{ nd(row.hazard, 'residual') }}</td>
+            <td class="num">{{ ne(row.hazard, 'residual') }}</td>
+            <td class="num">{{ np(row.hazard, 'residual') }}</td>
+            <td>{{ npLabel(row.hazard, 'residual') }}</td>
+            <td class="num">{{ nc(row.hazard, 'residual') }}</td>
+            <td class="num">{{ nr(row.hazard, 'residual') }}</td>
+            <td>{{ aceptabilidad(row.hazard, 'residual') }}</td>
+          </tr>
+        } @empty {
+          <tr><td colspan="28">Sin peligros identificados todavía.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <dynadrill-text variant="caption">Impresión: {{ printDate }} · {{ data.matrix.code }}</dynadrill-text>
+
+  <div class="iperc-pdf__actions no-print">
+    <dynadrill-button variant="secondary" (clicked)="close()">Cerrar</dynadrill-button>
+    <dynadrill-button (clicked)="print()">Imprimir / Exportar PDF</dynadrill-button>
+  </div>
+</div>

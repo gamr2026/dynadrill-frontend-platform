@@ -9,6 +9,7 @@
 
 <ng-template #actionsTpl let-row>
   <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
+  <dynadrill-icon-button icon="file-text" tooltip="Ver ítems del pedido" tooltipPlacement="top" (clicked)="verLineasPedido(row)" />
 </ng-template>
 
 <ng-template #faseTpl let-row>

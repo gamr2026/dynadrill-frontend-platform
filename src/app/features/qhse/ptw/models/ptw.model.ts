@@ -129,6 +129,7 @@ export interface PtwMatrix {
   /** A qué ticket operativo (Pumping/FCR) y pedido de Ventas corresponde este PTW — visible para que el usuario confirme la vinculación. */
   ticketTipo?: 'pumping' | 'fcr';
   ticketCode?: string;
+  pedidoId?: number;
   pedidoCode?: string;
 
   /** Vínculo obligatorio con la Matriz IPERC aprobada que originó este PTW (HSE-PLAN-001 → HSE-SITIO-001). */
@@ -181,6 +182,18 @@ export interface PtwMatrix {
   createdAt: string;
   updatedAt: string;
 }
+
+/**
+ * "Servicio" del PTW — de dónde viene el trabajo (Pumping/FCR), no la
+ * actividad IPERC anclada (que es genérica de toda la línea, ver
+ * `qhse-domain.service.ts#asegurarPtwDeServicio`): el detalle real de qué
+ * se va a usar en el trabajo lo da el Pedido de Ventas vinculado (ver
+ * `VerPedidoDialog` desde `ptw-list-page`).
+ */
+export const PTW_TICKET_TIPO_LABELS: Record<'pumping' | 'fcr', string> = {
+  pumping: 'Pumping',
+  fcr: 'FCR',
+};
 
 export function ptwCerrado(p: PtwMatrix): boolean {
   return !!(p.ptwCerrado && p.actaDevolucionFirmada && p.respaldosEnviados);

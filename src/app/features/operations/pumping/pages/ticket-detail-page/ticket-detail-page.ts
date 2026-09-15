@@ -57,7 +57,7 @@ import {
 } from '../../components/solicitar-cambio-items-dialog';
 import { PedidoService } from '../../../../facturacion/services/pedido.service';
 import { itemsEstimadosDe, type ItemEstimado, type Pedido } from '../../../../facturacion/models/pedido.model';
-import { VerPedidoDialog, VerPedidoDialogData } from '../../components/ver-pedido-dialog';
+import { VerPedidoDialog, VerPedidoDialogData } from '../../../../facturacion/components/ver-pedido-dialog';
 import { TicketQhseBanner } from '../../../shared/ticket-qhse-banner/ticket-qhse-banner';
 import { OperativoDocsBridgeService, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../../../shared/index';
 import { CreateUnitReportInput, unitReportHasNovedades } from '../../../../maintenance/models/unit-report.model';

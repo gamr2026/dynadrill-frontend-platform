@@ -15,19 +15,11 @@ import {
   interpretarNR,
 } from '../models/iperc.model';
 import { exportarMatrizIpercXlsx } from '../utils/iperc-matriz-xlsx.util';
+import { buildIpercHazardRows } from '../utils/iperc-consolidado.util';
 
 export interface IpercMatrixPdfDialogData {
   /** Una sola matriz ("Ver matriz" por fila) o todas ("Ver matriz consolidada" — agrupadas por proceso, ver iperc-list-page.ts). */
   matrices: IpercMatrix[];
-}
-
-interface HazardRow {
-  matrix: IpercMatrix;
-  tarea: string;
-  rutinaria?: boolean;
-  areaPuestoTrabajo?: string;
-  cargosExpuestos?: string;
-  hazard: IpercHazard;
 }
 
 /**
@@ -70,20 +62,7 @@ export class IpercMatrixPdfDialog {
   /** Lista de áreas/procesos distintos incluidos — para el encabezado del consolidado. */
   protected readonly procesosIncluidos = [...new Set(this.data.matrices.map(m => m.proceso).filter((p): p is string => !!p))].sort();
 
-  protected readonly hazardRows: HazardRow[] = [...this.data.matrices]
-    .sort((a, b) => (a.proceso ?? '').localeCompare(b.proceso ?? '') || a.actividad.localeCompare(b.actividad))
-    .flatMap(matrix =>
-      matrix.tasks.flatMap(t =>
-        t.hazards.map(hazard => ({
-          matrix,
-          tarea: t.descripcion,
-          rutinaria: t.rutinaria,
-          areaPuestoTrabajo: t.areaPuestoTrabajo,
-          cargosExpuestos: t.cargosExpuestos,
-          hazard,
-        })),
-      ),
-    );
+  protected readonly hazardRows = buildIpercHazardRows(this.data.matrices);
 
   protected nd(h: IpercHazard, cual: 'inicial' | 'residual'): string {
     const v = (cual === 'inicial' ? h.riesgoInicial : h.riesgoResidual).nd;

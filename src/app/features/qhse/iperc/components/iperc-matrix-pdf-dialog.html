@@ -117,10 +117,18 @@
       <tbody>
         @for (row of hazardRows; track row.matrix.id + '-' + row.hazard.id) {
           <tr>
-            <td>{{ row.matrix.proceso || '—' }}</td>
-            <td>{{ row.matrix.ubicacion }}</td>
-            <td>{{ row.matrix.actividad }}</td>
-            <td>{{ row.tarea }}</td>
+            @if (row.procesoSpan > 0) {
+              <td [attr.rowspan]="row.procesoSpan > 1 ? row.procesoSpan : null">{{ row.matrix.proceso || '—' }}</td>
+            }
+            @if (row.zonaSpan > 0) {
+              <td [attr.rowspan]="row.zonaSpan > 1 ? row.zonaSpan : null">{{ row.matrix.ubicacion }}</td>
+            }
+            @if (row.actividadSpan > 0) {
+              <td [attr.rowspan]="row.actividadSpan > 1 ? row.actividadSpan : null">{{ row.matrix.actividad }}</td>
+            }
+            @if (row.tareaSpan > 0) {
+              <td [attr.rowspan]="row.tareaSpan > 1 ? row.tareaSpan : null">{{ row.tarea }}</td>
+            }
             <td>{{ row.rutinaria === true ? 'SI' : row.rutinaria === false ? 'NO' : '—' }}</td>
             <td>{{ row.areaPuestoTrabajo || '—' }}</td>
             <td>{{ row.cargosExpuestos || '—' }}</td>

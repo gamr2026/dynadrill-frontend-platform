@@ -1,5 +1,6 @@
 import { Workbook, Worksheet } from 'exceljs';
 import { calcularNP, calcularNR, ControlType, GtcEvaluacion, interpretarNP, interpretarNR, IpercHazard, IpercMatrix } from '../models/iperc.model';
+import { buildIpercHazardRows, IpercHazardRow } from './iperc-consolidado.util';
 
 /**
  * Exporta un .xlsx real que clona el formato oficial DYN-SGI-RE-087 (GTC 45)
@@ -18,15 +19,6 @@ const TEMPLATE_URL = '/plantillas/iperc-matriz-gtc45.xlsx';
 const SHEET_NAME = 'GTC 45 - Julio 2026';
 const MOLDE_ROW = 20;
 const LAST_COL = 45; // AS
-
-interface HazardRow {
-  matrix: IpercMatrix;
-  tarea: string;
-  rutinaria?: boolean;
-  areaPuestoTrabajo?: string;
-  cargosExpuestos?: string;
-  hazard: IpercHazard;
-}
 
 function controlesDe(hazard: IpercHazard, tipo: ControlType): string {
   return hazard.controles
@@ -54,7 +46,7 @@ function setEvaluacion(
   ws.getCell(`${cols.aceptabilidad}${row}`).value = nrInfo?.aceptabilidad;
 }
 
-function setHazardRow(ws: Worksheet, excelRow: number, row: HazardRow): void {
+function setHazardRow(ws: Worksheet, excelRow: number, row: IpercHazardRow): void {
   const h = row.hazard;
   ws.getCell(`A${excelRow}`).value = row.matrix.proceso;
   ws.getCell(`B${excelRow}`).value = row.matrix.ubicacion;
@@ -127,20 +119,7 @@ export async function exportarMatrizIpercXlsx(matrices: IpercMatrix[]): Promise<
     ws.getCell('C10').value = matrix.ubicacion;
   }
 
-  const hazardRows: HazardRow[] = [...matrices]
-    .sort((a, b) => (a.proceso ?? '').localeCompare(b.proceso ?? '') || a.actividad.localeCompare(b.actividad))
-    .flatMap(matrix =>
-      matrix.tasks.flatMap(t =>
-        t.hazards.map(hazard => ({
-          matrix,
-          tarea: t.descripcion,
-          rutinaria: t.rutinaria,
-          areaPuestoTrabajo: t.areaPuestoTrabajo,
-          cargosExpuestos: t.cargosExpuestos,
-          hazard,
-        })),
-      ),
-    );
+  const hazardRows = buildIpercHazardRows(matrices);
   const moldeRow = ws.getRow(MOLDE_ROW);
 
   hazardRows.forEach((row, i) => {
@@ -154,6 +133,25 @@ export async function exportarMatrizIpercXlsx(matrices: IpercMatrix[]): Promise<
       newRow.height = moldeRow.height;
     }
     setHazardRow(ws, excelRow, row);
+  });
+
+  // Combina Proceso/Zona/Actividad/Tarea repetidos en filas consecutivas en
+  // una sola celda — igual que el Excel real (ver iperc-consolidado.util.ts).
+  const mergeGroups: { col: string; span: (row: IpercHazardRow) => number }[] = [
+    { col: 'A', span: r => r.procesoSpan },
+    { col: 'B', span: r => r.zonaSpan },
+    { col: 'C', span: r => r.actividadSpan },
+    { col: 'D', span: r => r.tareaSpan },
+  ];
+  hazardRows.forEach((row, i) => {
+    const excelRow = MOLDE_ROW + i;
+    for (const { col, span } of mergeGroups) {
+      const n = span(row);
+      if (n > 1) {
+        ws.mergeCells(`${col}${excelRow}:${col}${excelRow + n - 1}`);
+        ws.getCell(`${col}${excelRow}`).alignment = { ...ws.getCell(`${col}${excelRow}`).alignment, vertical: 'middle' };
+      }
+    }
   });
 
   const out = await wb.xlsx.writeBuffer();

@@ -54,6 +54,7 @@ function setEvaluacion(
 
 function setHazardRow(ws: Worksheet, excelRow: number, matrix: IpercMatrix, row: HazardRow): void {
   const h = row.hazard;
+  ws.getCell(`A${excelRow}`).value = matrix.proceso;
   ws.getCell(`B${excelRow}`).value = matrix.ubicacion;
   ws.getCell(`C${excelRow}`).value = matrix.actividad;
   ws.getCell(`D${excelRow}`).value = row.tarea;

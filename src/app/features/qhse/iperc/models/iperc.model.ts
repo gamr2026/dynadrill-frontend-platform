@@ -154,7 +154,22 @@ export interface IpercMatrix {
   code: string;
   status: IpercStatus;
   actividad: string;
+  /**
+   * "Zona/Lugar" del Excel real — la base (ej. "Base Coca"), no el pozo
+   * puntual. Queda fija desde que se crea la matriz de esta actividad (no
+   * cambia en usos posteriores) — verificado contra DYN-SGI-RE-087 real:
+   * el mismo criterio ya rige ahí (una sola matriz por actividad).
+   */
   ubicacion: string;
+  /**
+   * "PROCESO" del Excel real — el área que gestiona el riesgo (Operaciones,
+   * Mantenimiento, Ingeniería y Ventas, Laboratorio, Administrativo, …).
+   * Para matrices que nacen de un ticket de Pumping/FCR siempre es
+   * "Operaciones" (así aparece en el archivo real, sin distinguir FCR de
+   * Pumping). Opcional: matrices sembradas antes de este campo no lo
+   * tienen.
+   */
+  proceso?: string;
   /** Nombres del equipo evaluador multidisciplinario (Fase 1). Texto libre por ahora — no requiere que cada integrante tenga usuario en el sistema. */
   equipoEvaluador: string[];
   tasks: IpercTask[];
@@ -208,4 +223,26 @@ export interface IpercMatrix {
 }
 
 /** Fase 1 de HSE-PLAN-001 — lo mínimo para arrancar una matriz nueva en estado "borrador"; tasks/hazards se agregan después, dentro del detalle. */
-export type CreateIpercMatrixInput = Pick<IpercMatrix, 'actividad' | 'ubicacion' | 'equipoEvaluador'>;
+export type CreateIpercMatrixInput = Pick<IpercMatrix, 'actividad' | 'ubicacion' | 'proceso' | 'equipoEvaluador'>;
+
+/**
+ * Categorías reales de PROCESO, tomadas del archivo DYN-SGI-RE-087 original
+ * (325 filas de datos, columna A), normalizadas (mayúsculas/puntuación
+ * inconsistentes en el archivo real unificadas a una sola forma por
+ * categoría). El selector de creación manual permite agregar otras.
+ */
+export const IPERC_PROCESO_SUGERIDOS: string[] = [
+  'Operaciones',
+  'Laboratorio',
+  'Mantenimiento',
+  'Dirección General',
+  'Ingeniería y Ventas',
+  'Compras y Logística',
+  'Administrativo Financiero',
+  'Administrativo',
+  'Gestión Integral',
+  'Talento Humano',
+];
+
+/** Zonas/bases reales del archivo original (columna "Zona/Lugar"), normalizadas. El selector de creación manual permite agregar otras. */
+export const IPERC_ZONA_SUGERIDAS: string[] = ['Base Coca', 'Base Quito', 'Base Coca - Quito', 'Base Coca - Campo', 'Base Quito - Coca - Campo'];

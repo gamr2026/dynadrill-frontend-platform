@@ -9,9 +9,8 @@ import {
   DynadrillTextareaComponent,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
-import { CreateIpercMatrixInput, IpercMatrix } from '../models/iperc.model';
+import { CreateIpercMatrixInput, IPERC_PROCESO_SUGERIDOS, IPERC_ZONA_SUGERIDAS, IpercMatrix } from '../models/iperc.model';
 import { IpercService } from '../services/iperc.service';
-import { CatalogosService } from '../../../../shared/index';
 
 /** HSE-PLAN-001 Fase 1 — "Conformar equipo evaluador multidisciplinario" + "desglosar actividad". El desglose en tareas se hace después, dentro del detalle. */
 @Component({
@@ -24,24 +23,23 @@ import { CatalogosService } from '../../../../shared/index';
 export class IpercMatrixDialog {
   private readonly ipercService = inject(IpercService);
   private readonly notify = inject(DynadrillNotificationService);
-  private readonly catalogos = inject(CatalogosService);
   private readonly modalRef = inject(NzModalRef<IpercMatrixDialog, IpercMatrix | undefined>);
 
   protected readonly actividad = signal('');
-  protected readonly ubicacionOptions = signal<DynadrillSelectOption[]>([]);
+  protected readonly ubicacionOptions = signal<DynadrillSelectOption[]>(IPERC_ZONA_SUGERIDAS.map(z => ({ label: z, value: z })));
   protected readonly ubicacion = signal('');
+  protected readonly procesoOptions = signal<DynadrillSelectOption[]>(IPERC_PROCESO_SUGERIDOS.map(p => ({ label: p, value: p })));
+  protected readonly proceso = signal('');
   protected readonly nuevoIntegrante = signal('');
   protected readonly equipoEvaluador = signal<string[]>([]);
   protected readonly submitting = signal(false);
 
-  constructor() {
-    this.catalogos.pozos().subscribe(pozos =>
-      this.ubicacionOptions.set(pozos.map(p => ({ label: p.nombreCompleto, value: p.nombreCompleto }))),
-    );
-  }
-
   protected readonly puedeGuardar = computed(
-    () => this.actividad().trim().length > 0 && this.ubicacion().trim().length > 0 && this.equipoEvaluador().length > 0,
+    () =>
+      this.actividad().trim().length > 0 &&
+      this.ubicacion().trim().length > 0 &&
+      this.proceso().trim().length > 0 &&
+      this.equipoEvaluador().length > 0,
   );
 
   protected agregarUbicacion(nombre: string): void {
@@ -51,6 +49,15 @@ export class IpercMatrixDialog {
       this.ubicacionOptions.update(opts => [...opts, { label: value, value }]);
     }
     this.ubicacion.set(value);
+  }
+
+  protected agregarProceso(nombre: string): void {
+    const value = nombre.trim();
+    if (!value) return;
+    if (!this.procesoOptions().some(o => o.value === value)) {
+      this.procesoOptions.update(opts => [...opts, { label: value, value }]);
+    }
+    this.proceso.set(value);
   }
 
   protected agregarIntegrante(): void {
@@ -75,6 +82,7 @@ export class IpercMatrixDialog {
     const input: CreateIpercMatrixInput = {
       actividad: this.actividad().trim(),
       ubicacion: this.ubicacion(),
+      proceso: this.proceso(),
       equipoEvaluador: this.equipoEvaluador(),
     };
 

@@ -2,8 +2,19 @@
   <dynadrill-textarea label="Actividad" [value]="actividad()" (valueChange)="actividad.set($event)" [rows]="2" />
 
   <dynadrill-select
-    label="Ubicación"
-    placeholder="Selecciona o agrega una ubicación"
+    label="Proceso / Área"
+    placeholder="Selecciona o agrega un proceso"
+    [options]="procesoOptions()"
+    [value]="proceso()"
+    [searchable]="true"
+    [creatable]="true"
+    (valueChange)="proceso.set($any($event) ?? '')"
+    (itemCreated)="agregarProceso($event)"
+  />
+
+  <dynadrill-select
+    label="Zona / Base"
+    placeholder="Selecciona o agrega una zona"
     [options]="ubicacionOptions()"
     [value]="ubicacion()"
     [searchable]="true"

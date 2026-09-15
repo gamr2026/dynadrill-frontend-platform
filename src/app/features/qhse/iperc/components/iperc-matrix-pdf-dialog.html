@@ -15,6 +15,7 @@
   <div class="iperc-pdf__meta-grid">
     <div class="iperc-pdf__field"><dynadrill-text variant="caption">CÓDIGO</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.code }}</dynadrill-text></div>
     <div class="iperc-pdf__field"><dynadrill-text variant="caption">ACTIVIDAD</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.actividad }}</dynadrill-text></div>
+    <div class="iperc-pdf__field"><dynadrill-text variant="caption">PROCESO</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.proceso || '—' }}</dynadrill-text></div>
     <div class="iperc-pdf__field"><dynadrill-text variant="caption">BASE / LOCACIÓN</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.ubicacion }}</dynadrill-text></div>
     <div class="iperc-pdf__field"><dynadrill-text variant="caption">EQUIPO EVALUADOR</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.equipoEvaluador.join(', ') || '—' }}</dynadrill-text></div>
     <div class="iperc-pdf__field"><dynadrill-text variant="caption">FECHA DE ACTUALIZACIÓN</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.updatedAt | date: 'dd/MM/yyyy' }}</dynadrill-text></div>
@@ -54,6 +55,7 @@
     <table class="iperc-pdf__table">
       <thead>
         <tr>
+          <th rowspan="2">Proceso</th>
           <th rowspan="2">Zona / Lugar</th>
           <th rowspan="2">Actividad</th>
           <th rowspan="2">Tarea</th>
@@ -94,6 +96,7 @@
       <tbody>
         @for (row of hazardRows; track row.hazard.id) {
           <tr>
+            <td>{{ data.matrix.proceso || '—' }}</td>
             <td>{{ data.matrix.ubicacion }}</td>
             <td>{{ data.matrix.actividad }}</td>
             <td>{{ row.tarea }}</td>
@@ -125,7 +128,7 @@
             <td>{{ aceptabilidad(row.hazard, 'residual') }}</td>
           </tr>
         } @empty {
-          <tr><td colspan="28">Sin peligros identificados todavía.</td></tr>
+          <tr><td colspan="29">Sin peligros identificados todavía.</td></tr>
         }
       </tbody>
     </table>

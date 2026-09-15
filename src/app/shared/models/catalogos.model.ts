@@ -79,6 +79,8 @@ export interface PersonaContacto {
   id: number;
   tipo: TipoPersonaContacto;
   nombre: string;
+  /** Solo 'representante_campo' (= Company Man) la trae hoy — permite buscarlo por cédula además de por nombre. */
+  cedula?: string;
   activo: boolean;
 }
 

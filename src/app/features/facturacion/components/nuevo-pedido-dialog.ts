@@ -213,9 +213,16 @@ export class NuevoPedidoDialog {
   protected readonly representanteQuitoOptions = signal<DynadrillSelectOption[]>([]);
   protected readonly analistaFacturacionOptions = signal<DynadrillSelectOption[]>([]);
 
+  /**
+   * El label incluye la cédula cuando la persona la trae (hoy solo
+   * 'representante_campo' = Company Man) — nz-select busca sobre el label,
+   * así que esto habilita buscar por cédula además de por nombre sin
+   * tocar el componente compartido. El value sigue siendo solo el nombre
+   * (lo que se guarda en el Pedido), sin cambios ahí.
+   */
   private cargarPersonas(tipo: TipoPersonaContacto, destino: typeof this.agenteComercialOptions): void {
     this.catalogosService.personas(tipo).subscribe(personas => {
-      destino.set(personas.map(p => ({ label: p.nombre, value: p.nombre })));
+      destino.set(personas.map(p => ({ label: p.cedula ? `${p.nombre} — ${p.cedula}` : p.nombre, value: p.nombre })));
     });
   }
   /**

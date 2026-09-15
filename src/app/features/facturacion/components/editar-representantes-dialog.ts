@@ -55,8 +55,11 @@ export class EditarRepresentantesDialog {
       this.representanteQuito().trim().length > 0,
   );
 
+  /** Mismo criterio que nuevo-pedido-dialog.ts: el label incluye la cédula cuando la persona la trae, para poder buscarla por cédula además de por nombre. */
   private cargarPersonas(tipo: TipoPersonaContacto, destino: typeof this.agenteComercialOptions): void {
-    this.catalogosService.personas(tipo).subscribe(personas => destino.set(personas.map(p => ({ label: p.nombre, value: p.nombre }))));
+    this.catalogosService
+      .personas(tipo)
+      .subscribe(personas => destino.set(personas.map(p => ({ label: p.cedula ? `${p.nombre} — ${p.cedula}` : p.nombre, value: p.nombre }))));
   }
 
   constructor() {

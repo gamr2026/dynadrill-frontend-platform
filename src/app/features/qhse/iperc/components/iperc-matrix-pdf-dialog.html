@@ -135,6 +135,9 @@
 
   <div class="iperc-pdf__actions no-print">
     <dynadrill-button variant="secondary" (clicked)="close()">Cerrar</dynadrill-button>
+    <dynadrill-button variant="secondary" [disabled]="exportando()" (clicked)="exportarXlsx()">
+      {{ exportando() ? 'Generando…' : 'Descargar .xlsx' }}
+    </dynadrill-button>
     <dynadrill-button (clicked)="print()">Imprimir / Exportar PDF</dynadrill-button>
   </div>
 </div>

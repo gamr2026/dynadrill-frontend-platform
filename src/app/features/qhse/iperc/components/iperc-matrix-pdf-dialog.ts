@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
-import { DynadrillButtonComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
+import { DynadrillButtonComponent, DynadrillNotificationService, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
 import {
   calcularNP,
   calcularNR,
@@ -14,6 +14,7 @@ import {
   interpretarNP,
   interpretarNR,
 } from '../models/iperc.model';
+import { exportarMatrizIpercXlsx } from '../utils/iperc-matriz-xlsx.util';
 
 export interface IpercMatrixPdfDialogData {
   matrix: IpercMatrix;
@@ -47,8 +48,10 @@ interface HazardRow {
 export class IpercMatrixPdfDialog {
   protected readonly data = inject<IpercMatrixPdfDialogData>(NZ_MODAL_DATA);
   private readonly modalRef = inject(NzModalRef<IpercMatrixPdfDialog>);
+  private readonly notify = inject(DynadrillNotificationService);
 
   protected readonly printDate = new Date().toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  protected readonly exportando = signal(false);
 
   protected readonly ndOpciones = ND_OPCIONES;
   protected readonly neOpciones = NE_OPCIONES;
@@ -109,6 +112,19 @@ export class IpercMatrixPdfDialog {
 
   print(): void {
     window.print();
+  }
+
+  /** .xlsx real, clonando el formato oficial — ver iperc-matriz-xlsx.util.ts (usa exceljs, no el xlsx/SheetJS ya presente en el proyecto). */
+  protected async exportarXlsx(): Promise<void> {
+    if (this.exportando()) return;
+    this.exportando.set(true);
+    try {
+      await exportarMatrizIpercXlsx(this.data.matrix);
+    } catch {
+      this.notify.error('Error', 'No se pudo generar el archivo .xlsx.');
+    } finally {
+      this.exportando.set(false);
+    }
   }
 
   close(): void {

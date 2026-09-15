@@ -17,6 +17,11 @@ export class PumpingService {
     return this.http.get<PumpingTicket>(`${this.baseUrl}/tickets/${id}`);
   }
 
+  /** PUT genérico del ticket — para guardar campos que no tienen su propia acción dedicada (ej. gerenciamientos de viaje ya completados). */
+  updateTicket(id: number, patch: Partial<PumpingTicket>): Observable<PumpingTicket> {
+    return this.http.put<PumpingTicket>(`${this.baseUrl}/tickets/${id}`, patch);
+  }
+
   assignSupervisor(ticketId: number, supervisorId: number): Observable<PumpingTicket> {
     return this.http.patch<PumpingTicket>(
       `${this.baseUrl}/tickets/${ticketId}/assign-supervisor`,

@@ -104,7 +104,6 @@
   <div class="daily-report__signatures">
     <div class="daily-report__signature-col">
       <dynadrill-input label="Nombre (Supervisor Dynadrill)" [value]="nombreSupervisor()" (valueChange)="nombreSupervisor.set($event)" />
-      <dynadrill-input label="C.I." [value]="ciSupervisor()" (valueChange)="ciSupervisor.set($event)" />
       <div class="daily-report__signature-line">
         <dynadrill-text variant="caption">Firma:</dynadrill-text>
         <div class="daily-report__line"></div>
@@ -112,7 +111,6 @@
     </div>
     <div class="daily-report__signature-col">
       <dynadrill-input label="Nombre (Representante Cliente)" [value]="representanteCliente()" [disabled]="true" />
-      <dynadrill-input label="C.I." [value]="ciCliente()" (valueChange)="ciCliente.set($event)" />
       <div class="daily-report__signature-line">
         <dynadrill-text variant="caption">Firma:</dynadrill-text>
         <div class="daily-report__line"></div>

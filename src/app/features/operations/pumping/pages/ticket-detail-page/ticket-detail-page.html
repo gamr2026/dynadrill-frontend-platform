@@ -154,26 +154,6 @@
         }
       </section>
 
-      <!-- Cantidad a retirar de químicos agregados manualmente (no venían marcados en el pedido) -->
-      @for (articulo of selectedChemicalRows(); track articulo.id) {
-        @if (!chemicalsPedidoResueltos().some(r => r.articulo?.id === articulo.id)) {
-          <section class="ticket-detail__section">
-            <dynadrill-input
-              [label]="'Cantidad a retirar — ' + articulo.nombre + ' (' + articulo.unidadStock + ', stock: ' + articulo.stockActual + ')'"
-              type="number"
-              placeholder="0"
-              [value]="chemicalQuantity(articulo.id)"
-              (valueChange)="onChemicalQuantityChange(articulo.id, $event)"
-            />
-          </section>
-        }
-      }
-
-      <section class="ticket-detail__section">
-        <dynadrill-text variant="h2">Agregar otro químico</dynadrill-text>
-        <dynadrill-text variant="caption">Solo si hace falta algo que no venía marcado en el pedido.</dynadrill-text>
-        <dynadrill-select label="Químicos" placeholder="Seleccionar químicos adicionales" [options]="chemicalOptions()" [value]="selectedChemicals()" [multiple]="true" (valueChange)="onChemicalsChange($event)" />
-      </section>
 
       @if (selectedChemicals().length > 0) {
         @if (documentosReferenciaPedido().length > 0) {
@@ -627,11 +607,14 @@
 
     <!-- Fecha y combustible salida -->
     <section class="ticket-detail__section">
-      <dynadrill-text variant="h2">Fecha y combustible</dynadrill-text>
+      <dynadrill-text variant="h2">Fecha, ruta y combustible</dynadrill-text>
       <div class="ticket-detail__form-grid">
         <dynadrill-datetime-picker mode="date" label="Fecha de salida" [value]="$any(reportDepartureDate())" (valueChange)="reportDepartureDate.set($event)" />
+        <dynadrill-input label="Origen" placeholder="Ej. Base Coco" [value]="reportOrigin()" (valueChange)="reportOrigin.set($event)" />
+        <dynadrill-input label="Destino" placeholder="Ej. Pozo Beta-9" [value]="reportDestination()" (valueChange)="reportDestination.set($event)" />
         <dynadrill-input type="number" label="Combustible salida (gal)" placeholder="Ej. 45" [value]="reportFuelDeparture()" (valueChange)="reportFuelDeparture.set($event)" />
       </div>
+      <dynadrill-text variant="caption">Origen/Destino se usan para precargar el Gerenciamiento de Viaje más adelante.</dynadrill-text>
     </section>
 
     <!-- Neumáticos (solo Salida en este paso) -->

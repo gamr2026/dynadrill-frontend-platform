@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import { NzUploadFile } from 'ng-zorro-antd/upload';
+import * as XLSX from 'xlsx';
 import {
   DynadrillButtonComponent,
   DynadrillChipGroupComponent,
@@ -8,6 +9,7 @@ import {
   DynadrillDatetimePickerComponent,
   DynadrillIconButtonComponent,
   DynadrillInputComponent,
+  DynadrillNotificationService,
   DynadrillTextComponent,
   DynadrillTextareaComponent,
   DynadrillUploadZoneComponent,
@@ -16,6 +18,62 @@ import {
 import type { DailyActivityEntry, DailyActivityReport } from '../models/pumping.model';
 import { UBICACION_VACIA, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../../shared/index';
 import { parseLocalDateString, toLocalDateString } from '../../../../shared/utils';
+
+const MAX_PLANTILLA_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Columnas (índice de `sheet_to_json(header:1)`) del formato real
+ * DYN-SGI-RE-047 — verificadas a mano rellenando marcas en el archivo real
+ * y releyéndolo con la misma librería, no adivinadas por inspección visual
+ * (el Excel tiene celdas combinadas que desalinean la posición "visual" de
+ * cada valor respecto al índice real de columna).
+ */
+const COL = {
+  fecha: 4,
+  numero: 8,
+  cliente: 4,
+  ordenContrato: 8,
+  pozo: 4,
+  representanteCliente: 8,
+  campoBloque: 4,
+  cargo: 8,
+  taladro: 4,
+  actInicio: 1,
+  actFin: 2,
+  actHoras: 3,
+  actDetalle: 4,
+  tiempoProductivo: 4,
+  tiempoNoProductivo: 6,
+  observaciones: 4,
+  nombreSupervisor: 4,
+} as const;
+const FILA = {
+  fecha: 5,
+  cliente: 6,
+  pozo: 7,
+  campoBloque: 8,
+  taladro: 9,
+  actividadesInicio: 12,
+  actividadesFin: 22,
+  tiempos: 23,
+  observaciones: 24,
+  firmas: 29,
+} as const;
+
+/** Excel guarda fechas tipeadas con el formato regional de la celda — se prueban los formatos más comunes (no hay uno solo garantizado). */
+function parseFechaPlantilla(texto: string): Date | null {
+  const t = texto.trim();
+  if (!t) return null;
+  let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (m) {
+    const anio = Number(m[3]) < 100 ? Number(m[3]) + 2000 : Number(m[3]);
+    const d = new Date(anio, Number(m[2]) - 1, Number(m[1]));
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
 
 export interface DailyActivityReportDialogData {
   ticketCode: string;
@@ -63,6 +121,7 @@ const URL_PLANTILLA_REPORTE_DIARIO = '/plantillas/reporte-diario-actividades.xls
 export class DailyActivityReportDialog {
   private readonly modalRef = inject(NzModalRef<DailyActivityReportDialog, DailyActivityReportDialogResult | undefined>);
   private readonly data = inject<DailyActivityReportDialogData>(NZ_MODAL_DATA);
+  private readonly notify = inject(DynadrillNotificationService);
 
   // ── Header info ──
   // dynadrill-datetime-picker trabaja con Date, no con el string ISO que guarda DailyActivityReport.fecha
@@ -162,24 +221,90 @@ export class DailyActivityReportDialog {
   // "Nombre (Representante Cliente)" NO es un campo propio acá: es la misma
   // persona que ya se anotó en "Información general" (representanteCliente)
   // — antes eran dos signals separados y el formulario pedía escribir el
-  // mismo nombre dos veces. Firmas solo agrega lo que falta: la C.I.
+  // mismo nombre dos veces. Tampoco se pide C.I. de ninguno de los dos: ya
+  // se identifican por nombre (Supervisor asignado al ticket / Representante
+  // de campo del pedido), pedirla de nuevo acá era información redundante.
   protected readonly nombreSupervisor = signal(this.data.existing?.nombreSupervisor ?? this.data.supervisor);
-  protected readonly ciSupervisor = signal(this.data.existing?.ciSupervisor ?? '');
-  protected readonly ciCliente = signal(this.data.existing?.ciCliente ?? '');
 
   // ── File upload ──
   protected readonly uploadState = signal<'idle' | 'uploaded'>('idle');
   protected readonly uploadFileName = signal('');
   protected readonly uploadedFileData = signal<string | null>(this.data.existing?.archivoAdjunto ?? null);
 
+  /**
+   * "Cargue la plantilla con datos y no vi que la info se visualice en los
+   * campos... que sentido tiene llenarlo" — antes esto solo simulaba el
+   * autocompletado de un campo (Nº); ahora parsea de verdad el .xlsx real
+   * (DYN-SGI-RE-047) y vuelca cada valor en su campo del formulario.
+   */
   protected onFileSelected(file: NzUploadFile): void {
-    this.uploadFileName.set(file.name ?? '');
-    this.uploadedFileData.set(file.name ?? null);
-    this.uploadState.set('uploaded');
-    // Auto-fill fields from uploaded document (simulated)
-    if (!this.numero()) {
-      this.numero.set(`RAO-${this.data.ticketCode.replace('PUMP-', '')}`);
+    const archivo = (file.originFileObj as File | undefined) ?? (file as unknown as File);
+    if (!archivo || typeof archivo.size !== 'number') {
+      this.notify.error('Archivo no reconocido', 'No se pudo leer el archivo seleccionado. Probá de nuevo.');
+      return;
     }
+    if (archivo.size > MAX_PLANTILLA_BYTES) {
+      this.notify.error('Archivo demasiado grande', 'El archivo supera el máximo permitido de 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = evento => {
+      try {
+        const datos = new Uint8Array(evento.target!.result as ArrayBuffer);
+        const libro = XLSX.read(datos, { type: 'array' });
+        const hoja = libro.Sheets[libro.SheetNames[0]];
+        const filas = XLSX.utils.sheet_to_json<unknown[]>(hoja, { header: 1, defval: '', raw: false });
+        const celda = (fila: number, col: number): string => (filas[fila]?.[col] ?? '').toString().trim();
+
+        const fechaTexto = celda(FILA.fecha, COL.fecha);
+        const fechaParseada = parseFechaPlantilla(fechaTexto);
+        if (fechaParseada) this.fecha.set(fechaParseada);
+
+        const numero = celda(FILA.fecha, COL.numero);
+        if (numero) this.numero.set(numero);
+        const cliente = celda(FILA.cliente, COL.cliente);
+        if (cliente) this.cliente.set(cliente);
+        const ordenContrato = celda(FILA.cliente, COL.ordenContrato);
+        if (ordenContrato) this.ordenContrato.set(ordenContrato);
+        const representanteCliente = celda(FILA.pozo, COL.representanteCliente);
+        if (representanteCliente) this.representanteCliente.set(representanteCliente);
+        const cargo = celda(FILA.campoBloque, COL.cargo);
+        if (cargo) this.cargo.set(cargo);
+        const nombreSupervisor = celda(FILA.firmas, COL.nombreSupervisor);
+        if (nombreSupervisor) this.nombreSupervisor.set(nombreSupervisor);
+
+        const actividades: DailyActivityEntry[] = [];
+        for (let f = FILA.actividadesInicio; f <= FILA.actividadesFin; f++) {
+          const detalle = celda(f, COL.actDetalle);
+          const inicio = celda(f, COL.actInicio);
+          const fin = celda(f, COL.actFin);
+          if (!detalle && !inicio && !fin) continue;
+          const horasTexto = celda(f, COL.actHoras);
+          actividades.push({ inicio, fin, horas: horasTexto ? Number(horasTexto) || null : null, detalle });
+        }
+        if (actividades.length) this.actividades.set(actividades);
+
+        const tiempoProductivo = celda(FILA.tiempos, COL.tiempoProductivo);
+        if (tiempoProductivo && Number(tiempoProductivo)) this.tiempoProductivo.set(tiempoProductivo);
+        const tiempoNoProductivo = celda(FILA.tiempos, COL.tiempoNoProductivo);
+        if (tiempoNoProductivo && Number(tiempoNoProductivo)) this.tiempoNoProductivo.set(tiempoNoProductivo);
+
+        const observaciones = celda(FILA.observaciones, COL.observaciones);
+        if (observaciones) {
+          this.observaciones.set(observaciones);
+          this.tieneObservaciones.set(true);
+        }
+
+        this.uploadFileName.set(archivo.name ?? '');
+        this.uploadedFileData.set(archivo.name ?? null);
+        this.uploadState.set('uploaded');
+        this.notify.success('Plantilla cargada', 'Se completaron los campos con los datos del archivo — revisalos antes de guardar.');
+      } catch {
+        this.notify.error('Error al leer el archivo', 'No se pudo procesar el Excel. Verificá que sea el formato DYN-SGI-RE-047 y que no esté dañado.');
+      }
+    };
+    reader.readAsArrayBuffer(archivo);
   }
 
   // ── Validation ──
@@ -212,8 +337,8 @@ export class DailyActivityReportDialog {
       nombreCliente: this.representanteCliente(),
       firmaSupervisor: this.nombreSupervisor(),
       firmaCliente: this.representanteCliente(),
-      ciSupervisor: this.ciSupervisor(),
-      ciCliente: this.ciCliente(),
+      ciSupervisor: '',
+      ciCliente: '',
       archivoAdjunto: this.uploadedFileData(),
     };
     this.modalRef.close({ saved: true, report });

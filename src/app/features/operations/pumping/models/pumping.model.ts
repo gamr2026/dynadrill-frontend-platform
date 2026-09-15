@@ -196,6 +196,14 @@ export interface PumpingTicket extends Ticket {
   /** Taladro/Rig — heredado del Pedido, prellena el selector de ubicación del Reporte Diario. */
   taladroRig?: string;
   taladroId?: number;
+  /**
+   * Gerenciamiento de Viaje (DYN-SGI-RE-049) ya completado por operador —
+   * clave = id del operador. Se guarda en el ticket (no solo en memoria del
+   * componente) para que sobreviva a un recargo de página y para que el
+   * gerenciamiento de retorno pueda recuperar motivo/ruta del de ida.
+   */
+  travelManagements?: Record<number, TravelManagement>;
+  returnTravelManagements?: Record<number, TravelManagement>;
 }
 
 // ── Templates de inspección (ítems del formulario físico DYN-MNT-RE-012) ──

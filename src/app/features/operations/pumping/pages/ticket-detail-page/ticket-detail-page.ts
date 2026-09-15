@@ -762,6 +762,24 @@ export class TicketDetailPage {
   protected readonly returnTravelPendingManagements = signal<Map<number, TravelManagement>>(new Map());
 
   /**
+   * "Sigo sin ver que la info del gerenciamiento de ida se recupere en el de
+   * retorno" — el motivo real era que `travelManagements`/`returnTravelManagements`
+   * vivían solo en memoria del componente, nunca se guardaban en el ticket:
+   * cualquier recarga de página los vaciaba antes de llegar al paso de
+   * retorno. Se persisten acá (PUT genérico del ticket) cada vez que cambian.
+   */
+  private guardarGerenciamientosEnTicket(): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.pumpingService
+      .updateTicket(t.id, {
+        travelManagements: Object.fromEntries(this.travelManagements()),
+        returnTravelManagements: Object.fromEntries(this.returnTravelManagements()),
+      })
+      .subscribe({ error: () => this.notify.error('Error', 'No se pudo guardar el gerenciamiento de viaje.') });
+  }
+
+  /**
    * Todo Gerenciamiento de Viaje (DYN-SGI-RE-049) lo autoriza el Jefe de Base.
    * En la demo un mismo usuario recorre todos los roles: el diálogo de
    * confirmación es la firma del Jefe de Base. No se cambia el rol de la
@@ -805,6 +823,7 @@ export class TicketDetailPage {
       u.delete(id);
       return u;
     });
+    this.guardarGerenciamientosEnTicket();
     this.notify.success('Gerenciamiento autorizado', `El Jefe de Base autorizó el gerenciamiento de viaje${retorno ? ' de retorno' : ''} de ${row['name']}.`);
   }
 
@@ -878,6 +897,7 @@ export class TicketDetailPage {
           updated.set(operatorId, tm);
           return updated;
         });
+        this.guardarGerenciamientosEnTicket();
         this.notify.success('Gerenciamiento de viaje guardado', `Riesgo BAJO — cerrado directamente por el Supervisor.`);
         return;
       }
@@ -1081,6 +1101,7 @@ export class TicketDetailPage {
           updated.set(operatorId, tm);
           return updated;
         });
+        this.guardarGerenciamientosEnTicket();
         this.notify.success('Gerenciamiento de retorno guardado', `Riesgo BAJO — cerrado directamente por el Supervisor.`);
         return;
       }
@@ -2217,19 +2238,6 @@ export class TicketDetailPage {
     this.selectedUnits.set(Array.isArray(value) ? value : []);
   }
 
-  protected onChemicalsChange(value: unknown): void {
-    const ids = Array.isArray(value) ? (value as number[]) : [];
-    this.selectedChemicals.set(ids);
-    // Si se deselecciona un químico, no arrastrar una cantidad huérfana.
-    this.chemicalQuantities.update(map => {
-      const updated = new Map(map);
-      for (const id of updated.keys()) {
-        if (!ids.includes(id)) updated.delete(id);
-      }
-      return updated;
-    });
-  }
-
   protected onDecisionChange(decision: DynadrillApprovalDecision): void {
     this.decision.set(decision);
   }
@@ -2387,6 +2395,16 @@ export class TicketDetailPage {
     this.reportWellName.set(ticket.wellName);
     this.reportClientName.set(ticket.clientName);
     this.reportUnitCode.set(ticket.unitCode || '');
+
+    // Gerenciamientos de viaje ya completados — restaurados del ticket (no
+    // solo de la memoria del componente) para que sobrevivan a un recargo
+    // de página y para que el de retorno pueda heredar del de ida.
+    if (ticket.travelManagements) {
+      this.travelManagements.set(new Map(Object.entries(ticket.travelManagements).map(([k, v]) => [Number(k), v])));
+    }
+    if (ticket.returnTravelManagements) {
+      this.returnTravelManagements.set(new Map(Object.entries(ticket.returnTravelManagements).map(([k, v]) => [Number(k), v])));
+    }
 
     // Desde `en_ejecucion_llegada` en adelante (llegada, mantenimiento, revisar
     // reportes de llegada, revisión, finalizado) la inspección de salida ya

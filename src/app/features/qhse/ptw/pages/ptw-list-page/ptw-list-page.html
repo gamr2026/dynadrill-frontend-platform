@@ -8,8 +8,10 @@
 <dynadrill-kpi-row [items]="kpis()" />
 
 <ng-template #actionsTpl let-row>
-  <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
-  <dynadrill-icon-button icon="file-text" tooltip="Ver ítems del pedido" tooltipPlacement="top" (clicked)="verLineasPedido(row)" />
+  <div class="ptw-list-page__row-actions">
+    <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
+    <dynadrill-icon-button icon="file-search" tooltip="Ver ítems del pedido" tooltipPlacement="top" (clicked)="verLineasPedido(row)" />
+  </div>
 </ng-template>
 
 <ng-template #faseTpl let-row>

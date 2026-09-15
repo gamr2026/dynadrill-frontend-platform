@@ -8,6 +8,16 @@
   overflow-x: auto;
 }
 
+/** Mismo patrón que pedidos-list-page: sin esto, el `flex-wrap: wrap` de
+ * la librería (pensado para botones con texto) apila los dos íconos en
+ * columnas angostas en vez de dejarlos en una sola fila. */
+.ptw-list-page__row-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
 .ptw-list-page__fase-legend {
   display: flex;
   flex-wrap: wrap;

@@ -258,10 +258,10 @@ export class FcrTicketDetailPage {
     const t = this.ticket();
     if (t?.currentPhase === 'validacion' && t.observations.length > 0) {
       // El último autor dice de quién es el turno: si Supervisor pidió la
-      // corrección, le toca a Ingeniería de Ventas aplicarla; si Ingeniería
-      // de Ventas ya reenvió, vuelve a ser turno del Supervisor.
+      // corrección, le toca a Ingeniería de Ventas FCR aplicarla; si ya
+      // reenvió, vuelve a ser turno del Supervisor.
       const last = t.observations[t.observations.length - 1];
-      return last.role === 'Supervisor' ? 'Ingeniería de Ventas' : 'Supervisor';
+      return last.role === 'Supervisor' ? 'Ingeniería de Ventas FCR' : 'Supervisor';
     }
     if (t?.currentPhase === 'preparacion_herramientas') {
       const hasUnsentSelected = t.tools.some(tool => tool.status === 'seleccionada' && !tool.sentToBodega);
@@ -1109,21 +1109,21 @@ export class FcrTicketDetailPage {
       this.fcrService.requestCorrection(t.id, result.observations).subscribe({
         next: updated => {
           this.ticket.set(updated);
-          this.notify.success('Corrección solicitada a Ingeniería de Ventas.');
+          this.notify.success('Corrección solicitada a Ingeniería de Ventas FCR.');
         },
         error: () => this.notify.error('Error', 'No se pudo solicitar la corrección.'),
       });
     });
   }
 
-  /** Ingeniería de Ventas devuelve el turno al Supervisor tras aplicar la corrección solicitada. */
+  /** Ingeniería de Ventas FCR devuelve el turno al Supervisor tras aplicar la corrección solicitada. */
   protected async resolveCorrection(): Promise<void> {
     const t = this.ticket();
     if (!t) return;
     const ok = await this.confirmStep('Reenviar a Supervisor', 'Confirma que la corrección solicitada ya fue aplicada. El Supervisor podrá volver a revisar la información.');
     if (!ok) return;
     const author = this.auth.currentUser();
-    this.fcrService.resolveCorrection(t.id, author?.name ?? 'Ingeniería de Ventas', 'Corrección aplicada según lo solicitado.').subscribe({
+    this.fcrService.resolveCorrection(t.id, author?.name ?? 'Ingeniería de Ventas FCR', 'Corrección aplicada según lo solicitado.').subscribe({
       next: updated => {
         this.ticket.set(updated);
         this.notify.success('Corrección reenviada al Supervisor.');

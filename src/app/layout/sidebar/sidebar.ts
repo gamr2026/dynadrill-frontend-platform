@@ -33,7 +33,7 @@ const SUPERVISOR_OPERATIVO_ITEM: DynadrillMenuItem = {
   ],
 };
 
-/** Para roles que solo tocan FCR dentro de Operativo (no Pumping): Bodega, Ingeniería de Ventas, Control de Herramientas. */
+/** Para roles que solo tocan FCR dentro de Operativo (no Pumping): Bodega, Ingeniería de Ventas FCR, Control de Herramientas. */
 const FCR_ONLY_ITEM: DynadrillMenuItem = {
   label: 'Operativo',
   icon: 'file-text',
@@ -190,10 +190,10 @@ export class Sidebar {
       return [dashboard, INVENTARIO_ITEM, FCR_ONLY_ITEM];
     }
 
+    // Cuenta de Facturación (ventas@dynadrill.com) — sin FCR, ver [[Ingeniería de Ventas FCR]] abajo.
     if (roleName === 'Ingeniería de Ventas') {
       return [
         dashboard,
-        FCR_ONLY_ITEM,
         {
           label: 'Facturación',
           icon: 'file-text' as DynadrillIconName,
@@ -203,6 +203,12 @@ export class Sidebar {
           ],
         },
       ];
+    }
+
+    // Cuenta exclusiva de FCR (ventas.fcr@dynadrill.com) — sin Facturación, a
+    // pedido del cliente no deben cruzarse (ver ModuleRoles.fcr backend).
+    if (roleName === 'Ingeniería de Ventas FCR') {
+      return [dashboard, FCR_ONLY_ITEM];
     }
 
     if (roleName === 'Control de Herramientas') {

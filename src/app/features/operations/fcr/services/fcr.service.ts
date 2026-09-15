@@ -40,7 +40,7 @@ export class FcrService {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/request-correction`, { observations });
   }
 
-  /** Ingeniería de Ventas devuelve el turno al Supervisor tras aplicar la corrección solicitada. */
+  /** Ingeniería de Ventas FCR devuelve el turno al Supervisor tras aplicar la corrección solicitada. */
   resolveCorrection(ticketId: number, resolvedBy: string, observation: string): Observable<FcrTicket> {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/resolve-correction`, { resolvedBy, observation });
   }

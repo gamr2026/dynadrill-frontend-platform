@@ -84,6 +84,19 @@
     flex-wrap: wrap;
   }
 
+  &__documento-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    align-items: end;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
+  }
+
   // Checkbox "Químico" — Pumping lo usa para precargar la asignación de
   // recursos sin tener que volver a elegirlos del catálogo de Inventario.
   &__quimico-cell {

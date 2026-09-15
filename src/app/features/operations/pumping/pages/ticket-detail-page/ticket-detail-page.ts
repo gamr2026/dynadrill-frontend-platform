@@ -458,6 +458,23 @@ export class TicketDetailPage {
     this.chemicalQuantities.set(new Map(resueltos.map(r => [r.articulo!.id, r.item.cantidad])));
   }
 
+  /**
+   * Documentos de referencia que Ventas adjuntó al crear el pedido (ej.
+   * ficha de mezcla de químicos) — para que Pumping sepa de qué se trata
+   * sin que se lo vuelvan a pedir. Si hay al menos uno y todavía no se
+   * cargó el documento de mezcla, se precarga con el primero (mismo
+   * criterio del resto de la app: se guarda el nombre del archivo, no su
+   * contenido — no hay almacenamiento real de binarios).
+   */
+  protected readonly documentosReferenciaPedido = computed(() => this.pedido()?.documentosAdjuntos ?? []);
+
+  private precargarDocumentoDeMezcla(): void {
+    if (this.chemicalMixtureDocument()) return; // ya tiene uno cargado (a mano, o ya se precargó antes)
+    const [primero] = this.documentosReferenciaPedido();
+    if (!primero) return;
+    this.chemicalMixtureDocument.set({ uid: '-1', name: primero.nombreArchivo } as NzUploadFile);
+  }
+
   protected chemicalArticulo(articuloId: number): Articulo | undefined {
     return this.chemicalArticulos().find(a => a.id === articuloId);
   }
@@ -1672,6 +1689,7 @@ export class TicketDetailPage {
             next: p => {
               this.pedido.set(p);
               this.sincronizarQuimicosDelPedido();
+              this.precargarDocumentoDeMezcla();
             },
             error: () => this.pedido.set(null),
           });

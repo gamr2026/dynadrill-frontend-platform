@@ -283,6 +283,16 @@
   margin-top: 12px;
 }
 
+.ticket-detail__documentos-referencia {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+
+  li {
+    margin-bottom: 4px;
+  }
+}
+
 .ticket-detail__quimico-sin-match {
   display: flex;
   flex-direction: column;

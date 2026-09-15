@@ -177,6 +177,34 @@
     </div>
   </fieldset>
 
+  @if (esPumping()) {
+    <fieldset class="nuevo-pedido__group">
+      <legend>Documentos de referencia (Pumping)</legend>
+      <dynadrill-text variant="caption">
+        Adjuntá acá cualquier documento que Pumping vaya a necesitar más adelante (ej. ficha de mezcla de químicos), con
+        una descripción — así lo ven ya identificado en sus pasos, sin que se lo vuelvan a pedir.
+      </dynadrill-text>
+
+      @for (d of documentosAdjuntos(); track $index) {
+        <div class="nuevo-pedido__documento-row">
+          <dynadrill-input
+            label="Descripción del documento"
+            placeholder="Ej. Ficha de mezcla de químicos"
+            [value]="d.descripcion"
+            (valueChange)="onDocumentoAdjuntoDescripcionChange($index, $event)"
+          />
+          <dynadrill-upload-zone
+            [state]="d.archivo ? 'uploaded' : 'idle'"
+            [fileName]="d.archivo?.name ?? ''"
+            (fileSelected)="onDocumentoAdjuntoArchivoChange($index, $event)"
+          />
+          <dynadrill-icon-button icon="delete" tooltip="Quitar documento" (clicked)="quitarDocumentoAdjunto($index)" />
+        </div>
+      }
+      <dynadrill-button variant="secondary" size="small" (clicked)="agregarDocumentoAdjunto()">+ Agregar documento</dynadrill-button>
+    </fieldset>
+  }
+
   <div class="nuevo-pedido__actions">
     <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
     <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">

@@ -176,9 +176,26 @@
       </section>
 
       @if (selectedChemicals().length > 0) {
+        @if (documentosReferenciaPedido().length > 0) {
+          <section class="ticket-detail__section">
+            <dynadrill-text variant="h2">Documentos de referencia del pedido</dynadrill-text>
+            <dynadrill-text variant="caption">Adjuntados por Ventas al crear el pedido.</dynadrill-text>
+            <ul class="ticket-detail__documentos-referencia">
+              @for (d of documentosReferenciaPedido(); track d.nombreArchivo) {
+                <li><strong>{{ d.descripcion || 'Sin descripción' }}</strong> — {{ d.nombreArchivo }}</li>
+              }
+            </ul>
+          </section>
+        }
         <section class="ticket-detail__section">
           <dynadrill-text variant="h2">Documento de mezcla de químicos</dynadrill-text>
-          <dynadrill-text variant="caption">Adjunte el documento con el detalle de la mezcla preparada.</dynadrill-text>
+          <dynadrill-text variant="caption">
+            @if (documentosReferenciaPedido().length > 0) {
+              Se precargó con el primer documento de referencia del pedido — cambialo si no corresponde.
+            } @else {
+              Adjunte el documento con el detalle de la mezcla preparada.
+            }
+          </dynadrill-text>
           <dynadrill-upload-zone
             [state]="chemicalMixtureDocument() ? 'uploaded' : 'idle'"
             [fileName]="chemicalMixtureDocument()?.name ?? ''"

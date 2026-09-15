@@ -98,6 +98,20 @@ export interface CambioEstado {
   motivo?: string;
 }
 
+/**
+ * Documento de referencia adjuntado por Ventas al crear el pedido — hoy
+ * solo se pide para Pumping (ver nuevo-pedido-dialog), para que el
+ * Supervisor sepa de qué se trata un archivo ya provisto (ej. ficha de
+ * mezcla de químicos) sin tener que volver a pedirlo. Mismo criterio que el
+ * resto de adjuntos de la app: se guarda el nombre del archivo, no su
+ * contenido (no hay almacenamiento real de binarios).
+ */
+export interface PedidoDocumentoAdjunto {
+  descripcion: string;
+  nombreArchivo: string;
+  subidoEn: string;
+}
+
 export interface Pedido {
   id: number;
   /** Secuencial compartido con AS2 (ej. "4313"). Lo asigna el gateway. */
@@ -151,6 +165,9 @@ export interface Pedido {
   itemsEstimados: ItemEstimado[];
   /** @deprecated Compat: pedidos antiguos guardaban una sola línea. El backend normaliza a `itemsEstimados`. */
   itemEstimado?: ItemEstimado;
+
+  /** Solo se pide hoy para Pumping — ver PedidoDocumentoAdjunto. */
+  documentosAdjuntos?: PedidoDocumentoAdjunto[];
 
   // ── Fechas ──
   fechaInicioServicio?: string;

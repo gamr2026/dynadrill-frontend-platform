@@ -16,7 +16,15 @@ import {
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../core/services/auth.service';
-import { ItemEstimado, LINEA_SERVICIO_LABELS, LineaServicio, Pedido, TIPO_OT_LABELS, TipoOt } from '../models/pedido.model';
+import {
+  ItemEstimado,
+  LINEA_SERVICIO_LABELS,
+  LineaServicio,
+  Pedido,
+  PedidoDocumentoAdjunto,
+  TIPO_OT_LABELS,
+  TipoOt,
+} from '../models/pedido.model';
 import { ListaPrecios } from '../models/lista-precios.model';
 import { Prefactura } from '../models/prefactura.model';
 import { ListaPreciosService, PedidoService, PrefacturaService } from '../services/pedido.service';
@@ -48,6 +56,16 @@ interface LineaEstimadaDraft {
   descuentoPorcentaje: string;
   /** Pumping precarga estas líneas en "Asignar recursos" — ver ticket-detail-page.ts del módulo Pumping. */
   esQuimico: boolean;
+}
+
+/**
+ * Documento de referencia adjuntado por Ventas — hoy solo aplica a Pumping
+ * (ver `esPumping` en este mismo componente). Mismo criterio que el resto
+ * de adjuntos de la app: se guarda el nombre del archivo, no su contenido.
+ */
+interface DocumentoAdjuntoDraft {
+  descripcion: string;
+  archivo: NzUploadFile | null;
 }
 
 const LINEA_ESTIMADA_VACIA: LineaEstimadaDraft = {
@@ -155,6 +173,30 @@ export class NuevoPedidoDialog {
     ([value, label]) => ({ label, value }),
   );
   protected readonly esPumping = computed(() => this.lineaServicio() === 'pumping');
+
+  /**
+   * Documentos de referencia — solo para Pumping (a pedido del cliente):
+   * "que sepa de qué es el documento cargado" para que Pumping los vea ya
+   * identificados en sus pasos, en vez de tener que volver a pedirlos.
+   */
+  protected readonly documentosAdjuntos = signal<DocumentoAdjuntoDraft[]>([]);
+
+  protected agregarDocumentoAdjunto(): void {
+    this.documentosAdjuntos.update(list => [...list, { descripcion: '', archivo: null }]);
+  }
+
+  protected quitarDocumentoAdjunto(index: number): void {
+    this.documentosAdjuntos.update(list => list.filter((_, i) => i !== index));
+  }
+
+  protected onDocumentoAdjuntoDescripcionChange(index: number, descripcion: string): void {
+    this.documentosAdjuntos.update(list => list.map((d, i) => (i === index ? { ...d, descripcion } : d)));
+  }
+
+  protected onDocumentoAdjuntoArchivoChange(index: number, archivo: NzUploadFile): void {
+    this.documentosAdjuntos.update(list => list.map((d, i) => (i === index ? { ...d, archivo } : d)));
+  }
+
   /** Campo / Bloque / Pozo / Taladro — del catálogo, vía <app-ubicacion-selector>. */
   protected readonly ubicacion = signal<UbicacionSeleccion>(UBICACION_VACIA);
   protected readonly fechaInicioServicio = signal<Date | null>(null);
@@ -419,6 +461,11 @@ export class NuevoPedidoDialog {
         })),
       );
     }
+    if (p.documentosAdjuntos?.length) {
+      this.documentosAdjuntos.set(
+        p.documentosAdjuntos.map(d => ({ descripcion: d.descripcion, archivo: { name: d.nombreArchivo } as NzUploadFile })),
+      );
+    }
   }
 
   private todasLasListas: ListaPrecios[] = [];
@@ -465,6 +512,14 @@ export class NuevoPedidoDialog {
       esQuimico: l.esQuimico,
     }));
 
+    const documentosAdjuntos: PedidoDocumentoAdjunto[] = this.documentosAdjuntos()
+      .filter(d => d.archivo)
+      .map(d => ({
+        descripcion: d.descripcion.trim(),
+        nombreArchivo: d.archivo!.name ?? '',
+        subidoEn: new Date().toISOString(),
+      }));
+
     const payload = {
       origen: 'portal' as const,
       cliente: this.cliente()!,
@@ -493,6 +548,7 @@ export class NuevoPedidoDialog {
       zona: this.zona().trim() || undefined,
       bodega: this.bodega().trim() || undefined,
       itemsEstimados,
+      documentosAdjuntos,
       fechaInicioServicio: this.fechaInicioServicio()?.toISOString().slice(0, 10),
       fechaFinServicio: this.fechaFinServicio()?.toISOString().slice(0, 10),
       createdBy: nombre,

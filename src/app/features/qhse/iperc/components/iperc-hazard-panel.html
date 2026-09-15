@@ -8,35 +8,34 @@
       <dynadrill-text variant="body">{{ hazard().fuenteRiesgo }}</dynadrill-text>
     </div>
 
-    @if (isEditable) {
-      <div class="iperc-hazard-panel__grid">
-        <dynadrill-input label="Controles existentes — Fuente" [value]="hazard().controlesExistentes" (valueChange)="setControlesExistentes($event)" />
-        <dynadrill-input
-          label="Controles existentes — Medio"
-          [value]="hazard().controlesExistentesMedio ?? ''"
-          (valueChange)="setControlesExistentesMedio($event)"
-        />
-        <dynadrill-input
-          label="Controles existentes — Individuo"
-          [value]="hazard().controlesExistentesIndividuo ?? ''"
-          (valueChange)="setControlesExistentesIndividuo($event)"
-        />
-      </div>
-    } @else {
-      <div class="iperc-hazard-panel__row">
-        <dynadrill-text variant="caption">Controles existentes</dynadrill-text>
-        <dynadrill-text variant="body">
-          {{ hazard().controlesExistentes || 'Ninguno registrado' }}
-          @if (hazard().controlesExistentesMedio) { · Medio: {{ hazard().controlesExistentesMedio }} }
-          @if (hazard().controlesExistentesIndividuo) { · Individuo: {{ hazard().controlesExistentesIndividuo }} }
-        </dynadrill-text>
-      </div>
-    }
-
     @if (residualTone(); as tone) {
       <dynadrill-tag [label]="'Riesgo residual: ' + interpretarNR(nrResidual()!).label" [variant]="tone" />
     }
+  </section>
 
+  <section class="iperc-hazard-panel__section">
+    <dynadrill-text variant="caption">Controles existentes</dynadrill-text>
+    @if (isEditable) {
+      <div class="iperc-hazard-panel__grid iperc-hazard-panel__grid--3">
+        <dynadrill-input label="Fuente" [value]="hazard().controlesExistentes" (valueChange)="setControlesExistentes($event)" />
+        <dynadrill-input label="Medio" [value]="hazard().controlesExistentesMedio ?? ''" (valueChange)="setControlesExistentesMedio($event)" />
+        <dynadrill-input label="Individuo" [value]="hazard().controlesExistentesIndividuo ?? ''" (valueChange)="setControlesExistentesIndividuo($event)" />
+      </div>
+    } @else {
+      <div class="iperc-hazard-panel__grid iperc-hazard-panel__grid--3">
+        <div><dynadrill-text variant="caption">Fuente</dynadrill-text><dynadrill-text variant="body">{{ hazard().controlesExistentes || 'Ninguno registrado' }}</dynadrill-text></div>
+        @if (hazard().controlesExistentesMedio) {
+          <div><dynadrill-text variant="caption">Medio</dynadrill-text><dynadrill-text variant="body">{{ hazard().controlesExistentesMedio }}</dynadrill-text></div>
+        }
+        @if (hazard().controlesExistentesIndividuo) {
+          <div><dynadrill-text variant="caption">Individuo</dynadrill-text><dynadrill-text variant="body">{{ hazard().controlesExistentesIndividuo }}</dynadrill-text></div>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="iperc-hazard-panel__section">
+    <dynadrill-text variant="caption">Datos complementarios</dynadrill-text>
     @if (isEditable) {
       <div class="iperc-hazard-panel__grid">
         <dynadrill-input label="Clasificación del peligro" placeholder="Físico, Químico, Biológico…" [value]="hazard().clasificacionPeligro ?? ''" (valueChange)="setClasificacionPeligro($event)" />

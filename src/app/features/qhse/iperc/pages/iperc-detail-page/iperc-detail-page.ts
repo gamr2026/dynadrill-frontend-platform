@@ -261,7 +261,7 @@ export class IpercDetailPage {
       title: 'Detalle del peligro',
       content: IpercHazardPanel,
       data: { matrix, taskId: task.id, hazardId: hazard.id, editable: this.riskEditable() },
-      size: 'medium',
+      size: 'large',
     });
     ref.afterClose.subscribe(() => this.reload());
   }

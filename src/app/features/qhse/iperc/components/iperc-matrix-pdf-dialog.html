@@ -5,22 +5,33 @@
       <dynadrill-text variant="h2">Dynadrill</dynadrill-text>
       <dynadrill-text variant="caption">Vía Coca Lago Km 2, Orellana - Ecuador · dynadrillecuador&#64;dynadrill.com.ec · www.dynadrill.com.ec</dynadrill-text>
     </div>
-    <dynadrill-text variant="h1" class="iperc-pdf__title">Matriz de Identificación de Peligros y Evaluación de Riesgos — GTC 45</dynadrill-text>
+    <dynadrill-text variant="h1" class="iperc-pdf__title">
+      Matriz de Identificación de Peligros y Evaluación de Riesgos — GTC 45
+      @if (!matrixUnica) { <br />(Consolidada — todas las áreas) }
+    </dynadrill-text>
     <div class="iperc-pdf__doc-code">
       <dynadrill-text variant="caption">Réplica de formato DYN-SGI-RE-087</dynadrill-text>
       <dynadrill-text variant="caption">Generada desde el sistema — no reemplaza el documento controlado</dynadrill-text>
     </div>
   </div>
 
-  <div class="iperc-pdf__meta-grid">
-    <div class="iperc-pdf__field"><dynadrill-text variant="caption">CÓDIGO</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.code }}</dynadrill-text></div>
-    <div class="iperc-pdf__field"><dynadrill-text variant="caption">ACTIVIDAD</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.actividad }}</dynadrill-text></div>
-    <div class="iperc-pdf__field"><dynadrill-text variant="caption">PROCESO</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.proceso || '—' }}</dynadrill-text></div>
-    <div class="iperc-pdf__field"><dynadrill-text variant="caption">BASE / LOCACIÓN</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.ubicacion }}</dynadrill-text></div>
-    <div class="iperc-pdf__field"><dynadrill-text variant="caption">EQUIPO EVALUADOR</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.equipoEvaluador.join(', ') || '—' }}</dynadrill-text></div>
-    <div class="iperc-pdf__field"><dynadrill-text variant="caption">FECHA DE ACTUALIZACIÓN</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.updatedAt | date: 'dd/MM/yyyy' }}</dynadrill-text></div>
-    <div class="iperc-pdf__field"><dynadrill-text variant="caption">APROBADA POR</dynadrill-text><dynadrill-text variant="body">{{ data.matrix.approvedByName ? (data.matrix.approvedByName + ' — ' + (data.matrix.approvedAt | date: 'dd/MM/yyyy')) : '—' }}</dynadrill-text></div>
-  </div>
+  @if (matrixUnica; as m) {
+    <div class="iperc-pdf__meta-grid">
+      <div class="iperc-pdf__field"><dynadrill-text variant="caption">CÓDIGO</dynadrill-text><dynadrill-text variant="body">{{ m.code }}</dynadrill-text></div>
+      <div class="iperc-pdf__field"><dynadrill-text variant="caption">ACTIVIDAD</dynadrill-text><dynadrill-text variant="body">{{ m.actividad }}</dynadrill-text></div>
+      <div class="iperc-pdf__field"><dynadrill-text variant="caption">PROCESO</dynadrill-text><dynadrill-text variant="body">{{ m.proceso || '—' }}</dynadrill-text></div>
+      <div class="iperc-pdf__field"><dynadrill-text variant="caption">BASE / LOCACIÓN</dynadrill-text><dynadrill-text variant="body">{{ m.ubicacion }}</dynadrill-text></div>
+      <div class="iperc-pdf__field"><dynadrill-text variant="caption">EQUIPO EVALUADOR</dynadrill-text><dynadrill-text variant="body">{{ m.equipoEvaluador.join(', ') || '—' }}</dynadrill-text></div>
+      <div class="iperc-pdf__field"><dynadrill-text variant="caption">FECHA DE ACTUALIZACIÓN</dynadrill-text><dynadrill-text variant="body">{{ m.updatedAt | date: 'dd/MM/yyyy' }}</dynadrill-text></div>
+      <div class="iperc-pdf__field"><dynadrill-text variant="caption">APROBADA POR</dynadrill-text><dynadrill-text variant="body">{{ m.approvedByName ? (m.approvedByName + ' — ' + (m.approvedAt | date: 'dd/MM/yyyy')) : '—' }}</dynadrill-text></div>
+    </div>
+  } @else {
+    <div class="iperc-pdf__meta-grid">
+      <div class="iperc-pdf__field"><dynadrill-text variant="caption">MATRICES INCLUIDAS</dynadrill-text><dynadrill-text variant="body">{{ data.matrices.length }}</dynadrill-text></div>
+      <div class="iperc-pdf__field"><dynadrill-text variant="caption">ÁREAS / PROCESOS</dynadrill-text><dynadrill-text variant="body">{{ procesosIncluidos.join(', ') || '—' }}</dynadrill-text></div>
+      <div class="iperc-pdf__field"><dynadrill-text variant="caption">FECHA DE GENERACIÓN</dynadrill-text><dynadrill-text variant="body">{{ printDate }}</dynadrill-text></div>
+    </div>
+  }
 
   <!-- ── Tablas de referencia GTC 45 — mismos valores que ND_OPCIONES/NE_OPCIONES/NC_OPCIONES, no reescritos a mano ── -->
   <div class="iperc-pdf__legend-row">
@@ -104,11 +115,11 @@
         </tr>
       </thead>
       <tbody>
-        @for (row of hazardRows; track row.hazard.id) {
+        @for (row of hazardRows; track row.matrix.id + '-' + row.hazard.id) {
           <tr>
-            <td>{{ data.matrix.proceso || '—' }}</td>
-            <td>{{ data.matrix.ubicacion }}</td>
-            <td>{{ data.matrix.actividad }}</td>
+            <td>{{ row.matrix.proceso || '—' }}</td>
+            <td>{{ row.matrix.ubicacion }}</td>
+            <td>{{ row.matrix.actividad }}</td>
             <td>{{ row.tarea }}</td>
             <td>{{ row.rutinaria === true ? 'SI' : row.rutinaria === false ? 'NO' : '—' }}</td>
             <td>{{ row.areaPuestoTrabajo || '—' }}</td>
@@ -153,7 +164,9 @@
     </table>
   </div>
 
-  <dynadrill-text variant="caption">Impresión: {{ printDate }} · {{ data.matrix.code }}</dynadrill-text>
+  <dynadrill-text variant="caption">
+    Impresión: {{ printDate }} · {{ matrixUnica ? matrixUnica.code : data.matrices.length + ' matrices consolidadas' }}
+  </dynadrill-text>
 
   <div class="iperc-pdf__actions no-print">
     <dynadrill-button variant="secondary" (clicked)="close()">Cerrar</dynadrill-button>

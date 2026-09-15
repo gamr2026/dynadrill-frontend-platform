@@ -197,7 +197,27 @@ export class IpercListPage {
     this.dialogService.open<IpercMatrixPdfDialog, IpercMatrixPdfDialogData>({
       title: `Matriz IPERC ${matrix.code} — Vista de impresión`,
       content: IpercMatrixPdfDialog,
-      data: { matrix },
+      data: { matrices: [matrix] },
+      footer: false,
+      width: '95vw',
+    });
+  }
+
+  /**
+   * "Matriz general" — todas las matrices consolidadas en una sola tabla,
+   * agrupadas por proceso y actividad (mismo IpercMatrixPdfDialog, con
+   * varias matrices en vez de una). Igual que el archivo real: ahí
+   * PROCESO/ACTIVIDAD son columnas planas de un solo registro para toda la
+   * empresa, no una matriz por actividad (verificado contra las 325 filas
+   * del DYN-SGI-RE-087 original).
+   */
+  protected verMatrizConsolidada(): void {
+    const matrices = this.matrices();
+    if (matrices.length === 0) return;
+    this.dialogService.open<IpercMatrixPdfDialog, IpercMatrixPdfDialogData>({
+      title: 'Matriz IPERC consolidada — todas las áreas',
+      content: IpercMatrixPdfDialog,
+      data: { matrices },
       footer: false,
       width: '95vw',
     });

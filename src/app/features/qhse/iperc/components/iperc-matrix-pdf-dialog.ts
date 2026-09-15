@@ -17,10 +17,12 @@ import {
 import { exportarMatrizIpercXlsx } from '../utils/iperc-matriz-xlsx.util';
 
 export interface IpercMatrixPdfDialogData {
-  matrix: IpercMatrix;
+  /** Una sola matriz ("Ver matriz" por fila) o todas ("Ver matriz consolidada" — agrupadas por proceso, ver iperc-list-page.ts). */
+  matrices: IpercMatrix[];
 }
 
 interface HazardRow {
+  matrix: IpercMatrix;
   tarea: string;
   rutinaria?: boolean;
   areaPuestoTrabajo?: string;
@@ -36,6 +38,12 @@ interface HazardRow {
  * Excel real, mapeadas a mano contra el archivo original (columnas A-AS de
  * la hoja "GTC 45"). Sin librería de PDF: `window.print()` (mismo patrón
  * que `PrefacturaPdfDialog`).
+ *
+ * Acepta varias matrices a la vez — "Ver matriz consolidada" por área junta
+ * todas las de un mismo `proceso` en una sola tabla ancha, igual que el
+ * archivo real: ahí PROCESO/ACTIVIDAD son columnas planas de un registro
+ * único, no una matriz por actividad (verificado contra las 325 filas del
+ * DYN-SGI-RE-087 original).
  */
 @Component({
   selector: 'app-iperc-matrix-pdf-dialog',
@@ -56,15 +64,26 @@ export class IpercMatrixPdfDialog {
   protected readonly neOpciones = NE_OPCIONES;
   protected readonly ncOpciones = NC_OPCIONES;
 
-  protected readonly hazardRows: HazardRow[] = this.data.matrix.tasks.flatMap(t =>
-    t.hazards.map(hazard => ({
-      tarea: t.descripcion,
-      rutinaria: t.rutinaria,
-      areaPuestoTrabajo: t.areaPuestoTrabajo,
-      cargosExpuestos: t.cargosExpuestos,
-      hazard,
-    })),
-  );
+  /** Solo relevante para el encabezado de una matriz individual (no consolidado). */
+  protected readonly matrixUnica = this.data.matrices.length === 1 ? this.data.matrices[0] : null;
+
+  /** Lista de áreas/procesos distintos incluidos — para el encabezado del consolidado. */
+  protected readonly procesosIncluidos = [...new Set(this.data.matrices.map(m => m.proceso).filter((p): p is string => !!p))].sort();
+
+  protected readonly hazardRows: HazardRow[] = [...this.data.matrices]
+    .sort((a, b) => (a.proceso ?? '').localeCompare(b.proceso ?? '') || a.actividad.localeCompare(b.actividad))
+    .flatMap(matrix =>
+      matrix.tasks.flatMap(t =>
+        t.hazards.map(hazard => ({
+          matrix,
+          tarea: t.descripcion,
+          rutinaria: t.rutinaria,
+          areaPuestoTrabajo: t.areaPuestoTrabajo,
+          cargosExpuestos: t.cargosExpuestos,
+          hazard,
+        })),
+      ),
+    );
 
   protected nd(h: IpercHazard, cual: 'inicial' | 'residual'): string {
     const v = (cual === 'inicial' ? h.riesgoInicial : h.riesgoResidual).nd;
@@ -126,7 +145,7 @@ export class IpercMatrixPdfDialog {
     if (this.exportando()) return;
     this.exportando.set(true);
     try {
-      await exportarMatrizIpercXlsx(this.data.matrix);
+      await exportarMatrizIpercXlsx(this.data.matrices);
     } catch {
       this.notify.error('Error', 'No se pudo generar el archivo .xlsx.');
     } finally {

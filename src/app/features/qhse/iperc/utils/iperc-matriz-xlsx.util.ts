@@ -20,6 +20,7 @@ const MOLDE_ROW = 20;
 const LAST_COL = 45; // AS
 
 interface HazardRow {
+  matrix: IpercMatrix;
   tarea: string;
   rutinaria?: boolean;
   areaPuestoTrabajo?: string;
@@ -53,11 +54,11 @@ function setEvaluacion(
   ws.getCell(`${cols.aceptabilidad}${row}`).value = nrInfo?.aceptabilidad;
 }
 
-function setHazardRow(ws: Worksheet, excelRow: number, matrix: IpercMatrix, row: HazardRow): void {
+function setHazardRow(ws: Worksheet, excelRow: number, row: HazardRow): void {
   const h = row.hazard;
-  ws.getCell(`A${excelRow}`).value = matrix.proceso;
-  ws.getCell(`B${excelRow}`).value = matrix.ubicacion;
-  ws.getCell(`C${excelRow}`).value = matrix.actividad;
+  ws.getCell(`A${excelRow}`).value = row.matrix.proceso;
+  ws.getCell(`B${excelRow}`).value = row.matrix.ubicacion;
+  ws.getCell(`C${excelRow}`).value = row.matrix.actividad;
   ws.getCell(`D${excelRow}`).value = row.tarea;
   ws.getCell(`E${excelRow}`).value = row.rutinaria === true ? 'SI' : row.rutinaria === false ? 'NO' : undefined;
   ws.getCell(`F${excelRow}`).value = row.areaPuestoTrabajo;
@@ -95,7 +96,16 @@ function setHazardRow(ws: Worksheet, excelRow: number, matrix: IpercMatrix, row:
   ws.getCell(`AS${excelRow}`).value = h.seguimiento;
 }
 
-export async function exportarMatrizIpercXlsx(matrix: IpercMatrix): Promise<void> {
+/**
+ * `matrices` con 1 elemento = "Ver matriz" de una fila puntual (encabezado
+ * con sus propios datos). Con varias = "Ver matriz consolidada" — todas
+ * las matrices agrupadas por proceso y actividad en una sola tabla ancha,
+ * igual que el archivo real (un solo registro para toda la empresa, no
+ * una matriz por actividad). El encabezado (fecha/equipo evaluador/base)
+ * queda genérico en ese caso: no hay un solo valor correcto para varias
+ * matrices con datos distintos.
+ */
+export async function exportarMatrizIpercXlsx(matrices: IpercMatrix[]): Promise<void> {
   const res = await fetch(TEMPLATE_URL);
   if (!res.ok) throw new Error(`No se pudo cargar la plantilla (${res.status}).`);
   const buffer = await res.arrayBuffer();
@@ -105,19 +115,32 @@ export async function exportarMatrizIpercXlsx(matrix: IpercMatrix): Promise<void
   const ws = wb.getWorksheet(SHEET_NAME);
   if (!ws) throw new Error(`La plantilla no tiene la hoja "${SHEET_NAME}".`);
 
-  ws.getCell('C6').value = new Date(matrix.updatedAt);
-  ws.getCell('C7').value = matrix.equipoEvaluador.join(', ') || undefined;
-  ws.getCell('C10').value = matrix.ubicacion;
+  const consolidado = matrices.length > 1;
+  if (consolidado) {
+    ws.getCell('C6').value = new Date();
+    ws.getCell('C7').value = 'Consolidado — ver equipo evaluador por actividad';
+    ws.getCell('C10').value = 'Todas las bases';
+  } else {
+    const matrix = matrices[0];
+    ws.getCell('C6').value = new Date(matrix.updatedAt);
+    ws.getCell('C7').value = matrix.equipoEvaluador.join(', ') || undefined;
+    ws.getCell('C10').value = matrix.ubicacion;
+  }
 
-  const hazardRows: HazardRow[] = matrix.tasks.flatMap(t =>
-    t.hazards.map(hazard => ({
-      tarea: t.descripcion,
-      rutinaria: t.rutinaria,
-      areaPuestoTrabajo: t.areaPuestoTrabajo,
-      cargosExpuestos: t.cargosExpuestos,
-      hazard,
-    })),
-  );
+  const hazardRows: HazardRow[] = [...matrices]
+    .sort((a, b) => (a.proceso ?? '').localeCompare(b.proceso ?? '') || a.actividad.localeCompare(b.actividad))
+    .flatMap(matrix =>
+      matrix.tasks.flatMap(t =>
+        t.hazards.map(hazard => ({
+          matrix,
+          tarea: t.descripcion,
+          rutinaria: t.rutinaria,
+          areaPuestoTrabajo: t.areaPuestoTrabajo,
+          cargosExpuestos: t.cargosExpuestos,
+          hazard,
+        })),
+      ),
+    );
   const moldeRow = ws.getRow(MOLDE_ROW);
 
   hazardRows.forEach((row, i) => {
@@ -130,7 +153,7 @@ export async function exportarMatrizIpercXlsx(matrix: IpercMatrix): Promise<void
       }
       newRow.height = moldeRow.height;
     }
-    setHazardRow(ws, excelRow, matrix, row);
+    setHazardRow(ws, excelRow, row);
   });
 
   const out = await wb.xlsx.writeBuffer();
@@ -138,7 +161,7 @@ export async function exportarMatrizIpercXlsx(matrix: IpercMatrix): Promise<void
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Matriz IPERC ${matrix.code}.xlsx`;
+  a.download = consolidado ? 'Matriz IPERC consolidada.xlsx' : `Matriz IPERC ${matrices[0].code}.xlsx`;
   a.click();
   URL.revokeObjectURL(url);
 }

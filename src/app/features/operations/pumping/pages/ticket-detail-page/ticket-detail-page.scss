@@ -8,6 +8,11 @@
 }
 
 // ── Stepper custom con leyenda ──
+//
+// Mismo tratamiento que el tracker de fases de FCR (fcr-detail__tracker):
+// mobile first, con hasta 11 pasos el tronco completo no entra en una fila
+// sin achicar el texto a ilegible — scroll horizontal con snap por paso, el
+// paso activo se centra solo al cargar (ver afterRenderEffect en el .ts).
 
 .ticket-detail__toolbar {
   display: flex;
@@ -19,7 +24,14 @@
   display: flex;
   align-items: flex-start;
   margin: 1.5rem 0 0.5rem;
-  padding: 0;
+  padding: 0.25rem 0.125rem 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+
+  @media (max-width: 480px) {
+    padding-right: 45%;
+  }
 }
 
 .ticket-detail__step {
@@ -29,6 +41,11 @@
   align-items: center;
   flex-shrink: 0;
   width: 5.5rem;
+  scroll-snap-align: center;
+
+  @media (max-width: 480px) {
+    width: 4.25rem;
+  }
 }
 
 .ticket-detail__step-circle {
@@ -74,6 +91,10 @@
     color: var(--dynadrill-purple, #662e9b);
     font-weight: 600;
   }
+
+  @media (max-width: 480px) {
+    font-size: 0.625rem;
+  }
 }
 
 .ticket-detail__step-line {
@@ -86,6 +107,10 @@
 
   &--completed {
     background: var(--dynadrill-purple, #662e9b);
+  }
+
+  @media (max-width: 480px) {
+    min-width: 8px;
   }
 }
 

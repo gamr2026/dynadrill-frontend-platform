@@ -22,7 +22,7 @@
   />
 }
 
-<div class="ticket-detail__stepper">
+<div class="ticket-detail__stepper" #trackerScroll>
   @for (step of stepLabels; track $index; let last = $last) {
     <div
       class="ticket-detail__step"

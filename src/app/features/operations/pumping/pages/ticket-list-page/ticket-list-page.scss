@@ -3,6 +3,15 @@
   padding: 1.5rem;
 }
 
+// Mismo patrón que ticket-list-page de FCR y maintenance-list-page:
+// overflow-x contenido en el wrapper en vez de scrollX de nz-table (su
+// auto-medición de columnas no es confiable con contenido dinámico dentro
+// del actionsTemplate).
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .maintenance-detail {
   padding: 1rem 1.5rem;
   background-color: var(--surface-secondary, #f8f9fa);

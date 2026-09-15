@@ -45,34 +45,36 @@
     @if (row['hasMaintenanceOrders']) {
       <div class="maintenance-detail">
         <h4 class="maintenance-detail__title">Detalle de Mantenimientos</h4>
-        <table class="maintenance-detail__table">
-          <thead>
-            <tr>
-              <th>Código</th>
-              <th>Tipo de Mantenimiento</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (sub of row['maintenanceSubOrders']; track sub.code) {
+        <div class="table-scroll">
+          <table class="maintenance-detail__table">
+            <thead>
               <tr>
-                <td>{{ sub.code }}</td>
-                <td>{{ sub.type }}</td>
-                <td>
-                  <dynadrill-tag [label]="sub.status" [variant]="sub.statusTone" />
-                </td>
-                <td>
-                  @if (sub.canReview) {
-                    <dynadrill-button variant="primary" size="small" (click)="reviewMaintenance(sub.id)">
-                      Revisar Mantenimiento
-                    </dynadrill-button>
-                  }
-                </td>
+                <th>Código</th>
+                <th>Tipo de Mantenimiento</th>
+                <th>Estado</th>
+                <th>Acciones</th>
               </tr>
-            }
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              @for (sub of row['maintenanceSubOrders']; track sub.code) {
+                <tr>
+                  <td>{{ sub.code }}</td>
+                  <td>{{ sub.type }}</td>
+                  <td>
+                    <dynadrill-tag [label]="sub.status" [variant]="sub.statusTone" />
+                  </td>
+                  <td>
+                    @if (sub.canReview) {
+                      <dynadrill-button variant="primary" size="small" (click)="reviewMaintenance(sub.id)">
+                        Revisar Mantenimiento
+                      </dynadrill-button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       </div>
     } @else {
       <div class="maintenance-detail maintenance-detail--empty">
@@ -83,28 +85,32 @@
 </ng-template>
 
 @if (isInProcessTab()) {
-  <dynadrill-data-table
-    [columns]="inProcessColumns()"
-    [rows]="inProcessRows()"
-    [loading]="loading()"
-    [rowKey]="rowKeyFn"
-    [pageSize]="10"
-    actionsHeader="Acciones"
-    [actionsTemplate]="actionsTpl"
-    [expandable]="isSupervisor() && hasExpandableRows()"
-    [expandedRowTemplate]="maintenanceExpandTpl"
-  />
+  <div class="table-scroll">
+    <dynadrill-data-table
+      [columns]="inProcessColumns()"
+      [rows]="inProcessRows()"
+      [loading]="loading()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="10"
+      actionsHeader="Acciones"
+      [actionsTemplate]="actionsTpl"
+      [expandable]="isSupervisor() && hasExpandableRows()"
+      [expandedRowTemplate]="maintenanceExpandTpl"
+    />
+  </div>
 } @else {
   <ng-template #approvedActionsTpl let-row>
     <dynadrill-icon-button icon="eye" tooltip="Ver documentos generados" (clicked)="verDocumentos(row)" />
   </ng-template>
-  <dynadrill-data-table
-    [columns]="approvedColumns"
-    [rows]="approvedRows()"
-    [loading]="loading()"
-    [rowKey]="rowKeyFn"
-    [pageSize]="10"
-    actionsHeader="Documentos"
-    [actionsTemplate]="approvedActionsTpl"
-  />
+  <div class="table-scroll">
+    <dynadrill-data-table
+      [columns]="approvedColumns"
+      [rows]="approvedRows()"
+      [loading]="loading()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="10"
+      actionsHeader="Documentos"
+      [actionsTemplate]="approvedActionsTpl"
+    />
+  </div>
 }

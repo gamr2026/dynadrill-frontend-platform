@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, afterRenderEffect, computed, inject, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import type { NzUploadFile } from 'ng-zorro-antd/upload';
@@ -349,6 +349,12 @@ export class TicketDetailPage {
   // ── Stepper ──
 
   protected readonly stepLabels = Object.values(PUMPING_STEP_LABELS);
+
+  // El stepper hace scroll horizontal en mobile (ver .scss) — sin esto, en
+  // pasos avanzados (hasta 11) el paso activo queda fuera de vista y el
+  // usuario tiene que descubrir por su cuenta que hay que deslizar para
+  // encontrarlo. Mismo patrón que el tracker de fases de FCR.
+  private readonly trackerScrollEl = viewChild<ElementRef<HTMLElement>>('trackerScroll');
 
   protected readonly currentStepIndex = computed(() => {
     const t = this.ticket();
@@ -1732,6 +1738,13 @@ export class TicketDetailPage {
     this.vehicleInspectionsService.list().subscribe(list => {
       this.realInspections.set(list);
       this.syncMockInspections();
+    });
+
+    afterRenderEffect(() => {
+      this.currentStepIndex();
+      const container = this.trackerScrollEl()?.nativeElement;
+      const active = container?.querySelector<HTMLElement>('.ticket-detail__step--active');
+      active?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     });
   }
 

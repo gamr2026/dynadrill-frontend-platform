@@ -146,7 +146,7 @@
             <div class="ticket-detail__quimico-sin-match">
               <dynadrill-text variant="caption">
                 ⚠ "{{ r.item.descripcion }}" ({{ r.item.codigo }}) no coincide con ningún químico activo de Inventario —
-                elegí a cuál corresponde:
+                seleccione a cuál corresponde:
               </dynadrill-text>
               <dynadrill-select placeholder="Químico real de Inventario" [options]="chemicalOptions()" [value]="null" (valueChange)="onResolverQuimicoManual(r.item, $any($event))" />
             </div>
@@ -171,7 +171,7 @@
           <dynadrill-text variant="h2">Documento de mezcla de químicos</dynadrill-text>
           <dynadrill-text variant="caption">
             @if (documentosReferenciaPedido().length > 0) {
-              Se precargó con el primer documento de referencia del pedido — cambialo si no corresponde.
+              Se precargó con el primer documento de referencia del pedido — cámbielo si no corresponde.
             } @else {
               Adjunte el documento con el detalle de la mezcla preparada.
             }

@@ -513,7 +513,6 @@ export interface DailyActivityEntry {
 
 export interface DailyActivityReport {
   fecha: string;
-  numero: string;
   cliente: string;
   ordenContrato: string;
   pozo: string;

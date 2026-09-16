@@ -7,6 +7,147 @@
   white-space: pre-line;
 }
 
+// ── Checklists de "En ejecución (Llegada)" como acordeón, cerrados por
+//    defecto — son 4 checklists / ~59 filas en total, muy largo desplegado
+//    de una. `<details>` nativo: sin JS ni componente nuevo (no hay
+//    accordion en dynadrill-ui todavía). ──
+
+.ticket-detail__accordion {
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: 0.75rem;
+  padding: 0 1rem;
+  margin-bottom: 1rem;
+
+  &[open] {
+    padding-bottom: 1rem;
+  }
+}
+
+.ticket-detail__accordion-summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 1rem 0;
+  font-weight: 700;
+  font-size: 1.05rem;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &::before {
+    content: '▸';
+    display: inline-block;
+    margin-right: 0.5rem;
+    transition: transform 0.15s ease;
+  }
+
+  details[open] > &::before {
+    transform: rotate(90deg);
+  }
+}
+
+// ── Pedido vinculado (paso 1 'revision_propuesta', solo lectura) ──
+// Mismo tratamiento que .fcr-detail__pedido-* de FCR — mismo nivel de
+// detalle pedido para Pumping (antes solo mostraba 6 pares clave-valor).
+
+.ticket-detail__pedido-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  padding: 1.5rem;
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: 0.75rem;
+  background: var(--surface, #fff);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(19, 21, 41, 0.05));
+}
+
+.ticket-detail__pedido-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--dynadrill-purple, #662e9b);
+}
+
+.ticket-detail__pedido-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--dynadrill-purple, #662e9b);
+}
+
+.ticket-detail__pedido-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1.25rem 1.5rem;
+  width: 100%;
+}
+
+.ticket-detail__pedido-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+
+  dynadrill-icon {
+    color: var(--text-muted, #5c5870);
+    margin-bottom: -0.15rem;
+  }
+}
+
+.ticket-detail__pedido-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ticket-detail__pedido-items-label {
+  font-weight: 700 !important;
+  color: var(--dynadrill-purple, #662e9b) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ticket-detail__table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -0.25rem;
+  padding: 0 0.25rem;
+}
+
+.ticket-detail__table--pedido {
+  width: 100%;
+  min-width: 32rem;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+
+  th,
+  td {
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-default, #e0e0e0);
+  }
+
+  th {
+    font-weight: 600;
+    color: var(--text-secondary, #666);
+    white-space: nowrap;
+    background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
+  }
+
+  tbody tr:nth-child(even) {
+    background: var(--surface-muted, #faf9fc);
+  }
+
+  tfoot td {
+    font-weight: 700;
+    color: var(--dynadrill-purple, #662e9b);
+    background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
+  }
+}
+
 // ── Stepper custom con leyenda ──
 //
 // Mismo tratamiento que el tracker de fases de FCR (fcr-detail__tracker):
@@ -17,6 +158,7 @@
 .ticket-detail__toolbar {
   display: flex;
   justify-content: flex-end;
+  gap: 0.75rem;
   margin-top: 0.75rem;
 }
 

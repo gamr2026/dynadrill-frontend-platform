@@ -12,6 +12,8 @@ export interface ClassifyTypeAssignment {
   userName?: string;
   /** Solo Operativo — true (default) = Atendido, se deriva de inmediato; false = queda Pendiente para derivar después desde el panel. */
   operativoAttended?: boolean;
+  /** Solo Operativo + Atendido — motivo de la derivación, mismo campo que pide "Derivar a Pumping" del panel (esa ruta sí lo exigía; esta lo dejaba vacío). */
+  operativoDeriveNote?: string;
 }
 
 export interface ClassifyOrderInput {

@@ -2,6 +2,7 @@ import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import type { NzUploadFile } from 'ng-zorro-antd/upload';
+import { firstValueFrom } from 'rxjs';
 import * as XLSX from 'xlsx';
 import {
   DynadrillBannerComponent,
@@ -21,9 +22,11 @@ import {
   LINEA_SERVICIO_LABELS,
   LineaServicio,
   Pedido,
-  PedidoDocumentoAdjunto,
   TIPO_OT_LABELS,
+  TIPO_SERVICIO_LABELS,
+  TIPOS_SERVICIO_POR_LINEA,
   TipoOt,
+  TipoServicio,
 } from '../models/pedido.model';
 import { ListaPrecios } from '../models/lista-precios.model';
 import { Prefactura } from '../models/prefactura.model';
@@ -64,8 +67,12 @@ interface LineaEstimadaDraft {
  * de adjuntos de la app: se guarda el nombre del archivo, no su contenido.
  */
 interface DocumentoAdjuntoDraft {
+  /** `null` = todavía no subido (se sube recién al guardar, cuando ya hay `pedidoId`); con valor = ya persistido en el backend. */
+  id: number | null;
   descripcion: string;
   archivo: NzUploadFile | null;
+  /** Solo para los ya persistidos (`id` no nulo) — nombre real del archivo subido, para mostrarlo sin re-pedir el binario. */
+  nombreOriginal?: string;
 }
 
 const LINEA_ESTIMADA_VACIA: LineaEstimadaDraft = {
@@ -161,13 +168,36 @@ export class NuevoPedidoDialog {
   protected readonly clienteRuc = computed(
     () => this.clientesCatalogo().find(c => c.nombreComercial === this.cliente())?.identificacion ?? '',
   );
+  /** Id real de ClienteCatalogo del cliente elegido — se manda al backend para que la prefactura matchee la Lista de Precios sin depender de que el texto sea idéntico (bug $0 reportado). `null` si el cliente no vino del catálogo (no debería pasar, el select solo ofrece catálogo). */
+  protected readonly clienteId = computed(
+    () => this.clientesCatalogo().find(c => c.nombreComercial === this.cliente())?.id ?? null,
+  );
 
   // ── Servicio ──
   protected readonly lineaServicio = signal<LineaServicio | null>(null);
   protected readonly lineaOptions: DynadrillSelectOption[] = (Object.entries(LINEA_SERVICIO_LABELS) as [LineaServicio, string][]).map(
     ([value, label]) => ({ label, value }),
   );
-  /** Decide qué entrada del FcrTicket derivado usa este pedido — la elige Ventas, no Operaciones. Solo aplica a FCR: Pumping no lo usa. */
+
+  /** Segundo select, depende de la línea elegida — ver TIPOS_SERVICIO_POR_LINEA. */
+  protected readonly tipoServicio = signal<TipoServicio | null>(null);
+  protected readonly tipoServicioOptions = computed<DynadrillSelectOption[]>(() => {
+    const linea = this.lineaServicio();
+    if (!linea) return [];
+    return TIPOS_SERVICIO_POR_LINEA[linea].map(value => ({ label: TIPO_SERVICIO_LABELS[value], value }));
+  });
+
+  /** Cambia la línea de servicio — el tipo de servicio elegido puede no aplicar a la línea nueva, así que se limpia. */
+  protected onLineaServicioChange(value: LineaServicio | null): void {
+    this.lineaServicio.set(value);
+    this.tipoServicio.set(null);
+  }
+
+  /**
+   * Clasifica el pedido como Venta o Servicio para el reporte de
+   * Facturación — se pide siempre, para FCR y para Pumping (antes solo
+   * aplicaba a FCR, decidía qué entrada del FcrTicket derivado se usa).
+   */
   protected readonly tipoOt = signal<TipoOt | null>(null);
   protected readonly tipoOtOptions: DynadrillSelectOption[] = (Object.entries(TIPO_OT_LABELS) as [TipoOt, string][]).map(
     ([value, label]) => ({ label, value }),
@@ -182,10 +212,18 @@ export class NuevoPedidoDialog {
   protected readonly documentosAdjuntos = signal<DocumentoAdjuntoDraft[]>([]);
 
   protected agregarDocumentoAdjunto(): void {
-    this.documentosAdjuntos.update(list => [...list, { descripcion: '', archivo: null }]);
+    this.documentosAdjuntos.update(list => [...list, { id: null, descripcion: '', archivo: null }]);
   }
 
+  /** Si ya está persistido (`id` no nulo), lo borra del backend antes de sacarlo de la lista — sin esto quedaba huérfano en disco. */
   protected quitarDocumentoAdjunto(index: number): void {
+    const doc = this.documentosAdjuntos()[index];
+    const pedidoId = this.data?.pedido?.id;
+    if (doc?.id != null && pedidoId != null) {
+      this.pedidoService.eliminarDocumentoAdjunto(pedidoId, doc.id).subscribe({
+        error: () => this.notify.error('Error', 'No se pudo quitar el documento.'),
+      });
+    }
     this.documentosAdjuntos.update(list => list.filter((_, i) => i !== index));
   }
 
@@ -360,7 +398,8 @@ export class NuevoPedidoDialog {
     () =>
       !!this.cliente() &&
       !!this.lineaServicio() &&
-      (this.esPumping() || !!this.tipoOt()) &&
+      !!this.tipoServicio() &&
+      !!this.tipoOt() &&
       this.ubicacion().pozoId !== null &&
       this.ubicacion().taladroId !== null &&
       this.agenteComercial().trim().length > 0 &&
@@ -428,6 +467,11 @@ export class NuevoPedidoDialog {
     if (p) {
       this.prefillDesdePedido(p);
       this.prefacturaService.dePedido(p.id).subscribe(pf => this.prefacturaExistente.set(pf));
+      this.pedidoService.listarDocumentosAdjuntos(p.id).subscribe(docs => {
+        this.documentosAdjuntos.set(
+          docs.map(d => ({ id: d.id, descripcion: d.descripcion, archivo: null, nombreOriginal: d.nombreOriginal })),
+        );
+      });
     }
   }
 
@@ -443,6 +487,7 @@ export class NuevoPedidoDialog {
     this.subcliente.set(p.subcliente ?? '');
     this.numeroContrato.set(p.numeroContrato ?? '');
     this.lineaServicio.set(p.lineaServicio);
+    this.tipoServicio.set(p.tipoServicio ?? null);
     this.tipoOt.set(p.tipoOt);
     this.fechaInicioServicio.set(p.fechaInicioServicio ? new Date(p.fechaInicioServicio) : null);
     this.fechaFinServicio.set(p.fechaFinServicio ? new Date(p.fechaFinServicio) : null);
@@ -466,11 +511,6 @@ export class NuevoPedidoDialog {
           descuentoPorcentaje: it.descuentoPorcentaje != null ? String(it.descuentoPorcentaje) : '0',
           esQuimico: it.esQuimico ?? false,
         })),
-      );
-    }
-    if (p.documentosAdjuntos?.length) {
-      this.documentosAdjuntos.set(
-        p.documentosAdjuntos.map(d => ({ descripcion: d.descripcion, archivo: { name: d.nombreArchivo } as NzUploadFile })),
       );
     }
   }
@@ -519,22 +559,15 @@ export class NuevoPedidoDialog {
       esQuimico: l.esQuimico,
     }));
 
-    const documentosAdjuntos: PedidoDocumentoAdjunto[] = this.documentosAdjuntos()
-      .filter(d => d.archivo)
-      .map(d => ({
-        descripcion: d.descripcion.trim(),
-        nombreArchivo: d.archivo!.name ?? '',
-        subidoEn: new Date().toISOString(),
-      }));
-
     const payload = {
       origen: 'portal' as const,
       cliente: this.cliente()!,
       clienteRuc: this.clienteRuc() || undefined,
+      clienteId: this.clienteId() ?? undefined,
       subcliente: this.subcliente().trim() || undefined,
       lineaServicio: this.lineaServicio()!,
-      // Pumping no usa tipoOt (solo decide la bifurcación del ticket FCR, ver crearTicketFcrSiAplica) — el backend lo exige igual, se manda un valor neutro.
-      tipoOt: this.tipoOt() ?? 'servicio',
+      tipoServicio: this.tipoServicio()!,
+      tipoOt: this.tipoOt()!,
       campo: this.ubicacion().campo,
       bloque: this.ubicacion().bloque,
       pozo: this.ubicacion().pozo,
@@ -555,7 +588,6 @@ export class NuevoPedidoDialog {
       zona: this.zona().trim() || undefined,
       bodega: this.bodega().trim() || undefined,
       itemsEstimados,
-      documentosAdjuntos,
       fechaInicioServicio: this.fechaInicioServicio()?.toISOString().slice(0, 10),
       fechaFinServicio: this.fechaFinServicio()?.toISOString().slice(0, 10),
       createdBy: nombre,
@@ -567,19 +599,36 @@ export class NuevoPedidoDialog {
       : this.pedidoService.create(payload);
 
     request.subscribe({
-      next: pedido => {
-        this.notify.success(
-          pedidoExistente ? 'Pedido actualizado' : 'Pedido creado',
-          pedidoExistente
-            ? `Pedido ${pedido.code} actualizado.`
-            : `Pedido ${pedido.code} registrado y sincronizado con AS2.`,
-        );
-        this.modalRef.close(pedido);
-      },
+      next: pedido => void this.subirDocumentosPendientesYCerrar(pedido, !!pedidoExistente),
       error: () => {
         this.submitting.set(false);
         this.notify.error('Error', pedidoExistente ? 'No se pudo actualizar el pedido.' : 'No se pudo crear el pedido.');
       },
     });
+  }
+
+  /**
+   * El pedido recién quedó creado/actualizado (ya tiene `id`) — ahora sí se
+   * pueden subir los documentos adjuntos pendientes (los que el usuario
+   * eligió en este mismo formulario, `id: null`). Antes esto se mandaba
+   * como metadata dentro del propio payload del pedido, sin contenido real.
+   */
+  private async subirDocumentosPendientesYCerrar(pedido: Pedido, esEdicion: boolean): Promise<void> {
+    const pendientes = this.documentosAdjuntos().filter(d => d.id === null && d.archivo);
+    try {
+      for (const doc of pendientes) {
+        const archivo = (doc.archivo!.originFileObj as File | undefined) ?? (doc.archivo as unknown as File);
+        if (!archivo || typeof archivo.size !== 'number') continue;
+        await firstValueFrom(this.pedidoService.subirDocumentoAdjunto(pedido.id, doc.descripcion.trim(), archivo));
+      }
+      this.notify.success(
+        esEdicion ? 'Pedido actualizado' : 'Pedido creado',
+        esEdicion ? `Pedido ${pedido.code} actualizado.` : `Pedido ${pedido.code} registrado y sincronizado con AS2.`,
+      );
+      this.modalRef.close(pedido);
+    } catch {
+      this.submitting.set(false);
+      this.notify.error('Documentos no subidos', 'El pedido se guardó, pero algún documento adjunto no se pudo subir. Volvé a intentarlo desde "Editar pedido".');
+    }
   }
 }

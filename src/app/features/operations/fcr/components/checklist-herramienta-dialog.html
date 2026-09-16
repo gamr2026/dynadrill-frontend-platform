@@ -15,10 +15,10 @@
       <legend><dynadrill-text variant="h2">Datos generales</dynadrill-text></legend>
 
       <div class="checklist-dialog__grid">
-        <dynadrill-input label="Cliente" [value]="cliente()" (valueChange)="cliente.set($event)" />
-        <dynadrill-input label="Pozo" [value]="pozo()" (valueChange)="pozo.set($event)" />
-        <dynadrill-input label="Descripción de la herramienta" [value]="descripcionHerramienta()" (valueChange)="descripcionHerramienta.set($event)" />
-        <dynadrill-input label="N° de serie" [value]="numeroSerie()" (valueChange)="numeroSerie.set($event)" />
+        <dynadrill-input label="Cliente" placeholder="Cliente del pedido" [value]="cliente()" (valueChange)="cliente.set($event)" />
+        <dynadrill-input label="Pozo" placeholder="Pozo del pedido" [value]="pozo()" (valueChange)="pozo.set($event)" />
+        <dynadrill-input label="Descripción de la herramienta" placeholder="Descripción de la herramienta" [value]="descripcionHerramienta()" (valueChange)="descripcionHerramienta.set($event)" />
+        <dynadrill-input label="N° de serie" placeholder="N° de serie de la herramienta" [value]="numeroSerie()" (valueChange)="numeroSerie.set($event)" />
 
         <dynadrill-datetime-picker
           label="Fecha de inspección"
@@ -46,7 +46,7 @@
           [value]="inspeccionadoPor()"
           (valueChange)="inspeccionadoPor.set($any($event ?? ''))"
         />
-        <dynadrill-input label="Reparado por" [value]="reparadoPor()" (valueChange)="reparadoPor.set($event)" />
+        <dynadrill-input label="Reparado por" placeholder="Nombre de quien repara" [value]="reparadoPor()" (valueChange)="reparadoPor.set($event)" />
       </div>
     </fieldset>
 
@@ -56,6 +56,14 @@
       <div class="checklist-dialog__bulk-actions">
         <dynadrill-button variant="secondary" size="small" (clicked)="marcarTodoOk()">Marcar todo OK</dynadrill-button>
         <dynadrill-text variant="caption">Marca todas las partes como OK y después corrija a mano las que estén defectuosas.</dynadrill-text>
+      </div>
+
+      <div class="checklist-dialog__bulk-actions">
+        <dynadrill-upload-zone state="idle" (fileSelected)="onCargarPlantillaPartes($event)" />
+        <dynadrill-text variant="caption">
+          Cargá la plantilla "Inspección y reparación de herramientas" ya llena (Excel) para precargar Visual, End,
+          Cambio · Cantidad y Acción — se empareja por código, el resto de la tabla no cambia.
+        </dynadrill-text>
       </div>
 
       <div class="checklist-dialog__table-wrap">

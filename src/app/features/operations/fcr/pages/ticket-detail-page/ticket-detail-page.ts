@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, afterRenderEffect, comp
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import type { Observable } from 'rxjs';
+import { firstValueFrom, type Observable } from 'rxjs';
 import type { NzUploadFile } from 'ng-zorro-antd/upload';
 import {
   DynadrillApprovalActionsComponent,
@@ -42,7 +42,7 @@ import {
 } from '../../models/fcr.model';
 import { FcrService, type CampoDocumentoFcr } from '../../services/fcr.service';
 import { PedidoService } from '../../../../facturacion/services/pedido.service';
-import { itemsEstimadosDe, LINEA_SERVICIO_LABELS, type Pedido } from '../../../../facturacion/models/pedido.model';
+import { itemsEstimadosDe, TIPO_SERVICIO_LABELS, type Pedido } from '../../../../facturacion/models/pedido.model';
 import { FcrToolInspeccionesService } from '../../services/fcr-tool-inspecciones.service';
 import {
   FCR_TOOL_INSPECTION_FIRMA_ROLES,
@@ -303,9 +303,9 @@ export class FcrTicketDetailPage {
 
   /** Detalle completo del Pedido de Facturación que originó este ticket — `null` si el ticket no tiene uno vinculado (tickets legado sembrados sin puente). */
   protected readonly pedido = signal<Pedido | null>(null);
-  protected readonly pedidoLineaServicioLabel = computed(() => {
+  protected readonly pedidoTipoServicioLabel = computed(() => {
     const p = this.pedido();
-    return p ? LINEA_SERVICIO_LABELS[p.lineaServicio] : '';
+    return p ? TIPO_SERVICIO_LABELS[p.tipoServicio] : '';
   });
   protected readonly pedidoItems = computed(() => {
     const p = this.pedido();
@@ -1286,7 +1286,7 @@ export class FcrTicketDetailPage {
     const ref = this.dialog.open<ChecklistHerramientaDialog, ChecklistHerramientaDialogData>({
       title: 'Checklist de inspección',
       content: ChecklistHerramientaDialog,
-      data: { ticketId: t.id, toolId: tool.id, articuloId: tool.articuloId, toolName: tool.name },
+      data: { ticketId: t.id, toolId: tool.id, articuloId: tool.articuloId, toolName: tool.name, cliente: t.clientName, pozo: t.wellName },
       footer: false,
       width: '90vw',
     });
@@ -1302,6 +1302,50 @@ export class FcrTicketDetailPage {
     const archivo = this.extraerArchivoValido(file);
     if (!t || !archivo) return;
     this.updateTicket(this.fcrService.subirDocumento(t.id, CAMPO_DOCUMENTO_SERVICIO[documento], archivo));
+  }
+
+  protected readonly simulandoCargaDocumentos = signal(false);
+
+  /** Los 3 documentos de esta sección que todavía no tienen archivo cargado — controla si el botón de carga rápida tiene algo que hacer. */
+  protected readonly documentosServicioPendientes = computed(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    const pendientes: Array<'formularioExterno' | 'dimensionamiento' | 'dureza'> = [];
+    if (!t.formularioInspeccionExternoUploaded) pendientes.push('formularioExterno');
+    if (!t.formatoDimensionamientoServicioUploaded) pendientes.push('dimensionamiento');
+    if (!t.formatoDurezaServicioUploaded) pendientes.push('dureza');
+    return pendientes;
+  });
+
+  /**
+   * Carga rápida (demo/QA): genera un archivo de prueba y lo sube a cada uno
+   * de los documentos de esta sección que todavía no tenga uno — evita tener
+   * que buscar 3 archivos reales a mano solo para avanzar el flujo. Secuencial
+   * (no `forkJoin`) para no pisarse: cada subida deja el ticket actualizado y
+   * la siguiente parte de ese estado, no del snapshot inicial.
+   */
+  protected async simularCargaRapidaDocumentos(): Promise<void> {
+    const t = this.ticket();
+    const pendientes = this.documentosServicioPendientes();
+    if (!t || pendientes.length === 0 || this.simulandoCargaDocumentos()) return;
+
+    this.simulandoCargaDocumentos.set(true);
+    try {
+      for (const doc of pendientes) {
+        const archivo = new File(
+          [`Documento simulado — ${CAMPO_DOCUMENTO_SERVICIO[doc]} — ticket ${t.code} — ${new Date().toISOString()}`],
+          `${doc}-simulado.txt`,
+          { type: 'text/plain' },
+        );
+        const actualizado = await firstValueFrom(this.fcrService.subirDocumento(t.id, CAMPO_DOCUMENTO_SERVICIO[doc], archivo));
+        this.ticket.set(actualizado);
+      }
+      this.notify.success('Carga rápida completa', `${pendientes.length} documento(s) simulado(s) cargado(s).`);
+    } catch {
+      this.notify.error('Error', 'No se pudo completar la carga rápida. Inténtalo de nuevo.');
+    } finally {
+      this.simulandoCargaDocumentos.set(false);
+    }
   }
 
   protected onEliminarInspeccionServicio(documento: 'formularioExterno' | 'dimensionamiento' | 'dureza'): void {

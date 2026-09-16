@@ -22,11 +22,17 @@
 
   <fieldset class="nuevo-pedido__group">
     <legend>Servicio</legend>
-    <div [class]="esPumping() ? 'nuevo-pedido__grid--3col' : 'nuevo-pedido__grid--2col'">
-      <dynadrill-select label="Línea de servicio" placeholder="Selecciona" [options]="lineaOptions" [value]="lineaServicio()" (valueChange)="lineaServicio.set($any($event))" />
-      @if (!esPumping()) {
-        <dynadrill-select label="Tipo de OT" placeholder="Selecciona" [options]="tipoOtOptions" [value]="tipoOt()" (valueChange)="tipoOt.set($any($event))" />
-      }
+    <div class="nuevo-pedido__grid--ancho">
+      <dynadrill-select label="Línea de servicio" placeholder="Selecciona" [options]="lineaOptions" [value]="lineaServicio()" (valueChange)="onLineaServicioChange($any($event))" />
+      <dynadrill-select
+        label="Tipo de servicio"
+        placeholder="Selecciona primero la línea"
+        [options]="tipoServicioOptions()"
+        [value]="tipoServicio()"
+        [disabled]="!lineaServicio()"
+        (valueChange)="tipoServicio.set($any($event))"
+      />
+      <dynadrill-select label="Tipo de OT" placeholder="Selecciona" [options]="tipoOtOptions" [value]="tipoOt()" (valueChange)="tipoOt.set($any($event))" />
       <dynadrill-datetime-picker mode="date" label="Inicio de servicio" [value]="fechaInicioServicio()!" (valueChange)="fechaInicioServicio.set($event)" />
       <dynadrill-datetime-picker mode="date" label="Fin de servicio" [value]="fechaFinServicio()!" (valueChange)="fechaFinServicio.set($event)" />
     </div>
@@ -187,17 +193,21 @@
 
       @for (d of documentosAdjuntos(); track $index) {
         <div class="nuevo-pedido__documento-row">
-          <dynadrill-input
-            label="Descripción del documento"
-            placeholder="Ej. Ficha de mezcla de químicos"
-            [value]="d.descripcion"
-            (valueChange)="onDocumentoAdjuntoDescripcionChange($index, $event)"
-          />
-          <dynadrill-upload-zone
-            [state]="d.archivo ? 'uploaded' : 'idle'"
-            [fileName]="d.archivo?.name ?? ''"
-            (fileSelected)="onDocumentoAdjuntoArchivoChange($index, $event)"
-          />
+          @if (d.id !== null) {
+            <dynadrill-text variant="body">{{ d.descripcion || '(sin descripción)' }} — {{ d.nombreOriginal }}</dynadrill-text>
+          } @else {
+            <dynadrill-input
+              label="Descripción del documento"
+              placeholder="Ej. Ficha de mezcla de químicos"
+              [value]="d.descripcion"
+              (valueChange)="onDocumentoAdjuntoDescripcionChange($index, $event)"
+            />
+            <dynadrill-upload-zone
+              [state]="d.archivo ? 'uploaded' : 'idle'"
+              [fileName]="d.archivo?.name ?? ''"
+              (fileSelected)="onDocumentoAdjuntoArchivoChange($index, $event)"
+            />
+          }
           <dynadrill-icon-button icon="delete" tooltip="Quitar documento" (clicked)="quitarDocumentoAdjunto($index)" />
         </div>
       }

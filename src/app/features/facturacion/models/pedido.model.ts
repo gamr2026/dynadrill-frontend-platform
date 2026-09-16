@@ -10,16 +10,49 @@
  * Ver `documentacion/facturacion/PLAN-MODULO-FACTURACION.md` (§2, §3, §6).
  */
 
-export type LineaServicio = 'fishing' | 'pumping' | 'completion' | 'ctu';
+export type LineaServicio = 'fcr' | 'pumping';
 
 export const LINEA_SERVICIO_LABELS: Record<LineaServicio, string> = {
-  fishing: 'Fishing',
+  fcr: 'FCR',
   pumping: 'Pumping',
-  completion: 'Completion',
-  ctu: 'CTU',
 };
 
-/** Decide, para pedidos de línea FCR, qué entrada del FcrTicket derivado se usa — la elige Ventas, no Operaciones. */
+/**
+ * Tipo de servicio — segundo select, depende de la línea elegida
+ * (TIPOS_SERVICIO_POR_LINEA). Reemplaza la granularidad que antes daba
+ * `LineaServicio` con 4 valores (fishing/completion/ctu eran línea de
+ * servicio propia); ahora esos 3 son tipos de servicio de FCR, y "Coiled
+ * Tubing" (ex-CTU) pasa a ser tipo de servicio de Pumping, no de FCR.
+ */
+export type TipoServicio =
+  | 'wellbore_cleanup_tools'
+  | 'fishing_services'
+  | 'remedial_tools'
+  | 'completion_tools'
+  | 'coiled_tubing'
+  | 'cementing';
+
+export const TIPO_SERVICIO_LABELS: Record<TipoServicio, string> = {
+  wellbore_cleanup_tools: 'Wellbore Clean Up Tools',
+  fishing_services: 'Fishing Services',
+  remedial_tools: 'Remedial Tools',
+  completion_tools: 'Completion Tools',
+  coiled_tubing: 'Coiled Tubing',
+  cementing: 'Cementing',
+};
+
+export const TIPOS_SERVICIO_POR_LINEA: Record<LineaServicio, TipoServicio[]> = {
+  fcr: ['wellbore_cleanup_tools', 'fishing_services', 'remedial_tools', 'completion_tools'],
+  pumping: ['coiled_tubing', 'cementing'],
+};
+
+/**
+ * Clasifica un pedido como Venta o Servicio para el reporte de Facturación
+ * — antes solo aplicaba a FCR (decidía qué entrada del FcrTicket derivado
+ * se usa) y quedaba oculto/sin sentido para Pumping; ahora se pide
+ * siempre, para ambas líneas, específicamente para poder contar ese
+ * reporte también sobre los pedidos de Pumping.
+ */
 export type TipoOt = 'venta' | 'servicio';
 
 export const TIPO_OT_LABELS: Record<TipoOt, string> = {
@@ -102,14 +135,19 @@ export interface CambioEstado {
  * Documento de referencia adjuntado por Ventas al crear el pedido — hoy
  * solo se pide para Pumping (ver nuevo-pedido-dialog), para que el
  * Supervisor sepa de qué se trata un archivo ya provisto (ej. ficha de
- * mezcla de químicos) sin tener que volver a pedirlo. Mismo criterio que el
- * resto de adjuntos de la app: se guarda el nombre del archivo, no su
- * contenido (no hay almacenamiento real de binarios).
+ * mezcla de químicos) sin tener que volver a pedirlo. Subida real a disco
+ * (backend `PedidoDocumento` / `PedidoDocumentosService`) — se lee/escribe
+ * vía `PedidoService.listarDocumentosAdjuntos/subirDocumentoAdjunto/...`,
+ * NO como parte del payload del propio Pedido (por eso no es un campo de
+ * `Pedido` acá abajo).
  */
 export interface PedidoDocumentoAdjunto {
+  id: number;
   descripcion: string;
-  nombreArchivo: string;
-  subidoEn: string;
+  nombreOriginal: string;
+  mimeType: string;
+  tamanoBytes: number;
+  uploadedAt: string;
 }
 
 export interface Pedido {
@@ -123,10 +161,13 @@ export interface Pedido {
   // ── Cliente ──
   cliente: string;
   clienteRuc?: string;
+  /** Referencia real a ClienteCatalogo — sin esto la prefactura solo puede matchear la Lista de Precios por texto libre (bug $0 reportado cuando dos strings distintos representan el mismo cliente real). */
+  clienteId?: number;
   subcliente?: string;
 
   // ── Servicio ──
   lineaServicio: LineaServicio;
+  tipoServicio: TipoServicio;
   tipoOt: TipoOt;
   campo: string;
   bloque: string;
@@ -165,9 +206,6 @@ export interface Pedido {
   itemsEstimados: ItemEstimado[];
   /** @deprecated Compat: pedidos antiguos guardaban una sola línea. El backend normaliza a `itemsEstimados`. */
   itemEstimado?: ItemEstimado;
-
-  /** Solo se pide hoy para Pumping — ver PedidoDocumentoAdjunto. */
-  documentosAdjuntos?: PedidoDocumentoAdjunto[];
 
   // ── Fechas ──
   fechaInicioServicio?: string;

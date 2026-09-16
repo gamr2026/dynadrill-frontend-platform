@@ -220,13 +220,13 @@ export class Sidebar {
     }
 
     if (roleName === 'Técnico HSE' || roleName === 'Coordinador HSE' || roleName === 'Gerente HSE') {
-      // Sin FCR_ONLY_ITEM a propósito: QHSE no debe navegar la lista general
-      // de tickets Operativo. Sigue teniendo el permiso de backend
-      // (ModuleRoles.fcr/fcrRead) para entrar al detalle puntual de un
-      // ticket y firmar "Liberado por QHSE" en el checklist de inspección
-      // por herramienta cuando le corresponde — solo se le saca el acceso
-      // de navegación libre por el menú.
-      return [dashboard, QHSE_ITEM];
+      // Con FCR_ONLY_ITEM: QHSE firma "Liberado por QHSE" en el checklist de
+      // inspección por herramienta (ModuleRoles.fcr/fcrRead ya lo permitía a
+      // nivel backend), pero sin esta entrada de menú no tenía forma de
+      // encontrar el ticket donde le toca firmar — antes solo entraba si
+      // alguien le pasaba el link directo. Mismo ítem (sin Pumping) que
+      // Bodeguero/Control de Herramientas/Ingeniería de Ventas FCR.
+      return [dashboard, QHSE_ITEM, FCR_ONLY_ITEM];
     }
 
     if (roleName === 'Facturación') {

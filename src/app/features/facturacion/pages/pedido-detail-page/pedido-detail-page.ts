@@ -24,6 +24,7 @@ import {
   ESTADO_PEDIDO_LABELS,
   EstadoPedido,
   LINEA_SERVICIO_LABELS,
+  TIPO_SERVICIO_LABELS,
   Pedido,
   valorEstimadoPedido,
   itemsEstimadosDe,
@@ -96,11 +97,19 @@ export class PedidoDetailPage {
     return t ? FCR_PHASE_LABELS[t.currentPhase] : '';
   });
 
-  /** También permite regenerar cuando la prefactura vigente fue rechazada por el cliente (flujo "corregir y reenviar"). */
+  /**
+   * También permite regenerar cuando la prefactura vigente fue rechazada por
+   * el cliente (flujo "corregir y reenviar"). Solo Facturación genera — Ventas
+   * ve/edita el Pedido en esta misma página (`ModuleRoles.pedidos` los deja
+   * entrar a ambos) pero la prefactura es responsabilidad exclusiva de
+   * Facturación, mismo criterio que backend (`pedidos.controller.ts`).
+   */
   protected readonly puedeGenerarPrefactura = computed(() => {
     const a = this.avance();
     const pf = this.prefactura();
-    return !!a?.completo && (!pf || pf.estado === 'rechazada');
+    const role = this.auth.currentUser()?.roleName;
+    const rolPermitido = role === 'Facturación' || role === 'Superadmin' || role === 'Jefe de Base';
+    return rolPermitido && !!a?.completo && (!pf || pf.estado === 'rechazada');
   });
   protected readonly esRegeneracion = computed(() => this.prefactura()?.estado === 'rechazada');
   protected readonly puedeGenerarGuia = computed(() => !!this.avance()?.guiaRemisionAplica && !this.guiaRemision());
@@ -138,6 +147,7 @@ export class PedidoDetailPage {
     if (!p) return [];
     return [
       { label: 'Línea de servicio', value: LINEA_SERVICIO_LABELS[p.lineaServicio] },
+      { label: 'Tipo de servicio', value: TIPO_SERVICIO_LABELS[p.tipoServicio] },
       { label: 'Campo', value: p.campo },
       { label: 'Bloque', value: p.bloque },
       { label: 'Pozo', value: p.pozo },
@@ -322,7 +332,7 @@ export class PedidoDetailPage {
     this.simulando.set(true);
     const proximaFecha = new Date();
     const iso = proximaFecha.toISOString().slice(0, 10);
-    const origen = p.lineaServicio === 'pumping' ? 'pumping' : 'fcr';
+    const origen = p.lineaServicio;
     this.docService
       .push({
         pedidoCode: p.code,

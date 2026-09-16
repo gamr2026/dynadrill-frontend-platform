@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, of, throwError } from 'rxjs';
-import { CreatePedidoInput, EstadoPedido, Pedido } from '../models/pedido.model';
+import { CreatePedidoInput, EstadoPedido, Pedido, PedidoDocumentoAdjunto } from '../models/pedido.model';
 import { CreateListaPreciosInput, ListaPrecios, ListaPreciosItemDraft } from '../models/lista-precios.model';
 import { AvanceDocumental, DocumentoOperativo, PushDocumentoOperativoInput } from '../models/documento-operativo.model';
 import { Prefactura } from '../models/prefactura.model';
@@ -41,6 +41,28 @@ export class PedidoService {
 
   cambiarEstado(id: number, estado: EstadoPedido, usuario: string, motivo?: string): Observable<Pedido> {
     return this.http.patch<Pedido>(`${this.base}/${id}/estado`, { estado, usuario, motivo });
+  }
+
+  // ── Documentos adjuntos reales (ej. ficha de mezcla de químicos) ──
+
+  listarDocumentosAdjuntos(pedidoId: number): Observable<PedidoDocumentoAdjunto[]> {
+    return this.http.get<PedidoDocumentoAdjunto[]>(`${this.base}/${pedidoId}/documentos-adjuntos`);
+  }
+
+  subirDocumentoAdjunto(pedidoId: number, descripcion: string, archivo: File): Observable<PedidoDocumentoAdjunto> {
+    const form = new FormData();
+    form.append('file', archivo);
+    form.append('descripcion', descripcion);
+    return this.http.post<PedidoDocumentoAdjunto>(`${this.base}/${pedidoId}/documentos-adjuntos`, form);
+  }
+
+  /** Blob autenticado (Bearer vía HttpClient) — un `<a href>` directo al endpoint no lo llevaría. */
+  descargarDocumentoAdjunto(pedidoId: number, docId: number): Observable<Blob> {
+    return this.http.get(`${this.base}/${pedidoId}/documentos-adjuntos/${docId}`, { responseType: 'blob' });
+  }
+
+  eliminarDocumentoAdjunto(pedidoId: number, docId: number): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(`${this.base}/${pedidoId}/documentos-adjuntos/${docId}`);
   }
 
   /** Trae los cambios que AS2 haya empujado desde el otro lado (mock). */

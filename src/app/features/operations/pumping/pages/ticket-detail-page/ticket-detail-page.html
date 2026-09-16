@@ -62,6 +62,79 @@
       <dynadrill-context-card [items]="contextItems()" />
     </section>
 
+    @if (pedido(); as p) {
+      <section class="ticket-detail__section">
+        <div class="ticket-detail__pedido-card">
+          <div class="ticket-detail__pedido-header">
+            <div class="ticket-detail__pedido-title">
+              <dynadrill-icon name="box" [size]="22" />
+              <dynadrill-text variant="subtitle">Pedido {{ p.code }}</dynadrill-text>
+            </div>
+            <dynadrill-tag [label]="pedidoTipoServicioLabel()" variant="info" />
+          </div>
+
+          <div class="ticket-detail__pedido-grid">
+            <div class="ticket-detail__pedido-field">
+              <dynadrill-icon name="users" [size]="14" /><dynadrill-text variant="caption">Cliente</dynadrill-text>
+              <dynadrill-text variant="body">{{ p.cliente }}{{ p.clienteRuc ? ' · ' + p.clienteRuc : '' }}</dynadrill-text>
+            </div>
+            <div class="ticket-detail__pedido-field">
+              <dynadrill-icon name="location" [size]="14" /><dynadrill-text variant="caption">Ubicación</dynadrill-text>
+              <dynadrill-text variant="body">{{ p.campo }} · Bloque {{ p.bloque }} · Pozo {{ p.pozo }}</dynadrill-text>
+            </div>
+            <div class="ticket-detail__pedido-field">
+              <dynadrill-icon name="tool" [size]="14" /><dynadrill-text variant="caption">Taladro</dynadrill-text>
+              <dynadrill-text variant="body">{{ p.taladroRig || '—' }}</dynadrill-text>
+            </div>
+            <div class="ticket-detail__pedido-field">
+              <dynadrill-icon name="file-text" [size]="14" /><dynadrill-text variant="caption">N° de contrato</dynadrill-text>
+              <dynadrill-text variant="body">{{ p.numeroContrato || '—' }}</dynadrill-text>
+            </div>
+            <div class="ticket-detail__pedido-field">
+              <dynadrill-icon name="users" [size]="14" /><dynadrill-text variant="caption">Agente comercial</dynadrill-text>
+              <dynadrill-text variant="body">{{ p.agenteComercial || '—' }}</dynadrill-text>
+            </div>
+            <div class="ticket-detail__pedido-field">
+              <dynadrill-icon name="users" [size]="14" /><dynadrill-text variant="caption">Representante de campo</dynadrill-text>
+              <dynadrill-text variant="body">{{ p.representanteCampo || '—' }}</dynadrill-text>
+            </div>
+            <div class="ticket-detail__pedido-field">
+              <dynadrill-icon name="calendar" [size]="14" /><dynadrill-text variant="caption">Fechas de servicio</dynadrill-text>
+              <dynadrill-text variant="body">{{ p.fechaInicioServicio ? formatDate(p.fechaInicioServicio) : '—' }} a {{ p.fechaFinServicio ? formatDate(p.fechaFinServicio) : '—' }}</dynadrill-text>
+            </div>
+          </div>
+
+          <div class="ticket-detail__pedido-items">
+            <dynadrill-text variant="caption" class="ticket-detail__pedido-items-label">Ítems estimados</dynadrill-text>
+            <div class="ticket-detail__table-scroll">
+              <table class="ticket-detail__table--pedido">
+                <thead>
+                  <tr><th>Código</th><th>Descripción</th><th>Unidad</th><th>Cantidad</th><th>Valor unitario</th><th>Subtotal</th></tr>
+                </thead>
+                <tbody>
+                  @for (item of pedidoItems(); track item.codigo) {
+                    <tr>
+                      <td>{{ item.codigo }}</td>
+                      <td>{{ item.descripcion }}</td>
+                      <td>{{ item.unidad }}</td>
+                      <td>{{ item.cantidad }}</td>
+                      <td>{{ item.valorUnitario.toFixed(2) }}</td>
+                      <td>{{ (item.cantidad * item.valorUnitario).toFixed(2) }}</td>
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="6">Sin ítems estimados registrados.</td></tr>
+                  }
+                </tbody>
+                <tfoot>
+                  <tr><td colspan="5">Total estimado</td><td>{{ pedidoItemsTotal().toFixed(2) }}</td></tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    }
+
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Asignar supervisor</dynadrill-text>
       <dynadrill-select label="Supervisor responsable" placeholder="Seleccionar supervisor" [options]="supervisorOptions" [value]="selectedSupervisor()" (valueChange)="onSupervisorChange($event)" />
@@ -161,8 +234,11 @@
             <dynadrill-text variant="h2">Documentos de referencia del pedido</dynadrill-text>
             <dynadrill-text variant="caption">Adjuntados por Ventas al crear el pedido.</dynadrill-text>
             <ul class="ticket-detail__documentos-referencia">
-              @for (d of documentosReferenciaPedido(); track d.nombreArchivo) {
-                <li><strong>{{ d.descripcion || 'Sin descripción' }}</strong> — {{ d.nombreArchivo }}</li>
+              @for (d of documentosReferenciaPedido(); track d.id) {
+                <li>
+                  <strong>{{ d.descripcion || 'Sin descripción' }}</strong> — {{ d.nombreOriginal }}
+                  <dynadrill-icon-button icon="eye" tooltip="Ver documento" (clicked)="previsualizarDocumentoReferenciaPedido(d)" />
+                </li>
               }
             </ul>
           </section>
@@ -532,8 +608,17 @@
             <div class="ticket-detail__maintenance-info">
               <dynadrill-text variant="body">{{ sub.code }} · {{ sub.type }}</dynadrill-text>
               <dynadrill-text variant="caption">Estado: {{ sub.status }}</dynadrill-text>
+              @if (novedadOperativaDe(sub); as novedad) {
+                <dynadrill-text variant="caption">Novedad reportada: {{ novedad }}</dynadrill-text>
+              }
               @if (sub.deriveNote) {
-                <dynadrill-text variant="caption">Nota: {{ sub.deriveNote }}</dynadrill-text>
+                <dynadrill-text variant="caption">Nota de derivación: {{ sub.deriveNote }}</dynadrill-text>
+              }
+              @if (sub.diagnostico) {
+                <dynadrill-text variant="caption">Diagnóstico: {{ sub.diagnostico }}</dynadrill-text>
+              }
+              @if (sub.actividadesCorrectivas) {
+                <dynadrill-text variant="caption">Actividades correctivas: {{ sub.actividadesCorrectivas }}</dynadrill-text>
               }
             </div>
             <dynadrill-button variant="primary" size="small" (clicked)="reviewOperativoMaintenance(sub)">
@@ -544,9 +629,16 @@
       }
     </section>
 
+    @if (!allNovedadesResolved()) {
+      <dynadrill-banner
+        variant="warning"
+        [message]="'No se puede continuar: hay mantenimientos sin cerrar para esta unidad — ' + novedadesSinAtender().map(s => s.code + ' (' + s.type + ' — ' + s.status + ')').join(', ') + '.'"
+      />
+    }
+
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="success" [disabled]="!allOperativoResolved() || submitting()" (clicked)="approveMaintenanceStep()">
+      <dynadrill-button variant="success" [disabled]="!allNovedadesResolved() || submitting()" (clicked)="approveMaintenanceStep()">
         Continuar a ejecución de llegada
       </dynadrill-button>
     </footer>
@@ -820,8 +912,9 @@
       <dynadrill-text variant="caption">Inspección: Indique con ✓ OK · ✕ defectuoso</dynadrill-text>
     </section>
 
-    <!-- Inspección de salida (lectura, sin título) + Llegada (editable) -->
-    <section class="ticket-detail__section">
+    <!-- 4 checklists — colapsados por defecto (son ~59 filas en total entre los 4, demasiado largo desplegado). -->
+    <details class="ticket-detail__accordion">
+      <summary class="ticket-detail__accordion-summary">Chasis</summary>
       <div class="ticket-detail__inspection-actions">
         <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('chassisItems', 'llegada', 'ok')">Marcar todos: OK</dynadrill-button>
         <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('chassisItems', 'llegada', 'defectuoso')">Marcar todos: Defectuoso</dynadrill-button>
@@ -831,10 +924,11 @@
         [items]="chassisItems()"
         (itemChange)="onInspectionChange('chassisItems', $event)"
       />
-    </section>
+    </details>
 
     <!-- Chasis (era Motor / Transmisión) -->
-    <section class="ticket-detail__section">
+    <details class="ticket-detail__accordion">
+      <summary class="ticket-detail__accordion-summary">Motor / Transmisión</summary>
       <div class="ticket-detail__inspection-actions">
         <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('motorItems', 'llegada', 'ok')">Marcar todos: OK</dynadrill-button>
         <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('motorItems', 'llegada', 'defectuoso')">Marcar todos: Defectuoso</dynadrill-button>
@@ -845,10 +939,11 @@
         [items]="motorItems()"
         (itemChange)="onInspectionChange('motorItems', $event)"
       />
-    </section>
+    </details>
 
     <!-- Plataforma (era Equipos) -->
-    <section class="ticket-detail__section">
+    <details class="ticket-detail__accordion">
+      <summary class="ticket-detail__accordion-summary">Plataforma</summary>
       <div class="ticket-detail__inspection-actions">
         <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('arrivalEquipmentItems', 'llegada', 'ok')">Marcar todos: OK</dynadrill-button>
         <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('arrivalEquipmentItems', 'llegada', 'defectuoso')">Marcar todos: Defectuoso</dynadrill-button>
@@ -859,10 +954,11 @@
         [items]="arrivalEquipmentItems()"
         (itemChange)="onInspectionChange('arrivalEquipmentItems', $event)"
       />
-    </section>
+    </details>
 
     <!-- Instrumentación -->
-    <section class="ticket-detail__section">
+    <details class="ticket-detail__accordion">
+      <summary class="ticket-detail__accordion-summary">Instrumentación</summary>
       <div class="ticket-detail__inspection-actions">
         <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('instrumentationItems', 'llegada', 'ok')">Marcar todos: OK</dynadrill-button>
         <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('instrumentationItems', 'llegada', 'defectuoso')">Marcar todos: Defectuoso</dynadrill-button>
@@ -873,7 +969,7 @@
         [items]="instrumentationItems()"
         (itemChange)="onInspectionChange('instrumentationItems', $event)"
       />
-    </section>
+    </details>
 
     <!-- Novedades -->
     <section class="ticket-detail__section">

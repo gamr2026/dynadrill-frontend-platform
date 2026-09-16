@@ -25,8 +25,22 @@ import { IpercMatrix } from '../../models/iperc.model';
 import { AuthService } from '../../../../../core/services/auth.service';
 
 /** Mismo orden y nombre que `LINEAS_SERVICIO` del backend. */
-const LINEAS: LineaServicio[] = ['pumping', 'ctu', 'fishing', 'completion'];
-const MAPA_VACIO: CoberturaMapa = { pumping: [], ctu: [], fishing: [], completion: [] };
+const LINEAS: LineaServicio[] = [
+  'wellbore_cleanup_tools',
+  'fishing_services',
+  'remedial_tools',
+  'completion_tools',
+  'coiled_tubing',
+  'cementing',
+];
+const MAPA_VACIO: CoberturaMapa = {
+  wellbore_cleanup_tools: [],
+  fishing_services: [],
+  remedial_tools: [],
+  completion_tools: [],
+  coiled_tubing: [],
+  cementing: [],
+};
 
 /**
  * Editar el mapeo abre solicitudes de matriz — mismo criterio que aprobar
@@ -147,10 +161,12 @@ export class IpercCoberturaPage {
 
   private normalizarMapa(mapa: CoberturaMapa): CoberturaMapa {
     return {
-      pumping: [...(mapa.pumping ?? [])],
-      ctu: [...(mapa.ctu ?? [])],
-      fishing: [...(mapa.fishing ?? [])],
-      completion: [...(mapa.completion ?? [])],
+      wellbore_cleanup_tools: [...(mapa.wellbore_cleanup_tools ?? [])],
+      fishing_services: [...(mapa.fishing_services ?? [])],
+      remedial_tools: [...(mapa.remedial_tools ?? [])],
+      completion_tools: [...(mapa.completion_tools ?? [])],
+      coiled_tubing: [...(mapa.coiled_tubing ?? [])],
+      cementing: [...(mapa.cementing ?? [])],
     };
   }
 

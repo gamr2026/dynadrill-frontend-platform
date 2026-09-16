@@ -1,8 +1,18 @@
 <div class="solicitar-cambio">
   <dynadrill-text variant="caption">
-    Pedido {{ data.pedidoCode }} — {{ data.cliente }}. Edite o agregue ítems y explique el motivo; el Supervisor debe
-    aprobar el cambio antes de que se actualice en Facturación/Ventas.
+    Pedido {{ data.pedidoCode }} — {{ data.cliente }}. Edite o agregue ítems a mano, o cargue una plantilla con los
+    registros nuevos, y explique el motivo del cambio.
+    @if (data.aplicaInmediato) {
+      Al enviarlo se actualiza el pedido de inmediato.
+    } @else {
+      El Supervisor debe aprobar el cambio antes de que se actualice en Facturación/Ventas.
+    }
   </dynadrill-text>
+
+  <div class="solicitar-cambio__plantilla-acciones">
+    <dynadrill-button variant="secondary" size="small" (clicked)="descargarPlantilla()">Descargar plantilla</dynadrill-button>
+    <dynadrill-upload-zone state="idle" (fileSelected)="onCargarPlantilla($event)" />
+  </div>
 
   <div class="table-scroll">
     <table class="solicitar-cambio__table">
@@ -59,5 +69,7 @@
 
 <footer class="solicitar-cambio__actions">
   <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
-  <dynadrill-button variant="primary" [disabled]="!puedeEnviar()" (clicked)="enviar()">Enviar para aprobación</dynadrill-button>
+  <dynadrill-button variant="primary" [disabled]="!puedeEnviar()" (clicked)="enviar()">
+    {{ data.aplicaInmediato ? 'Actualizar pedido' : 'Enviar para aprobación' }}
+  </dynadrill-button>
 </footer>

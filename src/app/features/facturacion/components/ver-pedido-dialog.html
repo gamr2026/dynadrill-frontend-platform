@@ -3,6 +3,7 @@
     <div><dt>Pedido</dt><dd>{{ data.pedido.code }}</dd></div>
     <div><dt>Cliente</dt><dd>{{ data.pedido.cliente }}</dd></div>
     <div><dt>Línea de servicio</dt><dd>{{ lineaServicioLabels[data.pedido.lineaServicio] }}</dd></div>
+    <div><dt>Tipo de servicio</dt><dd>{{ tipoServicioLabels[data.pedido.tipoServicio] }}</dd></div>
     <div><dt>Pozo / Campo / Bloque</dt><dd>{{ data.pedido.pozo }} / {{ data.pedido.campo }} / {{ data.pedido.bloque }}</dd></div>
     <div><dt>Taladro</dt><dd>{{ data.pedido.taladroRig }}</dd></div>
     <div><dt>Nº de contrato</dt><dd>{{ data.pedido.numeroContrato || '—' }}</dd></div>
@@ -35,4 +36,7 @@
 
 <footer class="ver-pedido__actions">
   <dynadrill-button variant="secondary" (clicked)="cerrar()">Cerrar</dynadrill-button>
+  @if (data.onEditarItems) {
+    <dynadrill-button variant="primary" (clicked)="editarItems()">Editar ítems del pedido</dynadrill-button>
+  }
 </footer>

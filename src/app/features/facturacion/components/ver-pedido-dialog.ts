@@ -2,10 +2,17 @@ import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import { DynadrillButtonComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
-import { itemsEstimadosDe, LINEA_SERVICIO_LABELS, type Pedido } from '../models/pedido.model';
+import { itemsEstimadosDe, LINEA_SERVICIO_LABELS, TIPO_SERVICIO_LABELS, type Pedido } from '../models/pedido.model';
 
 export interface VerPedidoDialogData {
   pedido: Pedido;
+  /**
+   * Solo la pasa Pumping (Operador/Supervisor) — cierra este diálogo de solo
+   * lectura y abre "Solicitar cambio de ítems" (con la plantilla AS2 de
+   * descarga/carga). Ausente para quien no tiene ese permiso (ej. QHSE desde
+   * el listado de PTW, que reusa este mismo diálogo de solo lectura).
+   */
+  onEditarItems?: () => void;
 }
 
 /**
@@ -27,9 +34,15 @@ export class VerPedidoDialog {
   private readonly modalRef = inject(NzModalRef<VerPedidoDialog>);
   protected readonly data = inject<VerPedidoDialogData>(NZ_MODAL_DATA);
   protected readonly lineaServicioLabels = LINEA_SERVICIO_LABELS;
+  protected readonly tipoServicioLabels = TIPO_SERVICIO_LABELS;
   protected readonly items = itemsEstimadosDe(this.data.pedido);
 
   protected cerrar(): void {
     this.modalRef.close();
+  }
+
+  protected editarItems(): void {
+    this.modalRef.close();
+    this.data.onEditarItems?.();
   }
 }

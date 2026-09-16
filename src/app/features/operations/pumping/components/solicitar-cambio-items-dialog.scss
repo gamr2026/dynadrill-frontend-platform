@@ -45,6 +45,13 @@
     }
   }
 
+  &__plantilla-acciones {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
   &__actions {
     display: flex;
     justify-content: flex-end;

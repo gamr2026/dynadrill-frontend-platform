@@ -74,7 +74,12 @@
       <!-- ── Revisión + envío al cliente (FACT-003 / FACT-004) ── -->
       @if (pf.estado === 'generada') {
         <section class="fact-card">
-          <header class="pf-detail__head"><h2>Revisión antes de enviar</h2></header>
+          <header class="pf-detail__head">
+            <h2>Revisión antes de enviar</h2>
+            <div class="pf-detail__head-actions">
+              <dynadrill-button variant="secondary" size="small" (clicked)="marcarTodoRevisado()">Marcar todo revisado</dynadrill-button>
+            </div>
+          </header>
           <ul class="pf-detail__checklist">
             @for (c of checklistItems; track c.key) {
               <li>

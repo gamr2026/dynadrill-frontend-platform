@@ -20,6 +20,8 @@ export interface ListaPreciosItem {
 export interface ListaPrecios {
   id: number;
   cliente: string;
+  /** Referencia real a ClienteCatalogo — sin esto, la prefactura del pedido de ese cliente solo puede matchear esta lista por texto libre (bug $0 reportado cuando dos strings distintos representan el mismo cliente real). */
+  clienteId?: number;
   numeroContrato: string;
   vigenteDesde: string;
   activa: boolean;

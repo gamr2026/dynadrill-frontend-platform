@@ -130,6 +130,15 @@
               <dynadrill-button [variant]="operativoAttended() === true ? 'primary' : 'secondary'" (clicked)="setOperativoAttended(true)">Ahora (Atendido)</dynadrill-button>
               <dynadrill-button [variant]="operativoAttended() === false ? 'primary' : 'secondary'" (clicked)="setOperativoAttended(false)">Después (Pendiente)</dynadrill-button>
             </div>
+            @if (operativoAttended() === true) {
+              <dynadrill-textarea
+                label="Motivo de la derivación"
+                placeholder="Por qué se deriva a Pumping — el Operador lo va a ver como Nota de derivación."
+                [value]="operativoDeriveNote()"
+                (valueChange)="operativoDeriveNote.set($event)"
+                [rows]="2"
+              />
+            }
           </div>
         }
       </div>

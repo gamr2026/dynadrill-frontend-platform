@@ -148,6 +148,12 @@
           </table>
         </div>
 
+        @if (documentosServicioPendientes().length > 0) {
+          <dynadrill-button variant="secondary" size="small" [disabled]="simulandoCargaDocumentos()" (clicked)="simularCargaRapidaDocumentos()">
+            Carga rápida (simular)
+          </dynadrill-button>
+        }
+
         <div class="fcr-detail__inspection">
           <dynadrill-text variant="subtitle">Formulario de inspección externo</dynadrill-text>
           @if (ticket()!.formularioInspeccionExternoUploaded) {
@@ -263,7 +269,7 @@
                 <dynadrill-icon name="box" [size]="22" />
                 <dynadrill-text variant="subtitle">Pedido {{ p.code }}</dynadrill-text>
               </div>
-              <dynadrill-tag [label]="pedidoLineaServicioLabel()" variant="info" />
+              <dynadrill-tag [label]="pedidoTipoServicioLabel()" variant="info" />
             </div>
 
             <div class="fcr-detail__pedido-grid">

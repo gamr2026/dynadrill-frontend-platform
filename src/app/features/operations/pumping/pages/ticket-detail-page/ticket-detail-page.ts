@@ -14,11 +14,14 @@ import {
   DynadrillDataTableComponent,
   DynadrillDatetimePickerComponent,
   DynadrillDialogService,
+  DynadrillIconButtonComponent,
+  DynadrillIconComponent,
   DynadrillInputComponent,
   DynadrillInspectionGridComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSelectComponent,
+  DynadrillTagComponent,
   DynadrillTextComponent,
   DynadrillTextareaComponent,
   DynadrillUploadZoneComponent,
@@ -56,11 +59,11 @@ import {
   SolicitarCambioItemsDialogResult,
 } from '../../components/solicitar-cambio-items-dialog';
 import { PedidoService } from '../../../../facturacion/services/pedido.service';
-import { itemsEstimadosDe, type ItemEstimado, type Pedido } from '../../../../facturacion/models/pedido.model';
+import { itemsEstimadosDe, TIPO_SERVICIO_LABELS, type ItemEstimado, type Pedido, type PedidoDocumentoAdjunto } from '../../../../facturacion/models/pedido.model';
 import { VerPedidoDialog, VerPedidoDialogData } from '../../../../facturacion/components/ver-pedido-dialog';
 import { TicketQhseBanner } from '../../../shared/ticket-qhse-banner/ticket-qhse-banner';
 import { OperativoDocsBridgeService, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../../../shared/index';
-import { CreateUnitReportInput, unitReportHasNovedades } from '../../../../maintenance/models/unit-report.model';
+import { CreateUnitReportInput, unitReportHasNovedades, type UnitReport } from '../../../../maintenance/models/unit-report.model';
 import { UnitReportsService } from '../../../../maintenance/services/unit-reports.service';
 import { UnidadesService } from '../../../../maintenance/services/unidades.service';
 import type { Unidad } from '../../../../maintenance/models/unidad.model';
@@ -174,6 +177,9 @@ function toFuelReading(raw: string): number | null {
     DynadrillChipGroupComponent,
     DynadrillApprovalActionsComponent,
     DynadrillUploadZoneComponent,
+    DynadrillIconComponent,
+    DynadrillIconButtonComponent,
+    DynadrillTagComponent,
     UbicacionSelectorComponent,
     TicketQhseBanner,
   ],
@@ -341,10 +347,19 @@ export class TicketDetailPage {
     const p = this.pedido();
     return p ? itemsEstimadosDe(p) : [];
   });
+  protected readonly pedidoItemsTotal = computed(() =>
+    this.pedidoItems().reduce((sum, item) => sum + item.cantidad * item.valorUnitario, 0),
+  );
+  protected readonly pedidoTipoServicioLabel = computed(() => {
+    const p = this.pedido();
+    return p ? TIPO_SERVICIO_LABELS[p.tipoServicio] : '';
+  });
   /** Solicitud de cambio de ítems todavía sin resolver por el Supervisor (si hay una). */
   protected readonly solicitudPendiente = signal<SolicitudCambioItems | null>(null);
   protected readonly viewMode = signal<string>(''); // 'asignar' | 'resumen' | ''
   protected readonly maintenanceOrders = signal<MaintenanceOrderWithSubOrders[]>([]);
+  /** Solo para leer el texto de la novedad original inline en la lista de "Mantenimientos operativos" — el detalle completo (diagnóstico, etc.) sigue viviendo en SuborderReviewDialog. */
+  private readonly unitReports = signal<UnitReport[]>([]);
 
   // ── Stepper ──
 
@@ -472,13 +487,28 @@ export class TicketDetailPage {
    * criterio del resto de la app: se guarda el nombre del archivo, no su
    * contenido — no hay almacenamiento real de binarios).
    */
-  protected readonly documentosReferenciaPedido = computed(() => this.pedido()?.documentosAdjuntos ?? []);
+  /** Cargados aparte (subida real a disco, `PedidoDocumento`) — ya no viven en el payload del propio Pedido. */
+  protected readonly documentosReferenciaPedido = signal<PedidoDocumentoAdjunto[]>([]);
 
   private precargarDocumentoDeMezcla(): void {
     if (this.chemicalMixtureDocument()) return; // ya tiene uno cargado (a mano, o ya se precargó antes)
     const [primero] = this.documentosReferenciaPedido();
     if (!primero) return;
-    this.chemicalMixtureDocument.set({ uid: '-1', name: primero.nombreArchivo } as NzUploadFile);
+    this.chemicalMixtureDocument.set({ uid: '-1', name: primero.nombreOriginal } as NzUploadFile);
+  }
+
+  /** Blob autenticado (mismo criterio que `previsualizarDocumento` de FCR) — un `<a href>` directo al endpoint no llevaría el Bearer. */
+  protected previsualizarDocumentoReferenciaPedido(doc: PedidoDocumentoAdjunto): void {
+    const p = this.pedido();
+    if (!p) return;
+    this.pedidoService.descargarDocumentoAdjunto(p.id, doc.id).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      },
+      error: () => this.notify.error('Error', 'No se pudo abrir el documento.'),
+    });
   }
 
   protected chemicalArticulo(articuloId: number): Articulo | undefined {
@@ -1276,6 +1306,8 @@ export class TicketDetailPage {
       content: DailyActivityReportDialog,
       data: {
         ticketCode: t.code,
+        ticketId: t.id,
+        fechaClave: fecha,
         cliente: t.clientName,
         pozo: t.wellName,
         campoBloque: t.unitReport?.blockName ?? '',
@@ -1445,6 +1477,7 @@ export class TicketDetailPage {
   ];
 
   protected readonly isOperador = computed(() => this.roleName() === 'Operador');
+  protected readonly isSupervisor = computed(() => this.roleName() === 'Supervisor');
 
   protected readonly personnelRows = computed(() => {
     const t = this.ticket();
@@ -1716,7 +1749,10 @@ export class TicketDetailPage {
             next: p => {
               this.pedido.set(p);
               this.sincronizarQuimicosDelPedido();
-              this.precargarDocumentoDeMezcla();
+              this.pedidoService.listarDocumentosAdjuntos(p.id).subscribe(docs => {
+                this.documentosReferenciaPedido.set(docs);
+                this.precargarDocumentoDeMezcla();
+              });
             },
             error: () => this.pedido.set(null),
           });
@@ -1752,8 +1788,16 @@ export class TicketDetailPage {
   // Solicitud de cambio de ítems del pedido (Operador -> Supervisor)
   // ══════════════════════════════════════════════
 
-  /** "El operador dispone todo el tiempo de una opción para ... solicitar la edición de los ítems del pedido" — botón permanente, visible en cualquier paso. */
-  protected readonly puedeSolicitarCambioItems = computed(() => this.isOperador() && !!this.ticket()?.pedidoId);
+  /**
+   * "El operador dispone todo el tiempo de una opción para ... solicitar la
+   * edición de los ítems del pedido" — botón permanente, visible en
+   * cualquier paso. El Supervisor también puede editar los ítems desde acá
+   * (mismo diálogo), pero su cambio se aplica directo, sin pasar por
+   * aprobación (ver `abrirSolicitudCambioItems`).
+   */
+  protected readonly puedeSolicitarCambioItems = computed(
+    () => (this.isOperador() || this.isSupervisor()) && !!this.ticket()?.pedidoId,
+  );
 
   /** "El botón junto a Reportar para ver el pedido de Ventas... siempre que quieran" — visible a cualquier rol, en cualquier paso. */
   protected abrirVerPedido(): void {
@@ -1762,7 +1806,7 @@ export class TicketDetailPage {
     this.dialog.open<VerPedidoDialog, VerPedidoDialogData>({
       title: `Pedido ${p.code} — ${p.cliente}`,
       content: VerPedidoDialog,
-      data: { pedido: p },
+      data: { pedido: p, onEditarItems: this.puedeSolicitarCambioItems() ? () => this.abrirSolicitudCambioItems() : undefined },
       footer: false,
       width: '760px',
     });
@@ -1780,23 +1824,39 @@ export class TicketDetailPage {
     const p = this.pedido();
     if (!t || !p) return;
 
+    const aplicaInmediato = this.isSupervisor();
     const ref = this.dialog.open<SolicitarCambioItemsDialog, SolicitarCambioItemsDialogData>({
       title: 'Solicitar cambio de ítems del pedido',
       content: SolicitarCambioItemsDialog,
-      data: { pedidoCode: p.code, cliente: p.cliente, itemsActuales: this.pedidoItems() },
+      data: { pedidoCode: p.code, cliente: p.cliente, itemsActuales: this.pedidoItems(), aplicaInmediato },
       footer: false,
       width: '820px',
     });
 
     ref.afterClose.subscribe((result?: SolicitarCambioItemsDialogResult) => {
       if (!result) return;
-      const usuario = this.auth.currentUser()?.name ?? 'Operador';
+      const usuario = this.auth.currentUser()?.name ?? this.roleName();
       this.solicitudCambioItemsService
         .proponer({ pumpingTicketId: t.id, itemsPropuestos: result.itemsPropuestos, motivo: result.motivo, solicitadoPor: usuario })
         .subscribe({
           next: solicitud => {
-            this.solicitudPendiente.set(solicitud);
-            this.notify.success('Solicitud enviada', 'Tu Supervisor debe aprobarla para que se actualice el pedido.');
+            if (!aplicaInmediato) {
+              this.solicitudPendiente.set(solicitud);
+              this.notify.success('Solicitud enviada', 'Tu Supervisor debe aprobarla para que se actualice el pedido.');
+              return;
+            }
+            // Supervisor: mismo endpoint de aprobación que usa `aprobaciones-page.ts`,
+            // pero autoaplicado acá mismo — su propio cambio no necesita pasar por
+            // otro Supervisor. Reusa 100% la lógica de aplicación del backend
+            // (sobreescribe Pedido.itemsEstimados y recalcula la prefactura si aplica).
+            this.solicitudCambioItemsService.aprobar(solicitud.id, usuario).subscribe({
+              next: () => {
+                this.solicitudPendiente.set(null);
+                this.pedidoService.get(p.id).subscribe(actualizado => this.pedido.set(actualizado));
+                this.notify.success('Pedido actualizado', `Los ítems de ${p.code} quedaron actualizados.`);
+              },
+              error: err => this.notify.error('Error', err?.error?.message ?? 'No se pudo actualizar el pedido. Probá de nuevo.'),
+            });
           },
           error: err =>
             this.notify.error('Error', err?.error?.message ?? 'No se pudo enviar la solicitud. Probá de nuevo.'),
@@ -1812,6 +1872,16 @@ export class TicketDetailPage {
     this.maintenanceOrdersService.list().subscribe({
       next: orders => this.maintenanceOrders.set(orders),
     });
+    this.unitReportsService.list().subscribe({
+      next: reports => this.unitReports.set(reports),
+    });
+  }
+
+  /** Novedad original (Reporte de Unidad) detrás de una sub-orden Operativo — mismo dato que ya usa reviewOperativoMaintenance(), acá para mostrarlo inline en la lista sin abrir el diálogo. */
+  protected novedadOperativaDe(sub: SubOrder): string {
+    const order = this.maintenanceOrders().find(o => o.subOrders.some(s => s.id === sub.id));
+    const report = order ? this.unitReports().find(r => r.id === order.unitReportId) : undefined;
+    return report?.problemasOperaciones || '';
   }
 
   /** Texto resumen de mantenimientos para una unidad: "Mecánico — En Ejecución, Operativo — Pendiente" */
@@ -1833,12 +1903,29 @@ export class TicketDetailPage {
       .flatMap(o => o.subOrders.filter(s => s.type === 'Operativo'));
   });
 
-  /** Todas las sub-órdenes Operativo están cerradas o no hay ninguna */
+  /** Todas las sub-órdenes Operativo de esta unidad están cerradas o no hay ninguna. */
   protected readonly allOperativoResolved = computed(() => {
     const subs = this.operativoSubOrders();
     if (subs.length === 0) return true;
     return subs.every(s => s.status === 'Cerrado');
   });
+
+  /**
+   * Todas las sub-órdenes (Mecánico/Instrumental/Operativo) de la unidad
+   * están cerradas — antes solo se chequeaba Operativo acá; el backend ya
+   * bloquea el PATCH de avance para las 3 (ver `PumpingDomainService.advance`),
+   * esto solo evita el viaje redondo y explica por qué el botón está
+   * deshabilitado.
+   */
+  protected readonly novedadesSinAtender = computed(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    return this.maintenanceOrders()
+      .filter(o => o.unidad === t.unitCode)
+      .flatMap(o => o.subOrders)
+      .filter(s => s.status !== 'Cerrado');
+  });
+  protected readonly allNovedadesResolved = computed(() => this.novedadesSinAtender().length === 0);
 
   protected reviewOperativoMaintenance(sub: SubOrder): void {
     const order = this.maintenanceOrders().find(o => o.subOrders.some(s => s.id === sub.id));
@@ -2278,6 +2365,10 @@ export class TicketDetailPage {
     this.router.navigate(['..'], { relativeTo: this.route });
   }
 
+  protected formatDate(iso: string): string {
+    return iso.slice(0, 10);
+  }
+
   /**
    * Abre el dialog de inspección de vehículos (DYN-SGI-RE-068)
    * para el operador seleccionado en la tabla de personal asignado.
@@ -2328,6 +2419,11 @@ export class TicketDetailPage {
             updated.set(operatorId, result);
             return updated;
           });
+          // La inspección de salida ya pide Origen/Destino — se precargan acá
+          // para no volver a tipearlos en "Fecha, ruta y combustible". No pisa
+          // un valor que el usuario ya haya escrito a mano en esa sección.
+          if (!this.reportOrigin() && result.puntoPartida) this.reportOrigin.set(result.puntoPartida);
+          if (!this.reportDestination() && result.destino) this.reportDestination.set(result.destino);
         }
         this.notify.success('Inspección guardada', `Inspección de ${mode} realizada por ${row['name']}.`);
       }

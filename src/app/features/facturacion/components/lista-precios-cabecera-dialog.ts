@@ -11,6 +11,7 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { ListaPrecios } from '../models/lista-precios.model';
 import { ListaPreciosService } from '../services/pedido.service';
+import { CatalogosService, type ClienteCatalogo } from '../../../shared/index';
 
 export interface ListaPreciosCabeceraDialogData {
   /** Cuando viene, es edición de esa lista; si no, es alta. */
@@ -33,11 +34,26 @@ export interface ListaPreciosCabeceraDialogData {
 })
 export class ListaPreciosCabeceraDialog {
   private readonly listaService = inject(ListaPreciosService);
+  private readonly catalogosService = inject(CatalogosService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<ListaPreciosCabeceraDialog, ListaPrecios | undefined>);
   protected readonly data = inject<ListaPreciosCabeceraDialogData>(NZ_MODAL_DATA);
 
   protected readonly esEdicion = !!this.data.lista;
+
+  /**
+   * Catálogo real de clientes — antes era texto libre, así que dos personas
+   * podían escribir el mismo cliente real con dos strings distintos y la
+   * prefactura del pedido de ese cliente no encontraba esta lista (bug $0
+   * reportado). Mismo patrón que `nuevo-pedido-dialog.ts`.
+   */
+  private readonly clientesCatalogo = signal<ClienteCatalogo[]>([]);
+  protected readonly clienteOptions = computed<DynadrillSelectOption[]>(() =>
+    this.clientesCatalogo().map(c => ({ label: c.nombreComercial, value: c.nombreComercial })),
+  );
+  protected readonly clienteId = computed(
+    () => this.clientesCatalogo().find(c => c.nombreComercial === this.cliente())?.id ?? null,
+  );
 
   protected readonly cliente = signal(this.data.lista?.cliente ?? '');
   protected readonly numeroContrato = signal(this.data.lista?.numeroContrato ?? '');
@@ -56,6 +72,10 @@ export class ListaPreciosCabeceraDialog {
     () => this.cliente().trim().length > 0 && this.numeroContrato().trim().length > 0 && this.vigenteDesde() !== null,
   );
 
+  constructor() {
+    this.catalogosService.clientes().subscribe(clientes => this.clientesCatalogo.set(clientes));
+  }
+
   protected cancelar(): void {
     this.modalRef.close();
   }
@@ -66,6 +86,7 @@ export class ListaPreciosCabeceraDialog {
 
     const payload = {
       cliente: this.cliente().trim(),
+      clienteId: this.clienteId() ?? undefined,
       numeroContrato: this.numeroContrato().trim(),
       vigenteDesde: this.vigenteDesde()!.toISOString().slice(0, 10),
       activa: this.activa(),

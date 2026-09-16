@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
+import type { NzUploadFile } from 'ng-zorro-antd/upload';
 import { firstValueFrom } from 'rxjs';
+import * as XLSX from 'xlsx';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
@@ -13,6 +15,7 @@ import {
   DynadrillSkeletonComponent,
   DynadrillTextComponent,
   DynadrillTextareaComponent,
+  DynadrillUploadZoneComponent,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import {
@@ -35,6 +38,9 @@ export interface ChecklistHerramientaDialogData {
   toolId: number;
   articuloId: number;
   toolName: string;
+  /** Del ticket — solo se usan para precargar `cliente`/`pozo` en la primera creación del checklist (ver `iniciar()`). */
+  cliente?: string;
+  pozo?: string;
 }
 
 export interface ChecklistHerramientaDialogResult {
@@ -67,6 +73,16 @@ function parseCambioCantidad(raw: string): number | null {
   return Number.isNaN(value) ? null : value;
 }
 
+const MAX_PLANTILLA_PARTES_BYTES = 5 * 1024 * 1024;
+
+/** Acepta variantes razonables de lo que alguien pueda escribir a mano en la celda — `null` = "sin dato, no tocar el valor actual". */
+function normalizeResultado(raw: string): FcrToolInspectionParteResultado | null {
+  const v = raw.trim().toLowerCase();
+  if (v === 'ok' || v === 'bien' || v === 'bueno') return 'ok';
+  if (v === 'defectuoso' || v === 'defecto' || v === 'no ok' || v === 'nok' || v === 'x' || v === 'malo') return 'defectuoso';
+  return null;
+}
+
 /**
  * Checklist digital "Inspección y reparación de herramientas" — uno por
  * cada `FcrTool` del ticket. Mismo patrón que `FirmaActaDialog`
@@ -97,6 +113,7 @@ function parseCambioCantidad(raw: string): number | null {
     DynadrillButtonComponent,
     DynadrillSkeletonComponent,
     DynadrillTextareaComponent,
+    DynadrillUploadZoneComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './checklist-herramienta-dialog.html',
@@ -150,7 +167,7 @@ export class ChecklistHerramientaDialog {
   );
 
   constructor() {
-    this.toolInspecciones.iniciar(this.data.ticketId, this.data.toolId, this.data.articuloId).subscribe({
+    this.toolInspecciones.iniciar(this.data.ticketId, this.data.toolId, this.data.articuloId, this.data.cliente, this.data.pozo).subscribe({
       next: inspection => {
         this.aplicarInspection(inspection);
         this.loading.set(false);
@@ -225,6 +242,92 @@ export class ChecklistHerramientaDialog {
   /** Llenar 30-50 partes una por una es la queja más común del checklist en papel — esto marca todas OK de una vez, y el operador solo corrige las excepciones a "Defectuoso". */
   protected marcarTodoOk(): void {
     this.partes.update(rows => rows.map(row => ({ ...row, visualResultado: 'ok', endResultado: 'ok' })));
+  }
+
+  /**
+   * Carga la plantilla real "Inspección y reparación de herramientas.xlsx"
+   * (una hoja por tipo de herramienta, encabezado ITEM/CANTIDAD/CODIGO/
+   * DESCRIPCION/VISUAL/END/CANTIDAD(cambio)/ACCION) — mismo patrón que
+   * `onCargarPlantilla` de `nuevo-pedido-dialog.ts`. A diferencia de esa,
+   * acá NO reemplaza la tabla: la fila ya viene de `ArticuloParte` (snapshot
+   * de `iniciar()`), así que solo actualiza Visual/End/Cambio·Cantidad/Acción
+   * de las partes existentes, emparejando por código — para alguien que
+   * llenó el Excel a mano en campo (sin señal) y ahora lo vuelca al digital.
+   */
+  protected onCargarPlantillaPartes(file: NzUploadFile): void {
+    const archivo = (file.originFileObj as File | undefined) ?? (file as unknown as File);
+    if (!archivo || typeof archivo.size !== 'number') {
+      this.notify.error('Archivo no reconocido', 'No se pudo leer el archivo seleccionado. Probá de nuevo.');
+      return;
+    }
+    if (archivo.size > MAX_PLANTILLA_PARTES_BYTES) {
+      this.notify.error('Archivo demasiado grande', 'El archivo supera el máximo permitido de 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = evento => {
+      try {
+        const datos = new Uint8Array(evento.target!.result as ArrayBuffer);
+        const libro = XLSX.read(datos, { type: 'array' });
+        const hoja = libro.Sheets[libro.SheetNames[0]];
+        const filas = XLSX.utils.sheet_to_json<unknown[]>(hoja, { header: 1, defval: '', raw: false });
+
+        const idxCabecera = filas.findIndex(f => (f[0] ?? '').toString().trim().toUpperCase() === 'ITEM');
+        if (idxCabecera === -1) {
+          this.notify.error(
+            'Plantilla no reconocida',
+            'No se encontró el encabezado "ITEM" — ¿es la plantilla "Inspección y reparación de herramientas"? Asegurate de que la hoja del tipo de herramienta sea la primera del archivo.',
+          );
+          return;
+        }
+
+        const porCodigo = new Map(this.partes().map(p => [p.codigo.trim().toUpperCase(), p]));
+        let actualizadas = 0;
+        let sinCoincidencia = 0;
+
+        for (const fila of filas.slice(idxCabecera + 1)) {
+          const codigo = (fila[2] ?? '').toString().trim();
+          if (!codigo) break; // primera fila sin código = fin de los datos (footer de firmas)
+          const parte = porCodigo.get(codigo.toUpperCase());
+          if (!parte) {
+            sinCoincidencia++;
+            continue;
+          }
+
+          const visual = normalizeResultado((fila[4] ?? '').toString());
+          const end = normalizeResultado((fila[5] ?? '').toString());
+          const cambioCantidadRaw = (fila[6] ?? '').toString().trim();
+          const accion = (fila[8] ?? '').toString().trim();
+
+          const patch: Partial<FcrToolInspectionParte> = {};
+          if (visual) patch.visualResultado = visual;
+          if (end) patch.endResultado = end;
+          if (cambioCantidadRaw) patch.cambioCantidad = parseCambioCantidad(cambioCantidadRaw);
+          if (accion) patch.accion = accion;
+          if (Object.keys(patch).length > 0) {
+            this.updateParte(parte.id, patch);
+            actualizadas++;
+          }
+        }
+
+        if (actualizadas === 0) {
+          this.notify.error(
+            'Sin datos para cargar',
+            'Ninguna fila de la plantilla coincidió (por código) con las partes de esta herramienta, o venían todas vacías.',
+          );
+          return;
+        }
+        this.notify.success(
+          'Plantilla cargada',
+          `${actualizadas} parte(s) actualizada(s) desde el archivo.` +
+            (sinCoincidencia > 0 ? ` ${sinCoincidencia} fila(s) no coincidieron con ninguna parte de esta herramienta.` : ''),
+        );
+      } catch {
+        this.notify.error('Error al leer el archivo', 'No se pudo procesar el Excel. Verificá que no esté dañado.');
+      }
+    };
+    reader.readAsArrayBuffer(archivo);
   }
 
   protected onVisualChange(id: number, value: unknown): void {

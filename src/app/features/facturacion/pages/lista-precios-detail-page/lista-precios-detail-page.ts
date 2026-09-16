@@ -57,6 +57,9 @@ export class ListaPreciosDetailPage {
   /** Totales por tipo — la Lista de Precios es un catálogo (código/descripción/unidad/precio/tipo), sin cantidad por ítem; esto es lo que sí se puede contar. */
   protected readonly totalServicio = computed(() => this.items().filter(i => i.tipo === 'Servicio').length);
   protected readonly totalMaterial = computed(() => this.items().filter(i => i.tipo === 'Material').length);
+  /** Suma de precios por tipo — no es un "total a cobrar" (esto es catálogo, no un pedido con cantidades), solo la suma de precios unitarios de cada tipo. */
+  protected readonly sumaServicio = computed(() => this.items().filter(i => i.tipo === 'Servicio').reduce((s, i) => s + i.precio, 0));
+  protected readonly sumaMaterial = computed(() => this.items().filter(i => i.tipo === 'Material').reduce((s, i) => s + i.precio, 0));
 
   constructor() {
     this.reload();

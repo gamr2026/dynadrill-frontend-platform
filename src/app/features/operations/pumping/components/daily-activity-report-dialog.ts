@@ -18,8 +18,10 @@ import {
 import type { DailyActivityEntry, DailyActivityReport } from '../models/pumping.model';
 import { UBICACION_VACIA, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../../shared/index';
 import { parseLocalDateString, toLocalDateString } from '../../../../shared/utils';
+import { PumpingDocumento, PumpingService } from '../services/pumping.service';
 
 const MAX_PLANTILLA_BYTES = 5 * 1024 * 1024;
+const MAX_MONITOREO_BYTES = 5 * 1024 * 1024;
 
 /**
  * Columnas (índice de `sheet_to_json(header:1)`) del formato real
@@ -30,7 +32,6 @@ const MAX_PLANTILLA_BYTES = 5 * 1024 * 1024;
  */
 const COL = {
   fecha: 4,
-  numero: 8,
   cliente: 4,
   ordenContrato: 8,
   pozo: 4,
@@ -75,8 +76,35 @@ function parseFechaPlantilla(texto: string): Date | null {
   return null;
 }
 
+/**
+ * `<input type="time">` (donde caen inicio/fin de cada actividad) solo acepta
+ * el formato estricto `HH:mm[:ss]`, 24 horas, sin AM/PM — si el texto no
+ * matchea exacto el navegador lo descarta en silencio y el campo queda
+ * vacío. Excel puede devolver "11:00 AM", "11:00:00 AM" o ya "23:00" según
+ * el formato de número que tenga esa celda puntual (no hay uno garantizado,
+ * mismo problema que `parseFechaPlantilla`) — esto normaliza cualquiera de
+ * esas variantes a `HH:mm` antes de asignarlo.
+ */
+function parseHoraPlantilla(texto: string): string {
+  const t = texto.trim();
+  if (!t) return '';
+  const m = t.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?$/);
+  if (!m) return '';
+  let horas = Number(m[1]);
+  const minutos = m[2];
+  const meridiano = m[3]?.toUpperCase();
+  if (meridiano === 'PM' && horas < 12) horas += 12;
+  if (meridiano === 'AM' && horas === 12) horas = 0;
+  if (horas > 23) return '';
+  return `${String(horas).padStart(2, '0')}:${minutos}`;
+}
+
 export interface DailyActivityReportDialogData {
   ticketCode: string;
+  /** Solo si viene, se puede cargar/ver el documento de "monitoreo" — el id real del ticket, no el `code`. */
+  ticketId?: number;
+  /** Fecha ISO del día de este reporte (la del renglón donde se abrió) — arma el slot 'monitoreo-<fecha>', independiente de lo que el usuario después edite en el campo "Fecha" del formulario. */
+  fechaClave?: string;
   cliente: string;
   pozo: string;
   campoBloque: string;
@@ -128,7 +156,6 @@ export class DailyActivityReportDialog {
   // (mismo patrón que travel-management-dialog.ts). Tipado `Date | null` porque el picker permite limpiar
   // el campo (allowClear) y emite null pese a que su tipo declarado diga Date — canSave/save() lo validan.
   protected readonly fecha = signal<Date | null>(this.data.existing?.fecha ? parseLocalDateString(this.data.existing.fecha) : new Date());
-  protected readonly numero = signal(this.data.existing?.numero ?? '');
   protected readonly cliente = signal(this.data.existing?.cliente ?? this.data.cliente);
   protected readonly ordenContrato = signal(this.data.existing?.ordenContrato ?? this.data.numeroContrato ?? '');
   /** Ya definido en el Pedido (Company Man / Representante de Campo) — se precarga, queda editable por si cambió en sitio. */
@@ -231,6 +258,77 @@ export class DailyActivityReportDialog {
   protected readonly uploadFileName = signal('');
   protected readonly uploadedFileData = signal<string | null>(this.data.existing?.archivoAdjunto ?? null);
 
+  // ── Documento de monitoreo (generado externamente, ej. sensores en campo) ──
+  // A diferencia de "Cargar documento" (arriba), esto SÍ sube el archivo real
+  // a disco (PumpingDocumento) — el Reporte diario en sí no se persiste
+  // server-side, así que el documento se cuelga del ticket con un slot por
+  // día: 'monitoreo-<fechaClave>'. Solo disponible si el diálogo se abrió con
+  // `ticketId`/`fechaClave` (siempre debería, ver ticket-detail-page.ts).
+  private readonly pumpingService = inject(PumpingService);
+  protected readonly monitoreoCampo = this.data.fechaClave ? `monitoreo-${this.data.fechaClave}` : null;
+  protected readonly monitoreoDoc = signal<PumpingDocumento | null>(null);
+  protected readonly monitoreoSubiendo = signal(false);
+
+  constructor() {
+    this.cargarMonitoreoExistente();
+  }
+
+  private cargarMonitoreoExistente(): void {
+    if (!this.data.ticketId || !this.monitoreoCampo) return;
+    this.pumpingService.metadataDocumento(this.data.ticketId, this.monitoreoCampo).subscribe({
+      next: doc => this.monitoreoDoc.set(doc),
+      error: () => this.monitoreoDoc.set(null), // 404 = todavía no hay documento subido para este día
+    });
+  }
+
+  protected onMonitoreoSeleccionado(file: NzUploadFile): void {
+    const ticketId = this.data.ticketId;
+    if (!ticketId || !this.monitoreoCampo || this.monitoreoSubiendo()) return;
+    const archivo = (file.originFileObj as File | undefined) ?? (file as unknown as File);
+    if (!archivo || typeof archivo.size !== 'number') {
+      this.notify.error('Archivo no reconocido', 'No se pudo leer el archivo seleccionado. Probá de nuevo.');
+      return;
+    }
+    if (archivo.size > MAX_MONITOREO_BYTES) {
+      this.notify.error('Archivo demasiado grande', 'El archivo supera el máximo permitido de 5MB.');
+      return;
+    }
+    this.monitoreoSubiendo.set(true);
+    this.pumpingService.subirDocumento(ticketId, this.monitoreoCampo, archivo).subscribe({
+      next: doc => {
+        this.monitoreoDoc.set(doc);
+        this.monitoreoSubiendo.set(false);
+        this.notify.success('Documento cargado', `${doc.nombreOriginal} — documento de monitoreo del ${this.data.fechaClave}.`);
+      },
+      error: () => {
+        this.monitoreoSubiendo.set(false);
+        this.notify.error('Error', 'No se pudo subir el documento de monitoreo.');
+      },
+    });
+  }
+
+  protected verMonitoreo(): void {
+    const ticketId = this.data.ticketId;
+    if (!ticketId || !this.monitoreoCampo) return;
+    this.pumpingService.descargarDocumento(ticketId, this.monitoreoCampo).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      },
+      error: () => this.notify.error('Error', 'No se pudo abrir el documento.'),
+    });
+  }
+
+  protected eliminarMonitoreo(): void {
+    const ticketId = this.data.ticketId;
+    if (!ticketId || !this.monitoreoCampo) return;
+    this.pumpingService.eliminarDocumento(ticketId, this.monitoreoCampo).subscribe({
+      next: () => this.monitoreoDoc.set(null),
+      error: () => this.notify.error('Error', 'No se pudo quitar el documento.'),
+    });
+  }
+
   /**
    * "Cargue la plantilla con datos y no vi que la info se visualice en los
    * campos... que sentido tiene llenarlo" — antes esto solo simulaba el
@@ -261,8 +359,6 @@ export class DailyActivityReportDialog {
         const fechaParseada = parseFechaPlantilla(fechaTexto);
         if (fechaParseada) this.fecha.set(fechaParseada);
 
-        const numero = celda(FILA.fecha, COL.numero);
-        if (numero) this.numero.set(numero);
         const cliente = celda(FILA.cliente, COL.cliente);
         if (cliente) this.cliente.set(cliente);
         const ordenContrato = celda(FILA.cliente, COL.ordenContrato);
@@ -277,8 +373,8 @@ export class DailyActivityReportDialog {
         const actividades: DailyActivityEntry[] = [];
         for (let f = FILA.actividadesInicio; f <= FILA.actividadesFin; f++) {
           const detalle = celda(f, COL.actDetalle);
-          const inicio = celda(f, COL.actInicio);
-          const fin = celda(f, COL.actFin);
+          const inicio = parseHoraPlantilla(celda(f, COL.actInicio));
+          const fin = parseHoraPlantilla(celda(f, COL.actFin));
           if (!detalle && !inicio && !fin) continue;
           const horasTexto = celda(f, COL.actHoras);
           actividades.push({ inicio, fin, horas: horasTexto ? Number(horasTexto) || null : null, detalle });
@@ -320,7 +416,6 @@ export class DailyActivityReportDialog {
     if (!fecha) return;
     const report: DailyActivityReport = {
       fecha: toLocalDateString(fecha),
-      numero: this.numero(),
       cliente: this.cliente(),
       ordenContrato: this.ordenContrato(),
       pozo: this.ubicacion().pozo || this.ubicacionInicial.pozo || '',

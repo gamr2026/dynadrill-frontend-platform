@@ -19,9 +19,13 @@ export class FcrToolInspeccionesService {
     return this.http.get<FcrToolInspection[]>(`${this.baseUrl}/${ticketId}/tool-inspections`);
   }
 
-  /** Idempotente: si ya existe un checklist para esa herramienta, el backend devuelve el existente sin reiniciarlo. */
-  iniciar(ticketId: number, toolId: number, articuloId: number): Observable<FcrToolInspection> {
-    return this.http.post<FcrToolInspection>(`${this.baseUrl}/${ticketId}/tool-inspections`, { toolId, articuloId });
+  /**
+   * Idempotente: si ya existe un checklist para esa herramienta, el backend
+   * devuelve el existente sin reiniciarlo. `cliente`/`pozo` (del ticket) solo
+   * se usan para precargar la primera creación.
+   */
+  iniciar(ticketId: number, toolId: number, articuloId: number, cliente?: string, pozo?: string): Observable<FcrToolInspection> {
+    return this.http.post<FcrToolInspection>(`${this.baseUrl}/${ticketId}/tool-inspections`, { toolId, articuloId, cliente, pozo });
   }
 
   guardarHeader(ticketId: number, inspectionId: number, header: FcrToolInspectionHeaderInput): Observable<FcrToolInspection> {

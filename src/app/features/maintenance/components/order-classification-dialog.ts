@@ -193,6 +193,8 @@ export class OrderClassificationDialog {
   protected readonly operativoAttended = signal<boolean | null>(
     this.isEditMode ? this.originalOperativoAttended : null,
   );
+  /** Solo cuando Atendido — mismo campo que pide "Derivar a Pumping" del panel, acá quedaba vacío (bug reportado: "Nota de derivación" siempre en blanco para el Operador). */
+  protected readonly operativoDeriveNote = signal(this.existingSubOrder('Operativo')?.deriveNote ?? '');
 
   private readonly originalTypes = new Set(this.data.existingOrder?.subOrders.map(s => s.type) ?? []);
   /** En modo edición, no tiene sentido habilitar "Guardar cambios" si nada cambió (ni tipos ni asignaciones). */
@@ -289,7 +291,11 @@ export class OrderClassificationDialog {
         const userId = this.instrumentalOperatorId() ?? undefined;
         return { type, userId, userName: userId != null ? this.operatorNames.get(userId) : undefined };
       }
-      return { type, operativoAttended: this.operativoAttended() ?? true };
+      return {
+        type,
+        operativoAttended: this.operativoAttended() ?? true,
+        operativoDeriveNote: this.operativoDeriveNote().trim() || undefined,
+      };
     });
 
     const request$ = this.isEditMode

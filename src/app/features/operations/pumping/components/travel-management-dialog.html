@@ -96,34 +96,36 @@
     <section class="travel-dialog__section travel-dialog__section--tight">
       <dynadrill-text variant="h2">Pasajeros y logística</dynadrill-text>
 
-      <div class="travel-dialog__field-group">
-        <div class="travel-dialog__passenger-input-row">
-          <dynadrill-input
-            [label]="passengersLabel()"
-            placeholder="Nombre del pasajero — Enter o , para agregar"
-            [value]="passengerDraft()"
-            (valueChange)="passengerDraft.set($event)"
-            (keydown)="onPassengerDraftKeydown($event)"
-          />
-          <dynadrill-button variant="secondary" size="small" [disabled]="!passengerDraft().trim()" (clicked)="addPassenger()">+ Agregar</dynadrill-button>
+      <div class="travel-dialog__form-grid">
+        <div class="travel-dialog__field-group">
+          <div class="travel-dialog__passenger-input-row">
+            <dynadrill-input
+              [label]="passengersLabel()"
+              placeholder="Nombre del pasajero — Enter o , para agregar"
+              [value]="passengerDraft()"
+              (valueChange)="passengerDraft.set($event)"
+              (keydown)="onPassengerDraftKeydown($event)"
+            />
+            <dynadrill-button variant="secondary" size="small" [disabled]="!passengerDraft().trim()" (clicked)="addPassenger()">+ Agregar</dynadrill-button>
+          </div>
+          @if (passengersList().length > 0) {
+            <ul class="travel-dialog__chip-list">
+              @for (passenger of passengersList(); track passenger; let i = $index) {
+                <li>
+                  <dynadrill-tag [label]="passenger" variant="brand" />
+                  <button type="button" class="travel-dialog__chip-remove" [attr.aria-label]="'Quitar ' + passenger" (click)="removePassenger(i)">
+                    <dynadrill-icon name="close" [size]="10" />
+                  </button>
+                </li>
+              }
+            </ul>
+          }
         </div>
-        @if (passengersList().length > 0) {
-          <ul class="travel-dialog__chip-list">
-            @for (passenger of passengersList(); track passenger; let i = $index) {
-              <li>
-                <dynadrill-tag [label]="passenger" variant="brand" />
-                <button type="button" class="travel-dialog__chip-remove" [attr.aria-label]="'Quitar ' + passenger" (click)="removePassenger(i)">
-                  <dynadrill-icon name="close" [size]="10" />
-                </button>
-              </li>
-            }
-          </ul>
-        }
-      </div>
 
-      <div class="travel-dialog__field-group">
-        <dynadrill-text variant="caption" class="travel-dialog__field-label">Posibilidad de combinar viajes</dynadrill-text>
-        <dynadrill-chip-group [options]="combineOptions" mode="single" [selected]="canCombineTrips()" (selectedChange)="canCombineTrips.set($event)" />
+        <div class="travel-dialog__field-group">
+          <dynadrill-text variant="caption" class="travel-dialog__field-label">Posibilidad de combinar viajes</dynadrill-text>
+          <dynadrill-chip-group [options]="combineOptions" mode="single" [selected]="canCombineTrips()" (selectedChange)="canCombineTrips.set($event)" />
+        </div>
       </div>
     </section>
 

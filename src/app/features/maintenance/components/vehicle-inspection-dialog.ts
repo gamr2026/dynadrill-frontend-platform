@@ -241,7 +241,7 @@ export class VehicleInspectionDialog {
       this.proximoMantenimientoLeyenda.set(
         unidad.tipo === 'Transporte'
           ? 'Transporte se controla por kilometraje (cada 5.000 km), no por fecha calendario — completar manualmente según el odómetro.'
-          : '',
+          : `Esta unidad no tiene fecha de último mantenimiento registrada — no se puede calcular. Completar manualmente y registrar el mantenimiento en Unidades para que se calcule solo la próxima vez.`,
       );
       return;
     }

@@ -75,7 +75,9 @@
                 <tr>
                   <td [attr.colspan]="3"></td>
                   <td class="num">Totales</td>
-                  <td>{{ totalServicio() }} Servicio · {{ totalMaterial() }} Material</td>
+                  <td>
+                    {{ totalServicio() }} Servicio (${{ sumaServicio().toFixed(2) }}) · {{ totalMaterial() }} Material (${{ sumaMaterial().toFixed(2) }})
+                  </td>
                   @if (editando()) { <td></td> }
                 </tr>
               </tfoot>

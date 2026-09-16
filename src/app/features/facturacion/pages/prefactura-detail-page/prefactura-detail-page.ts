@@ -130,6 +130,11 @@ export class PrefacturaDetailPage {
     this.checklist.update(c => ({ ...c, [key]: !c[key] }));
   }
 
+  /** Mismo patrón que "Marcar todo OK" de FCR — marca los 6 ítems de una vez, el revisor solo destilda la excepción si encuentra algo mal. */
+  protected marcarTodoRevisado(): void {
+    this.checklist.set(Object.fromEntries(this.checklistItems.map(c => [c.key, true])));
+  }
+
   constructor() {
     this.reload();
   }
@@ -160,6 +165,9 @@ export class PrefacturaDetailPage {
   protected enviarAlCliente(): void {
     const pf = this.prefactura();
     if (!pf || !this.puedeEnviar()) return;
+    // El Reporte de Herramientas es exclusivo de FCR (Pumping no lo genera) —
+    // antes se listaba siempre, aunque el pedido fuera de Pumping.
+    const esFcr = this.pedido()?.lineaServicio === 'fcr';
     const ref = this.dialog.open<EnviarClienteDialog, EnviarClienteDialogData>({
       title: 'Enviar prefactura al cliente',
       content: EnviarClienteDialog,
@@ -168,7 +176,7 @@ export class PrefacturaDetailPage {
         adjuntosBase: [
           `Prefactura ${pf.code}.pdf`,
           'Reporte Job (PDF).pdf',
-          'Reporte de Herramientas (PDF).pdf',
+          ...(esFcr ? ['Reporte de Herramientas (PDF).pdf'] : []),
           ...(this.guiaRemision() ? ['Guía de Remisión (PDF).pdf'] : []),
         ],
       },
@@ -247,7 +255,7 @@ export class PrefacturaDetailPage {
     const pf = this.prefactura();
     if (!pf || !this.puedeGenerarAot()) return;
     const ref = this.dialog.open<AotGenerarDialog, AotGenerarDialogData>({
-      title: 'Generar AOT',
+      title: 'Generar OT',
       content: AotGenerarDialog,
       data: {
         prefacturaId: pf.id,

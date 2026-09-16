@@ -69,3 +69,157 @@ body {
     display: none !important;
   }
 }
+
+/**
+ * Tarjeta de resumen del Pedido vinculado (solo lectura) — usada por la fase
+ * "Validación" de FCR y el paso "Revisión de la propuesta" de Pumping.
+ * Global (no por-componente) a propósito: es un bloque idéntico repetido en
+ * ambos módulos — duplicarlo en cada `ticket-detail-page.scss` hacía que el
+ * de Pumping superara el budget de `anyComponentStyle` (8kB) en el build de
+ * QA/producción.
+ */
+.dyn-pedido-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  padding: 1.5rem;
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: 0.75rem;
+  background: var(--surface, #fff);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(19, 21, 41, 0.05));
+}
+
+.dyn-pedido-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--dynadrill-purple, #662e9b);
+}
+
+.dyn-pedido-card__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--dynadrill-purple, #662e9b);
+}
+
+.dyn-pedido-card__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1.25rem 1.5rem;
+  width: 100%;
+}
+
+.dyn-pedido-card__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.dyn-pedido-card__field dynadrill-icon {
+  color: var(--text-muted, #5c5870);
+  margin-bottom: -0.15rem;
+}
+
+.dyn-pedido-card__items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dyn-pedido-card__items-label {
+  font-weight: 700 !important;
+  color: var(--dynadrill-purple, #662e9b) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dyn-pedido-card__table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -0.25rem;
+  padding: 0 0.25rem;
+}
+
+.dyn-pedido-card__table {
+  width: 100%;
+  min-width: 32rem;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+
+  th,
+  td {
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-default, #e0e0e0);
+  }
+
+  th {
+    font-weight: 600;
+    color: var(--text-secondary, #666);
+    white-space: nowrap;
+    background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
+  }
+
+  tbody tr:nth-child(even) {
+    background: var(--surface-muted, #faf9fc);
+  }
+
+  tfoot td {
+    font-weight: 700;
+    color: var(--dynadrill-purple, #662e9b);
+    background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
+  }
+
+  @media (max-width: 480px) {
+    font-size: 0.75rem;
+
+    th,
+    td {
+      padding: 0.4rem 0.5rem;
+    }
+  }
+}
+
+/**
+ * Acordeón simple (`<details>` nativo) — usado por los checklists largos de
+ * Pumping (step "En ejecución (Llegada)"). Global porque no hay componente
+ * de acordeón todavía en dynadrill-ui y sumaba al budget por-componente.
+ */
+.dyn-accordion {
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: 0.75rem;
+  padding: 0 1rem;
+  margin-bottom: 1rem;
+
+  &[open] {
+    padding-bottom: 1rem;
+  }
+}
+
+.dyn-accordion-summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 1rem 0;
+  font-weight: 700;
+  font-size: 1.05rem;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &::before {
+    content: '▸';
+    display: inline-block;
+    margin-right: 0.5rem;
+    transition: transform 0.15s ease;
+  }
+
+  .dyn-accordion[open] > &::before {
+    transform: rotate(90deg);
+  }
+}

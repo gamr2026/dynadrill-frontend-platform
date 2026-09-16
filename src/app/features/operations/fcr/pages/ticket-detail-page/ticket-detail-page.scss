@@ -219,84 +219,9 @@
 }
 
 // ── Pedido vinculado (fase 'validacion', solo lectura) ──
-
-.fcr-detail__pedido-card {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  width: 100%;
-  padding: 1.5rem;
-  border: 1px solid var(--border, #e5e4ea);
-  border-radius: 0.75rem;
-  background: var(--surface, #fff);
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(19, 21, 41, 0.05));
-}
-
-.fcr-detail__pedido-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid var(--dynadrill-purple, #662e9b);
-}
-
-.fcr-detail__pedido-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--dynadrill-purple, #662e9b);
-}
-
-.fcr-detail__pedido-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 1.25rem 1.5rem;
-  width: 100%;
-}
-
-.fcr-detail__pedido-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 0;
-
-  dynadrill-icon {
-    color: var(--text-muted, #5c5870);
-    margin-bottom: -0.15rem;
-  }
-}
-
-.fcr-detail__pedido-items {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.fcr-detail__pedido-items-label {
-  font-weight: 700 !important;
-  color: var(--dynadrill-purple, #662e9b) !important;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.fcr-detail__table--pedido {
-  width: 100%;
-
-  th {
-    background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
-  }
-
-  tbody tr:nth-child(even) {
-    background: var(--surface-muted, #faf9fc);
-  }
-
-  tfoot td {
-    font-weight: 700;
-    color: var(--dynadrill-purple, #662e9b);
-    background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
-  }
-}
+// La tarjeta y la tabla de ítems (.dyn-pedido-card*) son globales — ver
+// src/styles.scss, mismo bloque que usa Pumping en "Revisión de la
+// propuesta".
 
 .fcr-detail__pedido-reference {
   display: flex;

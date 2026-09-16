@@ -36,6 +36,7 @@ import {
   PUMPING_SERVICE_TYPE_LABELS,
   PUMPING_STEP_LABELS,
   PUMPING_STEP_ROLE,
+  esRolResponsablePumping,
   createChassisInspectionItems,
   createMotorInspectionItems,
   createArrivalEquipmentItems,
@@ -445,6 +446,8 @@ export class TicketDetailPage {
   protected readonly chemicalQuantities = signal<Map<number, number>>(new Map());
   /** Documento de mezcla de químicos — obligatorio en cuanto se selecciona al menos un químico. */
   protected readonly chemicalMixtureDocument = signal<NzUploadFile | null>(null);
+  /** Si `chemicalMixtureDocument` viene de precargar un documento REAL del pedido (subida a disco, `PedidoDocumento`), acá queda la referencia para poder previsualizarlo/descargarlo — null si el usuario adjuntó uno a mano (solo se guarda el nombre, sin contenido, ver `onChemicalMixtureDocumentSelected`). */
+  protected readonly chemicalMixtureDocumentoOrigen = signal<PedidoDocumentoAdjunto | null>(null);
 
   private loadChemicalArticulos(): void {
     this.articulosService.list().subscribe({
@@ -495,6 +498,7 @@ export class TicketDetailPage {
     const [primero] = this.documentosReferenciaPedido();
     if (!primero) return;
     this.chemicalMixtureDocument.set({ uid: '-1', name: primero.nombreOriginal } as NzUploadFile);
+    this.chemicalMixtureDocumentoOrigen.set(primero);
   }
 
   /** Blob autenticado (mismo criterio que `previsualizarDocumento` de FCR) — un `<a href>` directo al endpoint no llevaría el Bearer. */
@@ -546,6 +550,7 @@ export class TicketDetailPage {
 
   protected onChemicalMixtureDocumentSelected(file: NzUploadFile): void {
     this.chemicalMixtureDocument.set(file);
+    this.chemicalMixtureDocumentoOrigen.set(null);
   }
 
   /** Motivo de bloqueo (cantidad sin definir o stock insuficiente en bodega), o null si todo está en regla. */
@@ -1477,7 +1482,7 @@ export class TicketDetailPage {
   ];
 
   protected readonly isOperador = computed(() => this.roleName() === 'Operador');
-  protected readonly isSupervisor = computed(() => this.roleName() === 'Supervisor');
+  protected readonly isSupervisor = computed(() => this.roleName() === 'Supervisor' || this.roleName() === 'Supervisor Pumping');
 
   protected readonly personnelRows = computed(() => {
     const t = this.ticket();
@@ -1737,7 +1742,7 @@ export class TicketDetailPage {
         // en "Jefe de Base" tras autorizar un gerenciamiento), se pasa a ese
         // rol en vez de bloquear el acceso.
         const expected = PUMPING_STEP_ROLE[ticket.currentStep];
-        if (expected && this.roleName() !== expected.roleName) {
+        if (expected && !esRolResponsablePumping(expected.roleName, this.roleName())) {
           this.auth.switchRole(expected.roleName, expected.roleId);
         }
         this.ticket.set(ticket);
@@ -2474,21 +2479,31 @@ export class TicketDetailPage {
    *     real y un conductor con permisos.
    * Se re-ejecuta al llegar cada catálogo para no perder una carrera de red.
    */
+  /**
+   * Restaura `completedInspections` con las inspecciones REALES ya guardadas
+   * en el backend (`realInspections`) — antes se saltaba por completo hasta
+   * llegar al paso "revisar_reportes_salida", así que al recargar la página
+   * en "en_ejecucion" (justo donde el operador hace "Realizar inspección")
+   * la inspección recién guardada desaparecía de la vista aunque sí estaba
+   * persistida. El mock de relleno (`createMockCompletedInspection`, para
+   * demo/operadores sin inspección real) sigue reservado a partir de
+   * "revisar_reportes_salida", que es cuando el Supervisor la revisa.
+   */
   private syncMockInspections(): void {
     const t = this.ticket();
     if (!t) return;
-    if (STEP_KEYS.indexOf(t.currentStep) < STEP_KEYS.indexOf('revisar_reportes_salida')) return;
+    const pasadoRevisionSalida = STEP_KEYS.indexOf(t.currentStep) >= STEP_KEYS.indexOf('revisar_reportes_salida');
     this.completedInspections.update(map => {
       const updated = new Map(map);
       for (const op of t.operators) {
         const actual = updated.get(op.id) as VehicleInspection | undefined;
         if (actual && actual.id !== 0) continue; // inspección real hecha en esta sesión
         const real = this.ultimaInspeccionReal(op.unitCode);
-        updated.set(
-          op.id,
-          real ??
-            createMockCompletedInspection(op.name, op.unitCode, this.unidadPorCodigo(op.unitCode), this.conductorParaOperador(op.id)),
-        );
+        if (real) {
+          updated.set(op.id, real);
+        } else if (pasadoRevisionSalida) {
+          updated.set(op.id, createMockCompletedInspection(op.name, op.unitCode, this.unidadPorCodigo(op.unitCode), this.conductorParaOperador(op.id)));
+        }
       }
       return updated;
     });

@@ -223,3 +223,34 @@ body {
     transform: rotate(90deg);
   }
 }
+
+/**
+ * Fila de acciones con varios dynadrill-icon-button/dynadrill-button uno
+ * junto a otro (cada uno es block-level, sin esto se apilan en vertical) —
+ * usada en columnas "Acciones" de tablas (ej. Personal asignado de Pumping).
+ * Global: sumaba al budget de anyComponentStyle por componente.
+ */
+.dyn-actions-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+/**
+ * Tinte de color "pendiente" para un dynadrill-icon-button — el componente
+ * no tiene variante de color propia. Mismo criterio ::ng-deep que usa FCR
+ * para su botón de eliminar herramienta (color danger).
+ */
+.dyn-icon-btn-pending {
+  ::ng-deep .dynadrill-icon-btn {
+    color: var(--warning, #d69e2e) !important;
+    border-color: var(--warning, #d69e2e) !important;
+
+    &:hover:not([disabled]) {
+      color: var(--warning, #d69e2e) !important;
+      border-color: var(--warning, #d69e2e) !important;
+      background: rgba(214, 158, 46, 0.08) !important;
+    }
+  }
+}

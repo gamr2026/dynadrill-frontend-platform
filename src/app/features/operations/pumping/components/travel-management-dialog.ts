@@ -329,7 +329,7 @@ export class TravelManagementDialog {
   /** BAJO lo cierra el supervisor directo; MEDIO/ALTO va a autorización del Jefe de Base. */
   protected readonly requiereAprobacionJefeBase = computed(() => this.riskLevel() !== 'BAJO');
   protected readonly submitLabel = computed(() =>
-    this.requiereAprobacionJefeBase() ? 'Enviar para aprobación del Jefe de Base' : 'Guardar Gerenciamiento de Viaje',
+    this.requiereAprobacionJefeBase() ? 'Enviar para aprobación del Jefe de Base' : 'Guardar',
   );
 
   /**

@@ -173,6 +173,12 @@ export class VehicleInspectionDialog {
     const c = this.conductorSeleccionado();
     return c ? conductorPermisosPorVencer(c) : [];
   });
+  /** Conductores alternativos que sí reúnen las condiciones — para sugerir un cambio cuando el elegido no las cumple. */
+  protected readonly conductoresSugeridos = computed<DynadrillSelectOption[]>(() =>
+    this.conductoresPermisos()
+      .filter(c => c.nombre !== this.inspeccionadoPor() && conductorReuneCondiciones(c))
+      .map(c => ({ label: c.nombre, value: c.nombre })),
+  );
   protected readonly observacionesConductor = signal('');
   protected readonly supervisorNombre = signal(this.data?.supervisorNombre ?? '');
   /**

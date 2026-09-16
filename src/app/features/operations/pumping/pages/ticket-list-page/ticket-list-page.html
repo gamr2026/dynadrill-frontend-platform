@@ -17,24 +17,14 @@
 <ng-template #actionsTpl let-row>
   @if (canViewDetail(row)) {
     @if (isSupervisor() && row['step'] === 'asignacion') {
-      <dynadrill-button variant="primary" size="small" (click)="viewDetailMode(row, 'asignar')">
-        Asignar
-      </dynadrill-button>
-      <dynadrill-button variant="secondary" size="small" (click)="viewDetailMode(row, 'resumen')">
-        Ver detalle
-      </dynadrill-button>
+      <dynadrill-icon-button icon="user-add" tooltip="Asignar" (clicked)="viewDetailMode(row, 'asignar')" />
+      <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewDetailMode(row, 'resumen')" />
     } @else if (isSupervisor() && row['step'] === 'revisar_reportes_salida') {
-      <dynadrill-button variant="primary" size="small" (click)="viewDetail(row)">
-        Revisar reportes de salida
-      </dynadrill-button>
+      <dynadrill-icon-button icon="file-search" tooltip="Revisar reportes de salida" (clicked)="viewDetail(row)" />
     } @else if (isSupervisor() && row['step'] === 'revisar_reportes_llegada') {
-      <dynadrill-button variant="primary" size="small" (click)="viewDetail(row)">
-        Revisar reportes de llegada
-      </dynadrill-button>
+      <dynadrill-icon-button icon="file-search" tooltip="Revisar reportes de llegada" (clicked)="viewDetail(row)" />
     } @else {
-      <dynadrill-button variant="secondary" size="small" (click)="viewDetail(row)">
-        Ver detalle
-      </dynadrill-button>
+      <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewDetail(row)" />
     }
   }
 </ng-template>

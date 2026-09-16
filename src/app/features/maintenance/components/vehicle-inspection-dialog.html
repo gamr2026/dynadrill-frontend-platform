@@ -103,6 +103,17 @@
             <div class="vehicle-inspection-dialog__blocking-warning">
               ⚠ {{ conductorSeleccionado()!.nombre }} no reúne las condiciones para trabajar — hay al menos un documento vencido. No se puede guardar la inspección hasta que RRHH/QHSE actualice el registro.
             </div>
+            @if (conductoresSugeridos().length) {
+              <dynadrill-select
+                label="Cambiar de conductor"
+                placeholder="Sugerencias — conductores que sí reúnen las condiciones"
+                [options]="conductoresSugeridos()"
+                [value]="null"
+                (valueChange)="inspeccionadoPor.set($any($event))"
+              />
+            } @else {
+              <dynadrill-text variant="caption">No hay otro conductor disponible que reúna las condiciones — contacte a RRHH/QHSE.</dynadrill-text>
+            }
           } @else {
             <dynadrill-text variant="body">✓ Reúne las condiciones para trabajar.</dynadrill-text>
           }

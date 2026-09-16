@@ -7,6 +7,9 @@
     />
 
     <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
+      @if (pf.advertencia) {
+        <dynadrill-banner variant="critical" [message]="pf.advertencia" />
+      }
       <section class="fact-card">
         <header class="pf-detail__head">
           <h2>Ítems</h2>
@@ -48,7 +51,9 @@
       <section class="fact-card">
         <header class="pf-detail__head">
           <h2>Comercial y responsables</h2>
-          <dynadrill-button variant="secondary" size="small" (clicked)="editarRepresentantes()">Editar representantes</dynadrill-button>
+          @if (pf.estado !== 'firmada') {
+            <dynadrill-button variant="secondary" size="small" (clicked)="editarRepresentantes()">Editar representantes</dynadrill-button>
+          }
         </header>
         <dl class="pf-detail__defs">
           @for (d of datosComercial(); track d.label) { <div><dt>{{ d.label }}</dt><dd>{{ d.value }}</dd></div> }

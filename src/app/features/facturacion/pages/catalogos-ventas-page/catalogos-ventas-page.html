@@ -7,6 +7,12 @@
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
     <section class="fact-card">
+      <dynadrill-tabs [tabs]="tabs" [activeIndex]="activeTabIndex()" (activeIndexChange)="activeTabIndex.set($event)" [contentTemplate]="tabContent" />
+    </section>
+  </dynadrill-spinner>
+
+  <ng-template #tabContent let-tab let-index="index">
+    @if (index === 0) {
       <header class="catalogos-ventas-page__head">
         <h2>Personas de contacto</h2>
         <dynadrill-button (clicked)="nuevaPersona()">+ Nueva persona</dynadrill-button>
@@ -20,9 +26,7 @@
           [actionsTemplate]="personaActions"
         />
       </div>
-    </section>
-
-    <section class="fact-card">
+    } @else {
       <header class="catalogos-ventas-page__head">
         <h2>Clientes</h2>
         <dynadrill-button (clicked)="nuevoCliente()">+ Nuevo cliente</dynadrill-button>
@@ -36,8 +40,8 @@
           [actionsTemplate]="clienteActions"
         />
       </div>
-    </section>
-  </dynadrill-spinner>
+    }
+  </ng-template>
 
   <ng-template #personaActions let-row>
     <div class="catalogos-ventas-page__row-actions">

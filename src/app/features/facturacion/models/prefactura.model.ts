@@ -74,6 +74,8 @@ export interface Prefactura {
   fechaGeneracion: string;
   /** Quién generó esta versión de la prefactura — "Firma electrónica autorizada por Dynadrill" en el PDF. */
   generadoPor?: string;
+  /** Por qué `netoCobrar` dio $0 (o `items` vino vacío) — sin Lista de Precios del cliente, o códigos del pedido sin match. */
+  advertencia?: string;
 }
 
 export type CreatePrefacturaInput = Pick<Prefactura, 'pedidoId' | 'items'>;

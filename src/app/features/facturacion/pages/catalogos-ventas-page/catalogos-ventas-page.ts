@@ -9,6 +9,8 @@ import {
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
+  DynadrillTabsComponent,
+  type DynadrillTab,
 } from '@digitec-it-projects/dynadrill-ui';
 import { CatalogosService } from '../../../../shared/services/catalogos.service';
 import { ClienteCatalogo, PersonaContacto, TIPO_PERSONA_LABELS } from '../../../../shared/models/catalogos.model';
@@ -29,6 +31,7 @@ import { ClienteFormDialog, ClienteFormDialogData } from '../../components/clien
     DynadrillDataTableComponent,
     DynadrillIconButtonComponent,
     DynadrillSpinnerComponent,
+    DynadrillTabsComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './catalogos-ventas-page.html',
@@ -42,6 +45,10 @@ export class CatalogosVentasPage {
   protected readonly loading = signal(true);
   protected readonly personas = signal<PersonaContacto[]>([]);
   protected readonly clientes = signal<ClienteCatalogo[]>([]);
+
+  /** Pestañas en vez de dos cards apiladas — evita tener que bajar para ver a los clientes. */
+  protected readonly tabs: DynadrillTab[] = [{ label: 'Personas de contacto' }, { label: 'Clientes' }];
+  protected readonly activeTabIndex = signal(0);
 
   // ── Personas ──
   /** El filtro de Tipo vive en el propio header de columna (nz-table nativo) — ver `filters` abajo. */

@@ -21,6 +21,7 @@ import {
   PUMPING_SERVICE_TYPE_LABELS,
   PUMPING_STEP_LABELS,
   PUMPING_STEP_ROLE,
+  esRolResponsablePumping,
   type PumpingStep,
 } from '../../models/pumping.model';
 import { PumpingService } from '../../services/pumping.service';
@@ -85,7 +86,7 @@ export class TicketListPage {
   // ── Rol actual ──
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
   protected readonly isJefeBase = computed(() => this.roleName() === 'Jefe de Base');
-  protected readonly isSupervisor = computed(() => this.roleName() === 'Supervisor');
+  protected readonly isSupervisor = computed(() => this.roleName() === 'Supervisor' || this.roleName() === 'Supervisor Pumping');
   protected readonly isOperador = computed(() => this.roleName() === 'Operador');
 
   protected readonly loading = signal(true);
@@ -364,6 +365,6 @@ export class TicketListPage {
   protected canViewDetail(row: Record<string, unknown>): boolean {
     const step = row['step'] as PumpingStep;
     const expectedRole = PUMPING_STEP_ROLE[step];
-    return expectedRole?.roleName === this.roleName();
+    return esRolResponsablePumping(expectedRole?.roleName, this.roleName());
   }
 }

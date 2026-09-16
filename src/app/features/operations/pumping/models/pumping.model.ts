@@ -78,6 +78,17 @@ export const PUMPING_STEP_ROLE: Record<PumpingStep, { roleName: string; roleId: 
   finalizado: { roleName: 'Supervisor', roleId: 1 },
 };
 
+/**
+ * "Supervisor Pumping" cumple las mismas acciones que "Supervisor" pero
+ * acotado a Pumping (ver sidebar.ts) — cualquier chequeo de "es el rol
+ * responsable de este paso" debe aceptar ambos nombres de rol.
+ */
+export function esRolResponsablePumping(expectedRoleName: string | undefined, currentRoleName: string): boolean {
+  if (!expectedRoleName) return false;
+  if (expectedRoleName === currentRoleName) return true;
+  return expectedRoleName === 'Supervisor' && currentRoleName === 'Supervisor Pumping';
+}
+
 // ── Entidades del dominio ──
 
 export interface PumpingChemical {

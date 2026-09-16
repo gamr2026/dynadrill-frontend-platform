@@ -5,6 +5,10 @@ import { provideNzI18n, es_ES } from 'ng-zorro-antd/i18n';
 import { provideNzIcons } from 'ng-zorro-antd/icon';
 import { provideNzWave } from 'ng-zorro-antd/core/wave';
 import {
+  AuditOutline,
+  CarOutline,
+  CaretLeftOutline,
+  CaretRightOutline,
   CheckCircleOutline,
   EditOutline,
   EyeOutline,
@@ -12,6 +16,8 @@ import {
   FilePdfOutline,
   FileSearchOutline,
   InsertRowBelowOutline,
+  ScheduleOutline,
+  UserAddOutline,
   UserSwitchOutline,
 } from '@ant-design/icons-angular/icons';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
@@ -52,6 +58,10 @@ export const appConfig: ApplicationConfig = {
     // El manual de marca prohíbe el ripple/wave effect (sección 4) —
     // sin esto ng-zorro lo activa por defecto en botones/checkboxes.
     provideNzIcons([
+      AuditOutline,
+      CarOutline,
+      CaretLeftOutline,
+      CaretRightOutline,
       CheckCircleOutline,
       EditOutline,
       EyeOutline,
@@ -59,6 +69,8 @@ export const appConfig: ApplicationConfig = {
       FilePdfOutline,
       FileSearchOutline,
       InsertRowBelowOutline,
+      ScheduleOutline,
+      UserAddOutline,
       UserSwitchOutline,
     ]),
     provideNzWave({ disabled: true }),

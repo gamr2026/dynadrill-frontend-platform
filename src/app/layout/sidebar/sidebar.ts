@@ -22,13 +22,16 @@ const OPERATIVO_ITEM: DynadrillMenuItem = {
   ],
 };
 
-/** Supervisor: además de Pumping/FCR, su bandeja consolidada de solicitudes de cambio de ítems de sus operadores. */
-const SUPERVISOR_OPERATIVO_ITEM: DynadrillMenuItem = {
+/**
+ * Supervisor Pumping (supervisor.pumping@dynadrill.com): solo Pumping y su
+ * bandeja de Aprobaciones — nunca FCR (eso queda para el Supervisor genérico,
+ * ver PUMPING_APROBACIONES_ITEM más abajo).
+ */
+const PUMPING_APROBACIONES_ITEM: DynadrillMenuItem = {
   label: 'Operativo',
   icon: 'file-text',
   children: [
     { label: 'Pumping', link: '/modulos/operativo/pumping' },
-    { label: 'FCR', link: '/modulos/operativo/fcr' },
     { label: 'Aprobaciones', link: '/modulos/operativo/pumping/aprobaciones' },
   ],
 };
@@ -38,6 +41,13 @@ const FCR_ONLY_ITEM: DynadrillMenuItem = {
   label: 'Operativo',
   icon: 'file-text',
   children: [{ label: 'FCR', link: '/modulos/operativo/fcr' }],
+};
+
+/** Jefe de Base: solo Operativo > Pumping (sin FCR ni Aprobaciones). */
+const PUMPING_ONLY_ITEM: DynadrillMenuItem = {
+  label: 'Operativo',
+  icon: 'file-text',
+  children: [{ label: 'Pumping', link: '/modulos/operativo/pumping' }],
 };
 
 const MANTENIMIENTO_ITEM: DynadrillMenuItem = {
@@ -178,8 +188,15 @@ export class Sidebar {
 
     if (roleName === 'Supervisor') {
       // Sin PTW: "Firmar PTW y Actas" quedó mal asignado a este rol en una
-      // iteración anterior (corregido también en qhse.routes.ts).
-      return [dashboard, { label: 'Módulos', icon: 'modules', children: [SUPERVISOR_OPERATIVO_ITEM] }];
+      // iteración anterior (corregido también en qhse.routes.ts). Solo FCR:
+      // Pumping y Aprobaciones ahora son del rol "Supervisor Pumping" (abajo).
+      return [dashboard, { label: 'Módulos', icon: 'modules', children: [FCR_ONLY_ITEM] }];
+    }
+
+    // supervisor.pumping@dynadrill.com — mismas acciones que Supervisor pero
+    // acotado a Pumping y su bandeja de Aprobaciones (nunca FCR).
+    if (roleName === 'Supervisor Pumping') {
+      return [dashboard, { label: 'Módulos', icon: 'modules', children: [PUMPING_APROBACIONES_ITEM] }];
     }
 
     if (roleName === 'Jefe de Mantenimiento') {
@@ -234,12 +251,16 @@ export class Sidebar {
     }
 
     /**
-     * Único caso con acceso completo — el único que ve Administración.
-     * "Jefe de Base" se trata igual que Superadmin: ya se comportaba como
-     * acceso total antes de que este sidebar pasara a listas explícitas
-     * por rol, y nadie pidió restringirlo.
+     * A nivel de backend "Jefe de Base" sigue con acceso total (ver
+     * ADMIN_ROLE_CODES) — esto es solo el sidebar: a pedido del cliente, en
+     * la UI solo debe ver Operativo > Pumping.
      */
-    if (roleName === 'Superadmin' || roleName === 'Jefe de Base') {
+    if (roleName === 'Jefe de Base') {
+      return [dashboard, { label: 'Módulos', icon: 'modules', children: [PUMPING_ONLY_ITEM] }];
+    }
+
+    /** Único caso con acceso completo en el sidebar — el único que ve Administración. */
+    if (roleName === 'Superadmin') {
       return [
         dashboard,
         ADMINISTRACION_ITEM,

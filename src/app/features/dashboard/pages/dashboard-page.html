@@ -1,7 +1,8 @@
 <dynadrill-screen-header eyebrow="INICIO" title="Dashboard" />
 
+<dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
 <div class="dashboard-page__kpi-row">
-  @for (kpi of kpis; track kpi.label) {
+  @for (kpi of kpis(); track kpi.label) {
     <div class="dashboard-page__kpi dashboard-page__kpi--{{ kpi.tone }}">
       <div class="dashboard-page__kpi-icon" aria-hidden="true">
         <dynadrill-icon [name]="kpi.icon" [size]="20" />
@@ -13,7 +14,7 @@
 </div>
 
 <div class="dashboard-page__module-grid">
-  @for (card of moduleCards; track card.title) {
+  @for (card of moduleCards(); track card.title) {
     <dynadrill-section
       class="dashboard-page__module-card"
       [attr.data-accent]="card.accent"
@@ -38,3 +39,4 @@
     </dynadrill-section>
   }
 </div>
+</dynadrill-spinner>

@@ -21,7 +21,10 @@
         <header class="lp-detail__head">
           <h2>Ítems ({{ items().length }})</h2>
           @if (!editando()) {
-            <dynadrill-button variant="secondary" size="small" (clicked)="iniciarEdicionItems()">Editar ítems</dynadrill-button>
+            <div class="lp-detail__head-actions">
+              <dynadrill-button variant="secondary" size="small" [disabled]="!l.items.length" (clicked)="descargarExcel()">Descargar Excel</dynadrill-button>
+              <dynadrill-button variant="secondary" size="small" (clicked)="iniciarEdicionItems()">Editar ítems</dynadrill-button>
+            </div>
           } @else {
             <div class="lp-detail__head-actions">
               <dynadrill-button variant="secondary" size="small" (clicked)="cancelarEdicionItems()">Cancelar</dynadrill-button>

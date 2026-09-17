@@ -29,8 +29,10 @@
       </div>
 
       <ng-template #partesActionsTpl let-row>
-        <dynadrill-button variant="secondary" size="small" (clicked)="editarParte(row)">Editar</dynadrill-button>
-        <dynadrill-button variant="secondary" size="small" (clicked)="eliminarParte(row)">Eliminar</dynadrill-button>
+        <div class="dyn-actions-row">
+          <dynadrill-button variant="secondary" size="small" (clicked)="editarParte(row)">Editar</dynadrill-button>
+          <dynadrill-button variant="secondary" size="small" (clicked)="eliminarParte(row)">Eliminar</dynadrill-button>
+        </div>
       </ng-template>
 
       @if (partesRows().length > 0) {

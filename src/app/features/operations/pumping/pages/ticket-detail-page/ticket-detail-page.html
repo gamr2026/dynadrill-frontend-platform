@@ -291,34 +291,36 @@
 
       <!-- Orden pedido por el cliente: primero se revisa/aprueba la inspección + reporte de unidad; recién con el reporte aprobado se habilita crear el Gerenciamiento de Viaje (DYN-SGI-RE-049). -->
       <ng-template #reviewSalidaActionsTpl let-row>
-        @if (isOperatorSalidaRejected(row)) {
-          <dynadrill-button variant="error" size="small" (click)="viewSalidaRejectionReason(row)">
-            Rechazado — Ver motivo
-          </dynadrill-button>
-        } @else if (!isOperatorSalidaApproved(row)) {
-          <dynadrill-icon-button icon="audit" tooltip="Revisar y aprobar" (clicked)="approveSalidaOperator(row)" />
-        } @else if (hasTravelManagement(row)) {
-          <dynadrill-button variant="success" size="small" [disabled]="true">
-            Aprobado
-          </dynadrill-button>
-          <dynadrill-button variant="success" size="small" [disabled]="true">
-            Gerenciamiento completado
-          </dynadrill-button>
-        } @else if (isTravelPendingApproval(row)) {
-          <dynadrill-button variant="warning" size="small" [disabled]="true">
-            Gerenciamiento enviado — esperando al Jefe de Base
-          </dynadrill-button>
-          <dynadrill-button variant="primary" size="small" (click)="autorizarGerenciamiento(row)">
-            Autorizar como Jefe de Base
-          </dynadrill-button>
-        } @else {
-          <dynadrill-button variant="success" size="small" [disabled]="true">
-            Aprobado
-          </dynadrill-button>
-          <dynadrill-button variant="primary" size="small" (click)="openTravelManagement(row)">
-            Crear Gerenciamiento de Viaje
-          </dynadrill-button>
-        }
+        <div class="dyn-actions-row">
+          @if (isOperatorSalidaRejected(row)) {
+            <dynadrill-button variant="error" size="small" (click)="viewSalidaRejectionReason(row)">
+              Rechazado — Ver motivo
+            </dynadrill-button>
+          } @else if (!isOperatorSalidaApproved(row)) {
+            <dynadrill-icon-button icon="audit" tooltip="Revisar y aprobar" (clicked)="approveSalidaOperator(row)" />
+          } @else if (hasTravelManagement(row)) {
+            <dynadrill-button variant="success" size="small" [disabled]="true">
+              Aprobado
+            </dynadrill-button>
+            <dynadrill-button variant="success" size="small" [disabled]="true">
+              Gerenciamiento completado
+            </dynadrill-button>
+          } @else if (isTravelPendingApproval(row)) {
+            <dynadrill-button variant="warning" size="small" [disabled]="true">
+              Gerenciamiento enviado — esperando al Jefe de Base
+            </dynadrill-button>
+            <dynadrill-button variant="primary" size="small" (click)="autorizarGerenciamiento(row)">
+              Autorizar como Jefe de Base
+            </dynadrill-button>
+          } @else {
+            <dynadrill-button variant="success" size="small" [disabled]="true">
+              Aprobado
+            </dynadrill-button>
+            <dynadrill-button variant="primary" size="small" (click)="openTravelManagement(row)">
+              Crear Gerenciamiento de Viaje
+            </dynadrill-button>
+          }
+        </div>
       </ng-template>
 
       <dynadrill-data-table
@@ -471,22 +473,24 @@
       <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
 
       <ng-template #gerenciamientoLlegadaActionsTpl let-row>
-        @if (hasReturnTravelManagement(row)) {
-          <dynadrill-button variant="success" size="small" [disabled]="true">
-            Gerenciamiento completado
-          </dynadrill-button>
-        } @else if (isReturnTravelPendingApproval(row)) {
-          <dynadrill-button variant="warning" size="small" [disabled]="true">
-            Gerenciamiento de retorno enviado — esperando al Jefe de Base
-          </dynadrill-button>
-          <dynadrill-button variant="primary" size="small" (click)="autorizarGerenciamiento(row, true)">
-            Autorizar como Jefe de Base
-          </dynadrill-button>
-        } @else {
-          <dynadrill-button variant="primary" size="small" (click)="openReturnTravelManagement(row)">
-            Crear Gerenciamiento de Viaje
-          </dynadrill-button>
-        }
+        <div class="dyn-actions-row">
+          @if (hasReturnTravelManagement(row)) {
+            <dynadrill-button variant="success" size="small" [disabled]="true">
+              Gerenciamiento completado
+            </dynadrill-button>
+          } @else if (isReturnTravelPendingApproval(row)) {
+            <dynadrill-button variant="warning" size="small" [disabled]="true">
+              Gerenciamiento de retorno enviado — esperando al Jefe de Base
+            </dynadrill-button>
+            <dynadrill-button variant="primary" size="small" (click)="autorizarGerenciamiento(row, true)">
+              Autorizar como Jefe de Base
+            </dynadrill-button>
+          } @else {
+            <dynadrill-button variant="primary" size="small" (click)="openReturnTravelManagement(row)">
+              Crear Gerenciamiento de Viaje
+            </dynadrill-button>
+          }
+        </div>
       </ng-template>
 
       <dynadrill-data-table
@@ -552,14 +556,16 @@
       <dynadrill-text variant="caption">Revise la inspección de salida realizada por cada operador.</dynadrill-text>
 
       <ng-template #inspectionSalidaReviewTpl let-row>
-        @if (hasCompletedInspection(row)) {
-          <dynadrill-icon-button icon="schedule" tooltip="Inspección realizada" [disabled]="true" />
-          <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewInspection(row)" />
-        } @else {
-          <dynadrill-button variant="warning" size="small" [disabled]="true">
-            El operador no registró inspección de salida
-          </dynadrill-button>
-        }
+        <div class="dyn-actions-row">
+          @if (hasCompletedInspection(row)) {
+            <dynadrill-icon-button icon="schedule" tooltip="Inspección realizada" [disabled]="true" />
+            <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewInspection(row)" />
+          } @else {
+            <dynadrill-button variant="warning" size="small" [disabled]="true">
+              El operador no registró inspección de salida
+            </dynadrill-button>
+          }
+        </div>
       </ng-template>
 
       <dynadrill-data-table
@@ -647,14 +653,16 @@
       <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
 
       <ng-template #inspectionActionsTpl let-row>
-        @if (hasCompletedInspection(row)) {
-          <dynadrill-icon-button icon="schedule" tooltip="Inspección realizada" [disabled]="true" />
-          <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewInspection(row)" />
-        } @else {
-          <dynadrill-button variant="primary" size="small" (click)="openInspection(row)">
-            Realizar inspección
-          </dynadrill-button>
-        }
+        <div class="dyn-actions-row">
+          @if (hasCompletedInspection(row)) {
+            <dynadrill-icon-button icon="schedule" tooltip="Inspección realizada" [disabled]="true" />
+            <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewInspection(row)" />
+          } @else {
+            <dynadrill-button variant="primary" size="small" (click)="openInspection(row)">
+              Realizar inspección
+            </dynadrill-button>
+          }
+        </div>
       </ng-template>
 
       <dynadrill-data-table

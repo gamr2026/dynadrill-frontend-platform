@@ -27,10 +27,12 @@
     </div>
 
     <ng-template #actionsTpl let-row>
-      <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(row)">Ver detalle</dynadrill-button>
-      @if (row['kind'] === 'order' && row['statusBadge']?.['text'] === 'Cerrado') {
-        <dynadrill-button variant="secondary" size="small" (clicked)="openReport(row)">Ver informe</dynadrill-button>
-      }
+      <div class="dyn-actions-row">
+        <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(row)">Ver detalle</dynadrill-button>
+        @if (row['kind'] === 'order' && row['statusBadge']?.['text'] === 'Cerrado') {
+          <dynadrill-button variant="secondary" size="small" (clicked)="openReport(row)">Ver informe</dynadrill-button>
+        }
+      </div>
     </ng-template>
   </div>
 
@@ -88,8 +90,10 @@
     </div>
 
     <ng-template #prevActionsTpl let-row>
-      <dynadrill-button size="small" (clicked)="openRegisterPM(row)">Registrar mantenimiento</dynadrill-button>
-      <dynadrill-button variant="secondary" size="small" (clicked)="openHistorial(row)">Ver historial</dynadrill-button>
+      <div class="dyn-actions-row">
+        <dynadrill-button size="small" (clicked)="openRegisterPM(row)">Registrar mantenimiento</dynadrill-button>
+        <dynadrill-button variant="secondary" size="small" (clicked)="openHistorial(row)">Ver historial</dynadrill-button>
+      </div>
     </ng-template>
   </div>
 

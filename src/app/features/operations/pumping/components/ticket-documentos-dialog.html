@@ -1,7 +1,10 @@
 <div class="ticket-documentos">
   <dynadrill-text variant="caption">Documentos generados para el ticket {{ data.ticketCode }}.</dynadrill-text>
 
-  <dynadrill-text variant="h2">Reporte Job (diario)</dynadrill-text>
+  <div class="ticket-documentos__section-head">
+    <dynadrill-text variant="h2">Reporte Job (diario)</dynadrill-text>
+    <dynadrill-button variant="secondary" size="small" (clicked)="descargarExcelReporteDiario()">Descargar Excel</dynadrill-button>
+  </div>
   <table class="ticket-documentos__table">
     <thead><tr><th>Fecha</th><th>Firmado por</th><th aria-label="Acciones"></th></tr></thead>
     <tbody>
@@ -13,6 +16,24 @@
         </tr>
       } @empty {
         <tr><td colspan="3">Todavía no se generó ningún Reporte Job para este ticket.</td></tr>
+      }
+    </tbody>
+  </table>
+
+  <dynadrill-text variant="h2">Documentos subidos</dynadrill-text>
+  <table class="ticket-documentos__table">
+    <thead><tr><th>Documento</th><th>Subido por</th><th aria-label="Acciones"></th></tr></thead>
+    <tbody>
+      @for (d of documentosSubidos(); track d.id) {
+        <tr>
+          <td>{{ d.nombreOriginal }}</td>
+          <td>{{ d.uploadedBy || '—' }}</td>
+          <td><dynadrill-icon-button icon="download" tooltip="Descargar" (clicked)="descargarDocumento(d)" /></td>
+        </tr>
+      } @empty {
+        @if (!loadingDocumentos()) {
+          <tr><td colspan="3">Todavía no se subió ningún documento (ej. monitoreo) a este ticket.</td></tr>
+        }
       }
     </tbody>
   </table>

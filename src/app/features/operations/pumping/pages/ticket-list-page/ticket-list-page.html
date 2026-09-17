@@ -1,7 +1,7 @@
 <dynadrill-screen-header
   eyebrow="PUM-01"
-  title="Tickets Pumping"
-  subtitle="Dashboard de propuestas y tickets activos"
+  title="Pedidos Pumping"
+  subtitle="Dashboard de propuestas y pedidos activos"
   [roleTag]="roleName()"
 />
 
@@ -15,18 +15,20 @@
 
 <!-- Template de acciones: muestra botón solo si el rol puede ver ese estado -->
 <ng-template #actionsTpl let-row>
-  @if (canViewDetail(row)) {
-    @if (isSupervisor() && row['step'] === 'asignacion') {
-      <dynadrill-icon-button icon="user-add" tooltip="Asignar" (clicked)="viewDetailMode(row, 'asignar')" />
-      <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewDetailMode(row, 'resumen')" />
-    } @else if (isSupervisor() && row['step'] === 'revisar_reportes_salida') {
-      <dynadrill-icon-button icon="file-search" tooltip="Revisar reportes de salida" (clicked)="viewDetail(row)" />
-    } @else if (isSupervisor() && row['step'] === 'revisar_reportes_llegada') {
-      <dynadrill-icon-button icon="file-search" tooltip="Revisar reportes de llegada" (clicked)="viewDetail(row)" />
-    } @else {
-      <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewDetail(row)" />
+  <div class="dyn-actions-row">
+    @if (canViewDetail(row)) {
+      @if (isSupervisor() && row['step'] === 'asignacion') {
+        <dynadrill-icon-button icon="user-add" tooltip="Asignar" (clicked)="viewDetailMode(row, 'asignar')" />
+        <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewDetailMode(row, 'resumen')" />
+      } @else if (isSupervisor() && row['step'] === 'revisar_reportes_salida') {
+        <dynadrill-icon-button icon="file-search" tooltip="Revisar reportes de salida" (clicked)="viewDetail(row)" />
+      } @else if (isSupervisor() && row['step'] === 'revisar_reportes_llegada') {
+        <dynadrill-icon-button icon="file-search" tooltip="Revisar reportes de llegada" (clicked)="viewDetail(row)" />
+      } @else {
+        <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewDetail(row)" />
+      }
     }
-  }
+  </div>
 </ng-template>
 
 <!-- Template de fila expandida: detalle de sub-órdenes de mantenimiento -->
@@ -54,11 +56,14 @@
                     <dynadrill-tag [label]="sub.status" [variant]="sub.statusTone" />
                   </td>
                   <td>
-                    @if (sub.canReview) {
-                      <dynadrill-button variant="primary" size="small" (click)="reviewMaintenance(sub.id)">
-                        Revisar Mantenimiento
-                      </dynadrill-button>
-                    }
+                    <div class="dyn-actions-row">
+                      <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="verDetalleMaintenance(sub.id)" />
+                      @if (sub.canReview) {
+                        <dynadrill-button variant="primary" size="small" (click)="reviewMaintenance(sub.id)">
+                          Revisar Mantenimiento
+                        </dynadrill-button>
+                      }
+                    </div>
                   </td>
                 </tr>
               }

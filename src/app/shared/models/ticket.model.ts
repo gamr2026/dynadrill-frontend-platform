@@ -96,6 +96,10 @@ export interface Ticket {
   code: string;
   status: TicketStatus;
   wellName: string;
+  /** Ids reales del catálogo de ubicación (heredados del Pedido al crear el ticket) — precargan Pozo/Campo/Bloque por id en vez de por texto libre (frágil: AS2 no siempre coincide con el formato del catálogo). */
+  pozoId?: number | null;
+  campoId?: number | null;
+  bloqueId?: number | null;
   clientName: string;
   estimatedDate: string;
   assignedSupervisor: string;

@@ -52,6 +52,8 @@ export interface VehicleInspectionDialogData {
   supervisorNombre?: string;
   /** 'salida' (default): solo pide kilometraje inicial. 'llegada': pide el final — pedirlos juntos en la salida no tiene sentido si recién va a viajar. */
   modo?: 'salida' | 'llegada';
+  /** Ticket de Pumping/FCR dueño de esta inspección — ver comentario en VehicleInspection.ticketId. */
+  ticketId?: number;
 }
 
 function toChecklistItems(labels: string[]): VehicleChecklistItem[] {
@@ -199,6 +201,28 @@ export class VehicleInspectionDialog {
   protected readonly puedeGuardar = computed(
     () => !!this.unidadId() && !!this.conductorSeleccionado() && this.reuneCondicionesParaTrabajar() && this.checklistCompleto(),
   );
+
+  /**
+   * El botón "Guardar" solo quedaba `[disabled]`, sin explicar por qué —
+   * el usuario hacía clic y no pasaba nada, sin ningún mensaje (bug
+   * reportado: "en ningún momento pude hacer la inspección del
+   * vehículo"). Explica la condición que falta, en el mismo orden que
+   * evalúa `puedeGuardar`.
+   */
+  protected readonly motivoNoPuedeGuardar = computed(() => {
+    if (this.puedeGuardar()) return '';
+    if (!this.unidadId()) return 'Falta seleccionar la unidad (paso "Datos").';
+    if (!this.conductorSeleccionado()) return 'Falta seleccionar el conductor (paso "Datos").';
+    if (!this.reuneCondicionesParaTrabajar()) {
+      return `${this.conductorSeleccionado()!.nombre} no reúne las condiciones para trabajar — cambia de conductor en el paso "Conductor".`;
+    }
+    const faltanVehiculo = this.checklistVehiculo().filter(i => i.estado === null).length;
+    const faltanEquipo = this.checklistEquipo().filter(i => i.estado === null).length;
+    const partes: string[] = [];
+    if (faltanVehiculo) partes.push(`${faltanVehiculo} ítem(s) del checklist de Vehículo`);
+    if (faltanEquipo) partes.push(`${faltanEquipo} ítem(s) del checklist de Equipo`);
+    return partes.length ? `Falta marcar ✓/✕ en: ${partes.join(' y ')}.` : '';
+  });
 
   /**
    * Al elegir la unidad, precarga sus datos patrimoniales (Marca/Tipo/
@@ -368,6 +392,7 @@ export class VehicleInspectionDialog {
     return {
       unidadId: this.unidadId()!,
       unidadCode: unidad?.code ?? '',
+      ticketId: this.data?.ticketId ?? this.data?.existing?.ticketId,
       fecha: isoOrUndefined(this.fecha()) ?? new Date().toISOString(),
       puntoPartida: this.puntoPartida(),
       destino: this.destino(),

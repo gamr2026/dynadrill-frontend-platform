@@ -29,6 +29,7 @@ import { AuthService } from '../../../../../core/services/auth.service';
 import { MaintenanceOrderWithSubOrders, SubOrder } from '../../../../maintenance/models/maintenance-order.model';
 import { MaintenanceOrdersService } from '../../../../maintenance/services/maintenance-orders.service';
 import { SuborderReviewDialog, SuborderReviewDialogData } from '../../../../maintenance/components/suborder-review-dialog';
+import { SuborderDetailDialog, SuborderDetailDialogData } from '../../../../maintenance/components/suborder-detail-dialog';
 import { DocumentoOperativoService } from '../../../../facturacion/services/pedido.service';
 import { TicketDocumentosDialog, TicketDocumentosDialogData } from '../../components/ticket-documentos-dialog';
 
@@ -96,8 +97,8 @@ export class TicketListPage {
   // ── Pestañas ──
 
   protected readonly tabs = computed<DynadrillTab[]>(() => [
-    { label: 'Tickets en Proceso', badge: this.inProcessTickets().length },
-    { label: 'Tickets Aprobados', badge: this.approvedTickets().length },
+    { label: 'Pedidos en Proceso', badge: this.inProcessTickets().length },
+    { label: 'Pedidos Aprobados', badge: this.approvedTickets().length },
   ]);
   protected readonly activeTabIndex = signal(0);
   protected readonly isInProcessTab = computed(() => this.activeTabIndex() === 0);
@@ -118,7 +119,7 @@ export class TicketListPage {
     const all = this.tickets();
     const inProcess = this.inProcessTickets();
     return [
-      { label: 'Total tickets', value: all.length },
+      { label: 'Total pedidos', value: all.length },
       { label: 'Revisión de propuesta', value: inProcess.filter(t => t.currentStep === 'revision_propuesta').length },
       { label: 'En ejecución', value: inProcess.filter(t => t.currentStep === 'en_ejecucion').length },
       { label: 'En revisión', value: inProcess.filter(t => t.currentStep === 'en_revision').length },
@@ -157,6 +158,7 @@ export class TicketListPage {
   private static readonly SUB_ORDER_STATUS_TONES: Record<string, BadgeTone> = {
     'En Ejecución': 'brand',
     'En Revisión': 'warning',
+    Pendiente: 'warning',
     Aprobado: 'success',
     Rechazado: 'error',
   };
@@ -249,7 +251,7 @@ export class TicketListPage {
         this.dialog.open<TicketDocumentosDialog, TicketDocumentosDialogData>({
           title: `Documentos — ${ticketCode}`,
           content: TicketDocumentosDialog,
-          data: { ticketCode, reporteJobDocs },
+          data: { ticketId, ticketCode, reporteJobDocs },
           footer: false,
           width: '640px',
         });
@@ -301,8 +303,14 @@ export class TicketListPage {
       case 'Corrección Solicitada':
         return type === 'Instrumental' ? 'Rechazado' : 'En Revisión';
       case 'Cerrado':
-      case 'Derivado a Pumping':
         return 'Aprobado';
+      case 'Derivado a Pumping':
+        // El Jefe de Mantenimiento derivó la novedad, pero el operador de
+        // Pumping (operador@dynadrill.com) todavía no la atendió — antes
+        // se mostraba "Aprobado" (mismo caso que 'Cerrado'), dando a
+        // entender que ya estaba resuelta cuando en realidad recién
+        // empieza a esperar por el lado de Pumping.
+        return 'Pendiente';
       default:
         return 'Rechazado';
     }
@@ -337,6 +345,25 @@ export class TicketListPage {
           error: () => this.notify.error('Error', 'No se pudieron recargar las órdenes de mantenimiento.'),
         });
       }
+    });
+  }
+
+  /**
+   * "Ver detalle" — lectura del avance real del área de Mantenimiento
+   * (diagnóstico/actividades correctivas de jefe.mantenimiento@/operador.
+   * mecanico@/operador.instrumental@) sobre la novedad que Pumping les
+   * reportó — antes solo se podía ver el estado del badge, sin saber si
+   * ya había algún avance real detrás.
+   */
+  protected verDetalleMaintenance(subOrderId: number): void {
+    const subOrder = this.findSubOrder(subOrderId);
+    if (!subOrder) return;
+    const order = this.maintenanceOrders().find(o => o.subOrders.some(s => s.id === subOrderId));
+    this.dialog.open<SuborderDetailDialog, SuborderDetailDialogData>({
+      title: 'Detalle de mantenimiento — ' + subOrder.code,
+      content: SuborderDetailDialog,
+      data: { subOrder, orderCode: order?.code ?? '', novedadOriginal: order ? `Origen: ${order.origin}` : '' },
+      footer: false,
     });
   }
 

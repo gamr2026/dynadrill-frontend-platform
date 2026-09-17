@@ -319,9 +319,18 @@ export class TicketDetailPage {
   /** Inspecciones de vehículos ya registradas en el backend — para recuperar
    *  la que hizo el operador (con su conductor real) al recargar la página. */
   private readonly realInspections = signal<VehicleInspection[]>([]);
+  /**
+   * Solo cuentan inspecciones de ESTE ticket — antes se tomaba la más
+   * reciente para esa unidad sin importar de qué ticket era, así que una
+   * unidad reutilizada (ej. CAM-04) llegaba con "Inspección realizada" ya
+   * puesta en un ticket nuevo, heredada de un servicio anterior (bug
+   * reportado). Las inspecciones viejas sin `ticketId` (de antes de este
+   * campo) ya no matchean ningún ticket nuevo.
+   */
   private ultimaInspeccionReal(unitCode: string): VehicleInspection | undefined {
+    const ticketId = this.ticket()?.id;
     return this.realInspections()
-      .filter(i => i.unidadCode === unitCode)
+      .filter(i => i.unidadCode === unitCode && i.ticketId === ticketId)
       .sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
   }
   /** Conductor elegido en la inspección de la unidad del operador (no el operador). */
@@ -359,6 +368,15 @@ export class TicketDetailPage {
   protected readonly solicitudPendiente = signal<SolicitudCambioItems | null>(null);
   protected readonly viewMode = signal<string>(''); // 'asignar' | 'resumen' | ''
   protected readonly maintenanceOrders = signal<MaintenanceOrderWithSubOrders[]>([]);
+  /**
+   * `maintenanceOrders` arranca en `[]` hasta que responde la llamada HTTP
+   * de `loadMaintenanceOrders()` — mientras tanto, `novedadesSinAtender()`
+   * (que filtra sobre ese array) da una lista vacía por falta de datos, no
+   * porque de verdad no haya nada pendiente, y el botón "Continuar a
+   * ejecución de llegada" quedaba habilitado en esa ventana (bug
+   * reportado: aparecía habilitado sin haber hecho los mantenimientos).
+   */
+  protected readonly maintenanceOrdersLoading = signal(true);
   /** Solo para leer el texto de la novedad original inline en la lista de "Mantenimientos operativos" — el detalle completo (diagnóstico, etc.) sigue viviendo en SuborderReviewDialog. */
   private readonly unitReports = signal<UnitReport[]>([]);
 
@@ -579,26 +597,7 @@ export class TicketDetailPage {
 
   protected readonly assignmentSummaryRows = computed(() => {
     const t = this.ticket();
-    if (!t || t.operators.length === 0) {
-      // Datos de ejemplo para vista previa
-      return [
-        {
-          id: 1, name: 'Jorge Salinas', role: 'Operador Mecánico', unitCode: 'PUM-07',
-          inspectionStatus: { text: 'Realizada', tone: 'success' as const },
-          reportStatus: { text: 'Completado', tone: 'success' as const },
-        },
-        {
-          id: 2, name: 'David Cevallos', role: 'Operador Instrumental', unitCode: 'PUM-07',
-          inspectionStatus: { text: 'Realizada', tone: 'success' as const },
-          reportStatus: { text: 'Completado', tone: 'success' as const },
-        },
-        {
-          id: 10, name: 'Marco Ruiz', role: 'Operador', unitCode: 'PUM-07',
-          inspectionStatus: { text: 'Pendiente', tone: 'warning' as const },
-          reportStatus: { text: 'Pendiente', tone: 'warning' as const },
-        },
-      ];
-    }
+    if (!t) return [];
     return t.operators.map(op => ({
       id: op.id,
       name: op.name,
@@ -625,14 +624,7 @@ export class TicketDetailPage {
 
   protected readonly chemicalSummaryRows = computed(() => {
     const t = this.ticket();
-    if (!t || t.chemicals.length === 0) {
-      // Datos de ejemplo
-      return [
-        { id: 1, name: 'Biocida QX-12', quantityAssigned: 40, unit: 'gal' },
-        { id: 2, name: 'Inhibidor de corrosión', quantityAssigned: 20, unit: 'gal' },
-        { id: 3, name: 'Surfactante SF-3', quantityAssigned: 15, unit: 'gal' },
-      ];
-    }
+    if (!t) return [];
     return t.chemicals.map(c => ({
       id: c.id,
       name: c.name,
@@ -699,12 +691,19 @@ export class TicketDetailPage {
     if (!t) return [];
     const rejected = this.rejectedSalidaOperators();
     const approved = this.approvedSalidaOperators();
+    const inspecciones = this.completedInspections();
     return t.operators.map(op => ({
       id: op.id,
       name: op.name,
       role: op.role,
       unitCode: op.unitCode,
-      inspectionStatus: { text: 'Realizada', tone: 'success' as const },
+      // Antes quedaba hardcodeado en "Realizada" sin importar el estado
+      // real — el Supervisor veía la inspección como hecha aunque el
+      // operador nunca la hubiera registrado, y no tenía forma de
+      // hacerla/completarla desde acá (bug reportado).
+      inspectionStatus: inspecciones.has(op.id)
+        ? { text: 'Realizada', tone: 'success' as const }
+        : { text: 'Pendiente', tone: 'warning' as const },
       reportStatus: rejected.has(op.id)
         ? { text: 'Rechazado', tone: 'error' as const }
         : approved.has(op.id)
@@ -1545,7 +1544,10 @@ export class TicketDetailPage {
    */
   protected readonly ubicacionInicial = computed<Partial<UbicacionSeleccion> | null>(() => {
     const t = this.ticket();
-    return t?.wellName ? { pozo: t.wellName } : null;
+    // Prioriza el id real del catálogo (heredado del Pedido al crear el
+    // ticket) — el texto (wellName) queda de respaldo para tickets viejos
+    // creados antes de que el ticket guardara el id.
+    return t?.pozoId ? { pozoId: t.pozoId } : t?.wellName ? { pozo: t.wellName } : null;
   });
 
   protected onUbicacionChange(u: UbicacionSeleccion): void {
@@ -1875,7 +1877,11 @@ export class TicketDetailPage {
 
   private loadMaintenanceOrders(): void {
     this.maintenanceOrdersService.list().subscribe({
-      next: orders => this.maintenanceOrders.set(orders),
+      next: orders => {
+        this.maintenanceOrders.set(orders);
+        this.maintenanceOrdersLoading.set(false);
+      },
+      error: () => this.maintenanceOrdersLoading.set(false),
     });
     this.unitReportsService.list().subscribe({
       next: reports => this.unitReports.set(reports),
@@ -1899,13 +1905,30 @@ export class TicketDetailPage {
     return lines.join('\n');
   }
 
-  /** Sub-órdenes Operativo de la unidad del ticket */
+  /** Sub-órdenes Operativo de la unidad del ticket (las únicas que revisa el Supervisor de Pumping acá). */
   protected readonly operativoSubOrders = computed(() => {
     const t = this.ticket();
     if (!t) return [];
     return this.maintenanceOrders()
       .filter(o => o.unidad === t.unitCode)
       .flatMap(o => o.subOrders.filter(s => s.type === 'Operativo'));
+  });
+
+  /**
+   * TODAS las sub-órdenes de la unidad (Mecánico/Instrumental/Operativo) —
+   * antes el paso "Mantenimiento" solo mostraba el detalle (diagnóstico,
+   * actividades, nota) de las Operativo; las de Mecánico/Instrumental solo
+   * aparecían mencionadas por código en el banner de advertencia, sin
+   * ningún detalle, aunque también bloquean el avance (ver
+   * `novedadesSinAtender`). El Supervisor no tenía forma de ver su avance
+   * desde acá sin ir al módulo de Mantenimiento aparte.
+   */
+  protected readonly todasLasSubOrdenesDeLaUnidad = computed(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    return this.maintenanceOrders()
+      .filter(o => o.unidad === t.unitCode)
+      .flatMap(o => o.subOrders);
   });
 
   /** Todas las sub-órdenes Operativo de esta unidad están cerradas o no hay ninguna. */
@@ -1930,7 +1953,9 @@ export class TicketDetailPage {
       .flatMap(o => o.subOrders)
       .filter(s => s.status !== 'Cerrado');
   });
-  protected readonly allNovedadesResolved = computed(() => this.novedadesSinAtender().length === 0);
+  protected readonly allNovedadesResolved = computed(
+    () => !this.maintenanceOrdersLoading() && this.novedadesSinAtender().length === 0,
+  );
 
   protected reviewOperativoMaintenance(sub: SubOrder): void {
     const order = this.maintenanceOrders().find(o => o.subOrders.some(s => s.id === sub.id));
@@ -2069,6 +2094,7 @@ export class TicketDetailPage {
     this.pumpingService.assignResources(t.id, {
       operatorIds: this.selectedOperators(),
       unitIds: this.selectedUnits(),
+      assignments: this.operatorAssignments(),
       chemicals,
       chemicalMixtureDocument: this.chemicalMixtureDocument()?.name,
     }).subscribe({
@@ -2343,8 +2369,41 @@ export class TicketDetailPage {
     this.selectedUnits.set(Array.isArray(value) ? value : []);
   }
 
+  /**
+   * "Aprobar"/"Rechazar" de dynadrill-approval-actions ya no necesitan un
+   * botón de confirmación aparte en el footer (se veía redundante, mismo
+   * verbo repetido dos veces) — Aprobar dispara directo el modal de
+   * confirmación con la consecuencia; Rechazar solo marca el estado para
+   * mostrar el motivo (se confirma con el modal recién al escribirlo, ver
+   * `confirmarRechazoTicket`).
+   */
   protected onDecisionChange(decision: DynadrillApprovalDecision): void {
     this.decision.set(decision);
+    if (decision === 'approved') this.confirmarAprobacionTicket();
+  }
+
+  private async confirmarAprobacionTicket(): Promise<void> {
+    const confirmado = await this.dialog.confirm({
+      title: 'Aprobar ticket',
+      content: 'El ticket será aprobado y pasará a estado finalizado.',
+      okText: 'Aprobar',
+    });
+    if (confirmado) {
+      this.approveTicket();
+    } else {
+      this.decision.set(null);
+    }
+  }
+
+  protected async confirmarRechazoTicket(): Promise<void> {
+    if (!this.ticketRejectionReason().trim()) return;
+    const confirmado = await this.dialog.confirm({
+      title: 'Rechazar ticket',
+      content: 'El ticket será devuelto a revisión de reportes de llegada para correcciones.',
+      okText: 'Rechazar',
+      danger: true,
+    });
+    if (confirmado) this.rejectTicket();
   }
 
   protected onInspectionChange(
@@ -2406,6 +2465,12 @@ export class TicketDetailPage {
         lockUnidad: !!(row['unitCode'] as string) || (mode === 'llegada' && !!prefill),
         supervisorNombre,
         modo: mode,
+        // Sin esto, "¿ya se hizo la inspección?" se resolvía buscando
+        // CUALQUIER inspección alguna vez registrada para esa unidad —
+        // con unidades reutilizadas entre servicios, un ticket nuevo
+        // heredaba una inspección de un ticket anterior (bug reportado:
+        // aparecía "Inspección realizada" sin haberla hecho todavía).
+        ticketId: this.ticket()?.id,
       },
       size: 'large',
       footer: false,

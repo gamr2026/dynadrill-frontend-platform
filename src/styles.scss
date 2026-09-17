@@ -229,12 +229,47 @@ body {
  * junto a otro (cada uno es block-level, sin esto se apilan en vertical) —
  * usada en columnas "Acciones" de tablas (ej. Personal asignado de Pumping).
  * Global: sumaba al budget de anyComponentStyle por componente.
+ *
+ * `flex-wrap: nowrap` a propósito: dynadrill-data-table ya envuelve el
+ * actionsTemplate en su propio `.dynadrill-data-table__actions-row` (con
+ * flex-wrap: wrap) dentro de un <td> "shrink-to-fit" (width: 1%) — un
+ * contenedor flex que SÍ puede envolver tiene un ancho mínimo intrínseco
+ * tan chico como su hijo más angosto, así que el navegador colapsaba la
+ * columna entera a ese ancho y forzaba 1 botón por fila aunque sobrara
+ * espacio real. `nowrap` obliga a que el ancho mínimo sea la suma de los
+ * botones, así la columna se dimensiona para que entren todos en una fila
+ * (con scroll horizontal de la tabla como último recurso si no entran).
  */
 .dyn-actions-row {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.375rem;
+}
+
+/**
+ * Par de dynadrill-icon-button pegados sin separación, mismo borde, para
+ * que se lean como UN solo botón con 2 íconos (ej. calendario + flecha)
+ * en vez de dos botones sueltos — pedido explícito del cliente para los
+ * badges "Inspección de salida/llegada realizada" de Pumping.
+ */
+.dyn-icon-pair {
+  display: inline-flex;
+
+  ::ng-deep .dynadrill-icon-btn {
+    border-radius: 0 !important;
+  }
+
+  dynadrill-icon-button:first-child ::ng-deep .dynadrill-icon-btn {
+    border-top-left-radius: var(--radius-sm, 8px) !important;
+    border-bottom-left-radius: var(--radius-sm, 8px) !important;
+  }
+
+  dynadrill-icon-button:last-child ::ng-deep .dynadrill-icon-btn {
+    border-top-right-radius: var(--radius-sm, 8px) !important;
+    border-bottom-right-radius: var(--radius-sm, 8px) !important;
+    border-left: none !important;
+  }
 }
 
 /**

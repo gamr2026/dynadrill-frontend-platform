@@ -32,6 +32,8 @@ import { ListaPrecios } from '../models/lista-precios.model';
 import { Prefactura } from '../models/prefactura.model';
 import { ListaPreciosService, PedidoService, PrefacturaService } from '../services/pedido.service';
 import { RolesService } from '../../users/services/users.service';
+import { ArticulosService } from '../../inventario/services/articulos.service';
+import type { Articulo } from '../../inventario/models/articulo.model';
 import {
   CatalogosService,
   UBICACION_VACIA,
@@ -143,6 +145,7 @@ export class NuevoPedidoDialog {
   private readonly listaService = inject(ListaPreciosService);
   private readonly rolesService = inject(RolesService);
   private readonly catalogosService = inject(CatalogosService);
+  private readonly articulosService = inject(ArticulosService);
   private readonly auth = inject(AuthService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<NuevoPedidoDialog, Pedido | undefined>);
@@ -203,6 +206,21 @@ export class NuevoPedidoDialog {
     ([value, label]) => ({ label, value }),
   );
   protected readonly esPumping = computed(() => this.lineaServicio() === 'pumping');
+
+  /**
+   * Catálogo real de químicos de Inventario (categoría QUÍMICA) — antes
+   * "Químico" era solo un checkbox sobre un código de texto libre, sin
+   * ninguna garantía de que ese código existiera en Inventario; recién se
+   * descubría el desfase en Pumping, al asignar recursos ("no aparece
+   * como químico en el inventario"). Ahora, al marcar una línea como
+   * químico, el código se elige de este catálogo (por código, no por
+   * nombre — dos químicos pueden compartir nombre comercial) y
+   * descripción/unidad se autocompletan del artículo real.
+   */
+  private readonly quimicosCatalogo = signal<Articulo[]>([]);
+  protected readonly quimicoOptions = computed<DynadrillSelectOption[]>(() =>
+    this.quimicosCatalogo().map(a => ({ label: `${a.codigo} — ${a.nombre}`, value: a.codigo })),
+  );
 
   /**
    * Documentos de referencia — solo para Pumping (a pedido del cliente):
@@ -306,6 +324,36 @@ export class NuevoPedidoDialog {
 
   protected onLineaCampoChange<K extends keyof LineaEstimadaDraft>(index: number, campo: K, valor: LineaEstimadaDraft[K]): void {
     this.lineasEstimadas.update(ls => ls.map((l, i) => (i === index ? { ...l, [campo]: valor } : l)));
+  }
+
+  /**
+   * Al marcar una línea como "Químico" se selecciona el código del
+   * catálogo real de Inventario (no se tipea) — garantiza que el código
+   * que llega a Pumping siempre matchee contra Inventario. Autocompleta
+   * descripción y unidad del artículo real; el precio/cantidad/descuento
+   * los sigue definiendo Ventas (Inventario no cotiza).
+   */
+  protected onQuimicoCodigoSeleccionado(index: number, codigo: string | null): void {
+    const articulo = this.quimicosCatalogo().find(a => a.codigo === codigo);
+    this.lineasEstimadas.update(ls =>
+      ls.map((l, i) =>
+        i === index
+          ? { ...l, codigo: articulo?.codigo ?? '', descripcion: articulo?.nombre ?? l.descripcion, unidad: articulo?.unidadStock ?? l.unidad }
+          : l,
+      ),
+    );
+  }
+
+  /**
+   * Al tildar/destildar "Químico" en una línea que ya tenía un código de
+   * texto libre cargado, se limpia — así no queda un código que Pumping
+   * después no va a encontrar en Inventario (justamente lo que se quiere
+   * evitar); el usuario elige uno real del select que aparece.
+   */
+  protected onQuimicoToggle(index: number, esQuimico: boolean): void {
+    this.lineasEstimadas.update(ls =>
+      ls.map((l, i) => (i === index ? { ...l, esQuimico, codigo: esQuimico ? '' : l.codigo } : l)),
+    );
   }
 
   private lineaValida(l: LineaEstimadaDraft): boolean {
@@ -458,6 +506,12 @@ export class NuevoPedidoDialog {
       this.tecnicoHseOptions.set(usuarios.map(u => ({ label: u.name, value: u.id })));
     });
     this.catalogosService.clientes().subscribe(clientes => this.clientesCatalogo.set(clientes));
+    this.articulosService.list({ categoria: 'QUIMICA', activo: true }).subscribe({
+      next: articulos => this.quimicosCatalogo.set(articulos),
+      // Antes fallaba en silencio (403 de permisos) y el select de químicos
+      // quedaba vacío sin ninguna pista de por qué (bug reportado).
+      error: () => this.notify.error('Químicos', 'No se pudo cargar el catálogo de químicos de Inventario — las líneas marcadas como químico no van a poder elegir código.'),
+    });
     this.cargarPersonas('agente_comercial', this.agenteComercialOptions);
     this.cargarPersonas('representante_campo', this.representanteCampoOptions);
     this.cargarPersonas('representante_quito', this.representanteQuitoOptions);

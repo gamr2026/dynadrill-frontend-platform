@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import * as XLSX from 'xlsx';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
@@ -142,5 +143,22 @@ export class ListaPreciosDetailPage {
 
   protected asTipo(value: unknown): TipoItem {
     return value === 'Material' ? 'Material' : 'Servicio';
+  }
+
+  /** Excel con los ítems de la lista tal como está guardada (no el borrador en edición). */
+  protected descargarExcel(): void {
+    const l = this.lista();
+    if (!l) return;
+    const filas = l.items.map(i => ({
+      Código: i.codigo,
+      Descripción: i.descripcion,
+      Unidad: i.unidad,
+      Precio: i.precio,
+      Tipo: i.tipo,
+    }));
+    const sheet = XLSX.utils.json_to_sheet(filas);
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book, sheet, 'Lista de precios');
+    XLSX.writeFile(book, `Lista-de-precios-${l.cliente}-${l.numeroContrato}.xlsx`);
   }
 }

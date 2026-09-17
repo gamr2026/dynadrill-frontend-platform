@@ -1545,7 +1545,10 @@ export class TicketDetailPage {
    */
   protected readonly ubicacionInicial = computed<Partial<UbicacionSeleccion> | null>(() => {
     const t = this.ticket();
-    return t?.wellName ? { pozo: t.wellName } : null;
+    // Prioriza el id real del catálogo (heredado del Pedido al crear el
+    // ticket) — el texto (wellName) queda de respaldo para tickets viejos
+    // creados antes de que el ticket guardara el id.
+    return t?.pozoId ? { pozoId: t.pozoId } : t?.wellName ? { pozo: t.wellName } : null;
   });
 
   protected onUbicacionChange(u: UbicacionSeleccion): void {
@@ -2069,6 +2072,7 @@ export class TicketDetailPage {
     this.pumpingService.assignResources(t.id, {
       operatorIds: this.selectedOperators(),
       unitIds: this.selectedUnits(),
+      assignments: this.operatorAssignments(),
       chemicals,
       chemicalMixtureDocument: this.chemicalMixtureDocument()?.name,
     }).subscribe({

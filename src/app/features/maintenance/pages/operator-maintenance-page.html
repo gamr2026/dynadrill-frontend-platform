@@ -17,7 +17,7 @@
 
   <ng-template #actionsTpl let-row>
     <div class="dyn-actions-row">
-      <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(row)">Ver detalle</dynadrill-button>
+      <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewDetail(row)" />
       @if (isActionable(row)) {
         <dynadrill-button size="small" (clicked)="openExecution(row)">Diagnosticar / Ejecutar</dynadrill-button>
       }

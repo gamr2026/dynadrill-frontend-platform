@@ -19,5 +19,10 @@
     border-radius: 8px;
     background: rgba(250, 173, 20, 0.08);
     color: var(--text, #2c2b35);
+
+    &--resuelto {
+      border-color: var(--success, #52c41a);
+      background: rgba(82, 196, 26, 0.08);
+    }
   }
 }

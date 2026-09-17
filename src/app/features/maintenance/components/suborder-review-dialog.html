@@ -16,7 +16,11 @@
     <dynadrill-text variant="body">{{ data.subOrder.actividadesCorrectivas || '—' }}</dynadrill-text>
   </div>
 
-  @if (!puedeRevisar()) {
+  @if (yaResuelto()) {
+    <dynadrill-text variant="body" class="suborder-review-dialog__pending-warning suborder-review-dialog__pending-warning--resuelto">
+      ✓ Esta sub-orden ya fue revisada — estado actual: {{ data.subOrder.status }}.
+    </dynadrill-text>
+  } @else if (!puedeRevisar()) {
     <dynadrill-text variant="body" class="suborder-review-dialog__pending-warning">
       ⚠ El técnico asignado todavía no envió el diagnóstico ni lo mandó a revisión (estado actual: {{ data.subOrder.status }}) — no hay nada que aprobar todavía.
     </dynadrill-text>

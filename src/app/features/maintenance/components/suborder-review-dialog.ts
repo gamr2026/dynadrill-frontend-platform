@@ -61,6 +61,18 @@ export class SuborderReviewDialog {
    */
   protected readonly puedeRevisar = computed(() => this.data.subOrder.status === 'En Revisión de Cierre');
 
+  /**
+   * Distingue "todavía no llegó a revisión" de "ya se resolvió" — antes
+   * `puedeRevisar` en false cubría los dos casos con el mismo mensaje
+   * ("todavía no envió el diagnóstico"), que quedaba confuso/incorrecto
+   * al reabrir una sub-orden que el Supervisor ya había Aprobado (estado
+   * Cerrado): decía "no hay nada que aprobar todavía" sobre algo que ya
+   * estaba aprobado.
+   */
+  protected readonly yaResuelto = computed(
+    () => this.data.subOrder.status === 'Cerrado' || this.data.subOrder.status === 'Corrección Solicitada',
+  );
+
   decide(decision: DynadrillApprovalDecision): void {
     if (this.submitting() || !decision || !this.puedeRevisar()) return;
     this.decision.set(decision);

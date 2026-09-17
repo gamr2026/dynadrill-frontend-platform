@@ -292,12 +292,19 @@
       <!-- Orden pedido por el cliente: primero se revisa/aprueba la inspección + reporte de unidad; recién con el reporte aprobado se habilita crear el Gerenciamiento de Viaje (DYN-SGI-RE-049). -->
       <ng-template #reviewSalidaActionsTpl let-row>
         <div class="dyn-actions-row">
+          @if (!hasCompletedInspection(row)) {
+            <span class="dyn-icon-btn-pending">
+              <dynadrill-icon-button icon="schedule" tooltip="Realizar inspección de vehículo (falta antes de poder aprobar)" (clicked)="openInspection(row)" />
+            </span>
+          } @else {
+            <dynadrill-icon-button icon="eye" tooltip="Ver inspección de vehículo" (clicked)="viewInspection(row)" />
+          }
           @if (isOperatorSalidaRejected(row)) {
             <dynadrill-button variant="error" size="small" (click)="viewSalidaRejectionReason(row)">
               Rechazado — Ver motivo
             </dynadrill-button>
           } @else if (!isOperatorSalidaApproved(row)) {
-            <dynadrill-icon-button icon="audit" tooltip="Revisar y aprobar" (clicked)="approveSalidaOperator(row)" />
+            <dynadrill-icon-button icon="audit" tooltip="Revisar y aprobar" [disabled]="!hasCompletedInspection(row)" (clicked)="approveSalidaOperator(row)" />
           } @else if (hasTravelManagement(row)) {
             <dynadrill-button variant="success" size="small" [disabled]="true">
               Aprobado
@@ -1079,16 +1086,12 @@
           (valueChange)="ticketRejectionReason.set($event)"
           [rows]="3"
         />
+        <dynadrill-button variant="error" [disabled]="submitting() || !ticketRejectionReason().trim()" (clicked)="confirmarRechazoTicket()">Rechazar</dynadrill-button>
       }
     </section>
 
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      @if (decision() === 'rejected') {
-        <dynadrill-button variant="error" [disabled]="submitting() || !ticketRejectionReason().trim()" (clicked)="rejectTicket()">Confirmar rechazo</dynadrill-button>
-      } @else {
-        <dynadrill-button variant="success" [disabled]="decision() !== 'approved' || submitting()" (clicked)="approveTicket()">Confirmar aprobación</dynadrill-button>
-      }
     </footer>
   }
 }

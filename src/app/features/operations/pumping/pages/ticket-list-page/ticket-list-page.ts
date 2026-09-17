@@ -97,8 +97,8 @@ export class TicketListPage {
   // ── Pestañas ──
 
   protected readonly tabs = computed<DynadrillTab[]>(() => [
-    { label: 'Tickets en Proceso', badge: this.inProcessTickets().length },
-    { label: 'Tickets Aprobados', badge: this.approvedTickets().length },
+    { label: 'Pedidos en Proceso', badge: this.inProcessTickets().length },
+    { label: 'Pedidos Aprobados', badge: this.approvedTickets().length },
   ]);
   protected readonly activeTabIndex = signal(0);
   protected readonly isInProcessTab = computed(() => this.activeTabIndex() === 0);
@@ -119,7 +119,7 @@ export class TicketListPage {
     const all = this.tickets();
     const inProcess = this.inProcessTickets();
     return [
-      { label: 'Total tickets', value: all.length },
+      { label: 'Total pedidos', value: all.length },
       { label: 'Revisión de propuesta', value: inProcess.filter(t => t.currentStep === 'revision_propuesta').length },
       { label: 'En ejecución', value: inProcess.filter(t => t.currentStep === 'en_ejecucion').length },
       { label: 'En revisión', value: inProcess.filter(t => t.currentStep === 'en_revision').length },

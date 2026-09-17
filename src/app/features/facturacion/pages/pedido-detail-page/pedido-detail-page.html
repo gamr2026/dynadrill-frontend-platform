@@ -80,6 +80,12 @@
             @if (a.incidentesHse) {
               <dynadrill-tag [label]="'Incidente HSE: ' + a.incidentesHse + ' derrame(s)'" variant="error" />
             }
+            @if (a.monitoreoAplica) {
+              <dynadrill-tag
+                [label]="(a.monitoreoDocsCargados ?? 0) > 0 ? 'Monitoreo: ' + a.monitoreoDocsCargados + ' documento(s)' : 'Monitoreo: sin documentos'"
+                [variant]="(a.monitoreoDocsCargados ?? 0) > 0 ? 'success' : 'warning'"
+              />
+            }
             <dynadrill-tag [label]="a.completo ? 'Listo para prefacturar' : 'Documentación incompleta'" [variant]="a.completo ? 'success' : 'warning'" />
           </div>
         }

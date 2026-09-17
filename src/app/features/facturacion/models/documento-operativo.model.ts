@@ -76,5 +76,8 @@ export interface AvanceDocumental {
   ptwSinAbrir?: boolean;
   /** HSE-AMBIENTAL-002: derrames registrados durante el servicio (alerta, no bloquea — FACT-002). */
   incidentesHse?: number;
+  /** Solo aplica a Pumping — documento de monitoreo (subida real a disco por día, ver PumpingDocumentosService). Informativo: no bloquea "Generar prefactura". */
+  monitoreoAplica?: boolean;
+  monitoreoDocsCargados?: number;
   completo: boolean;
 }

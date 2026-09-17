@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { Observable, catchError, forkJoin, of } from 'rxjs';
 import { DynadrillIconComponent, DynadrillIconName, DynadrillScreenHeaderComponent, DynadrillSectionComponent, DynadrillSpinnerComponent } from '@digitec-it-projects/dynadrill-ui';
 import { NgxEchartsDirective } from 'ngx-echarts';
 import type { EChartsCoreOption } from 'echarts/core';
@@ -179,21 +179,35 @@ export class DashboardPage {
     this.cargar();
   }
 
+  /**
+   * Cada card es de un dominio con su propio @Roles de backend (ej. QHSE,
+   * Usuarios) — un rol que no puede leer ese dominio recibe 403. Antes esto
+   * hacía fallar el `forkJoin` COMPLETO (todo-o-nada) y ningún card se veía
+   * para nadie salvo Superadmin, que sí tiene acceso a los 13 endpoints.
+   * Con `catchError` cada fuente cae a lista vacía en vez de tumbar a las
+   * demás — igual da lo mismo para el usuario: `moduleCards` ya filtra por
+   * CARDS_POR_ROL, así que un 403 solo afecta a datos de una card que ese
+   * rol no iba a ver de todas formas.
+   */
+  private safe<T>(obs: Observable<T[]>): Observable<T[]> {
+    return obs.pipe(catchError(() => of([] as T[])));
+  }
+
   private cargar(): void {
     forkJoin({
-      unidades: this.unidadesService.list(),
-      investigaciones: this.investigacionService.list(),
-      emergencias: this.emergenciaService.list(),
-      swa: this.swaService.list(),
-      derrames: this.derrameService.list(),
-      inspecciones: this.inspeccionEquipoService.list(),
-      iperc: this.ipercService.list(),
-      articulos: this.articulosService.list(),
-      pumpingTickets: this.pumpingService.listTickets(),
-      fcrTickets: this.fcrService.listTickets(),
-      pedidos: this.pedidoService.list(),
-      users: this.usersService.list(),
-      roles: this.rolesService.list(),
+      unidades: this.safe(this.unidadesService.list()),
+      investigaciones: this.safe(this.investigacionService.list()),
+      emergencias: this.safe(this.emergenciaService.list()),
+      swa: this.safe(this.swaService.list()),
+      derrames: this.safe(this.derrameService.list()),
+      inspecciones: this.safe(this.inspeccionEquipoService.list()),
+      iperc: this.safe(this.ipercService.list()),
+      articulos: this.safe(this.articulosService.list()),
+      pumpingTickets: this.safe(this.pumpingService.listTickets()),
+      fcrTickets: this.safe(this.fcrService.listTickets()),
+      pedidos: this.safe(this.pedidoService.list()),
+      users: this.safe(this.usersService.list()),
+      roles: this.safe(this.rolesService.list()),
     }).subscribe({
       next: ({ unidades, investigaciones, emergencias, swa, derrames, inspecciones, iperc, articulos, pumpingTickets, fcrTickets, pedidos, users, roles }) => {
         // ── Mantenimiento: alertas preventivas por unidad ──

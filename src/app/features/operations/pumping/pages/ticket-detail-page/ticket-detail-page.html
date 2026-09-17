@@ -661,9 +661,9 @@
             <dynadrill-icon-button icon="schedule" tooltip="Inspección realizada" [disabled]="true" />
             <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewInspection(row)" />
           } @else {
-            <dynadrill-button variant="primary" size="small" (click)="openInspection(row)">
-              Realizar inspección
-            </dynadrill-button>
+            <span class="dyn-icon-btn-pending">
+              <dynadrill-icon-button icon="schedule" tooltip="Realizar inspección" (clicked)="openInspection(row)" />
+            </span>
           }
         </div>
       </ng-template>

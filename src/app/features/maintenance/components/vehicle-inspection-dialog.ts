@@ -52,6 +52,8 @@ export interface VehicleInspectionDialogData {
   supervisorNombre?: string;
   /** 'salida' (default): solo pide kilometraje inicial. 'llegada': pide el final — pedirlos juntos en la salida no tiene sentido si recién va a viajar. */
   modo?: 'salida' | 'llegada';
+  /** Ticket de Pumping/FCR dueño de esta inspección — ver comentario en VehicleInspection.ticketId. */
+  ticketId?: number;
 }
 
 function toChecklistItems(labels: string[]): VehicleChecklistItem[] {
@@ -390,6 +392,7 @@ export class VehicleInspectionDialog {
     return {
       unidadId: this.unidadId()!,
       unidadCode: unidad?.code ?? '',
+      ticketId: this.data?.ticketId ?? this.data?.existing?.ticketId,
       fecha: isoOrUndefined(this.fecha()) ?? new Date().toISOString(),
       puntoPartida: this.puntoPartida(),
       destino: this.destino(),

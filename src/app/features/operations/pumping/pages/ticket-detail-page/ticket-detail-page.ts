@@ -319,9 +319,18 @@ export class TicketDetailPage {
   /** Inspecciones de vehículos ya registradas en el backend — para recuperar
    *  la que hizo el operador (con su conductor real) al recargar la página. */
   private readonly realInspections = signal<VehicleInspection[]>([]);
+  /**
+   * Solo cuentan inspecciones de ESTE ticket — antes se tomaba la más
+   * reciente para esa unidad sin importar de qué ticket era, así que una
+   * unidad reutilizada (ej. CAM-04) llegaba con "Inspección realizada" ya
+   * puesta en un ticket nuevo, heredada de un servicio anterior (bug
+   * reportado). Las inspecciones viejas sin `ticketId` (de antes de este
+   * campo) ya no matchean ningún ticket nuevo.
+   */
   private ultimaInspeccionReal(unitCode: string): VehicleInspection | undefined {
+    const ticketId = this.ticket()?.id;
     return this.realInspections()
-      .filter(i => i.unidadCode === unitCode)
+      .filter(i => i.unidadCode === unitCode && i.ticketId === ticketId)
       .sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
   }
   /** Conductor elegido en la inspección de la unidad del operador (no el operador). */
@@ -2456,6 +2465,12 @@ export class TicketDetailPage {
         lockUnidad: !!(row['unitCode'] as string) || (mode === 'llegada' && !!prefill),
         supervisorNombre,
         modo: mode,
+        // Sin esto, "¿ya se hizo la inspección?" se resolvía buscando
+        // CUALQUIER inspección alguna vez registrada para esa unidad —
+        // con unidades reutilizadas entre servicios, un ticket nuevo
+        // heredaba una inspección de un ticket anterior (bug reportado:
+        // aparecía "Inspección realizada" sin haberla hecho todavía).
+        ticketId: this.ticket()?.id,
       },
       size: 'large',
       footer: false,

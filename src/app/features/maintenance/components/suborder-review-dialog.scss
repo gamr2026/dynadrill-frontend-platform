@@ -12,4 +12,12 @@
   ::ng-deep .dynadrill-approval-actions__row {
     justify-content: center;
   }
+
+  &__pending-warning {
+    padding: 10px 12px;
+    border: 1px solid var(--warning, #faad14);
+    border-radius: 8px;
+    background: rgba(250, 173, 20, 0.08);
+    color: var(--text, #2c2b35);
+  }
 }

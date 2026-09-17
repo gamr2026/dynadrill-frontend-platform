@@ -1902,13 +1902,30 @@ export class TicketDetailPage {
     return lines.join('\n');
   }
 
-  /** Sub-órdenes Operativo de la unidad del ticket */
+  /** Sub-órdenes Operativo de la unidad del ticket (las únicas que revisa el Supervisor de Pumping acá). */
   protected readonly operativoSubOrders = computed(() => {
     const t = this.ticket();
     if (!t) return [];
     return this.maintenanceOrders()
       .filter(o => o.unidad === t.unitCode)
       .flatMap(o => o.subOrders.filter(s => s.type === 'Operativo'));
+  });
+
+  /**
+   * TODAS las sub-órdenes de la unidad (Mecánico/Instrumental/Operativo) —
+   * antes el paso "Mantenimiento" solo mostraba el detalle (diagnóstico,
+   * actividades, nota) de las Operativo; las de Mecánico/Instrumental solo
+   * aparecían mencionadas por código en el banner de advertencia, sin
+   * ningún detalle, aunque también bloquean el avance (ver
+   * `novedadesSinAtender`). El Supervisor no tenía forma de ver su avance
+   * desde acá sin ir al módulo de Mantenimiento aparte.
+   */
+  protected readonly todasLasSubOrdenesDeLaUnidad = computed(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    return this.maintenanceOrders()
+      .filter(o => o.unidad === t.unitCode)
+      .flatMap(o => o.subOrders);
   });
 
   /** Todas las sub-órdenes Operativo de esta unidad están cerradas o no hay ninguna. */

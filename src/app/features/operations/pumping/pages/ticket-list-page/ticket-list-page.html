@@ -56,11 +56,14 @@
                     <dynadrill-tag [label]="sub.status" [variant]="sub.statusTone" />
                   </td>
                   <td>
-                    @if (sub.canReview) {
-                      <dynadrill-button variant="primary" size="small" (click)="reviewMaintenance(sub.id)">
-                        Revisar Mantenimiento
-                      </dynadrill-button>
-                    }
+                    <div class="dyn-actions-row">
+                      <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="verDetalleMaintenance(sub.id)" />
+                      @if (sub.canReview) {
+                        <dynadrill-button variant="primary" size="small" (click)="reviewMaintenance(sub.id)">
+                          Revisar Mantenimiento
+                        </dynadrill-button>
+                      }
+                    </div>
                   </td>
                 </tr>
               }

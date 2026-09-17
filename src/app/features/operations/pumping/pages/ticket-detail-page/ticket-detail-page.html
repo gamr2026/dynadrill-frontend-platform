@@ -599,17 +599,18 @@
     </section>
 
     <section class="ticket-detail__section">
-      <dynadrill-text variant="h2">Mantenimientos operativos</dynadrill-text>
+      <dynadrill-text variant="h2">Mantenimientos de la unidad</dynadrill-text>
+      <dynadrill-text variant="caption">Incluye lo reportado a Mantenimiento (Mecánico/Instrumental) y lo derivado a Pumping (Operativo) — todos bloquean el avance hasta quedar Cerrados.</dynadrill-text>
 
-      @if (operativoSubOrders().length === 0) {
-        <dynadrill-text variant="caption">No hay mantenimientos operativos asociados a esta unidad.</dynadrill-text>
+      @if (todasLasSubOrdenesDeLaUnidad().length === 0) {
+        <dynadrill-text variant="caption">No hay mantenimientos asociados a esta unidad.</dynadrill-text>
       } @else {
-        @for (sub of operativoSubOrders(); track sub.id) {
+        @for (sub of todasLasSubOrdenesDeLaUnidad(); track sub.id) {
           <div class="ticket-detail__maintenance-row">
             <div class="ticket-detail__maintenance-info">
               <dynadrill-text variant="body">{{ sub.code }} · {{ sub.type }}</dynadrill-text>
               <dynadrill-text variant="caption">Estado: {{ sub.status }}</dynadrill-text>
-              @if (novedadOperativaDe(sub); as novedad) {
+              @if (sub.type === 'Operativo' && novedadOperativaDe(sub); as novedad) {
                 <dynadrill-text variant="caption">Novedad reportada: {{ novedad }}</dynadrill-text>
               }
               @if (sub.deriveNote) {
@@ -622,9 +623,11 @@
                 <dynadrill-text variant="caption">Actividades correctivas: {{ sub.actividadesCorrectivas }}</dynadrill-text>
               }
             </div>
-            <dynadrill-button variant="primary" size="small" (clicked)="reviewOperativoMaintenance(sub)">
-              Revisar mantenimiento operativo
-            </dynadrill-button>
+            @if (sub.type === 'Operativo') {
+              <dynadrill-button variant="primary" size="small" (clicked)="reviewOperativoMaintenance(sub)">
+                Revisar mantenimiento operativo
+              </dynadrill-button>
+            }
           </div>
         }
       }
@@ -757,7 +760,8 @@
       <dynadrill-text variant="caption">Inspección: Indique con ✓ OK · ✕ defectuoso</dynadrill-text>
     </section>
 
-    <section class="ticket-detail__section">
+    <details class="dyn-accordion">
+      <summary class="dyn-accordion-summary">Chasis</summary>
       <div class="ticket-detail__inspection-actions">
         <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('chassisItems', 'salida', 'ok')">Marcar todos: OK</dynadrill-button>
         <dynadrill-button variant="secondary" size="small" (clicked)="markAllInspectionItems('chassisItems', 'salida', 'defectuoso')">Marcar todos: Defectuoso</dynadrill-button>
@@ -767,7 +771,7 @@
         [items]="chassisItems()"
         (itemChange)="onInspectionChange('chassisItems', $event)"
       />
-    </section>
+    </details>
 
     <!-- Firma Salida -->
     <section class="ticket-detail__section ticket-detail__signature">
@@ -795,8 +799,10 @@
       <ng-template #inspectionActionsLlegadaTpl let-row>
         <div class="dyn-actions-row">
           @if (hasCompletedInspection(row)) {
-            <dynadrill-icon-button icon="schedule" tooltip="Inspección de salida realizada" [disabled]="true" />
-            <dynadrill-icon-button icon="caret-right" tooltip="Inspección de salida realizada" [disabled]="true" />
+            <span class="dyn-icon-pair" title="Inspección de salida realizada">
+              <dynadrill-icon-button icon="schedule" tooltip="Inspección de salida realizada" [disabled]="true" />
+              <dynadrill-icon-button icon="caret-right" tooltip="Inspección de salida realizada" [disabled]="true" />
+            </span>
             <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewInspection(row)" />
           } @else {
             <dynadrill-button variant="secondary" size="small" [disabled]="true">
@@ -804,8 +810,10 @@
             </dynadrill-button>
           }
           @if (hasCompletedLlegadaInspection(row)) {
-            <dynadrill-icon-button icon="schedule" tooltip="Inspección de llegada realizada" [disabled]="true" />
-            <dynadrill-icon-button icon="caret-left" tooltip="Inspección de llegada realizada" [disabled]="true" />
+            <span class="dyn-icon-pair" title="Inspección de llegada realizada">
+              <dynadrill-icon-button icon="schedule" tooltip="Inspección de llegada realizada" [disabled]="true" />
+              <dynadrill-icon-button icon="caret-left" tooltip="Inspección de llegada realizada" [disabled]="true" />
+            </span>
             <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewLlegadaInspection(row)" />
           } @else {
             <span class="dyn-icon-btn-pending">
@@ -1077,9 +1085,9 @@
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
       @if (decision() === 'rejected') {
-        <dynadrill-button variant="error" [disabled]="submitting()" (clicked)="rejectTicket()">Rechazar ticket</dynadrill-button>
+        <dynadrill-button variant="error" [disabled]="submitting() || !ticketRejectionReason().trim()" (clicked)="rejectTicket()">Confirmar rechazo</dynadrill-button>
       } @else {
-        <dynadrill-button variant="success" [disabled]="decision() !== 'approved' || submitting()" (clicked)="approveTicket()">Aprobar ticket</dynadrill-button>
+        <dynadrill-button variant="success" [disabled]="decision() !== 'approved' || submitting()" (clicked)="approveTicket()">Confirmar aprobación</dynadrill-button>
       }
     </footer>
   }

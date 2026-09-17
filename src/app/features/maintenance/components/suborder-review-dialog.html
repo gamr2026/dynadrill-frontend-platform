@@ -8,20 +8,26 @@
 
   <div class="suborder-review-dialog__row">
     <dynadrill-text variant="caption">Diagnóstico técnico (enviado por el técnico asignado)</dynadrill-text>
-    <dynadrill-text variant="body">{{ data.subOrder.diagnostico }}</dynadrill-text>
+    <dynadrill-text variant="body">{{ data.subOrder.diagnostico || '—' }}</dynadrill-text>
   </div>
 
   <div class="suborder-review-dialog__row">
     <dynadrill-text variant="caption">Actividades correctivas (enviado por el técnico asignado)</dynadrill-text>
-    <dynadrill-text variant="body">{{ data.subOrder.actividadesCorrectivas }}</dynadrill-text>
+    <dynadrill-text variant="body">{{ data.subOrder.actividadesCorrectivas || '—' }}</dynadrill-text>
   </div>
 
-  <dynadrill-approval-actions
-    [decision]="decision()"
-    consequenceApprove="Sub-orden cerrada. Si era la última pendiente, la orden padre queda Aceptada."
-    consequenceReject="Se solicitan correcciones — vuelve al operador asignado."
-    (decisionChange)="decide($event)"
-  />
+  @if (!puedeRevisar()) {
+    <dynadrill-text variant="body" class="suborder-review-dialog__pending-warning">
+      ⚠ El técnico asignado todavía no envió el diagnóstico ni lo mandó a revisión (estado actual: {{ data.subOrder.status }}) — no hay nada que aprobar todavía.
+    </dynadrill-text>
+  } @else {
+    <dynadrill-approval-actions
+      [decision]="decision()"
+      consequenceApprove="Sub-orden cerrada. Si era la última pendiente, la orden padre queda Aceptada."
+      consequenceReject="Se solicitan correcciones — vuelve al operador asignado."
+      (decisionChange)="decide($event)"
+    />
+  }
 
   @if (showCorrectionForm()) {
     <div class="suborder-review-dialog__row">

@@ -51,8 +51,18 @@ export class SuborderReviewDialog {
   protected readonly showCorrectionForm = computed(() => this.decision() === 'rejected' && !this.submitting());
   protected readonly canConfirmRejection = computed(() => this.correctionNote().trim().length > 0);
 
+  /**
+   * El operador asignado (para Operativo: operador@dynadrill.com, derivado
+   * por Jefe de Mantenimiento) todavía no envió el diagnóstico/actividades
+   * ni lo mandó a revisión — antes se podía Aprobar igual, sin ningún
+   * aviso, cerrando una sub-orden en la que nadie trabajó todavía (bug
+   * reportado). Solo "En Revisión de Cierre" significa que el operador ya
+   * terminó y la mandó a revisar — antes de eso no hay nada que aprobar.
+   */
+  protected readonly puedeRevisar = computed(() => this.data.subOrder.status === 'En Revisión de Cierre');
+
   decide(decision: DynadrillApprovalDecision): void {
-    if (this.submitting() || !decision) return;
+    if (this.submitting() || !decision || !this.puedeRevisar()) return;
     this.decision.set(decision);
     // El rechazo necesita el motivo antes de enviarse — se confirma aparte con confirmRejection().
     if (decision === 'rejected') return;

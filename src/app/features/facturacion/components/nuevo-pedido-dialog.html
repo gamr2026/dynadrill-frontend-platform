@@ -145,19 +145,30 @@
           @for (l of lineasEstimadas(); track $index) {
             <tr>
               <td>
-                <dynadrill-input label="" [value]="l.codigo" (valueChange)="onLineaCampoChange($index, 'codigo', $event)" />
+                @if (l.esQuimico) {
+                  <dynadrill-select
+                    label=""
+                    placeholder="Elegir químico de Inventario"
+                    [options]="quimicoOptions()"
+                    [value]="l.codigo || null"
+                    [searchable]="true"
+                    (valueChange)="onQuimicoCodigoSeleccionado($index, $any($event))"
+                  />
+                } @else {
+                  <dynadrill-input label="" [value]="l.codigo" (valueChange)="onLineaCampoChange($index, 'codigo', $event)" />
+                }
                 @if (codigoFueraDeListaPrecios(l.codigo)) {
                   <dynadrill-text variant="caption">⚠ Fuera de la Lista de Precios — no entra a la prefactura automática.</dynadrill-text>
                 }
               </td>
-              <td><dynadrill-input label="" [value]="l.descripcion" (valueChange)="onLineaCampoChange($index, 'descripcion', $event)" /></td>
-              <td><dynadrill-input label="" [value]="l.unidad" (valueChange)="onLineaCampoChange($index, 'unidad', $event)" /></td>
+              <td><dynadrill-input label="" [value]="l.descripcion" [disabled]="l.esQuimico" (valueChange)="onLineaCampoChange($index, 'descripcion', $event)" /></td>
+              <td><dynadrill-input label="" [value]="l.unidad" [disabled]="l.esQuimico" (valueChange)="onLineaCampoChange($index, 'unidad', $event)" /></td>
               <td class="num"><dynadrill-input label="" type="number" [value]="l.cantidad" (valueChange)="onLineaCampoChange($index, 'cantidad', $event)" /></td>
               <td class="num"><dynadrill-input label="" type="number" [value]="l.valorUnitario" (valueChange)="onLineaCampoChange($index, 'valorUnitario', $event)" /></td>
               <td class="num"><dynadrill-input label="" type="number" [value]="l.descuentoPorcentaje" (valueChange)="onLineaCampoChange($index, 'descuentoPorcentaje', $event)" /></td>
               @if (esPumping()) {
                 <td class="nuevo-pedido__quimico-cell">
-                  <input type="checkbox" [checked]="l.esQuimico" (change)="onLineaCampoChange($index, 'esQuimico', $any($event.target).checked)" aria-label="Es químico" />
+                  <input type="checkbox" [checked]="l.esQuimico" (change)="onQuimicoToggle($index, $any($event.target).checked)" aria-label="Es químico" />
                 </td>
               }
               <td class="num">${{ (+l.cantidad || 0) * (+l.valorUnitario || 0) | number: '1.2-2' }}</td>

@@ -201,6 +201,28 @@ export class VehicleInspectionDialog {
   );
 
   /**
+   * El botón "Guardar" solo quedaba `[disabled]`, sin explicar por qué —
+   * el usuario hacía clic y no pasaba nada, sin ningún mensaje (bug
+   * reportado: "en ningún momento pude hacer la inspección del
+   * vehículo"). Explica la condición que falta, en el mismo orden que
+   * evalúa `puedeGuardar`.
+   */
+  protected readonly motivoNoPuedeGuardar = computed(() => {
+    if (this.puedeGuardar()) return '';
+    if (!this.unidadId()) return 'Falta seleccionar la unidad (paso "Datos").';
+    if (!this.conductorSeleccionado()) return 'Falta seleccionar el conductor (paso "Datos").';
+    if (!this.reuneCondicionesParaTrabajar()) {
+      return `${this.conductorSeleccionado()!.nombre} no reúne las condiciones para trabajar — cambia de conductor en el paso "Conductor".`;
+    }
+    const faltanVehiculo = this.checklistVehiculo().filter(i => i.estado === null).length;
+    const faltanEquipo = this.checklistEquipo().filter(i => i.estado === null).length;
+    const partes: string[] = [];
+    if (faltanVehiculo) partes.push(`${faltanVehiculo} ítem(s) del checklist de Vehículo`);
+    if (faltanEquipo) partes.push(`${faltanEquipo} ítem(s) del checklist de Equipo`);
+    return partes.length ? `Falta marcar ✓/✕ en: ${partes.join(' y ')}.` : '';
+  });
+
+  /**
    * Al elegir la unidad, precarga sus datos patrimoniales (Marca/Tipo/
    * Modelo/Año/Placa) desde el registro de la Unidad — el inspector ya no
    * los reescribe a mano. Quedan editables por si el registro está

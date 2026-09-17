@@ -125,6 +125,10 @@
     }
   </div>
 
+  @if (currentStep() === steps.length - 1 && !readonly && motivoNoPuedeGuardar()) {
+    <dynadrill-text variant="caption" class="vehicle-inspection-dialog__blocking-warning">⚠ {{ motivoNoPuedeGuardar() }}</dynadrill-text>
+  }
+
   <div class="vehicle-inspection-dialog__actions">
     <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
     <div class="vehicle-inspection-dialog__actions-right">

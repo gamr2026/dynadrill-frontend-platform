@@ -247,18 +247,6 @@ body {
   gap: 0.375rem;
 }
 
-// Parche TEMPORAL mientras no se publique una versión nueva de
-// @digitec-it-projects/dynadrill-ui: el arreglo real (condicionar
-// flex-wrap a scrollX, sin !important) ya está hecho en el repo fuente
-// (dynadrill-storybook, rama fix/data-table-actions-row-nowrap) — cuando
-// se publique y se actualice la dependencia acá, este bloque sobra y se
-// puede borrar. Hasta entonces, pisa la clase de la librería porque es el
-// wrapper propio de dynadrill-data-table el que en verdad determina el
-// ancho mínimo de la celda (mi `.dyn-actions-row` queda anidado adentro).
-.dynadrill-data-table__actions-row {
-  flex-wrap: nowrap !important;
-}
-
 /**
  * Tinte de color "pendiente" para un dynadrill-icon-button — el componente
  * no tiene variante de color propia. Mismo criterio ::ng-deep que usa FCR

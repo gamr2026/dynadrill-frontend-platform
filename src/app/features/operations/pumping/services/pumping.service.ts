@@ -10,6 +10,7 @@ export interface PumpingDocumento {
   nombreOriginal: string;
   mimeType: string;
   tamanoBytes: number;
+  uploadedBy: string;
   uploadedAt: string;
 }
 
@@ -96,6 +97,11 @@ export class PumpingService {
   /** Metadata del documento del slot, sin descargar el archivo — el caller decide qué hacer con un 404 (no hay documento subido todavía). */
   metadataDocumento(ticketId: number, campo: string): Observable<PumpingDocumento> {
     return this.http.get<PumpingDocumento>(`${this.baseUrl}/tickets/${ticketId}/documentos/${campo}/meta`);
+  }
+
+  /** Todos los documentos subidos al ticket (ej. monitoreo de cada día) — para "Documentos generados" al finalizar. */
+  listarDocumentos(ticketId: number): Observable<PumpingDocumento[]> {
+    return this.http.get<PumpingDocumento[]>(`${this.baseUrl}/tickets/${ticketId}/documentos`);
   }
 
   subirDocumento(ticketId: number, campo: string, archivo: File): Observable<PumpingDocumento> {

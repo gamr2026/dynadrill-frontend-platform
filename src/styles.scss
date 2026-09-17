@@ -248,6 +248,31 @@ body {
 }
 
 /**
+ * Par de dynadrill-icon-button pegados sin separación, mismo borde, para
+ * que se lean como UN solo botón con 2 íconos (ej. calendario + flecha)
+ * en vez de dos botones sueltos — pedido explícito del cliente para los
+ * badges "Inspección de salida/llegada realizada" de Pumping.
+ */
+.dyn-icon-pair {
+  display: inline-flex;
+
+  ::ng-deep .dynadrill-icon-btn {
+    border-radius: 0 !important;
+  }
+
+  dynadrill-icon-button:first-child ::ng-deep .dynadrill-icon-btn {
+    border-top-left-radius: var(--radius-sm, 8px) !important;
+    border-bottom-left-radius: var(--radius-sm, 8px) !important;
+  }
+
+  dynadrill-icon-button:last-child ::ng-deep .dynadrill-icon-btn {
+    border-top-right-radius: var(--radius-sm, 8px) !important;
+    border-bottom-right-radius: var(--radius-sm, 8px) !important;
+    border-left: none !important;
+  }
+}
+
+/**
  * Tinte de color "pendiente" para un dynadrill-icon-button — el componente
  * no tiene variante de color propia. Mismo criterio ::ng-deep que usa FCR
  * para su botón de eliminar herramienta (color danger).

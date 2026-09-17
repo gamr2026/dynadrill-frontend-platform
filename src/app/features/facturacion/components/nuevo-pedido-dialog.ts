@@ -506,7 +506,12 @@ export class NuevoPedidoDialog {
       this.tecnicoHseOptions.set(usuarios.map(u => ({ label: u.name, value: u.id })));
     });
     this.catalogosService.clientes().subscribe(clientes => this.clientesCatalogo.set(clientes));
-    this.articulosService.list({ categoria: 'QUIMICA', activo: true }).subscribe(articulos => this.quimicosCatalogo.set(articulos));
+    this.articulosService.list({ categoria: 'QUIMICA', activo: true }).subscribe({
+      next: articulos => this.quimicosCatalogo.set(articulos),
+      // Antes fallaba en silencio (403 de permisos) y el select de químicos
+      // quedaba vacío sin ninguna pista de por qué (bug reportado).
+      error: () => this.notify.error('Químicos', 'No se pudo cargar el catálogo de químicos de Inventario — las líneas marcadas como químico no van a poder elegir código.'),
+    });
     this.cargarPersonas('agente_comercial', this.agenteComercialOptions);
     this.cargarPersonas('representante_campo', this.representanteCampoOptions);
     this.cargarPersonas('representante_quito', this.representanteQuitoOptions);

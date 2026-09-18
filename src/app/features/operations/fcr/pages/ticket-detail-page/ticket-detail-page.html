@@ -95,17 +95,19 @@
         <dynadrill-text variant="h2">Reparación</dynadrill-text>
         <dynadrill-text variant="caption">Describe el trabajo de reparación realizado en campo.</dynadrill-text>
 
-        <dynadrill-textarea
-          label="Descripción de la reparación"
-          placeholder="Detalle del trabajo realizado…"
-          [value]="reparacionDescripcion()"
-          (valueChange)="reparacionDescripcion.set($event)"
-        />
-
         @if (isMyTurn()) {
+          <dynadrill-textarea
+            label="Descripción de la reparación"
+            placeholder="Detalle del trabajo realizado…"
+            [value]="reparacionDescripcion()"
+            (valueChange)="reparacionDescripcion.set($event)"
+          />
+
           <footer class="fcr-detail__actions">
             <dynadrill-button variant="primary" [disabled]="!reparacionDescripcion().trim()" (clicked)="confirmReparacion()">Continuar a Formulario de Inspección</dynadrill-button>
           </footer>
+        } @else {
+          <dynadrill-banner variant="info" message="El operador todavía no registró el detalle de la reparación." />
         }
       </section>
     }

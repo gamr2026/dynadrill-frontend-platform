@@ -129,7 +129,7 @@ const CARDS_POR_ROL: Record<string, string[]> = {
   'Supervisor Pumping': ['Operaciones'],
   'Supervisor Operaciones FCR': ['Operaciones'],
   Operador: ['Operaciones'],
-  'Control de Herramientas': ['Operaciones'],
+  'Operador FCR': ['Operaciones'],
   Facturación: ['Facturación'],
   'Ingeniería de Ventas': ['Facturación'],
   'Ingeniería de Ventas FCR': [],

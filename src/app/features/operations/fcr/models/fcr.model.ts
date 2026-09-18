@@ -52,16 +52,17 @@ export const FCR_PHASE_LABELS: Record<FcrPhase, string> = {
  */
 export const FCR_PHASE_ROLE: Record<FcrPhase, { roleName: string; roleId: number }> = {
   tipo_operador: { roleName: 'Supervisor', roleId: 1 },
-  reparacion: { roleName: 'Operador', roleId: 2 },
-  inspeccion: { roleName: 'Operador', roleId: 2 },
+  reparacion: { roleName: 'Operador FCR', roleId: 18 },
+  inspeccion: { roleName: 'Operador FCR', roleId: 18 },
   aprobacion_supervisor_operaciones: { roleName: 'Supervisor Operaciones FCR', roleId: 15 },
   validacion: { roleName: 'Supervisor', roleId: 1 },
   preparacion_herramientas: { roleName: 'Supervisor', roleId: 1 },
   asignacion_operador: { roleName: 'Supervisor', roleId: 1 },
   reunion_operativa: { roleName: 'Supervisor', roleId: 1 },
-  ejecucion_campo: { roleName: 'Operador', roleId: 2 },
+  ejecucion_campo: { roleName: 'Operador FCR', roleId: 18 },
   revision_reportes: { roleName: 'Supervisor', roleId: 1 },
-  control_retorno: { roleName: 'Control de Herramientas', roleId: 14 },
+  // Antes 'Control de Herramientas' (rol eliminado) — Bodega ya cubre el flujo.
+  control_retorno: { roleName: 'Bodeguero', roleId: 11 },
   cierre: { roleName: 'Supervisor', roleId: 1 },
 };
 

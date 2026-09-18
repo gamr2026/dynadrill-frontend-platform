@@ -1252,7 +1252,7 @@ export class FcrTicketDetailPage {
     for (const tool of this.ticket()?.tools ?? []) {
       const inspection = this.toolInspectionByToolId().get(tool.id);
       if (!inspection) {
-        agregar('Operador', tool.name); // checklist ni siquiera iniciado
+        agregar('Operador FCR', tool.name); // checklist ni siquiera iniciado
         continue;
       }
       if (inspection.estado === 'enviado' || inspection.estado === 'aprobado') continue;

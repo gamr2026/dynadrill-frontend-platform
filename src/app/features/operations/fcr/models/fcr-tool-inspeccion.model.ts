@@ -39,7 +39,7 @@ export const FCR_TOOL_INSPECTION_FIRMA_LABELS: Record<FcrToolInspectionFirmaRol,
  * completo en la fase siguiente.
  */
 export const FCR_TOOL_INSPECTION_FIRMA_ROLES_REQUERIDOS: Record<FcrToolInspectionFirmaRol, readonly string[]> = {
-  reparadoPor: ['Operador'],
+  reparadoPor: ['Operador FCR'],
   revisadoPor: ['Supervisor'],
   liberadoQhse: ['Técnico HSE', 'Coordinador HSE', 'Gerente HSE'],
 };

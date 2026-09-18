@@ -59,6 +59,14 @@
       </div>
 
       <div class="checklist-dialog__bulk-actions">
+        <dynadrill-button variant="secondary" size="small" (clicked)="descargarPlantillaPartes()">Descargar plantilla</dynadrill-button>
+        <dynadrill-text variant="caption">
+          Descarga la plantilla "Inspección y reparación de herramientas" con Item/Cantidad/Código/Descripción ya
+          precargados desde esta herramienta, para llenar Visual/End/Cambio · Cantidad/Acción fuera de línea.
+        </dynadrill-text>
+      </div>
+
+      <div class="checklist-dialog__bulk-actions">
         <dynadrill-upload-zone state="idle" (fileSelected)="onCargarPlantillaPartes($event)" />
         <dynadrill-text variant="caption">
           Cargá la plantilla "Inspección y reparación de herramientas" ya llena (Excel) para precargar Visual, End,

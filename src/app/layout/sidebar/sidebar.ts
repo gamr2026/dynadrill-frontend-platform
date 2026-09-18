@@ -36,7 +36,7 @@ const PUMPING_APROBACIONES_ITEM: DynadrillMenuItem = {
   ],
 };
 
-/** Para roles que solo tocan FCR dentro de Operativo (no Pumping): Bodega, Ingeniería de Ventas FCR, Control de Herramientas. */
+/** Para roles que solo tocan FCR dentro de Operativo (no Pumping): Bodega, Ingeniería de Ventas FCR, Operador FCR. */
 const FCR_ONLY_ITEM: DynadrillMenuItem = {
   label: 'Operativo',
   icon: 'file-text',
@@ -175,15 +175,22 @@ export class Sidebar {
       return [dashboard, { label: 'Mis tareas', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/mis-tareas' }];
     }
 
+    // operador@dynadrill.com — solo Pumping (nunca FCR, eso es de "Operador FCR" abajo) + su
+    // Mantenimiento operativo.
     if (roleName === 'Operador') {
       return [
         dashboard,
         {
           label: 'Módulos',
           icon: 'modules',
-          children: [OPERATIVO_ITEM, { label: 'Mantenimiento', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/operativo' }],
+          children: [PUMPING_ONLY_ITEM, { label: 'Mantenimiento', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/operativo' }],
         },
       ];
+    }
+
+    // operador.fcr@dynadrill.com — solo FCR (nunca Pumping).
+    if (roleName === 'Operador FCR') {
+      return [dashboard, FCR_ONLY_ITEM];
     }
 
     if (roleName === 'Supervisor') {
@@ -228,10 +235,6 @@ export class Sidebar {
       return [dashboard, FCR_ONLY_ITEM];
     }
 
-    if (roleName === 'Control de Herramientas') {
-      return [dashboard, FCR_ONLY_ITEM];
-    }
-
     if (roleName === 'Supervisor Operaciones FCR') {
       return [dashboard, FCR_ONLY_ITEM];
     }
@@ -242,7 +245,7 @@ export class Sidebar {
       // nivel backend), pero sin esta entrada de menú no tenía forma de
       // encontrar el ticket donde le toca firmar — antes solo entraba si
       // alguien le pasaba el link directo. Mismo ítem (sin Pumping) que
-      // Bodeguero/Control de Herramientas/Ingeniería de Ventas FCR.
+      // Bodeguero/Operador FCR/Ingeniería de Ventas FCR.
       return [dashboard, QHSE_ITEM, FCR_ONLY_ITEM];
     }
 

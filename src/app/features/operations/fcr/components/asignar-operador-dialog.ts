@@ -89,7 +89,18 @@ export class AsignarOperadorDialog {
   private readonly modalRef = inject(NzModalRef<AsignarOperadorDialog, AsignarOperadorDialogResult | undefined>);
   protected readonly data = inject<AsignarOperadorDialogData>(NZ_MODAL_DATA);
 
-  private readonly initialStart = new Date(`${this.data.estimatedDate}T00:00:00`);
+  /**
+   * Pedidos sin `fechaInicioServicio` (ej. entrada SERVICIOS/AS2 sin esa
+   * fecha) llegan con `estimatedDate` vacío — `new Date('T00:00:00')` da
+   * Invalid Date y `.toISOString()` explota más adelante en
+   * `fetchAvailability` (bug reportado, con captura de consola). Sin
+   * fecha real que precargar, se arranca en hoy en vez de romper todo el
+   * diálogo de asignación.
+   */
+  private readonly initialStart = (() => {
+    const parsed = this.data.estimatedDate ? new Date(`${this.data.estimatedDate}T00:00:00`) : null;
+    return parsed && !isNaN(parsed.getTime()) ? parsed : new Date();
+  })();
 
   protected readonly rangeStart = signal(this.initialStart);
   protected readonly rangeEnd = signal(addDays(this.initialStart, 2));

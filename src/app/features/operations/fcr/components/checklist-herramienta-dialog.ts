@@ -239,9 +239,32 @@ export class ChecklistHerramientaDialog {
     this.partes.update(rows => rows.map(row => (row.id === id ? { ...row, ...patch } : row)));
   }
 
-  /** Llenar 30-50 partes una por una es la queja más común del checklist en papel — esto marca todas OK de una vez, y el operador solo corrige las excepciones a "Defectuoso". */
+  /**
+   * Llenar 30-50 partes una por una es la queja más común del checklist en
+   * papel — esto marca todas OK de una vez (Visual, End, Cambio·Cantidad en 0
+   * y Acción "Ninguna", ya que una parte OK no tuvo cambio ni requirió
+   * acción), y el operador solo corrige a mano las excepciones.
+   */
   protected marcarTodoOk(): void {
-    this.partes.update(rows => rows.map(row => ({ ...row, visualResultado: 'ok', endResultado: 'ok' })));
+    this.partes.update(rows => rows.map(row => ({ ...row, visualResultado: 'ok', endResultado: 'ok', cambioCantidad: 0, accion: 'Ninguna' })));
+  }
+
+  /**
+   * Genera la plantilla "Inspección y reparación de herramientas" (mismo
+   * formato ITEM/CANTIDAD/CODIGO/DESCRIPCION/VISUAL/END/CANTIDAD(cambio)/
+   * ACCION que lee `onCargarPlantillaPartes`), precargada con las partes
+   * reales de esta herramienta (`ArticuloParte`, ya en `this.partes()`) y las
+   * columnas de inspección en blanco, para llenar fuera de línea (en campo,
+   * sin señal) y volver a subirla.
+   */
+  protected descargarPlantillaPartes(): void {
+    const encabezado = ['ITEM', 'CANTIDAD', 'CODIGO', 'DESCRIPCION', 'VISUAL', 'END', 'CANTIDAD', '', 'ACCION'];
+    const filas = this.partes().map(parte => [parte.item, parte.cantidadEsperada, parte.codigo, parte.descripcion, '', '', '', '', '']);
+    const hoja = XLSX.utils.aoa_to_sheet([encabezado, ...filas]);
+    const libro = XLSX.utils.book_new();
+    const nombreHoja = this.data.toolName.replace(/[:\\/?*[\]]/g, ' ').slice(0, 31) || 'Herramienta';
+    XLSX.utils.book_append_sheet(libro, hoja, nombreHoja);
+    XLSX.writeFile(libro, `plantilla-inspeccion-${this.data.toolName.replace(/[\\/:*?"<>|]/g, ' ')}.xlsx`);
   }
 
   /**

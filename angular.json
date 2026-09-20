@@ -31,6 +31,7 @@
               }
             ],
             "styles": [
+              "node_modules/@angular/cdk/overlay-prebuilt.css",
               "node_modules/ng-zorro-antd/ng-zorro-antd.min.css",
               "node_modules/@digitec-it-projects/dynadrill-ui/styles/_tokens.less",
               "src/styles.scss"

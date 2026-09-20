@@ -24,6 +24,7 @@ import {
   Pedido,
   valorEstimadoPedido,
 } from '../../models/pedido.model';
+import { MACRO_ESTADO_TONE } from '../../../../shared/index';
 import { DocumentoOperativo, TIPO_DOCUMENTO_OPERATIVO_LABELS } from '../../models/documento-operativo.model';
 import { DocumentoOperativoService, PedidoService } from '../../services/pedido.service';
 import { NuevoPedidoDialog } from '../../components/nuevo-pedido-dialog';
@@ -121,8 +122,10 @@ export class PedidosListPage {
       const dias = diasDesde(p.fechaFinServicio);
       const tono: 'success' | 'warning' | 'error' = dias <= 3 ? 'success' : dias <= 7 ? 'warning' : 'error';
       const fueraDeAlcance = ESTADOS_FUERA_DE_ALCANCE.includes(p.estado);
-      const estadoTono: 'neutral' | 'warning' | 'success' =
-        fueraDeAlcance ? 'neutral' : p.estado === 'ticket_firmado' || p.estado === 'aot_generada' ? 'success' : 'warning';
+      // Color por macro-estado (6 tonos universales) en vez del mapeo ad-hoc
+      // de antes — "fuera de alcance" sigue siendo un caso especial encima,
+      // no es parte del macro-estado en sí.
+      const estadoTono = fueraDeAlcance ? 'neutral' : MACRO_ESTADO_TONE[p.timelineResumen?.macroEstadoActual ?? 'pendiente'];
       return {
         id: p.id,
         code: p.code,

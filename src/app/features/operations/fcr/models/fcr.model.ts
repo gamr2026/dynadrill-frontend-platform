@@ -1,4 +1,5 @@
 import { Ticket } from '../../../../shared/models/ticket.model';
+import type { MacroEstado } from '../../../../shared/models/timeline.model';
 import {
   TOOL_DAILY_STATUS_CODE,
   TOOL_DAILY_STATUS_LABELS,
@@ -119,6 +120,8 @@ export interface FcrPhaseApproval {
   approvedBy: string;
   approvedByRole: string;
   date: string;
+  /** Agregado por el backend junto con `timelineResumen` — opcional porque el historial de tickets viejos no siempre lo trae. */
+  macroEstado?: MacroEstado;
 }
 
 // ── Documentos operativos (Reporte Job DYN-SGI-RE-047 / Reporte de Herramientas DYN-FCR-RE-008) ──

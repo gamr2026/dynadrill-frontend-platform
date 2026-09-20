@@ -19,17 +19,45 @@
         @if (estadoFueraDeAlcance()) {
           <dynadrill-banner variant="info" message="Este estado ya está fuera del alcance del aplicativo (registro AS2 / SRI / cobro)." />
         }
-        <ol class="pedido-detail__timeline">
-          @for (h of p.historialEstados; track $index) {
-            <li>
-              <span class="pedido-detail__timeline-dot"></span>
-              <div>
-                <strong>{{ estadoLabelDe(h.estado) }}</strong>
-                <dynadrill-text variant="caption">{{ h.fecha | date: 'dd/MM/yyyy HH:mm' }} · {{ h.usuario }}{{ h.motivo ? ' — ' + h.motivo : '' }}</dynadrill-text>
-              </div>
-            </li>
-          }
-        </ol>
+        @if (p.timelineResumen; as resumen) {
+          <ol class="pedido-detail__timeline">
+            @for (t of resumen.tramos; track $index) {
+              <li>
+                <button
+                  type="button"
+                  class="pedido-detail__timeline-item"
+                  [class.pedido-detail__timeline-item--selected]="$index === selectedHistorialIndex()"
+                  (click)="seleccionarHistorial($index)"
+                  [appTimelinePopoverTrigger]="t"
+                  [faseIndice]="$index + 1"
+                  [faseLabel]="estadoLabelDeFn(t.fase)"
+                  [esFaseActual]="$index === resumen.tramos.length - 1"
+                  [responsableRolActual]="resumen.responsableRolActual"
+                >
+                  <span class="pedido-detail__timeline-dot"></span>
+                  <div>
+                    <strong>{{ estadoLabelDeFn(t.fase) }}</strong>
+                    <dynadrill-text variant="caption">
+                      {{ t.inicio | date: 'dd/MM/yyyy HH:mm' }}{{ t.actorNombre ? ' · ' + t.actorNombre : '' }}
+                    </dynadrill-text>
+                  </div>
+                </button>
+              </li>
+            }
+          </ol>
+        } @else {
+          <ol class="pedido-detail__timeline">
+            @for (h of p.historialEstados; track $index) {
+              <li>
+                <span class="pedido-detail__timeline-dot"></span>
+                <div>
+                  <strong>{{ estadoLabelDe(h.estado) }}</strong>
+                  <dynadrill-text variant="caption">{{ h.fecha | date: 'dd/MM/yyyy HH:mm' }} · {{ h.usuario }}{{ h.motivo ? ' — ' + h.motivo : '' }}</dynadrill-text>
+                </div>
+              </li>
+            }
+          </ol>
+        }
       </section>
 
       <!-- ── Ticket operativo asociado (Pedido -> FCR) ── -->

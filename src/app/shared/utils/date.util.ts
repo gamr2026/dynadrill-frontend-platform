@@ -21,3 +21,8 @@ export function parseLocalDateString(iso: string): Date {
   const [year, month, day] = iso.split('-').map(Number);
   return new Date(year, month - 1, day);
 }
+
+/** `formatDate(..., 'es')` devuelve el día de la semana/mes en minúscula ("viernes, ..."). */
+export function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}

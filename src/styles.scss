@@ -289,3 +289,11 @@ body {
     }
   }
 }
+
+/**
+ * Backdrop del popover de trazabilidad del timeline (TimelinePopoverTriggerDirective):
+ * invisible, solo sirve para detectar el clic afuera y cerrar el popover.
+ */
+.app-timeline-popover-backdrop {
+  background: transparent;
+}

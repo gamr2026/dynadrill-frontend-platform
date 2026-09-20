@@ -1,6 +1,17 @@
-import { ChangeDetectionStrategy, Component, ElementRef, afterRenderEffect, computed, inject, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  afterRenderEffect,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet, formatDate } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom, type Observable } from 'rxjs';
 import type { NzUploadFile } from 'ng-zorro-antd/upload';
@@ -25,6 +36,7 @@ import {
   DynadrillUploadZoneComponent,
   type DynadrillApprovalDecision,
   type DynadrillContextCardItem,
+  type DynadrillContextCardTag,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import {
@@ -42,7 +54,9 @@ import {
 } from '../../models/fcr.model';
 import { FcrService, type CampoDocumentoFcr } from '../../services/fcr.service';
 import { PedidoService } from '../../../../facturacion/services/pedido.service';
-import { itemsEstimadosDe, TIPO_SERVICIO_LABELS, type Pedido } from '../../../../facturacion/models/pedido.model';
+import { itemsEstimadosDe, TIPO_OT_LABELS, TIPO_SERVICIO_LABELS, type Pedido } from '../../../../facturacion/models/pedido.model';
+import { capitalize, parseLocalDateString } from '../../../../../shared/utils';
+import { MACRO_ESTADO_LABELS, MACRO_ESTADO_TONE } from '../../../../../shared/models/timeline.model';
 import { FcrToolInspeccionesService } from '../../services/fcr-tool-inspecciones.service';
 import {
   FCR_TOOL_INSPECTION_FIRMA_ROLES,
@@ -89,6 +103,7 @@ import {
   ReporteJobPdfDialog,
   ReporteJobPdfDialogData,
   OperativoDocsBridgeService,
+  TimelinePopoverTriggerDirective,
 } from '../../../../../shared/index';
 
 /** RN de negocio (fcr-adjuntos-reales): el backend es la fuente de verdad, esto es solo UX para no esperar el round-trip. */
@@ -197,6 +212,7 @@ const PHASE_KEYS_SERVICIO: FcrPhase[] = [
     DynadrillUploadZoneComponent,
     DynadrillApprovalActionsComponent,
     TicketQhseBanner,
+    TimelinePopoverTriggerDirective,
   ],
   templateUrl: './ticket-detail-page.html',
   styleUrl: './ticket-detail-page.scss',
@@ -242,6 +258,15 @@ export class FcrTicketDetailPage {
   // fases avanzadas la fase activa queda fuera de vista y el usuario tiene
   // que descubrir por su cuenta que hay que deslizar para encontrarla.
   private readonly trackerScrollEl = viewChild<ElementRef<HTMLElement>>('trackerScroll');
+
+  /** `null` = sin selección manual → se muestra el detalle de la fase actual. Clic en una fase ya alcanzada la selecciona. */
+  private readonly manualPhaseIndex = signal<number | null>(null);
+  protected readonly selectedPhaseIndex = computed(() => this.manualPhaseIndex() ?? this.currentPhaseIndex());
+
+  protected seleccionarFase(index: number): void {
+    if (index > this.currentPhaseIndex()) return;
+    this.manualPhaseIndex.set(index);
+  }
 
   protected readonly currentPhase = computed<FcrPhase>(() => this.ticket()?.currentPhase ?? 'validacion');
 
@@ -317,15 +342,50 @@ export class FcrTicketDetailPage {
 
   // ── Contexto ──
 
-  protected readonly contextItems = computed<DynadrillContextCardItem[]>(() => {
+  protected readonly contextCardTags = computed<DynadrillContextCardTag[]>(() => {
+    const t = this.ticket();
+    const macro = t?.timelineResumen?.macroEstadoActual;
+    const tags: DynadrillContextCardTag[] = [];
+    if (macro) tags.push({ label: MACRO_ESTADO_LABELS[macro], variant: MACRO_ESTADO_TONE[macro] });
+    // Tickets sembrados antes de este campo no traen tipoOt — mismo default que ticket-list-page.ts ('venta').
+    if (t) tags.push({ label: TIPO_OT_LABELS[t.tipoOt ?? 'venta'], variant: 'info' });
+    return tags;
+  });
+
+  protected readonly contextCardGroups = computed<DynadrillContextCardItem[][]>(() => {
     const t = this.ticket();
     if (!t) return [];
+    const herramientasRecibidas = t.tools.filter(tool => tool.status === 'recibida').length;
     return [
-      { label: 'Propuesta', value: `V${t.proposalVersion} · aprobada` },
-      { label: 'Supervisor', value: resolveSupervisorName(t) || '—' },
-      { label: 'Operador asignado', value: t.assignedOperator || 'Sin asignar' },
-      { label: 'Herramientas', value: `${t.tools.filter(tool => tool.status === 'recibida').length} de ${t.tools.length} recibidas` },
+      [
+        { label: 'Cliente', value: t.clientName, icon: 'users' },
+        { label: 'Propuesta', value: `V${t.proposalVersion} · aprobada`, icon: 'file-text' },
+      ],
+      [
+        { label: 'Pozo', value: t.wellName, icon: 'location' },
+        { label: 'Supervisor', value: resolveSupervisorName(t) || '—', icon: 'users' },
+      ],
+      [
+        {
+          label: 'Fecha estimada',
+          value: t.estimatedDate || '—',
+          icon: 'calendar',
+          caption: t.estimatedDate ? capitalize(formatDate(parseLocalDateString(t.estimatedDate), "EEEE, d 'de' MMMM y", 'es')) : undefined,
+        },
+        { label: 'Operador asignado', value: t.assignedOperator || 'Sin asignar', icon: 'users' },
+        {
+          label: 'Herramientas',
+          value: `${herramientasRecibidas} de ${t.tools.length} recibidas`,
+          icon: 'box',
+          badgeVariant: t.tools.length > 0 && herramientasRecibidas === t.tools.length ? 'success' : undefined,
+        },
+      ],
     ];
+  });
+
+  protected readonly contextCardFooterStatus = computed<DynadrillContextCardTag>(() => {
+    const cerrado = this.ticket()?.status === 'cerrado' || this.ticket()?.status === 'aprobado';
+    return cerrado ? { label: 'Finalizado', variant: 'neutral' } : { label: 'Activo', variant: 'success' };
   });
 
   // ══════════════════════════════════════════════
@@ -1545,6 +1605,12 @@ export class FcrTicketDetailPage {
       const container = this.trackerScrollEl()?.nativeElement;
       const active = container?.querySelector<HTMLElement>('.fcr-detail__phase--active');
       active?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    });
+
+    // Si el ticket avanza de fase, la selección manual vieja del detalle ya no aplica.
+    effect(() => {
+      this.currentPhaseIndex();
+      untracked(() => this.manualPhaseIndex.set(null));
     });
   }
 

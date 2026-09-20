@@ -10,6 +10,8 @@
  * Ver `documentacion/facturacion/PLAN-MODULO-FACTURACION.md` (§2, §3, §6).
  */
 
+import type { MacroEstado, TimelineResumen } from '../../../shared/models/timeline.model';
+
 export type LineaServicio = 'fcr' | 'pumping';
 
 export const LINEA_SERVICIO_LABELS: Record<LineaServicio, string> = {
@@ -129,6 +131,9 @@ export interface CambioEstado {
   fecha: string;
   usuario: string;
   motivo?: string;
+  /** Agregados por el backend junto con `timelineResumen` — opcionales porque el historial de pedidos viejos no siempre los trae. */
+  macroEstado?: MacroEstado;
+  actorRol?: string;
 }
 
 /**
@@ -214,6 +219,8 @@ export interface Pedido {
   // ── Estado ──
   estado: EstadoPedido;
   historialEstados: CambioEstado[];
+  /** Fase actual + macro-estado + tramos con tiempos/actores — lo calcula el backend al leer, no se persiste. */
+  timelineResumen?: TimelineResumen;
 
   createdAt: string;
   createdBy: string;
@@ -225,6 +232,7 @@ export type CreatePedidoInput = Omit<
   | 'code'
   | 'estado'
   | 'historialEstados'
+  | 'timelineResumen'
   | 'createdAt'
   | 'lastSyncedAt'
   | 'as2Ref'

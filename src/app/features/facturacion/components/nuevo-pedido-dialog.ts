@@ -93,6 +93,16 @@ const MAX_PLANTILLA_BYTES = 5 * 1024 * 1024;
 /** Copia estática de la plantilla real de AS2 — ver public/plantillas/. */
 const URL_PLANTILLA_AS2 = '/plantillas/as2-pedido-cliente.xlsx';
 
+/**
+ * Mismos tipos que acepta el backend para documentos adjuntos del Pedido
+ * (`TIPOS_ARCHIVO_DOCUMENTO_PEDIDO` en pedido-documentos.constants.ts) — acá
+ * solo se puede chequear `File.type` (MIME reportado por el navegador, no
+ * magic number), así que esto es una validación temprana, no la definitiva:
+ * el backend sigue siendo quien manda.
+ */
+const TIPOS_ARCHIVO_DOCUMENTO_PEDIDO =
+  /^application\/pdf$|^image\/(jpeg|png)$|^application\/vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|spreadsheetml\.sheet)$/i;
+
 /** Condición de pago — dos categorías a pedido del cliente: normal vs. "SIN CRÉDITO" (plazos largos, sin línea de crédito). */
 const CONDICION_PAGO_OPTIONS: DynadrillSelectOption[] = [
   { label: '1 día', value: '1 día', group: 'Con crédito' },
@@ -249,7 +259,19 @@ export class NuevoPedidoDialog {
     this.documentosAdjuntos.update(list => list.map((d, i) => (i === index ? { ...d, descripcion } : d)));
   }
 
+  /**
+   * Rechaza de una el archivo si el tipo no es uno de los que el backend
+   * acepta — antes se guardaba igual en el draft y recién fallaba al subirlo
+   * DESPUÉS de crear el pedido (mensaje "el pedido se guardó, pero..."). Con
+   * esto el archivo inválido nunca entra al draft, así que `puedeGuardar`
+   * (que exige archivo en cada fila) bloquea la creación del pedido.
+   */
   protected onDocumentoAdjuntoArchivoChange(index: number, archivo: NzUploadFile): void {
+    const file = (archivo.originFileObj as File | undefined) ?? (archivo as unknown as File);
+    if (!file || !TIPOS_ARCHIVO_DOCUMENTO_PEDIDO.test(file.type)) {
+      this.notify.error('Archivo no válido', 'Solo se aceptan PDF, imágenes (JPG/PNG) o documentos Word/Excel.');
+      return;
+    }
     this.documentosAdjuntos.update(list => list.map((d, i) => (i === index ? { ...d, archivo } : d)));
   }
 
@@ -442,6 +464,9 @@ export class NuevoPedidoDialog {
 
   protected readonly submitting = signal(false);
 
+  /** Toda fila de documento agregada (`id === null`, sin persistir) debe tener ya un archivo válido — si no, no se crea/actualiza el pedido. */
+  protected readonly documentosAdjuntosValidos = computed(() => this.documentosAdjuntos().every(d => d.id !== null || !!d.archivo));
+
   protected readonly puedeGuardar = computed(
     () =>
       !!this.cliente() &&
@@ -454,7 +479,8 @@ export class NuevoPedidoDialog {
       this.representanteCampo().trim().length > 0 &&
       this.representanteQuito().trim().length > 0 &&
       this.tecnicoHseResponsableId() !== null &&
-      this.lineasTodasValidas(),
+      this.lineasTodasValidas() &&
+      this.documentosAdjuntosValidos(),
   );
 
   /** Prefill de <app-ubicacion-selector> en modo edición — el propio componente resuelve ids contra el catálogo. */

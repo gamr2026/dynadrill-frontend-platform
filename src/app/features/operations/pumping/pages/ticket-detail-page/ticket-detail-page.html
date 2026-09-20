@@ -24,10 +24,19 @@
 
 <div class="ticket-detail__stepper" #trackerScroll>
   @for (step of stepLabels; track $index; let last = $last) {
-    <div
+    <button
+      type="button"
       class="ticket-detail__step"
       [class.ticket-detail__step--active]="$index === currentStepIndex()"
       [class.ticket-detail__step--completed]="$index < currentStepIndex()"
+      [class.ticket-detail__step--selected]="$index === selectedStepIndex()"
+      [disabled]="$index > currentStepIndex()"
+      (click)="seleccionarPaso($index)"
+      [appTimelinePopoverTrigger]="ticket()!.timelineResumen?.tramos?.[$index]"
+      [faseIndice]="$index + 1"
+      [faseLabel]="step"
+      [esFaseActual]="$index === currentStepIndex()"
+      [responsableRolActual]="ticket()!.timelineResumen!.responsableRolActual"
     >
       <div class="ticket-detail__step-circle">
         @if ($index < currentStepIndex()) {
@@ -37,7 +46,7 @@
         }
       </div>
       <span class="ticket-detail__step-label">{{ step }}</span>
-    </div>
+    </button>
     @if (!last) {
       <div
         class="ticket-detail__step-line"
@@ -59,7 +68,17 @@
   @if (currentStep() === 'revision_propuesta') {
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Información de la propuesta</dynadrill-text>
-      <dynadrill-context-card [items]="contextItems()" />
+      <dynadrill-context-card
+        variant="card"
+        icon="file-text"
+        [title]="ticket()!.code"
+        subtitle="Ticket de Servicio Operativo"
+        [tags]="contextCardTags()"
+        [groups]="contextCardGroups()"
+        footerNote="Trazabilidad blockchain activa · Registro inmutable"
+        [footerId]="ticket()!.code"
+        [footerStatus]="contextCardFooterStatus()"
+      />
     </section>
 
     @if (pedido(); as p) {
@@ -158,18 +177,28 @@
   @if (currentStep() === 'asignacion') {
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Información del ticket</dynadrill-text>
-      <dynadrill-context-card [items]="contextItems()" />
+      <dynadrill-context-card
+        variant="card"
+        icon="file-text"
+        [title]="ticket()!.code"
+        subtitle="Ticket de Servicio Operativo"
+        [tags]="contextCardTags()"
+        [groups]="contextCardGroups()"
+        footerNote="Trazabilidad blockchain activa · Registro inmutable"
+        [footerId]="ticket()!.code"
+        [footerStatus]="contextCardFooterStatus()"
+      />
     </section>
 
     @if (viewMode() === 'resumen') {
-      <!-- Vista resumen: tablas de operadores y químicos asignados -->
+      <!-- Vista resumen: tablas de operadores y químicos/herramientas asignados -->
       <section class="ticket-detail__section">
         <dynadrill-text variant="h2">Operadores asignados</dynadrill-text>
         <dynadrill-data-table [columns]="assignmentSummaryColumns" [rows]="assignmentSummaryRows()" [loading]="false" />
       </section>
 
       <section class="ticket-detail__section">
-        <dynadrill-text variant="h2">Químicos asignados</dynadrill-text>
+        <dynadrill-text variant="h2">Químicos o herramientas asignados</dynadrill-text>
         <dynadrill-data-table [columns]="chemicalSummaryColumns" [rows]="chemicalSummaryRows()" [loading]="false" />
       </section>
 
@@ -386,7 +415,17 @@
 
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Información del ticket</dynadrill-text>
-      <dynadrill-context-card [items]="contextItems()" />
+      <dynadrill-context-card
+        variant="card"
+        icon="file-text"
+        [title]="ticket()!.code"
+        subtitle="Ticket de Servicio Operativo"
+        [tags]="contextCardTags()"
+        [groups]="contextCardGroups()"
+        footerNote="Trazabilidad blockchain activa · Registro inmutable"
+        [footerId]="ticket()!.code"
+        [footerStatus]="contextCardFooterStatus()"
+      />
     </section>
 
     <section class="ticket-detail__section">
@@ -1032,7 +1071,11 @@
 
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || !allLlegadaInspectionsCompleted() || submitting()" (clicked)="saveUnitReport()">Enviar reporte de unidad de llegada</dynadrill-button>
+      <dynadrill-button
+        variant="primary"
+        [disabled]="!allInspectionsCompleted() || !allLlegadaInspectionsCompleted() || !operatividadCompleta() || submitting()"
+        (clicked)="saveUnitReport()"
+      >Enviar reporte de unidad de llegada</dynadrill-button>
     </footer>
   }
 
@@ -1051,7 +1094,7 @@
     </section>
 
     <section class="ticket-detail__section">
-      <dynadrill-text variant="h2">Químicos asignados</dynadrill-text>
+      <dynadrill-text variant="h2">Químicos o herramientas asignados</dynadrill-text>
       <dynadrill-data-table [columns]="chemicalColumns" [rows]="chemicalRows()" [loading]="false" />
     </section>
 

@@ -1,5 +1,5 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import {
@@ -18,6 +18,7 @@ import {
   ReporteHerramientasPdfDialogData,
   ReporteJobPdfDialog,
   ReporteJobPdfDialogData,
+  TimelinePopoverTriggerDirective,
 } from '../../../../shared/index';
 import {
   ESTADOS_FUERA_DE_ALCANCE,
@@ -62,6 +63,7 @@ interface Dato {
     DynadrillProgressComponent,
     DynadrillSpinnerComponent,
     DynadrillBannerComponent,
+    TimelinePopoverTriggerDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pedido-detail-page.html',
@@ -194,8 +196,27 @@ export class PedidoDetailPage {
     return ESTADO_PEDIDO_LABELS[estado];
   }
 
+  /** Misma función que `estadoLabelDe`, para usar directo en el template con un `fase: string` (viene de `TimelineTramo`, no tipado a `EstadoPedido`). */
+  protected readonly estadoLabelDeFn = (fase: string): string => this.estadoLabelDe(fase as EstadoPedido);
+
+  /** `null` = sin selección manual → se muestra el detalle del tramo actual (el último). Clic en un ítem del historial lo selecciona. */
+  private readonly manualHistorialIndex = signal<number | null>(null);
+  protected readonly selectedHistorialIndex = computed(
+    () => this.manualHistorialIndex() ?? (this.pedido()?.timelineResumen?.tramos.length ?? 1) - 1,
+  );
+
+  protected seleccionarHistorial(index: number): void {
+    this.manualHistorialIndex.set(index);
+  }
+
   constructor() {
     this.reload();
+
+    // Si el pedido cambia de estado, la selección manual vieja del detalle ya no aplica.
+    effect(() => {
+      this.pedido();
+      untracked(() => this.manualHistorialIndex.set(null));
+    });
   }
 
   private reload(): void {

@@ -21,11 +21,11 @@ export type FcrPhase =
   | 'inspeccion'
   | 'aprobacion_supervisor_operaciones'
   // ── Entrada VENTA + tronco común (ya existían) ──
-  | 'validacion'
+  | 'revision_inicial'
   | 'preparacion_herramientas'
-  | 'asignacion_operador'
+  | 'asignacion'
   | 'reunion_operativa'
-  | 'ejecucion_campo'
+  | 'ejecucion_operativa'
   | 'revision_reportes'
   | 'control_retorno'
   | 'cierre';
@@ -35,11 +35,11 @@ export const FCR_PHASE_LABELS: Record<FcrPhase, string> = {
   reparacion: 'Reparación',
   inspeccion: 'Formulario de Inspección',
   aprobacion_supervisor_operaciones: 'Aprobación de Supervisor de Operaciones',
-  validacion: 'Validación',
+  revision_inicial: 'Revisión Inicial',
   preparacion_herramientas: 'Preparación de Herramientas',
-  asignacion_operador: 'Asignación de Operador',
+  asignacion: 'Asignación de Operador',
   reunion_operativa: 'Reunión Operativa',
-  ejecucion_campo: 'Ejecución de Campo',
+  ejecucion_operativa: 'Ejecución Operativa',
   revision_reportes: 'Revisión de Reportes',
   control_retorno: 'Control de Retorno',
   cierre: 'Cierre',
@@ -56,11 +56,11 @@ export const FCR_PHASE_ROLE: Record<FcrPhase, { roleName: string; roleId: number
   reparacion: { roleName: 'Operador FCR', roleId: 18 },
   inspeccion: { roleName: 'Operador FCR', roleId: 18 },
   aprobacion_supervisor_operaciones: { roleName: 'Supervisor Operaciones FCR', roleId: 15 },
-  validacion: { roleName: 'Supervisor', roleId: 1 },
+  revision_inicial: { roleName: 'Supervisor', roleId: 1 },
   preparacion_herramientas: { roleName: 'Supervisor', roleId: 1 },
-  asignacion_operador: { roleName: 'Supervisor', roleId: 1 },
+  asignacion: { roleName: 'Supervisor', roleId: 1 },
   reunion_operativa: { roleName: 'Supervisor', roleId: 1 },
-  ejecucion_campo: { roleName: 'Operador FCR', roleId: 18 },
+  ejecucion_operativa: { roleName: 'Operador FCR', roleId: 18 },
   revision_reportes: { roleName: 'Supervisor', roleId: 1 },
   // Antes 'Control de Herramientas' (rol eliminado) — Bodega ya cubre el flujo.
   control_retorno: { roleName: 'Bodeguero', roleId: 11 },
@@ -153,12 +153,12 @@ export interface FcrToolUsageEntry extends OperativoToolUsageEntry {
 
 export interface FcrTicket extends Ticket {
   currentPhase: FcrPhase;
-  /** Decide qué entrada usa este ticket (preparacion_herramientas vs. validacion) — viene del Pedido, no editable aquí. */
+  /** Decide qué entrada usa este ticket (preparacion_herramientas vs. revision_inicial) — viene del Pedido, no editable aquí. */
   tipoOt: TipoOt;
   proposalVersion: number;
   /** Código del Pedido de Facturación asociado — link para el puente FCR → Facturación. */
   pedidoCode?: string;
-  /** FK real del Pedido asociado (columna escalar del ticket) — se usa para traer el detalle completo de solo lectura en 'validacion'. */
+  /** FK real del Pedido asociado (columna escalar del ticket) — se usa para traer el detalle completo de solo lectura en 'revision_inicial'. */
   pedidoId?: number | null;
   tools: FcrTool[];
   // ── Entrada SERVICIOS ──

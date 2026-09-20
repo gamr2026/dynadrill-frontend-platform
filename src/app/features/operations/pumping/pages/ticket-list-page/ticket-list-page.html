@@ -20,9 +20,9 @@
       @if (isSupervisor() && row['step'] === 'asignacion') {
         <dynadrill-icon-button icon="user-add" tooltip="Asignar" (clicked)="viewDetailMode(row, 'asignar')" />
         <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewDetailMode(row, 'resumen')" />
-      } @else if (isSupervisor() && row['step'] === 'revisar_reportes_salida') {
+      } @else if (isSupervisor() && row['step'] === 'revision_reportes_salida') {
         <dynadrill-icon-button icon="file-search" tooltip="Revisar reportes de salida" (clicked)="viewDetail(row)" />
-      } @else if (isSupervisor() && row['step'] === 'revisar_reportes_llegada') {
+      } @else if (isSupervisor() && row['step'] === 'revision_reportes_llegada') {
         <dynadrill-icon-button icon="file-search" tooltip="Revisar reportes de llegada" (clicked)="viewDetail(row)" />
       } @else {
         <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewDetail(row)" />

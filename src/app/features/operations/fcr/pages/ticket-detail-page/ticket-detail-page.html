@@ -276,7 +276,7 @@
     <!-- ═══════════════════════════════════════════ -->
     <!-- FASE: Validación                            -->
     <!-- ═══════════════════════════════════════════ -->
-    @case ('validacion') {
+    @case ('revision_inicial') {
       <section class="fcr-detail__section">
         <dynadrill-text variant="h2">Validación de la información técnica</dynadrill-text>
         <dynadrill-text variant="caption">
@@ -496,7 +496,7 @@
             documento de inspección real en esta fase (eso ahora se hace por
             herramienta, más adelante, en 'inspeccion'). El tronco continúa
             en 'tipo_operador' (operador mecánico que repara e inspecciona),
-            no en 'asignacion_operador'.
+            no en 'asignacion'.
           -->
           @if (roleName() === 'Supervisor' && ticket()!.toolListConfirmed) {
             <footer class="fcr-detail__actions">
@@ -564,7 +564,7 @@
               <dynadrill-button
                 variant="primary"
                 [disabled]="!coberturaOk()"
-                (clicked)="confirmAndAdvance('asignacion_operador', 'Continuar a Asignación de Operador', 'La preparación de herramientas quedará cerrada y ya no podrá corregirse. ¿Continuar?')"
+                (clicked)="confirmAndAdvance('asignacion', 'Continuar a Asignación de Operador', 'La preparación de herramientas quedará cerrada y ya no podrá corregirse. ¿Continuar?')"
               >Continuar a Asignación de Operador</dynadrill-button>
             </footer>
           }
@@ -575,7 +575,7 @@
     <!-- ═══════════════════════════════════════════ -->
     <!-- FASE: Asignación de Operador                -->
     <!-- ═══════════════════════════════════════════ -->
-    @case ('asignacion_operador') {
+    @case ('asignacion') {
       <section class="fcr-detail__section">
         <dynadrill-text variant="h2">Asignación de Operador</dynadrill-text>
 
@@ -625,7 +625,7 @@
             <dynadrill-button
               variant="primary"
               [disabled]="!ptwFirmadoOk()"
-              (clicked)="confirmAndAdvance('ejecucion_campo', 'Continuar a Ejecución de Campo', 'La reunión operativa quedará cerrada. ¿Continuar?')"
+              (clicked)="confirmAndAdvance('ejecucion_operativa', 'Continuar a Ejecución de Campo', 'La reunión operativa quedará cerrada. ¿Continuar?')"
             >Continuar a Ejecución de Campo</dynadrill-button>
           </footer>
         } @else if (isMyTurn()) {
@@ -637,7 +637,7 @@
     <!-- ═══════════════════════════════════════════ -->
     <!-- FASE: Ejecución de Campo                    -->
     <!-- ═══════════════════════════════════════════ -->
-    @case ('ejecucion_campo') {
+    @case ('ejecucion_operativa') {
       <section class="fcr-detail__section">
         <dynadrill-text variant="h2">Ejecución del Trabajo FCR</dynadrill-text>
         <dynadrill-text variant="caption">Bitácora horaria y uso de herramientas — alimentan el Reporte de Trabajo y el Reporte de Herramientas al finalizar.</dynadrill-text>
@@ -927,7 +927,7 @@
             <dynadrill-button variant="secondary" (clicked)="openReporteCierre()">Exportar resumen a PDF</dynadrill-button>
           </footer>
 
-          <!-- Checklists + documentos de inspección (SERVICIOS) — mismo bloque reusado en aprobacion_supervisor_operaciones / asignacion_operador / ejecucion_campo -->
+          <!-- Checklists + documentos de inspección (SERVICIOS) — mismo bloque reusado en aprobacion_supervisor_operaciones / asignacion / ejecucion_operativa -->
           @if (ticket()!.tipoOt === 'servicio') {
             <div class="fcr-detail__dashboard-section">
               <ng-container [ngTemplateOutlet]="checklistDocumentosReadOnly" />
@@ -1084,7 +1084,7 @@
   <!-- Checklists + documentos de inspección (SERVICIOS) — solo    -->
   <!-- lectura, reusado en aprobacion_supervisor_operaciones (para -->
   <!-- que el Supervisor FCR revise antes de aprobar) y en         -->
-  <!-- asignacion_operador (info de referencia para el operador de -->
+  <!-- asignacion (info de referencia para el operador de -->
   <!-- campo asignado).                                            -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <ng-template #checklistDocumentosReadOnly>

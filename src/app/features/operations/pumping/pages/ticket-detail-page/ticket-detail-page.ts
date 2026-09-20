@@ -157,7 +157,7 @@ function createMockCompletedInspection(
   };
 }
 
-const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'revisar_reportes_salida', 'ejecucion_operativa', 'gerenciamiento_llegada', 'en_ejecucion_llegada', 'mantenimiento', 'revisar_reportes_llegada', 'en_revision', 'finalizado'];
+const STEP_KEYS: PumpingStep[] = ['revision_inicial', 'asignacion', 'traslado_salida', 'revision_reportes_salida', 'ejecucion_operativa', 'control_retorno', 'traslado_llegada', 'mantenimiento', 'revision_reportes_llegada', 'revision_final', 'cierre'];
 
 /**
  * PumpingUnitReport guarda fechas como string ISO (yyyy-MM-dd);
@@ -424,7 +424,7 @@ export class TicketDetailPage {
     this.manualStepIndex.set(index);
   }
 
-  protected readonly currentStep = computed(() => this.ticket()?.currentStep ?? 'revision_propuesta');
+  protected readonly currentStep = computed(() => this.ticket()?.currentStep ?? 'revision_inicial');
 
   // ── Context card (cabecera de identidad del ticket, dynadrill-ui@1.1.0 variant="card") ──
 
@@ -1138,7 +1138,7 @@ export class TicketDetailPage {
   /**
    * Orden final confirmado con el cliente: para la llegada el Gerenciamiento
    * de Viaje va PRIMERO — antes de que el operador pueda siquiera crear la
-   * inspección y el reporte de unidad de llegada (paso `gerenciamiento_llegada`,
+   * inspección y el reporte de unidad de llegada (paso `control_retorno`,
    * ver advanceFromGerenciamientoLlegada). Por eso se basa en personnelRows
    * (la asignación del ticket) y no en reviewLlegadaRows, que depende de un
    * reporte que en este punto todavía no existe.
@@ -1261,7 +1261,7 @@ export class TicketDetailPage {
     if (!t) return;
     if (this.bloqueadoPorSwa()) return;
     this.submitting.set(true);
-    const nextStep: PumpingStep = 'en_revision';
+    const nextStep: PumpingStep = 'revision_final';
     this.pumpingService.advanceStep(t.id, nextStep).subscribe({
       next: updated => {
         this.ticket.set(updated);
@@ -1474,7 +1474,7 @@ export class TicketDetailPage {
     if (!t) return;
     if (this.bloqueadoPorSwa()) return;
     this.submitting.set(true);
-    const nextStep: PumpingStep = 'gerenciamiento_llegada';
+    const nextStep: PumpingStep = 'control_retorno';
     this.pumpingService.advanceStep(t.id, nextStep).subscribe({
       next: updated => {
         this.ticket.set(updated);
@@ -1496,14 +1496,14 @@ export class TicketDetailPage {
    * llegada lo crea el Supervisor ANTES de que el operador pueda crear la
    * inspección y el reporte de unidad de llegada — ver
    * allReturnTravelManagementsCompleted/openReturnTravelManagement más
-   * arriba, gated en el paso `gerenciamiento_llegada`.
+   * arriba, gated en el paso `control_retorno`.
    */
   protected advanceFromGerenciamientoLlegada(): void {
     const t = this.ticket();
     if (!t) return;
     if (this.bloqueadoPorSwa()) return;
     this.submitting.set(true);
-    const nextStep: PumpingStep = 'en_ejecucion_llegada';
+    const nextStep: PumpingStep = 'traslado_llegada';
     this.pumpingService.advanceStep(t.id, nextStep).subscribe({
       next: updated => {
         this.ticket.set(updated);
@@ -2040,7 +2040,7 @@ export class TicketDetailPage {
     if (!t) return;
     if (this.bloqueadoPorSwa()) return;
     this.submitting.set(true);
-    const nextStep: PumpingStep = 'revisar_reportes_llegada';
+    const nextStep: PumpingStep = 'revision_reportes_llegada';
     this.pumpingService.advanceStep(t.id, nextStep).subscribe({
       next: updated => {
         this.ticket.set(updated);
@@ -2228,7 +2228,11 @@ export class TicketDetailPage {
       return;
     }
 
-    if (!this.operatividadCompleta()) {
+    // Las preguntas de operatividad ("¿unidad lista?", "¿hubo interrupción?")
+    // solo se muestran en el Reporte de Unidad — Llegada (`traslado_llegada`,
+    // ver ticket-detail-page.html:1035-1049) — exigirlas también al enviar el
+    // de Salida bloqueaba ese envío pidiendo algo que no está en pantalla.
+    if (this.currentStep() === 'traslado_llegada' && !this.operatividadCompleta()) {
       this.notify.error(
         'Operatividad sin confirmar',
         'Responda si la unidad está lista y operativa, y si algún problema interrumpió la operación, antes de enviar el reporte.',
@@ -2294,13 +2298,13 @@ export class TicketDetailPage {
    * estaba aunque el toast dijera "Guardado".
    */
   private readonly NEXT_STEP: Partial<Record<PumpingStep, PumpingStep>> = {
-    revision_propuesta: 'asignacion',
-    asignacion: 'en_ejecucion',
-    en_ejecucion: 'revisar_reportes_salida',
-    revisar_reportes_salida: 'ejecucion_operativa',
-    ejecucion_operativa: 'en_ejecucion_llegada',
-    en_ejecucion_llegada: 'mantenimiento',
-    mantenimiento: 'revisar_reportes_llegada',
+    revision_inicial: 'asignacion',
+    asignacion: 'traslado_salida',
+    traslado_salida: 'revision_reportes_salida',
+    revision_reportes_salida: 'ejecucion_operativa',
+    ejecucion_operativa: 'traslado_llegada',
+    traslado_llegada: 'mantenimiento',
+    mantenimiento: 'revision_reportes_llegada',
   };
 
   private advanceToNextStep(t: PumpingTicket): void {
@@ -2454,7 +2458,7 @@ export class TicketDetailPage {
   private async confirmarAprobacionTicket(): Promise<void> {
     const confirmado = await this.dialog.confirm({
       title: 'Aprobar ticket',
-      content: 'El ticket será aprobado y pasará a estado finalizado.',
+      content: 'El ticket será aprobado y pasará a estado cierre.',
       okText: 'Aprobar',
     });
     if (confirmado) {
@@ -2616,17 +2620,17 @@ export class TicketDetailPage {
   /**
    * Restaura `completedInspections` con las inspecciones REALES ya guardadas
    * en el backend (`realInspections`) — antes se saltaba por completo hasta
-   * llegar al paso "revisar_reportes_salida", así que al recargar la página
-   * en "en_ejecucion" (justo donde el operador hace "Realizar inspección")
+   * llegar al paso "revision_reportes_salida", así que al recargar la página
+   * en "traslado_salida" (justo donde el operador hace "Realizar inspección")
    * la inspección recién guardada desaparecía de la vista aunque sí estaba
    * persistida. El mock de relleno (`createMockCompletedInspection`, para
    * demo/operadores sin inspección real) sigue reservado a partir de
-   * "revisar_reportes_salida", que es cuando el Supervisor la revisa.
+   * "revision_reportes_salida", que es cuando el Supervisor la revisa.
    */
   private syncMockInspections(): void {
     const t = this.ticket();
     if (!t) return;
-    const pasadoRevisionSalida = STEP_KEYS.indexOf(t.currentStep) >= STEP_KEYS.indexOf('revisar_reportes_salida');
+    const pasadoRevisionSalida = STEP_KEYS.indexOf(t.currentStep) >= STEP_KEYS.indexOf('revision_reportes_salida');
     this.completedInspections.update(map => {
       const updated = new Map(map);
       for (const op of t.operators) {
@@ -2664,11 +2668,11 @@ export class TicketDetailPage {
       this.returnTravelManagements.set(new Map(Object.entries(ticket.returnTravelManagements).map(([k, v]) => [Number(k), v])));
     }
 
-    // Desde `en_ejecucion_llegada` en adelante (llegada, mantenimiento, revisar
-    // reportes de llegada, revisión, finalizado) la inspección de salida ya
+    // Desde `traslado_llegada` en adelante (llegada, mantenimiento, revisar
+    // reportes de llegada, revisión, cierre) la inspección de salida ya
     // fue realizada y aprobada por el supervisor. Antes solo se hidrataba en
-    // `en_ejecucion_llegada` exacto, por lo que la sección "Inspección de
-    // salida" del paso `revisar_reportes_llegada` siempre mostraba
+    // `traslado_llegada` exacto, por lo que la sección "Inspección de
+    // salida" del paso `revision_reportes_llegada` siempre mostraba
     // "el operador no registró inspección de salida".
     this.syncMockInspections();
 

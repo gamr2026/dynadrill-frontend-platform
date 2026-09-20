@@ -156,35 +156,35 @@ function resolveSupervisorName(t: FcrTicket): string {
 
 /** Entrada VENTA — sin cambios respecto al flujo original. */
 const PHASE_KEYS_VENTA: FcrPhase[] = [
-  'validacion',
+  'revision_inicial',
   'preparacion_herramientas',
-  'asignacion_operador',
+  'asignacion',
   'reunion_operativa',
-  'ejecucion_campo',
+  'ejecucion_operativa',
   'revision_reportes',
   'control_retorno',
   'cierre',
 ];
 
 /**
- * Entrada SERVICIOS — paridad con VENTA: arranca en 'validacion' (mismo
+ * Entrada SERVICIOS — paridad con VENTA: arranca en 'revision_inicial' (mismo
  * paso, mismo rol responsable) antes de 'preparacion_herramientas'
  * (Supervisor pide herramientas a Bodega), luego 'tipo_operador' asigna al
  * operador mecánico que repara e inspecciona por herramienta, y
  * 'aprobacion_supervisor_operaciones' confluye directo en
- * 'asignacion_operador' (operador de campo) — ya no se vuelve a pasar por
+ * 'asignacion' (operador de campo) — ya no se vuelve a pasar por
  * 'preparacion_herramientas', eso ocurre una sola vez.
  */
 const PHASE_KEYS_SERVICIO: FcrPhase[] = [
-  'validacion',
+  'revision_inicial',
   'preparacion_herramientas',
   'tipo_operador',
   'reparacion',
   'inspeccion',
   'aprobacion_supervisor_operaciones',
-  'asignacion_operador',
+  'asignacion',
   'reunion_operativa',
-  'ejecucion_campo',
+  'ejecucion_operativa',
   'revision_reportes',
   'control_retorno',
   'cierre',
@@ -268,7 +268,7 @@ export class FcrTicketDetailPage {
     this.manualPhaseIndex.set(index);
   }
 
-  protected readonly currentPhase = computed<FcrPhase>(() => this.ticket()?.currentPhase ?? 'validacion');
+  protected readonly currentPhase = computed<FcrPhase>(() => this.ticket()?.currentPhase ?? 'revision_inicial');
 
   /**
    * En la mayoría de fases hay un solo actor durante toda la fase, pero
@@ -281,7 +281,7 @@ export class FcrTicketDetailPage {
    */
   protected readonly responsibleRole = computed(() => {
     const t = this.ticket();
-    if (t?.currentPhase === 'validacion' && t.observations.length > 0) {
+    if (t?.currentPhase === 'revision_inicial' && t.observations.length > 0) {
       // El último autor dice de quién es el turno: si Supervisor pidió la
       // corrección, le toca a Ingeniería de Ventas FCR aplicarla; si ya
       // reenvió, vuelve a ser turno del Supervisor.
@@ -324,7 +324,7 @@ export class FcrTicketDetailPage {
     return this.dialog.confirm({ title, content, okText: 'Confirmar', cancelText: 'Cancelar', danger });
   }
 
-  // ── Pedido vinculado (solo lectura, fase 'validacion') ──
+  // ── Pedido vinculado (solo lectura, fase 'revision_inicial') ──
 
   /** Detalle completo del Pedido de Facturación que originó este ticket — `null` si el ticket no tiene uno vinculado (tickets legado sembrados sin puente). */
   protected readonly pedido = signal<Pedido | null>(null);
@@ -1471,7 +1471,7 @@ export class FcrTicketDetailPage {
         this.ticket.set(updated);
         this.inspeccionDecision.set(null);
         this.inspeccionRejectionNote.set('');
-        this.advancePhase(decision === 'approved' ? 'asignacion_operador' : 'inspeccion');
+        this.advancePhase(decision === 'approved' ? 'asignacion' : 'inspeccion');
       },
       error: () => this.notify.error('Error', 'No se pudo registrar la revisión de inspección.'),
     });
@@ -1550,7 +1550,7 @@ export class FcrTicketDetailPage {
 
     // Gate HSE-PLAN-001: no se asigna operador ni se ejecuta sin la
     // cobertura IPERC completa.
-    if ((phase === 'asignacion_operador' || phase === 'ejecucion_campo') && !this.coberturaOk()) {
+    if ((phase === 'asignacion' || phase === 'ejecucion_operativa') && !this.coberturaOk()) {
       this.notify.error(
         'Matriz IPERC incompleta',
         `HSE tiene pendiente aprobar ${actividadesPendientesTexto(this.qhseVinculo())} en la matriz maestra.`,
@@ -1559,7 +1559,7 @@ export class FcrTicketDetailPage {
     }
     // Gate HSE-SITIO-001: no se ejecuta en campo sin el PTW firmado en sitio
     // (FCR-004 "Descargar documentos HSE", RN-FCR-016).
-    if (phase === 'ejecucion_campo' && !this.ptwFirmadoOk()) {
+    if (phase === 'ejecucion_operativa' && !this.ptwFirmadoOk()) {
       const p = this.qhseVinculo()?.ptw;
       this.notify.error(
         'PTW pendiente',

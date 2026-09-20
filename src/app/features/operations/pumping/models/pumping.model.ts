@@ -31,30 +31,30 @@ export const PUMPING_ROLE_LABELS: Record<PumpingRole, string> = {
 // ── Estados del ticket en proceso ──
 
 export type PumpingStep =
-  | 'revision_propuesta'
+  | 'revision_inicial'
   | 'asignacion'
-  | 'en_ejecucion'
-  | 'revisar_reportes_salida'
+  | 'traslado_salida'
+  | 'revision_reportes_salida'
   | 'ejecucion_operativa'
-  | 'gerenciamiento_llegada'
-  | 'en_ejecucion_llegada'
+  | 'control_retorno'
+  | 'traslado_llegada'
   | 'mantenimiento'
-  | 'revisar_reportes_llegada'
-  | 'en_revision'
-  | 'finalizado';
+  | 'revision_reportes_llegada'
+  | 'revision_final'
+  | 'cierre';
 
 export const PUMPING_STEP_LABELS: Record<PumpingStep, string> = {
-  revision_propuesta: 'Revisión de propuesta',
+  revision_inicial: 'Revisión Inicial',
   asignacion: 'Asignación',
-  en_ejecucion: 'En ejecución (Salida)',
-  revisar_reportes_salida: 'Revisar reportes de salida',
-  ejecucion_operativa: 'Ejecución operativa',
-  gerenciamiento_llegada: 'Gerenciamiento de llegada',
-  en_ejecucion_llegada: 'En ejecución (Llegada)',
+  traslado_salida: 'Traslado de Salida',
+  revision_reportes_salida: 'Revisión de Reportes de Salida',
+  ejecucion_operativa: 'Ejecución Operativa',
+  control_retorno: 'Control de Retorno',
+  traslado_llegada: 'Traslado de Llegada',
   mantenimiento: 'Mantenimiento',
-  revisar_reportes_llegada: 'Revisar reportes de llegada',
-  en_revision: 'En revisión',
-  finalizado: 'Finalizado',
+  revision_reportes_llegada: 'Revisión de Reportes de Llegada',
+  revision_final: 'Revisión Final',
+  cierre: 'Cierre',
 };
 
 /**
@@ -62,20 +62,20 @@ export const PUMPING_STEP_LABELS: Record<PumpingStep, string> = {
  * Usado para cambiar automáticamente de rol en la demo al avanzar el paso.
  */
 export const PUMPING_STEP_ROLE: Record<PumpingStep, { roleName: string; roleId: number }> = {
-  revision_propuesta: { roleName: 'Jefe de Base', roleId: 4 },
+  revision_inicial: { roleName: 'Jefe de Base', roleId: 4 },
   asignacion: { roleName: 'Supervisor', roleId: 1 },
-  en_ejecucion: { roleName: 'Operador', roleId: 2 },
-  revisar_reportes_salida: { roleName: 'Supervisor', roleId: 1 },
+  traslado_salida: { roleName: 'Operador', roleId: 2 },
+  revision_reportes_salida: { roleName: 'Supervisor', roleId: 1 },
   // El Reporte Diario de Actividades (DYN-SGI-RE-047) lo llena el Operador,
   // no el Supervisor — confirmado en el vault (conceptos/Reporte-Job.md) y
   // en la documentación de Facturación (FACT-002, PASOS DEL PROCESO).
   ejecucion_operativa: { roleName: 'Operador', roleId: 2 },
-  gerenciamiento_llegada: { roleName: 'Supervisor', roleId: 1 },
-  en_ejecucion_llegada: { roleName: 'Operador', roleId: 2 },
+  control_retorno: { roleName: 'Supervisor', roleId: 1 },
+  traslado_llegada: { roleName: 'Operador', roleId: 2 },
   mantenimiento: { roleName: 'Supervisor', roleId: 1 },
-  revisar_reportes_llegada: { roleName: 'Supervisor', roleId: 1 },
-  en_revision: { roleName: 'Supervisor', roleId: 1 },
-  finalizado: { roleName: 'Supervisor', roleId: 1 },
+  revision_reportes_llegada: { roleName: 'Supervisor', roleId: 1 },
+  revision_final: { roleName: 'Supervisor', roleId: 1 },
+  cierre: { roleName: 'Supervisor', roleId: 1 },
 };
 
 /**

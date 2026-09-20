@@ -38,17 +38,17 @@ type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
 
 /** Mapea cada paso/estado del ticket a su badge visual */
 const STEP_BADGES: Record<PumpingStep, { text: string; tone: BadgeTone }> = {
-  revision_propuesta: { text: 'Revisión de propuesta', tone: 'warning' },
+  revision_inicial: { text: 'Revisión Inicial', tone: 'warning' },
   asignacion: { text: 'Asignación', tone: 'info' },
-  en_ejecucion: { text: 'En ejecución (Salida)', tone: 'brand' },
-  revisar_reportes_salida: { text: 'Revisar reportes de salida', tone: 'warning' },
-  ejecucion_operativa: { text: 'Ejecución operativa', tone: 'brand' },
-  gerenciamiento_llegada: { text: 'Gerenciamiento de llegada', tone: 'warning' },
-  en_ejecucion_llegada: { text: 'En ejecución (Llegada)', tone: 'brand' },
+  traslado_salida: { text: 'Traslado de Salida', tone: 'brand' },
+  revision_reportes_salida: { text: 'Revisión de Reportes de Salida', tone: 'warning' },
+  ejecucion_operativa: { text: 'Ejecución Operativa', tone: 'brand' },
+  control_retorno: { text: 'Control de Retorno', tone: 'warning' },
+  traslado_llegada: { text: 'Traslado de Llegada', tone: 'brand' },
   mantenimiento: { text: 'Mantenimiento', tone: 'info' },
-  revisar_reportes_llegada: { text: 'Revisar reportes de llegada', tone: 'warning' },
-  en_revision: { text: 'En revisión', tone: 'warning' },
-  finalizado: { text: 'Finalizado', tone: 'success' },
+  revision_reportes_llegada: { text: 'Revisión de Reportes de Llegada', tone: 'warning' },
+  revision_final: { text: 'Revisión Final', tone: 'warning' },
+  cierre: { text: 'Cierre', tone: 'success' },
 };
 
 const SERVICE_TYPE_FILTERS = Object.entries(PUMPING_SERVICE_TYPE_LABELS).map(
@@ -121,9 +121,9 @@ export class TicketListPage {
     const inProcess = this.inProcessTickets();
     return [
       { label: 'Total pedidos', value: all.length },
-      { label: 'Revisión de propuesta', value: inProcess.filter(t => t.currentStep === 'revision_propuesta').length },
-      { label: 'En ejecución', value: inProcess.filter(t => t.currentStep === 'en_ejecucion').length },
-      { label: 'En revisión', value: inProcess.filter(t => t.currentStep === 'en_revision').length },
+      { label: 'Revisión inicial', value: inProcess.filter(t => t.currentStep === 'revision_inicial').length },
+      { label: 'Traslado de salida', value: inProcess.filter(t => t.currentStep === 'traslado_salida').length },
+      { label: 'Revisión final', value: inProcess.filter(t => t.currentStep === 'revision_final').length },
       { label: 'Aprobados', value: this.approvedTickets().length },
     ];
   });

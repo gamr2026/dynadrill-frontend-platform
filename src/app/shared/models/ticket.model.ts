@@ -1,3 +1,5 @@
+import type { TimelineResumen } from './timeline.model';
+
 export type TicketStatus = 'borrador' | 'en_revision' | 'aprobado' | 'en_ejecucion' | 'cerrado' | 'rechazado';
 
 /** Estados de la Matriz IPERC — mismos valores que `IpercStatus` en el módulo QHSE. */
@@ -107,4 +109,6 @@ export interface Ticket {
   unitCode: string;
   /** Matriz IPERC vinculada (HSE-PLAN-001). Ausente en tickets antiguos sin sembrar. */
   qhse?: TicketQhseVinculo;
+  /** Fase actual + macro-estado + tramos con tiempos/actores — lo calcula el backend al leer, no se persiste. */
+  timelineResumen?: TimelineResumen;
 }

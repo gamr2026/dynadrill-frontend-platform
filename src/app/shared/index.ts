@@ -14,6 +14,7 @@ export type {
 export type { Unit, UnitStatus } from './models/unit.model';
 export * from './models/operativo-docs.model';
 export * from './models/catalogos.model';
+export * from './models/timeline.model';
 
 // Componentes de composición (documentos operativos)
 export { ReporteJobPdfDialog, type ReporteJobPdfDialogData } from './components/reporte-job-pdf-dialog/reporte-job-pdf-dialog';
@@ -36,6 +37,8 @@ export { CatalogosService } from './services/catalogos.service';
 
 // Componentes compartidos
 export { UbicacionSelectorComponent } from './components/ubicacion-selector/ubicacion-selector';
+export { TimelineComponent } from './components/timeline/timeline';
+export { TimelinePopoverTriggerDirective } from './components/timeline/timeline-popover-trigger.directive';
 
 // Pipes
 export * from './pipes/index';

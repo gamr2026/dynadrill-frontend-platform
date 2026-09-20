@@ -49,6 +49,14 @@
 }
 
 .fcr-detail__phase {
+  // Reset de <button> — antes era un <div>; ahora es clickeable para ver el
+  // detalle de esa fase (tramo del timeline), sin tocar el resto del look.
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+
   position: relative;
   display: flex;
   flex-direction: column;
@@ -56,6 +64,14 @@
   flex-shrink: 0;
   width: 5.5rem;
   scroll-snap-align: center;
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &--selected .fcr-detail__phase-dot {
+    box-shadow: 0 0 0 3px var(--dynadrill-purple-tint-strong, rgba(102, 46, 155, 0.16));
+  }
 
   @media (max-width: 480px) {
     width: 4.25rem;

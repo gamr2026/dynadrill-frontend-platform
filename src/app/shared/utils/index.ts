@@ -1,1 +1,1 @@
-export { toLocalDateString, parseLocalDateString } from './date.util';
+export { toLocalDateString, parseLocalDateString, capitalize } from './date.util';

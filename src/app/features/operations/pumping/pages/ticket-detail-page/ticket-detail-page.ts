@@ -1,9 +1,21 @@
-import { ChangeDetectionStrategy, Component, ElementRef, afterRenderEffect, computed, inject, signal, viewChild } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  afterRenderEffect,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
+import { DatePipe, formatDate } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import type { NzUploadFile } from 'ng-zorro-antd/upload';
 import { AuthService } from '../../../../../core/services/auth.service';
-import { parseLocalDateString, toLocalDateString } from '../../../../../shared/utils';
+import { capitalize, parseLocalDateString, toLocalDateString } from '../../../../../shared/utils';
+import { MACRO_ESTADO_LABELS, MACRO_ESTADO_TONE } from '../../../../../shared/models/timeline.model';
 import {
   DynadrillApprovalActionsComponent,
   DynadrillBannerComponent,
@@ -27,6 +39,7 @@ import {
   DynadrillUploadZoneComponent,
   type DynadrillApprovalDecision,
   type DynadrillContextCardItem,
+  type DynadrillContextCardTag,
   type DynadrillInspectionItem,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
@@ -63,7 +76,12 @@ import { PedidoService } from '../../../../facturacion/services/pedido.service';
 import { itemsEstimadosDe, TIPO_SERVICIO_LABELS, type ItemEstimado, type Pedido, type PedidoDocumentoAdjunto } from '../../../../facturacion/models/pedido.model';
 import { VerPedidoDialog, VerPedidoDialogData } from '../../../../facturacion/components/ver-pedido-dialog';
 import { TicketQhseBanner } from '../../../shared/ticket-qhse-banner/ticket-qhse-banner';
-import { OperativoDocsBridgeService, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../../../shared/index';
+import {
+  OperativoDocsBridgeService,
+  TimelinePopoverTriggerDirective,
+  UbicacionSelectorComponent,
+  type UbicacionSeleccion,
+} from '../../../../../shared/index';
 import { CreateUnitReportInput, unitReportHasNovedades, type UnitReport } from '../../../../maintenance/models/unit-report.model';
 import { UnitReportsService } from '../../../../maintenance/services/unit-reports.service';
 import { UnidadesService } from '../../../../maintenance/services/unidades.service';
@@ -183,6 +201,7 @@ function toFuelReading(raw: string): number | null {
     DynadrillTagComponent,
     UbicacionSelectorComponent,
     TicketQhseBanner,
+    TimelinePopoverTriggerDirective,
   ],
   templateUrl: './ticket-detail-page.html',
   styleUrl: './ticket-detail-page.scss',
@@ -396,21 +415,52 @@ export class TicketDetailPage {
     return STEP_KEYS.indexOf(t.currentStep);
   });
 
+  /** `null` = sin selección manual → se muestra el detalle del paso actual. Clic en un paso ya alcanzado lo selecciona. */
+  private readonly manualStepIndex = signal<number | null>(null);
+  protected readonly selectedStepIndex = computed(() => this.manualStepIndex() ?? this.currentStepIndex());
+
+  protected seleccionarPaso(index: number): void {
+    if (index > this.currentStepIndex()) return;
+    this.manualStepIndex.set(index);
+  }
+
   protected readonly currentStep = computed(() => this.ticket()?.currentStep ?? 'revision_propuesta');
 
-  // ── Context card ──
+  // ── Context card (cabecera de identidad del ticket, dynadrill-ui@1.1.0 variant="card") ──
 
-  protected readonly contextItems = computed<DynadrillContextCardItem[]>(() => {
+  protected readonly contextCardTags = computed<DynadrillContextCardTag[]>(() => {
+    const t = this.ticket();
+    const macro = t?.timelineResumen?.macroEstadoActual;
+    const tags: DynadrillContextCardTag[] = [];
+    if (macro) tags.push({ label: MACRO_ESTADO_LABELS[macro], variant: MACRO_ESTADO_TONE[macro] });
+    if (t?.proposalOrigin) tags.push({ label: t.proposalOrigin, variant: 'info' });
+    return tags;
+  });
+
+  protected readonly contextCardGroups = computed<DynadrillContextCardItem[][]>(() => {
     const t = this.ticket();
     if (!t) return [];
     return [
-      { label: 'Ticket', value: t.code },
-      { label: 'Cliente', value: t.clientName },
-      { label: 'Pozo', value: t.wellName },
-      { label: 'Tipo de servicio', value: PUMPING_SERVICE_TYPE_LABELS[t.serviceType] },
-      { label: 'Fecha estimada', value: t.estimatedDate || '—' },
-      { label: 'Origen', value: t.proposalOrigin },
+      [{ label: 'Cliente', value: t.clientName, icon: 'users' }],
+      [
+        { label: 'Pozo', value: t.wellName, icon: 'location' },
+        { label: 'Tipo de servicio', value: PUMPING_SERVICE_TYPE_LABELS[t.serviceType], icon: 'tool', badgeVariant: 'brand' },
+      ],
+      [
+        {
+          label: 'Fecha estimada',
+          value: t.estimatedDate || '—',
+          icon: 'calendar',
+          caption: t.estimatedDate ? capitalize(formatDate(parseLocalDateString(t.estimatedDate), "EEEE, d 'de' MMMM y", 'es')) : undefined,
+        },
+        { label: 'Origen', value: t.proposalOrigin, icon: 'modules', dotVariant: 'success' },
+      ],
     ];
+  });
+
+  protected readonly contextCardFooterStatus = computed<DynadrillContextCardTag>(() => {
+    const cerrado = this.ticket()?.status === 'cerrado' || this.ticket()?.status === 'aprobado';
+    return cerrado ? { label: 'Finalizado', variant: 'neutral' } : { label: 'Activo', variant: 'success' };
   });
 
   // ══════════════════════════════════════════════
@@ -1644,6 +1694,11 @@ export class TicketDetailPage {
   protected readonly operationInterruptedSelection = signal<string[]>([]);
   protected readonly interruptionDetail = signal('');
 
+  /** Las dos preguntas de operatividad deben quedar contestadas (Sí/No) antes de poder enviar el reporte de unidad. */
+  protected readonly operatividadCompleta = computed(
+    () => this.unitReadySelection().length > 0 && this.operationInterruptedSelection().length > 0,
+  );
+
   // Firmas (automáticas desde operador asignado)
   protected readonly departureOperatorName = signal('');
   protected readonly arrivalOperatorName = signal('');
@@ -1788,6 +1843,12 @@ export class TicketDetailPage {
       const container = this.trackerScrollEl()?.nativeElement;
       const active = container?.querySelector<HTMLElement>('.ticket-detail__step--active');
       active?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    });
+
+    // Si el ticket avanza de paso, la selección manual vieja del detalle ya no aplica.
+    effect(() => {
+      this.currentStepIndex();
+      untracked(() => this.manualStepIndex.set(null));
     });
   }
 
@@ -2163,6 +2224,14 @@ export class TicketDetailPage {
       this.notify.error(
         'Inspección pendiente',
         'Debe realizar la inspección de vehículos antes de enviar el reporte de unidad.',
+      );
+      return;
+    }
+
+    if (!this.operatividadCompleta()) {
+      this.notify.error(
+        'Operatividad sin confirmar',
+        'Responda si la unidad está lista y operativa, y si algún problema interrumpió la operación, antes de enviar el reporte.',
       );
       return;
     }

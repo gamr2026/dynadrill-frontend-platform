@@ -15,6 +15,7 @@ import {
 import { FcrTicket, FCR_PHASE_LABELS, FCR_PHASE_ROLE, type FcrPhase, type TipoOt } from '../../models/fcr.model';
 import { FcrService } from '../../services/fcr.service';
 import { AuthService } from '../../../../../core/services/auth.service';
+import { MACRO_ESTADO_TONE } from '../../../../../shared/index';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
 
@@ -98,7 +99,11 @@ export class FcrTicketListPage {
       // Tickets sembrados antes de este campo no traen tipoOt — mismo default que Pedido.tipoOt en el backend ('venta').
       tipoOtBadge: TIPO_OT_BADGES[t.tipoOt ?? 'venta'],
       phase: FCR_PHASE_LABELS[t.currentPhase],
-      statusBadge: PHASE_BADGES[t.currentPhase],
+      // Texto = fase específica (como antes); color = macro-estado universal (6 tonos en vez de 12).
+      statusBadge: {
+        text: PHASE_BADGES[t.currentPhase].text,
+        tone: MACRO_ESTADO_TONE[t.timelineResumen?.macroEstadoActual ?? 'pendiente'],
+      },
     })),
   );
 

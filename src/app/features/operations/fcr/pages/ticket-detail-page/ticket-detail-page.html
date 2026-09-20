@@ -26,10 +26,19 @@
 
   <div class="fcr-detail__tracker" #trackerScroll>
     @for (label of phaseLabels(); track $index; let last = $last) {
-      <div
+      <button
+        type="button"
         class="fcr-detail__phase"
         [class.fcr-detail__phase--active]="$index === currentPhaseIndex()"
         [class.fcr-detail__phase--completed]="$index < currentPhaseIndex()"
+        [class.fcr-detail__phase--selected]="$index === selectedPhaseIndex()"
+        [disabled]="$index > currentPhaseIndex()"
+        (click)="seleccionarFase($index)"
+        [appTimelinePopoverTrigger]="ticket()!.timelineResumen?.tramos?.[$index]"
+        [faseIndice]="$index + 1"
+        [faseLabel]="label"
+        [esFaseActual]="$index === currentPhaseIndex()"
+        [responsableRolActual]="ticket()!.timelineResumen!.responsableRolActual"
       >
         <div class="fcr-detail__phase-dot">
           @if ($index < currentPhaseIndex()) {
@@ -39,7 +48,7 @@
           }
         </div>
         <span class="fcr-detail__phase-label">{{ label }}</span>
-      </div>
+      </button>
       @if (!last) {
         <div class="fcr-detail__phase-line" [class.fcr-detail__phase-line--completed]="$index < currentPhaseIndex()"></div>
       }
@@ -53,7 +62,17 @@
 
   <app-ticket-qhse-banner [vinculo]="qhseVinculo()" [canView]="puedeVerQhse()" />
 
-  <dynadrill-context-card [items]="contextItems()" />
+  <dynadrill-context-card
+    variant="card"
+    icon="file-text"
+    [title]="ticket()!.code"
+    subtitle="Ticket de Servicio FCR"
+    [tags]="contextCardTags()"
+    [groups]="contextCardGroups()"
+    footerNote="Trazabilidad blockchain activa · Registro inmutable"
+    [footerId]="ticket()!.code"
+    [footerStatus]="contextCardFooterStatus()"
+  />
 
   @if (previousPhaseApproval(); as approval) {
     <dynadrill-text variant="caption">
@@ -907,30 +926,6 @@
           <footer class="fcr-detail__actions">
             <dynadrill-button variant="secondary" (clicked)="openReporteCierre()">Exportar resumen a PDF</dynadrill-button>
           </footer>
-
-          <!-- Línea de tiempo de fases — "gente que interactuó" en el ticket -->
-          <div class="fcr-detail__dashboard-section">
-            <dynadrill-text variant="subtitle">Línea de tiempo — quién actuó en cada fase</dynadrill-text>
-            <div class="fcr-detail__table-scroll">
-              <table class="fcr-detail__table">
-                <thead>
-                  <tr><th>Fase</th><th>Responsable</th><th>Rol</th><th>Fecha</th></tr>
-                </thead>
-                <tbody>
-                  @for (approval of ticket()!.phaseHistory; track $index) {
-                    <tr>
-                      <td>{{ phaseLabel(approval.phase) }}</td>
-                      <td>{{ approval.approvedBy }}</td>
-                      <td>{{ approval.approvedByRole }}</td>
-                      <td>{{ formatDate(approval.date) }}</td>
-                    </tr>
-                  } @empty {
-                    <tr><td colspan="4">Sin fases registradas todavía.</td></tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          </div>
 
           <!-- Checklists + documentos de inspección (SERVICIOS) — mismo bloque reusado en aprobacion_supervisor_operaciones / asignacion_operador / ejecucion_campo -->
           @if (ticket()!.tipoOt === 'servicio') {

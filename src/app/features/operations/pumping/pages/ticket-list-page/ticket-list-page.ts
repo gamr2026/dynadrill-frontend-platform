@@ -26,6 +26,7 @@ import {
 } from '../../models/pumping.model';
 import { PumpingService } from '../../services/pumping.service';
 import { AuthService } from '../../../../../core/services/auth.service';
+import { MACRO_ESTADO_TONE } from '../../../../../shared/index';
 import { MaintenanceOrderWithSubOrders, SubOrder } from '../../../../maintenance/models/maintenance-order.model';
 import { MaintenanceOrdersService } from '../../../../maintenance/services/maintenance-orders.service';
 import { SuborderReviewDialog, SuborderReviewDialogData } from '../../../../maintenance/components/suborder-review-dialog';
@@ -185,7 +186,11 @@ export class TicketListPage {
           wellName: t.wellName,
           clientName: t.clientName,
           serviceType: { text: PUMPING_SERVICE_TYPE_LABELS[t.serviceType], tone: 'brand' as const },
-          statusBadge: STEP_BADGES[t.currentStep] ?? { text: t.currentStep, tone: 'neutral' as const },
+          // Texto = paso específico (como antes); color = macro-estado universal (6 tonos en vez de 11).
+          statusBadge: {
+            text: (STEP_BADGES[t.currentStep] ?? { text: t.currentStep }).text,
+            tone: MACRO_ESTADO_TONE[t.timelineResumen?.macroEstadoActual ?? 'pendiente'],
+          },
           step: t.currentStep,
           isMaintenanceStep: isMaintenanceRelevant,
           hasMaintenanceOrders: isMaintenanceRelevant && orders.length > 0,
@@ -223,7 +228,7 @@ export class TicketListPage {
       wellName: t.wellName,
       clientName: t.clientName,
       serviceType: { text: PUMPING_SERVICE_TYPE_LABELS[t.serviceType], tone: 'brand' as const },
-      statusBadge: { text: 'Finalizado', tone: 'success' as const },
+      statusBadge: { text: 'Finalizado', tone: MACRO_ESTADO_TONE[t.timelineResumen?.macroEstadoActual ?? 'aprobado'] },
       step: 'aprobado',
       pedidoId: t.pedidoId,
     })),

@@ -32,11 +32,11 @@
       [class.ticket-detail__step--selected]="$index === selectedStepIndex()"
       [disabled]="$index > currentStepIndex()"
       (click)="seleccionarPaso($index)"
-      [appTimelinePopoverTrigger]="ticket()!.timelineResumen?.tramos?.[$index]"
+      [appTimelinePopoverTrigger]="ticket()?.timelineResumen?.tramos?.[$index]"
       [faseIndice]="$index + 1"
       [faseLabel]="step"
       [esFaseActual]="$index === currentStepIndex()"
-      [responsableRolActual]="ticket()!.timelineResumen!.responsableRolActual"
+      [responsableRolActual]="ticket()?.timelineResumen?.responsableRolActual ?? null"
     >
       <div class="ticket-detail__step-circle">
         @if ($index < currentStepIndex()) {

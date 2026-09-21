@@ -618,7 +618,11 @@ export class NuevoPedidoDialog {
       // quedaba vacío sin ninguna pista de por qué (bug reportado).
       error: () => this.notify.error('Químicos', 'No se pudo cargar el catálogo de químicos de Inventario — las líneas marcadas como químico no van a poder elegir código.'),
     });
-    this.articulosService.list({ categoria: 'HERRAMIENTAS', activo: true }).subscribe({
+    // 'FISHING & TOOLS' es la categoría real de herramientas del catálogo de
+    // Inventario importado (151 ítems) — 'HERRAMIENTAS' es un catálogo viejo
+    // de datos de prueba (51 ítems, sin ningún precio real) que usa FCR para
+    // su checklist de inspección, un concepto distinto al de esta pantalla.
+    this.articulosService.list({ categoria: 'FISHING & TOOLS', activo: true }).subscribe({
       next: articulos => this.herramientasCatalogo.set(articulos),
       error: () => this.notify.error('Herramientas', 'No se pudo cargar el catálogo de herramientas de Inventario — las líneas marcadas como herramienta no van a poder elegir código.'),
     });

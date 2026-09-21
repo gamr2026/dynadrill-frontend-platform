@@ -159,6 +159,8 @@ export interface FcrTicket extends Ticket {
   tools: FcrTool[];
   // ── Entrada SERVICIOS ──
   tipoOperador?: TipoOperador;
+  /** Operador mecánico/soldador elegido en 'tipo_operador' (roster simulado) — quien repara e inspecciona por herramienta. Autocompleta "Reparado por" en cada checklist. */
+  assignedMechanicOperator?: string;
   reparacionDescripcion?: string;
   formularioInspeccionExternoUploaded?: boolean;
   formularioInspeccionExternoNombreArchivo?: string;

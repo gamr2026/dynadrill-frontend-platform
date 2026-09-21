@@ -1,0 +1,54 @@
+<section class="asignar-mecanico-dialog">
+  <dynadrill-text variant="h1">Asignar operador mecánico</dynadrill-text>
+  <dynadrill-text variant="caption">Ticket {{ data.ticketCode }} — quien repara e inspecciona las herramientas.</dynadrill-text>
+
+  <dynadrill-select
+    label="Filtrar por tipo"
+    placeholder="Todos"
+    [options]="filtroOptions"
+    [value]="filtroTipo()"
+    (valueChange)="onFiltroChange($event)"
+  />
+
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Buscando operadores…">
+    <div class="asignar-mecanico-dialog__table-wrap">
+      <table class="asignar-mecanico-dialog__table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Tipo</th>
+            <th>Disponibilidad</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (op of filasVisibles(); track op.name) {
+            <tr
+              class="asignar-mecanico-dialog__row"
+              [class.asignar-mecanico-dialog__row--selected]="selectedOperator() === op.name"
+              [class.asignar-mecanico-dialog__row--disabled]="!op.disponible"
+              (click)="seleccionar(op)"
+            >
+              <td data-label="Nombre">
+                @if (selectedOperator() === op.name) {
+                  <dynadrill-icon name="check" [size]="14" />
+                }
+                {{ op.name }}
+              </td>
+              <td data-label="Tipo">{{ tipoLabels[op.tipo] }}</td>
+              <td data-label="Disponibilidad">{{ op.disponible ? 'Disponible' : 'Ocupado' }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="3">No hay operadores para este filtro.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </dynadrill-spinner>
+</section>
+
+<footer class="asignar-mecanico-dialog__footer-actions">
+  <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+  <dynadrill-button variant="primary" [disabled]="!canAssign()" (clicked)="asignar()">Asignar</dynadrill-button>
+</footer>

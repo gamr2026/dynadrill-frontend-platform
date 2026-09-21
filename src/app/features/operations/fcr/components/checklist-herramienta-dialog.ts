@@ -1,6 +1,8 @@
+import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import { firstValueFrom } from 'rxjs';
+import type { NzUploadFile } from 'ng-zorro-antd/upload';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
@@ -13,8 +15,10 @@ import {
   DynadrillSkeletonComponent,
   DynadrillTextComponent,
   DynadrillTextareaComponent,
+  DynadrillUploadZoneComponent,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
+import { descargarCsv, parseCsvFile } from '../../../../shared/utils/index';
 import {
   FCR_TOOL_INSPECTION_FIRMA_LABELS,
   FCR_TOOL_INSPECTION_FIRMA_ROL_ANTERIOR,
@@ -35,6 +39,8 @@ export interface ChecklistHerramientaDialogData {
   toolId: number;
   articuloId: number;
   toolName: string;
+  /** Operador de campo asignado al ticket (fase `asignacion_operador`) — quien se lleva la herramienta al pozo. Solo informativo acá, no se edita desde este diálogo. */
+  operadorCampoAsignado?: string;
 }
 
 export interface ChecklistHerramientaDialogResult {
@@ -57,6 +63,12 @@ function todayIso(): string {
 
 function parseFecha(iso: string | null): Date | null {
   return iso ? new Date(iso) : null;
+}
+
+/** Columnas "Visual"/"End" de la plantilla CSV — cualquier otra cosa (vacío, typo) queda sin marcar en vez de fallar toda la fila. */
+function normalizarResultado(raw: string | undefined): FcrToolInspectionParteResultado {
+  const value = (raw ?? '').trim().toLowerCase();
+  return value === 'ok' || value === 'defectuoso' ? value : '';
 }
 
 /** No usa `Number(x) || null`: una cantidad real de 0 es un valor válido, no "sin dato". */
@@ -88,6 +100,7 @@ function parseCambioCantidad(raw: string): number | null {
 @Component({
   selector: 'app-checklist-herramienta-dialog',
   imports: [
+    DatePipe,
     DynadrillTextComponent,
     DynadrillInputComponent,
     DynadrillSelectComponent,
@@ -97,6 +110,7 @@ function parseCambioCantidad(raw: string): number | null {
     DynadrillButtonComponent,
     DynadrillSkeletonComponent,
     DynadrillTextareaComponent,
+    DynadrillUploadZoneComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './checklist-herramienta-dialog.html',
@@ -143,6 +157,10 @@ export class ChecklistHerramientaDialog {
   protected readonly yaEnviado = computed(() => this.estado() === 'enviado' || this.estado() === 'aprobado');
   /** "Reparado por" certifica los datos y las partes tal como quedaron — a partir de ahí nadie más (Revisado por, Liberado QHSE) puede editarlos, solo firmar. */
   protected readonly formularioBloqueado = computed(() => this.yaEnviado() || !!this.firmas()['reparadoPor']?.firmado);
+
+  /** Indicador para el operador de campo: la herramienta ya quedó reparada (mecánico firmó su parte) y cuándo. No es un nuevo estado de `FcrToolStatus`, solo deriva de la firma ya persistida. */
+  protected readonly reparada = computed(() => !!this.firmas()['reparadoPor']?.firmado);
+  protected readonly fechaReparadaTexto = computed(() => this.firmas()['reparadoPor']?.fecha ?? null);
 
   /** Las 3 firmas ya persistidas en el backend — no un checkbox marcado localmente. */
   protected readonly canEnviar = computed(
@@ -227,6 +245,56 @@ export class ChecklistHerramientaDialog {
     this.partes.update(rows => rows.map(row => ({ ...row, visualResultado: 'ok', endResultado: 'ok' })));
   }
 
+  /** Plantilla CSV precargada con Item/Código/Descripción/Cant. esperada de ESTE checklist — el operador solo llena las 4 columnas de resultado y la vuelve a subir. */
+  protected descargarPlantillaPartes(): void {
+    const filas = [
+      ['Item', 'Código', 'Descripción', 'Cant. esperada', 'Visual (ok/defectuoso)', 'End (ok/defectuoso)', 'Cambio Cantidad', 'Acción'],
+      ...this.partes().map(p => [p.item, p.codigo, p.descripcion, String(p.cantidadEsperada), '', '', '', '']),
+    ];
+    descargarCsv(`plantilla-checklist-${this.data.toolName}.csv`, filas);
+  }
+
+  /**
+   * Carga masiva de partes: solo actualiza los signals locales (mismo efecto
+   * que tildar los radios/inputs a mano) — no llama al backend directamente,
+   * así el operador puede revisar antes de "Guardar borrador" o firmar
+   * (que ya persiste todo junto).
+   */
+  protected async onPartesFileSelected(file: NzUploadFile): Promise<void> {
+    const archivo = (file.originFileObj as File | undefined) ?? (file as unknown as File);
+    if (!archivo || typeof archivo.size !== 'number') {
+      this.notify.error('Archivo no reconocido', 'No se pudo leer el archivo seleccionado. Probá de nuevo.');
+      return;
+    }
+    let filas: string[][];
+    try {
+      filas = await parseCsvFile(archivo);
+    } catch {
+      this.notify.error('Error', 'No se pudo leer el archivo. Verifica que sea un CSV válido.');
+      return;
+    }
+    const dataRows = filas.slice(1).filter(row => row.some(cell => cell.trim().length > 0));
+    const porCodigo = new Map(this.partes().map(p => [p.codigo, p.id]));
+    const noEncontrados: string[] = [];
+    let actualizadas = 0;
+    for (const [, codigo, , , visual, end, cambio, accion] of dataRows) {
+      const parteId = porCodigo.get((codigo ?? '').trim());
+      if (parteId === undefined) {
+        noEncontrados.push(codigo ?? '');
+        continue;
+      }
+      this.updateParte(parteId, {
+        visualResultado: normalizarResultado(visual),
+        endResultado: normalizarResultado(end),
+        cambioCantidad: parseCambioCantidad(cambio ?? ''),
+        accion: (accion ?? '').trim(),
+      });
+      actualizadas++;
+    }
+    if (actualizadas > 0) this.notify.success('Partes cargadas', `${actualizadas} fila(s) actualizadas — revisa y presiona "Guardar borrador".`);
+    if (noEncontrados.length > 0) this.notify.error('Códigos no encontrados en este checklist', noEncontrados.join(', '));
+  }
+
   protected onVisualChange(id: number, value: unknown): void {
     this.updateParte(id, { visualResultado: value as FcrToolInspectionParteResultado });
   }
@@ -291,9 +359,40 @@ export class ChecklistHerramientaDialog {
     }
   }
 
+  /**
+   * Campos obligatorios para poder firmar "Reparado por" (certifica los
+   * datos y las partes tal como quedaron, justo antes de que el formulario
+   * se bloquee) — todo salvo "Observaciones", que sigue siendo opcional.
+   * En borrador (antes de esta firma) sí se permite dejar campos vacíos.
+   */
+  protected camposFaltantes(): string[] {
+    const faltantes: string[] = [];
+    if (!this.cliente().trim()) faltantes.push('Cliente');
+    if (!this.pozo().trim()) faltantes.push('Pozo');
+    if (!this.fechaInspeccion()) faltantes.push('Fecha de inspección');
+    if (!this.fechaReparacion()) faltantes.push('Fecha de revisión');
+    if (!this.fechaEnvio()) faltantes.push('Fecha de envío');
+    if (!this.descripcionHerramienta().trim()) faltantes.push('Descripción de la herramienta');
+    if (!this.numeroSerie().trim()) faltantes.push('N° de serie');
+    if (!this.inspeccionadoPor()) faltantes.push('Inspeccionado por');
+    if (!this.reparadoPor().trim()) faltantes.push('Operador mecánico (Reparado por)');
+    const parteIncompleta = this.partes().some(
+      p => !p.visualResultado || !p.endResultado || p.cambioCantidad === null || !p.accion.trim(),
+    );
+    if (parteIncompleta) faltantes.push('Resultado visual, resultado final, cambio de cantidad y acción de cada parte');
+    return faltantes;
+  }
+
   /** Handler del checkbox de firma: solo actúa al tildar (nunca al destildar) y solo si el paso realmente está habilitado. Pide confirmación antes de firmar — es irreversible (bloquea el formulario si es "Reparado por", o queda registrado a nombre de quien firma). */
   protected async onFirmaChange(rol: FcrToolInspectionFirmaRol, checked: boolean): Promise<void> {
     if (!checked || !this.puedeFirmar(rol)) return;
+    if (rol === 'reparadoPor') {
+      const faltantes = this.camposFaltantes();
+      if (faltantes.length > 0) {
+        this.notify.error('Faltan datos por completar', `Antes de firmar "Reparado por": ${faltantes.join(', ')}.`);
+        return;
+      }
+    }
     const nombre = this.auth.currentUser()?.name ?? this.roleName();
     const contenido =
       rol === 'reparadoPor'
@@ -304,7 +403,16 @@ export class ChecklistHerramientaDialog {
     void this.firmar(rol);
   }
 
-  /** Firma ESTE rol solo, de inmediato — no espera a un botón final que firme las 3 juntas. */
+  /**
+   * Firma ESTE rol solo, de inmediato — no espera a un botón final que firme
+   * las 3 juntas. Antes de firmar persiste cabecera+partes si el formulario
+   * todavía es editable: "Reparado por" bloquea el formulario server-side
+   * apenas queda firmado (`assertFormularioEditable`), así que si no se
+   * guarda ANTES de esa firma, lo marcado localmente nunca llega al backend
+   * y se pierde (bug reportado: el revisor abre el checklist y no ve nada
+   * marcado). Para `revisadoPor`/`liberadoQhse` el formulario ya está
+   * bloqueado en ese punto, así que este guardado no hace nada extra.
+   */
   private async firmar(rol: FcrToolInspectionFirmaRol): Promise<void> {
     const ticketId = this.data.ticketId;
     const inspectionId = this.inspectionId();
@@ -312,8 +420,9 @@ export class ChecklistHerramientaDialog {
 
     this.firmando.set(rol);
     try {
+      if (!this.formularioBloqueado()) await this.persistirCambios();
       const actualizado = await firstValueFrom(this.toolInspecciones.firmar(ticketId, inspectionId, rol, todayIso()));
-      this.firmas.set(actualizado.firmas);
+      this.aplicarInspection(actualizado);
       this.notify.success('Firma registrada', `"${FCR_TOOL_INSPECTION_FIRMA_LABELS[rol]}" quedó firmado.`);
     } catch {
       this.notify.error('Error', 'No se pudo registrar la firma. Verifica tu rol e inténtalo de nuevo.');

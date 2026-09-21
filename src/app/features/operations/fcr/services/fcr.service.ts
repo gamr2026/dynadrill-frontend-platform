@@ -104,6 +104,10 @@ export class FcrService {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tipo-operador`, { tipoOperador });
   }
 
+  assignMechanicOperator(ticketId: number, operatorName: string): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/assign-mechanic-operator`, { operatorName });
+  }
+
   registrarReparacion(ticketId: number, descripcion: string): Observable<FcrTicket> {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/reparacion`, { descripcion });
   }

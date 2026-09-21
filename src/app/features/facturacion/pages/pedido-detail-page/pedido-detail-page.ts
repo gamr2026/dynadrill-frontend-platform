@@ -254,7 +254,7 @@ export class PedidoDetailPage {
       content: NuevoPedidoDialog,
       data: { pedido: p },
       footer: false,
-      width: '95vw',
+      width: '1200px',
     });
     ref.afterClose.subscribe(actualizado => {
       if (actualizado) this.reload();

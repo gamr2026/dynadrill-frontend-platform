@@ -124,6 +124,8 @@ export interface ItemEstimado {
   descuentoPorcentaje?: number;
   /** Ventas marca acá qué líneas son químicos — Pumping los precarga en "Asignar recursos" en vez de tener que volver a elegirlos del catálogo de Inventario. */
   esQuimico?: boolean;
+  /** Igual que `esQuimico`, pero para herramientas de Inventario (categoría HERRAMIENTAS). */
+  esHerramienta?: boolean;
 }
 
 export interface CambioEstado {

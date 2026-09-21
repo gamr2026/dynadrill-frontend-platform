@@ -136,6 +136,7 @@
             <th class="num">% Descuento</th>
             @if (esPumping()) {
               <th>Químico</th>
+              <th>Herramienta</th>
             }
             <th class="num">Total</th>
             <th></th>
@@ -154,21 +155,46 @@
                     [searchable]="true"
                     (valueChange)="onQuimicoCodigoSeleccionado($index, $any($event))"
                   />
+                } @else if (l.esHerramienta) {
+                  <dynadrill-select
+                    label=""
+                    placeholder="Elegir herramienta de Inventario"
+                    [options]="herramientaOptions()"
+                    [value]="l.codigo || null"
+                    [searchable]="true"
+                    (valueChange)="onHerramientaCodigoSeleccionado($index, $any($event))"
+                  />
                 } @else {
                   <dynadrill-input label="" [value]="l.codigo" (valueChange)="onLineaCampoChange($index, 'codigo', $event)" />
                 }
-                @if (codigoFueraDeListaPrecios(l.codigo)) {
+                @if (referenciaPrecio(l); as ref) {
+                  <div class="nuevo-pedido__precio-referencia">
+                    <dynadrill-text variant="caption">
+                      ⚠ Este código no está en la Lista de Precios de este cliente.
+                      @if (ref.costoInterno != null) {
+                        Costo Dynadrill: ${{ ref.costoInterno | number: '1.2-2' }}.
+                      }
+                      @if (ref.precioSugerido != null) {
+                        Precio sugerido (catálogo general): ${{ ref.precioSugerido | number: '1.2-2' }}.
+                      }
+                      Definí el precio de venta.
+                    </dynadrill-text>
+                  </div>
+                } @else if (codigoFueraDeListaPrecios(l.codigo)) {
                   <dynadrill-text variant="caption">⚠ Fuera de la Lista de Precios — no entra a la prefactura automática.</dynadrill-text>
                 }
               </td>
-              <td><dynadrill-input label="" [value]="l.descripcion" [disabled]="l.esQuimico" (valueChange)="onLineaCampoChange($index, 'descripcion', $event)" /></td>
-              <td><dynadrill-input label="" [value]="l.unidad" [disabled]="l.esQuimico" (valueChange)="onLineaCampoChange($index, 'unidad', $event)" /></td>
+              <td><dynadrill-input label="" [value]="l.descripcion" [disabled]="l.esQuimico || l.esHerramienta" (valueChange)="onLineaCampoChange($index, 'descripcion', $event)" /></td>
+              <td><dynadrill-input label="" [value]="l.unidad" [disabled]="l.esQuimico || l.esHerramienta" (valueChange)="onLineaCampoChange($index, 'unidad', $event)" /></td>
               <td class="num"><dynadrill-input label="" type="number" [value]="l.cantidad" (valueChange)="onLineaCampoChange($index, 'cantidad', $event)" /></td>
               <td class="num"><dynadrill-input label="" type="number" [value]="l.valorUnitario" (valueChange)="onLineaCampoChange($index, 'valorUnitario', $event)" /></td>
               <td class="num"><dynadrill-input label="" type="number" [value]="l.descuentoPorcentaje" (valueChange)="onLineaCampoChange($index, 'descuentoPorcentaje', $event)" /></td>
               @if (esPumping()) {
                 <td class="nuevo-pedido__quimico-cell">
                   <input type="checkbox" [checked]="l.esQuimico" (change)="onQuimicoToggle($index, $any($event.target).checked)" aria-label="Es químico" />
+                </td>
+                <td class="nuevo-pedido__quimico-cell">
+                  <input type="checkbox" [checked]="l.esHerramienta" (change)="onHerramientaToggle($index, $any($event.target).checked)" aria-label="Es herramienta" />
                 </td>
               }
               <td class="num">${{ (+l.cantidad || 0) * (+l.valorUnitario || 0) | number: '1.2-2' }}</td>

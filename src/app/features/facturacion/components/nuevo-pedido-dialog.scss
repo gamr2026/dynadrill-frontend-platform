@@ -109,6 +109,18 @@
     }
   }
 
+  // Leyenda de precio de referencia (costo interno / precio sugerido del
+  // catálogo general) cuando el código de Inventario elegido todavía no
+  // está en la Lista de Precios del cliente — mismo tratamiento ámbar que
+  // el resto de avisos "fuera de lista" de la app.
+  &__precio-referencia {
+    margin-top: 6px;
+    padding: 6px 8px;
+    border: 1px solid var(--warning, #faad14);
+    border-radius: 6px;
+    background: rgba(250, 173, 20, 0.08);
+  }
+
   /**
    * Tabla de líneas estimadas: cada celda lleva un <dynadrill-input> con
    * label="" (la columna ya la rotula el thead) — mismo patrón que

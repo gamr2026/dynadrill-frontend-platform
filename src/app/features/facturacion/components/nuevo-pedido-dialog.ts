@@ -61,6 +61,8 @@ interface LineaEstimadaDraft {
   descuentoPorcentaje: string;
   /** Pumping precarga estas líneas en "Asignar recursos" — ver ticket-detail-page.ts del módulo Pumping. */
   esQuimico: boolean;
+  /** Igual que `esQuimico`, pero contra el catálogo de herramientas de Inventario (categoría HERRAMIENTAS). */
+  esHerramienta: boolean;
 }
 
 /**
@@ -85,6 +87,7 @@ const LINEA_ESTIMADA_VACIA: LineaEstimadaDraft = {
   valorUnitario: '0',
   descuentoPorcentaje: '0',
   esQuimico: false,
+  esHerramienta: false,
 };
 
 /** Cabecera real de la plantilla descargable de AS2 (hoja "Ventas", fila 4) — "AS2 Pedido Cliente.xlsx". */
@@ -232,6 +235,12 @@ export class NuevoPedidoDialog {
     this.quimicosCatalogo().map(a => ({ label: `${a.codigo} — ${a.nombre}`, value: a.codigo })),
   );
 
+  /** Mismo mecanismo que `quimicosCatalogo`, pero para herramientas (categoría HERRAMIENTAS de Inventario). */
+  private readonly herramientasCatalogo = signal<Articulo[]>([]);
+  protected readonly herramientaOptions = computed<DynadrillSelectOption[]>(() =>
+    this.herramientasCatalogo().map(a => ({ label: `${a.codigo} — ${a.nombre}`, value: a.codigo })),
+  );
+
   /**
    * Documentos de referencia — solo para Pumping (a pedido del cliente):
    * "que sepa de qué es el documento cargado" para que Pumping los vea ya
@@ -374,8 +383,49 @@ export class NuevoPedidoDialog {
    */
   protected onQuimicoToggle(index: number, esQuimico: boolean): void {
     this.lineasEstimadas.update(ls =>
-      ls.map((l, i) => (i === index ? { ...l, esQuimico, codigo: esQuimico ? '' : l.codigo } : l)),
+      ls.map((l, i) =>
+        i === index ? { ...l, esQuimico, esHerramienta: esQuimico ? false : l.esHerramienta, codigo: esQuimico ? '' : l.codigo } : l,
+      ),
     );
+  }
+
+  /** Espejo de `onQuimicoCodigoSeleccionado`, contra el catálogo de herramientas. */
+  protected onHerramientaCodigoSeleccionado(index: number, codigo: string | null): void {
+    const articulo = this.herramientasCatalogo().find(a => a.codigo === codigo);
+    this.lineasEstimadas.update(ls =>
+      ls.map((l, i) =>
+        i === index
+          ? { ...l, codigo: articulo?.codigo ?? '', descripcion: articulo?.nombre ?? l.descripcion, unidad: articulo?.unidadStock ?? l.unidad }
+          : l,
+      ),
+    );
+  }
+
+  /** Espejo de `onQuimicoToggle`, para "Es herramienta". Mutuamente excluyente con "Es químico" — una línea es una cosa u otra. */
+  protected onHerramientaToggle(index: number, esHerramienta: boolean): void {
+    this.lineasEstimadas.update(ls =>
+      ls.map((l, i) =>
+        i === index ? { ...l, esHerramienta, esQuimico: esHerramienta ? false : l.esQuimico, codigo: esHerramienta ? '' : l.codigo } : l,
+      ),
+    );
+  }
+
+  /**
+   * Precio de referencia para Ventas cuando el código elegido de Inventario
+   * (químico o herramienta) todavía no está en la Lista de Precios del
+   * cliente: costo interno Dynadrill (nunca precio de venta) + precio
+   * sugerido del catálogo general "Normal" (referencia interna, sin cliente
+   * asociado — nunca se usa para facturar automático, ver backend).
+   */
+  protected referenciaPrecio(l: LineaEstimadaDraft): { costoInterno?: number; precioSugerido?: number } | null {
+    const codigo = l.codigo.trim();
+    if (!codigo || (!l.esQuimico && !l.esHerramienta) || !this.codigoFueraDeListaPrecios(codigo)) return null;
+    const catalogo = l.esQuimico ? this.quimicosCatalogo() : this.herramientasCatalogo();
+    const costoInterno = catalogo.find(a => a.codigo === codigo)?.costoUnitario;
+    const listaReferencia = this.todasLasListas.find(lp => lp.clienteId == null);
+    const precioSugerido = listaReferencia?.items.find(i => i.codigo === codigo)?.precio;
+    if (costoInterno == null && precioSugerido == null) return null;
+    return { costoInterno, precioSugerido };
   }
 
   private lineaValida(l: LineaEstimadaDraft): boolean {
@@ -446,6 +496,7 @@ export class NuevoPedidoDialog {
             valorUnitario: precio || '0',
             descuentoPorcentaje: descuento || '0',
             esQuimico: false,
+            esHerramienta: false,
           });
         }
 
@@ -538,6 +589,10 @@ export class NuevoPedidoDialog {
       // quedaba vacío sin ninguna pista de por qué (bug reportado).
       error: () => this.notify.error('Químicos', 'No se pudo cargar el catálogo de químicos de Inventario — las líneas marcadas como químico no van a poder elegir código.'),
     });
+    this.articulosService.list({ categoria: 'HERRAMIENTAS', activo: true }).subscribe({
+      next: articulos => this.herramientasCatalogo.set(articulos),
+      error: () => this.notify.error('Herramientas', 'No se pudo cargar el catálogo de herramientas de Inventario — las líneas marcadas como herramienta no van a poder elegir código.'),
+    });
     this.cargarPersonas('agente_comercial', this.agenteComercialOptions);
     this.cargarPersonas('representante_campo', this.representanteCampoOptions);
     this.cargarPersonas('representante_quito', this.representanteQuitoOptions);
@@ -590,6 +645,7 @@ export class NuevoPedidoDialog {
           valorUnitario: String(it.valorUnitario),
           descuentoPorcentaje: it.descuentoPorcentaje != null ? String(it.descuentoPorcentaje) : '0',
           esQuimico: it.esQuimico ?? false,
+          esHerramienta: it.esHerramienta ?? false,
         })),
       );
     }
@@ -637,6 +693,7 @@ export class NuevoPedidoDialog {
       valorUnitario: Number(l.valorUnitario),
       descuentoPorcentaje: Number(l.descuentoPorcentaje) || 0,
       esQuimico: l.esQuimico,
+      esHerramienta: l.esHerramienta,
     }));
 
     const payload = {

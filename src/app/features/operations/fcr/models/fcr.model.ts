@@ -82,7 +82,7 @@ export const FCR_TOOL_STATUS_LABELS: Record<FcrToolStatus, string> = {
 export interface FcrTool {
   id: number;
   /**
-   * Referencia al catálogo real de Inventario (`Articulo`, `categoria='HERRAMIENTAS'`).
+   * Referencia al catálogo real de Inventario (`Articulo`, `categoria='FISHING & TOOLS'`).
    * Opcional porque los tickets FCR sembrados antes de este cambio no lo tienen
    * (no se hizo backfill) — el checklist de inspección queda deshabilitado para esas herramientas.
    */

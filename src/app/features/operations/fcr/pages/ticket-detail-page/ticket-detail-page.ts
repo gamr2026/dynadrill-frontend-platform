@@ -53,8 +53,9 @@ import {
   type FcrToolStatus,
 } from '../../models/fcr.model';
 import { FcrService, type CampoDocumentoFcr } from '../../services/fcr.service';
-import { PedidoService } from '../../../../facturacion/services/pedido.service';
+import { PedidoService, ListaPreciosService } from '../../../../facturacion/services/pedido.service';
 import { itemsEstimadosDe, TIPO_OT_LABELS, TIPO_SERVICIO_LABELS, type Pedido } from '../../../../facturacion/models/pedido.model';
+import type { ListaPrecios } from '../../../../facturacion/models/lista-precios.model';
 import { capitalize, parseLocalDateString } from '../../../../../shared/utils';
 import { MACRO_ESTADO_LABELS, MACRO_ESTADO_TONE } from '../../../../../shared/models/timeline.model';
 import { FcrToolInspeccionesService } from '../../services/fcr-tool-inspecciones.service';
@@ -224,6 +225,7 @@ export class FcrTicketDetailPage {
   private readonly toolInspeccionesService = inject(FcrToolInspeccionesService);
   private readonly articulosService = inject(ArticulosService);
   private readonly pedidoService = inject(PedidoService);
+  private readonly listaPreciosService = inject(ListaPreciosService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(DynadrillDialogService);
@@ -340,6 +342,29 @@ export class FcrTicketDetailPage {
     this.pedidoItems().reduce((sum, item) => sum + item.cantidad * item.valorUnitario, 0),
   );
 
+  /** Todas las Listas de Precios (para emparejar la del cliente del Pedido vinculado) — cargadas una sola vez en el constructor. */
+  private readonly todasLasListas = signal<ListaPrecios[]>([]);
+  /**
+   * Lista de Precios del cliente del Pedido vinculado — mismo criterio de emparejado que
+   * `nuevo-pedido-dialog.ts` (por `clienteId` real primero, texto de `cliente` como fallback legacy).
+   * `null` cuando el ticket no tiene Pedido vinculado o no hay lista activa para su cliente — en ese
+   * caso `herramientasCatalogo` no filtra por lista (fallback para no bloquear tickets legado).
+   */
+  protected readonly listaCliente = computed<ListaPrecios | null>(() => {
+    const p = this.pedido();
+    const listas = this.todasLasListas();
+    if (!p) return null;
+    return (
+      (p.clienteId != null
+        ? (listas.find(l => l.clienteId === p.clienteId && l.numeroContrato === p.numeroContrato && l.activa) ??
+          listas.find(l => l.clienteId === p.clienteId && l.activa))
+        : undefined) ??
+      listas.find(l => l.cliente === p.cliente && l.numeroContrato === p.numeroContrato && l.activa) ??
+      listas.find(l => l.cliente === p.cliente && l.activa) ??
+      null
+    );
+  });
+
   // ── Contexto ──
 
   protected readonly contextCardTags = computed<DynadrillContextCardTag[]>(() => {
@@ -398,17 +423,31 @@ export class FcrTicketDetailPage {
   protected readonly originalTools = computed(() => (this.ticket()?.tools ?? []).filter(tool => !tool.addedLate));
   protected readonly lateTools = computed(() => (this.ticket()?.tools ?? []).filter(tool => tool.addedLate));
 
-  /** Catálogo real de Inventario (RN-FCR-008A: no se permite seleccionar fuera de él) — reemplaza el mock hardcodeado que existía antes. */
-  protected readonly herramientasCatalogo = toSignal(
-    this.articulosService.list({ categoria: 'HERRAMIENTAS', activo: true }),
+  /**
+   * Catálogo real de Inventario (RN-FCR-008A: no se permite seleccionar fuera de él),
+   * `categoria='FISHING & TOOLS'` — mismo catálogo (con precio real) que usa el selector
+   * de herramientas del Pedido (`nuevo-pedido-dialog.ts`). Reemplaza tanto el mock
+   * hardcodeado que existía antes como el catálogo de prueba `categoria='HERRAMIENTAS'`
+   * (51 ítems sin precio real) que se usaba hasta ahora.
+   */
+  private readonly herramientasCatalogoCompleto = toSignal(
+    this.articulosService.list({ categoria: 'FISHING & TOOLS', activo: true }),
     { initialValue: [] },
   );
+
+  /** `herramientasCatalogoCompleto` acotado a los códigos de la Lista de Precios del cliente — sin lista resuelta, no se filtra (tickets legado sin Pedido vinculado). */
+  protected readonly herramientasCatalogo = computed(() => {
+    const lista = this.listaCliente();
+    if (!lista) return this.herramientasCatalogoCompleto();
+    const codigos = new Set(lista.items.map(i => i.codigo));
+    return this.herramientasCatalogoCompleto().filter(a => codigos.has(a.codigo));
+  });
 
   protected readonly availableToAdd = computed<DynadrillSelectOption[]>(() => {
     const currentArticuloIds = new Set(this.ticket()?.tools.map(t => t.articuloId).filter((id): id is number => id !== undefined) ?? []);
     return this.herramientasCatalogo()
       .filter(articulo => !currentArticuloIds.has(articulo.id))
-      .map(articulo => ({ label: articulo.nombre, value: articulo.id }));
+      .map(articulo => ({ label: `${articulo.codigo} — ${articulo.nombre}`, value: articulo.id }));
   });
 
   protected readonly toolToAdd = signal<number | null>(null);
@@ -1584,6 +1623,8 @@ export class FcrTicketDetailPage {
   // ══════════════════════════════════════════════
 
   constructor() {
+    this.listaPreciosService.list().subscribe(listas => this.todasLasListas.set(listas));
+
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.fcrService.getTicket(id).subscribe({
       next: t => {

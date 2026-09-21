@@ -8,10 +8,11 @@ import { UBICACION_VACIA, type Campo, type Pozo, type Taladro, type UbicacionSel
  * texto libre (Campo / Bloque / Pozo / Taladro) que estaban repartidos por
  * Facturación, Operaciones, Mantenimiento y QHSE.
  *
- * Cascada: se elige el **Pozo** (opcionalmente filtrado por Campo) y el
- * Campo + Bloque se autocompletan y quedan de solo lectura — vienen del
- * registro del pozo, no se tipean. El **Taladro** se elige aparte (varía
- * por pozo) y muestra su Rig Contractual.
+ * Cascada estricta: se elige el **Pozo** primero (único campo habilitado al
+ * inicio, buscable por código o nombre — no hace falta filtrar por Campo
+ * antes). Campo + Bloque se autocompletan y quedan de solo lectura — vienen
+ * del registro del pozo, no se tipean. El **Taladro** se habilita recién
+ * cuando hay Pozo (varía por pozo) y muestra su Rig Contractual.
  *
  * Emite un `UbicacionSeleccion` con ids (trazabilidad) y strings (para los
  * payloads que hoy ya guardan `campo`/`pozo`/`wellName`/`taladroRig`).
@@ -23,14 +24,6 @@ import { UBICACION_VACIA, type Campo, type Pozo, type Taladro, type UbicacionSel
   template: `
     <div class="ubicacion-selector">
       <dynadrill-select
-        label="Campo"
-        placeholder="Todos los campos"
-        [options]="campoOptions()"
-        [value]="campoId()"
-        [searchable]="true"
-        (valueChange)="onCampoChange($any($event))"
-      />
-      <dynadrill-select
         label="Pozo"
         placeholder="Selecciona el pozo"
         [options]="pozoOptions()"
@@ -38,28 +31,42 @@ import { UBICACION_VACIA, type Campo, type Pozo, type Taladro, type UbicacionSel
         [searchable]="true"
         (valueChange)="onPozoChange($any($event))"
       />
+      <dynadrill-input label="Campo" [value]="campoNombre()" [disabled]="true" />
       <dynadrill-input label="Bloque" [value]="bloqueNombre()" [disabled]="true" />
 
       @if (mostrarTaladro()) {
         <dynadrill-select
           label="Taladro"
-          [placeholder]="requiereTaladro() ? 'Selecciona el taladro' : 'Taladro (opcional)'"
+          [placeholder]="pozoId() === null ? 'Selecciona primero el pozo' : requiereTaladro() ? 'Selecciona el taladro' : 'Taladro (opcional)'"
           [options]="taladroOptions()"
           [value]="taladroId()"
           [searchable]="true"
+          [disabled]="pozoId() === null"
           (valueChange)="onTaladroChange($any($event))"
         />
-        @if (rigContractual()) {
+        @if (mostrarRigContractual() && rigContractual()) {
           <dynadrill-input label="Rig contractual" [value]="rigContractual()" [disabled]="true" />
         }
       }
     </div>
   `,
   styles: [`
+    /**
+     * Fijo a 2 columnas (no auto-fit): con auto-fit(minmax(200px,...)) el
+     * número de campos visibles (3 a 5, según requiereTaladro/
+     * mostrarRigContractual) a veces entraba 3 por fila y dejaba el último
+     * solo en su propia fila — se veía desparejo. En celular colapsa a 1.
+     */
     .ubicacion-selector {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(2, 1fr);
       gap: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .ubicacion-selector {
+        grid-template-columns: 1fr;
+      }
     }
   `],
 })
@@ -72,6 +79,8 @@ export class UbicacionSelectorComponent {
   readonly requiereTaladro = input(false);
   /** false = oculta el select de Taladro (formularios donde no aplica, ej. Reporte de Unidad). */
   readonly mostrarTaladro = input(true);
+  /** false = oculta el campo de solo lectura "Rig contractual" (ej. alta de Pedido — a pedido del cliente, ver FACT-001). */
+  readonly mostrarRigContractual = input(true);
 
   readonly seleccionChange = output<UbicacionSeleccion>();
 
@@ -137,19 +146,8 @@ export class UbicacionSelectorComponent {
     return this.pozos().find(p => p.codigo.toLowerCase() === q || p.nombreCompleto.toLowerCase() === q);
   }
 
-  protected readonly campoOptions = computed<DynadrillSelectOption[]>(() =>
-    [...this.campos()]
-      .sort((a, b) => a.nombre.localeCompare(b.nombre))
-      .map(c => ({ label: c.activo ? `${c.nombre} (${c.activo})` : c.nombre, value: c.id })),
-  );
-
-  protected readonly pozosFiltrados = computed<Pozo[]>(() => {
-    const cid = this.campoId();
-    return cid ? this.pozos().filter(p => p.campoId === cid) : this.pozos();
-  });
-
   protected readonly pozoOptions = computed<DynadrillSelectOption[]>(() =>
-    this.pozosFiltrados().map(p => ({ label: `${p.codigo} — ${p.nombreCompleto}`, value: p.id })),
+    this.pozos().map(p => ({ label: `${p.codigo} — ${p.nombreCompleto}`, value: p.id })),
   );
 
   protected readonly taladroOptions = computed<DynadrillSelectOption[]>(() =>
@@ -160,6 +158,9 @@ export class UbicacionSelectorComponent {
     this.pozos().find(p => p.id === this.pozoId()),
   );
 
+  protected readonly campoNombre = computed(
+    () => this.pozoSeleccionado()?.campo?.nombre ?? this.campos().find(c => c.id === this.campoId())?.nombre ?? '',
+  );
   protected readonly bloqueNombre = computed(() => this.pozoSeleccionado()?.bloque?.nombre ?? '');
   protected readonly rigContractual = computed(
     () => this.taladros().find(t => t.id === this.taladroId())?.rigContractual ?? '',
@@ -168,20 +169,12 @@ export class UbicacionSelectorComponent {
   /** true cuando hay lo mínimo para guardar (pozo, y taladro si se exige). */
   readonly completo = computed(() => this.pozoId() !== null && (!this.requiereTaladro() || this.taladroId() !== null));
 
-  protected onCampoChange(campoId: number | null): void {
-    this.campoId.set(campoId);
-    // Si el pozo elegido ya no pertenece al campo filtrado, se limpia.
-    const pozo = this.pozoSeleccionado();
-    if (pozo && campoId && pozo.campoId !== campoId) {
-      this.pozoId.set(null);
-    }
-    this.emitir();
-  }
-
   protected onPozoChange(pozoId: number | null): void {
     this.pozoId.set(pozoId);
     const pozo = this.pozos().find(p => p.id === pozoId);
-    if (pozo) this.campoId.set(pozo.campoId);
+    this.campoId.set(pozo?.campoId ?? null);
+    // Taladro depende del Pozo (se deshabilita sin uno) — si se limpia el pozo, se limpia también.
+    if (!pozo) this.taladroId.set(null);
     this.emitir();
   }
 
@@ -206,6 +199,7 @@ export class UbicacionSelectorComponent {
       taladroId: taladro?.id ?? null,
       taladro: taladro?.nombre ?? '',
       rigContractual: taladro?.rigContractual ?? '',
+      zona: campo?.zona ?? pozo?.campo?.zona ?? '',
     });
   }
 }

@@ -13,6 +13,17 @@
     <dynadrill-input label="Activado por" [value]="activadoPorNombre()" (valueChange)="activadoPorNombre.set($event)" />
   </div>
 
+  @if (servicioOptions().length > 0) {
+    <dynadrill-select
+      label="Servicio afectado (opcional)"
+      placeholder="Ligar el derrame a un ticket de Pumping/FCR en curso"
+      [options]="servicioOptions()"
+      [value]="servicio()"
+      [searchable]="true"
+      (valueChange)="servicio.set($any($event) ?? '')"
+    />
+  }
+
   <div class="derrame-alert-dialog__actions">
     <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
     <dynadrill-button variant="error" [disabled]="!puedeActivar() || submitting()" (clicked)="activar()">

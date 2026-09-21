@@ -70,5 +70,14 @@ export interface AvanceDocumental {
   materialesRegistrados: boolean;
   guiaRemisionAplica: boolean;
   guiaRemisionGenerada: boolean;
+  /** HSE-SITIO-001: el servicio abrió al menos un PTW y falta cerrarlo (bloquea la prefactura, FACT-002/004). */
+  ptwAplica?: boolean;
+  ptwsCerrados?: boolean;
+  ptwSinAbrir?: boolean;
+  /** HSE-AMBIENTAL-002: derrames registrados durante el servicio (alerta, no bloquea — FACT-002). */
+  incidentesHse?: number;
+  /** Solo aplica a Pumping — documento de monitoreo (subida real a disco por día, ver PumpingDocumentosService). Informativo: no bloquea "Generar prefactura". */
+  monitoreoAplica?: boolean;
+  monitoreoDocsCargados?: number;
   completo: boolean;
 }

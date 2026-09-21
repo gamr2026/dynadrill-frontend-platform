@@ -13,6 +13,8 @@ export interface Campo {
   nombre: string;
   /** Activo operativo de Petroecuador: AIT, AM, AP... */
   activo?: string | null;
+  /** Región comercial (ZONA OESTE/ESTE/NORTE/LITORAL/MACHALA...) — nullable, no todos los campos la traen. */
+  zona?: string | null;
 }
 
 export interface Taladro {
@@ -30,7 +32,7 @@ export interface Pozo {
   campoId: number;
   bloqueId: number;
   habilitado: boolean;
-  campo: { id: number; nombre: string; activo?: string | null } | null;
+  campo: { id: number; nombre: string; activo?: string | null; zona?: string | null } | null;
   bloque: { id: number; nombre: string } | null;
 }
 
@@ -52,6 +54,8 @@ export interface UbicacionSeleccion {
   taladroId: number | null;
   taladro: string;
   rigContractual: string;
+  /** Región comercial del Campo elegido — auto-completada, no se tipea (ver FACT-001). */
+  zona: string;
 }
 
 export const UBICACION_VACIA: UbicacionSeleccion = {
@@ -65,4 +69,33 @@ export const UBICACION_VACIA: UbicacionSeleccion = {
   taladroId: null,
   taladro: '',
   rigContractual: '',
+  zona: '',
+};
+
+/** 'representante_campo' (= Company Man, mismo rol) | 'representante_quito' | 'analista_facturacion' | 'agente_comercial'. */
+export type TipoPersonaContacto = 'representante_campo' | 'representante_quito' | 'analista_facturacion' | 'agente_comercial';
+
+export interface PersonaContacto {
+  id: number;
+  tipo: TipoPersonaContacto;
+  nombre: string;
+  /** Solo 'representante_campo' (= Company Man) la trae hoy — permite buscarlo por cédula además de por nombre. */
+  cedula?: string;
+  activo: boolean;
+}
+
+export interface ClienteCatalogo {
+  id: number;
+  tipoIdentificacion: string;
+  identificacion: string;
+  nombreComercial: string;
+  nombreFiscal?: string | null;
+  activo: boolean;
+}
+
+export const TIPO_PERSONA_LABELS: Record<TipoPersonaContacto, string> = {
+  representante_campo: 'Representante Campo',
+  representante_quito: 'Representante Quito',
+  analista_facturacion: 'Analista de Facturación',
+  agente_comercial: 'Agente Comercial',
 };

@@ -14,7 +14,7 @@ import {
   type DynadrillKpiRowItem,
   type DynadrillTab,
 } from '@digitec-it-projects/dynadrill-ui';
-import { ESTADO_PEDIDO_LABELS, LINEA_SERVICIO_LABELS, Pedido, valorEstimadoPedido } from '../../models/pedido.model';
+import { ESTADO_PEDIDO_LABELS, TIPO_SERVICIO_LABELS, Pedido, TIPO_OT_LABELS, TipoOt, valorEstimadoPedido } from '../../models/pedido.model';
 import { Prefactura } from '../../models/prefactura.model';
 import { PedidoService, PrefacturaService } from '../../services/pedido.service';
 
@@ -72,10 +72,11 @@ export class ReporteriaPage {
 
   protected readonly tabs: DynadrillTab[] = [
     { label: 'Por mes' },
-    { label: 'Por pozo y línea' },
+    { label: 'Por pozo y tipo de servicio' },
     { label: 'Estado por cliente' },
     { label: 'Cotizado vs. real' },
     { label: 'Control de tickets' },
+    { label: 'Servicio vs. Venta' },
   ];
 
   private pedidoDe(id: number): Pedido | undefined {
@@ -110,7 +111,7 @@ export class ReporteriaPage {
     { name: 'Revenue real', data: this.porMesRows().map(r => r._r) },
   ]);
 
-  // ── 2. Ingresos por pozo y línea ──
+  // ── 2. Ingresos por pozo y tipo de servicio ──
   protected readonly porPozoRows = computed(() =>
     this.prefacturas()
       .filter(p => p.estado === 'firmada')
@@ -119,7 +120,7 @@ export class ReporteriaPage {
         return {
           id: pf.id,
           pozo: p?.pozo ?? '—',
-          linea: p ? LINEA_SERVICIO_LABELS[p.lineaServicio] : '—',
+          linea: p ? TIPO_SERVICIO_LABELS[p.tipoServicio] : '—',
           cliente: p?.cliente ?? '—',
           revenue: '$' + pf.subtotal.toFixed(2),
         };
@@ -127,16 +128,16 @@ export class ReporteriaPage {
   );
   protected readonly porPozoColumns: DynadrillDataTableColumn[] = [
     { key: 'pozo', header: 'Pozo', sortable: true, searchable: true },
-    { key: 'linea', header: 'Línea de servicio', sortable: true, searchable: true },
+    { key: 'linea', header: 'Tipo de servicio', sortable: true, searchable: true },
     { key: 'cliente', header: 'Cliente', searchable: true },
     { key: 'revenue', header: 'Revenue real' },
   ];
-  /** Ingresos agregados por línea de servicio — mismo corte que "ventas por sublínea" del VENTAS_DYNADRILL. */
+  /** Ingresos agregados por tipo de servicio (segundo select del Pedido) — mismo corte que "ventas por sublínea" del VENTAS_DYNADRILL, ahora con la granularidad de 6 categorías en vez de las 4 líneas viejas. */
   protected readonly porLineaChartData = computed(() => {
     const acc = new Map<string, number>();
     for (const pf of this.prefacturas().filter(p => p.estado === 'firmada')) {
       const p = this.pedidoDe(pf.pedidoId);
-      const linea = p ? LINEA_SERVICIO_LABELS[p.lineaServicio] : 'Sin línea';
+      const linea = p ? TIPO_SERVICIO_LABELS[p.tipoServicio] : 'Sin línea';
       acc.set(linea, (acc.get(linea) ?? 0) + pf.subtotal);
     }
     return [...acc.entries()].sort(([a], [b]) => a.localeCompare(b));
@@ -226,7 +227,7 @@ export class ReporteriaPage {
         id: p.id,
         code: p.code,
         cliente: p.cliente,
-        linea: LINEA_SERVICIO_LABELS[p.lineaServicio],
+        linea: TIPO_SERVICIO_LABELS[p.tipoServicio],
         pozo: p.pozo,
         analista: p.analistaFacturacion ?? '—',
         vendedor: p.agenteComercial,
@@ -239,7 +240,7 @@ export class ReporteriaPage {
   protected readonly controlColumns: DynadrillDataTableColumn[] = [
     { key: 'code', header: 'Ticket', sortable: true, searchable: true },
     { key: 'cliente', header: 'Cliente', searchable: true },
-    { key: 'linea', header: 'Línea', searchable: true },
+    { key: 'linea', header: 'Tipo de servicio', searchable: true },
     { key: 'pozo', header: 'Pozo', searchable: true },
     { key: 'analista', header: 'Analista' },
     { key: 'vendedor', header: 'Vendedor' },
@@ -254,6 +255,50 @@ export class ReporteriaPage {
     const contar = (tono: string) => rows.filter(r => r.diasPrefBadge.tone === tono).length;
     return [{ name: 'Tickets', data: [contar('success'), contar('warning'), contar('error'), contar('neutral')] }];
   });
+
+  // ── 6. Servicio vs. Venta ──
+  /** `tipoOt` se pide siempre, para FCR y para Pumping — ver comentario en pedido.model.ts — así que este corte cubre todos los pedidos. */
+  protected readonly servicioVentaRows = computed(() => {
+    const acc = new Map<TipoOt, { pedidos: number; facturados: number; cotizado: number; real: number }>();
+    for (const p of this.pedidos()) {
+      const pf = this.prefacturas().find(x => x.pedidoId === p.id && x.estado === 'firmada');
+      const cur = acc.get(p.tipoOt) ?? { pedidos: 0, facturados: 0, cotizado: 0, real: 0 };
+      cur.pedidos += 1;
+      cur.cotizado += valorEstimadoPedido(p);
+      if (pf) {
+        cur.facturados += 1;
+        cur.real += pf.subtotal;
+      }
+      acc.set(p.tipoOt, cur);
+    }
+    return (['venta', 'servicio'] as TipoOt[])
+      .filter(tipo => acc.has(tipo))
+      .map(tipo => {
+        const v = acc.get(tipo)!;
+        return {
+          id: tipo,
+          tipo: TIPO_OT_LABELS[tipo],
+          pedidos: v.pedidos,
+          facturados: v.facturados,
+          cotizado: '$' + v.cotizado.toFixed(2),
+          real: '$' + v.real.toFixed(2),
+          _pedidos: v.pedidos,
+          _real: v.real,
+        };
+      });
+  });
+  protected readonly servicioVentaColumns: DynadrillDataTableColumn[] = [
+    { key: 'tipo', header: 'Tipo de OT' },
+    { key: 'pedidos', header: 'Nº de pedidos' },
+    { key: 'facturados', header: 'Facturados (prefactura firmada)' },
+    { key: 'cotizado', header: 'Cotizado (Ventas)' },
+    { key: 'real', header: 'Revenue real' },
+  ];
+  protected readonly servicioVentaChartCategories = computed(() => this.servicioVentaRows().map(r => r.tipo));
+  protected readonly servicioVentaChartSeries = computed<DynadrillChartSeries[]>(() => [
+    { name: 'Nº de pedidos', data: this.servicioVentaRows().map(r => r._pedidos) },
+    { name: 'Revenue real', data: this.servicioVentaRows().map(r => r._real) },
+  ]);
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
@@ -294,16 +339,22 @@ export class ReporteriaPage {
       case 0:
         return descargarCsv(`ventas-por-mes-${hoy}.csv`, ['Mes', 'Revenue', 'Jobs'], this.porMesRows().map(r => [r.mes, r._r, r._j]));
       case 1:
-        return descargarCsv(`ingresos-por-pozo-${hoy}.csv`, ['Pozo', 'Línea', 'Cliente', 'Revenue'], this.porPozoRows().map(r => [r.pozo, r.linea, r.cliente, r.revenue]));
+        return descargarCsv(`ingresos-por-pozo-${hoy}.csv`, ['Pozo', 'Tipo de servicio', 'Cliente', 'Revenue'], this.porPozoRows().map(r => [r.pozo, r.linea, r.cliente, r.revenue]));
       case 2:
         return descargarCsv(`estado-por-cliente-${hoy}.csv`, ['Cliente', 'Estado', 'Nº tickets', 'Accrual'], this.estadoClienteRows().map(r => [r.cliente, r.estado, r.tickets, r._a]));
       case 3:
         return descargarCsv(`cotizado-vs-real-${hoy}.csv`, ['Pedido', 'Cliente', 'Cotizado', 'Real', 'Desviación'], this.cotizadoRealRows().map(r => [r.code, r.cliente, r.cotizado, r.real, r.desviacion]));
-      default:
+      case 4:
         return descargarCsv(
           `control-tickets-${hoy}.csv`,
-          ['Ticket', 'Cliente', 'Línea', 'Pozo', 'Analista', 'Vendedor', 'Estado', 'Días prefact.', 'Días firma'],
+          ['Ticket', 'Cliente', 'Tipo de servicio', 'Pozo', 'Analista', 'Vendedor', 'Estado', 'Días prefact.', 'Días firma'],
           this.controlRows().map(r => [r.code, r.cliente, r.linea, r.pozo, r.analista, r.vendedor, r.estado, r.diasPrefBadge.text, r.diasFirmaBadge.text]),
+        );
+      default:
+        return descargarCsv(
+          `servicio-vs-venta-${hoy}.csv`,
+          ['Tipo de OT', 'Nº de pedidos', 'Facturados', 'Cotizado', 'Real'],
+          this.servicioVentaRows().map(r => [r.tipo, r.pedidos, r.facturados, r.cotizado, r.real]),
         );
     }
   }

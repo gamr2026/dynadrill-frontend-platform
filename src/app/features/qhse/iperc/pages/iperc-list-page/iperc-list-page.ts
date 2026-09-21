@@ -7,6 +7,7 @@ import {
   DynadrillDialogService,
   DynadrillIconButtonComponent,
   DynadrillKpiRowComponent,
+  DynadrillNotificationService,
   DynadrillPhaseTrackComponent,
   DynadrillScreenHeaderComponent,
   type DynadrillKpiRowItem,
@@ -14,6 +15,7 @@ import {
 import { calcularNR, interpretarNR, IPERC_STATUS_LABELS, IpercMatrix, IpercStatus, NivelRiesgo } from '../../models/iperc.model';
 import { IpercService } from '../../services/iperc.service';
 import { IpercMatrixDialog } from '../../components/iperc-matrix-dialog';
+import { IpercMatrixPdfDialog, IpercMatrixPdfDialogData } from '../../components/iperc-matrix-pdf-dialog';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { AppNotificationItem, NotificationsService } from '../../../../../core/services/notifications.service';
 
@@ -69,6 +71,7 @@ export class IpercListPage {
   private readonly route = inject(ActivatedRoute);
   private readonly auth = inject(AuthService);
   private readonly notifications = inject(NotificationsService);
+  private readonly notify = inject(DynadrillNotificationService);
 
   protected readonly loading = signal(true);
   protected readonly matrices = signal<IpercMatrix[]>([]);
@@ -109,7 +112,9 @@ export class IpercListPage {
     this.matrices().map(m => ({
       id: m.id,
       code: m.code,
-      actividad: m.actividad,
+      // Si la matriz nació como solicitud desde un ticket operativo, se
+      // muestra de dónde vino — HSE-PLAN-001 arranca de "una nueva actividad".
+      actividad: m.origenOperativo ? `${m.actividad} · solicitada desde ${m.origenOperativo.ticketCode}` : m.actividad,
       ubicacion: m.ubicacion,
       estadoBadge: STATUS_BADGES[m.status],
       faseIndex: STATUS_INDEX[m.status],
@@ -164,6 +169,58 @@ export class IpercListPage {
 
   protected viewDetail(row: Record<string, unknown>): void {
     this.router.navigate([String(row['id'])], { relativeTo: this.route });
+  }
+
+  /**
+   * Si está Aprobada, la reabre (vuelve a "en_evaluacion" — mismo criterio
+   * que "Editar matriz" en el detalle, ver IpercDetailPage.reopenForEdit())
+   * antes de entrar, para no obligar a repetir el paso ahí adentro. En
+   * cualquier otro estado ya es editable, así que solo navega.
+   */
+  protected editarMatriz(row: Record<string, unknown>): void {
+    const matrix = this.matrices().find(m => m.id === row['id']);
+    if (!matrix) return;
+    if (matrix.status !== 'aprobada') {
+      this.viewDetail(row);
+      return;
+    }
+    this.ipercService.update(matrix.id, { status: 'en_evaluacion' }).subscribe({
+      next: () => this.viewDetail(row),
+      error: () => this.notify.error('Error', 'No se pudo reabrir la matriz para editarla. Inténtalo de nuevo.'),
+    });
+  }
+
+  /** Réplica imprimible de la matriz, formato DYN-SGI-RE-087 (GTC 45) — ver IpercMatrixPdfDialog. */
+  protected imprimirMatriz(row: Record<string, unknown>): void {
+    const matrix = this.matrices().find(m => m.id === row['id']);
+    if (!matrix) return;
+    this.dialogService.open<IpercMatrixPdfDialog, IpercMatrixPdfDialogData>({
+      title: `Matriz IPERC ${matrix.code} — Vista de impresión`,
+      content: IpercMatrixPdfDialog,
+      data: { matrices: [matrix] },
+      footer: false,
+      width: '95vw',
+    });
+  }
+
+  /**
+   * "Matriz general" — todas las matrices consolidadas en una sola tabla,
+   * agrupadas por proceso y actividad (mismo IpercMatrixPdfDialog, con
+   * varias matrices en vez de una). Igual que el archivo real: ahí
+   * PROCESO/ACTIVIDAD son columnas planas de un solo registro para toda la
+   * empresa, no una matriz por actividad (verificado contra las 325 filas
+   * del DYN-SGI-RE-087 original).
+   */
+  protected verMatrizConsolidada(): void {
+    const matrices = this.matrices();
+    if (matrices.length === 0) return;
+    this.dialogService.open<IpercMatrixPdfDialog, IpercMatrixPdfDialogData>({
+      title: 'Matriz IPERC consolidada — todas las áreas',
+      content: IpercMatrixPdfDialog,
+      data: { matrices },
+      footer: false,
+      width: '95vw',
+    });
   }
 
   /**

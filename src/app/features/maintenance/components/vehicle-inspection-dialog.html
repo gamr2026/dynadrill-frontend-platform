@@ -37,9 +37,14 @@
       <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">Kilometraje</dynadrill-text>
       <div class="vehicle-inspection-dialog__grid">
         <dynadrill-input label="Inicial" type="number" [value]="kmInicial()" (valueChange)="kmInicial.set($event)" />
-        <dynadrill-input label="Final" type="number" [value]="kmFinal()" (valueChange)="kmFinal.set($event)" />
+        @if (esLlegada) {
+          <dynadrill-input label="Final" type="number" [value]="kmFinal()" (valueChange)="kmFinal.set($event)" />
+        }
         <dynadrill-datetime-picker mode="date" label="Próximo mantenimiento" [value]="proximoMantenimiento()!" (valueChange)="proximoMantenimiento.set($event)" />
       </div>
+      @if (proximoMantenimientoLeyenda()) {
+        <dynadrill-text variant="caption" class="vehicle-inspection-dialog__hint">{{ proximoMantenimientoLeyenda() }}</dynadrill-text>
+      }
     }
 
     @if (currentStep() === 1) {
@@ -98,6 +103,17 @@
             <div class="vehicle-inspection-dialog__blocking-warning">
               ⚠ {{ conductorSeleccionado()!.nombre }} no reúne las condiciones para trabajar — hay al menos un documento vencido. No se puede guardar la inspección hasta que RRHH/QHSE actualice el registro.
             </div>
+            @if (conductoresSugeridos().length) {
+              <dynadrill-select
+                label="Cambiar de conductor"
+                placeholder="Sugerencias — conductores que sí reúnen las condiciones"
+                [options]="conductoresSugeridos()"
+                [value]="null"
+                (valueChange)="inspeccionadoPor.set($any($event))"
+              />
+            } @else {
+              <dynadrill-text variant="caption">No hay otro conductor disponible que reúna las condiciones — contacte a RRHH/QHSE.</dynadrill-text>
+            }
           } @else {
             <dynadrill-text variant="body">✓ Reúne las condiciones para trabajar.</dynadrill-text>
           }
@@ -108,6 +124,10 @@
       </div>
     }
   </div>
+
+  @if (currentStep() === steps.length - 1 && !readonly && motivoNoPuedeGuardar()) {
+    <dynadrill-text variant="caption" class="vehicle-inspection-dialog__blocking-warning">⚠ {{ motivoNoPuedeGuardar() }}</dynadrill-text>
+  }
 
   <div class="vehicle-inspection-dialog__actions">
     <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>

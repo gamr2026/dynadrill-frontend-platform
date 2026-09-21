@@ -45,4 +45,10 @@
       color: var(--dynadrill-navy, #131529);
     }
   }
+
+  &__card-tipos {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
 }

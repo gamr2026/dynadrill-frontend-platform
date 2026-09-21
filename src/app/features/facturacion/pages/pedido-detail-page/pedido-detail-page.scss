@@ -9,6 +9,11 @@
   &__defs { @include f.defs; }
   &__table { @include f.table; }
 
+  &__toolbar {
+    display: flex;
+    justify-content: flex-end;
+  }
+
   &__head-actions {
     display: flex;
     flex-wrap: wrap;
@@ -38,21 +43,35 @@
     flex-direction: column;
     gap: 12px;
 
-    li {
+    div {
       display: flex;
-      gap: 12px;
-      align-items: flex-start;
+      flex-direction: column;
+      gap: 2px;
+    }
 
-      div {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-      }
+    strong {
+      font-size: 13.5px;
+      color: var(--text, #2c2b35);
+    }
+  }
 
-      strong {
-        font-size: 13.5px;
-        color: var(--text, #2c2b35);
-      }
+  &__timeline-item {
+    // Reset de <button> — antes esto vivía directo en el <li>; ahora es
+    // clickeable para ver el detalle de ese estado (tramo del timeline).
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    width: 100%;
+    border: none;
+    background: none;
+    padding: 4px;
+    border-radius: 6px;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &--selected {
+      background: var(--dynadrill-purple-tint-strong, rgba(102, 46, 155, 0.08));
     }
   }
 

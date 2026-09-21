@@ -72,9 +72,16 @@ export interface DerrameEvento {
   emergenciaId?: number;
 
   cerradoAt?: string;
+
+  /** Servicio operativo durante el que ocurrió (HSE-AMBIENTAL-002 se ejecuta "durante HSE-SITIO-001"). */
+  ticketTipo?: 'pumping' | 'fcr';
+  ticketCode?: string;
 }
 
-export type CreateDerrameInput = Pick<DerrameEvento, 'activadoPorNombre' | 'descripcion' | 'ubicacionFisica' | 'volumen' | 'ubicacion'>;
+export type CreateDerrameInput = Pick<
+  DerrameEvento,
+  'activadoPorNombre' | 'descripcion' | 'ubicacionFisica' | 'volumen' | 'ubicacion' | 'ticketTipo' | 'ticketCode'
+>;
 
 /**
  * HSE-MASTER-001: "Derrame mayor (>5 barriles o en agua) → Escalar a

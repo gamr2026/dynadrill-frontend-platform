@@ -6,13 +6,18 @@
 />
 
 <div class="iperc-list-page__toolbar">
+  <dynadrill-button variant="secondary" (clicked)="verMatrizConsolidada()">Ver matriz consolidada</dynadrill-button>
   <dynadrill-button (clicked)="nuevaMatriz()">+ Nueva matriz IPERC</dynadrill-button>
 </div>
 
 <dynadrill-kpi-row [items]="kpis()" />
 
 <ng-template #actionsTpl let-row>
-  <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
+  <div class="iperc-list-page__row-actions">
+    <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
+    <dynadrill-icon-button icon="edit" tooltip="Editar matriz" tooltipPlacement="top" (clicked)="editarMatriz(row)" />
+    <dynadrill-icon-button icon="insert-row-below" tooltip="Ver matriz" tooltipPlacement="top" (clicked)="imprimirMatriz(row)" />
+  </div>
 </ng-template>
 
 <ng-template #faseTpl let-row>

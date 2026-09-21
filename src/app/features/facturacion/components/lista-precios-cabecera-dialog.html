@@ -1,6 +1,13 @@
 <div class="lp-cab">
   <div class="lp-cab__grid">
-    <dynadrill-input label="Cliente" [value]="cliente()" (valueChange)="cliente.set($event)" />
+    <dynadrill-select
+      label="Cliente"
+      placeholder="Selecciona del catálogo"
+      [searchable]="true"
+      [options]="clienteOptions()"
+      [value]="cliente()"
+      (valueChange)="cliente.set($any($event ?? ''))"
+    />
     <dynadrill-input label="Nº de contrato" [value]="numeroContrato()" (valueChange)="numeroContrato.set($event)" />
     <dynadrill-datetime-picker mode="date" label="Vigente desde" [value]="vigenteDesde()!" (valueChange)="vigenteDesde.set($event)" />
     <dynadrill-select

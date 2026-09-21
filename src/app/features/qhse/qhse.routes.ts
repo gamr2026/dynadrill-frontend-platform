@@ -39,6 +39,13 @@ export const qhseRoutes: Routes = [
     data: { allowedRoles: HSE_STAFF_ROLES },
   },
   {
+    path: 'iperc-cobertura',
+    loadComponent: () =>
+      import('./iperc/pages/iperc-cobertura-page/iperc-cobertura-page').then(m => m.IpercCoberturaPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES },
+  },
+  {
     path: 'ptw',
     loadComponent: () => import('./ptw/pages/ptw-list-page/ptw-list-page').then(m => m.PtwListPage),
     canActivate: [roleGuard],

@@ -7,6 +7,7 @@ import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
+  DynadrillIconButtonComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
@@ -20,29 +21,34 @@ import {
   PUMPING_SERVICE_TYPE_LABELS,
   PUMPING_STEP_LABELS,
   PUMPING_STEP_ROLE,
+  esRolResponsablePumping,
   type PumpingStep,
 } from '../../models/pumping.model';
 import { PumpingService } from '../../services/pumping.service';
 import { AuthService } from '../../../../../core/services/auth.service';
+import { MACRO_ESTADO_TONE } from '../../../../../shared/index';
 import { MaintenanceOrderWithSubOrders, SubOrder } from '../../../../maintenance/models/maintenance-order.model';
 import { MaintenanceOrdersService } from '../../../../maintenance/services/maintenance-orders.service';
 import { SuborderReviewDialog, SuborderReviewDialogData } from '../../../../maintenance/components/suborder-review-dialog';
+import { SuborderDetailDialog, SuborderDetailDialogData } from '../../../../maintenance/components/suborder-detail-dialog';
+import { DocumentoOperativoService } from '../../../../facturacion/services/pedido.service';
+import { TicketDocumentosDialog, TicketDocumentosDialogData } from '../../components/ticket-documentos-dialog';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
 
 /** Mapea cada paso/estado del ticket a su badge visual */
 const STEP_BADGES: Record<PumpingStep, { text: string; tone: BadgeTone }> = {
-  revision_propuesta: { text: 'Revisión de propuesta', tone: 'warning' },
+  revision_inicial: { text: 'Revisión Inicial', tone: 'warning' },
   asignacion: { text: 'Asignación', tone: 'info' },
-  en_ejecucion: { text: 'En ejecución (Salida)', tone: 'brand' },
-  revisar_reportes_salida: { text: 'Revisar reportes de salida', tone: 'warning' },
-  ejecucion_operativa: { text: 'Ejecución operativa', tone: 'brand' },
-  gerenciamiento_llegada: { text: 'Gerenciamiento de llegada', tone: 'warning' },
-  en_ejecucion_llegada: { text: 'En ejecución (Llegada)', tone: 'brand' },
+  traslado_salida: { text: 'Traslado de Salida', tone: 'brand' },
+  revision_reportes_salida: { text: 'Revisión de Reportes de Salida', tone: 'warning' },
+  ejecucion_operativa: { text: 'Ejecución Operativa', tone: 'brand' },
+  control_retorno: { text: 'Control de Retorno', tone: 'warning' },
+  traslado_llegada: { text: 'Traslado de Llegada', tone: 'brand' },
   mantenimiento: { text: 'Mantenimiento', tone: 'info' },
-  revisar_reportes_llegada: { text: 'Revisar reportes de llegada', tone: 'warning' },
-  en_revision: { text: 'En revisión', tone: 'warning' },
-  finalizado: { text: 'Finalizado', tone: 'success' },
+  revision_reportes_llegada: { text: 'Revisión de Reportes de Llegada', tone: 'warning' },
+  revision_final: { text: 'Revisión Final', tone: 'warning' },
+  cierre: { text: 'Cierre', tone: 'success' },
 };
 
 const SERVICE_TYPE_FILTERS = Object.entries(PUMPING_SERVICE_TYPE_LABELS).map(
@@ -62,6 +68,7 @@ const STEP_FILTERS = Object.entries(PUMPING_STEP_LABELS).map(
     DynadrillDataTableComponent,
     DynadrillTabsComponent,
     DynadrillButtonComponent,
+    DynadrillIconButtonComponent,
     DynadrillTagComponent,
   ],
   templateUrl: './ticket-list-page.html',
@@ -76,11 +83,14 @@ export class TicketListPage {
 
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly docService = inject(DocumentoOperativoService);
 
   // ── Rol actual ──
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
   protected readonly isJefeBase = computed(() => this.roleName() === 'Jefe de Base');
-  protected readonly isSupervisor = computed(() => this.roleName() === 'Supervisor');
+  /** Jefe de Base y Superadmin ven cualquier ticket sin importar el paso — mismo criterio "admin ve todo" del resto de la app. */
+  protected readonly esAdmin = computed(() => this.roleName() === 'Jefe de Base' || this.roleName() === 'Superadmin');
+  protected readonly isSupervisor = computed(() => this.roleName() === 'Supervisor' || this.roleName() === 'Supervisor Pumping');
   protected readonly isOperador = computed(() => this.roleName() === 'Operador');
 
   protected readonly loading = signal(true);
@@ -90,8 +100,8 @@ export class TicketListPage {
   // ── Pestañas ──
 
   protected readonly tabs = computed<DynadrillTab[]>(() => [
-    { label: 'Tickets en Proceso', badge: this.inProcessTickets().length },
-    { label: 'Tickets Aprobados', badge: this.approvedTickets().length },
+    { label: 'Pedidos en Proceso', badge: this.inProcessTickets().length },
+    { label: 'Pedidos Aprobados', badge: this.approvedTickets().length },
   ]);
   protected readonly activeTabIndex = signal(0);
   protected readonly isInProcessTab = computed(() => this.activeTabIndex() === 0);
@@ -112,10 +122,10 @@ export class TicketListPage {
     const all = this.tickets();
     const inProcess = this.inProcessTickets();
     return [
-      { label: 'Total tickets', value: all.length },
-      { label: 'Revisión de propuesta', value: inProcess.filter(t => t.currentStep === 'revision_propuesta').length },
-      { label: 'En ejecución', value: inProcess.filter(t => t.currentStep === 'en_ejecucion').length },
-      { label: 'En revisión', value: inProcess.filter(t => t.currentStep === 'en_revision').length },
+      { label: 'Total pedidos', value: all.length },
+      { label: 'Revisión inicial', value: inProcess.filter(t => t.currentStep === 'revision_inicial').length },
+      { label: 'Traslado de salida', value: inProcess.filter(t => t.currentStep === 'traslado_salida').length },
+      { label: 'Revisión final', value: inProcess.filter(t => t.currentStep === 'revision_final').length },
       { label: 'Aprobados', value: this.approvedTickets().length },
     ];
   });
@@ -151,6 +161,7 @@ export class TicketListPage {
   private static readonly SUB_ORDER_STATUS_TONES: Record<string, BadgeTone> = {
     'En Ejecución': 'brand',
     'En Revisión': 'warning',
+    Pendiente: 'warning',
     Aprobado: 'success',
     Rechazado: 'error',
   };
@@ -177,7 +188,11 @@ export class TicketListPage {
           wellName: t.wellName,
           clientName: t.clientName,
           serviceType: { text: PUMPING_SERVICE_TYPE_LABELS[t.serviceType], tone: 'brand' as const },
-          statusBadge: STEP_BADGES[t.currentStep] ?? { text: t.currentStep, tone: 'neutral' as const },
+          // Texto = paso específico (como antes); color = macro-estado universal (6 tonos en vez de 11).
+          statusBadge: {
+            text: (STEP_BADGES[t.currentStep] ?? { text: t.currentStep }).text,
+            tone: MACRO_ESTADO_TONE[t.timelineResumen?.macroEstadoActual ?? 'pendiente'],
+          },
           step: t.currentStep,
           isMaintenanceStep: isMaintenanceRelevant,
           hasMaintenanceOrders: isMaintenanceRelevant && orders.length > 0,
@@ -215,10 +230,42 @@ export class TicketListPage {
       wellName: t.wellName,
       clientName: t.clientName,
       serviceType: { text: PUMPING_SERVICE_TYPE_LABELS[t.serviceType], tone: 'brand' as const },
-      statusBadge: { text: 'Finalizado', tone: 'success' as const },
+      statusBadge: { text: 'Finalizado', tone: MACRO_ESTADO_TONE[t.timelineResumen?.macroEstadoActual ?? 'aprobado'] },
       step: 'aprobado',
+      pedidoId: t.pedidoId,
     })),
   );
+
+  /**
+   * "Al finalizar, que se puedan ver los documentos generados" — por ahora
+   * solo Reporte Job (vía DocumentoOperativo.ticketOperativoId, bien
+   * vinculado); las inspecciones de vehículo todavía no guardan a qué
+   * ticket de Pumping pertenecen, ver comentario en ticket-documentos-dialog.ts.
+   */
+  protected verDocumentos(row: Record<string, unknown>): void {
+    const pedidoId = row['pedidoId'] as number | undefined;
+    const ticketId = row['id'] as number;
+    const ticketCode = row['code'] as string;
+    if (!pedidoId) {
+      this.notify.error('Sin pedido vinculado', 'Este ticket no tiene un Pedido de Facturación asociado.');
+      return;
+    }
+    this.docService.listDePedido(pedidoId).subscribe({
+      next: docs => {
+        const reporteJobDocs = docs
+          .filter(d => d.tipo === 'reporte_job' && d.ticketOperativoId === ticketId)
+          .sort((a, b) => (a.fecha ?? '').localeCompare(b.fecha ?? ''));
+        this.dialog.open<TicketDocumentosDialog, TicketDocumentosDialogData>({
+          title: `Documentos — ${ticketCode}`,
+          content: TicketDocumentosDialog,
+          data: { ticketId, ticketCode, reporteJobDocs },
+          footer: false,
+          width: '640px',
+        });
+      },
+      error: () => this.notify.error('Error', 'No se pudieron cargar los documentos de este ticket.'),
+    });
+  }
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
@@ -263,8 +310,14 @@ export class TicketListPage {
       case 'Corrección Solicitada':
         return type === 'Instrumental' ? 'Rechazado' : 'En Revisión';
       case 'Cerrado':
-      case 'Derivado a Pumping':
         return 'Aprobado';
+      case 'Derivado a Pumping':
+        // El Jefe de Mantenimiento derivó la novedad, pero el operador de
+        // Pumping (operador@dynadrill.com) todavía no la atendió — antes
+        // se mostraba "Aprobado" (mismo caso que 'Cerrado'), dando a
+        // entender que ya estaba resuelta cuando en realidad recién
+        // empieza a esperar por el lado de Pumping.
+        return 'Pendiente';
       default:
         return 'Rechazado';
     }
@@ -302,6 +355,25 @@ export class TicketListPage {
     });
   }
 
+  /**
+   * "Ver detalle" — lectura del avance real del área de Mantenimiento
+   * (diagnóstico/actividades correctivas de jefe.mantenimiento@/operador.
+   * mecanico@/operador.instrumental@) sobre la novedad que Pumping les
+   * reportó — antes solo se podía ver el estado del badge, sin saber si
+   * ya había algún avance real detrás.
+   */
+  protected verDetalleMaintenance(subOrderId: number): void {
+    const subOrder = this.findSubOrder(subOrderId);
+    if (!subOrder) return;
+    const order = this.maintenanceOrders().find(o => o.subOrders.some(s => s.id === subOrderId));
+    this.dialog.open<SuborderDetailDialog, SuborderDetailDialogData>({
+      title: 'Detalle de mantenimiento — ' + subOrder.code,
+      content: SuborderDetailDialog,
+      data: { subOrder, orderCode: order?.code ?? '', novedadOriginal: order ? `Origen: ${order.origin}` : '' },
+      footer: false,
+    });
+  }
+
   private findSubOrder(id: number): SubOrder | undefined {
     for (const order of this.maintenanceOrders()) {
       const sub = order.subOrders.find(s => s.id === id);
@@ -325,8 +397,9 @@ export class TicketListPage {
    * coincide con el rol responsable del paso.
    */
   protected canViewDetail(row: Record<string, unknown>): boolean {
+    if (this.esAdmin()) return true;
     const step = row['step'] as PumpingStep;
     const expectedRole = PUMPING_STEP_ROLE[step];
-    return expectedRole?.roleName === this.roleName();
+    return esRolResponsablePumping(expectedRole?.roleName, this.roleName());
   }
 }

@@ -2,11 +2,12 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { CreateSwaInput, SwaEvento } from '../models/swa.model';
+import { environment } from '@env';
 
 @Injectable({ providedIn: 'root' })
 export class SwaService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/qhse/swa';
+  private readonly baseUrl = `${environment.apiUrl}/qhse/swa`;
 
   list(): Observable<SwaEvento[]> {
     return this.http.get<SwaEvento[]>(this.baseUrl);

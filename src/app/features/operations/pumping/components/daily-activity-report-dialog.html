@@ -6,8 +6,13 @@
 
 <!-- ═══ Subir documento ═══ -->
 <section class="daily-report__section">
-  <dynadrill-text variant="h2">Cargar documento</dynadrill-text>
-  <dynadrill-text variant="caption">Suba el reporte diario escaneado o en formato digital para llenar los datos automáticamente.</dynadrill-text>
+  <div class="daily-report__section-head">
+    <dynadrill-text variant="h2">Cargar documento</dynadrill-text>
+    <dynadrill-button variant="secondary" size="small" (clicked)="descargarPlantilla()">⬇ Descargar formato en blanco</dynadrill-button>
+  </div>
+  <dynadrill-text variant="caption">
+    ¿Prefiere llenarlo a mano? Descargue el formato, complételo y súbalo aquí — o complete el formulario directamente abajo.
+  </dynadrill-text>
   <dynadrill-upload-zone
     [state]="uploadState()"
     [fileName]="uploadFileName()"
@@ -15,12 +20,31 @@
   />
 </section>
 
+<!-- ═══ Documento de monitoreo (generado externamente) ═══ -->
+@if (monitoreoCampo) {
+  <section class="daily-report__section">
+    <dynadrill-text variant="h2">Documento de monitoreo</dynadrill-text>
+    <dynadrill-text variant="caption">Adjuntá el documento de monitoreo generado externamente (ej. sensores en campo) para este día.</dynadrill-text>
+    @if (monitoreoDoc(); as doc) {
+      <div class="daily-report__monitoreo-doc">
+        <dynadrill-text variant="body">{{ doc.nombreOriginal }}</dynadrill-text>
+        <dynadrill-icon-button icon="eye" tooltip="Ver documento" (clicked)="verMonitoreo()" />
+        <dynadrill-icon-button icon="delete" tooltip="Quitar documento" (clicked)="eliminarMonitoreo()" />
+      </div>
+    } @else {
+      <dynadrill-upload-zone state="idle" (fileSelected)="onMonitoreoSeleccionado($event)" />
+      @if (monitoreoSubiendo()) {
+        <dynadrill-text variant="caption">Subiendo…</dynadrill-text>
+      }
+    }
+  </section>
+}
+
 <!-- ═══ Información general ═══ -->
 <section class="daily-report__section">
   <dynadrill-text variant="h2">Información general</dynadrill-text>
   <div class="daily-report__form-grid">
     <dynadrill-datetime-picker mode="date" label="Fecha" [value]="$any(fecha())" (valueChange)="fecha.set($event)" />
-    <dynadrill-input label="N°" [value]="numero()" (valueChange)="numero.set($event)" />
     <dynadrill-input label="Cliente" [value]="cliente()" (valueChange)="cliente.set($event)" />
     <dynadrill-input label="Orden/Contrato N°" [value]="ordenContrato()" (valueChange)="ordenContrato.set($event)" />
     <dynadrill-input label="Representante del Cliente" [value]="representanteCliente()" (valueChange)="representanteCliente.set($event)" />
@@ -57,7 +81,9 @@
         <dynadrill-textarea label="" placeholder="Describa la actividad..." [value]="activity.detalle" (valueChange)="onActivityChange($index, 'detalle', $event)" />
       </div>
       <div class="daily-report__col-action">
-        <dynadrill-button variant="error" size="small" (clicked)="removeActivity($index)">✕</dynadrill-button>
+        @if (actividades().length > 1) {
+          <dynadrill-icon-button icon="delete" tooltip="Quitar actividad" (clicked)="removeActivity($index)" />
+        }
       </div>
     </div>
   }
@@ -79,8 +105,16 @@
 
 <!-- ═══ Observaciones ═══ -->
 <section class="daily-report__section">
-  <dynadrill-text variant="h2">Observaciones</dynadrill-text>
-  <dynadrill-textarea label="Observaciones" placeholder="Ingrese observaciones generales del día..." [value]="observaciones()" (valueChange)="observaciones.set($event)" />
+  <dynadrill-text variant="h2">¿Tiene observaciones del día?</dynadrill-text>
+  <dynadrill-chip-group
+    [options]="['No', 'Sí']"
+    mode="single"
+    [selected]="[tieneObservaciones() ? 'Sí' : 'No']"
+    (selectedChange)="onTieneObservacionesChange($event[0] === 'Sí')"
+  />
+  @if (tieneObservaciones()) {
+    <dynadrill-textarea label="" placeholder="Ingrese observaciones generales del día..." [value]="observaciones()" (valueChange)="observaciones.set($event)" />
+  }
 </section>
 
 <!-- ═══ Firmas ═══ -->
@@ -89,15 +123,13 @@
   <div class="daily-report__signatures">
     <div class="daily-report__signature-col">
       <dynadrill-input label="Nombre (Supervisor Dynadrill)" [value]="nombreSupervisor()" (valueChange)="nombreSupervisor.set($event)" />
-      <dynadrill-input label="C.I." [value]="ciSupervisor()" (valueChange)="ciSupervisor.set($event)" />
       <div class="daily-report__signature-line">
         <dynadrill-text variant="caption">Firma:</dynadrill-text>
         <div class="daily-report__line"></div>
       </div>
     </div>
     <div class="daily-report__signature-col">
-      <dynadrill-input label="Nombre (Representante Cliente)" [value]="nombreCliente()" (valueChange)="nombreCliente.set($event)" />
-      <dynadrill-input label="C.I." [value]="ciCliente()" (valueChange)="ciCliente.set($event)" />
+      <dynadrill-input label="Nombre (Representante Cliente)" [value]="representanteCliente()" [disabled]="true" />
       <div class="daily-report__signature-line">
         <dynadrill-text variant="caption">Firma:</dynadrill-text>
         <div class="daily-report__line"></div>

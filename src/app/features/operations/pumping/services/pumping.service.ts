@@ -2,11 +2,22 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { PumpingTicket, PumpingStep } from '../models/pumping.model';
+import { environment } from '@env';
+
+export interface PumpingDocumento {
+  id: number;
+  campo: string;
+  nombreOriginal: string;
+  mimeType: string;
+  tamanoBytes: number;
+  uploadedBy: string;
+  uploadedAt: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class PumpingService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/operations/pumping';
+  private readonly baseUrl = `${environment.apiUrl}/operations/pumping`;
 
   listTickets(): Observable<PumpingTicket[]> {
     return this.http.get<PumpingTicket[]>(`${this.baseUrl}/tickets`);
@@ -14,6 +25,11 @@ export class PumpingService {
 
   getTicket(id: number): Observable<PumpingTicket> {
     return this.http.get<PumpingTicket>(`${this.baseUrl}/tickets/${id}`);
+  }
+
+  /** PUT genérico del ticket — para guardar campos que no tienen su propia acción dedicada (ej. gerenciamientos de viaje ya completados). */
+  updateTicket(id: number, patch: Partial<PumpingTicket>): Observable<PumpingTicket> {
+    return this.http.put<PumpingTicket>(`${this.baseUrl}/tickets/${id}`, patch);
   }
 
   assignSupervisor(ticketId: number, supervisorId: number): Observable<PumpingTicket> {
@@ -28,6 +44,8 @@ export class PumpingService {
     payload: {
       operatorIds: number[];
       unitIds: number[];
+      /** Emparejamiento real operador -> unidad — sin esto el backend arma pares por posición de array y puede asignar la unidad de un operador a otro (ver PumpingDomainService.assignResources). */
+      assignments: { operatorId: number; unitId: number | null }[];
       chemicals: { articuloId: number; name: string; unit: string; cantidad: number }[];
       chemicalMixtureDocument?: string;
     },
@@ -72,5 +90,32 @@ export class PumpingService {
       `${this.baseUrl}/tickets/${ticketId}/advance`,
       { step },
     );
+  }
+
+  // ── Documentos "monitoreo" del Reporte diario — un slot por (ticket, campo), campo = 'monitoreo-<fecha ISO>'. ──
+
+  /** Metadata del documento del slot, sin descargar el archivo — el caller decide qué hacer con un 404 (no hay documento subido todavía). */
+  metadataDocumento(ticketId: number, campo: string): Observable<PumpingDocumento> {
+    return this.http.get<PumpingDocumento>(`${this.baseUrl}/tickets/${ticketId}/documentos/${campo}/meta`);
+  }
+
+  /** Todos los documentos subidos al ticket (ej. monitoreo de cada día) — para "Documentos generados" al finalizar. */
+  listarDocumentos(ticketId: number): Observable<PumpingDocumento[]> {
+    return this.http.get<PumpingDocumento[]>(`${this.baseUrl}/tickets/${ticketId}/documentos`);
+  }
+
+  subirDocumento(ticketId: number, campo: string, archivo: File): Observable<PumpingDocumento> {
+    const form = new FormData();
+    form.append('file', archivo);
+    return this.http.post<PumpingDocumento>(`${this.baseUrl}/tickets/${ticketId}/documentos/${campo}`, form);
+  }
+
+  /** Blob autenticado (Bearer vía HttpClient) — un `<a href>` directo al endpoint no lo llevaría. */
+  descargarDocumento(ticketId: number, campo: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/tickets/${ticketId}/documentos/${campo}`, { responseType: 'blob' });
+  }
+
+  eliminarDocumento(ticketId: number, campo: string): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(`${this.baseUrl}/tickets/${ticketId}/documentos/${campo}`);
   }
 }

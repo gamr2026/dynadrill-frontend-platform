@@ -3,15 +3,27 @@ import { ActivatedRoute, Router } from '@angular/router';
 import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
+  DynadrillDialogService,
   DynadrillIconButtonComponent,
   DynadrillKpiRowComponent,
+  DynadrillNotificationService,
   DynadrillPhaseTrackComponent,
   DynadrillScreenHeaderComponent,
   type DynadrillKpiRowItem,
 } from '@digitec-it-projects/dynadrill-ui';
-import { PTW_FASE_LABELS, PTW_FASE_ORDER, PTW_FASE_STEPS, PtwFase, PtwMatrix, ptwCerrado } from '../../models/ptw.model';
+import {
+  PTW_FASE_LABELS,
+  PTW_FASE_ORDER,
+  PTW_FASE_STEPS,
+  PTW_TICKET_TIPO_LABELS,
+  PtwFase,
+  PtwMatrix,
+  ptwCerrado,
+} from '../../models/ptw.model';
 import { PtwService } from '../../services/ptw.service';
 import { AppNotificationItem, NotificationsService } from '../../../../../core/services/notifications.service';
+import { PedidoService } from '../../../../facturacion/services/pedido.service';
+import { VerPedidoDialog, VerPedidoDialogData } from '../../../../facturacion/components/ver-pedido-dialog';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
 
@@ -41,9 +53,12 @@ const CERRADO_BADGE: { text: string; tone: BadgeTone } = { text: 'Cerrado', tone
 })
 export class PtwListPage {
   private readonly ptwService = inject(PtwService);
+  private readonly pedidoService = inject(PedidoService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly notifications = inject(NotificationsService);
+  private readonly notify = inject(DynadrillNotificationService);
+  private readonly dialog = inject(DynadrillDialogService);
 
   protected readonly loading = signal(true);
   protected readonly records = signal<PtwMatrix[]>([]);
@@ -62,7 +77,7 @@ export class PtwListPage {
   protected readonly columns = computed<DynadrillDataTableColumn[]>(() => [
     { key: 'code', header: 'Código', sortable: true, searchable: true },
     { key: 'ipercCode', header: 'IPERC origen', searchable: true },
-    { key: 'actividad', header: 'Actividad', searchable: true },
+    { key: 'servicio', header: 'Servicio', searchable: true },
     { key: 'ubicacion', header: 'Ubicación', searchable: true },
     { key: 'faseBadge', header: 'Fase actual', type: 'badge' },
   ]);
@@ -75,8 +90,10 @@ export class PtwListPage {
       id: p.id,
       code: p.code,
       ipercCode: p.ipercCode,
-      actividad: p.actividad,
+      servicio: p.ticketTipo ? PTW_TICKET_TIPO_LABELS[p.ticketTipo] : '—',
       ubicacion: p.ubicacion,
+      pedidoId: p.pedidoId,
+      pedidoCode: p.pedidoCode,
       faseBadge: ptwCerrado(p) ? CERRADO_BADGE : FASE_BADGES[p.fase],
       faseIndex: ptwCerrado(p) ? PTW_FASE_ORDER.length : PTW_FASE_ORDER.indexOf(p.fase),
     })),
@@ -121,5 +138,30 @@ export class PtwListPage {
 
   protected viewDetail(row: Record<string, unknown>): void {
     this.router.navigate([String(row['id'])], { relativeTo: this.route });
+  }
+
+  /**
+   * "Botón con ícono para ver el detalle de las líneas estimadas definidas
+   * en el ticket" — contexto de qué se va a usar en el trabajo (la
+   * "Actividad" IPERC es genérica de la línea de servicio, no dice nada de
+   * eso). Reusa el mismo diálogo de solo lectura que ya usa Pumping.
+   */
+  protected verLineasPedido(row: Record<string, unknown>): void {
+    const pedidoId = row['pedidoId'] as number | undefined;
+    if (!pedidoId) {
+      this.notify.error('Sin pedido vinculado', 'Este PTW no tiene un Pedido de Ventas asociado.');
+      return;
+    }
+    this.pedidoService.get(pedidoId).subscribe({
+      next: pedido =>
+        this.dialog.open<VerPedidoDialog, VerPedidoDialogData>({
+          title: `Pedido ${pedido.code} — ${pedido.cliente}`,
+          content: VerPedidoDialog,
+          data: { pedido },
+          footer: false,
+          width: '760px',
+        }),
+      error: () => this.notify.error('Error', 'No se pudo cargar el Pedido vinculado.'),
+    });
   }
 }

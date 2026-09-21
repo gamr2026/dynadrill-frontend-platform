@@ -3,88 +3,286 @@
     El pedido se registra en el Portal y el gateway lo sincroniza con AS2. El número secuencial lo asigna AS2.
   </dynadrill-text>
 
-  <fieldset class="nuevo-pedido__group">
-    <legend>Cliente</legend>
+  <section class="nuevo-pedido__section">
+    <header class="nuevo-pedido__head"><h2><span class="nuevo-pedido__section-mark"></span>Cliente</h2></header>
     <div class="nuevo-pedido__grid">
-      <dynadrill-select label="Cliente" placeholder="Selecciona el cliente" [options]="clienteOptions" [value]="cliente()" (valueChange)="onClienteChange($any($event))" />
+      <dynadrill-select
+        label="Cliente"
+        placeholder="Busca un cliente"
+        [options]="clienteOptions()"
+        [value]="cliente()"
+        [searchable]="true"
+        (valueChange)="onClienteChange($any($event))"
+      />
       <dynadrill-input label="RUC" [value]="clienteRuc()" [disabled]="true" />
       <dynadrill-input label="Subcliente" [value]="subcliente()" (valueChange)="subcliente.set($event)" />
       <dynadrill-input label="Nº de contrato" [value]="numeroContrato()" (valueChange)="numeroContrato.set($event)" />
     </div>
-  </fieldset>
+  </section>
 
-  <fieldset class="nuevo-pedido__group">
-    <legend>Servicio</legend>
-    <div class="nuevo-pedido__grid">
-      <dynadrill-select label="Línea de servicio" placeholder="Selecciona" [options]="lineaOptions" [value]="lineaServicio()" (valueChange)="lineaServicio.set($any($event))" />
+  <section class="nuevo-pedido__section">
+    <header class="nuevo-pedido__head"><h2><span class="nuevo-pedido__section-mark"></span>Servicio</h2></header>
+    <div class="nuevo-pedido__grid--ancho">
+      <dynadrill-select label="Línea de servicio" placeholder="Selecciona" [options]="lineaOptions" [value]="lineaServicio()" (valueChange)="onLineaServicioChange($any($event))" />
+      <dynadrill-select
+        label="Tipo de servicio"
+        placeholder="Selecciona primero la línea"
+        [options]="tipoServicioOptions()"
+        [value]="tipoServicio()"
+        [disabled]="!lineaServicio()"
+        (valueChange)="tipoServicio.set($any($event))"
+      />
       <dynadrill-select label="Tipo de OT" placeholder="Selecciona" [options]="tipoOtOptions" [value]="tipoOt()" (valueChange)="tipoOt.set($any($event))" />
       <dynadrill-datetime-picker mode="date" label="Inicio de servicio" [value]="fechaInicioServicio()!" (valueChange)="fechaInicioServicio.set($event)" />
       <dynadrill-datetime-picker mode="date" label="Fin de servicio" [value]="fechaFinServicio()!" (valueChange)="fechaFinServicio.set($event)" />
     </div>
-    <app-ubicacion-selector [requiereTaladro]="true" (seleccionChange)="ubicacion.set($event)" />
-  </fieldset>
+    <app-ubicacion-selector
+      [requiereTaladro]="true"
+      [mostrarRigContractual]="false"
+      [valorInicial]="ubicacionInicial()"
+      (seleccionChange)="onUbicacionChange($event)"
+    />
+  </section>
 
-  <fieldset class="nuevo-pedido__group">
-    <legend>Comercial y responsables</legend>
-    <div class="nuevo-pedido__grid">
-      <dynadrill-input label="Agente comercial (Dynadrill)" [value]="agenteComercial()" (valueChange)="agenteComercial.set($event)" />
-      <dynadrill-input label="Representante en campo (PEC)" [value]="representanteCampo()" (valueChange)="representanteCampo.set($event)" />
-      <dynadrill-input label="Representante en Quito (PEC)" [value]="representanteQuito()" (valueChange)="representanteQuito.set($event)" />
-      <dynadrill-input label="Analista de facturación" [value]="analistaFacturacion()" (valueChange)="analistaFacturacion.set($event)" />
+  <section class="nuevo-pedido__section">
+    <header class="nuevo-pedido__head">
+      <h2>
+        <span class="nuevo-pedido__section-mark"></span>
+        <span class="nuevo-pedido__title-full">Comercial y responsables</span>
+        <span class="nuevo-pedido__title-short">Responsables</span>
+      </h2>
+    </header>
+    <div class="nuevo-pedido__grid nuevo-pedido__grid--ancho">
+      <dynadrill-select
+        label="Agente comercial (Dynadrill)"
+        placeholder="Busca un agente comercial"
+        [options]="agenteComercialOptions()"
+        [value]="agenteComercial()"
+        [searchable]="true"
+        (valueChange)="agenteComercial.set($any($event))"
+      />
+      <dynadrill-select
+        label="Representante en campo"
+        placeholder="Busca un representante de campo"
+        [options]="representanteCampoOptions()"
+        [value]="representanteCampo()"
+        [searchable]="true"
+        (valueChange)="representanteCampo.set($any($event))"
+      />
+      <dynadrill-select
+        label="Representante en Quito (PEC)"
+        placeholder="Busca un representante en Quito"
+        [options]="representanteQuitoOptions()"
+        [value]="representanteQuito()"
+        [searchable]="true"
+        (valueChange)="representanteQuito.set($any($event))"
+      />
+      <dynadrill-select
+        label="Analista de facturación"
+        placeholder="Busca un analista de facturación"
+        [options]="analistaFacturacionOptions()"
+        [value]="analistaFacturacion()"
+        [searchable]="true"
+        (valueChange)="analistaFacturacion.set($any($event))"
+      />
+      <dynadrill-select
+        label="Técnico HSE responsable"
+        placeholder="Selecciona un Técnico HSE activo"
+        [options]="tecnicoHseOptions()"
+        [value]="tecnicoHseResponsableId()"
+        (valueChange)="tecnicoHseResponsableId.set($any($event))"
+      />
     </div>
-  </fieldset>
+  </section>
 
-  <fieldset class="nuevo-pedido__group">
-    <legend>Administrativos (AS2)</legend>
-    <div class="nuevo-pedido__grid">
-      <dynadrill-input label="Condición de pago" [value]="condicionPago()" (valueChange)="condicionPago.set($event)" />
-      <dynadrill-input label="Zona" [value]="zona()" (valueChange)="zona.set($event)" />
-      <dynadrill-input label="Canal" [value]="canal()" (valueChange)="canal.set($event)" />
-      <dynadrill-input label="Bodega" [value]="bodega()" (valueChange)="bodega.set($event)" />
-      <dynadrill-select label="Solicitud" [options]="solicitudMedioOptions" [value]="solicitudMedio()" (valueChange)="solicitudMedio.set($any($event))" />
-    </div>
-  </fieldset>
-
-  <fieldset class="nuevo-pedido__group">
-    <legend>Líneas estimadas (cotizado)</legend>
-    @if (!listaCliente()) {
-      <dynadrill-text variant="caption">Selecciona un cliente con lista de precios para elegir los códigos.</dynadrill-text>
-    }
-    @for (l of lineasEstimadas(); track $index) {
-      <div class="nuevo-pedido__linea">
-        <div class="nuevo-pedido__grid">
-          <dynadrill-select
-            label="Código (lista de precios del cliente)"
-            placeholder="Busca un código o descripción"
-            [options]="itemOptions()"
-            [value]="l.codigo"
-            (valueChange)="onLineaCodigoChange($index, $any($event))"
-          />
-          <dynadrill-input label="Cantidad" type="number" [value]="l.cantidad" (valueChange)="onLineaCampoChange($index, 'cantidad', $event)" />
-          <dynadrill-input label="Valor unitario" type="number" [value]="l.valorUnitario" (valueChange)="onLineaCampoChange($index, 'valorUnitario', $event)" />
-        </div>
-        <div class="nuevo-pedido__linea-foot">
-          @if (itemDeLinea(l.codigo); as it) {
-            <dynadrill-text variant="caption">{{ it.descripcion }} · {{ it.unidad }} · {{ it.tipo }}</dynadrill-text>
-          } @else {
-            <span></span>
-          }
-          @if (lineasEstimadas().length > 1) {
-            <dynadrill-button variant="secondary" size="small" (clicked)="quitarLinea($index)">Quitar</dynadrill-button>
-          }
-        </div>
+  @if (puedeVerAdministrativos()) {
+    <section class="nuevo-pedido__section">
+      <header class="nuevo-pedido__head"><h2><span class="nuevo-pedido__section-mark"></span>Administrativos (AS2)</h2></header>
+      <div class="nuevo-pedido__grid">
+        <dynadrill-select
+          label="Condición de pago"
+          [options]="condicionPagoOptions"
+          [grouped]="true"
+          [value]="condicionPago()"
+          (valueChange)="condicionPago.set($any($event))"
+        />
+        <dynadrill-input label="Zona" [value]="zona()" (valueChange)="zona.set($event)" />
+        <dynadrill-input label="Bodega" [value]="bodega()" (valueChange)="bodega.set($event)" />
+        <dynadrill-select label="Solicitud" [options]="solicitudMedioOptions" [value]="solicitudMedio()" (valueChange)="solicitudMedio.set($any($event))" />
       </div>
+    </section>
+  }
+
+  <section class="nuevo-pedido__section">
+    <header class="nuevo-pedido__head"><h2><span class="nuevo-pedido__section-mark"></span>Líneas estimadas (cotizado)</h2></header>
+    @if (avisoPrefactura(); as aviso) {
+      <dynadrill-banner [variant]="aviso.variant" [message]="aviso.mensaje" />
     }
+
+    <div class="nuevo-pedido__plantilla">
+      <dynadrill-text variant="caption">
+        Cargá la plantilla de AS2 ("Codigo Producto AS2", Cantidad, Descripción, Precio, % Descuento) para traer todas las
+        líneas de una vez — se puede editar cualquier campo después.
+      </dynadrill-text>
+      <div class="nuevo-pedido__plantilla-acciones">
+        <dynadrill-button variant="secondary" size="small" (clicked)="descargarPlantilla()">Descargar plantilla</dynadrill-button>
+        <dynadrill-upload-zone state="idle" (fileSelected)="onCargarPlantilla($event)" />
+      </div>
+    </div>
+
+    <div class="table-scroll">
+      <table class="nuevo-pedido__lineas-table">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Descripción</th>
+            <th>Unidad</th>
+            <th class="num">Cantidad</th>
+            <th class="num">Precio unitario</th>
+            <th class="num">% Descuento</th>
+            @if (esPumping()) {
+              <th>Químico</th>
+              <th>Herramienta</th>
+            }
+            <th class="num">Total</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (l of lineasEstimadas(); track $index) {
+            <tr>
+              <td class="nuevo-pedido__td--full">
+                <span class="nuevo-pedido__td-label">Código</span>
+                @if (l.esQuimico) {
+                  <dynadrill-select
+                    label=""
+                    [placeholder]="cliente() ? 'Elegir químico de la Lista de Precios del cliente' : 'Selecciona primero el cliente'"
+                    [options]="quimicoOptions()"
+                    [value]="l.codigo || null"
+                    [searchable]="true"
+                    (valueChange)="onQuimicoCodigoSeleccionado($index, $any($event))"
+                  />
+                } @else if (l.esHerramienta || esFcr()) {
+                  <dynadrill-select
+                    label=""
+                    [placeholder]="cliente() ? 'Elegir herramienta de la Lista de Precios del cliente' : 'Selecciona primero el cliente'"
+                    [options]="herramientaOptions()"
+                    [value]="l.codigo || null"
+                    [searchable]="true"
+                    (valueChange)="onHerramientaCodigoSeleccionado($index, $any($event))"
+                  />
+                } @else {
+                  <dynadrill-input label="" [value]="l.codigo" (valueChange)="onLineaCampoChange($index, 'codigo', $event)" />
+                }
+                @if (referenciaPrecio(l); as ref) {
+                  <div class="nuevo-pedido__precio-referencia">
+                    <dynadrill-text variant="caption">
+                      ⚠ Este código no está en la Lista de Precios de este cliente.
+                      @if (ref.costoInterno != null) {
+                        Costo Dynadrill: ${{ ref.costoInterno | number: '1.2-2' }}.
+                      }
+                      @if (ref.precioSugerido != null) {
+                        Precio sugerido (catálogo general): ${{ ref.precioSugerido | number: '1.2-2' }}.
+                      }
+                      Define el precio de venta.
+                    </dynadrill-text>
+                  </div>
+                } @else if (codigoFueraDeListaPrecios(l.codigo)) {
+                  <dynadrill-text variant="caption">⚠ Fuera de la Lista de Precios — no entra a la prefactura automática.</dynadrill-text>
+                }
+              </td>
+              <td class="nuevo-pedido__td--full">
+                <span class="nuevo-pedido__td-label">Descripción</span>
+                <dynadrill-input label="" [value]="l.descripcion" [disabled]="l.esQuimico || l.esHerramienta || esFcr()" (valueChange)="onLineaCampoChange($index, 'descripcion', $event)" />
+              </td>
+              <td>
+                <span class="nuevo-pedido__td-label">Unidad</span>
+                <dynadrill-input label="" [value]="l.unidad" [disabled]="l.esQuimico || l.esHerramienta || esFcr()" (valueChange)="onLineaCampoChange($index, 'unidad', $event)" />
+              </td>
+              <td class="num">
+                <span class="nuevo-pedido__td-label">Cantidad</span>
+                <dynadrill-input label="" type="number" [value]="l.cantidad" (valueChange)="onLineaCampoChange($index, 'cantidad', $event)" />
+              </td>
+              <td class="num">
+                <span class="nuevo-pedido__td-label">Precio unitario</span>
+                <dynadrill-input label="" type="number" [value]="l.valorUnitario" (valueChange)="onLineaCampoChange($index, 'valorUnitario', $event)" />
+              </td>
+              <td class="num">
+                <span class="nuevo-pedido__td-label">% Descuento</span>
+                <dynadrill-input label="" type="number" [value]="l.descuentoPorcentaje" (valueChange)="onLineaCampoChange($index, 'descuentoPorcentaje', $event)" />
+              </td>
+              @if (esPumping()) {
+                <td class="nuevo-pedido__quimico-cell">
+                  <span class="nuevo-pedido__td-label">Químico</span>
+                  <input type="checkbox" [checked]="l.esQuimico" (change)="onQuimicoToggle($index, $any($event.target).checked)" aria-label="Es químico" />
+                </td>
+                <td class="nuevo-pedido__quimico-cell">
+                  <span class="nuevo-pedido__td-label">Herramienta</span>
+                  <input type="checkbox" [checked]="l.esHerramienta" (change)="onHerramientaToggle($index, $any($event.target).checked)" aria-label="Es herramienta" />
+                </td>
+              }
+              <td class="num nuevo-pedido__td--full nuevo-pedido__td--subtotal">
+                <span class="nuevo-pedido__td-label">Subtotal estimado</span>
+                ${{ (+l.cantidad || 0) * (+l.valorUnitario || 0) | number: '1.2-2' }}
+              </td>
+              <td class="nuevo-pedido__td--full nuevo-pedido__td--delete">
+                @if (lineasEstimadas().length > 1) {
+                  <dynadrill-icon-button icon="delete" tooltip="Quitar línea" (clicked)="quitarLinea($index)" />
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <td [attr.colspan]="esPumping() ? 7 : 6" class="num"><strong>Valor estimado total</strong></td>
+            <td class="num"><strong>${{ valorEstimadoTotal() | number: '1.2-2' }}</strong></td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
     <div class="nuevo-pedido__linea-actions">
       <dynadrill-button variant="secondary" size="small" (clicked)="agregarLinea()">+ Agregar línea</dynadrill-button>
-      <dynadrill-text variant="caption">Valor estimado total ${{ valorEstimadoTotal() | number: '1.2-2' }}</dynadrill-text>
     </div>
-  </fieldset>
+  </section>
+
+  @if (esPumping()) {
+    <section class="nuevo-pedido__section">
+      <header class="nuevo-pedido__head"><h2><span class="nuevo-pedido__section-mark"></span>Documentos de referencia (Pumping)</h2></header>
+      <dynadrill-text variant="caption">
+        Adjuntá acá cualquier documento que Pumping vaya a necesitar más adelante (ej. ficha de mezcla de químicos), con
+        una descripción — así lo ven ya identificado en sus pasos, sin que se lo vuelvan a pedir.
+      </dynadrill-text>
+
+      @for (d of documentosAdjuntos(); track $index) {
+        <div class="nuevo-pedido__documento-row">
+          @if (d.id !== null) {
+            <dynadrill-text variant="body">{{ d.descripcion || '(sin descripción)' }} — {{ d.nombreOriginal }}</dynadrill-text>
+          } @else {
+            <dynadrill-input
+              label="Descripción del documento"
+              placeholder="Ej. Ficha de mezcla de químicos"
+              [value]="d.descripcion"
+              (valueChange)="onDocumentoAdjuntoDescripcionChange($index, $event)"
+            />
+            <dynadrill-upload-zone
+              [state]="d.archivo ? 'uploaded' : 'idle'"
+              [fileName]="d.archivo?.name ?? ''"
+              (fileSelected)="onDocumentoAdjuntoArchivoChange($index, $event)"
+            />
+          }
+          <dynadrill-icon-button icon="delete" tooltip="Quitar documento" (clicked)="quitarDocumentoAdjunto($index)" />
+        </div>
+      }
+      <dynadrill-button variant="secondary" size="small" (clicked)="agregarDocumentoAdjunto()">+ Agregar documento</dynadrill-button>
+    </section>
+  }
 
   <div class="nuevo-pedido__actions">
     <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
     <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">
-      {{ submitting() ? 'Guardando…' : 'Crear pedido' }}
+      {{ submitting() ? 'Guardando…' : editando() ? 'Guardar cambios' : 'Crear pedido' }}
     </dynadrill-button>
   </div>
 </div>

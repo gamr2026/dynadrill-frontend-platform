@@ -15,6 +15,7 @@ import {
 import { FcrTicket, FCR_PHASE_LABELS, FCR_PHASE_ROLE, type FcrPhase, type TipoOt } from '../../models/fcr.model';
 import { FcrService } from '../../services/fcr.service';
 import { AuthService } from '../../../../../core/services/auth.service';
+import { MACRO_ESTADO_TONE } from '../../../../../shared/index';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
 
@@ -23,11 +24,11 @@ const PHASE_BADGES: Record<FcrPhase, { text: string; tone: BadgeTone }> = {
   reparacion: { text: 'Reparación', tone: 'info' },
   inspeccion: { text: 'Formulario de Inspección', tone: 'info' },
   aprobacion_supervisor_operaciones: { text: 'Aprobación de Supervisor', tone: 'warning' },
-  validacion: { text: 'Validación', tone: 'warning' },
+  revision_inicial: { text: 'Revisión Inicial', tone: 'warning' },
   preparacion_herramientas: { text: 'Preparación de Herramientas', tone: 'info' },
-  asignacion_operador: { text: 'Asignación de Operador', tone: 'info' },
+  asignacion: { text: 'Asignación de Operador', tone: 'info' },
   reunion_operativa: { text: 'Reunión Operativa', tone: 'warning' },
-  ejecucion_campo: { text: 'Ejecución de Campo', tone: 'brand' },
+  ejecucion_operativa: { text: 'Ejecución Operativa', tone: 'brand' },
   revision_reportes: { text: 'Revisión de Reportes', tone: 'warning' },
   control_retorno: { text: 'Control de Retorno', tone: 'info' },
   cierre: { text: 'Cierre', tone: 'success' },
@@ -75,7 +76,7 @@ export class FcrTicketListPage {
       { label: 'Total tickets', value: all.length },
       { label: 'Pendientes de mí', value: this.matchesFilter(all, 'Pendiente de mí').length },
       { label: 'En Bodega', value: this.matchesFilter(all, 'En Bodega').length },
-      { label: 'En campo', value: all.filter(t => t.currentPhase === 'ejecucion_campo').length },
+      { label: 'En campo', value: all.filter(t => t.currentPhase === 'ejecucion_operativa').length },
       { label: 'Cerrados', value: all.filter(t => t.status === 'cerrado').length },
     ];
   });
@@ -98,7 +99,11 @@ export class FcrTicketListPage {
       // Tickets sembrados antes de este campo no traen tipoOt — mismo default que Pedido.tipoOt en el backend ('venta').
       tipoOtBadge: TIPO_OT_BADGES[t.tipoOt ?? 'venta'],
       phase: FCR_PHASE_LABELS[t.currentPhase],
-      statusBadge: PHASE_BADGES[t.currentPhase],
+      // Texto = fase específica (como antes); color = macro-estado universal (6 tonos en vez de 12).
+      statusBadge: {
+        text: PHASE_BADGES[t.currentPhase].text,
+        tone: MACRO_ESTADO_TONE[t.timelineResumen?.macroEstadoActual ?? 'pendiente'],
+      },
     })),
   );
 
@@ -132,7 +137,7 @@ export class FcrTicketListPage {
       case 'En Bodega':
         return tickets.filter(t => t.currentPhase === 'preparacion_herramientas' && t.tools.some(tool => tool.status === 'en_preparacion'));
       case 'En campo':
-        return tickets.filter(t => t.currentPhase === 'ejecucion_campo');
+        return tickets.filter(t => t.currentPhase === 'ejecucion_operativa');
       case 'Cerrados':
         return tickets.filter(t => t.status === 'cerrado');
     }

@@ -79,6 +79,7 @@ export class InspeccionListPage {
         { text: 'En cuarentena', value: 'En cuarentena' },
       ],
     },
+    { key: 'mantenimientoBadge', header: 'Mantenimiento', type: 'badge' },
   ]);
 
   protected readonly rows = computed(() =>
@@ -88,6 +89,13 @@ export class InspeccionListPage {
       else if (inspeccionVencida(i)) estado = { text: 'Vencida', tone: 'warning' };
       else estado = { text: 'Vigente', tone: 'success' };
 
+      // El seguimiento post-derivación (clasificar, ejecutar, cerrar) vive
+      // en la Orden/Sub-orden de Mantenimiento, no acá — ver bandeja de
+      // Mantenimiento para el estado real de la reparación.
+      const mantenimiento: { text: string; tone: DynadrillTagVariant } = i.requiereMantenimiento
+        ? { text: 'Derivada a Mantenimiento', tone: 'warning' }
+        : { text: '—', tone: 'neutral' };
+
       return {
         id: i.id,
         code: i.code,
@@ -96,6 +104,7 @@ export class InspeccionListPage {
         fecha: formatDate(i.fecha),
         vigenciaHasta: formatDate(i.vigenciaHasta),
         estadoBadge: estado,
+        mantenimientoBadge: mantenimiento,
       };
     }),
   );

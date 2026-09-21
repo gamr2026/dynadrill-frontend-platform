@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { FcrPhase, FcrTicket, type FcrToolDailyStatus, type FcrToolStatus } from '../models/fcr.model';
+import { environment } from '@env';
 import type { TipoCompletacion, TipoOperador, TipoPicker, TipoTrabajo } from '../models/fcr-catalogos.model';
 
 /**
@@ -21,7 +22,7 @@ export type CampoDocumentoFcr =
 @Injectable({ providedIn: 'root' })
 export class FcrService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/operations/fcr';
+  private readonly baseUrl = `${environment.apiUrl}/operations/fcr`;
 
   listTickets(): Observable<FcrTicket[]> {
     return this.http.get<FcrTicket[]>(`${this.baseUrl}/tickets`);
@@ -39,7 +40,7 @@ export class FcrService {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/request-correction`, { observations });
   }
 
-  /** Ingeniería de Ventas devuelve el turno al Supervisor tras aplicar la corrección solicitada. */
+  /** Ingeniería de Ventas FCR devuelve el turno al Supervisor tras aplicar la corrección solicitada. */
   resolveCorrection(ticketId: number, resolvedBy: string, observation: string): Observable<FcrTicket> {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/resolve-correction`, { resolvedBy, observation });
   }

@@ -23,6 +23,12 @@ import { EnviarClienteDialog, EnviarClienteDialogData } from '../../components/e
 import { RespuestaClienteDialog, RespuestaClienteDialogData } from '../../components/respuesta-cliente-dialog';
 import { GuiaRemisionPdfDialog, GuiaRemisionPdfDialogData } from '../../components/guia-remision-pdf-dialog';
 import { AotGenerarDialog, AotGenerarDialogData } from '../../components/aot-generar-dialog';
+import { EditarRepresentantesDialog, EditarRepresentantesDialogData } from '../../components/editar-representantes-dialog';
+
+interface Dato {
+  label: string;
+  value: string;
+}
 
 /** Plantilla de carga a AS2 (Fase 8) — mismas columnas que `AS2 Prefactura Cliente.xlsx`. */
 function exportarAs2(code: string, items: { codigo: string; unidad: string; cantidad: number; descripcion: string; precioUnitario: number }[]): void {
@@ -79,6 +85,18 @@ export class PrefacturaDetailPage {
 
   protected readonly puedeGenerarAot = computed(() => this.prefactura()?.estado === 'firmada' && !this.aot());
 
+  /** FACT #9 — igual criterio de labels que pedido-detail-page.ts. */
+  protected readonly datosComercial = computed<Dato[]>(() => {
+    const p = this.pedido();
+    if (!p) return [];
+    return [
+      { label: 'Agente comercial', value: p.agenteComercial },
+      { label: 'Representante en campo', value: p.representanteCampo },
+      { label: 'Representante en Quito (PEC)', value: p.representanteQuito },
+      { label: 'Analista de facturación', value: p.analistaFacturacion ?? '—' },
+    ];
+  });
+
   /** Checklist de revisión (FACT-003) — cliente-side; habilita "Enviar al cliente". */
   protected readonly checklist = signal<Record<string, boolean>>({
     datos: false,
@@ -112,6 +130,11 @@ export class PrefacturaDetailPage {
     this.checklist.update(c => ({ ...c, [key]: !c[key] }));
   }
 
+  /** Mismo patrón que "Marcar todo OK" de FCR — marca los 6 ítems de una vez, el revisor solo destilda la excepción si encuentra algo mal. */
+  protected marcarTodoRevisado(): void {
+    this.checklist.set(Object.fromEntries(this.checklistItems.map(c => [c.key, true])));
+  }
+
   constructor() {
     this.reload();
   }
@@ -142,6 +165,9 @@ export class PrefacturaDetailPage {
   protected enviarAlCliente(): void {
     const pf = this.prefactura();
     if (!pf || !this.puedeEnviar()) return;
+    // El Reporte de Herramientas es exclusivo de FCR (Pumping no lo genera) —
+    // antes se listaba siempre, aunque el pedido fuera de Pumping.
+    const esFcr = this.pedido()?.lineaServicio === 'fcr';
     const ref = this.dialog.open<EnviarClienteDialog, EnviarClienteDialogData>({
       title: 'Enviar prefactura al cliente',
       content: EnviarClienteDialog,
@@ -150,7 +176,7 @@ export class PrefacturaDetailPage {
         adjuntosBase: [
           `Prefactura ${pf.code}.pdf`,
           'Reporte Job (PDF).pdf',
-          'Reporte de Herramientas (PDF).pdf',
+          ...(esFcr ? ['Reporte de Herramientas (PDF).pdf'] : []),
           ...(this.guiaRemision() ? ['Guía de Remisión (PDF).pdf'] : []),
         ],
       },
@@ -204,6 +230,22 @@ export class PrefacturaDetailPage {
     });
   }
 
+  /** FACT #9 — corregir representantes sin salir de la prefactura ni abrir el diálogo completo del pedido. */
+  protected editarRepresentantes(): void {
+    const p = this.pedido();
+    if (!p) return;
+    const ref = this.dialog.open<EditarRepresentantesDialog, EditarRepresentantesDialogData>({
+      title: 'Editar representantes',
+      content: EditarRepresentantesDialog,
+      data: { pedido: p },
+      footer: false,
+      width: '520px',
+    });
+    ref.afterClose.subscribe(pedido => {
+      if (pedido) this.pedido.set(pedido);
+    });
+  }
+
   protected irAlPedido(): void {
     const p = this.pedido();
     if (p) this.router.navigate(['/dashboard/facturacion/pedidos', p.id]);
@@ -213,7 +255,7 @@ export class PrefacturaDetailPage {
     const pf = this.prefactura();
     if (!pf || !this.puedeGenerarAot()) return;
     const ref = this.dialog.open<AotGenerarDialog, AotGenerarDialogData>({
-      title: 'Generar AOT',
+      title: 'Generar OT',
       content: AotGenerarDialog,
       data: {
         prefacturaId: pf.id,

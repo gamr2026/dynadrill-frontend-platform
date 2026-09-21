@@ -1,0 +1,106 @@
+@if (emergencia(); as e) {
+  <section class="ticket-qhse-banner ticket-qhse-banner--detenido">
+    <div class="ticket-qhse-banner__text">
+      <dynadrill-text variant="body">
+        <strong>🚨 EMERGENCIA — {{ e.code }}</strong> ({{ emergenciaEstadoLabel(e.estado) }}).
+      </dynadrill-text>
+      <dynadrill-text variant="caption">
+        Ningún paso del servicio puede avanzar hasta que la emergencia se cierre en QHSE.
+        @if (canView()) {
+          <button type="button" class="ticket-qhse-banner__link" (click)="verEmergencia()">Ver evento</button>
+        }
+      </dynadrill-text>
+    </div>
+  </section>
+}
+
+@if (swa(); as s) {
+  <section class="ticket-qhse-banner ticket-qhse-banner--detenido">
+    <div class="ticket-qhse-banner__text">
+      <dynadrill-text variant="body">
+        <strong>⛔ TRABAJO DETENIDO — Stop Work {{ s.code }}</strong> ({{ swaEstadoLabel(s.estado) }}).
+      </dynadrill-text>
+      <dynadrill-text variant="caption">
+        Peligro: {{ s.tipoPeligro }}. Ningún paso del servicio puede avanzar hasta que HSE y el Company Man autoricen la
+        reanudación.
+        @if (canView()) {
+          <button type="button" class="ticket-qhse-banner__link" (click)="verSwa()">Ver evento</button>
+        }
+      </dynadrill-text>
+    </div>
+  </section>
+}
+
+@if (derrames().length > 0) {
+  <section class="ticket-qhse-banner ticket-qhse-banner--pendiente">
+    <div class="ticket-qhse-banner__text">
+      <dynadrill-text variant="body">
+        <strong>Incidente ambiental durante el servicio</strong> — {{ derrames().length }} derrame(s) registrado(s)
+        (HSE-AMBIENTAL-002).
+      </dynadrill-text>
+      <ul class="ticket-qhse-banner__pendientes">
+        @for (d of derrames(); track d.id) {
+          <li>
+            {{ d.code }} <em>(volumen {{ d.volumen }} · {{ d.estado }})</em>
+            @if (canView()) {
+              <button type="button" class="ticket-qhse-banner__link" (click)="verDerrame(d.id)">Ver</button>
+            }
+          </li>
+        }
+      </ul>
+    </div>
+  </section>
+}
+
+@if (vinculo()?.matrizMaestra; as matrizMaestra) {
+  @let v = vinculo()!;
+  <section
+    class="ticket-qhse-banner"
+    [class.ticket-qhse-banner--ok]="coberturaOk()"
+    [class.ticket-qhse-banner--pendiente]="!coberturaOk()"
+  >
+    <div class="ticket-qhse-banner__text">
+      @if (coberturaOk()) {
+        <dynadrill-text variant="body">
+          <strong>Matriz IPERC {{ v.matrizMaestra }}</strong> — actividades del servicio cubiertas y aprobadas.
+        </dynadrill-text>
+        @if (ptw(); as p) {
+          <dynadrill-text variant="caption">
+            <strong>PTW {{ p.code }}</strong> —
+            @if (p.cerrado) {
+              cerrado, sitio devuelto.
+            } @else if (p.firmadoSitio) {
+              firmado en sitio; ejecución en campo habilitada.
+            } @else {
+              en {{ ptwFaseLabel(p.fase) }}. La ejecución en campo requiere la firma en sitio.
+            }
+            @if (canView()) {
+              <button type="button" class="ticket-qhse-banner__link" (click)="verPtw()">Ver PTW</button>
+            }
+          </dynadrill-text>
+        } @else {
+          <dynadrill-text variant="caption">
+            Falta abrir el PTW / Recibimiento de Sitio en QHSE — necesario antes de la ejecución en campo.
+          </dynadrill-text>
+        }
+      } @else {
+        <dynadrill-text variant="body">
+          <strong>Matriz IPERC {{ v.matrizMaestra }}</strong> — HSE tiene actividades pendientes de aprobar:
+        </dynadrill-text>
+        <ul class="ticket-qhse-banner__pendientes">
+          @for (act of pendientes(); track act.ipercMatrixId) {
+            <li>
+              {{ act.nombre }} <em>({{ ipercEstadoLabel(act.estado) }})</em>
+              @if (canView()) {
+                <button type="button" class="ticket-qhse-banner__link" (click)="verMatriz(act.ipercMatrixId)">Ver</button>
+              }
+            </li>
+          }
+        </ul>
+        <dynadrill-text variant="caption">
+          El servicio no puede avanzar (asignación de personal y ejecución) hasta que estén todas aprobadas.
+        </dynadrill-text>
+      }
+    </div>
+  </section>
+}

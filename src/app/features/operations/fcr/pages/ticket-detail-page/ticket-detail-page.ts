@@ -1,6 +1,17 @@
-import { ChangeDetectionStrategy, Component, ElementRef, afterRenderEffect, computed, inject, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  afterRenderEffect,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet, formatDate } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom, type Observable } from 'rxjs';
 import type { NzUploadFile } from 'ng-zorro-antd/upload';
@@ -25,6 +36,7 @@ import {
   DynadrillUploadZoneComponent,
   type DynadrillApprovalDecision,
   type DynadrillContextCardItem,
+  type DynadrillContextCardTag,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import {
@@ -41,8 +53,11 @@ import {
   type FcrToolStatus,
 } from '../../models/fcr.model';
 import { FcrService, type CampoDocumentoFcr } from '../../services/fcr.service';
-import { PedidoService } from '../../../../facturacion/services/pedido.service';
-import { itemsEstimadosDe, LINEA_SERVICIO_LABELS, type Pedido } from '../../../../facturacion/models/pedido.model';
+import { PedidoService, ListaPreciosService } from '../../../../facturacion/services/pedido.service';
+import { itemsEstimadosDe, TIPO_OT_LABELS, TIPO_SERVICIO_LABELS, type Pedido } from '../../../../facturacion/models/pedido.model';
+import type { ListaPrecios } from '../../../../facturacion/models/lista-precios.model';
+import { capitalize, parseLocalDateString } from '../../../../../shared/utils';
+import { MACRO_ESTADO_LABELS, MACRO_ESTADO_TONE } from '../../../../../shared/models/timeline.model';
 import { FcrToolInspeccionesService } from '../../services/fcr-tool-inspecciones.service';
 import {
   FCR_TOOL_INSPECTION_FIRMA_ROLES,
@@ -62,6 +77,16 @@ import {
 } from '../../models/fcr-catalogos.model';
 import { ArticulosService } from '../../../../inventario/services/articulos.service';
 import { AuthService } from '../../../../../core/services/auth.service';
+import { TicketQhseBanner } from '../../../shared/ticket-qhse-banner/ticket-qhse-banner';
+import {
+  QHSE_VIEWER_ROLES,
+  actividadesPendientesTexto,
+  coberturaOk,
+  emergenciaActiva,
+  ptwFaseLabel,
+  ptwFirmadoOk,
+  swaActivo,
+} from '../../../shared/ticket-qhse.util';
 import { SolicitarCorreccionDialog, SolicitarCorreccionDialogData, SolicitarCorreccionDialogResult } from '../../components/solicitar-correccion-dialog';
 import { AsignarOperadorDialog, AsignarOperadorDialogData, AsignarOperadorDialogResult } from '../../components/asignar-operador-dialog';
 import {
@@ -86,6 +111,7 @@ import {
   OperativoDocsBridgeService,
   descargarCsv,
   parseCsvFile,
+  TimelinePopoverTriggerDirective,
 } from '../../../../../shared/index';
 
 /** RN de negocio (fcr-adjuntos-reales): el backend es la fuente de verdad, esto es solo UX para no esperar el round-trip. */
@@ -138,35 +164,35 @@ function resolveSupervisorName(t: FcrTicket): string {
 
 /** Entrada VENTA — sin cambios respecto al flujo original. */
 const PHASE_KEYS_VENTA: FcrPhase[] = [
-  'validacion',
+  'revision_inicial',
   'preparacion_herramientas',
-  'asignacion_operador',
+  'asignacion',
   'reunion_operativa',
-  'ejecucion_campo',
+  'ejecucion_operativa',
   'revision_reportes',
   'control_retorno',
   'cierre',
 ];
 
 /**
- * Entrada SERVICIOS — paridad con VENTA: arranca en 'validacion' (mismo
+ * Entrada SERVICIOS — paridad con VENTA: arranca en 'revision_inicial' (mismo
  * paso, mismo rol responsable) antes de 'preparacion_herramientas'
  * (Supervisor pide herramientas a Bodega), luego 'tipo_operador' asigna al
  * operador mecánico que repara e inspecciona por herramienta, y
  * 'aprobacion_supervisor_operaciones' confluye directo en
- * 'asignacion_operador' (operador de campo) — ya no se vuelve a pasar por
+ * 'asignacion' (operador de campo) — ya no se vuelve a pasar por
  * 'preparacion_herramientas', eso ocurre una sola vez.
  */
 const PHASE_KEYS_SERVICIO: FcrPhase[] = [
-  'validacion',
+  'revision_inicial',
   'preparacion_herramientas',
   'tipo_operador',
   'reparacion',
   'inspeccion',
   'aprobacion_supervisor_operaciones',
-  'asignacion_operador',
+  'asignacion',
   'reunion_operativa',
-  'ejecucion_campo',
+  'ejecucion_operativa',
   'revision_reportes',
   'control_retorno',
   'cierre',
@@ -193,6 +219,8 @@ const PHASE_KEYS_SERVICIO: FcrPhase[] = [
     DynadrillTextareaComponent,
     DynadrillUploadZoneComponent,
     DynadrillApprovalActionsComponent,
+    TicketQhseBanner,
+    TimelinePopoverTriggerDirective,
   ],
   templateUrl: './ticket-detail-page.html',
   styleUrl: './ticket-detail-page.scss',
@@ -204,6 +232,7 @@ export class FcrTicketDetailPage {
   private readonly toolInspeccionesService = inject(FcrToolInspeccionesService);
   private readonly articulosService = inject(ArticulosService);
   private readonly pedidoService = inject(PedidoService);
+  private readonly listaPreciosService = inject(ListaPreciosService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(DynadrillDialogService);
@@ -213,6 +242,14 @@ export class FcrTicketDetailPage {
 
   protected readonly loading = signal(true);
   protected readonly ticket = signal<FcrTicket | null>(null);
+
+  // ── Gates QHSE (HSE-PLAN-001 cobertura IPERC + HSE-SITIO-001 PTW + HSE-SEGUIMIENTO-003 SWA + HSE-TRIAGE-001 Emergencia) ──
+  protected readonly qhseVinculo = computed(() => this.ticket()?.qhse ?? null);
+  protected readonly coberturaOk = computed(() => coberturaOk(this.qhseVinculo()));
+  protected readonly ptwFirmadoOk = computed(() => ptwFirmadoOk(this.qhseVinculo()));
+  protected readonly swa = computed(() => swaActivo(this.qhseVinculo()));
+  protected readonly emergencia = computed(() => emergenciaActiva(this.qhseVinculo()));
+  protected readonly puedeVerQhse = computed(() => QHSE_VIEWER_ROLES.includes(this.roleName()));
 
   // ── Tracker de fases (la secuencia depende de tipoOt — dos entradas, un tronco común) ──
 
@@ -231,7 +268,16 @@ export class FcrTicketDetailPage {
   // que descubrir por su cuenta que hay que deslizar para encontrarla.
   private readonly trackerScrollEl = viewChild<ElementRef<HTMLElement>>('trackerScroll');
 
-  protected readonly currentPhase = computed<FcrPhase>(() => this.ticket()?.currentPhase ?? 'validacion');
+  /** `null` = sin selección manual → se muestra el detalle de la fase actual. Clic en una fase ya alcanzada la selecciona. */
+  private readonly manualPhaseIndex = signal<number | null>(null);
+  protected readonly selectedPhaseIndex = computed(() => this.manualPhaseIndex() ?? this.currentPhaseIndex());
+
+  protected seleccionarFase(index: number): void {
+    if (index > this.currentPhaseIndex()) return;
+    this.manualPhaseIndex.set(index);
+  }
+
+  protected readonly currentPhase = computed<FcrPhase>(() => this.ticket()?.currentPhase ?? 'revision_inicial');
 
   /**
    * En la mayoría de fases hay un solo actor durante toda la fase, pero
@@ -244,12 +290,12 @@ export class FcrTicketDetailPage {
    */
   protected readonly responsibleRole = computed(() => {
     const t = this.ticket();
-    if (t?.currentPhase === 'validacion' && t.observations.length > 0) {
+    if (t?.currentPhase === 'revision_inicial' && t.observations.length > 0) {
       // El último autor dice de quién es el turno: si Supervisor pidió la
-      // corrección, le toca a Ingeniería de Ventas aplicarla; si Ingeniería
-      // de Ventas ya reenvió, vuelve a ser turno del Supervisor.
+      // corrección, le toca a Ingeniería de Ventas FCR aplicarla; si ya
+      // reenvió, vuelve a ser turno del Supervisor.
       const last = t.observations[t.observations.length - 1];
-      return last.role === 'Supervisor' ? 'Ingeniería de Ventas' : 'Supervisor';
+      return last.role === 'Supervisor' ? 'Ingeniería de Ventas FCR' : 'Supervisor';
     }
     if (t?.currentPhase === 'preparacion_herramientas') {
       const hasUnsentSelected = t.tools.some(tool => tool.status === 'seleccionada' && !tool.sentToBodega);
@@ -287,13 +333,13 @@ export class FcrTicketDetailPage {
     return this.dialog.confirm({ title, content, okText: 'Confirmar', cancelText: 'Cancelar', danger });
   }
 
-  // ── Pedido vinculado (solo lectura, fase 'validacion') ──
+  // ── Pedido vinculado (solo lectura, fase 'revision_inicial') ──
 
   /** Detalle completo del Pedido de Facturación que originó este ticket — `null` si el ticket no tiene uno vinculado (tickets legado sembrados sin puente). */
   protected readonly pedido = signal<Pedido | null>(null);
-  protected readonly pedidoLineaServicioLabel = computed(() => {
+  protected readonly pedidoTipoServicioLabel = computed(() => {
     const p = this.pedido();
-    return p ? LINEA_SERVICIO_LABELS[p.lineaServicio] : '';
+    return p ? TIPO_SERVICIO_LABELS[p.tipoServicio] : '';
   });
   protected readonly pedidoItems = computed(() => {
     const p = this.pedido();
@@ -303,17 +349,75 @@ export class FcrTicketDetailPage {
     this.pedidoItems().reduce((sum, item) => sum + item.cantidad * item.valorUnitario, 0),
   );
 
+  /** Todas las Listas de Precios (para emparejar la del cliente del Pedido vinculado) — cargadas una sola vez en el constructor. */
+  private readonly todasLasListas = signal<ListaPrecios[]>([]);
+  /**
+   * Lista de Precios del cliente del Pedido vinculado — mismo criterio de emparejado que
+   * `nuevo-pedido-dialog.ts` (por `clienteId` real primero, texto de `cliente` como fallback legacy).
+   * `null` cuando el ticket no tiene Pedido vinculado o no hay lista activa para su cliente — en ese
+   * caso `herramientasCatalogo` no filtra por lista (fallback para no bloquear tickets legado).
+   */
+  protected readonly listaCliente = computed<ListaPrecios | null>(() => {
+    const p = this.pedido();
+    const listas = this.todasLasListas();
+    if (!p) return null;
+    return (
+      (p.clienteId != null
+        ? (listas.find(l => l.clienteId === p.clienteId && l.numeroContrato === p.numeroContrato && l.activa) ??
+          listas.find(l => l.clienteId === p.clienteId && l.activa))
+        : undefined) ??
+      listas.find(l => l.cliente === p.cliente && l.numeroContrato === p.numeroContrato && l.activa) ??
+      listas.find(l => l.cliente === p.cliente && l.activa) ??
+      null
+    );
+  });
+
   // ── Contexto ──
 
-  protected readonly contextItems = computed<DynadrillContextCardItem[]>(() => {
+  protected readonly contextCardTags = computed<DynadrillContextCardTag[]>(() => {
+    const t = this.ticket();
+    const macro = t?.timelineResumen?.macroEstadoActual;
+    const tags: DynadrillContextCardTag[] = [];
+    if (macro) tags.push({ label: MACRO_ESTADO_LABELS[macro], variant: MACRO_ESTADO_TONE[macro] });
+    // Tickets sembrados antes de este campo no traen tipoOt — mismo default que ticket-list-page.ts ('venta').
+    if (t) tags.push({ label: TIPO_OT_LABELS[t.tipoOt ?? 'venta'], variant: 'info' });
+    return tags;
+  });
+
+  protected readonly contextCardGroups = computed<DynadrillContextCardItem[][]>(() => {
     const t = this.ticket();
     if (!t) return [];
+    const herramientasRecibidas = t.tools.filter(tool => tool.status === 'recibida').length;
     return [
-      { label: 'Propuesta', value: `V${t.proposalVersion} · aprobada` },
-      { label: 'Supervisor', value: resolveSupervisorName(t) || '—' },
-      { label: 'Operador asignado', value: t.assignedOperator || 'Sin asignar' },
-      { label: 'Herramientas', value: `${t.tools.filter(tool => tool.status === 'recibida').length} de ${t.tools.length} recibidas` },
+      [
+        { label: 'Cliente', value: t.clientName, icon: 'users' },
+        { label: 'Propuesta', value: `V${t.proposalVersion} · aprobada`, icon: 'file-text' },
+      ],
+      [
+        { label: 'Pozo', value: t.wellName, icon: 'location' },
+        { label: 'Supervisor', value: resolveSupervisorName(t) || '—', icon: 'users' },
+      ],
+      [
+        {
+          label: 'Fecha estimada',
+          value: t.estimatedDate || '—',
+          icon: 'calendar',
+          caption: t.estimatedDate ? capitalize(formatDate(parseLocalDateString(t.estimatedDate), "EEEE, d 'de' MMMM y", 'es')) : undefined,
+        },
+        { label: 'Operador asignado', value: t.assignedOperator || 'Sin asignar', icon: 'users' },
+        {
+          label: 'Herramientas',
+          value: `${herramientasRecibidas} de ${t.tools.length} recibidas`,
+          icon: 'box',
+          badgeVariant: t.tools.length > 0 && herramientasRecibidas === t.tools.length ? 'success' : undefined,
+        },
+      ],
     ];
+  });
+
+  protected readonly contextCardFooterStatus = computed<DynadrillContextCardTag>(() => {
+    const cerrado = this.ticket()?.status === 'cerrado' || this.ticket()?.status === 'aprobado';
+    return cerrado ? { label: 'Finalizado', variant: 'neutral' } : { label: 'Activo', variant: 'success' };
   });
 
   // ══════════════════════════════════════════════
@@ -326,17 +430,31 @@ export class FcrTicketDetailPage {
   protected readonly originalTools = computed(() => (this.ticket()?.tools ?? []).filter(tool => !tool.addedLate));
   protected readonly lateTools = computed(() => (this.ticket()?.tools ?? []).filter(tool => tool.addedLate));
 
-  /** Catálogo real de Inventario (RN-FCR-008A: no se permite seleccionar fuera de él) — reemplaza el mock hardcodeado que existía antes. */
-  protected readonly herramientasCatalogo = toSignal(
-    this.articulosService.list({ categoria: 'HERRAMIENTAS', activo: true }),
+  /**
+   * Catálogo real de Inventario (RN-FCR-008A: no se permite seleccionar fuera de él),
+   * `categoria='FISHING & TOOLS'` — mismo catálogo (con precio real) que usa el selector
+   * de herramientas del Pedido (`nuevo-pedido-dialog.ts`). Reemplaza tanto el mock
+   * hardcodeado que existía antes como el catálogo de prueba `categoria='HERRAMIENTAS'`
+   * (51 ítems sin precio real) que se usaba hasta ahora.
+   */
+  private readonly herramientasCatalogoCompleto = toSignal(
+    this.articulosService.list({ categoria: 'FISHING & TOOLS', activo: true }),
     { initialValue: [] },
   );
+
+  /** `herramientasCatalogoCompleto` acotado a los códigos de la Lista de Precios del cliente — sin lista resuelta, no se filtra (tickets legado sin Pedido vinculado). */
+  protected readonly herramientasCatalogo = computed(() => {
+    const lista = this.listaCliente();
+    if (!lista) return this.herramientasCatalogoCompleto();
+    const codigos = new Set(lista.items.map(i => i.codigo));
+    return this.herramientasCatalogoCompleto().filter(a => codigos.has(a.codigo));
+  });
 
   protected readonly availableToAdd = computed<DynadrillSelectOption[]>(() => {
     const currentArticuloIds = new Set(this.ticket()?.tools.map(t => t.articuloId).filter((id): id is number => id !== undefined) ?? []);
     return this.herramientasCatalogo()
       .filter(articulo => !currentArticuloIds.has(articulo.id))
-      .map(articulo => ({ label: articulo.nombre, value: articulo.id }));
+      .map(articulo => ({ label: `${articulo.codigo} — ${articulo.nombre}`, value: articulo.id }));
   });
 
   protected readonly toolToAdd = signal<number | null>(null);
@@ -535,6 +653,15 @@ export class FcrTicketDetailPage {
   protected openAsignarOperador(): void {
     const t = this.ticket();
     if (!t) return;
+    if (!this.coberturaOk()) {
+      this.notify.error(
+        'Matriz IPERC incompleta',
+        `No se puede asignar ni notificar al operador: HSE tiene pendiente aprobar ${actividadesPendientesTexto(
+          this.qhseVinculo(),
+        )} en la matriz maestra.`,
+      );
+      return;
+    }
     const ref = this.dialog.open<AsignarOperadorDialog, AsignarOperadorDialogData>({
       title: 'Asignar operador',
       content: AsignarOperadorDialog,
@@ -1154,21 +1281,21 @@ export class FcrTicketDetailPage {
       this.fcrService.requestCorrection(t.id, result.observations).subscribe({
         next: updated => {
           this.ticket.set(updated);
-          this.notify.success('Corrección solicitada a Ingeniería de Ventas.');
+          this.notify.success('Corrección solicitada a Ingeniería de Ventas FCR.');
         },
         error: () => this.notify.error('Error', 'No se pudo solicitar la corrección.'),
       });
     });
   }
 
-  /** Ingeniería de Ventas devuelve el turno al Supervisor tras aplicar la corrección solicitada. */
+  /** Ingeniería de Ventas FCR devuelve el turno al Supervisor tras aplicar la corrección solicitada. */
   protected async resolveCorrection(): Promise<void> {
     const t = this.ticket();
     if (!t) return;
     const ok = await this.confirmStep('Reenviar a Supervisor', 'Confirma que la corrección solicitada ya fue aplicada. El Supervisor podrá volver a revisar la información.');
     if (!ok) return;
     const author = this.auth.currentUser();
-    this.fcrService.resolveCorrection(t.id, author?.name ?? 'Ingeniería de Ventas', 'Corrección aplicada según lo solicitado.').subscribe({
+    this.fcrService.resolveCorrection(t.id, author?.name ?? 'Ingeniería de Ventas FCR', 'Corrección aplicada según lo solicitado.').subscribe({
       next: updated => {
         this.ticket.set(updated);
         this.notify.success('Corrección reenviada al Supervisor.');
@@ -1326,7 +1453,7 @@ export class FcrTicketDetailPage {
     for (const tool of this.ticket()?.tools ?? []) {
       const inspection = this.toolInspectionByToolId().get(tool.id);
       if (!inspection) {
-        agregar('Operador', tool.name); // checklist ni siquiera iniciado
+        agregar('Operador FCR', tool.name); // checklist ni siquiera iniciado
         continue;
       }
       if (inspection.estado === 'enviado' || inspection.estado === 'aprobado') continue;
@@ -1360,7 +1487,15 @@ export class FcrTicketDetailPage {
     const ref = this.dialog.open<ChecklistHerramientaDialog, ChecklistHerramientaDialogData>({
       title: 'Checklist de inspección',
       content: ChecklistHerramientaDialog,
-      data: { ticketId: t.id, toolId: tool.id, articuloId: tool.articuloId, toolName: tool.name, operadorCampoAsignado: t.assignedOperator },
+      data: {
+        ticketId: t.id,
+        toolId: tool.id,
+        articuloId: tool.articuloId,
+        toolName: tool.name,
+        operadorCampoAsignado: t.assignedOperator,
+        cliente: t.clientName,
+        pozo: t.wellName,
+      },
       footer: false,
       width: '90vw',
     });
@@ -1376,6 +1511,50 @@ export class FcrTicketDetailPage {
     const archivo = this.extraerArchivoValido(file);
     if (!t || !archivo) return;
     this.updateTicket(this.fcrService.subirDocumento(t.id, CAMPO_DOCUMENTO_SERVICIO[documento], archivo));
+  }
+
+  protected readonly simulandoCargaDocumentos = signal(false);
+
+  /** Los 3 documentos de esta sección que todavía no tienen archivo cargado — controla si el botón de carga rápida tiene algo que hacer. */
+  protected readonly documentosServicioPendientes = computed(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    const pendientes: Array<'formularioExterno' | 'dimensionamiento' | 'dureza'> = [];
+    if (!t.formularioInspeccionExternoUploaded) pendientes.push('formularioExterno');
+    if (!t.formatoDimensionamientoServicioUploaded) pendientes.push('dimensionamiento');
+    if (!t.formatoDurezaServicioUploaded) pendientes.push('dureza');
+    return pendientes;
+  });
+
+  /**
+   * Carga rápida (demo/QA): genera un archivo de prueba y lo sube a cada uno
+   * de los documentos de esta sección que todavía no tenga uno — evita tener
+   * que buscar 3 archivos reales a mano solo para avanzar el flujo. Secuencial
+   * (no `forkJoin`) para no pisarse: cada subida deja el ticket actualizado y
+   * la siguiente parte de ese estado, no del snapshot inicial.
+   */
+  protected async simularCargaRapidaDocumentos(): Promise<void> {
+    const t = this.ticket();
+    const pendientes = this.documentosServicioPendientes();
+    if (!t || pendientes.length === 0 || this.simulandoCargaDocumentos()) return;
+
+    this.simulandoCargaDocumentos.set(true);
+    try {
+      for (const doc of pendientes) {
+        const archivo = new File(
+          [`Documento simulado — ${CAMPO_DOCUMENTO_SERVICIO[doc]} — ticket ${t.code} — ${new Date().toISOString()}`],
+          `${doc}-simulado.txt`,
+          { type: 'text/plain' },
+        );
+        const actualizado = await firstValueFrom(this.fcrService.subirDocumento(t.id, CAMPO_DOCUMENTO_SERVICIO[doc], archivo));
+        this.ticket.set(actualizado);
+      }
+      this.notify.success('Carga rápida completa', `${pendientes.length} documento(s) simulado(s) cargado(s).`);
+    } catch {
+      this.notify.error('Error', 'No se pudo completar la carga rápida. Inténtalo de nuevo.');
+    } finally {
+      this.simulandoCargaDocumentos.set(false);
+    }
   }
 
   protected onEliminarInspeccionServicio(documento: 'formularioExterno' | 'dimensionamiento' | 'dureza'): void {
@@ -1441,7 +1620,7 @@ export class FcrTicketDetailPage {
         this.ticket.set(updated);
         this.inspeccionDecision.set(null);
         this.inspeccionRejectionNote.set('');
-        this.advancePhase(decision === 'approved' ? 'asignacion_operador' : 'inspeccion');
+        this.advancePhase(decision === 'approved' ? 'asignacion' : 'inspeccion');
       },
       error: () => this.notify.error('Error', 'No se pudo registrar la revisión de inspección.'),
     });
@@ -1501,6 +1680,47 @@ export class FcrTicketDetailPage {
   protected advancePhase(phase: FcrPhase): void {
     const t = this.ticket();
     if (!t || !this.isMyTurn()) return;
+
+    // Gate HSE-TRIAGE-001: con una emergencia abierta, nada avanza (mayor severidad que un SWA).
+    const e = this.emergencia();
+    if (e) {
+      this.notify.error('Emergencia activa', `Emergencia ${e.code} abierta. El servicio no puede avanzar hasta que se cierre en QHSE.`);
+      return;
+    }
+    // Gate HSE-SEGUIMIENTO-003: con un Stop Work abierto, nada avanza.
+    const s = this.swa();
+    if (s) {
+      this.notify.error(
+        'Trabajo detenido',
+        `Stop Work ${s.code} abierto (${s.tipoPeligro}). El servicio no puede avanzar hasta que se autorice la reanudación en QHSE.`,
+      );
+      return;
+    }
+
+    // Gate HSE-PLAN-001: no se asigna operador ni se ejecuta sin la
+    // cobertura IPERC completa.
+    if ((phase === 'asignacion' || phase === 'ejecucion_operativa') && !this.coberturaOk()) {
+      this.notify.error(
+        'Matriz IPERC incompleta',
+        `HSE tiene pendiente aprobar ${actividadesPendientesTexto(this.qhseVinculo())} en la matriz maestra.`,
+      );
+      return;
+    }
+    // Gate HSE-SITIO-001: no se ejecuta en campo sin el PTW firmado en sitio
+    // (FCR-004 "Descargar documentos HSE", RN-FCR-016).
+    if (phase === 'ejecucion_operativa' && !this.ptwFirmadoOk()) {
+      const p = this.qhseVinculo()?.ptw;
+      this.notify.error(
+        'PTW pendiente',
+        p
+          ? `El servicio no puede pasar a ejecución de campo: el PTW ${p.code} está en ${ptwFaseLabel(
+              p.fase,
+            )} — falta la firma en sitio.`
+          : 'El servicio no puede pasar a ejecución de campo: todavía no se abrió el PTW / Recibimiento de Sitio en QHSE.',
+      );
+      return;
+    }
+
     const approver = this.auth.currentUser();
     this.fcrService.advancePhase(t.id, phase, approver?.name ?? '', approver?.roleName ?? '').subscribe({
       next: updated => this.ticket.set(updated),
@@ -1513,6 +1733,8 @@ export class FcrTicketDetailPage {
   // ══════════════════════════════════════════════
 
   constructor() {
+    this.listaPreciosService.list().subscribe(listas => this.todasLasListas.set(listas));
+
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.fcrService.getTicket(id).subscribe({
       next: t => {
@@ -1534,6 +1756,12 @@ export class FcrTicketDetailPage {
       const container = this.trackerScrollEl()?.nativeElement;
       const active = container?.querySelector<HTMLElement>('.fcr-detail__phase--active');
       active?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    });
+
+    // Si el ticket avanza de fase, la selección manual vieja del detalle ya no aplica.
+    effect(() => {
+      this.currentPhaseIndex();
+      untracked(() => this.manualPhaseIndex.set(null));
     });
   }
 

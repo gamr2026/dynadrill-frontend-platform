@@ -1,0 +1,32 @@
+.ticket-documentos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  &__section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+
+    th, td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid #ecebf1;
+    }
+  }
+}
+
+.ticket-documentos__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #ecebf1;
+}

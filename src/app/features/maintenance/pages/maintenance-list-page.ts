@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, injec
 import { forkJoin } from 'rxjs';
 import {
   DynadrillButtonComponent,
+  DynadrillIconButtonComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDataTableProgressCell,
@@ -53,7 +54,7 @@ const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
 
 @Component({
   selector: 'app-maintenance-list-page',
-  imports: [DynadrillButtonComponent, DynadrillDataTableComponent, DynadrillKpiRowComponent, DynadrillScreenHeaderComponent, DynadrillSelectComponent, DynadrillSpinnerComponent, DynadrillStatisticComponent, DynadrillTabsComponent, VehicleInspectionsTable],
+  imports: [DynadrillButtonComponent, DynadrillIconButtonComponent, DynadrillDataTableComponent, DynadrillKpiRowComponent, DynadrillScreenHeaderComponent, DynadrillSelectComponent, DynadrillSpinnerComponent, DynadrillStatisticComponent, DynadrillTabsComponent, VehicleInspectionsTable],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './maintenance-list-page.html',
   styleUrl: './maintenance-list-page.scss',

@@ -1,0 +1,41 @@
+<div class="editar-representantes">
+  <dynadrill-select
+    label="Agente comercial (Dynadrill)"
+    placeholder="Busca un agente comercial"
+    [options]="agenteComercialOptions()"
+    [value]="agenteComercial()"
+    [searchable]="true"
+    (valueChange)="agenteComercial.set($any($event))"
+  />
+  <dynadrill-select
+    label="Representante en campo"
+    placeholder="Busca un representante de campo"
+    [options]="representanteCampoOptions()"
+    [value]="representanteCampo()"
+    [searchable]="true"
+    (valueChange)="representanteCampo.set($any($event))"
+  />
+  <dynadrill-select
+    label="Representante en Quito (PEC)"
+    placeholder="Busca un representante en Quito"
+    [options]="representanteQuitoOptions()"
+    [value]="representanteQuito()"
+    [searchable]="true"
+    (valueChange)="representanteQuito.set($any($event))"
+  />
+  <dynadrill-select
+    label="Analista de facturación"
+    placeholder="Busca un analista de facturación"
+    [options]="analistaFacturacionOptions()"
+    [value]="analistaFacturacion()"
+    [searchable]="true"
+    (valueChange)="analistaFacturacion.set($any($event))"
+  />
+</div>
+
+<footer class="editar-representantes__actions">
+  <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+  <dynadrill-button variant="primary" [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">
+    {{ submitting() ? 'Guardando…' : 'Guardar cambios' }}
+  </dynadrill-button>
+</footer>

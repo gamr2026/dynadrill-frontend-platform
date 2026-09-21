@@ -1,0 +1,59 @@
+<div class="catalogos-ventas-page">
+  <dynadrill-screen-header
+    eyebrow="FACTURACIÓN — VENTAS"
+    title="Catálogos"
+    subtitle="Personas de contacto y clientes que se listan en el alta de Pedido (FACT-001)"
+  />
+
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
+    <section class="fact-card">
+      <dynadrill-tabs [tabs]="tabs" [activeIndex]="activeTabIndex()" (activeIndexChange)="activeTabIndex.set($event)" [contentTemplate]="tabContent" />
+    </section>
+  </dynadrill-spinner>
+
+  <ng-template #tabContent let-tab let-index="index">
+    @if (index === 0) {
+      <header class="catalogos-ventas-page__head">
+        <h2>Personas de contacto</h2>
+        <dynadrill-button (clicked)="nuevaPersona()">+ Nueva persona</dynadrill-button>
+      </header>
+      <div class="table-scroll">
+        <dynadrill-data-table
+          [columns]="personasColumns()"
+          [rows]="personasRows()"
+          [rowKey]="rowKeyFn"
+          [pageSize]="10"
+          [actionsTemplate]="personaActions"
+        />
+      </div>
+    } @else {
+      <header class="catalogos-ventas-page__head">
+        <h2>Clientes</h2>
+        <dynadrill-button (clicked)="nuevoCliente()">+ Nuevo cliente</dynadrill-button>
+      </header>
+      <div class="table-scroll">
+        <dynadrill-data-table
+          [columns]="clientesColumns()"
+          [rows]="clientesRows()"
+          [rowKey]="rowKeyFn"
+          [pageSize]="10"
+          [actionsTemplate]="clienteActions"
+        />
+      </div>
+    }
+  </ng-template>
+
+  <ng-template #personaActions let-row>
+    <div class="catalogos-ventas-page__row-actions">
+      <dynadrill-icon-button icon="edit" tooltip="Editar" (clicked)="editarPersona(row)" />
+      <dynadrill-icon-button icon="delete" tooltip="Eliminar" (clicked)="eliminarPersona(row)" />
+    </div>
+  </ng-template>
+
+  <ng-template #clienteActions let-row>
+    <div class="catalogos-ventas-page__row-actions">
+      <dynadrill-icon-button icon="edit" tooltip="Editar" (clicked)="editarCliente(row)" />
+      <dynadrill-icon-button icon="delete" tooltip="Eliminar" (clicked)="eliminarCliente(row)" />
+    </div>
+  </ng-template>
+</div>

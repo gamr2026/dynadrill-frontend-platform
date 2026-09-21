@@ -5,10 +5,9 @@ const FCR_ROLES = [
   'Superadmin',
   'Jefe de Base',
   'Supervisor',
-  'Operador',
+  'Operador FCR',
   'Bodeguero',
-  'Ingeniería de Ventas',
-  'Control de Herramientas',
+  'Ingeniería de Ventas FCR',
   'Supervisor Operaciones FCR',
   // Firman "Liberado por QHSE" en el checklist de inspección por herramienta.
   'Técnico HSE',

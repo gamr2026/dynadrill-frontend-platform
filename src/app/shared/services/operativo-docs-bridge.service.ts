@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
+import { environment } from '@env';
 import type {
   OperativoActivityLogEntry,
   OperativoDocHeader,
@@ -19,7 +20,7 @@ import type {
 @Injectable({ providedIn: 'root' })
 export class OperativoDocsBridgeService {
   private readonly http = inject(HttpClient);
-  private readonly endpoint = '/api/facturacion/documentos-operativos';
+  private readonly endpoint = `${environment.apiUrl}/facturacion/documentos-operativos`;
 
   pushReporteJob(payload: {
     pedidoCode: string;

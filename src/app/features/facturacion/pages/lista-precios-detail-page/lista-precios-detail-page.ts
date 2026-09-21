@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import * as XLSX from 'xlsx';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
@@ -54,6 +55,12 @@ export class ListaPreciosDetailPage {
   protected readonly nuevo = signal<ListaPreciosItemDraft>({ codigo: '', descripcion: '', unidad: '', precio: 0, tipo: 'Servicio' });
 
   protected readonly items = computed(() => (this.editando() ? this.borrador() : (this.lista()?.items ?? [])));
+  /** Totales por tipo — la Lista de Precios es un catálogo (código/descripción/unidad/precio/tipo), sin cantidad por ítem; esto es lo que sí se puede contar. */
+  protected readonly totalServicio = computed(() => this.items().filter(i => i.tipo === 'Servicio').length);
+  protected readonly totalMaterial = computed(() => this.items().filter(i => i.tipo === 'Material').length);
+  /** Suma de precios por tipo — no es un "total a cobrar" (esto es catálogo, no un pedido con cantidades), solo la suma de precios unitarios de cada tipo. */
+  protected readonly sumaServicio = computed(() => this.items().filter(i => i.tipo === 'Servicio').reduce((s, i) => s + i.precio, 0));
+  protected readonly sumaMaterial = computed(() => this.items().filter(i => i.tipo === 'Material').reduce((s, i) => s + i.precio, 0));
 
   constructor() {
     this.reload();
@@ -136,5 +143,22 @@ export class ListaPreciosDetailPage {
 
   protected asTipo(value: unknown): TipoItem {
     return value === 'Material' ? 'Material' : 'Servicio';
+  }
+
+  /** Excel con los ítems de la lista tal como está guardada (no el borrador en edición). */
+  protected descargarExcel(): void {
+    const l = this.lista();
+    if (!l) return;
+    const filas = l.items.map(i => ({
+      Código: i.codigo,
+      Descripción: i.descripcion,
+      Unidad: i.unidad,
+      Precio: i.precio,
+      Tipo: i.tipo,
+    }));
+    const sheet = XLSX.utils.json_to_sheet(filas);
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book, sheet, 'Lista de precios');
+    XLSX.writeFile(book, `Lista-de-precios-${l.cliente}-${l.numeroContrato}.xlsx`);
   }
 }

@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { roleGuard } from '../../../core/guards/role.guard';
 
-const PUMPING_ROLES = ['Jefe de Base', 'Supervisor', 'Operador'];
+const PUMPING_ROLES = ['Jefe de Base', 'Supervisor', 'Supervisor Pumping', 'Operador'];
 
 export const pumpingRoutes: Routes = [
   {
@@ -9,6 +9,12 @@ export const pumpingRoutes: Routes = [
     loadComponent: () => import('./pages/ticket-list-page/ticket-list-page').then(m => m.TicketListPage),
     canActivate: [roleGuard],
     data: { allowedRoles: PUMPING_ROLES },
+  },
+  {
+    path: 'aprobaciones',
+    loadComponent: () => import('./pages/aprobaciones-page/aprobaciones-page').then(m => m.AprobacionesPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: ['Supervisor', 'Supervisor Pumping'] },
   },
   {
     path: ':id',

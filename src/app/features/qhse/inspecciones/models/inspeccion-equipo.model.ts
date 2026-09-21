@@ -57,6 +57,14 @@ export interface InspeccionEquipo {
   bumpTestRealizado?: boolean;
   /** Vigencia trimestral (RN de HSE-SEGUIMIENTO-001) — se calcula al crear, no se recalcula después. */
   vigenciaHasta: string;
+
+  /**
+   * HSE-004: un vehículo-grúa rechazado es una solicitud de reparación —
+   * genera un Reporte de Unidad en la bandeja de Mantenimiento (misma
+   * bandeja y flujo que un reporte de Pumping/FCR: Orden + sub-órdenes). El
+   * seguimiento posterior vive ahí, no en la inspección.
+   */
+  requiereMantenimiento?: boolean;
 }
 
 export type CreateInspeccionInput = Omit<InspeccionEquipo, 'id' | 'code' | 'vigenciaHasta'>;

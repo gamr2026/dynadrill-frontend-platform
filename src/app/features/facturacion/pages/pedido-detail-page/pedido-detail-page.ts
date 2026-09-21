@@ -1,5 +1,5 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import {
@@ -18,12 +18,14 @@ import {
   ReporteHerramientasPdfDialogData,
   ReporteJobPdfDialog,
   ReporteJobPdfDialogData,
+  TimelinePopoverTriggerDirective,
 } from '../../../../shared/index';
 import {
   ESTADOS_FUERA_DE_ALCANCE,
   ESTADO_PEDIDO_LABELS,
   EstadoPedido,
   LINEA_SERVICIO_LABELS,
+  TIPO_SERVICIO_LABELS,
   Pedido,
   valorEstimadoPedido,
   itemsEstimadosDe,
@@ -38,6 +40,7 @@ import { GuiaRemisionDialog, GuiaRemisionDialogData } from '../../components/gui
 import { GuiaRemisionPdfDialog, GuiaRemisionPdfDialogData } from '../../components/guia-remision-pdf-dialog';
 import { FCR_PHASE_LABELS, FcrTicket } from '../../../operations/fcr/models/fcr.model';
 import { FcrService } from '../../../operations/fcr/services/fcr.service';
+import { NuevoPedidoDialog } from '../../components/nuevo-pedido-dialog';
 
 interface Dato {
   label: string;
@@ -60,6 +63,7 @@ interface Dato {
     DynadrillProgressComponent,
     DynadrillSpinnerComponent,
     DynadrillBannerComponent,
+    TimelinePopoverTriggerDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pedido-detail-page.html',
@@ -95,11 +99,19 @@ export class PedidoDetailPage {
     return t ? FCR_PHASE_LABELS[t.currentPhase] : '';
   });
 
-  /** También permite regenerar cuando la prefactura vigente fue rechazada por el cliente (flujo "corregir y reenviar"). */
+  /**
+   * También permite regenerar cuando la prefactura vigente fue rechazada por
+   * el cliente (flujo "corregir y reenviar"). Solo Facturación genera — Ventas
+   * ve/edita el Pedido en esta misma página (`ModuleRoles.pedidos` los deja
+   * entrar a ambos) pero la prefactura es responsabilidad exclusiva de
+   * Facturación, mismo criterio que backend (`pedidos.controller.ts`).
+   */
   protected readonly puedeGenerarPrefactura = computed(() => {
     const a = this.avance();
     const pf = this.prefactura();
-    return !!a?.completo && (!pf || pf.estado === 'rechazada');
+    const role = this.auth.currentUser()?.roleName;
+    const rolPermitido = role === 'Facturación' || role === 'Superadmin' || role === 'Jefe de Base';
+    return rolPermitido && !!a?.completo && (!pf || pf.estado === 'rechazada');
   });
   protected readonly esRegeneracion = computed(() => this.prefactura()?.estado === 'rechazada');
   protected readonly puedeGenerarGuia = computed(() => !!this.avance()?.guiaRemisionAplica && !this.guiaRemision());
@@ -137,6 +149,7 @@ export class PedidoDetailPage {
     if (!p) return [];
     return [
       { label: 'Línea de servicio', value: LINEA_SERVICIO_LABELS[p.lineaServicio] },
+      { label: 'Tipo de servicio', value: TIPO_SERVICIO_LABELS[p.tipoServicio] },
       { label: 'Campo', value: p.campo },
       { label: 'Bloque', value: p.bloque },
       { label: 'Pozo', value: p.pozo },
@@ -151,7 +164,7 @@ export class PedidoDetailPage {
     if (!p) return [];
     return [
       { label: 'Agente comercial', value: p.agenteComercial },
-      { label: 'Representante en campo (PEC)', value: p.representanteCampo },
+      { label: 'Representante en campo', value: p.representanteCampo },
       { label: 'Representante en Quito (PEC)', value: p.representanteQuito },
       { label: 'Analista de facturación', value: p.analistaFacturacion ?? '—' },
     ];
@@ -163,7 +176,6 @@ export class PedidoDetailPage {
     return [
       { label: 'Condición de pago', value: p.condicionPago ?? '—' },
       { label: 'Zona', value: p.zona ?? '—' },
-      { label: 'Canal', value: p.canal ?? '—' },
       { label: 'Bodega', value: p.bodega ?? '—' },
       { label: 'Origen', value: p.origen === 'as2' ? 'AS2' : 'Portal' },
       { label: 'Referencia AS2', value: p.as2Ref ?? '—' },
@@ -184,8 +196,27 @@ export class PedidoDetailPage {
     return ESTADO_PEDIDO_LABELS[estado];
   }
 
+  /** Misma función que `estadoLabelDe`, para usar directo en el template con un `fase: string` (viene de `TimelineTramo`, no tipado a `EstadoPedido`). */
+  protected readonly estadoLabelDeFn = (fase: string): string => this.estadoLabelDe(fase as EstadoPedido);
+
+  /** `null` = sin selección manual → se muestra el detalle del tramo actual (el último). Clic en un ítem del historial lo selecciona. */
+  private readonly manualHistorialIndex = signal<number | null>(null);
+  protected readonly selectedHistorialIndex = computed(
+    () => this.manualHistorialIndex() ?? (this.pedido()?.timelineResumen?.tramos.length ?? 1) - 1,
+  );
+
+  protected seleccionarHistorial(index: number): void {
+    this.manualHistorialIndex.set(index);
+  }
+
   constructor() {
     this.reload();
+
+    // Si el pedido cambia de estado, la selección manual vieja del detalle ya no aplica.
+    effect(() => {
+      this.pedido();
+      untracked(() => this.manualHistorialIndex.set(null));
+    });
   }
 
   private reload(): void {
@@ -211,6 +242,22 @@ export class PedidoDetailPage {
         this.loading.set(false);
         this.notify.error('Error', 'No se pudo cargar el pedido.');
       },
+    });
+  }
+
+  /** Ventas y Facturación pueden editar (ver ModuleRoles.pedidos) — solo Ventas gestiona Administrativos, ver NuevoPedidoDialog. */
+  protected editarPedido(): void {
+    const p = this.pedido();
+    if (!p) return;
+    const ref = this.dialog.open<NuevoPedidoDialog>({
+      title: `Editar pedido ${p.code}`,
+      content: NuevoPedidoDialog,
+      data: { pedido: p },
+      footer: false,
+      width: '1200px',
+    });
+    ref.afterClose.subscribe(actualizado => {
+      if (actualizado) this.reload();
     });
   }
 
@@ -306,7 +353,7 @@ export class PedidoDetailPage {
     this.simulando.set(true);
     const proximaFecha = new Date();
     const iso = proximaFecha.toISOString().slice(0, 10);
-    const origen = p.lineaServicio === 'pumping' ? 'pumping' : 'fcr';
+    const origen = p.lineaServicio;
     this.docService
       .push({
         pedidoCode: p.code,

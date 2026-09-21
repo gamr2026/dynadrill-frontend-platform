@@ -22,11 +22,32 @@ const OPERATIVO_ITEM: DynadrillMenuItem = {
   ],
 };
 
-/** Para roles que solo tocan FCR dentro de Operativo (no Pumping): Bodega, Ingeniería de Ventas, Control de Herramientas. */
+/**
+ * Supervisor Pumping (supervisor.pumping@dynadrill.com): solo Pumping y su
+ * bandeja de Aprobaciones — nunca FCR (eso queda para el Supervisor genérico,
+ * ver PUMPING_APROBACIONES_ITEM más abajo).
+ */
+const PUMPING_APROBACIONES_ITEM: DynadrillMenuItem = {
+  label: 'Operativo',
+  icon: 'file-text',
+  children: [
+    { label: 'Pumping', link: '/modulos/operativo/pumping' },
+    { label: 'Aprobaciones', link: '/modulos/operativo/pumping/aprobaciones' },
+  ],
+};
+
+/** Para roles que solo tocan FCR dentro de Operativo (no Pumping): Bodega, Ingeniería de Ventas FCR, Operador FCR. */
 const FCR_ONLY_ITEM: DynadrillMenuItem = {
   label: 'Operativo',
   icon: 'file-text',
   children: [{ label: 'FCR', link: '/modulos/operativo/fcr' }],
+};
+
+/** Jefe de Base: solo Operativo > Pumping (sin FCR ni Aprobaciones). */
+const PUMPING_ONLY_ITEM: DynadrillMenuItem = {
+  label: 'Operativo',
+  icon: 'file-text',
+  children: [{ label: 'Pumping', link: '/modulos/operativo/pumping' }],
 };
 
 const MANTENIMIENTO_ITEM: DynadrillMenuItem = {
@@ -63,6 +84,7 @@ const QHSE_ITEM: DynadrillMenuItem = {
       label: 'Planificación',
       children: [
         { label: 'IPERC', link: '/dashboard/qhse/iperc' },
+        { label: 'Cobertura IPERC por línea', link: '/dashboard/qhse/iperc-cobertura' },
         { label: 'PTW / Recibimiento', link: '/dashboard/qhse/ptw' },
       ],
     },
@@ -100,6 +122,17 @@ const FACTURACION_ITEM: DynadrillMenuItem = {
     { label: 'Lista de precios', link: '/dashboard/facturacion/lista-precios' },
     { label: 'Reportería', link: '/dashboard/facturacion/reporteria' },
   ],
+};
+
+/**
+ * Con "Catálogos" (personas/clientes de Pedido) — solo para quien puede
+ * gestionarlos (Ventas + admins, ver ModuleRoles.personasWrite en el
+ * backend). Facturación usa `FACTURACION_ITEM` a secas: el link llevaría a
+ * una pantalla que el roleGuard le rebota igual.
+ */
+const FACTURACION_ITEM_ADMIN: DynadrillMenuItem = {
+  ...FACTURACION_ITEM,
+  children: [...FACTURACION_ITEM.children!, { label: 'Catálogos', link: '/dashboard/facturacion/catalogos' }],
 };
 
 const ADMINISTRACION_ITEM: DynadrillMenuItem = {
@@ -142,21 +175,35 @@ export class Sidebar {
       return [dashboard, { label: 'Mis tareas', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/mis-tareas' }];
     }
 
+    // operador@dynadrill.com — solo Pumping (nunca FCR, eso es de "Operador FCR" abajo) + su
+    // Mantenimiento operativo.
     if (roleName === 'Operador') {
       return [
         dashboard,
         {
           label: 'Módulos',
           icon: 'modules',
-          children: [OPERATIVO_ITEM, { label: 'Mantenimiento', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/operativo' }],
+          children: [PUMPING_ONLY_ITEM, { label: 'Mantenimiento', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/operativo' }],
         },
       ];
     }
 
+    // operador.fcr@dynadrill.com — solo FCR (nunca Pumping).
+    if (roleName === 'Operador FCR') {
+      return [dashboard, FCR_ONLY_ITEM];
+    }
+
     if (roleName === 'Supervisor') {
       // Sin PTW: "Firmar PTW y Actas" quedó mal asignado a este rol en una
-      // iteración anterior (corregido también en qhse.routes.ts).
-      return [dashboard, { label: 'Módulos', icon: 'modules', children: [OPERATIVO_ITEM] }];
+      // iteración anterior (corregido también en qhse.routes.ts). Solo FCR:
+      // Pumping y Aprobaciones ahora son del rol "Supervisor Pumping" (abajo).
+      return [dashboard, { label: 'Módulos', icon: 'modules', children: [FCR_ONLY_ITEM] }];
+    }
+
+    // supervisor.pumping@dynadrill.com — mismas acciones que Supervisor pero
+    // acotado a Pumping y su bandeja de Aprobaciones (nunca FCR).
+    if (roleName === 'Supervisor Pumping') {
+      return [dashboard, { label: 'Módulos', icon: 'modules', children: [PUMPING_APROBACIONES_ITEM] }];
     }
 
     if (roleName === 'Jefe de Mantenimiento') {
@@ -167,15 +214,24 @@ export class Sidebar {
       return [dashboard, INVENTARIO_ITEM, FCR_ONLY_ITEM];
     }
 
+    // Cuenta de Facturación (ventas@dynadrill.com) — sin FCR, ver [[Ingeniería de Ventas FCR]] abajo.
     if (roleName === 'Ingeniería de Ventas') {
       return [
         dashboard,
-        FCR_ONLY_ITEM,
-        { label: 'Facturación', icon: 'file-text' as DynadrillIconName, children: [{ label: 'Pedidos', link: '/dashboard/facturacion/pedidos' }] },
+        {
+          label: 'Facturación',
+          icon: 'file-text' as DynadrillIconName,
+          children: [
+            { label: 'Pedidos', link: '/dashboard/facturacion/pedidos' },
+            { label: 'Catálogos', link: '/dashboard/facturacion/catalogos' },
+          ],
+        },
       ];
     }
 
-    if (roleName === 'Control de Herramientas') {
+    // Cuenta exclusiva de FCR (ventas.fcr@dynadrill.com) — sin Facturación, a
+    // pedido del cliente no deben cruzarse (ver ModuleRoles.fcr backend).
+    if (roleName === 'Ingeniería de Ventas FCR') {
       return [dashboard, FCR_ONLY_ITEM];
     }
 
@@ -184,7 +240,12 @@ export class Sidebar {
     }
 
     if (roleName === 'Técnico HSE' || roleName === 'Coordinador HSE' || roleName === 'Gerente HSE') {
-      // FCR_ONLY_ITEM: firman "Liberado por QHSE" en el checklist de inspección por herramienta.
+      // Con FCR_ONLY_ITEM: QHSE firma "Liberado por QHSE" en el checklist de
+      // inspección por herramienta (ModuleRoles.fcr/fcrRead ya lo permitía a
+      // nivel backend), pero sin esta entrada de menú no tenía forma de
+      // encontrar el ticket donde le toca firmar — antes solo entraba si
+      // alguien le pasaba el link directo. Mismo ítem (sin Pumping) que
+      // Bodeguero/Operador FCR/Ingeniería de Ventas FCR.
       return [dashboard, QHSE_ITEM, FCR_ONLY_ITEM];
     }
 
@@ -193,19 +254,23 @@ export class Sidebar {
     }
 
     /**
-     * Único caso con acceso completo — el único que ve Administración.
-     * "Jefe de Base" se trata igual que Superadmin: ya se comportaba como
-     * acceso total antes de que este sidebar pasara a listas explícitas
-     * por rol, y nadie pidió restringirlo.
+     * A nivel de backend "Jefe de Base" sigue con acceso total (ver
+     * ADMIN_ROLE_CODES) — esto es solo el sidebar: a pedido del cliente, en
+     * la UI solo debe ver Operativo > Pumping.
      */
-    if (roleName === 'Superadmin' || roleName === 'Jefe de Base') {
+    if (roleName === 'Jefe de Base') {
+      return [dashboard, { label: 'Módulos', icon: 'modules', children: [PUMPING_ONLY_ITEM] }];
+    }
+
+    /** Único caso con acceso completo en el sidebar — el único que ve Administración. */
+    if (roleName === 'Superadmin') {
       return [
         dashboard,
         ADMINISTRACION_ITEM,
         {
           label: 'Módulos',
           icon: 'modules',
-          children: [OPERATIVO_ITEM, MANTENIMIENTO_ITEM, INVENTARIO_ITEM, QHSE_ITEM, FACTURACION_ITEM],
+          children: [OPERATIVO_ITEM, MANTENIMIENTO_ITEM, INVENTARIO_ITEM, QHSE_ITEM, FACTURACION_ITEM_ADMIN],
         },
       ];
     }

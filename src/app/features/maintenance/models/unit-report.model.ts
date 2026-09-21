@@ -8,7 +8,7 @@ export interface ChecklistDualItem {
   llegada: 'ok' | 'x' | null;
 }
 
-export type MaintenanceSourceModule = 'Pumping' | 'FCR' | 'Vehículos';
+export type MaintenanceSourceModule = 'Pumping' | 'FCR' | 'Vehículos' | 'QHSE';
 
 export interface UnitReport {
   id: number;
@@ -26,6 +26,8 @@ export interface UnitReport {
   originVehicleInspectionId?: number;
   /** Cuando este reporte se generó automáticamente desde el Reporte de Unidad de un ticket de Pumping. */
   originTicketId?: number;
+  /** Cuando este reporte se generó desde una inspección QHSE de vehículo-grúa rechazada (HSE-SEGUIMIENTO-001 → HSE-004). */
+  originInspeccionHseId?: number;
   fechaSalida: string;
   fechaLlegada: string;
   horometroSalida?: number;

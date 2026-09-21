@@ -54,6 +54,8 @@
 
   &__totals-neg dd { color: var(--error, #ff4d4f); }
 
+  &__defs { @include f.defs; }
+
   &__checklist {
     list-style: none;
     margin: 0;

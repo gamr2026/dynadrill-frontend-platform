@@ -21,7 +21,10 @@
         <header class="lp-detail__head">
           <h2>Ítems ({{ items().length }})</h2>
           @if (!editando()) {
-            <dynadrill-button variant="secondary" size="small" (clicked)="iniciarEdicionItems()">Editar ítems</dynadrill-button>
+            <div class="lp-detail__head-actions">
+              <dynadrill-button variant="secondary" size="small" [disabled]="!l.items.length" (clicked)="descargarExcel()">Descargar Excel</dynadrill-button>
+              <dynadrill-button variant="secondary" size="small" (clicked)="iniciarEdicionItems()">Editar ítems</dynadrill-button>
+            </div>
           } @else {
             <div class="lp-detail__head-actions">
               <dynadrill-button variant="secondary" size="small" (clicked)="cancelarEdicionItems()">Cancelar</dynadrill-button>
@@ -70,6 +73,18 @@
                 <tr><td [attr.colspan]="editando() ? 6 : 5">Sin ítems. {{ editando() ? 'Agrega el primero arriba.' : 'Pulsa "Editar ítems".' }}</td></tr>
               }
             </tbody>
+            @if (items().length) {
+              <tfoot>
+                <tr>
+                  <td [attr.colspan]="3"></td>
+                  <td class="num">Totales</td>
+                  <td>
+                    {{ totalServicio() }} Servicio (${{ sumaServicio().toFixed(2) }}) · {{ totalMaterial() }} Material (${{ sumaMaterial().toFixed(2) }})
+                  </td>
+                  @if (editando()) { <td></td> }
+                </tr>
+              </tfoot>
+            }
           </table>
         </div>
       </section>

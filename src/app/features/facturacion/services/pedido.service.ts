@@ -1,12 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, of, throwError } from 'rxjs';
-import { CreatePedidoInput, EstadoPedido, Pedido } from '../models/pedido.model';
+import { CreatePedidoInput, EstadoPedido, Pedido, PedidoDocumentoAdjunto } from '../models/pedido.model';
 import { CreateListaPreciosInput, ListaPrecios, ListaPreciosItemDraft } from '../models/lista-precios.model';
 import { AvanceDocumental, DocumentoOperativo, PushDocumentoOperativoInput } from '../models/documento-operativo.model';
 import { Prefactura } from '../models/prefactura.model';
 import { CreateGuiaRemisionInput, GuiaRemision } from '../models/guia-remision.model';
 import { Aot } from '../models/aot.model';
+import { environment } from '@env';
 
 /**
  * Fase 0 — Servicios de la reescritura del módulo de Facturación.
@@ -18,7 +19,7 @@ import { Aot } from '../models/aot.model';
 @Injectable({ providedIn: 'root' })
 export class PedidoService {
   private readonly http = inject(HttpClient);
-  private readonly base = '/api/facturacion/pedidos';
+  private readonly base = `${environment.apiUrl}/facturacion/pedidos`;
 
   list(): Observable<Pedido[]> {
     return this.http.get<Pedido[]>(this.base);
@@ -33,8 +34,35 @@ export class PedidoService {
     return this.http.post<Pedido>(this.base, input);
   }
 
+  /** Edición de un pedido ya creado — Ventas y Facturación (ver ModuleRoles.pedidos en el backend). */
+  update(id: number, input: Partial<CreatePedidoInput>): Observable<Pedido> {
+    return this.http.put<Pedido>(`${this.base}/${id}`, input);
+  }
+
   cambiarEstado(id: number, estado: EstadoPedido, usuario: string, motivo?: string): Observable<Pedido> {
     return this.http.patch<Pedido>(`${this.base}/${id}/estado`, { estado, usuario, motivo });
+  }
+
+  // ── Documentos adjuntos reales (ej. ficha de mezcla de químicos) ──
+
+  listarDocumentosAdjuntos(pedidoId: number): Observable<PedidoDocumentoAdjunto[]> {
+    return this.http.get<PedidoDocumentoAdjunto[]>(`${this.base}/${pedidoId}/documentos-adjuntos`);
+  }
+
+  subirDocumentoAdjunto(pedidoId: number, descripcion: string, archivo: File): Observable<PedidoDocumentoAdjunto> {
+    const form = new FormData();
+    form.append('file', archivo);
+    form.append('descripcion', descripcion);
+    return this.http.post<PedidoDocumentoAdjunto>(`${this.base}/${pedidoId}/documentos-adjuntos`, form);
+  }
+
+  /** Blob autenticado (Bearer vía HttpClient) — un `<a href>` directo al endpoint no lo llevaría. */
+  descargarDocumentoAdjunto(pedidoId: number, docId: number): Observable<Blob> {
+    return this.http.get(`${this.base}/${pedidoId}/documentos-adjuntos/${docId}`, { responseType: 'blob' });
+  }
+
+  eliminarDocumentoAdjunto(pedidoId: number, docId: number): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(`${this.base}/${pedidoId}/documentos-adjuntos/${docId}`);
   }
 
   /** Trae los cambios que AS2 haya empujado desde el otro lado (mock). */
@@ -46,7 +74,7 @@ export class PedidoService {
 @Injectable({ providedIn: 'root' })
 export class ListaPreciosService {
   private readonly http = inject(HttpClient);
-  private readonly base = '/api/facturacion/listas-precios';
+  private readonly base = `${environment.apiUrl}/facturacion/listas-precios`;
 
   list(): Observable<ListaPrecios[]> {
     return this.http.get<ListaPrecios[]>(this.base);
@@ -82,20 +110,20 @@ export class DocumentoOperativoService {
   private readonly http = inject(HttpClient);
 
   listTodos(): Observable<DocumentoOperativo[]> {
-    return this.http.get<DocumentoOperativo[]>('/api/facturacion/documentos-operativos');
+    return this.http.get<DocumentoOperativo[]>(`${environment.apiUrl}/facturacion/documentos-operativos`);
   }
 
   listDePedido(pedidoId: number): Observable<DocumentoOperativo[]> {
-    return this.http.get<DocumentoOperativo[]>(`/api/facturacion/pedidos/${pedidoId}/documentos`);
+    return this.http.get<DocumentoOperativo[]>(`${environment.apiUrl}/facturacion/pedidos/${pedidoId}/documentos`);
   }
 
   avance(pedidoId: number): Observable<AvanceDocumental> {
-    return this.http.get<AvanceDocumental>(`/api/facturacion/pedidos/${pedidoId}/avance`);
+    return this.http.get<AvanceDocumental>(`${environment.apiUrl}/facturacion/pedidos/${pedidoId}/avance`);
   }
 
   /** Lo llaman FCR / Pumping cuando el operador firma un documento (mock). */
   push(input: PushDocumentoOperativoInput): Observable<DocumentoOperativo> {
-    return this.http.post<DocumentoOperativo>('/api/facturacion/documentos-operativos', input);
+    return this.http.post<DocumentoOperativo>(`${environment.apiUrl}/facturacion/documentos-operativos`, input);
   }
 }
 
@@ -105,30 +133,30 @@ export class PrefacturaService {
   private readonly http = inject(HttpClient);
 
   list(): Observable<Prefactura[]> {
-    return this.http.get<Prefactura[]>('/api/facturacion/prefacturas');
+    return this.http.get<Prefactura[]>(`${environment.apiUrl}/facturacion/prefacturas`);
   }
 
   get(id: number): Observable<Prefactura> {
-    return this.http.get<Prefactura>(`/api/facturacion/prefacturas/${id}`);
+    return this.http.get<Prefactura>(`${environment.apiUrl}/facturacion/prefacturas/${id}`);
   }
 
   dePedido(pedidoId: number): Observable<Prefactura | null> {
-    return this.http.get<Prefactura>(`/api/facturacion/pedidos/${pedidoId}/prefactura`).pipe(
+    return this.http.get<Prefactura>(`${environment.apiUrl}/facturacion/pedidos/${pedidoId}/prefactura`).pipe(
       catchError((err: HttpErrorResponse) => (err.status === 404 ? of(null) : throwError(() => err))),
     );
   }
 
   generar(pedidoId: number, usuario: string): Observable<Prefactura> {
-    return this.http.post<Prefactura>(`/api/facturacion/pedidos/${pedidoId}/prefactura`, { usuario });
+    return this.http.post<Prefactura>(`${environment.apiUrl}/facturacion/pedidos/${pedidoId}/prefactura`, { usuario });
   }
 
   /** FACT-004 — envío del paquete al cliente. */
   enviarAlCliente(id: number, medio: string, adjuntos: string[], usuario: string): Observable<Prefactura> {
-    return this.http.patch<Prefactura>(`/api/facturacion/prefacturas/${id}/enviar`, { medio, adjuntos, usuario });
+    return this.http.patch<Prefactura>(`${environment.apiUrl}/facturacion/prefacturas/${id}/enviar`, { medio, adjuntos, usuario });
   }
 
   registrarFirma(id: number, nombre: string, cargo: string, usuario: string): Observable<Prefactura> {
-    return this.http.patch<Prefactura>(`/api/facturacion/prefacturas/${id}/firmar`, { nombre, cargo, usuario });
+    return this.http.patch<Prefactura>(`${environment.apiUrl}/facturacion/prefacturas/${id}/firmar`, { nombre, cargo, usuario });
   }
 
   registrarRechazo(
@@ -136,7 +164,7 @@ export class PrefacturaService {
     payload: { motivo: string; razonRetraso?: string; devueltoA: string; itemsObservados?: string[] },
     usuario: string,
   ): Observable<Prefactura> {
-    return this.http.patch<Prefactura>(`/api/facturacion/prefacturas/${id}/rechazar`, { ...payload, usuario });
+    return this.http.patch<Prefactura>(`${environment.apiUrl}/facturacion/prefacturas/${id}/rechazar`, { ...payload, usuario });
   }
 }
 
@@ -146,14 +174,14 @@ export class GuiaRemisionService {
   private readonly http = inject(HttpClient);
 
   dePedido(pedidoId: number): Observable<GuiaRemision | null> {
-    return this.http.get<GuiaRemision>(`/api/facturacion/pedidos/${pedidoId}/guia-remision`).pipe(
+    return this.http.get<GuiaRemision>(`${environment.apiUrl}/facturacion/pedidos/${pedidoId}/guia-remision`).pipe(
       catchError((err: HttpErrorResponse) => (err.status === 404 ? of(null) : throwError(() => err))),
     );
   }
 
   /** Requisito previo a generar la prefactura (FACT-002/004) — se registra contra el Pedido, no la prefactura. */
   generar(pedidoId: number, input: CreateGuiaRemisionInput): Observable<GuiaRemision> {
-    return this.http.post<GuiaRemision>(`/api/facturacion/pedidos/${pedidoId}/guia-remision`, input);
+    return this.http.post<GuiaRemision>(`${environment.apiUrl}/facturacion/pedidos/${pedidoId}/guia-remision`, input);
   }
 }
 
@@ -163,15 +191,15 @@ export class AotService {
   private readonly http = inject(HttpClient);
 
   list(): Observable<Aot[]> {
-    return this.http.get<Aot[]>('/api/facturacion/aots');
+    return this.http.get<Aot[]>(`${environment.apiUrl}/facturacion/aots`);
   }
 
   get(id: number): Observable<Aot> {
-    return this.http.get<Aot>(`/api/facturacion/aots/${id}`);
+    return this.http.get<Aot>(`${environment.apiUrl}/facturacion/aots/${id}`);
   }
 
   dePedido(pedidoId: number): Observable<Aot | null> {
-    return this.http.get<Aot | null>(`/api/facturacion/pedidos/${pedidoId}/aot`);
+    return this.http.get<Aot | null>(`${environment.apiUrl}/facturacion/pedidos/${pedidoId}/aot`);
   }
 
   generar(
@@ -179,10 +207,10 @@ export class AotService {
     datos: { ciudad: string; descripcionRequerimiento: string; representanteCliente: { nombre: string; cargo: string } },
     usuario: string,
   ): Observable<Aot> {
-    return this.http.post<Aot>(`/api/facturacion/prefacturas/${prefacturaId}/aot`, { ...datos, usuario });
+    return this.http.post<Aot>(`${environment.apiUrl}/facturacion/prefacturas/${prefacturaId}/aot`, { ...datos, usuario });
   }
 
   marcarFirmada(id: number, usuario: string): Observable<Aot> {
-    return this.http.patch<Aot>(`/api/facturacion/aots/${id}/firmar`, { usuario });
+    return this.http.patch<Aot>(`${environment.apiUrl}/facturacion/aots/${id}/firmar`, { usuario });
   }
 }

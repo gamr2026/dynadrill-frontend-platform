@@ -23,7 +23,9 @@ export const maintenanceRoutes: Routes = [
     path: 'operativo',
     loadComponent: () => import('./pages/operator-maintenance-page').then(m => m.OperatorMaintenancePage),
     canActivate: [roleGuard],
-    data: { allowedRoles: ['Operador'] },
+    // 'Operador FCR' también entra: sub-órdenes "Operativo" derivadas de un ticket FCR
+    // llegan a la misma bandeja (ver ModuleRoles.maintenanceOperatorTasks en el backend).
+    data: { allowedRoles: ['Operador', 'Operador FCR'] },
   },
   {
     path: 'kpis',

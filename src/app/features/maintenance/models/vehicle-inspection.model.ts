@@ -53,6 +53,18 @@ export interface VehicleInspection {
   id: number;
   unidadId: number;
   unidadCode: string;
+  /**
+   * Ticket de Pumping/FCR dueño de esta inspección — sin esto, "¿el
+   * operador ya hizo su inspección?" se resolvía buscando CUALQUIER
+   * inspección alguna vez registrada para esa unidad (`unidadCode`), sin
+   * importar de qué ticket/fecha era. Con unidades reutilizadas entre
+   * servicios (ej. CAM-04), un ticket nuevo aparecía con "Inspección
+   * realizada" apenas se abría, heredando una inspección de un servicio
+   * anterior completamente distinto (bug reportado). Opcional: las
+   * inspecciones viejas (antes de este campo) quedan sin dueño y ya no
+   * cuentan para ningún ticket nuevo.
+   */
+  ticketId?: number;
 
   fecha: string;
   puntoPartida: string;

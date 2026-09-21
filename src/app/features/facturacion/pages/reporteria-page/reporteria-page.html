@@ -17,7 +17,8 @@
             @case (1) { <p>Ingresos reales por pozo y línea de servicio.</p> }
             @case (2) { <p>Accruals (tickets por facturar) por cliente y estado de proceso.</p> }
             @case (3) { <p>Valor cotizado por Ventas vs. valor real de la prefactura.</p> }
-            @default { <p>Control de tickets con semáforo de días (≤3 verde · 4-7 amarillo · &gt;7 rojo).</p> }
+            @case (4) { <p>Control de tickets con semáforo de días (≤3 verde · 4-7 amarillo · &gt;7 rojo).</p> }
+            @default { <p>Pedidos de línea FCR (fishing/completion/CTU) agrupados por Tipo de OT — Pumping no aplica.</p> }
           }
           <dynadrill-button variant="secondary" size="small" (clicked)="exportar()">Exportar a CSV</dynadrill-button>
         </div>
@@ -43,9 +44,14 @@
               <dynadrill-chart type="bar" [categories]="cotizadoRealChartCategories()" [series]="cotizadoRealChartSeries()" height="240px" />
             }
           }
-          @default {
+          @case (4) {
             @if (controlRows().length) {
               <dynadrill-chart type="bar" [categories]="semaforoChartCategories" [series]="semaforoChartSeries()" height="240px" />
+            }
+          }
+          @default {
+            @if (servicioVentaRows().length) {
+              <dynadrill-chart type="bar" [categories]="servicioVentaChartCategories()" [series]="servicioVentaChartSeries()" height="240px" />
             }
           }
         }
@@ -56,7 +62,8 @@
             @case (1) { <dynadrill-data-table [columns]="porPozoColumns" [rows]="porPozoRows()" [rowKey]="rowKeyFn" [pageSize]="12" /> }
             @case (2) { <dynadrill-data-table [columns]="estadoClienteColumns" [rows]="estadoClienteRows()" [rowKey]="rowKeyFn" [pageSize]="12" /> }
             @case (3) { <dynadrill-data-table [columns]="cotizadoRealColumns" [rows]="cotizadoRealRows()" [rowKey]="rowKeyFn" [pageSize]="12" /> }
-            @default { <dynadrill-data-table [columns]="controlColumns" [rows]="controlRows()" [rowKey]="rowKeyFn" [pageSize]="12" /> }
+            @case (4) { <dynadrill-data-table [columns]="controlColumns" [rows]="controlRows()" [rowKey]="rowKeyFn" [pageSize]="12" /> }
+            @default { <dynadrill-data-table [columns]="servicioVentaColumns" [rows]="servicioVentaRows()" [rowKey]="rowKeyFn" [pageSize]="12" /> }
           }
         </div>
       </ng-template>

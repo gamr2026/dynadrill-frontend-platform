@@ -14,6 +14,13 @@
     gap: 8px;
   }
 
+  &__row-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+  }
+
   &__filters {
     flex-direction: row !important;
     flex-wrap: wrap;

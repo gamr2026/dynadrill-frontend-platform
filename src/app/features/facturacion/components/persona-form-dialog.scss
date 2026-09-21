@@ -1,0 +1,11 @@
+@use '../facturacion-ui' as f;
+
+.persona-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  &__actions {
+    @include f.dialog-actions;
+  }
+}

@@ -5,46 +5,188 @@
   flex-direction: column;
   gap: 16px;
 
-  &__group {
-    border: 1px solid #ecebf1;
-    border-radius: 10px;
-    padding: 14px 16px 16px;
-    margin: 0;
+  // Una sola columna de secciones separadas por una línea fina — NO tarjetas
+  // individuales con sombra (la referencia de diseño es un único bloque con
+  // divisores, no varias cajas apiladas).
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #ecebf1;
 
-    legend {
-      font-family: var(--font-subheading, 'Oswald', sans-serif);
-      font-size: 11px;
-      letter-spacing: 0.07em;
-      text-transform: uppercase;
-      color: var(--text-muted, #5c5870);
-      padding: 0 6px;
+    &:last-of-type {
+      border-bottom: none;
+      padding-bottom: 0;
     }
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+
+    h2 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      font-family: var(--font-subheading, 'Oswald', sans-serif);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--dynadrill-navy, #131529);
+    }
+  }
+
+  &__section-mark {
+    display: inline-block;
+    width: 3px;
+    height: 14px;
+    flex-shrink: 0;
+    background: var(--dynadrill-purple, #662e9b);
+    border-radius: 2px;
+  }
+
+  // "Comercial y responsables" se acorta a "Responsables" en mobile — igual
+  // que en la maqueta, sin duplicar el resto del contenido de la sección.
+  &__title-short {
+    display: none;
   }
 
   &__grid {
     @include f.field-grid(200px);
   }
 
-  &__linea {
-    padding: 10px 0;
+  /**
+   * Labels más largos ("Representante en Quito (PEC)", "Analista de
+   * facturación", "Técnico HSE responsable") — con minmax(200px) a veces
+   * entraban 3 por fila y el label hacía wrap a 2 líneas en una sola
+   * columna, desalineando verticalmente su select respecto a los vecinos
+   * de la misma fila (que sí entraban en una línea). Más ancho mínimo de
+   * columna evita el wrap desparejo.
+   */
+  &__grid--ancho {
+    @include f.field-grid(240px);
+  }
 
-    & + & {
-      border-top: 1px solid var(--color-border, #e0e0e0);
+  /**
+   * Con auto-fit(minmax(200px,...)) un grupo de 4 campos a veces entra 3
+   * por fila y deja el 4to solo en su propia fila (se ve desparejo). Acá se
+   * fuerza siempre un número fijo de columnas (2 o 3, ver
+   * __grid--3col) — parejo sin importar cuántos campos entren — y se
+   * colapsa a 1 columna en pantallas angostas (celular).
+   */
+  &__grid--2col,
+  &__grid--3col {
+    display: grid;
+    gap: 12px;
+
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr !important;
     }
   }
 
-  &__linea-foot {
+  &__grid--2col {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  &__grid--3col {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  &__plantilla {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 10px 0 14px;
+    border-bottom: 1px solid var(--color-border, #e0e0e0);
+    margin-bottom: 10px;
+
+    dynadrill-text {
+      flex: 1 1 320px;
+    }
+  }
+
+  &__plantilla-acciones {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__documento-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    align-items: end;
     gap: 12px;
+    margin-bottom: 12px;
+
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
+  }
+
+  // Checkbox "Químico" — Pumping lo usa para precargar la asignación de
+  // recursos sin tener que volver a elegirlos del catálogo de Inventario.
+  &__quimico-cell {
+    text-align: center;
+
+    input[type='checkbox'] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+  }
+
+  // Leyenda de precio de referencia (costo interno / precio sugerido del
+  // catálogo general) cuando el código de Inventario elegido todavía no
+  // está en la Lista de Precios del cliente — mismo tratamiento ámbar que
+  // el resto de avisos "fuera de lista" de la app.
+  &__precio-referencia {
     margin-top: 6px;
+    padding: 6px 8px;
+    border: 1px solid var(--warning, #faad14);
+    border-radius: 6px;
+    background: rgba(250, 173, 20, 0.08);
+  }
+
+  /**
+   * Tabla de líneas estimadas: cada celda lleva un <dynadrill-input> con
+   * label="" (la columna ya la rotula el thead) — mismo patrón que
+   * lista-precios-detail-page. Se le saca el padding vertical extra del
+   * input para que no infle la altura de la fila.
+   */
+  &__lineas-table {
+    @include f.table;
+
+    td {
+      vertical-align: top;
+      min-width: 110px;
+    }
+
+    dynadrill-input {
+      display: block;
+    }
+
+    tfoot td {
+      border-top: 1px solid var(--color-border, #e0e0e0);
+      padding-top: 8px;
+    }
+  }
+
+  // Solo visible bajo 600px (ver media query) — nombre de columna sobre el
+  // campo, ya que ahí la tabla deja de tener thead.
+  &__td-label {
+    display: none;
   }
 
   &__linea-actions {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 12px;
     margin-top: 8px;
   }
@@ -52,4 +194,88 @@
   &__actions {
     @include f.dialog-actions;
   }
+
+  /**
+   * Bajo 600px la tabla de líneas se reacomoda a una tarjeta por línea (sin
+   * duplicar markup): se oculta el thead, cada <tr> pasa a grid de 2
+   * columnas con look de tarjeta, y las celdas "anchas" (código, descripción,
+   * subtotal, borrar) ocupan las 2 columnas — el resto (unidad/cantidad,
+   * precio/descuento, químico/herramienta) cae de a pares en el orden que
+   * ya tienen. Mismo criterio de breakpoint que el resto del diálogo.
+   */
+  @media (max-width: 600px) {
+    &__title-full {
+      display: none;
+    }
+    &__title-short {
+      display: inline;
+    }
+
+    &__lineas-table {
+      thead {
+        display: none;
+      }
+
+      tbody tr {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 10px;
+        position: relative;
+        margin-bottom: 12px;
+        padding: 12px;
+        border: 1px solid #ecebf1;
+        border-radius: 10px;
+        box-shadow: f.$fact-shadow;
+      }
+
+      td {
+        min-width: 0;
+      }
+    }
+
+    &__td-label {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted, #5c5870);
+      margin-bottom: 2px;
+    }
+
+    &__td--full {
+      grid-column: 1 / -1;
+    }
+
+    &__td--subtotal {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    &__td--delete {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: auto;
+    }
+
+    &__actions {
+      flex-direction: column-reverse;
+
+      // dynadrill-button no es display:block por defecto (custom element) y
+      // su <button> interno es inline-flex sizeado a su contenido — sin
+      // esto el width:100% del host no alcanza para estirar el botón real.
+      dynadrill-button {
+        display: block;
+        width: 100%;
+
+        ::ng-deep button[nz-button] {
+          width: 100%;
+        }
+      }
+    }
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
 }

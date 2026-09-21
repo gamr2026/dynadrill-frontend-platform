@@ -49,6 +49,14 @@
 }
 
 .fcr-detail__phase {
+  // Reset de <button> — antes era un <div>; ahora es clickeable para ver el
+  // detalle de esa fase (tramo del timeline), sin tocar el resto del look.
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+
   position: relative;
   display: flex;
   flex-direction: column;
@@ -56,6 +64,14 @@
   flex-shrink: 0;
   width: 5.5rem;
   scroll-snap-align: center;
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &--selected .fcr-detail__phase-dot {
+    box-shadow: 0 0 0 3px var(--dynadrill-purple-tint-strong, rgba(102, 46, 155, 0.16));
+  }
 
   @media (max-width: 480px) {
     width: 4.25rem;
@@ -218,85 +234,10 @@
   }
 }
 
-// ── Pedido vinculado (fase 'validacion', solo lectura) ──
-
-.fcr-detail__pedido-card {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  width: 100%;
-  padding: 1.5rem;
-  border: 1px solid var(--border, #e5e4ea);
-  border-radius: 0.75rem;
-  background: var(--surface, #fff);
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(19, 21, 41, 0.05));
-}
-
-.fcr-detail__pedido-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid var(--dynadrill-purple, #662e9b);
-}
-
-.fcr-detail__pedido-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--dynadrill-purple, #662e9b);
-}
-
-.fcr-detail__pedido-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 1.25rem 1.5rem;
-  width: 100%;
-}
-
-.fcr-detail__pedido-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 0;
-
-  dynadrill-icon {
-    color: var(--text-muted, #5c5870);
-    margin-bottom: -0.15rem;
-  }
-}
-
-.fcr-detail__pedido-items {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.fcr-detail__pedido-items-label {
-  font-weight: 700 !important;
-  color: var(--dynadrill-purple, #662e9b) !important;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.fcr-detail__table--pedido {
-  width: 100%;
-
-  th {
-    background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
-  }
-
-  tbody tr:nth-child(even) {
-    background: var(--surface-muted, #faf9fc);
-  }
-
-  tfoot td {
-    font-weight: 700;
-    color: var(--dynadrill-purple, #662e9b);
-    background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
-  }
-}
+// ── Pedido vinculado (fase 'revision_inicial', solo lectura) ──
+// La tarjeta y la tabla de ítems (.dyn-pedido-card*) son globales — ver
+// src/styles.scss, mismo bloque que usa Pumping en "Revisión de la
+// propuesta".
 
 .fcr-detail__pedido-reference {
   display: flex;

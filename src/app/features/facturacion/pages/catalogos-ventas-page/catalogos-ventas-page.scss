@@ -1,0 +1,45 @@
+@use '../../facturacion-ui' as f;
+
+.catalogos-ventas-page {
+  @include f.page;
+
+  .fact-card {
+    @include f.card;
+    padding: 16px;
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    h2 {
+      margin: 0;
+      font-size: 16px;
+    }
+  }
+
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    dynadrill-select {
+      min-width: 220px;
+    }
+  }
+
+  &__row-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
+}

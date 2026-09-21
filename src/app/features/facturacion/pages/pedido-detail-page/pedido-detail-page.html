@@ -6,6 +6,10 @@
       [subtitle]="p.cliente + ' — ' + p.campo + ' / ' + p.pozo"
     />
 
+    <div class="pedido-detail__toolbar">
+      <dynadrill-button variant="secondary" (clicked)="editarPedido()">Editar pedido</dynadrill-button>
+    </div>
+
     <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
       <section class="fact-card" [class.fact-card--brand]="!estadoFueraDeAlcance()">
         <header class="pedido-detail__head">
@@ -15,17 +19,45 @@
         @if (estadoFueraDeAlcance()) {
           <dynadrill-banner variant="info" message="Este estado ya está fuera del alcance del aplicativo (registro AS2 / SRI / cobro)." />
         }
-        <ol class="pedido-detail__timeline">
-          @for (h of p.historialEstados; track $index) {
-            <li>
-              <span class="pedido-detail__timeline-dot"></span>
-              <div>
-                <strong>{{ estadoLabelDe(h.estado) }}</strong>
-                <dynadrill-text variant="caption">{{ h.fecha | date: 'dd/MM/yyyy HH:mm' }} · {{ h.usuario }}{{ h.motivo ? ' — ' + h.motivo : '' }}</dynadrill-text>
-              </div>
-            </li>
-          }
-        </ol>
+        @if (p.timelineResumen; as resumen) {
+          <ol class="pedido-detail__timeline">
+            @for (t of resumen.tramos; track $index) {
+              <li>
+                <button
+                  type="button"
+                  class="pedido-detail__timeline-item"
+                  [class.pedido-detail__timeline-item--selected]="$index === selectedHistorialIndex()"
+                  (click)="seleccionarHistorial($index)"
+                  [appTimelinePopoverTrigger]="t"
+                  [faseIndice]="$index + 1"
+                  [faseLabel]="estadoLabelDeFn(t.fase)"
+                  [esFaseActual]="$index === resumen.tramos.length - 1"
+                  [responsableRolActual]="resumen.responsableRolActual"
+                >
+                  <span class="pedido-detail__timeline-dot"></span>
+                  <div>
+                    <strong>{{ estadoLabelDeFn(t.fase) }}</strong>
+                    <dynadrill-text variant="caption">
+                      {{ t.inicio | date: 'dd/MM/yyyy HH:mm' }}{{ t.actorNombre ? ' · ' + t.actorNombre : '' }}
+                    </dynadrill-text>
+                  </div>
+                </button>
+              </li>
+            }
+          </ol>
+        } @else {
+          <ol class="pedido-detail__timeline">
+            @for (h of p.historialEstados; track $index) {
+              <li>
+                <span class="pedido-detail__timeline-dot"></span>
+                <div>
+                  <strong>{{ estadoLabelDe(h.estado) }}</strong>
+                  <dynadrill-text variant="caption">{{ h.fecha | date: 'dd/MM/yyyy HH:mm' }} · {{ h.usuario }}{{ h.motivo ? ' — ' + h.motivo : '' }}</dynadrill-text>
+                </div>
+              </li>
+            }
+          </ol>
+        }
       </section>
 
       <!-- ── Ticket operativo asociado (Pedido -> FCR) ── -->
@@ -65,6 +97,21 @@
               <dynadrill-tag
                 [label]="a.guiaRemisionGenerada ? 'Guía de remisión: lista' : 'Guía de remisión: pendiente'"
                 [variant]="a.guiaRemisionGenerada ? 'success' : 'warning'"
+              />
+            }
+            @if (a.ptwAplica) {
+              <dynadrill-tag
+                [label]="a.ptwsCerrados ? 'PTW: cerrado' : 'PTW: sin cerrar'"
+                [variant]="a.ptwsCerrados ? 'success' : 'warning'"
+              />
+            }
+            @if (a.incidentesHse) {
+              <dynadrill-tag [label]="'Incidente HSE: ' + a.incidentesHse + ' derrame(s)'" variant="error" />
+            }
+            @if (a.monitoreoAplica) {
+              <dynadrill-tag
+                [label]="(a.monitoreoDocsCargados ?? 0) > 0 ? 'Monitoreo: ' + a.monitoreoDocsCargados + ' documento(s)' : 'Monitoreo: sin documentos'"
+                [variant]="(a.monitoreoDocsCargados ?? 0) > 0 ? 'success' : 'warning'"
               />
             }
             <dynadrill-tag [label]="a.completo ? 'Listo para prefacturar' : 'Documentación incompleta'" [variant]="a.completo ? 'success' : 'warning'" />
@@ -150,6 +197,11 @@
           </dl>
         } @else if (puedeGenerarPrefactura()) {
           <dynadrill-text variant="caption">La documentación de respaldo está completa — puedes generar la prefactura.</dynadrill-text>
+        } @else if (avance()?.ptwAplica && !avance()?.ptwsCerrados) {
+          <dynadrill-banner
+            variant="warning"
+            message="Falta cerrar el PTW del servicio: HSE-SITIO-001 exige el PTW cerrado y el Acta de Devolución de Sitio firmada (FACT-002/004) antes de poder generar la prefactura."
+          />
         } @else {
           <dynadrill-banner variant="info" message="La prefactura se habilita cuando la documentación de respaldo (y la guía de remisión, si aplica) está completa." />
         }
@@ -187,7 +239,7 @@
         <header class="pedido-detail__head"><h2>Líneas estimadas (cotizado)</h2></header>
         <div class="table-scroll">
           <table class="pedido-detail__table">
-            <thead><tr><th>Código</th><th>Descripción</th><th class="num">Cantidad</th><th>Unidad</th><th class="num">Valor unitario</th><th class="num">Total</th></tr></thead>
+            <thead><tr><th>Código</th><th>Descripción</th><th class="num">Cantidad</th><th>Unidad</th><th class="num">Valor unitario</th><th class="num">% Descuento</th><th class="num">Total</th></tr></thead>
             <tbody>
               @for (it of lineasEstimadas(); track $index) {
                 <tr>
@@ -196,11 +248,12 @@
                   <td class="num">{{ it.cantidad }}</td>
                   <td>{{ it.unidad }}</td>
                   <td class="num">${{ it.valorUnitario | number: '1.2-2' }}</td>
+                  <td class="num">{{ it.descuentoPorcentaje ?? 0 }}%</td>
                   <td class="num">${{ it.cantidad * it.valorUnitario | number: '1.2-2' }}</td>
                 </tr>
               }
             </tbody>
-            <tfoot><tr><td colspan="5" class="num"><strong>Valor estimado total</strong></td><td class="num"><strong>${{ valorEstimado() | number: '1.2-2' }}</strong></td></tr></tfoot>
+            <tfoot><tr><td colspan="6" class="num"><strong>Valor estimado total</strong></td><td class="num"><strong>${{ valorEstimado() | number: '1.2-2' }}</strong></td></tr></tfoot>
           </table>
         </div>
       </section>

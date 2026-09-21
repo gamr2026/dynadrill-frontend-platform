@@ -125,14 +125,24 @@ export interface IpercHazard {
   clasificacionPeligro?: string;
   /** Fuente/origen del riesgo. */
   fuenteRiesgo: string;
-  /** Controles que ya existían antes de esta evaluación (texto libre, Fase 1-2). */
+  /** Controles que ya existían antes de esta evaluación — "Fuente" del Excel real (texto libre, Fase 1-2). */
   controlesExistentes: string;
+  /** Controles existentes a nivel del medio de propagación (columna "Medio" del Excel real). */
+  controlesExistentesMedio?: string;
+  /** Controles existentes a nivel del individuo expuesto (columna "Individuo" del Excel real). */
+  controlesExistentesIndividuo?: string;
+  /** Dónde se genera el riesgo respecto al trabajador — ej. "Sitio de trabajo" (columna "Generado en" del Excel real). */
+  generadoEn?: string;
+  /** Efectos posibles del peligro en texto libre (columna del Excel real, distinta de "Peor consecuencia"). */
+  efectosPosibles?: string;
   /** N° de personas expuestas (columna del Excel real). */
   numeroExpuestos?: number;
   /** Peor consecuencia posible en texto libre (columna del Excel real, distinta de la banda NC). */
   peorConsecuencia?: string;
   /** ¿Existe requisito legal específico asociado? (columna del Excel real). */
   requisitoLegal?: boolean;
+  /** Seguimiento — columna "SEGUIMIENTO" del Excel real (aparece dos veces en el archivo, misma info en ambas). */
+  seguimiento?: string;
   /** Riesgo inicial — Fase 2, sin los controles nuevos definidos en Fase 3. */
   riesgoInicial: GtcEvaluacion;
   /** Controles nuevos definidos en Fase 3, jerarquía completa de 5 niveles. */
@@ -145,6 +155,12 @@ export interface IpercTask {
   id: number;
   /** Tarea dentro del desglose de la actividad (Fase 1). */
   descripcion: string;
+  /** ¿Es rutinaria? (columna "Rutinaria (Si ó Nó)" del Excel real). */
+  rutinaria?: boolean;
+  /** Área o puesto de trabajo donde se realiza la tarea (columna del Excel real). */
+  areaPuestoTrabajo?: string;
+  /** Cargos expuestos a los peligros de esta tarea (columna del Excel real). */
+  cargosExpuestos?: string;
   hazards: IpercHazard[];
 }
 
@@ -154,7 +170,22 @@ export interface IpercMatrix {
   code: string;
   status: IpercStatus;
   actividad: string;
+  /**
+   * "Zona/Lugar" del Excel real — la base (ej. "Base Coca"), no el pozo
+   * puntual. Queda fija desde que se crea la matriz de esta actividad (no
+   * cambia en usos posteriores) — verificado contra DYN-SGI-RE-087 real:
+   * el mismo criterio ya rige ahí (una sola matriz por actividad).
+   */
   ubicacion: string;
+  /**
+   * "PROCESO" del Excel real — el área que gestiona el riesgo (Operaciones,
+   * Mantenimiento, Ingeniería y Ventas, Laboratorio, Administrativo, …).
+   * Para matrices que nacen de un ticket de Pumping/FCR siempre es
+   * "Operaciones" (así aparece en el archivo real, sin distinguir FCR de
+   * Pumping). Opcional: matrices sembradas antes de este campo no lo
+   * tienen.
+   */
+  proceso?: string;
   /** Nombres del equipo evaluador multidisciplinario (Fase 1). Texto libre por ahora — no requiere que cada integrante tenga usuario en el sistema. */
   equipoEvaluador: string[];
   tasks: IpercTask[];
@@ -198,7 +229,36 @@ export interface IpercMatrix {
   leccionAprendidaPendiente?: boolean;
   leccionAprendidaTexto?: string;
   leccionAprendidaInvestigacionCode?: string;
+
+  /**
+   * Puente Operaciones → HSE-PLAN-001: cuando esta matriz se creó como
+   * "solicitud" a partir de un ticket de Pumping/FCR, guarda de dónde vino
+   * — la bandeja de HSE muestra "solicitada desde <ticket>".
+   */
+  origenOperativo?: { tipo: 'pumping' | 'fcr'; ticketCode: string; pedidoCode?: string };
 }
 
 /** Fase 1 de HSE-PLAN-001 — lo mínimo para arrancar una matriz nueva en estado "borrador"; tasks/hazards se agregan después, dentro del detalle. */
-export type CreateIpercMatrixInput = Pick<IpercMatrix, 'actividad' | 'ubicacion' | 'equipoEvaluador'>;
+export type CreateIpercMatrixInput = Pick<IpercMatrix, 'actividad' | 'ubicacion' | 'proceso' | 'equipoEvaluador'>;
+
+/**
+ * Categorías reales de PROCESO, tomadas del archivo DYN-SGI-RE-087 original
+ * (325 filas de datos, columna A), normalizadas (mayúsculas/puntuación
+ * inconsistentes en el archivo real unificadas a una sola forma por
+ * categoría). El selector de creación manual permite agregar otras.
+ */
+export const IPERC_PROCESO_SUGERIDOS: string[] = [
+  'Operaciones',
+  'Laboratorio',
+  'Mantenimiento',
+  'Dirección General',
+  'Ingeniería y Ventas',
+  'Compras y Logística',
+  'Administrativo Financiero',
+  'Administrativo',
+  'Gestión Integral',
+  'Talento Humano',
+];
+
+/** Zonas/bases reales del archivo original (columna "Zona/Lugar"), normalizadas. El selector de creación manual permite agregar otras. */
+export const IPERC_ZONA_SUGERIDAS: string[] = ['Base Coca', 'Base Quito', 'Base Coca - Quito', 'Base Coca - Campo', 'Base Quito - Coca - Campo'];

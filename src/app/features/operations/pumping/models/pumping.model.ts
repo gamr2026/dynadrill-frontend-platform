@@ -31,30 +31,30 @@ export const PUMPING_ROLE_LABELS: Record<PumpingRole, string> = {
 // ── Estados del ticket en proceso ──
 
 export type PumpingStep =
-  | 'revision_propuesta'
+  | 'revision_inicial'
   | 'asignacion'
-  | 'en_ejecucion'
-  | 'revisar_reportes_salida'
+  | 'traslado_salida'
+  | 'revision_reportes_salida'
   | 'ejecucion_operativa'
-  | 'gerenciamiento_llegada'
-  | 'en_ejecucion_llegada'
+  | 'control_retorno'
+  | 'traslado_llegada'
   | 'mantenimiento'
-  | 'revisar_reportes_llegada'
-  | 'en_revision'
-  | 'finalizado';
+  | 'revision_reportes_llegada'
+  | 'revision_final'
+  | 'cierre';
 
 export const PUMPING_STEP_LABELS: Record<PumpingStep, string> = {
-  revision_propuesta: 'Revisión de propuesta',
+  revision_inicial: 'Revisión Inicial',
   asignacion: 'Asignación',
-  en_ejecucion: 'En ejecución (Salida)',
-  revisar_reportes_salida: 'Revisar reportes de salida',
-  ejecucion_operativa: 'Ejecución operativa',
-  gerenciamiento_llegada: 'Gerenciamiento de llegada',
-  en_ejecucion_llegada: 'En ejecución (Llegada)',
+  traslado_salida: 'Traslado de Salida',
+  revision_reportes_salida: 'Revisión de Reportes de Salida',
+  ejecucion_operativa: 'Ejecución Operativa',
+  control_retorno: 'Control de Retorno',
+  traslado_llegada: 'Traslado de Llegada',
   mantenimiento: 'Mantenimiento',
-  revisar_reportes_llegada: 'Revisar reportes de llegada',
-  en_revision: 'En revisión',
-  finalizado: 'Finalizado',
+  revision_reportes_llegada: 'Revisión de Reportes de Llegada',
+  revision_final: 'Revisión Final',
+  cierre: 'Cierre',
 };
 
 /**
@@ -62,21 +62,32 @@ export const PUMPING_STEP_LABELS: Record<PumpingStep, string> = {
  * Usado para cambiar automáticamente de rol en la demo al avanzar el paso.
  */
 export const PUMPING_STEP_ROLE: Record<PumpingStep, { roleName: string; roleId: number }> = {
-  revision_propuesta: { roleName: 'Jefe de Base', roleId: 4 },
+  revision_inicial: { roleName: 'Jefe de Base', roleId: 4 },
   asignacion: { roleName: 'Supervisor', roleId: 1 },
-  en_ejecucion: { roleName: 'Operador', roleId: 2 },
-  revisar_reportes_salida: { roleName: 'Supervisor', roleId: 1 },
+  traslado_salida: { roleName: 'Operador', roleId: 2 },
+  revision_reportes_salida: { roleName: 'Supervisor', roleId: 1 },
   // El Reporte Diario de Actividades (DYN-SGI-RE-047) lo llena el Operador,
   // no el Supervisor — confirmado en el vault (conceptos/Reporte-Job.md) y
   // en la documentación de Facturación (FACT-002, PASOS DEL PROCESO).
   ejecucion_operativa: { roleName: 'Operador', roleId: 2 },
-  gerenciamiento_llegada: { roleName: 'Supervisor', roleId: 1 },
-  en_ejecucion_llegada: { roleName: 'Operador', roleId: 2 },
+  control_retorno: { roleName: 'Supervisor', roleId: 1 },
+  traslado_llegada: { roleName: 'Operador', roleId: 2 },
   mantenimiento: { roleName: 'Supervisor', roleId: 1 },
-  revisar_reportes_llegada: { roleName: 'Supervisor', roleId: 1 },
-  en_revision: { roleName: 'Supervisor', roleId: 1 },
-  finalizado: { roleName: 'Supervisor', roleId: 1 },
+  revision_reportes_llegada: { roleName: 'Supervisor', roleId: 1 },
+  revision_final: { roleName: 'Supervisor', roleId: 1 },
+  cierre: { roleName: 'Supervisor', roleId: 1 },
 };
+
+/**
+ * "Supervisor Pumping" cumple las mismas acciones que "Supervisor" pero
+ * acotado a Pumping (ver sidebar.ts) — cualquier chequeo de "es el rol
+ * responsable de este paso" debe aceptar ambos nombres de rol.
+ */
+export function esRolResponsablePumping(expectedRoleName: string | undefined, currentRoleName: string): boolean {
+  if (!expectedRoleName) return false;
+  if (expectedRoleName === currentRoleName) return true;
+  return expectedRoleName === 'Supervisor' && currentRoleName === 'Supervisor Pumping';
+}
 
 // ── Entidades del dominio ──
 
@@ -187,10 +198,23 @@ export interface PumpingTicket extends Ticket {
   operators: PumpingOperator[];
   unitReport: PumpingUnitReport | null;
   currentStep: PumpingStep;
+  /** Id del Pedido de Facturación asociado — link para el puente Pumping → Facturación (ver solicitud-cambio-items.model.ts). */
+  pedidoId?: number;
   /** Código del Pedido de Facturación asociado — link para el puente Pumping → Facturación. */
   pedidoCode?: string;
   /** Nº de contrato/OT — heredado del Pedido, prellena el Reporte Diario. */
   numeroContrato?: string;
+  /** Taladro/Rig — heredado del Pedido, prellena el selector de ubicación del Reporte Diario. */
+  taladroRig?: string;
+  taladroId?: number;
+  /**
+   * Gerenciamiento de Viaje (DYN-SGI-RE-049) ya completado por operador —
+   * clave = id del operador. Se guarda en el ticket (no solo en memoria del
+   * componente) para que sobreviva a un recargo de página y para que el
+   * gerenciamiento de retorno pueda recuperar motivo/ruta del de ida.
+   */
+  travelManagements?: Record<number, TravelManagement>;
+  returnTravelManagements?: Record<number, TravelManagement>;
 }
 
 // ── Templates de inspección (ítems del formulario físico DYN-MNT-RE-012) ──
@@ -500,7 +524,6 @@ export interface DailyActivityEntry {
 
 export interface DailyActivityReport {
   fecha: string;
-  numero: string;
   cliente: string;
   ordenContrato: string;
   pozo: string;

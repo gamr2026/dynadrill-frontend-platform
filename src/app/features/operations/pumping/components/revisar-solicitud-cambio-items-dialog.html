@@ -1,0 +1,68 @@
+<section class="revisar-solicitud">
+  <dynadrill-text variant="h1">Solicitud de cambio de ítems</dynadrill-text>
+  <dynadrill-text variant="caption">
+    Ticket {{ solicitud.ticketCode }} — Pedido {{ solicitud.pedidoCode }} ({{ solicitud.cliente }}). Solicitado por
+    {{ solicitud.solicitadoPor }} el {{ solicitud.fechaSolicitud | date: 'dd/MM/yyyy HH:mm' }}.
+  </dynadrill-text>
+
+  <dynadrill-tag label="Motivo" variant="neutral" />
+  <dynadrill-text variant="body">{{ solicitud.motivo }}</dynadrill-text>
+
+  <div class="revisar-solicitud__cols">
+    <div>
+      <dynadrill-text variant="caption">ÍTEMS ORIGINALES (pedido de Ventas)</dynadrill-text>
+      <table class="revisar-solicitud__table">
+        <thead><tr><th>Código</th><th>Descripción</th><th class="num">Cant.</th><th class="num">Precio</th></tr></thead>
+        <tbody>
+          @for (it of solicitud.itemsOriginales; track $index) {
+            <tr><td>{{ it.codigo }}</td><td>{{ it.descripcion }}</td><td class="num">{{ it.cantidad }}</td><td class="num">${{ it.valorUnitario | number: '1.2-2' }}</td></tr>
+          }
+          @if (!solicitud.itemsOriginales.length) {
+            <tr><td colspan="4">Sin ítems previos.</td></tr>
+          }
+        </tbody>
+        <tfoot><tr><td colspan="3" class="num"><strong>Total</strong></td><td class="num"><strong>${{ totalOriginal() | number: '1.2-2' }}</strong></td></tr></tfoot>
+      </table>
+    </div>
+    <div>
+      <dynadrill-text variant="caption">ÍTEMS PROPUESTOS</dynadrill-text>
+      <table class="revisar-solicitud__table revisar-solicitud__table--propuesto">
+        <thead><tr><th>Código</th><th>Descripción</th><th class="num">Cant.</th><th class="num">Precio</th></tr></thead>
+        <tbody>
+          @for (it of solicitud.itemsPropuestos; track $index) {
+            <tr><td>{{ it.codigo }}</td><td>{{ it.descripcion }}</td><td class="num">{{ it.cantidad }}</td><td class="num">${{ it.valorUnitario | number: '1.2-2' }}</td></tr>
+          }
+        </tbody>
+        <tfoot><tr><td colspan="3" class="num"><strong>Total</strong></td><td class="num"><strong>${{ totalPropuesto() | number: '1.2-2' }}</strong></td></tr></tfoot>
+      </table>
+    </div>
+  </div>
+
+  @if (soloLectura) {
+    <dynadrill-tag [label]="solicitud.estado === 'aprobada' ? 'Aprobada' : 'Rechazada'" [variant]="solicitud.estado === 'aprobada' ? 'success' : 'error'" />
+    <dynadrill-text variant="caption">
+      Revisado por {{ solicitud.revisadoPor }} el {{ solicitud.fechaRevision | date: 'dd/MM/yyyy HH:mm' }}
+      @if (solicitud.motivoRechazo) { — {{ solicitud.motivoRechazo }} }
+    </dynadrill-text>
+  } @else if (mostrarMotivoRechazo()) {
+    <dynadrill-textarea
+      label="Motivo del rechazo (opcional)"
+      placeholder="Por qué se rechaza esta solicitud…"
+      [rows]="3"
+      [value]="motivoRechazo()"
+      (valueChange)="motivoRechazo.set($event)"
+    />
+  }
+</section>
+
+<footer class="revisar-solicitud__actions">
+  <dynadrill-button variant="secondary" (clicked)="cancelar()">Cerrar</dynadrill-button>
+  @if (!soloLectura) {
+    @if (mostrarMotivoRechazo()) {
+      <dynadrill-button variant="error" (clicked)="confirmarRechazo()">Confirmar rechazo</dynadrill-button>
+    } @else {
+      <dynadrill-button variant="error" (clicked)="pedirMotivoRechazo()">Rechazar</dynadrill-button>
+      <dynadrill-button variant="primary" (clicked)="aprobar()">Aprobar</dynadrill-button>
+    }
+  }
+</footer>

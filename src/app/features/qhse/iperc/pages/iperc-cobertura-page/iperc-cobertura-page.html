@@ -1,0 +1,88 @@
+<dynadrill-screen-header
+  eyebrow="QHSE ▸ Planificación"
+  title="Cobertura IPERC por tipo de servicio"
+  subtitle="Qué actividades de la Matriz Maestra DYN-SGI-RE-087 exige cada tipo de servicio antes de que un trabajo pueda arrancar"
+  roleTag="HSE"
+/>
+
+<dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
+  <div class="cobertura__intro">
+    <dynadrill-banner
+      variant="info"
+      message="Al crear un pedido en Facturación, el puente hacia QHSE verifica que estas actividades estén evaluadas y aprobadas en la Matriz Maestra. Si falta alguna, el ticket de Pumping/FCR queda bloqueado hasta que HSE la apruebe. Agregar una actividad nueva a una línea abre automáticamente su solicitud (matriz en borrador)."
+    />
+    @if (!puedeEditar()) {
+      <p class="cobertura__solo-lectura">
+        Vista de sólo lectura — el mapeo lo edita Coordinador o Gerente HSE (mismo criterio que aprobar una matriz).
+      </p>
+    } @else {
+      <p class="cobertura__solo-lectura">Cada actividad que agregás o quitás se guarda al instante.</p>
+    }
+  </div>
+
+  <div class="cobertura__grid">
+    @for (l of lineas(); track l.linea) {
+      <dynadrill-card [accent]="l.cobertura === 'ok' ? 'success' : 'warning'">
+        <div card-title class="cobertura__card-title">
+          <span>{{ l.label }}</span>
+          <span class="cobertura__card-title-tags">
+            @if (saving() === l.linea) {
+              <dynadrill-tag label="Guardando…" variant="info" />
+            }
+            <dynadrill-tag
+              [label]="l.cobertura === 'ok' ? 'Cobertura OK' : 'Cobertura incompleta'"
+              [variant]="l.cobertura === 'ok' ? 'success' : 'warning'"
+            />
+          </span>
+        </div>
+
+        @if (l.vacia) {
+          <p class="cobertura__empty">
+            Sin actividades configuradas. Esta línea no bloquea el arranque del ticket hasta que se le asigne al menos una.
+          </p>
+        } @else {
+          <ul class="cobertura__lista">
+            @for (act of l.actividades; track act.nombre) {
+              <li class="cobertura__item">
+                <span class="cobertura__item-nombre">{{ act.nombre }}</span>
+                <span class="cobertura__item-acciones">
+                  <dynadrill-tag [label]="estadoTag(act.estado).label" [variant]="estadoTag(act.estado).variant" />
+                  @if (act.ipercId !== null) {
+                    <a class="cobertura__ver" [routerLink]="['/dashboard/qhse/iperc', act.ipercId]">Ver matriz</a>
+                  }
+                  @if (puedeEditar()) {
+                    <dynadrill-icon-button
+                      icon="delete"
+                      tooltip="Quitar de esta línea"
+                      (clicked)="quitar(l.linea, act.nombre)"
+                    />
+                  }
+                </span>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (puedeEditar()) {
+          <div class="cobertura__add">
+            <dynadrill-select
+              label="Agregar actividad"
+              placeholder="Selecciona una actividad de la matriz o escribe una nueva"
+              [options]="l.opciones"
+              [value]="null"
+              [searchable]="true"
+              [creatable]="true"
+              [disabled]="saving() !== null"
+              (valueChange)="agregar(l.linea, $any($event))"
+              (itemCreated)="agregar(l.linea, $event)"
+            />
+            <p class="cobertura__hint">
+              Una actividad que aún no existe en la Matriz Maestra se crea como solicitud en borrador — HSE debe evaluarla y
+              aprobarla antes de que deje de bloquear los trabajos de esta línea.
+            </p>
+          </div>
+        }
+      </dynadrill-card>
+    }
+  </div>
+</dynadrill-spinner>

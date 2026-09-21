@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 import {
   DynadrillButtonComponent,
   DynadrillIconComponent,
@@ -40,6 +40,7 @@ import { SwaService } from '../../../swa/services/swa.service';
 import { InvestigacionService } from '../../../investigaciones/services/investigacion.service';
 import { sugiereNotificacionLegal } from '../../../investigaciones/models/investigacion.model';
 import { UsersService } from '../../../../users/services/users.service';
+import { User } from '../../../../users/models/user.model';
 
 const CATEGORIAS: DashboardKpiCategoria[] = ['Seguridad', 'Operacional', 'Ambiental', 'Cultura Preventiva'];
 
@@ -278,7 +279,10 @@ export class QhseDashboardPage {
       stop: this.stopService.list(),
       swa: this.swaService.list(),
       investigaciones: this.investigacionService.list(),
-      usuarios: this.usersService.list(),
+      // GET /api/users es solo Superadmin — para el resto del staff HSE el 403
+      // no debe tumbar todo el dashboard (métricas y metas). El KPI "STOP per
+      // cápita" queda "No disponible" cuando no hay headcount.
+      usuarios: this.usersService.list().pipe(catchError(() => of<User[]>([]))),
       metas: this.metasService.get(),
     }).subscribe({
       next: ({ matrices, ptw, inspecciones, desechos, derrames, stop, swa, investigaciones, usuarios, metas }) => {

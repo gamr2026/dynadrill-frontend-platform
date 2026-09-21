@@ -22,6 +22,10 @@
             </div>
             <dynadrill-text variant="caption">Contrato {{ l.numeroContrato }} · vigente desde {{ l.vigenteDesde }}</dynadrill-text>
             <dynadrill-text variant="body">{{ l.items.length }} ítem(s)</dynadrill-text>
+            <div class="lista-precios-page__card-tipos">
+              <dynadrill-tag [label]="contarPorTipo(l, 'Servicio') + ' Servicio'" variant="brand" />
+              <dynadrill-tag [label]="contarPorTipo(l, 'Material') + ' Material'" variant="neutral" />
+            </div>
           </button>
         }
       </div>

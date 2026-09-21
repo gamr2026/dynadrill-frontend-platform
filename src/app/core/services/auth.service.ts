@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, catchError, of, tap } from 'rxjs';
+import { environment } from '@env';
 
 export interface AuthenticatedUser {
   id: number;
@@ -32,7 +33,7 @@ export class AuthService {
 
   login(email: string, password: string): Observable<LoginResponse> {
     return this.http
-      .post<LoginResponse>('/api/auth/login', { email, password })
+      .post<LoginResponse>(`${environment.apiUrl}/auth/login`, { email, password })
       .pipe(tap(({ accessToken, user }) => this.setSession(accessToken, user)));
   }
 
@@ -55,7 +56,7 @@ export class AuthService {
     if (!current) return;
 
     this.http
-      .post<LoginResponse>('/api/auth/switch-role', { roleId })
+      .post<LoginResponse>(`${environment.apiUrl}/auth/switch-role`, { roleId })
       .pipe(
         catchError(() => {
           const updated: AuthenticatedUser = { ...current, roleName, roleId };

@@ -7,6 +7,9 @@
     />
 
     <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
+      @if (pf.advertencia) {
+        <dynadrill-banner variant="critical" [message]="pf.advertencia" />
+      }
       <section class="fact-card">
         <header class="pf-detail__head">
           <h2>Ítems</h2>
@@ -46,6 +49,18 @@
       </section>
 
       <section class="fact-card">
+        <header class="pf-detail__head">
+          <h2>Comercial y responsables</h2>
+          @if (pf.estado !== 'firmada') {
+            <dynadrill-button variant="secondary" size="small" (clicked)="editarRepresentantes()">Editar representantes</dynadrill-button>
+          }
+        </header>
+        <dl class="pf-detail__defs">
+          @for (d of datosComercial(); track d.label) { <div><dt>{{ d.label }}</dt><dd>{{ d.value }}</dd></div> }
+        </dl>
+      </section>
+
+      <section class="fact-card">
         <header class="pf-detail__head"><h2>Liquidación</h2></header>
         <div class="pf-detail__liquidacion">
           <dl class="pf-detail__totals">
@@ -64,7 +79,12 @@
       <!-- ── Revisión + envío al cliente (FACT-003 / FACT-004) ── -->
       @if (pf.estado === 'generada') {
         <section class="fact-card">
-          <header class="pf-detail__head"><h2>Revisión antes de enviar</h2></header>
+          <header class="pf-detail__head">
+            <h2>Revisión antes de enviar</h2>
+            <div class="pf-detail__head-actions">
+              <dynadrill-button variant="secondary" size="small" (clicked)="marcarTodoRevisado()">Marcar todo revisado</dynadrill-button>
+            </div>
+          </header>
           <ul class="pf-detail__checklist">
             @for (c of checklistItems; track c.key) {
               <li>
@@ -100,16 +120,16 @@
             <h2>Firma del cliente</h2>
             <div class="pf-detail__head-actions">
               @if (aot()) {
-                <dynadrill-button variant="secondary" size="small" (clicked)="verAot()">Ver AOT</dynadrill-button>
+                <dynadrill-button variant="secondary" size="small" (clicked)="verAot()">Ver OT</dynadrill-button>
               } @else if (puedeGenerarAot()) {
-                <dynadrill-button size="small" (clicked)="generarAot()">Generar AOT</dynadrill-button>
+                <dynadrill-button size="small" (clicked)="generarAot()">Generar OT</dynadrill-button>
               }
             </div>
           </header>
           <dynadrill-text variant="body">{{ f.nombre }} · {{ f.cargo }}</dynadrill-text>
           <dynadrill-text variant="caption">{{ f.firmadoAt | date: 'dd/MM/yyyy HH:mm' }}</dynadrill-text>
           @if (aot(); as a) {
-            <dynadrill-text variant="caption">AOT {{ a.numeroOpr }} — {{ a.estado }}</dynadrill-text>
+            <dynadrill-text variant="caption">OT {{ a.numeroOpr }} — {{ a.estado }}</dynadrill-text>
           }
         </section>
       }

@@ -66,6 +66,20 @@
   gap: 14px;
 }
 
+.iperc-detail-page__task-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin: 8px 0 12px;
+
+  &--readonly {
+    gap: 16px;
+    font-size: 12px;
+    color: var(--text-muted, #5c5870);
+  }
+}
+
 .iperc-detail-page__hazard-list {
   display: flex;
   flex-direction: column;

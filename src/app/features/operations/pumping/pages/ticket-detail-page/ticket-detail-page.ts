@@ -1,10 +1,24 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  afterRenderEffect,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
+import { DatePipe, formatDate } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import type { NzUploadFile } from 'ng-zorro-antd/upload';
 import { AuthService } from '../../../../../core/services/auth.service';
-import { parseLocalDateString, toLocalDateString } from '../../../../../shared/utils';
+import { capitalize, parseLocalDateString, toLocalDateString } from '../../../../../shared/utils';
+import { MACRO_ESTADO_LABELS, MACRO_ESTADO_TONE } from '../../../../../shared/models/timeline.model';
 import {
   DynadrillApprovalActionsComponent,
+  DynadrillBannerComponent,
   DynadrillButtonComponent,
   DynadrillChipGroupComponent,
   DynadrillContextCardComponent,
@@ -12,16 +26,20 @@ import {
   DynadrillDataTableComponent,
   DynadrillDatetimePickerComponent,
   DynadrillDialogService,
+  DynadrillIconButtonComponent,
+  DynadrillIconComponent,
   DynadrillInputComponent,
   DynadrillInspectionGridComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSelectComponent,
+  DynadrillTagComponent,
   DynadrillTextComponent,
   DynadrillTextareaComponent,
   DynadrillUploadZoneComponent,
   type DynadrillApprovalDecision,
   type DynadrillContextCardItem,
+  type DynadrillContextCardTag,
   type DynadrillInspectionItem,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
@@ -31,6 +49,7 @@ import {
   PUMPING_SERVICE_TYPE_LABELS,
   PUMPING_STEP_LABELS,
   PUMPING_STEP_ROLE,
+  esRolResponsablePumping,
   createChassisInspectionItems,
   createMotorInspectionItems,
   createArrivalEquipmentItems,
@@ -46,10 +65,28 @@ import {
   type DailyActivityReport,
 } from '../../models/pumping.model';
 import { PumpingService } from '../../services/pumping.service';
-import { OperativoDocsBridgeService, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../../../shared/index';
-import { CreateUnitReportInput, unitReportHasNovedades } from '../../../../maintenance/models/unit-report.model';
+import { SolicitudCambioItemsService } from '../../services/solicitud-cambio-items.service';
+import type { SolicitudCambioItems } from '../../models/solicitud-cambio-items.model';
+import {
+  SolicitarCambioItemsDialog,
+  SolicitarCambioItemsDialogData,
+  SolicitarCambioItemsDialogResult,
+} from '../../components/solicitar-cambio-items-dialog';
+import { PedidoService } from '../../../../facturacion/services/pedido.service';
+import { itemsEstimadosDe, TIPO_SERVICIO_LABELS, type ItemEstimado, type Pedido, type PedidoDocumentoAdjunto } from '../../../../facturacion/models/pedido.model';
+import { VerPedidoDialog, VerPedidoDialogData } from '../../../../facturacion/components/ver-pedido-dialog';
+import { TicketQhseBanner } from '../../../shared/ticket-qhse-banner/ticket-qhse-banner';
+import {
+  OperativoDocsBridgeService,
+  TimelinePopoverTriggerDirective,
+  UbicacionSelectorComponent,
+  type UbicacionSeleccion,
+} from '../../../../../shared/index';
+import { CreateUnitReportInput, unitReportHasNovedades, type UnitReport } from '../../../../maintenance/models/unit-report.model';
 import { UnitReportsService } from '../../../../maintenance/services/unit-reports.service';
 import { UnidadesService } from '../../../../maintenance/services/unidades.service';
+import type { Unidad } from '../../../../maintenance/models/unidad.model';
+import { RolesService } from '../../../../users/services/users.service';
 import {
   VehicleInspection,
   VEHICLE_CHECKLIST_VEHICULO,
@@ -76,26 +113,33 @@ import { forkJoin, map, of, type Observable } from 'rxjs';
  * `id: 0` marca que NO existe en el backend: los diálogos que la reciben
  * van siempre en modo lectura (`readonly: true`), nunca hacen PUT/PATCH.
  */
-function createMockCompletedInspection(operatorName: string, unitCode: string): VehicleInspection {
+function createMockCompletedInspection(
+  operatorName: string,
+  unitCode: string,
+  unidad?: Unidad,
+  conductorNombre?: string,
+): VehicleInspection {
   return {
     id: 0,
-    unidadId: 1,
-    unidadCode: unitCode,
+    unidadId: unidad?.id ?? 0,
+    unidadCode: unidad?.code ?? unitCode,
     fecha: toLocalDateString(new Date()),
     puntoPartida: 'Base Coco',
     destino: 'Pozo Beta-9',
-    inspeccionadoPor: operatorName,
-    marca: 'Kenworth',
-    tipo: 'Cabezal',
-    modelo: 'T800',
-    anioFabricacion: '2022',
-    placa: 'PBA-1234',
-    fechaMatricula: '2026-01-15',
-    caducidadMatricula: '2027-01-15',
-    caducidadPoliza: '2027-06-30',
+    // El conductor es el elegido en la inspección — no el operador del ticket.
+    inspeccionadoPor: conductorNombre || operatorName,
+    // Descripción del vehículo tomada del registro real de la Unidad.
+    marca: unidad?.marca ?? '',
+    tipo: unidad?.categoriaPeso ?? '',
+    modelo: unidad?.modelo ?? '',
+    anioFabricacion: unidad?.anio ?? '',
+    placa: unidad?.placa ?? '',
+    fechaMatricula: unidad?.fechaMatricula,
+    caducidadMatricula: unidad?.caducidadMatricula,
+    caducidadPoliza: unidad?.caducidadPoliza,
     kmInicial: 45200,
     kmFinal: 45380,
-    proximoMantenimiento: '46000',
+    proximoMantenimiento: toLocalDateString(new Date(Date.now() + 90 * 86_400_000)),
     checklistVehiculo: VEHICLE_CHECKLIST_VEHICULO.map(label => ({ label, estado: 'C' as const })),
     checklistEquipo: VEHICLE_CHECKLIST_EQUIPO.map(label => ({ label, estado: 'C' as const })),
     licenciaVigente: true,
@@ -106,14 +150,14 @@ function createMockCompletedInspection(operatorName: string, unitCode: string): 
     vacunasCertificado: true,
     reuneCondicionesParaTrabajar: true,
     observacionesConductor: 'Sin novedades',
-    supervisorNombre: 'Luis Vega',
-    supervisorApprovedBy: 'Luis Vega',
+    supervisorNombre: '',
+    supervisorApprovedBy: '',
     supervisorApprovedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
   };
 }
 
-const STEP_KEYS: PumpingStep[] = ['revision_propuesta', 'asignacion', 'en_ejecucion', 'revisar_reportes_salida', 'ejecucion_operativa', 'gerenciamiento_llegada', 'en_ejecucion_llegada', 'mantenimiento', 'revisar_reportes_llegada', 'en_revision', 'finalizado'];
+const STEP_KEYS: PumpingStep[] = ['revision_inicial', 'asignacion', 'traslado_salida', 'revision_reportes_salida', 'ejecucion_operativa', 'control_retorno', 'traslado_llegada', 'mantenimiento', 'revision_reportes_llegada', 'revision_final', 'cierre'];
 
 /**
  * PumpingUnitReport guarda fechas como string ISO (yyyy-MM-dd);
@@ -137,7 +181,9 @@ function toFuelReading(raw: string): number | null {
   selector: 'app-ticket-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    DatePipe,
     DynadrillScreenHeaderComponent,
+    DynadrillBannerComponent,
     DynadrillContextCardComponent,
     DynadrillDataTableComponent,
     DynadrillButtonComponent,
@@ -150,7 +196,12 @@ function toFuelReading(raw: string): number | null {
     DynadrillChipGroupComponent,
     DynadrillApprovalActionsComponent,
     DynadrillUploadZoneComponent,
+    DynadrillIconComponent,
+    DynadrillIconButtonComponent,
+    DynadrillTagComponent,
     UbicacionSelectorComponent,
+    TicketQhseBanner,
+    TimelinePopoverTriggerDirective,
   ],
   templateUrl: './ticket-detail-page.html',
   styleUrl: './ticket-detail-page.scss',
@@ -165,22 +216,207 @@ export class TicketDetailPage {
   private readonly docsBridge = inject(OperativoDocsBridgeService);
 
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
+
+  // ── Cobertura de la Matriz Maestra IPERC (HSE-PLAN-001) ──
+  /** Resultado del chequeo del backend: la matriz maestra cubre —aprobadas— las actividades del trabajo. */
+  protected readonly ipercVinculo = computed(() => this.ticket()?.qhse ?? null);
+  /**
+   * El servicio no avanza (asignar personal, ejecutar) si alguna actividad
+   * de la línea no está aprobada en la matriz maestra. Tickets sin vínculo
+   * (datos viejos / backend sin reiniciar) no se bloquean.
+   */
+  protected readonly coberturaOk = computed(() => {
+    const v = this.ipercVinculo();
+    return !v || v.cobertura === 'ok';
+  });
+  /** Actividades que todavía no están aprobadas — lo que HSE tiene pendiente. */
+  protected readonly actividadesPendientes = computed(() =>
+    (this.ipercVinculo()?.actividades ?? []).filter(a => a.estado !== 'aprobada'),
+  );
+  protected readonly actividadesPendientesTexto = computed(() =>
+    this.actividadesPendientes()
+      .map(a => a.nombre)
+      .join(', '),
+  );
+  private readonly IPERC_ESTADO_LABELS: Record<string, string> = {
+    borrador: 'en elaboración por HSE',
+    en_evaluacion: 'en evaluación por HSE',
+    en_revision: 'en revisión por HSE',
+    aprobada: 'aprobada',
+    rechazada: 'rechazada',
+    no_evaluada: 'sin evaluar',
+  };
+  protected ipercEstadoLabel(estado: string): string {
+    return this.IPERC_ESTADO_LABELS[estado] ?? estado;
+  }
+  /** El módulo QHSE (y su endpoint) solo lo abren estos roles. */
+  private readonly QHSE_VIEWER_ROLES = ['Técnico HSE', 'Coordinador HSE', 'Gerente HSE', 'Superadmin', 'Jefe de Base'];
+  protected readonly puedeVerMatrizIperc = computed(() => this.QHSE_VIEWER_ROLES.includes(this.roleName()));
+  protected verMatrizIperc(actividadIpercId: number): void {
+    if (this.puedeVerMatrizIperc()) this.router.navigate(['/dashboard/qhse/iperc', actividadIpercId]);
+  }
+
+  // ── PTW / Recibimiento de Sitio (HSE-SITIO-001) ──
+  /** Estado del PTW del servicio (lo adjunta el backend). `null` mientras la cobertura IPERC no esté completa. */
+  protected readonly ptwVinculo = computed(() => this.ipercVinculo()?.ptw ?? null);
+  /**
+   * Segundo gate: no se pasa a ejecución en campo (Reporte Diario) sin el
+   * PTW firmado en sitio — PUM-004 "Descargar documentos HSE", RN-PUM-004-06.
+   * Si aún no hay PTW (ticket sembrado / sin pedido) no se bloquea; el
+   * bloqueo aplica en cuanto el PTW existe (se abre solo al completarse la
+   * cobertura IPERC).
+   */
+  protected readonly ptwFirmadoOk = computed(() => {
+    if (!this.coberturaOk()) return false;
+    const p = this.ptwVinculo();
+    return !p || p.firmadoSitio;
+  });
+  private readonly PTW_FASE_LABELS: Record<string, string> = {
+    gabinete: 'preparación en gabinete',
+    ingreso: 'ingreso a locación',
+    verificaciones: 'verificaciones de seguridad',
+    formalizacion: 'formalización del recibimiento',
+    ejecucion: 'ejecución y devolución',
+    gestion_documental: 'gestión documental final',
+  };
+  protected ptwFaseLabel(fase: string): string {
+    return this.PTW_FASE_LABELS[fase] ?? fase;
+  }
+  protected verPtw(): void {
+    const p = this.ptwVinculo();
+    if (p && this.puedeVerMatrizIperc()) this.router.navigate(['/dashboard/qhse/ptw', p.id]);
+  }
+
+  // ── Eventos críticos: Stop Work (HSE-SEGUIMIENTO-003) y Emergencia (HSE-TRIAGE-001) ──
+  /** Evento Stop Work abierto contra este servicio — mientras exista, el trabajo está detenido. */
+  protected readonly swaActivo = computed(() => this.ipercVinculo()?.swa ?? null);
+  /** Emergencia abierta ('activa' o 'controlada') contra este servicio — mismo criterio que un SWA, con mayor severidad. */
+  protected readonly emergenciaActiva = computed(() => this.ipercVinculo()?.emergencia ?? null);
+  /** Guard común: con un SWA o una Emergencia abiertos, ningún paso del flujo avanza. Devuelve `true` (y avisa) si está bloqueado. */
+  private bloqueadoPorSwa(): boolean {
+    const e = this.emergenciaActiva();
+    if (e) {
+      this.notify.error(
+        'Emergencia activa',
+        `Emergencia ${e.code} abierta. El servicio no puede avanzar hasta que se cierre en QHSE.`,
+      );
+      return true;
+    }
+    const s = this.swaActivo();
+    if (!s) return false;
+    this.notify.error(
+      'Trabajo detenido',
+      `Stop Work ${s.code} abierto (${s.tipoPeligro}). El servicio no puede avanzar hasta que HSE y el Company Man autoricen la reanudación.`,
+    );
+    return true;
+  }
+  protected verSwa(): void {
+    const s = this.swaActivo();
+    if (s && this.puedeVerMatrizIperc()) this.router.navigate(['/dashboard/qhse/swa', s.id]);
+  }
+  protected verEmergencia(): void {
+    const e = this.emergenciaActiva();
+    if (e && this.puedeVerMatrizIperc()) this.router.navigate(['/dashboard/qhse/emergencias', e.id]);
+  }
+
   private readonly unitReportsService = inject(UnitReportsService);
   private readonly unidadesService = inject(UnidadesService);
+  /** Catálogo de unidades — para completar la descripción real del vehículo en las inspecciones de ejemplo. */
+  private readonly unidades = signal<Unidad[]>([]);
+  private unidadPorCodigo(code: string): Unidad | undefined {
+    return this.unidades().find(u => u.code === code);
+  }
+  private readonly rolesService = inject(RolesService);
+  /** Nombre del Jefe de Base — va en "Gerente/Supervisor" y "Gerente que autoriza" del Gerenciamiento de Viaje. */
+  protected readonly jefeBaseNombre = signal('');
+  /** Nombres de conductores con permisos — para asignar el conductor en las inspecciones de ejemplo. */
+  private readonly conductoresPermisos = signal<string[]>([]);
+  private conductorParaOperador(operatorId: number): string {
+    const nombres = this.conductoresPermisos();
+    return nombres.length ? nombres[operatorId % nombres.length] : '';
+  }
+  /** Inspecciones de vehículos ya registradas en el backend — para recuperar
+   *  la que hizo el operador (con su conductor real) al recargar la página. */
+  private readonly realInspections = signal<VehicleInspection[]>([]);
+  /**
+   * Solo cuentan inspecciones de ESTE ticket — antes se tomaba la más
+   * reciente para esa unidad sin importar de qué ticket era, así que una
+   * unidad reutilizada (ej. CAM-04) llegaba con "Inspección realizada" ya
+   * puesta en un ticket nuevo, heredada de un servicio anterior (bug
+   * reportado). Las inspecciones viejas sin `ticketId` (de antes de este
+   * campo) ya no matchean ningún ticket nuevo.
+   */
+  private ultimaInspeccionReal(unitCode: string): VehicleInspection | undefined {
+    const ticketId = this.ticket()?.id;
+    return this.realInspections()
+      .filter(i => i.unidadCode === unitCode && i.ticketId === ticketId)
+      .sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
+  }
+  /** Conductor elegido en la inspección de la unidad del operador (no el operador). */
+  private conductorDeOperador(operatorId: number, retorno = false): string {
+    const llegada = this.completedLlegadaInspections().get(operatorId) as VehicleInspection | undefined;
+    const salida = this.completedInspections().get(operatorId) as VehicleInspection | undefined;
+    const insp = retorno ? (llegada ?? salida) : salida;
+    return insp?.inspeccionadoPor ?? '';
+  }
+
+  /** Quién hizo la inspección de vehículo de esa unidad en este tramo (salida o llegada) — para el Reporte de Unidad. */
+  private inspectorDeUnidad(mapa: Map<number, unknown>, unitCode: string): string {
+    for (const insp of mapa.values()) {
+      const i = insp as VehicleInspection;
+      if (i.unidadCode === unitCode) return i.inspeccionadoPor;
+    }
+    return '';
+  }
   private readonly vehicleInspectionsService = inject(VehicleInspectionsService);
   private readonly maintenanceOrdersService = inject(MaintenanceOrdersService);
   private readonly articulosService = inject(ArticulosService);
   private readonly movimientosInventarioService = inject(MovimientosInventarioService);
 
+  private readonly pedidoService = inject(PedidoService);
+  private readonly solicitudCambioItemsService = inject(SolicitudCambioItemsService);
+
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
   protected readonly ticket = signal<PumpingTicket | null>(null);
+  /** Pedido de Ventas vinculado a este ticket — sus ítems son lo que el Operador puede pedir cambiar. */
+  protected readonly pedido = signal<Pedido | null>(null);
+  protected readonly pedidoItems = computed(() => {
+    const p = this.pedido();
+    return p ? itemsEstimadosDe(p) : [];
+  });
+  protected readonly pedidoItemsTotal = computed(() =>
+    this.pedidoItems().reduce((sum, item) => sum + item.cantidad * item.valorUnitario, 0),
+  );
+  protected readonly pedidoTipoServicioLabel = computed(() => {
+    const p = this.pedido();
+    return p ? TIPO_SERVICIO_LABELS[p.tipoServicio] : '';
+  });
+  /** Solicitud de cambio de ítems todavía sin resolver por el Supervisor (si hay una). */
+  protected readonly solicitudPendiente = signal<SolicitudCambioItems | null>(null);
   protected readonly viewMode = signal<string>(''); // 'asignar' | 'resumen' | ''
   protected readonly maintenanceOrders = signal<MaintenanceOrderWithSubOrders[]>([]);
+  /**
+   * `maintenanceOrders` arranca en `[]` hasta que responde la llamada HTTP
+   * de `loadMaintenanceOrders()` — mientras tanto, `novedadesSinAtender()`
+   * (que filtra sobre ese array) da una lista vacía por falta de datos, no
+   * porque de verdad no haya nada pendiente, y el botón "Continuar a
+   * ejecución de llegada" quedaba habilitado en esa ventana (bug
+   * reportado: aparecía habilitado sin haber hecho los mantenimientos).
+   */
+  protected readonly maintenanceOrdersLoading = signal(true);
+  /** Solo para leer el texto de la novedad original inline en la lista de "Mantenimientos operativos" — el detalle completo (diagnóstico, etc.) sigue viviendo en SuborderReviewDialog. */
+  private readonly unitReports = signal<UnitReport[]>([]);
 
   // ── Stepper ──
 
   protected readonly stepLabels = Object.values(PUMPING_STEP_LABELS);
+
+  // El stepper hace scroll horizontal en mobile (ver .scss) — sin esto, en
+  // pasos avanzados (hasta 11) el paso activo queda fuera de vista y el
+  // usuario tiene que descubrir por su cuenta que hay que deslizar para
+  // encontrarlo. Mismo patrón que el tracker de fases de FCR.
+  private readonly trackerScrollEl = viewChild<ElementRef<HTMLElement>>('trackerScroll');
 
   protected readonly currentStepIndex = computed(() => {
     const t = this.ticket();
@@ -188,21 +424,52 @@ export class TicketDetailPage {
     return STEP_KEYS.indexOf(t.currentStep);
   });
 
-  protected readonly currentStep = computed(() => this.ticket()?.currentStep ?? 'revision_propuesta');
+  /** `null` = sin selección manual → se muestra el detalle del paso actual. Clic en un paso ya alcanzado lo selecciona. */
+  private readonly manualStepIndex = signal<number | null>(null);
+  protected readonly selectedStepIndex = computed(() => this.manualStepIndex() ?? this.currentStepIndex());
 
-  // ── Context card ──
+  protected seleccionarPaso(index: number): void {
+    if (index > this.currentStepIndex()) return;
+    this.manualStepIndex.set(index);
+  }
 
-  protected readonly contextItems = computed<DynadrillContextCardItem[]>(() => {
+  protected readonly currentStep = computed(() => this.ticket()?.currentStep ?? 'revision_inicial');
+
+  // ── Context card (cabecera de identidad del ticket, dynadrill-ui@1.1.0 variant="card") ──
+
+  protected readonly contextCardTags = computed<DynadrillContextCardTag[]>(() => {
+    const t = this.ticket();
+    const macro = t?.timelineResumen?.macroEstadoActual;
+    const tags: DynadrillContextCardTag[] = [];
+    if (macro) tags.push({ label: MACRO_ESTADO_LABELS[macro], variant: MACRO_ESTADO_TONE[macro] });
+    if (t?.proposalOrigin) tags.push({ label: t.proposalOrigin, variant: 'info' });
+    return tags;
+  });
+
+  protected readonly contextCardGroups = computed<DynadrillContextCardItem[][]>(() => {
     const t = this.ticket();
     if (!t) return [];
     return [
-      { label: 'Ticket', value: t.code },
-      { label: 'Cliente', value: t.clientName },
-      { label: 'Pozo', value: t.wellName },
-      { label: 'Tipo de servicio', value: PUMPING_SERVICE_TYPE_LABELS[t.serviceType] },
-      { label: 'Fecha estimada', value: t.estimatedDate || '—' },
-      { label: 'Origen', value: t.proposalOrigin },
+      [{ label: 'Cliente', value: t.clientName, icon: 'users' }],
+      [
+        { label: 'Pozo', value: t.wellName, icon: 'location' },
+        { label: 'Tipo de servicio', value: PUMPING_SERVICE_TYPE_LABELS[t.serviceType], icon: 'tool', badgeVariant: 'brand' },
+      ],
+      [
+        {
+          label: 'Fecha estimada',
+          value: t.estimatedDate || '—',
+          icon: 'calendar',
+          caption: t.estimatedDate ? capitalize(formatDate(parseLocalDateString(t.estimatedDate), "EEEE, d 'de' MMMM y", 'es')) : undefined,
+        },
+        { label: 'Origen', value: t.proposalOrigin, icon: 'modules', dotVariant: 'success' },
+      ],
     ];
+  });
+
+  protected readonly contextCardFooterStatus = computed<DynadrillContextCardTag>(() => {
+    const cerrado = this.ticket()?.status === 'cerrado' || this.ticket()?.status === 'aprobado';
+    return cerrado ? { label: 'Finalizado', variant: 'neutral' } : { label: 'Activo', variant: 'success' };
   });
 
   // ══════════════════════════════════════════════
@@ -228,12 +495,14 @@ export class TicketDetailPage {
   ];
   protected readonly selectedOperators = signal<number[]>([]);
 
+  // Ids reales del catálogo `Unidad` (ver prisma/seed.ts UNIDADES) — GEN-01/
+  // GEN-02 ocupan el 4 y 5, así que CAM-04/CAM-08 son 6 y 7, no 4 y 5.
   protected readonly unitOptions: DynadrillSelectOption[] = [
     { label: 'PUM-07', value: 1 },
     { label: 'PUM-15', value: 2 },
     { label: '4-CTV-03', value: 3 },
-    { label: 'CAM-04', value: 4 },
-    { label: 'CAM-08', value: 5 },
+    { label: 'CAM-04', value: 6 },
+    { label: 'CAM-08', value: 7 },
   ];
   protected readonly selectedUnits = signal<number[]>([]);
 
@@ -254,10 +523,72 @@ export class TicketDetailPage {
   protected readonly chemicalQuantities = signal<Map<number, number>>(new Map());
   /** Documento de mezcla de químicos — obligatorio en cuanto se selecciona al menos un químico. */
   protected readonly chemicalMixtureDocument = signal<NzUploadFile | null>(null);
+  /** Si `chemicalMixtureDocument` viene de precargar un documento REAL del pedido (subida a disco, `PedidoDocumento`), acá queda la referencia para poder previsualizarlo/descargarlo — null si el usuario adjuntó uno a mano (solo se guarda el nombre, sin contenido, ver `onChemicalMixtureDocumentSelected`). */
+  protected readonly chemicalMixtureDocumentoOrigen = signal<PedidoDocumentoAdjunto | null>(null);
 
   private loadChemicalArticulos(): void {
     this.articulosService.list().subscribe({
-      next: articulos => this.chemicalArticulos.set(articulos.filter(a => a.categoria === 'QUIMICA' && a.activo)),
+      next: articulos => {
+        this.chemicalArticulos.set(articulos.filter(a => a.categoria === 'QUIMICA' && a.activo));
+        this.sincronizarQuimicosDelPedido();
+      },
+    });
+  }
+
+  // ── Químicos del pedido — Ventas los marca en Líneas Estimadas (esQuimico); ── //
+  // ── se precargan acá en vez de tener que volver a elegirlos del catálogo.  ── //
+
+  /** Líneas del pedido que Ventas marcó como químico. */
+  protected readonly chemicalsPedido = computed(() => this.pedidoItems().filter(it => it.esQuimico));
+
+  /** Cada línea de químico del pedido, emparejada con su Articulo real de Inventario por código (o `undefined` si no hay coincidencia — Ventas y Bodega no siempre usan el mismo código). */
+  protected readonly chemicalsPedidoResueltos = computed(() =>
+    this.chemicalsPedido().map(item => ({ item, articulo: this.chemicalArticulos().find(a => a.codigo === item.codigo) })),
+  );
+
+  private chemicalesPrecargados = false;
+
+  /** Se corre una sola vez, apenas están disponibles tanto el pedido como el catálogo de químicos (llegan de dos cargas async independientes, en cualquier orden). */
+  private sincronizarQuimicosDelPedido(): void {
+    if (this.chemicalesPrecargados) return;
+    const resueltos = this.chemicalsPedidoResueltos().filter(r => !!r.articulo);
+    if (!this.pedido() || this.chemicalArticulos().length === 0) return; // todavía falta una de las dos cargas
+    this.chemicalesPrecargados = true;
+    if (!resueltos.length) return;
+    this.selectedChemicals.set(resueltos.map(r => r.articulo!.id));
+    this.chemicalQuantities.set(new Map(resueltos.map(r => [r.articulo!.id, r.item.cantidad])));
+  }
+
+  /**
+   * Documentos de referencia que Ventas adjuntó al crear el pedido (ej.
+   * ficha de mezcla de químicos) — para que Pumping sepa de qué se trata
+   * sin que se lo vuelvan a pedir. Si hay al menos uno y todavía no se
+   * cargó el documento de mezcla, se precarga con el primero (mismo
+   * criterio del resto de la app: se guarda el nombre del archivo, no su
+   * contenido — no hay almacenamiento real de binarios).
+   */
+  /** Cargados aparte (subida real a disco, `PedidoDocumento`) — ya no viven en el payload del propio Pedido. */
+  protected readonly documentosReferenciaPedido = signal<PedidoDocumentoAdjunto[]>([]);
+
+  private precargarDocumentoDeMezcla(): void {
+    if (this.chemicalMixtureDocument()) return; // ya tiene uno cargado (a mano, o ya se precargó antes)
+    const [primero] = this.documentosReferenciaPedido();
+    if (!primero) return;
+    this.chemicalMixtureDocument.set({ uid: '-1', name: primero.nombreOriginal } as NzUploadFile);
+    this.chemicalMixtureDocumentoOrigen.set(primero);
+  }
+
+  /** Blob autenticado (mismo criterio que `previsualizarDocumento` de FCR) — un `<a href>` directo al endpoint no llevaría el Bearer. */
+  protected previsualizarDocumentoReferenciaPedido(doc: PedidoDocumentoAdjunto): void {
+    const p = this.pedido();
+    if (!p) return;
+    this.pedidoService.descargarDocumentoAdjunto(p.id, doc.id).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      },
+      error: () => this.notify.error('Error', 'No se pudo abrir el documento.'),
     });
   }
 
@@ -288,8 +619,15 @@ export class TicketDetailPage {
     });
   }
 
+  /** Resuelve a mano una línea de químico del pedido que no cruzó por código contra Inventario. */
+  protected onResolverQuimicoManual(item: ItemEstimado, articuloId: number): void {
+    this.selectedChemicals.update(ids => (ids.includes(articuloId) ? ids : [...ids, articuloId]));
+    this.chemicalQuantities.update(map => new Map(map).set(articuloId, item.cantidad));
+  }
+
   protected onChemicalMixtureDocumentSelected(file: NzUploadFile): void {
     this.chemicalMixtureDocument.set(file);
+    this.chemicalMixtureDocumentoOrigen.set(null);
   }
 
   /** Motivo de bloqueo (cantidad sin definir o stock insuficiente en bodega), o null si todo está en regla. */
@@ -318,26 +656,7 @@ export class TicketDetailPage {
 
   protected readonly assignmentSummaryRows = computed(() => {
     const t = this.ticket();
-    if (!t || t.operators.length === 0) {
-      // Datos de ejemplo para vista previa
-      return [
-        {
-          id: 1, name: 'Jorge Salinas', role: 'Operador Mecánico', unitCode: 'PUM-07',
-          inspectionStatus: { text: 'Realizada', tone: 'success' as const },
-          reportStatus: { text: 'Completado', tone: 'success' as const },
-        },
-        {
-          id: 2, name: 'David Cevallos', role: 'Operador Instrumental', unitCode: 'PUM-07',
-          inspectionStatus: { text: 'Realizada', tone: 'success' as const },
-          reportStatus: { text: 'Completado', tone: 'success' as const },
-        },
-        {
-          id: 10, name: 'Marco Ruiz', role: 'Operador', unitCode: 'PUM-07',
-          inspectionStatus: { text: 'Pendiente', tone: 'warning' as const },
-          reportStatus: { text: 'Pendiente', tone: 'warning' as const },
-        },
-      ];
-    }
+    if (!t) return [];
     return t.operators.map(op => ({
       id: op.id,
       name: op.name,
@@ -364,14 +683,7 @@ export class TicketDetailPage {
 
   protected readonly chemicalSummaryRows = computed(() => {
     const t = this.ticket();
-    if (!t || t.chemicals.length === 0) {
-      // Datos de ejemplo
-      return [
-        { id: 1, name: 'Biocida QX-12', quantityAssigned: 40, unit: 'gal' },
-        { id: 2, name: 'Inhibidor de corrosión', quantityAssigned: 20, unit: 'gal' },
-        { id: 3, name: 'Surfactante SF-3', quantityAssigned: 15, unit: 'gal' },
-      ];
-    }
+    if (!t) return [];
     return t.chemicals.map(c => ({
       id: c.id,
       name: c.name,
@@ -438,12 +750,19 @@ export class TicketDetailPage {
     if (!t) return [];
     const rejected = this.rejectedSalidaOperators();
     const approved = this.approvedSalidaOperators();
+    const inspecciones = this.completedInspections();
     return t.operators.map(op => ({
       id: op.id,
       name: op.name,
       role: op.role,
       unitCode: op.unitCode,
-      inspectionStatus: { text: 'Realizada', tone: 'success' as const },
+      // Antes quedaba hardcodeado en "Realizada" sin importar el estado
+      // real — el Supervisor veía la inspección como hecha aunque el
+      // operador nunca la hubiera registrado, y no tenía forma de
+      // hacerla/completarla desde acá (bug reportado).
+      inspectionStatus: inspecciones.has(op.id)
+        ? { text: 'Realizada', tone: 'success' as const }
+        : { text: 'Pendiente', tone: 'warning' as const },
       reportStatus: rejected.has(op.id)
         ? { text: 'Rechazado', tone: 'error' as const }
         : approved.has(op.id)
@@ -488,7 +807,10 @@ export class TicketDetailPage {
 
     const operatorName = row['name'] as string;
     const unitCode = row['unitCode'] as string;
-    const inspection = createMockCompletedInspection(operatorName, unitCode);
+    // La inspección que el operador realmente registró (no un mock nuevo).
+    const inspection =
+      (this.completedInspections().get(row['id'] as number) as VehicleInspection | undefined) ??
+      createMockCompletedInspection(operatorName, unitCode, this.unidadPorCodigo(unitCode), this.conductorParaOperador(row['id'] as number));
 
     const ref = this.dialog.open<ReviewArrivalReportDialog, ReviewArrivalReportDialogData>({
       title: 'Revisar inspección y reporte de salida',
@@ -532,8 +854,77 @@ export class TicketDetailPage {
 
   // ── Travel Management (DYN-SGI-RE-049) ──
 
-  /** Tracks operators whose travel management is pending Jefe de Base approval */
+  /** Operadores cuyo gerenciamiento espera la autorización del Jefe de Base. */
   protected readonly travelPendingApproval = signal<Set<number>>(new Set());
+  /** Gerenciamientos retenidos hasta que el Jefe de Base los autorice. */
+  protected readonly travelPendingManagements = signal<Map<number, TravelManagement>>(new Map());
+  protected readonly returnTravelPendingManagements = signal<Map<number, TravelManagement>>(new Map());
+
+  /**
+   * "Sigo sin ver que la info del gerenciamiento de ida se recupere en el de
+   * retorno" — el motivo real era que `travelManagements`/`returnTravelManagements`
+   * vivían solo en memoria del componente, nunca se guardaban en el ticket:
+   * cualquier recarga de página los vaciaba antes de llegar al paso de
+   * retorno. Se persisten acá (PUT genérico del ticket) cada vez que cambian.
+   */
+  private guardarGerenciamientosEnTicket(): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.pumpingService
+      .updateTicket(t.id, {
+        travelManagements: Object.fromEntries(this.travelManagements()),
+        returnTravelManagements: Object.fromEntries(this.returnTravelManagements()),
+      })
+      .subscribe({ error: () => this.notify.error('Error', 'No se pudo guardar el gerenciamiento de viaje.') });
+  }
+
+  /**
+   * Todo Gerenciamiento de Viaje (DYN-SGI-RE-049) lo autoriza el Jefe de Base.
+   * En la demo un mismo usuario recorre todos los roles: el diálogo de
+   * confirmación es la firma del Jefe de Base. No se cambia el rol de la
+   * sesión — la autorización es solo del lado del cliente y el Supervisor
+   * tiene que poder seguir el flujo (avanzar de paso) apenas queda autorizada.
+   */
+  protected async autorizarGerenciamiento(row: Record<string, unknown>, retorno = false): Promise<void> {
+    const id = row['id'] as number;
+    const pendientes = retorno ? this.returnTravelPendingManagements() : this.travelPendingManagements();
+    const tm = pendientes.get(id);
+    if (!tm) return;
+    const jefeBase = this.jefeBaseNombre() || 'Jefe de Base';
+    const ok = await this.dialog.confirm({
+      title: `Autorización de ${jefeBase}`,
+      content: `Como Jefe de Base (${jefeBase}), ¿autorizas el gerenciamiento de viaje${retorno ? ' de retorno' : ''} de ${row['name']} (riesgo ${tm.riskLevel})?${tm.riskLevel === 'ALTO' ? ' El riesgo ALTO requiere además el visto bueno del Director General, fuera del alcance del app.' : ''}`,
+      okText: 'Autorizar como Jefe de Base',
+    });
+    if (!ok) return;
+
+    const aprobador = jefeBase;
+    const autorizado: TravelManagement = { ...tm, approverName: aprobador, approverSignature: aprobador };
+    const pendMap = retorno ? this.returnTravelPendingManagements : this.travelPendingManagements;
+    const doneMap = retorno ? this.returnTravelManagements : this.travelManagements;
+    pendMap.update(m => {
+      const u = new Map(m);
+      u.delete(id);
+      return u;
+    });
+    doneMap.update(m => {
+      const u = new Map(m);
+      u.set(id, autorizado);
+      return u;
+    });
+    this.travelPendingApproval.update(set => {
+      const u = new Set(set);
+      u.delete(id);
+      return u;
+    });
+    this.returnTravelPendingApproval.update(set => {
+      const u = new Set(set);
+      u.delete(id);
+      return u;
+    });
+    this.guardarGerenciamientosEnTicket();
+    this.notify.success('Gerenciamiento autorizado', `El Jefe de Base autorizó el gerenciamiento de viaje${retorno ? ' de retorno' : ''} de ${row['name']}.`);
+  }
 
   protected hasTravelManagement(row: Record<string, unknown>): boolean {
     return this.travelManagements().has(row['id'] as number);
@@ -582,6 +973,8 @@ export class TicketDetailPage {
         destino: t.unitReport?.destination ?? '',
         lineaServicio: PUMPING_SERVICE_TYPE_LABELS[t.serviceType],
         supervisor: t.assignedSupervisor ?? '',
+        jefeBase: this.jefeBaseNombre(),
+        conductor: this.conductorDeOperador(operatorId),
         conductores: row['name'] as string,
         placas: '',
       },
@@ -592,42 +985,38 @@ export class TicketDetailPage {
     travelRef.afterClose.subscribe((travelResult: TravelManagementDialogResult | undefined) => {
       if (!travelResult?.completed || !travelResult.travelManagement) return;
 
-      const riskLevel = travelResult.travelManagement.riskLevel;
+      const tm = travelResult.travelManagement;
 
-      if (riskLevel === 'BAJO') {
-        // Supervisor directo aprueba — se completa inmediatamente
+      // BAJO: el supervisor directo lo cierra, sin pasar por el Jefe de
+      // Base (antes quedaba pendiente igual sin importar el riesgo — el
+      // comentario ya decía esto pero el código no lo aplicaba).
+      if (tm.riskLevel === 'BAJO') {
         this.travelManagements.update(map => {
           const updated = new Map(map);
-          updated.set(operatorId, travelResult.travelManagement!);
+          updated.set(operatorId, tm);
           return updated;
         });
-        this.notify.success('Gerenciamiento completado', `Riesgo BAJO — aprobado por supervisor directo.`);
-      } else {
-        // MEDIO o ALTO — requiere aprobación del Jefe de Base
-        this.travelPendingApproval.update(set => {
-          const updated = new Set(set);
-          updated.add(operatorId);
-          return updated;
-        });
-        this.notify.info(
-          'Pendiente de aprobación',
-          `Riesgo ${riskLevel} — requiere aprobación del ${riskLevel === 'ALTO' ? 'Director General' : 'Jefe de Base'}.`,
-        );
-        // Simulate Jefe de Base approval after a short delay (in real app, this would be async)
-        setTimeout(() => {
-          this.travelPendingApproval.update(set => {
-            const updated = new Set(set);
-            updated.delete(operatorId);
-            return updated;
-          });
-          this.travelManagements.update(map => {
-            const updated = new Map(map);
-            updated.set(operatorId, travelResult.travelManagement!);
-            return updated;
-          });
-          this.notify.success('Gerenciamiento aprobado', `El ${riskLevel === 'ALTO' ? 'Director General' : 'Jefe de Base'} ha aprobado el gerenciamiento de viaje.`);
-        }, 3000);
+        this.guardarGerenciamientosEnTicket();
+        this.notify.success('Gerenciamiento de viaje guardado', `Riesgo BAJO — cerrado directamente por el Supervisor.`);
+        return;
       }
+
+      // MEDIO/ALTO: queda pendiente hasta que el Jefe de Base lo autorice
+      // desde la tabla de personal ("Autorizar gerenciamiento").
+      this.travelPendingManagements.update(map => {
+        const updated = new Map(map);
+        updated.set(operatorId, tm);
+        return updated;
+      });
+      this.travelPendingApproval.update(set => {
+        const updated = new Set(set);
+        updated.add(operatorId);
+        return updated;
+      });
+      this.notify.info(
+        'Enviado al Jefe de Base',
+        `Gerenciamiento de viaje de ${row['name']} (riesgo ${tm.riskLevel}) — pendiente de autorización del Jefe de Base.`,
+      );
     });
   }
 
@@ -758,7 +1147,7 @@ export class TicketDetailPage {
   /**
    * Orden final confirmado con el cliente: para la llegada el Gerenciamiento
    * de Viaje va PRIMERO — antes de que el operador pueda siquiera crear la
-   * inspección y el reporte de unidad de llegada (paso `gerenciamiento_llegada`,
+   * inspección y el reporte de unidad de llegada (paso `control_retorno`,
    * ver advanceFromGerenciamientoLlegada). Por eso se basa en personnelRows
    * (la asignación del ticket) y no en reviewLlegadaRows, que depende de un
    * reporte que en este punto todavía no existe.
@@ -774,6 +1163,8 @@ export class TicketDetailPage {
     const t = this.ticket();
     if (!t) return;
     const operatorId = row['id'] as number;
+    /** El gerenciamiento de ida de este mismo operador — motivo/plan y ruta se precargan desde ahí, editables. */
+    const gerenciamientoIda = this.travelManagements().get(operatorId);
 
     const travelRef = this.dialog.open<TravelManagementDialog, TravelManagementDialogData>({
       title: 'Gerenciamiento de Viaje de Retorno — DYN-SGI-RE-049',
@@ -786,8 +1177,11 @@ export class TicketDetailPage {
         destino: t.unitReport?.origin ?? '',
         lineaServicio: PUMPING_SERVICE_TYPE_LABELS[t.serviceType],
         supervisor: t.assignedSupervisor ?? '',
+        jefeBase: this.jefeBaseNombre(),
+        conductor: this.conductorDeOperador(operatorId, true),
         conductores: row['name'] as string,
         placas: '',
+        previousTravelManagement: gerenciamientoIda,
       },
       size: 'large',
       footer: false,
@@ -796,45 +1190,63 @@ export class TicketDetailPage {
     travelRef.afterClose.subscribe((travelResult: TravelManagementDialogResult | undefined) => {
       if (!travelResult?.completed || !travelResult.travelManagement) return;
 
-      const riskLevel = travelResult.travelManagement.riskLevel;
+      const tm = travelResult.travelManagement;
 
-      if (riskLevel === 'BAJO') {
+      // Mismo criterio que el gerenciamiento de ida: BAJO lo cierra el
+      // supervisor directo, sin pasar por el Jefe de Base.
+      if (tm.riskLevel === 'BAJO') {
         this.returnTravelManagements.update(map => {
           const updated = new Map(map);
-          updated.set(operatorId, travelResult.travelManagement!);
+          updated.set(operatorId, tm);
           return updated;
         });
-        this.notify.success('Gerenciamiento de retorno completado', 'Riesgo BAJO — aprobado por supervisor directo.');
-      } else {
-        this.returnTravelPendingApproval.update(set => {
-          const updated = new Set(set);
-          updated.add(operatorId);
-          return updated;
-        });
-        this.notify.info(
-          'Pendiente de aprobación',
-          `Riesgo ${riskLevel} — requiere aprobación del ${riskLevel === 'ALTO' ? 'Director General' : 'Jefe de Base'}.`,
-        );
-        setTimeout(() => {
-          this.returnTravelPendingApproval.update(set => {
-            const updated = new Set(set);
-            updated.delete(operatorId);
-            return updated;
-          });
-          this.returnTravelManagements.update(map => {
-            const updated = new Map(map);
-            updated.set(operatorId, travelResult.travelManagement!);
-            return updated;
-          });
-          this.notify.success('Gerenciamiento de retorno aprobado', `El ${riskLevel === 'ALTO' ? 'Director General' : 'Jefe de Base'} ha aprobado el gerenciamiento de viaje de retorno.`);
-        }, 3000);
+        this.guardarGerenciamientosEnTicket();
+        this.notify.success('Gerenciamiento de retorno guardado', `Riesgo BAJO — cerrado directamente por el Supervisor.`);
+        return;
       }
+
+      this.returnTravelPendingManagements.update(map => {
+        const updated = new Map(map);
+        updated.set(operatorId, tm);
+        return updated;
+      });
+      this.returnTravelPendingApproval.update(set => {
+        const updated = new Set(set);
+        updated.add(operatorId);
+        return updated;
+      });
+      this.notify.info(
+        'Enviado al Jefe de Base',
+        `Gerenciamiento de retorno de ${row['name']} (riesgo ${tm.riskLevel}) — pendiente de autorización del Jefe de Base.`,
+      );
     });
   }
 
   protected approveAllSalidaReports(): void {
     const t = this.ticket();
     if (!t) return;
+    if (this.bloqueadoPorSwa()) return;
+    if (!this.coberturaOk()) {
+      this.notify.error(
+        'Matriz IPERC incompleta',
+        `El servicio no puede pasar a ejecución: HSE tiene pendiente aprobar ${this.actividadesPendientes()
+          .map(a => a.nombre)
+          .join(', ')} en la matriz maestra.`,
+      );
+      return;
+    }
+    if (!this.ptwFirmadoOk()) {
+      const p = this.ptwVinculo();
+      this.notify.error(
+        'PTW pendiente',
+        p
+          ? `El servicio no puede pasar a ejecución en campo: el PTW ${p.code} está en ${this.ptwFaseLabel(
+              p.fase,
+            )} — falta la firma en sitio (HSE-SITIO-001).`
+          : 'El servicio no puede pasar a ejecución en campo: todavía no se abrió el PTW/Recibimiento de Sitio en QHSE.',
+      );
+      return;
+    }
     this.submitting.set(true);
     const nextStep: PumpingStep = 'ejecucion_operativa';
     this.pumpingService.advanceStep(t.id, nextStep).subscribe({
@@ -856,8 +1268,9 @@ export class TicketDetailPage {
   protected approveAllLlegadaReports(): void {
     const t = this.ticket();
     if (!t) return;
+    if (this.bloqueadoPorSwa()) return;
     this.submitting.set(true);
-    const nextStep: PumpingStep = 'en_revision';
+    const nextStep: PumpingStep = 'revision_final';
     this.pumpingService.advanceStep(t.id, nextStep).subscribe({
       next: updated => {
         this.ticket.set(updated);
@@ -956,11 +1369,17 @@ export class TicketDetailPage {
       content: DailyActivityReportDialog,
       data: {
         ticketCode: t.code,
+        ticketId: t.id,
+        fechaClave: fecha,
         cliente: t.clientName,
         pozo: t.wellName,
         campoBloque: t.unitReport?.blockName ?? '',
         supervisor: t.assignedSupervisor ?? '',
         numeroContrato: t.numeroContrato,
+        taladro: t.taladroRig,
+        taladroId: t.taladroId,
+        // Representante del cliente ya se definió en el Pedido (Company Man / Representante de Campo) — no hace falta re-tipearlo acá.
+        representanteCliente: this.pedido()?.representanteCampo,
         existing: undefined,
       },
       size: 'large',
@@ -1062,8 +1481,9 @@ export class TicketDetailPage {
   protected advanceFromEjecucionOperativa(): void {
     const t = this.ticket();
     if (!t) return;
+    if (this.bloqueadoPorSwa()) return;
     this.submitting.set(true);
-    const nextStep: PumpingStep = 'gerenciamiento_llegada';
+    const nextStep: PumpingStep = 'control_retorno';
     this.pumpingService.advanceStep(t.id, nextStep).subscribe({
       next: updated => {
         this.ticket.set(updated);
@@ -1085,13 +1505,14 @@ export class TicketDetailPage {
    * llegada lo crea el Supervisor ANTES de que el operador pueda crear la
    * inspección y el reporte de unidad de llegada — ver
    * allReturnTravelManagementsCompleted/openReturnTravelManagement más
-   * arriba, gated en el paso `gerenciamiento_llegada`.
+   * arriba, gated en el paso `control_retorno`.
    */
   protected advanceFromGerenciamientoLlegada(): void {
     const t = this.ticket();
     if (!t) return;
+    if (this.bloqueadoPorSwa()) return;
     this.submitting.set(true);
-    const nextStep: PumpingStep = 'en_ejecucion_llegada';
+    const nextStep: PumpingStep = 'traslado_llegada';
     this.pumpingService.advanceStep(t.id, nextStep).subscribe({
       next: updated => {
         this.ticket.set(updated);
@@ -1119,6 +1540,7 @@ export class TicketDetailPage {
   ];
 
   protected readonly isOperador = computed(() => this.roleName() === 'Operador');
+  protected readonly isSupervisor = computed(() => this.roleName() === 'Supervisor' || this.roleName() === 'Supervisor Pumping');
 
   protected readonly personnelRows = computed(() => {
     const t = this.ticket();
@@ -1181,7 +1603,10 @@ export class TicketDetailPage {
    */
   protected readonly ubicacionInicial = computed<Partial<UbicacionSeleccion> | null>(() => {
     const t = this.ticket();
-    return t?.wellName ? { pozo: t.wellName } : null;
+    // Prioriza el id real del catálogo (heredado del Pedido al crear el
+    // ticket) — el texto (wellName) queda de respaldo para tickets viejos
+    // creados antes de que el ticket guardara el id.
+    return t?.pozoId ? { pozoId: t.pozoId } : t?.wellName ? { pozo: t.wellName } : null;
   });
 
   protected onUbicacionChange(u: UbicacionSeleccion): void {
@@ -1197,8 +1622,9 @@ export class TicketDetailPage {
   protected readonly reportUnitCode = signal('');
   // dynadrill-datetime-picker trabaja con Date, no con el string ISO que guarda
   // PumpingUnitReport — se convierte en los límites (initFromTicket / saveUnitReport).
-  protected readonly reportDepartureDate = signal<Date | null>(null);
-  protected readonly reportArrivalDate = signal<Date | null>(null);
+  // Arrancan en hoy (editable) — initFromTicket las pisa si ya existe un reporte guardado con su propia fecha.
+  protected readonly reportDepartureDate = signal<Date | null>(new Date());
+  protected readonly reportArrivalDate = signal<Date | null>(new Date());
   protected readonly reportFuelDeparture = signal('');
   protected readonly reportFuelArrival = signal('');
   protected readonly reportOrigin = signal('');
@@ -1258,6 +1684,17 @@ export class TicketDetailPage {
   protected readonly noveltiesMecanica = signal('');
   protected readonly noveltiesInstrumentacion = signal('');
   protected readonly noveltiesOperaciones = signal('');
+  /** Oculta las 3 textareas de novedades hasta que el operador confirme que hay algo que reportar — la mayoría de los días no hay. */
+  protected readonly hayNovedades = signal(false);
+
+  protected onHayNovedadesChange(hay: boolean): void {
+    this.hayNovedades.set(hay);
+    if (!hay) {
+      this.noveltiesMecanica.set('');
+      this.noveltiesInstrumentacion.set('');
+      this.noveltiesOperaciones.set('');
+    }
+  }
 
   // Operatividad
   protected readonly unitReadyOptions = ['Sí', 'No'];
@@ -1265,6 +1702,11 @@ export class TicketDetailPage {
   protected readonly operationInterruptedOptions = ['Sí', 'No'];
   protected readonly operationInterruptedSelection = signal<string[]>([]);
   protected readonly interruptionDetail = signal('');
+
+  /** Las dos preguntas de operatividad deben quedar contestadas (Sí/No) antes de poder enviar el reporte de unidad. */
+  protected readonly operatividadCompleta = computed(
+    () => this.unitReadySelection().length > 0 && this.operationInterruptedSelection().length > 0,
+  );
 
   // Firmas (automáticas desde operador asignado)
   protected readonly departureOperatorName = signal('');
@@ -1361,28 +1803,142 @@ export class TicketDetailPage {
     this.viewMode.set(this.route.snapshot.queryParamMap.get('mode') ?? '');
     this.pumpingService.getTicket(id).subscribe({
       next: ticket => {
-        // Validar que el rol puede ver este estado
-        if (!this.canAccessStep(ticket.currentStep)) {
-          this.notify.error('Acceso denegado', 'No tienes permisos para ver este ticket en su estado actual.');
-          this.router.navigate(['..'], { relativeTo: this.route });
-          return;
+        // Demo: un mismo usuario recorre todos los roles. Si el rol de la
+        // sesión no es el que actúa el paso actual del ticket (p. ej. quedó
+        // en "Jefe de Base" tras autorizar un gerenciamiento), se pasa a ese
+        // rol en vez de bloquear el acceso.
+        const expected = PUMPING_STEP_ROLE[ticket.currentStep];
+        if (expected && !esRolResponsablePumping(expected.roleName, this.roleName())) {
+          this.auth.switchRole(expected.roleName, expected.roleId);
         }
         this.ticket.set(ticket);
         this.loading.set(false);
         this.initFromTicket(ticket);
         this.loadMaintenanceOrders();
+        if (ticket.pedidoId) {
+          this.pedidoService.get(ticket.pedidoId).subscribe({
+            next: p => {
+              this.pedido.set(p);
+              this.sincronizarQuimicosDelPedido();
+              this.pedidoService.listarDocumentosAdjuntos(p.id).subscribe(docs => {
+                this.documentosReferenciaPedido.set(docs);
+                this.precargarDocumentoDeMezcla();
+              });
+            },
+            error: () => this.pedido.set(null),
+          });
+        }
+        this.reloadSolicitudPendiente(ticket.id);
       },
       error: () => this.loading.set(false),
     });
     this.loadChemicalArticulos();
+    this.unidadesService.list().subscribe(us => {
+      this.unidades.set(us);
+      this.syncMockInspections();
+    });
+    this.rolesService.usuariosPorRol('jefe_base').subscribe(us => this.jefeBaseNombre.set(us[0]?.name ?? ''));
+    this.vehicleInspectionsService.listConductoresPermisos().subscribe(cs => {
+      this.conductoresPermisos.set(cs.map(c => c.nombre));
+      this.syncMockInspections();
+    });
+    this.vehicleInspectionsService.list().subscribe(list => {
+      this.realInspections.set(list);
+      this.syncMockInspections();
+    });
+
+    afterRenderEffect(() => {
+      this.currentStepIndex();
+      const container = this.trackerScrollEl()?.nativeElement;
+      const active = container?.querySelector<HTMLElement>('.ticket-detail__step--active');
+      active?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    });
+
+    // Si el ticket avanza de paso, la selección manual vieja del detalle ya no aplica.
+    effect(() => {
+      this.currentStepIndex();
+      untracked(() => this.manualStepIndex.set(null));
+    });
   }
 
-  private canAccessStep(step: PumpingStep): boolean {
-    const role = this.roleName();
-    const expectedRole = PUMPING_STEP_ROLE[step];
-    // Allow access if the user has the correct role for this step
-    // (auto-switching ensures this in the demo flow)
-    return role === expectedRole.roleName;
+  // ══════════════════════════════════════════════
+  // Solicitud de cambio de ítems del pedido (Operador -> Supervisor)
+  // ══════════════════════════════════════════════
+
+  /**
+   * "El operador dispone todo el tiempo de una opción para ... solicitar la
+   * edición de los ítems del pedido" — botón permanente, visible en
+   * cualquier paso. El Supervisor también puede editar los ítems desde acá
+   * (mismo diálogo), pero su cambio se aplica directo, sin pasar por
+   * aprobación (ver `abrirSolicitudCambioItems`).
+   */
+  protected readonly puedeSolicitarCambioItems = computed(
+    () => (this.isOperador() || this.isSupervisor()) && !!this.ticket()?.pedidoId,
+  );
+
+  /** "El botón junto a Reportar para ver el pedido de Ventas... siempre que quieran" — visible a cualquier rol, en cualquier paso. */
+  protected abrirVerPedido(): void {
+    const p = this.pedido();
+    if (!p) return;
+    this.dialog.open<VerPedidoDialog, VerPedidoDialogData>({
+      title: `Pedido ${p.code} — ${p.cliente}`,
+      content: VerPedidoDialog,
+      data: { pedido: p, onEditarItems: this.puedeSolicitarCambioItems() ? () => this.abrirSolicitudCambioItems() : undefined },
+      footer: false,
+      width: '760px',
+    });
+  }
+
+  private reloadSolicitudPendiente(pumpingTicketId: number): void {
+    this.solicitudCambioItemsService.porTicket(pumpingTicketId).subscribe({
+      next: solicitudes => this.solicitudPendiente.set(solicitudes.find(s => s.estado === 'pendiente') ?? null),
+      error: () => this.solicitudPendiente.set(null),
+    });
+  }
+
+  protected abrirSolicitudCambioItems(): void {
+    const t = this.ticket();
+    const p = this.pedido();
+    if (!t || !p) return;
+
+    const aplicaInmediato = this.isSupervisor();
+    const ref = this.dialog.open<SolicitarCambioItemsDialog, SolicitarCambioItemsDialogData>({
+      title: 'Solicitar cambio de ítems del pedido',
+      content: SolicitarCambioItemsDialog,
+      data: { pedidoCode: p.code, cliente: p.cliente, itemsActuales: this.pedidoItems(), aplicaInmediato },
+      footer: false,
+      width: '820px',
+    });
+
+    ref.afterClose.subscribe((result?: SolicitarCambioItemsDialogResult) => {
+      if (!result) return;
+      const usuario = this.auth.currentUser()?.name ?? this.roleName();
+      this.solicitudCambioItemsService
+        .proponer({ pumpingTicketId: t.id, itemsPropuestos: result.itemsPropuestos, motivo: result.motivo, solicitadoPor: usuario })
+        .subscribe({
+          next: solicitud => {
+            if (!aplicaInmediato) {
+              this.solicitudPendiente.set(solicitud);
+              this.notify.success('Solicitud enviada', 'Tu Supervisor debe aprobarla para que se actualice el pedido.');
+              return;
+            }
+            // Supervisor: mismo endpoint de aprobación que usa `aprobaciones-page.ts`,
+            // pero autoaplicado acá mismo — su propio cambio no necesita pasar por
+            // otro Supervisor. Reusa 100% la lógica de aplicación del backend
+            // (sobreescribe Pedido.itemsEstimados y recalcula la prefactura si aplica).
+            this.solicitudCambioItemsService.aprobar(solicitud.id, usuario).subscribe({
+              next: () => {
+                this.solicitudPendiente.set(null);
+                this.pedidoService.get(p.id).subscribe(actualizado => this.pedido.set(actualizado));
+                this.notify.success('Pedido actualizado', `Los ítems de ${p.code} quedaron actualizados.`);
+              },
+              error: err => this.notify.error('Error', err?.error?.message ?? 'No se pudo actualizar el pedido. Probá de nuevo.'),
+            });
+          },
+          error: err =>
+            this.notify.error('Error', err?.error?.message ?? 'No se pudo enviar la solicitud. Probá de nuevo.'),
+        });
+    });
   }
 
   // ══════════════════════════════════════════════
@@ -1391,8 +1947,22 @@ export class TicketDetailPage {
 
   private loadMaintenanceOrders(): void {
     this.maintenanceOrdersService.list().subscribe({
-      next: orders => this.maintenanceOrders.set(orders),
+      next: orders => {
+        this.maintenanceOrders.set(orders);
+        this.maintenanceOrdersLoading.set(false);
+      },
+      error: () => this.maintenanceOrdersLoading.set(false),
     });
+    this.unitReportsService.list().subscribe({
+      next: reports => this.unitReports.set(reports),
+    });
+  }
+
+  /** Novedad original (Reporte de Unidad) detrás de una sub-orden Operativo — mismo dato que ya usa reviewOperativoMaintenance(), acá para mostrarlo inline en la lista sin abrir el diálogo. */
+  protected novedadOperativaDe(sub: SubOrder): string {
+    const order = this.maintenanceOrders().find(o => o.subOrders.some(s => s.id === sub.id));
+    const report = order ? this.unitReports().find(r => r.id === order.unitReportId) : undefined;
+    return report?.problemasOperaciones || '';
   }
 
   /** Texto resumen de mantenimientos para una unidad: "Mecánico — En Ejecución, Operativo — Pendiente" */
@@ -1405,7 +1975,7 @@ export class TicketDetailPage {
     return lines.join('\n');
   }
 
-  /** Sub-órdenes Operativo de la unidad del ticket */
+  /** Sub-órdenes Operativo de la unidad del ticket (las únicas que revisa el Supervisor de Pumping acá). */
   protected readonly operativoSubOrders = computed(() => {
     const t = this.ticket();
     if (!t) return [];
@@ -1414,12 +1984,48 @@ export class TicketDetailPage {
       .flatMap(o => o.subOrders.filter(s => s.type === 'Operativo'));
   });
 
-  /** Todas las sub-órdenes Operativo están cerradas o no hay ninguna */
+  /**
+   * TODAS las sub-órdenes de la unidad (Mecánico/Instrumental/Operativo) —
+   * antes el paso "Mantenimiento" solo mostraba el detalle (diagnóstico,
+   * actividades, nota) de las Operativo; las de Mecánico/Instrumental solo
+   * aparecían mencionadas por código en el banner de advertencia, sin
+   * ningún detalle, aunque también bloquean el avance (ver
+   * `novedadesSinAtender`). El Supervisor no tenía forma de ver su avance
+   * desde acá sin ir al módulo de Mantenimiento aparte.
+   */
+  protected readonly todasLasSubOrdenesDeLaUnidad = computed(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    return this.maintenanceOrders()
+      .filter(o => o.unidad === t.unitCode)
+      .flatMap(o => o.subOrders);
+  });
+
+  /** Todas las sub-órdenes Operativo de esta unidad están cerradas o no hay ninguna. */
   protected readonly allOperativoResolved = computed(() => {
     const subs = this.operativoSubOrders();
     if (subs.length === 0) return true;
     return subs.every(s => s.status === 'Cerrado');
   });
+
+  /**
+   * Todas las sub-órdenes (Mecánico/Instrumental/Operativo) de la unidad
+   * están cerradas — antes solo se chequeaba Operativo acá; el backend ya
+   * bloquea el PATCH de avance para las 3 (ver `PumpingDomainService.advance`),
+   * esto solo evita el viaje redondo y explica por qué el botón está
+   * deshabilitado.
+   */
+  protected readonly novedadesSinAtender = computed(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    return this.maintenanceOrders()
+      .filter(o => o.unidad === t.unitCode)
+      .flatMap(o => o.subOrders)
+      .filter(s => s.status !== 'Cerrado');
+  });
+  protected readonly allNovedadesResolved = computed(
+    () => !this.maintenanceOrdersLoading() && this.novedadesSinAtender().length === 0,
+  );
 
   protected reviewOperativoMaintenance(sub: SubOrder): void {
     const order = this.maintenanceOrders().find(o => o.subOrders.some(s => s.id === sub.id));
@@ -1441,8 +2047,9 @@ export class TicketDetailPage {
   protected approveMaintenanceStep(): void {
     const t = this.ticket();
     if (!t) return;
+    if (this.bloqueadoPorSwa()) return;
     this.submitting.set(true);
-    const nextStep: PumpingStep = 'revisar_reportes_llegada';
+    const nextStep: PumpingStep = 'revision_reportes_llegada';
     this.pumpingService.advanceStep(t.id, nextStep).subscribe({
       next: updated => {
         this.ticket.set(updated);
@@ -1467,6 +2074,16 @@ export class TicketDetailPage {
     const supervisorId = this.selectedSupervisor();
     const t = this.ticket();
     if (!supervisorId || !t) return;
+    if (this.bloqueadoPorSwa()) return;
+    if (!this.coberturaOk()) {
+      this.notify.error(
+        'Matriz IPERC incompleta',
+        `No se puede asignar ni notificar al Supervisor: HSE tiene pendiente aprobar ${this.actividadesPendientes()
+          .map(a => a.nombre)
+          .join(', ')} en la matriz maestra.`,
+      );
+      return;
+    }
     this.submitting.set(true);
     this.pumpingService.assignSupervisor(t.id, supervisorId).subscribe({
       next: updated => {
@@ -1547,6 +2164,7 @@ export class TicketDetailPage {
     this.pumpingService.assignResources(t.id, {
       operatorIds: this.selectedOperators(),
       unitIds: this.selectedUnits(),
+      assignments: this.operatorAssignments(),
       chemicals,
       chemicalMixtureDocument: this.chemicalMixtureDocument()?.name,
     }).subscribe({
@@ -1608,12 +2226,25 @@ export class TicketDetailPage {
   protected saveUnitReport(): void {
     const t = this.ticket();
     if (!t) return;
+    if (this.bloqueadoPorSwa()) return;
 
     // Validar que la inspección esté realizada antes de enviar
     if (!this.allInspectionsCompleted()) {
       this.notify.error(
         'Inspección pendiente',
         'Debe realizar la inspección de vehículos antes de enviar el reporte de unidad.',
+      );
+      return;
+    }
+
+    // Las preguntas de operatividad ("¿unidad lista?", "¿hubo interrupción?")
+    // solo se muestran en el Reporte de Unidad — Llegada (`traslado_llegada`,
+    // ver ticket-detail-page.html:1035-1049) — exigirlas también al enviar el
+    // de Salida bloqueaba ese envío pidiendo algo que no está en pantalla.
+    if (this.currentStep() === 'traslado_llegada' && !this.operatividadCompleta()) {
+      this.notify.error(
+        'Operatividad sin confirmar',
+        'Responda si la unidad está lista y operativa, y si algún problema interrumpió la operación, antes de enviar el reporte.',
       );
       return;
     }
@@ -1647,9 +2278,15 @@ export class TicketDetailPage {
       unitReady: this.unitReadySelection()[0] === 'Sí' ? true : this.unitReadySelection()[0] === 'No' ? false : null,
       operationInterrupted: this.operationInterruptedSelection()[0] === 'Sí' ? true : this.operationInterruptedSelection()[0] === 'No' ? false : null,
       interruptionDetail: this.interruptionDetail(),
-      departureOperatorName: this.departureOperatorName(),
+      // Nadie llenaba `departureOperatorName`/`arrivalOperatorName` (no había
+      // campo editable para eso) — siempre se guardaban vacíos. Se toman del
+      // operador que realmente hizo la inspección de vehículo de esa unidad
+      // en cada tramo (bug reportado: "Operador salida/llegada" vacíos).
+      departureOperatorName:
+        this.inspectorDeUnidad(this.completedInspections(), this.reportUnitCode()) || this.departureOperatorName(),
       departureApprovalDate: this.departureApprovalDate(),
-      arrivalOperatorName: this.arrivalOperatorName(),
+      arrivalOperatorName:
+        this.inspectorDeUnidad(this.completedLlegadaInspections(), this.reportUnitCode()) || this.arrivalOperatorName(),
       arrivalApprovalDate: this.arrivalApprovalDate(),
     };
 
@@ -1676,13 +2313,13 @@ export class TicketDetailPage {
    * estaba aunque el toast dijera "Guardado".
    */
   private readonly NEXT_STEP: Partial<Record<PumpingStep, PumpingStep>> = {
-    revision_propuesta: 'asignacion',
-    asignacion: 'en_ejecucion',
-    en_ejecucion: 'revisar_reportes_salida',
-    revisar_reportes_salida: 'ejecucion_operativa',
-    ejecucion_operativa: 'en_ejecucion_llegada',
-    en_ejecucion_llegada: 'mantenimiento',
-    mantenimiento: 'revisar_reportes_llegada',
+    revision_inicial: 'asignacion',
+    asignacion: 'traslado_salida',
+    traslado_salida: 'revision_reportes_salida',
+    revision_reportes_salida: 'ejecucion_operativa',
+    ejecucion_operativa: 'traslado_llegada',
+    traslado_llegada: 'mantenimiento',
+    mantenimiento: 'revision_reportes_llegada',
   };
 
   private advanceToNextStep(t: PumpingTicket): void {
@@ -1770,6 +2407,7 @@ export class TicketDetailPage {
   protected approveTicket(): void {
     const t = this.ticket();
     if (!t || this.decision() !== 'approved') return;
+    if (this.bloqueadoPorSwa()) return;
     this.submitting.set(true);
     this.pumpingService.approveTicket(t.id).subscribe({
       next: () => {
@@ -1819,21 +2457,41 @@ export class TicketDetailPage {
     this.selectedUnits.set(Array.isArray(value) ? value : []);
   }
 
-  protected onChemicalsChange(value: unknown): void {
-    const ids = Array.isArray(value) ? (value as number[]) : [];
-    this.selectedChemicals.set(ids);
-    // Si se deselecciona un químico, no arrastrar una cantidad huérfana.
-    this.chemicalQuantities.update(map => {
-      const updated = new Map(map);
-      for (const id of updated.keys()) {
-        if (!ids.includes(id)) updated.delete(id);
-      }
-      return updated;
-    });
-  }
-
+  /**
+   * "Aprobar"/"Rechazar" de dynadrill-approval-actions ya no necesitan un
+   * botón de confirmación aparte en el footer (se veía redundante, mismo
+   * verbo repetido dos veces) — Aprobar dispara directo el modal de
+   * confirmación con la consecuencia; Rechazar solo marca el estado para
+   * mostrar el motivo (se confirma con el modal recién al escribirlo, ver
+   * `confirmarRechazoTicket`).
+   */
   protected onDecisionChange(decision: DynadrillApprovalDecision): void {
     this.decision.set(decision);
+    if (decision === 'approved') this.confirmarAprobacionTicket();
+  }
+
+  private async confirmarAprobacionTicket(): Promise<void> {
+    const confirmado = await this.dialog.confirm({
+      title: 'Aprobar ticket',
+      content: 'El ticket será aprobado y pasará a estado cierre.',
+      okText: 'Aprobar',
+    });
+    if (confirmado) {
+      this.approveTicket();
+    } else {
+      this.decision.set(null);
+    }
+  }
+
+  protected async confirmarRechazoTicket(): Promise<void> {
+    if (!this.ticketRejectionReason().trim()) return;
+    const confirmado = await this.dialog.confirm({
+      title: 'Rechazar ticket',
+      content: 'El ticket será devuelto a revisión de reportes de llegada para correcciones.',
+      okText: 'Rechazar',
+      danger: true,
+    });
+    if (confirmado) this.rejectTicket();
   }
 
   protected onInspectionChange(
@@ -1857,6 +2515,10 @@ export class TicketDetailPage {
 
   protected goBack(): void {
     this.router.navigate(['..'], { relativeTo: this.route });
+  }
+
+  protected formatDate(iso: string): string {
+    return iso.slice(0, 10);
   }
 
   /**
@@ -1886,8 +2548,17 @@ export class TicketDetailPage {
       content: VehicleInspectionDialog,
       data: {
         existing: prefill,
-        lockUnidad: mode === 'llegada' && !!prefill,
+        // La unidad ya se la asignó el Supervisor al operador: se precarga y se fija.
+        unidadCodeAsignada: row['unitCode'] as string,
+        lockUnidad: !!(row['unitCode'] as string) || (mode === 'llegada' && !!prefill),
         supervisorNombre,
+        modo: mode,
+        // Sin esto, "¿ya se hizo la inspección?" se resolvía buscando
+        // CUALQUIER inspección alguna vez registrada para esa unidad —
+        // con unidades reutilizadas entre servicios, un ticket nuevo
+        // heredaba una inspección de un ticket anterior (bug reportado:
+        // aparecía "Inspección realizada" sin haberla hecho todavía).
+        ticketId: this.ticket()?.id,
       },
       size: 'large',
       footer: false,
@@ -1906,6 +2577,11 @@ export class TicketDetailPage {
             updated.set(operatorId, result);
             return updated;
           });
+          // La inspección de salida ya pide Origen/Destino — se precargan acá
+          // para no volver a tipearlos en "Fecha, ruta y combustible". No pisa
+          // un valor que el usuario ya haya escrito a mano en esa sección.
+          if (!this.reportOrigin() && result.puntoPartida) this.reportOrigin.set(result.puntoPartida);
+          if (!this.reportDestination() && result.destino) this.reportDestination.set(result.destino);
         }
         this.notify.success('Inspección guardada', `Inspección de ${mode} realizada por ${row['name']}.`);
       }
@@ -1947,6 +2623,45 @@ export class TicketDetailPage {
   // Init
   // ══════════════════════════════════════════════
 
+  /**
+   * Hidrata la inspección de salida de cada operador desde el paso de revisión
+   * en adelante (la tabla ya la da por "Realizada"). Prioridad:
+   *  1. la inspección real que el operador registró (en sesión o en el backend),
+   *     de donde sale el conductor elegido;
+   *  2. si no hay ninguna, una de EJEMPLO (id 0, solo lectura) con la Unidad
+   *     real y un conductor con permisos.
+   * Se re-ejecuta al llegar cada catálogo para no perder una carrera de red.
+   */
+  /**
+   * Restaura `completedInspections` con las inspecciones REALES ya guardadas
+   * en el backend (`realInspections`) — antes se saltaba por completo hasta
+   * llegar al paso "revision_reportes_salida", así que al recargar la página
+   * en "traslado_salida" (justo donde el operador hace "Realizar inspección")
+   * la inspección recién guardada desaparecía de la vista aunque sí estaba
+   * persistida. El mock de relleno (`createMockCompletedInspection`, para
+   * demo/operadores sin inspección real) sigue reservado a partir de
+   * "revision_reportes_salida", que es cuando el Supervisor la revisa.
+   */
+  private syncMockInspections(): void {
+    const t = this.ticket();
+    if (!t) return;
+    const pasadoRevisionSalida = STEP_KEYS.indexOf(t.currentStep) >= STEP_KEYS.indexOf('revision_reportes_salida');
+    this.completedInspections.update(map => {
+      const updated = new Map(map);
+      for (const op of t.operators) {
+        const actual = updated.get(op.id) as VehicleInspection | undefined;
+        if (actual && actual.id !== 0) continue; // inspección real hecha en esta sesión
+        const real = this.ultimaInspeccionReal(op.unitCode);
+        if (real) {
+          updated.set(op.id, real);
+        } else if (pasadoRevisionSalida) {
+          updated.set(op.id, createMockCompletedInspection(op.name, op.unitCode, this.unidadPorCodigo(op.unitCode), this.conductorParaOperador(op.id)));
+        }
+      }
+      return updated;
+    });
+  }
+
   private initFromTicket(ticket: PumpingTicket): void {
     if (ticket.assignedSupervisor) {
       const opt = this.supervisorOptions.find(o => o.label === ticket.assignedSupervisor);
@@ -1958,19 +2673,23 @@ export class TicketDetailPage {
     this.reportClientName.set(ticket.clientName);
     this.reportUnitCode.set(ticket.unitCode || '');
 
-    // Desde `en_ejecucion_llegada` en adelante (llegada, mantenimiento, revisar
-    // reportes de llegada, revisión, finalizado) la inspección de salida ya
-    // fue realizada y aprobada por el supervisor. Antes solo se hidrataba en
-    // `en_ejecucion_llegada` exacto, por lo que la sección "Inspección de
-    // salida" del paso `revisar_reportes_llegada` siempre mostraba
-    // "el operador no registró inspección de salida".
-    if (STEP_KEYS.indexOf(ticket.currentStep) >= STEP_KEYS.indexOf('en_ejecucion_llegada')) {
-      const inspMap = new Map<number, VehicleInspection>();
-      for (const op of ticket.operators) {
-        inspMap.set(op.id, createMockCompletedInspection(op.name, op.unitCode));
-      }
-      this.completedInspections.set(inspMap);
+    // Gerenciamientos de viaje ya completados — restaurados del ticket (no
+    // solo de la memoria del componente) para que sobrevivan a un recargo
+    // de página y para que el de retorno pueda heredar del de ida.
+    if (ticket.travelManagements) {
+      this.travelManagements.set(new Map(Object.entries(ticket.travelManagements).map(([k, v]) => [Number(k), v])));
     }
+    if (ticket.returnTravelManagements) {
+      this.returnTravelManagements.set(new Map(Object.entries(ticket.returnTravelManagements).map(([k, v]) => [Number(k), v])));
+    }
+
+    // Desde `traslado_llegada` en adelante (llegada, mantenimiento, revisar
+    // reportes de llegada, revisión, cierre) la inspección de salida ya
+    // fue realizada y aprobada por el supervisor. Antes solo se hidrataba en
+    // `traslado_llegada` exacto, por lo que la sección "Inspección de
+    // salida" del paso `revision_reportes_llegada` siempre mostraba
+    // "el operador no registró inspección de salida".
+    this.syncMockInspections();
 
     if (ticket.unitReport) {
       const r = ticket.unitReport;
@@ -1993,6 +2712,7 @@ export class TicketDetailPage {
       this.noveltiesMecanica.set(r.novelties.mecanica);
       this.noveltiesInstrumentacion.set(r.novelties.instrumentacion);
       this.noveltiesOperaciones.set(r.novelties.operaciones);
+      this.hayNovedades.set(!!(r.novelties.mecanica || r.novelties.instrumentacion || r.novelties.operaciones));
       this.unitReadySelection.set(r.unitReady === true ? ['Sí'] : r.unitReady === false ? ['No'] : []);
       this.operationInterruptedSelection.set(r.operationInterrupted === true ? ['Sí'] : r.operationInterrupted === false ? ['No'] : []);
       this.interruptionDetail.set(r.interruptionDetail);

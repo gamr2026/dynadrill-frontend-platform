@@ -5,11 +5,14 @@ import {
   DynadrillButtonComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
+  DynadrillSelectComponent,
   DynadrillTextareaComponent,
+  type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../../core/services/auth.service';
 import { CreateEmergenciaInput, EmergenciaEvento } from '../models/emergencia.model';
 import { EmergenciaService } from '../services/emergencia.service';
+import { parseServicio, useServiciosOperativosOptions } from '../../shared/utils/servicio-operativo.util';
 
 export interface EmergenciaAlertDialogData {
   /** Prellenado al escalar desde SWA o Derrame (ver swa-detail-page / derrame-detail-page). */
@@ -17,6 +20,9 @@ export interface EmergenciaAlertDialogData {
   origenDerrameId?: number;
   tipoSugerido?: string;
   descripcionSugerida?: string;
+  /** Servicio ya ligado al SWA/derrame que escala — se hereda sin pedirlo de nuevo. */
+  ticketTipo?: 'pumping' | 'fcr';
+  ticketCode?: string;
 }
 
 /**
@@ -28,7 +34,7 @@ export interface EmergenciaAlertDialogData {
  */
 @Component({
   selector: 'app-emergencia-alert-dialog',
-  imports: [DynadrillBannerComponent, DynadrillInputComponent, DynadrillTextareaComponent, DynadrillButtonComponent],
+  imports: [DynadrillBannerComponent, DynadrillInputComponent, DynadrillTextareaComponent, DynadrillSelectComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './emergencia-alert-dialog.html',
   styleUrl: './emergencia-alert-dialog.scss',
@@ -44,7 +50,17 @@ export class EmergenciaAlertDialog {
   protected readonly tipo = signal(this.data?.tipoSugerido ?? '');
   protected readonly descripcion = signal(this.data?.descripcionSugerida ?? '');
   protected readonly ubicacion = signal('');
+  /** Heredado del SWA/derrame que escala, si vino con uno ya ligado. */
+  protected readonly servicioHeredado = !!this.data?.ticketCode;
+  protected readonly servicio = signal(this.data?.ticketCode ? `${this.data.ticketTipo}:${this.data.ticketCode}` : '');
+  protected readonly servicioOptions = signal<DynadrillSelectOption[]>([]);
   protected readonly submitting = signal(false);
+
+  constructor() {
+    if (!this.servicioHeredado) {
+      useServiciosOperativosOptions().subscribe(opts => this.servicioOptions.set(opts));
+    }
+  }
 
   protected readonly puedeActivar = computed(() => this.tipo().trim().length > 0 && this.descripcion().trim().length > 0);
 
@@ -63,6 +79,7 @@ export class EmergenciaAlertDialog {
       ubicacion: this.ubicacion() || undefined,
       origenSwaId: this.data?.origenSwaId,
       origenDerrameId: this.data?.origenDerrameId,
+      ...(parseServicio(this.servicio()) ?? {}),
     };
 
     this.emergenciaService.activar(input).subscribe({

@@ -55,6 +55,24 @@
         <span card-title>{{ task.descripcion }}</span>
         <dynadrill-tag card-extra [label]="taskRiskTone(task).label" [variant]="taskRiskTone(task).tone" />
 
+        @if (canIdentifyHazards()) {
+          <div class="iperc-detail-page__task-fields">
+            <dynadrill-checkbox label="Rutinaria" [checked]="!!task.rutinaria" (checkedChange)="setTaskRutinaria(task.id, $event)" />
+            <dynadrill-input
+              label="Área o puesto de trabajo"
+              [value]="task.areaPuestoTrabajo ?? ''"
+              (valueChange)="setTaskAreaPuestoTrabajo(task.id, $event)"
+            />
+            <dynadrill-input label="Cargos expuestos" [value]="task.cargosExpuestos ?? ''" (valueChange)="setTaskCargosExpuestos(task.id, $event)" />
+          </div>
+        } @else if (task.areaPuestoTrabajo || task.cargosExpuestos || task.rutinaria != null) {
+          <div class="iperc-detail-page__task-fields iperc-detail-page__task-fields--readonly">
+            <span>Rutinaria: {{ task.rutinaria ? 'Sí' : 'No' }}</span>
+            @if (task.areaPuestoTrabajo) { <span>Área/puesto: {{ task.areaPuestoTrabajo }}</span> }
+            @if (task.cargosExpuestos) { <span>Cargos expuestos: {{ task.cargosExpuestos }}</span> }
+          </div>
+        }
+
         @if (task.hazards.length > 0) {
           <ul class="iperc-detail-page__hazard-list">
             @for (hazard of task.hazards; track hazard.id) {
@@ -151,6 +169,12 @@
       <dynadrill-button [disabled]="openingPtw()" (click)="abrirRecibimientoSitio()">
         {{ openingPtw() ? 'Abriendo PTW…' : 'Abrir Recibimiento de Sitio (PTW)' }}
       </dynadrill-button>
+    }
+    @if (canReopenForEdit()) {
+      <dynadrill-button variant="secondary" (click)="reopenForEdit()">Editar matriz</dynadrill-button>
+      <span class="iperc-detail-page__actions-hint">
+        Agrega una tarea, un peligro o corrige un dato — la matriz vuelve a "En evaluación" hasta que se apruebe de nuevo. Los PTW ya abiertos no se ven afectados.
+      </span>
     }
   </section>
 

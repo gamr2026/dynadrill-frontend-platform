@@ -2,11 +2,12 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { CreateInvestigacionInput, Investigacion } from '../models/investigacion.model';
+import { environment } from '@env';
 
 @Injectable({ providedIn: 'root' })
 export class InvestigacionService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/qhse/investigaciones';
+  private readonly baseUrl = `${environment.apiUrl}/qhse/investigaciones`;
 
   list(): Observable<Investigacion[]> {
     return this.http.get<Investigacion[]>(this.baseUrl);

@@ -1,0 +1,14 @@
+.editar-representantes {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #ecebf1;
+  }
+}

@@ -36,9 +36,16 @@ export interface TravelManagementDialogData {
   origen: string;
   destino: string;
   lineaServicio: string;
+  /** Supervisor asignado al ticket — fallback si aún no cargó el Jefe de Base. */
   supervisor: string;
+  /** Jefe de Base — "Gerente/Supervisor" (paso General) y "Gerente que autoriza" (paso Aprobación). */
+  jefeBase?: string;
+  /** Conductor elegido en la inspección de la unidad — no el operador del ticket. */
+  conductor?: string;
   conductores: string;
   placas: string;
+  /** Gerenciamiento de ida del mismo operador — al abrir el de retorno, precarga motivo/plan y ruta (editable). */
+  previousTravelManagement?: TravelManagement;
 }
 
 export interface TravelManagementDialogResult {
@@ -115,13 +122,13 @@ export class TravelManagementDialog {
   // picker permite limpiar el campo (allowClear) y emite null pese a que su tipo declarado diga Date —
   // canSubmit/submit() lo validan.
   protected readonly fecha = signal<Date | null>(new Date());
-  protected readonly motivoViaje = signal('');
+  protected readonly motivoViaje = signal(this.data.previousTravelManagement?.motivoViaje ?? '');
   protected readonly lineaServicio = signal(this.data.lineaServicio);
   protected readonly origen = signal(this.data.origen);
   protected readonly destino = signal(this.data.destino);
-  protected readonly gerenteSupervisor = signal(this.data.supervisor);
+  protected readonly gerenteSupervisor = signal(this.data.jefeBase || this.data.supervisor);
   protected readonly ticketNo = signal(this.data.ticketCode);
-  protected readonly conductores = signal(this.data.conductores);
+  protected readonly conductores = signal(this.data.conductor || this.data.conductores);
   protected readonly vehicleType = signal<VehicleType | null>(null);
   protected readonly placas = signal(this.data.placas);
 
@@ -215,20 +222,23 @@ export class TravelManagementDialog {
     }
   }
 
-  // ── Route info ──
-  protected readonly routeLocation = signal('');
-  protected readonly routeArrivalTime = signal('');
-  protected readonly routeDepartureTime = signal('');
-  protected readonly routeOvernightDetails = signal('');
+  // ── Route info — precargado del gerenciamiento de ida si existe (editable) ──
+  private readonly previousRoute = this.data.previousTravelManagement?.routeInfo?.[0];
+  protected readonly routeLocation = signal(this.previousRoute?.location ?? '');
+  protected readonly routeArrivalTime = signal(this.previousRoute?.arrivalTime ?? '');
+  protected readonly routeDepartureTime = signal(this.previousRoute?.departureTime ?? '');
+  protected readonly routeOvernightDetails = signal(this.previousRoute?.overnightDetails ?? '');
 
-  // ── Communication ──
-  protected readonly commFrequency = signal('');
-  protected readonly commContactPerson = signal('');
-  protected readonly commContactDetails = signal('');
+  // ── Communication — mismo criterio: precargado de la ida, editable ──
+  private readonly previousComm = this.data.previousTravelManagement?.communication?.[0];
+  protected readonly commFrequency = signal(this.previousComm?.frequency ?? '');
+  protected readonly commContactPerson = signal(this.previousComm?.contactPerson ?? '');
+  protected readonly commContactDetails = signal(this.previousComm?.contactDetails ?? '');
 
   // ── Approvals ──
-  protected readonly conductorNames = signal(this.data.conductores);
-  protected readonly approverName = signal(this.data.supervisor);
+  protected readonly conductorNames = signal(this.data.conductor || this.data.conductores);
+  /** Gerente que autoriza = Jefe de Base; lo confirma él al autorizar cuando el riesgo es MEDIO/ALTO. */
+  protected readonly approverName = signal(this.data.jefeBase || this.data.supervisor);
 
   protected onVehicleTypeChange(value: unknown): void {
     this.vehicleType.set(value as VehicleType);
@@ -248,6 +258,38 @@ export class TravelManagementDialog {
       ),
     );
     this.selectedOptionIndexByQuestion.update(byQuestion => ({ ...byQuestion, [questionId]: optionIndex }));
+  }
+
+  /**
+   * Llenado rápido: responde de una sola vez cada pregunta que aún no
+   * tiene respuesta, con su opción de menor riesgo (nunca una que bloquee
+   * el viaje) — para no tener que clickear una por una las 12 preguntas en
+   * cada prueba. No pisa respuestas ya elegidas a mano.
+   *
+   * Antes tomaba la PRIMERA opción no bloqueante del array (`findIndex`),
+   * no la de menor puntaje — algunas preguntas (7 y 12) no traen sus
+   * opciones ordenadas de menor a mayor riesgo, así que "rápido" terminaba
+   * sumando 5 y 50 en vez de 0 en esas dos, dando 80 puntos totales en vez
+   * de los ~25 esperados. Ahora se busca explícitamente el valor mínimo.
+   */
+  protected llenadoRapidoRiesgo(): void {
+    const nuevosIndices: Record<number, number> = {};
+    this.riskQuestions.update(questions =>
+      questions.map(q => {
+        if (q.selectedValue !== null) return q;
+        let chosen = 0;
+        let mejorValor = Infinity;
+        q.options.forEach((o, i) => {
+          if (o.value !== BLOCKING_RISK_VALUE && o.value < mejorValor) {
+            mejorValor = o.value;
+            chosen = i;
+          }
+        });
+        nuevosIndices[q.id] = chosen;
+        return { ...q, selectedValue: q.options[chosen].value, selectedLabel: q.options[chosen].label };
+      }),
+    );
+    this.selectedOptionIndexByQuestion.update(byQuestion => ({ ...byQuestion, ...nuevosIndices }));
   }
 
   protected isOptionSelected(question: TravelRiskQuestion, optionIndex: number): boolean {
@@ -283,6 +325,12 @@ export class TravelManagementDialog {
       this.approverName().trim() !== ''
     );
   });
+
+  /** BAJO lo cierra el supervisor directo; MEDIO/ALTO va a autorización del Jefe de Base. */
+  protected readonly requiereAprobacionJefeBase = computed(() => this.riskLevel() !== 'BAJO');
+  protected readonly submitLabel = computed(() =>
+    this.requiereAprobacionJefeBase() ? 'Enviar para aprobación del Jefe de Base' : 'Guardar',
+  );
 
   /**
    * Por qué el botón "Guardar" está deshabilitado — los pasos del wizard no

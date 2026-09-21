@@ -275,6 +275,27 @@ export class PtwDetailPage {
     downloadQhseReport(`${doc.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-formato-en-blanco.html`, doc.label, 'HSE-SITIO-001 — Recibimiento de Sitio (PTW)', [section]);
   }
 
+  /** Carga rápida (pruebas): simula que los 4 documentos de gabinete ya se subieron, sin tener que cargarlos uno por uno. */
+  protected simularCargaDocumentos(): void {
+    const p = this.ptw();
+    if (!p) return;
+    const ahora = new Date().toISOString();
+    const documentos = p.documentos.map(d => ({ ...d, cargado: true, fileName: d.fileName ?? `${d.tipo}-simulado.pdf`, cargadoAt: d.cargadoAt ?? ahora }));
+    this.patch({ documentos });
+    this.notify.success('Documentos simulados', 'Los 4 documentos de gabinete quedaron marcados como cargados.');
+  }
+
+  /** Marca todo el checklist de Ingreso a locación de una vez (pruebas). */
+  protected marcarTodoIngreso(): void {
+    this.patch({
+      toolboxTalkRealizado: true,
+      walkaroundCompletado: true,
+      lineaBaseAmbientalDocumentada: true,
+      rutasEmergenciaVerificadas: true,
+      simopsConfirmado: true,
+    });
+  }
+
   protected onIngresoToggle(index: number): void {
     const p = this.ptw();
     if (!p) return;

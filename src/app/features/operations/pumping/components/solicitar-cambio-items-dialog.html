@@ -1,0 +1,75 @@
+<div class="solicitar-cambio">
+  <dynadrill-text variant="caption">
+    Pedido {{ data.pedidoCode }} — {{ data.cliente }}. Edite o agregue ítems a mano, o cargue una plantilla con los
+    registros nuevos, y explique el motivo del cambio.
+    @if (data.aplicaInmediato) {
+      Al enviarlo se actualiza el pedido de inmediato.
+    } @else {
+      El Supervisor debe aprobar el cambio antes de que se actualice en Facturación/Ventas.
+    }
+  </dynadrill-text>
+
+  <div class="solicitar-cambio__plantilla-acciones">
+    <dynadrill-button variant="secondary" size="small" (clicked)="descargarPlantilla()">Descargar plantilla</dynadrill-button>
+    <dynadrill-upload-zone state="idle" (fileSelected)="onCargarPlantilla($event)" />
+  </div>
+
+  <div class="table-scroll">
+    <table class="solicitar-cambio__table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Descripción</th>
+          <th>Unidad</th>
+          <th class="num">Cantidad</th>
+          <th class="num">Precio unitario</th>
+          <th class="num">% Descuento</th>
+          <th class="num">Total</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (l of lineas(); track $index) {
+          <tr>
+            <td><dynadrill-input label="" [value]="l.codigo" (valueChange)="onCampoChange($index, 'codigo', $event)" /></td>
+            <td><dynadrill-input label="" [value]="l.descripcion" (valueChange)="onCampoChange($index, 'descripcion', $event)" /></td>
+            <td><dynadrill-input label="" [value]="l.unidad" (valueChange)="onCampoChange($index, 'unidad', $event)" /></td>
+            <td class="num"><dynadrill-input label="" type="number" [value]="l.cantidad" (valueChange)="onCampoChange($index, 'cantidad', $event)" /></td>
+            <td class="num"><dynadrill-input label="" type="number" [value]="l.valorUnitario" (valueChange)="onCampoChange($index, 'valorUnitario', $event)" /></td>
+            <td class="num"><dynadrill-input label="" type="number" [value]="l.descuentoPorcentaje" (valueChange)="onCampoChange($index, 'descuentoPorcentaje', $event)" /></td>
+            <td class="num">${{ (+l.cantidad || 0) * (+l.valorUnitario || 0) | number: '1.2-2' }}</td>
+            <td>
+              @if (lineas().length > 1) {
+                <dynadrill-icon-button icon="delete" tooltip="Quitar línea" (clicked)="quitarLinea($index)" />
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="6" class="num"><strong>Total propuesto</strong></td>
+          <td class="num"><strong>${{ total() | number: '1.2-2' }}</strong></td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <dynadrill-button variant="secondary" size="small" (clicked)="agregarLinea()">+ Agregar línea</dynadrill-button>
+
+  <dynadrill-textarea
+    label="Motivo del cambio"
+    placeholder="Por qué se necesita editar o agregar estos ítems…"
+    [rows]="3"
+    [value]="motivo()"
+    (valueChange)="motivo.set($event)"
+  />
+</div>
+
+<footer class="solicitar-cambio__actions">
+  <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+  <dynadrill-button variant="primary" [disabled]="!puedeEnviar()" (clicked)="enviar()">
+    {{ data.aplicaInmediato ? 'Actualizar pedido' : 'Enviar para aprobación' }}
+  </dynadrill-button>
+</footer>

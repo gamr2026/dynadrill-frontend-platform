@@ -19,6 +19,7 @@ import {
   DerrameVolumen,
 } from '../models/derrame.model';
 import { DerrameService } from '../services/derrame.service';
+import { parseServicio, useServiciosOperativosOptions } from '../../shared/utils/servicio-operativo.util';
 
 const VOLUMEN_OPTIONS: DynadrillSelectOption[] = (Object.entries(DERRAME_VOLUMEN_LABELS) as [DerrameVolumen, string][]).map(
   ([value, label]) => ({ label, value }),
@@ -49,7 +50,13 @@ export class DerrameAlertDialog {
   protected readonly ubicacionFisica = signal('');
   protected readonly volumen = signal<DerrameVolumen>('menor');
   protected readonly ubicacion = signal<DerrameUbicacion>('geomembrana');
+  protected readonly servicio = signal('');
+  protected readonly servicioOptions = signal<DynadrillSelectOption[]>([]);
   protected readonly submitting = signal(false);
+
+  constructor() {
+    useServiciosOperativosOptions().subscribe(opts => this.servicioOptions.set(opts));
+  }
 
   protected readonly puedeActivar = computed(() => this.descripcion().trim().length > 0);
 
@@ -67,6 +74,7 @@ export class DerrameAlertDialog {
       ubicacionFisica: this.ubicacionFisica() || undefined,
       volumen: this.volumen(),
       ubicacion: this.ubicacion(),
+      ...(parseServicio(this.servicio()) ?? {}),
     };
 
     this.derrameService.activar(input).subscribe({

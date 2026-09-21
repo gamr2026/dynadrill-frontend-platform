@@ -1,8 +1,9 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
-import { firstValueFrom } from 'rxjs';
 import type { NzUploadFile } from 'ng-zorro-antd/upload';
+import { firstValueFrom } from 'rxjs';
+import * as XLSX from 'xlsx';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
@@ -18,7 +19,6 @@ import {
   DynadrillUploadZoneComponent,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
-import { descargarCsv, parseCsvFile } from '../../../../shared/utils/index';
 import {
   FCR_TOOL_INSPECTION_FIRMA_LABELS,
   FCR_TOOL_INSPECTION_FIRMA_ROL_ANTERIOR,
@@ -39,8 +39,11 @@ export interface ChecklistHerramientaDialogData {
   toolId: number;
   articuloId: number;
   toolName: string;
-  /** Operador de campo asignado al ticket (fase `asignacion_operador`) — quien se lleva la herramienta al pozo. Solo informativo acá, no se edita desde este diálogo. */
+  /** Operador de campo asignado al ticket (fase `asignacion`) — quien se lleva la herramienta al pozo. Solo informativo acá, no se edita desde este diálogo. */
   operadorCampoAsignado?: string;
+  /** Del ticket — solo se usan para precargar `cliente`/`pozo` en la primera creación del checklist (ver `iniciar()`). */
+  cliente?: string;
+  pozo?: string;
 }
 
 export interface ChecklistHerramientaDialogResult {
@@ -65,18 +68,22 @@ function parseFecha(iso: string | null): Date | null {
   return iso ? new Date(iso) : null;
 }
 
-/** Columnas "Visual"/"End" de la plantilla CSV — cualquier otra cosa (vacío, typo) queda sin marcar en vez de fallar toda la fila. */
-function normalizarResultado(raw: string | undefined): FcrToolInspectionParteResultado {
-  const value = (raw ?? '').trim().toLowerCase();
-  return value === 'ok' || value === 'defectuoso' ? value : '';
-}
-
 /** No usa `Number(x) || null`: una cantidad real de 0 es un valor válido, no "sin dato". */
 function parseCambioCantidad(raw: string): number | null {
   const trimmed = raw.trim();
   if (trimmed === '') return null;
   const value = Number(trimmed);
   return Number.isNaN(value) ? null : value;
+}
+
+const MAX_PLANTILLA_PARTES_BYTES = 5 * 1024 * 1024;
+
+/** Acepta variantes razonables de lo que alguien pueda escribir a mano en la celda — `null` = "sin dato, no tocar el valor actual". */
+function normalizeResultado(raw: string): FcrToolInspectionParteResultado | null {
+  const v = raw.trim().toLowerCase();
+  if (v === 'ok' || v === 'bien' || v === 'bueno') return 'ok';
+  if (v === 'defectuoso' || v === 'defecto' || v === 'no ok' || v === 'nok' || v === 'x' || v === 'malo') return 'defectuoso';
+  return null;
 }
 
 /**
@@ -168,7 +175,7 @@ export class ChecklistHerramientaDialog {
   );
 
   constructor() {
-    this.toolInspecciones.iniciar(this.data.ticketId, this.data.toolId, this.data.articuloId).subscribe({
+    this.toolInspecciones.iniciar(this.data.ticketId, this.data.toolId, this.data.articuloId, this.data.cliente, this.data.pozo).subscribe({
       next: inspection => {
         this.aplicarInspection(inspection);
         this.loading.set(false);
@@ -240,59 +247,118 @@ export class ChecklistHerramientaDialog {
     this.partes.update(rows => rows.map(row => (row.id === id ? { ...row, ...patch } : row)));
   }
 
-  /** Llenar 30-50 partes una por una es la queja más común del checklist en papel — esto marca todas OK de una vez, y el operador solo corrige las excepciones a "Defectuoso". */
+  /**
+   * Llenar 30-50 partes una por una es la queja más común del checklist en
+   * papel — esto marca todas OK de una vez (Visual, End, Cambio·Cantidad en 0
+   * y Acción "Ninguna", ya que una parte OK no tuvo cambio ni requirió
+   * acción), y el operador solo corrige a mano las excepciones.
+   */
   protected marcarTodoOk(): void {
-    this.partes.update(rows => rows.map(row => ({ ...row, visualResultado: 'ok', endResultado: 'ok' })));
-  }
-
-  /** Plantilla CSV precargada con Item/Código/Descripción/Cant. esperada de ESTE checklist — el operador solo llena las 4 columnas de resultado y la vuelve a subir. */
-  protected descargarPlantillaPartes(): void {
-    const filas = [
-      ['Item', 'Código', 'Descripción', 'Cant. esperada', 'Visual (ok/defectuoso)', 'End (ok/defectuoso)', 'Cambio Cantidad', 'Acción'],
-      ...this.partes().map(p => [p.item, p.codigo, p.descripcion, String(p.cantidadEsperada), '', '', '', '']),
-    ];
-    descargarCsv(`plantilla-checklist-${this.data.toolName}.csv`, filas);
+    this.partes.update(rows => rows.map(row => ({ ...row, visualResultado: 'ok', endResultado: 'ok', cambioCantidad: 0, accion: 'Ninguna' })));
   }
 
   /**
-   * Carga masiva de partes: solo actualiza los signals locales (mismo efecto
-   * que tildar los radios/inputs a mano) — no llama al backend directamente,
-   * así el operador puede revisar antes de "Guardar borrador" o firmar
-   * (que ya persiste todo junto).
+   * Genera la plantilla "Inspección y reparación de herramientas" (mismo
+   * formato ITEM/CANTIDAD/CODIGO/DESCRIPCION/VISUAL/END/CANTIDAD(cambio)/
+   * ACCION que lee `onCargarPlantillaPartes`), precargada con las partes
+   * reales de esta herramienta (`ArticuloParte`, ya en `this.partes()`) y las
+   * columnas de inspección en blanco, para llenar fuera de línea (en campo,
+   * sin señal) y volver a subirla.
    */
-  protected async onPartesFileSelected(file: NzUploadFile): Promise<void> {
+  protected descargarPlantillaPartes(): void {
+    const encabezado = ['ITEM', 'CANTIDAD', 'CODIGO', 'DESCRIPCION', 'VISUAL', 'END', 'CANTIDAD', '', 'ACCION'];
+    const filas = this.partes().map(parte => [parte.item, parte.cantidadEsperada, parte.codigo, parte.descripcion, '', '', '', '', '']);
+    const hoja = XLSX.utils.aoa_to_sheet([encabezado, ...filas]);
+    const libro = XLSX.utils.book_new();
+    const nombreHoja = this.data.toolName.replace(/[:\\/?*[\]]/g, ' ').slice(0, 31) || 'Herramienta';
+    XLSX.utils.book_append_sheet(libro, hoja, nombreHoja);
+    XLSX.writeFile(libro, `plantilla-inspeccion-${this.data.toolName.replace(/[\\/:*?"<>|]/g, ' ')}.xlsx`);
+  }
+
+  /**
+   * Carga la plantilla real "Inspección y reparación de herramientas.xlsx"
+   * (una hoja por tipo de herramienta, encabezado ITEM/CANTIDAD/CODIGO/
+   * DESCRIPCION/VISUAL/END/CANTIDAD(cambio)/ACCION) — mismo patrón que
+   * `onCargarPlantilla` de `nuevo-pedido-dialog.ts`. A diferencia de esa,
+   * acá NO reemplaza la tabla: la fila ya viene de `ArticuloParte` (snapshot
+   * de `iniciar()`), así que solo actualiza Visual/End/Cambio·Cantidad/Acción
+   * de las partes existentes, emparejando por código — para alguien que
+   * llenó el Excel a mano en campo (sin señal) y ahora lo vuelca al digital.
+   */
+  protected onCargarPlantillaPartes(file: NzUploadFile): void {
     const archivo = (file.originFileObj as File | undefined) ?? (file as unknown as File);
     if (!archivo || typeof archivo.size !== 'number') {
       this.notify.error('Archivo no reconocido', 'No se pudo leer el archivo seleccionado. Probá de nuevo.');
       return;
     }
-    let filas: string[][];
-    try {
-      filas = await parseCsvFile(archivo);
-    } catch {
-      this.notify.error('Error', 'No se pudo leer el archivo. Verifica que sea un CSV válido.');
+    if (archivo.size > MAX_PLANTILLA_PARTES_BYTES) {
+      this.notify.error('Archivo demasiado grande', 'El archivo supera el máximo permitido de 5MB.');
       return;
     }
-    const dataRows = filas.slice(1).filter(row => row.some(cell => cell.trim().length > 0));
-    const porCodigo = new Map(this.partes().map(p => [p.codigo, p.id]));
-    const noEncontrados: string[] = [];
-    let actualizadas = 0;
-    for (const [, codigo, , , visual, end, cambio, accion] of dataRows) {
-      const parteId = porCodigo.get((codigo ?? '').trim());
-      if (parteId === undefined) {
-        noEncontrados.push(codigo ?? '');
-        continue;
+
+    const reader = new FileReader();
+    reader.onload = evento => {
+      try {
+        const datos = new Uint8Array(evento.target!.result as ArrayBuffer);
+        const libro = XLSX.read(datos, { type: 'array' });
+        const hoja = libro.Sheets[libro.SheetNames[0]];
+        const filas = XLSX.utils.sheet_to_json<unknown[]>(hoja, { header: 1, defval: '', raw: false });
+
+        const idxCabecera = filas.findIndex(f => (f[0] ?? '').toString().trim().toUpperCase() === 'ITEM');
+        if (idxCabecera === -1) {
+          this.notify.error(
+            'Plantilla no reconocida',
+            'No se encontró el encabezado "ITEM" — ¿es la plantilla "Inspección y reparación de herramientas"? Asegurate de que la hoja del tipo de herramienta sea la primera del archivo.',
+          );
+          return;
+        }
+
+        const porCodigo = new Map(this.partes().map(p => [p.codigo.trim().toUpperCase(), p]));
+        let actualizadas = 0;
+        let sinCoincidencia = 0;
+
+        for (const fila of filas.slice(idxCabecera + 1)) {
+          const codigo = (fila[2] ?? '').toString().trim();
+          if (!codigo) break; // primera fila sin código = fin de los datos (footer de firmas)
+          const parte = porCodigo.get(codigo.toUpperCase());
+          if (!parte) {
+            sinCoincidencia++;
+            continue;
+          }
+
+          const visual = normalizeResultado((fila[4] ?? '').toString());
+          const end = normalizeResultado((fila[5] ?? '').toString());
+          const cambioCantidadRaw = (fila[6] ?? '').toString().trim();
+          const accion = (fila[8] ?? '').toString().trim();
+
+          const patch: Partial<FcrToolInspectionParte> = {};
+          if (visual) patch.visualResultado = visual;
+          if (end) patch.endResultado = end;
+          if (cambioCantidadRaw) patch.cambioCantidad = parseCambioCantidad(cambioCantidadRaw);
+          if (accion) patch.accion = accion;
+          if (Object.keys(patch).length > 0) {
+            this.updateParte(parte.id, patch);
+            actualizadas++;
+          }
+        }
+
+        if (actualizadas === 0) {
+          this.notify.error(
+            'Sin datos para cargar',
+            'Ninguna fila de la plantilla coincidió (por código) con las partes de esta herramienta, o venían todas vacías.',
+          );
+          return;
+        }
+        this.notify.success(
+          'Plantilla cargada',
+          `${actualizadas} parte(s) actualizada(s) desde el archivo.` +
+            (sinCoincidencia > 0 ? ` ${sinCoincidencia} fila(s) no coincidieron con ninguna parte de esta herramienta.` : ''),
+        );
+      } catch {
+        this.notify.error('Error al leer el archivo', 'No se pudo procesar el Excel. Verificá que no esté dañado.');
       }
-      this.updateParte(parteId, {
-        visualResultado: normalizarResultado(visual),
-        endResultado: normalizarResultado(end),
-        cambioCantidad: parseCambioCantidad(cambio ?? ''),
-        accion: (accion ?? '').trim(),
-      });
-      actualizadas++;
-    }
-    if (actualizadas > 0) this.notify.success('Partes cargadas', `${actualizadas} fila(s) actualizadas — revisa y presiona "Guardar borrador".`);
-    if (noEncontrados.length > 0) this.notify.error('Códigos no encontrados en este checklist', noEncontrados.join(', '));
+    };
+    reader.readAsArrayBuffer(archivo);
   }
 
   protected onVisualChange(id: number, value: unknown): void {

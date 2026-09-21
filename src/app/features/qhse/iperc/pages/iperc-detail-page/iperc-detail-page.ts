@@ -8,6 +8,7 @@ import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
   DynadrillCardComponent,
+  DynadrillCheckboxComponent,
   DynadrillContextCardComponent,
   DynadrillDrawerService,
   DynadrillIconButtonComponent,
@@ -69,6 +70,7 @@ const STATUS_STEP_INDEX: Record<IpercStatus, number> = {
     DynadrillContextCardComponent,
     DynadrillAvatarComponent,
     DynadrillCardComponent,
+    DynadrillCheckboxComponent,
     DynadrillTagComponent,
     DynadrillButtonComponent,
     DynadrillIconButtonComponent,
@@ -178,6 +180,17 @@ export class IpercDetailPage {
   protected readonly canReviewNow = computed(() => this.matrix()?.status === 'en_revision');
   protected readonly canResumeEvaluation = computed(() => this.matrix()?.status === 'rechazada');
 
+  /**
+   * La matriz es un documento vivo, reutilizado por todas las actividades
+   * iguales de aquí en más (no por ticket) — con el tiempo hace falta
+   * agregar una tarea o corregir un dato aunque ya esté Aprobada. "Editar
+   * matriz" la vuelve a "En evaluación" (mismo estado editable de
+   * siempre); no cubre nuevos PTW hasta que Coordinador/Gerente HSE la
+   * vuelva a aprobar. Los PTW ya abiertos con la versión anterior no se
+   * tocan — no tienen un vínculo vivo al estado actual de la matriz.
+   */
+  protected readonly canReopenForEdit = computed(() => this.matrix()?.status === 'aprobada');
+
   protected readonly canApprove = computed(() => {
     const roleName = this.auth.currentUser()?.roleName;
     return roleName === 'Coordinador HSE' || roleName === 'Gerente HSE';
@@ -259,7 +272,7 @@ export class IpercDetailPage {
       title: 'Detalle del peligro',
       content: IpercHazardPanel,
       data: { matrix, taskId: task.id, hazardId: hazard.id, editable: this.riskEditable() },
-      size: 'medium',
+      size: 'large',
     });
     ref.afterClose.subscribe(() => this.reload());
   }
@@ -305,6 +318,11 @@ export class IpercDetailPage {
 
   /** El equipo evaluador retoma la matriz rechazada de vuelta a "en_evaluacion" para corregirla. */
   protected resumeEvaluation(): void {
+    this.transitionTo('en_evaluacion');
+  }
+
+  /** Reabre una matriz ya Aprobada para agregar una tarea o corregir un dato — ver canReopenForEdit(). */
+  protected reopenForEdit(): void {
     this.transitionTo('en_evaluacion');
   }
 
@@ -501,6 +519,32 @@ export class IpercDetailPage {
     this.persistTasks(current, tasks);
     this.addingTask.set(false);
     this.nuevaTareaDescripcion.set('');
+  }
+
+  /**
+   * Campos del Excel real que quedaron sin llenar al no tener UI propia
+   * (Rutinaria, Área/Puesto de Trabajo, Cargos Expuestos son por tarea —
+   * el resto de columnas sin dato, como Generado en o Efectos posibles,
+   * son por peligro y se editan en `IpercHazardPanel`). Mismo gate que
+   * agregar/editar peligros (`canIdentifyHazards`).
+   */
+  protected setTaskRutinaria(taskId: number, valor: boolean): void {
+    this.patchTask(taskId, { rutinaria: valor });
+  }
+
+  protected setTaskAreaPuestoTrabajo(taskId: number, valor: string): void {
+    this.patchTask(taskId, { areaPuestoTrabajo: valor || undefined });
+  }
+
+  protected setTaskCargosExpuestos(taskId: number, valor: string): void {
+    this.patchTask(taskId, { cargosExpuestos: valor || undefined });
+  }
+
+  private patchTask(taskId: number, changes: Partial<IpercTask>): void {
+    const current = this.matrix();
+    if (!current) return;
+    const tasks = current.tasks.map(t => (t.id === taskId ? { ...t, ...changes } : t));
+    this.persistTasks(current, tasks);
   }
 
   protected toggleAddHazard(taskId: number): void {

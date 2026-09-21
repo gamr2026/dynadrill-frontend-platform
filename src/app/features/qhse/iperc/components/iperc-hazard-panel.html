@@ -8,20 +8,42 @@
       <dynadrill-text variant="body">{{ hazard().fuenteRiesgo }}</dynadrill-text>
     </div>
 
-    <div class="iperc-hazard-panel__row">
-      <dynadrill-text variant="caption">Controles existentes</dynadrill-text>
-      <dynadrill-text variant="body">{{ hazard().controlesExistentes || 'Ninguno registrado' }}</dynadrill-text>
-    </div>
-
     @if (residualTone(); as tone) {
       <dynadrill-tag [label]="'Riesgo residual: ' + interpretarNR(nrResidual()!).label" [variant]="tone" />
     }
+  </section>
 
+  <section class="iperc-hazard-panel__section">
+    <dynadrill-text variant="caption">Controles existentes</dynadrill-text>
+    @if (isEditable) {
+      <div class="iperc-hazard-panel__grid iperc-hazard-panel__grid--3">
+        <dynadrill-input label="Fuente" [value]="hazard().controlesExistentes" (valueChange)="setControlesExistentes($event)" />
+        <dynadrill-input label="Medio" [value]="hazard().controlesExistentesMedio ?? ''" (valueChange)="setControlesExistentesMedio($event)" />
+        <dynadrill-input label="Individuo" [value]="hazard().controlesExistentesIndividuo ?? ''" (valueChange)="setControlesExistentesIndividuo($event)" />
+      </div>
+    } @else {
+      <div class="iperc-hazard-panel__grid iperc-hazard-panel__grid--3">
+        <div><dynadrill-text variant="caption">Fuente</dynadrill-text><dynadrill-text variant="body">{{ hazard().controlesExistentes || 'Ninguno registrado' }}</dynadrill-text></div>
+        @if (hazard().controlesExistentesMedio) {
+          <div><dynadrill-text variant="caption">Medio</dynadrill-text><dynadrill-text variant="body">{{ hazard().controlesExistentesMedio }}</dynadrill-text></div>
+        }
+        @if (hazard().controlesExistentesIndividuo) {
+          <div><dynadrill-text variant="caption">Individuo</dynadrill-text><dynadrill-text variant="body">{{ hazard().controlesExistentesIndividuo }}</dynadrill-text></div>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="iperc-hazard-panel__section">
+    <dynadrill-text variant="caption">Datos complementarios</dynadrill-text>
     @if (isEditable) {
       <div class="iperc-hazard-panel__grid">
         <dynadrill-input label="Clasificación del peligro" placeholder="Físico, Químico, Biológico…" [value]="hazard().clasificacionPeligro ?? ''" (valueChange)="setClasificacionPeligro($event)" />
+        <dynadrill-input label="Generado en" placeholder="Sitio de trabajo…" [value]="hazard().generadoEn ?? ''" (valueChange)="setGeneradoEn($event)" />
         <dynadrill-input label="N° de expuestos" [value]="hazard().numeroExpuestos != null ? '' + hazard().numeroExpuestos : ''" (valueChange)="setNumeroExpuestos($event)" />
+        <dynadrill-input label="Efectos posibles" [value]="hazard().efectosPosibles ?? ''" (valueChange)="setEfectosPosibles($event)" />
         <dynadrill-input label="Peor consecuencia" [value]="hazard().peorConsecuencia ?? ''" (valueChange)="setPeorConsecuencia($event)" />
+        <dynadrill-input label="Seguimiento" [value]="hazard().seguimiento ?? ''" (valueChange)="setSeguimiento($event)" />
       </div>
       <dynadrill-checkbox label="Existe requisito legal específico asociado" [checked]="!!hazard().requisitoLegal" (checkedChange)="setRequisitoLegal($event)" />
     } @else {
@@ -29,11 +51,20 @@
         @if (hazard().clasificacionPeligro) {
           <div><dynadrill-text variant="caption">Clasificación</dynadrill-text><dynadrill-text variant="body">{{ hazard().clasificacionPeligro }}</dynadrill-text></div>
         }
+        @if (hazard().generadoEn) {
+          <div><dynadrill-text variant="caption">Generado en</dynadrill-text><dynadrill-text variant="body">{{ hazard().generadoEn }}</dynadrill-text></div>
+        }
         @if (hazard().numeroExpuestos != null) {
           <div><dynadrill-text variant="caption">N° de expuestos</dynadrill-text><dynadrill-text variant="body">{{ hazard().numeroExpuestos }}</dynadrill-text></div>
         }
+        @if (hazard().efectosPosibles) {
+          <div><dynadrill-text variant="caption">Efectos posibles</dynadrill-text><dynadrill-text variant="body">{{ hazard().efectosPosibles }}</dynadrill-text></div>
+        }
         @if (hazard().peorConsecuencia) {
           <div><dynadrill-text variant="caption">Peor consecuencia</dynadrill-text><dynadrill-text variant="body">{{ hazard().peorConsecuencia }}</dynadrill-text></div>
+        }
+        @if (hazard().seguimiento) {
+          <div><dynadrill-text variant="caption">Seguimiento</dynadrill-text><dynadrill-text variant="body">{{ hazard().seguimiento }}</dynadrill-text></div>
         }
       </div>
       @if (hazard().requisitoLegal) {

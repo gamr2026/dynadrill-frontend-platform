@@ -6,6 +6,7 @@ import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
+  DynadrillIconButtonComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
@@ -23,10 +24,12 @@ import {
   Pedido,
   valorEstimadoPedido,
 } from '../../models/pedido.model';
+import { MACRO_ESTADO_TONE } from '../../../../shared/index';
 import { DocumentoOperativo, TIPO_DOCUMENTO_OPERATIVO_LABELS } from '../../models/documento-operativo.model';
 import { DocumentoOperativoService, PedidoService } from '../../services/pedido.service';
 import { NuevoPedidoDialog } from '../../components/nuevo-pedido-dialog';
 import { AppNotificationItem, NotificationsService } from '../../../../core/services/notifications.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 /** Días entre `desde` y hoy (0 si no hay fecha). */
 function diasDesde(desde?: string): number {
@@ -45,6 +48,7 @@ function diasDesde(desde?: string): number {
     DynadrillKpiRowComponent,
     DynadrillDataTableComponent,
     DynadrillButtonComponent,
+    DynadrillIconButtonComponent,
     DynadrillSelectComponent,
     DynadrillSpinnerComponent,
   ],
@@ -59,6 +63,10 @@ export class PedidosListPage {
   private readonly notify = inject(DynadrillNotificationService);
   private readonly notifications = inject(NotificationsService);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+
+  /** El alta de pedido es solo de Ventas — Facturación ve/edita lo que Ventas registra, pero no lo crea (a pedido del cliente). */
+  protected readonly puedeCrearPedido = computed(() => this.auth.currentUser()?.roleName !== 'Facturación');
 
   protected readonly loading = signal(true);
   protected readonly sincronizando = signal(false);
@@ -114,8 +122,10 @@ export class PedidosListPage {
       const dias = diasDesde(p.fechaFinServicio);
       const tono: 'success' | 'warning' | 'error' = dias <= 3 ? 'success' : dias <= 7 ? 'warning' : 'error';
       const fueraDeAlcance = ESTADOS_FUERA_DE_ALCANCE.includes(p.estado);
-      const estadoTono: 'neutral' | 'warning' | 'success' =
-        fueraDeAlcance ? 'neutral' : p.estado === 'ticket_firmado' || p.estado === 'aot_generada' ? 'success' : 'warning';
+      // Color por macro-estado (6 tonos universales) en vez del mapeo ad-hoc
+      // de antes — "fuera de alcance" sigue siendo un caso especial encima,
+      // no es parte del macro-estado en sí.
+      const estadoTono = fueraDeAlcance ? 'neutral' : MACRO_ESTADO_TONE[p.timelineResumen?.macroEstadoActual ?? 'pendiente'];
       return {
         id: p.id,
         code: p.code,
@@ -138,7 +148,7 @@ export class PedidosListPage {
     return [
       { label: 'Pedidos', value: ps.length, tone: 'neutral' },
       { label: 'En proceso', value: enProceso.length, tone: 'brand' },
-      { label: 'Firmados / con AOT', value: ps.filter(p => p.estado === 'ticket_firmado' || p.estado === 'aot_generada').length, tone: 'success' },
+      { label: 'Firmados / con OT', value: ps.filter(p => p.estado === 'ticket_firmado' || p.estado === 'aot_generada').length, tone: 'success' },
       { label: 'Origen AS2', value: ps.filter(p => p.origen === 'as2').length, tone: 'neutral' },
     ];
   });
@@ -206,7 +216,7 @@ export class PedidosListPage {
       title: 'Nuevo pedido',
       content: NuevoPedidoDialog,
       footer: false,
-      width: '760px',
+      width: '1200px',
     });
     ref.afterClose.subscribe(pedido => {
       if (pedido) this.reload();
@@ -215,5 +225,21 @@ export class PedidosListPage {
 
   protected verDetalle(row: Record<string, unknown>): void {
     this.router.navigate(['/dashboard/facturacion/pedidos', row['id']]);
+  }
+
+  /** Ventas y Facturación pueden editar (ver ModuleRoles.pedidos) — solo Ventas gestiona Administrativos, ver NuevoPedidoDialog. */
+  protected editarPedido(row: Record<string, unknown>): void {
+    const pedido = this.pedidos().find(p => p.id === row['id']);
+    if (!pedido) return;
+    const ref = this.dialog.open<NuevoPedidoDialog>({
+      title: `Editar pedido ${pedido.code}`,
+      content: NuevoPedidoDialog,
+      data: { pedido },
+      footer: false,
+      width: '1200px',
+    });
+    ref.afterClose.subscribe(actualizado => {
+      if (actualizado) this.reload();
+    });
   }
 }

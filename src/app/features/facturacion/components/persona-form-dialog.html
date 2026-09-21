@@ -1,0 +1,18 @@
+<div class="persona-form">
+  <dynadrill-select
+    label="Tipo"
+    placeholder="Selecciona el tipo"
+    [options]="tipoOptions"
+    [value]="tipo()"
+    [disabled]="editando()"
+    (valueChange)="tipo.set($any($event))"
+  />
+  <dynadrill-input label="Nombre" [value]="nombre()" (valueChange)="nombre.set($event)" />
+
+  <div class="persona-form__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">
+      {{ submitting() ? 'Guardando…' : 'Guardar' }}
+    </dynadrill-button>
+  </div>
+</div>

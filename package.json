@@ -20,12 +20,14 @@
     "@angular/forms": "^21.2.0",
     "@angular/platform-browser": "^21.2.0",
     "@angular/router": "^21.2.0",
-    "@digitec-it-projects/dynadrill-ui": "^1.0.5",
+    "@digitec-it-projects/dynadrill-ui": "^1.1.0",
     "echarts": "^6.1.0",
+    "exceljs": "^4.4.0",
     "ng-zorro-antd": "^21.0.0",
     "ngx-echarts": "^21.0.0",
     "rxjs": "~7.8.0",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@angular/build": "^21.2.21",

@@ -5,20 +5,38 @@
   flex-direction: column;
   gap: 16px;
 
-  &__group {
-    border: 1px solid #ecebf1;
-    border-radius: 10px;
-    padding: 14px 16px 16px;
-    margin: 0;
+  .fact-card { @include f.card; }
 
-    legend {
+  &__head {
+    @include f.card-head;
+
+    h2 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
       font-family: var(--font-subheading, 'Oswald', sans-serif);
-      font-size: 11px;
-      letter-spacing: 0.07em;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: var(--text-muted, #5c5870);
-      padding: 0 6px;
+      color: var(--dynadrill-navy, #131529);
     }
+  }
+
+  &__section-mark {
+    display: inline-block;
+    width: 3px;
+    height: 14px;
+    flex-shrink: 0;
+    background: var(--dynadrill-purple, #662e9b);
+    border-radius: 2px;
+  }
+
+  // "Comercial y responsables" se acorta a "Responsables" en mobile — igual
+  // que en la maqueta, sin duplicar el resto del contenido de la sección.
+  &__title-short {
+    display: none;
   }
 
   &__grid {
@@ -145,6 +163,12 @@
     }
   }
 
+  // Solo visible bajo 600px (ver media query) — nombre de columna sobre el
+  // campo, ya que ahí la tabla deja de tener thead.
+  &__td-label {
+    display: none;
+  }
+
   &__linea-actions {
     display: flex;
     align-items: center;
@@ -154,6 +178,78 @@
 
   &__actions {
     @include f.dialog-actions;
+  }
+
+  /**
+   * Bajo 600px la tabla de líneas se reacomoda a una tarjeta por línea (sin
+   * duplicar markup): se oculta el thead, cada <tr> pasa a grid de 2
+   * columnas con look de tarjeta, y las celdas "anchas" (código, descripción,
+   * subtotal, borrar) ocupan las 2 columnas — el resto (unidad/cantidad,
+   * precio/descuento, químico/herramienta) cae de a pares en el orden que
+   * ya tienen. Mismo criterio de breakpoint que el resto del diálogo.
+   */
+  @media (max-width: 600px) {
+    &__title-full {
+      display: none;
+    }
+    &__title-short {
+      display: inline;
+    }
+
+    &__lineas-table {
+      thead {
+        display: none;
+      }
+
+      tbody tr {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 10px;
+        position: relative;
+        margin-bottom: 12px;
+        padding: 12px;
+        border: 1px solid #ecebf1;
+        border-radius: 10px;
+        box-shadow: f.$fact-shadow;
+      }
+
+      td {
+        min-width: 0;
+      }
+    }
+
+    &__td-label {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted, #5c5870);
+      margin-bottom: 2px;
+    }
+
+    &__td--full {
+      grid-column: 1 / -1;
+    }
+
+    &__td--subtotal {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    &__td--delete {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: auto;
+    }
+
+    &__actions {
+      flex-direction: column-reverse;
+
+      dynadrill-button {
+        width: 100%;
+      }
+    }
   }
 }
 

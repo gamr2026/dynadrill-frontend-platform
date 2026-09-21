@@ -3,8 +3,8 @@
     El pedido se registra en el Portal y el gateway lo sincroniza con AS2. El número secuencial lo asigna AS2.
   </dynadrill-text>
 
-  <fieldset class="nuevo-pedido__group">
-    <legend>Cliente</legend>
+  <section class="fact-card">
+    <header class="nuevo-pedido__head"><h2><span class="nuevo-pedido__section-mark"></span>Cliente</h2></header>
     <div class="nuevo-pedido__grid">
       <dynadrill-select
         label="Cliente"
@@ -18,10 +18,10 @@
       <dynadrill-input label="Subcliente" [value]="subcliente()" (valueChange)="subcliente.set($event)" />
       <dynadrill-input label="Nº de contrato" [value]="numeroContrato()" (valueChange)="numeroContrato.set($event)" />
     </div>
-  </fieldset>
+  </section>
 
-  <fieldset class="nuevo-pedido__group">
-    <legend>Servicio</legend>
+  <section class="fact-card">
+    <header class="nuevo-pedido__head"><h2><span class="nuevo-pedido__section-mark"></span>Servicio</h2></header>
     <div class="nuevo-pedido__grid--ancho">
       <dynadrill-select label="Línea de servicio" placeholder="Selecciona" [options]="lineaOptions" [value]="lineaServicio()" (valueChange)="onLineaServicioChange($any($event))" />
       <dynadrill-select
@@ -42,10 +42,16 @@
       [valorInicial]="ubicacionInicial()"
       (seleccionChange)="onUbicacionChange($event)"
     />
-  </fieldset>
+  </section>
 
-  <fieldset class="nuevo-pedido__group">
-    <legend>Comercial y responsables</legend>
+  <section class="fact-card">
+    <header class="nuevo-pedido__head">
+      <h2>
+        <span class="nuevo-pedido__section-mark"></span>
+        <span class="nuevo-pedido__title-full">Comercial y responsables</span>
+        <span class="nuevo-pedido__title-short">Responsables</span>
+      </h2>
+    </header>
     <div class="nuevo-pedido__grid nuevo-pedido__grid--ancho">
       <dynadrill-select
         label="Agente comercial (Dynadrill)"
@@ -87,11 +93,11 @@
         (valueChange)="tecnicoHseResponsableId.set($any($event))"
       />
     </div>
-  </fieldset>
+  </section>
 
   @if (puedeVerAdministrativos()) {
-    <fieldset class="nuevo-pedido__group">
-      <legend>Administrativos (AS2)</legend>
+    <section class="fact-card">
+      <header class="nuevo-pedido__head"><h2><span class="nuevo-pedido__section-mark"></span>Administrativos (AS2)</h2></header>
       <div class="nuevo-pedido__grid">
         <dynadrill-select
           label="Condición de pago"
@@ -104,11 +110,11 @@
         <dynadrill-input label="Bodega" [value]="bodega()" (valueChange)="bodega.set($event)" />
         <dynadrill-select label="Solicitud" [options]="solicitudMedioOptions" [value]="solicitudMedio()" (valueChange)="solicitudMedio.set($any($event))" />
       </div>
-    </fieldset>
+    </section>
   }
 
-  <fieldset class="nuevo-pedido__group">
-    <legend>Líneas estimadas (cotizado)</legend>
+  <section class="fact-card">
+    <header class="nuevo-pedido__head"><h2><span class="nuevo-pedido__section-mark"></span>Líneas estimadas (cotizado)</h2></header>
     @if (avisoPrefactura(); as aviso) {
       <dynadrill-banner [variant]="aviso.variant" [message]="aviso.mensaje" />
     }
@@ -145,7 +151,8 @@
         <tbody>
           @for (l of lineasEstimadas(); track $index) {
             <tr>
-              <td>
+              <td class="nuevo-pedido__td--full">
+                <span class="nuevo-pedido__td-label">Código</span>
                 @if (l.esQuimico) {
                   <dynadrill-select
                     label=""
@@ -184,21 +191,41 @@
                   <dynadrill-text variant="caption">⚠ Fuera de la Lista de Precios — no entra a la prefactura automática.</dynadrill-text>
                 }
               </td>
-              <td><dynadrill-input label="" [value]="l.descripcion" [disabled]="l.esQuimico || l.esHerramienta" (valueChange)="onLineaCampoChange($index, 'descripcion', $event)" /></td>
-              <td><dynadrill-input label="" [value]="l.unidad" [disabled]="l.esQuimico || l.esHerramienta" (valueChange)="onLineaCampoChange($index, 'unidad', $event)" /></td>
-              <td class="num"><dynadrill-input label="" type="number" [value]="l.cantidad" (valueChange)="onLineaCampoChange($index, 'cantidad', $event)" /></td>
-              <td class="num"><dynadrill-input label="" type="number" [value]="l.valorUnitario" (valueChange)="onLineaCampoChange($index, 'valorUnitario', $event)" /></td>
-              <td class="num"><dynadrill-input label="" type="number" [value]="l.descuentoPorcentaje" (valueChange)="onLineaCampoChange($index, 'descuentoPorcentaje', $event)" /></td>
+              <td class="nuevo-pedido__td--full">
+                <span class="nuevo-pedido__td-label">Descripción</span>
+                <dynadrill-input label="" [value]="l.descripcion" [disabled]="l.esQuimico || l.esHerramienta" (valueChange)="onLineaCampoChange($index, 'descripcion', $event)" />
+              </td>
+              <td>
+                <span class="nuevo-pedido__td-label">Unidad</span>
+                <dynadrill-input label="" [value]="l.unidad" [disabled]="l.esQuimico || l.esHerramienta" (valueChange)="onLineaCampoChange($index, 'unidad', $event)" />
+              </td>
+              <td class="num">
+                <span class="nuevo-pedido__td-label">Cantidad</span>
+                <dynadrill-input label="" type="number" [value]="l.cantidad" (valueChange)="onLineaCampoChange($index, 'cantidad', $event)" />
+              </td>
+              <td class="num">
+                <span class="nuevo-pedido__td-label">Precio unitario</span>
+                <dynadrill-input label="" type="number" [value]="l.valorUnitario" (valueChange)="onLineaCampoChange($index, 'valorUnitario', $event)" />
+              </td>
+              <td class="num">
+                <span class="nuevo-pedido__td-label">% Descuento</span>
+                <dynadrill-input label="" type="number" [value]="l.descuentoPorcentaje" (valueChange)="onLineaCampoChange($index, 'descuentoPorcentaje', $event)" />
+              </td>
               @if (esPumping()) {
                 <td class="nuevo-pedido__quimico-cell">
+                  <span class="nuevo-pedido__td-label">Químico</span>
                   <input type="checkbox" [checked]="l.esQuimico" (change)="onQuimicoToggle($index, $any($event.target).checked)" aria-label="Es químico" />
                 </td>
                 <td class="nuevo-pedido__quimico-cell">
+                  <span class="nuevo-pedido__td-label">Herramienta</span>
                   <input type="checkbox" [checked]="l.esHerramienta" (change)="onHerramientaToggle($index, $any($event.target).checked)" aria-label="Es herramienta" />
                 </td>
               }
-              <td class="num">${{ (+l.cantidad || 0) * (+l.valorUnitario || 0) | number: '1.2-2' }}</td>
-              <td>
+              <td class="num nuevo-pedido__td--full nuevo-pedido__td--subtotal">
+                <span class="nuevo-pedido__td-label">Subtotal estimado</span>
+                ${{ (+l.cantidad || 0) * (+l.valorUnitario || 0) | number: '1.2-2' }}
+              </td>
+              <td class="nuevo-pedido__td--full nuevo-pedido__td--delete">
                 @if (lineasEstimadas().length > 1) {
                   <dynadrill-icon-button icon="delete" tooltip="Quitar línea" (clicked)="quitarLinea($index)" />
                 }
@@ -218,11 +245,11 @@
     <div class="nuevo-pedido__linea-actions">
       <dynadrill-button variant="secondary" size="small" (clicked)="agregarLinea()">+ Agregar línea</dynadrill-button>
     </div>
-  </fieldset>
+  </section>
 
   @if (esPumping()) {
-    <fieldset class="nuevo-pedido__group">
-      <legend>Documentos de referencia (Pumping)</legend>
+    <section class="fact-card">
+      <header class="nuevo-pedido__head"><h2><span class="nuevo-pedido__section-mark"></span>Documentos de referencia (Pumping)</h2></header>
       <dynadrill-text variant="caption">
         Adjuntá acá cualquier documento que Pumping vaya a necesitar más adelante (ej. ficha de mezcla de químicos), con
         una descripción — así lo ven ya identificado en sus pasos, sin que se lo vuelvan a pedir.
@@ -249,7 +276,7 @@
         </div>
       }
       <dynadrill-button variant="secondary" size="small" (clicked)="agregarDocumentoAdjunto()">+ Agregar documento</dynadrill-button>
-    </fieldset>
+    </section>
   }
 
   <div class="nuevo-pedido__actions">

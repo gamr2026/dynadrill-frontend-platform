@@ -697,12 +697,29 @@ export class NuevoPedidoDialog {
 
   /**
    * Solo actualiza `listaCliente` (para la advertencia de "código fuera de
-   * la Lista de Precios") — ya NO toca `lineasEstimadas`: los códigos son
-   * texto libre, no dependen de que existan en la lista del cliente elegido.
+   * la Lista de Precios" y el autocompletado de precio) — ya NO toca
+   * `lineasEstimadas`: los códigos son texto libre, no dependen de que
+   * existan en la lista del cliente elegido.
+   *
+   * Empareja primero por `clienteId` real (igual que `buscarListaPrecios` en
+   * el backend) — matchear solo por el texto de `cliente` es frágil: el
+   * nombre comercial completo de ClienteCatalogo ("Empresa Publica De
+   * Hidrocarburos Del Ecuador Ep Petroecuador") no tiene por qué ser
+   * idéntico al `cliente` que quedó guardado en la Lista de Precios ("EP
+   * Petroecuador") aunque sea exactamente el mismo cliente — antes, con
+   * solo texto, esa Lista de Precios nunca aparecía emparejada (bug
+   * reportado: ni el aviso "fuera de lista" ni el autocompletado de precio
+   * funcionaban para ese cliente). El texto libre queda de fallback para
+   * listas legacy sin `clienteId`.
    */
   private emparejarLista(): void {
+    const clienteId = this.clienteId();
     this.listaCliente.set(
-      this.todasLasListas.find(l => l.cliente === this.cliente() && l.numeroContrato === this.numeroContrato() && l.activa) ??
+      (clienteId != null
+        ? (this.todasLasListas.find(l => l.clienteId === clienteId && l.numeroContrato === this.numeroContrato() && l.activa) ??
+          this.todasLasListas.find(l => l.clienteId === clienteId && l.activa))
+        : undefined) ??
+        this.todasLasListas.find(l => l.cliente === this.cliente() && l.numeroContrato === this.numeroContrato() && l.activa) ??
         this.todasLasListas.find(l => l.cliente === this.cliente() && l.activa) ??
         null,
     );

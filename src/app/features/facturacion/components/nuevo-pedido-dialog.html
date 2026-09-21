@@ -149,7 +149,7 @@
                 @if (l.esQuimico) {
                   <dynadrill-select
                     label=""
-                    placeholder="Elegir químico de Inventario"
+                    [placeholder]="cliente() ? 'Elegir químico de la Lista de Precios del cliente' : 'Selecciona primero el cliente'"
                     [options]="quimicoOptions()"
                     [value]="l.codigo || null"
                     [searchable]="true"
@@ -158,7 +158,7 @@
                 } @else if (l.esHerramienta) {
                   <dynadrill-select
                     label=""
-                    placeholder="Elegir herramienta de Inventario"
+                    [placeholder]="cliente() ? 'Elegir herramienta de la Lista de Precios del cliente' : 'Selecciona primero el cliente'"
                     [options]="herramientaOptions()"
                     [value]="l.codigo || null"
                     [searchable]="true"
@@ -177,7 +177,7 @@
                       @if (ref.precioSugerido != null) {
                         Precio sugerido (catálogo general): ${{ ref.precioSugerido | number: '1.2-2' }}.
                       }
-                      Definí el precio de venta.
+                      Define el precio de venta.
                     </dynadrill-text>
                   </div>
                 } @else if (codigoFueraDeListaPrecios(l.codigo)) {

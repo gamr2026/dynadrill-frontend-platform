@@ -221,22 +221,42 @@ export class NuevoPedidoDialog {
   protected readonly esPumping = computed(() => this.lineaServicio() === 'pumping');
 
   /**
-   * Catálogo real de químicos de Inventario (categoría QUÍMICA) — antes
+   * Catálogo completo de químicos de Inventario (categoría QUÍMICA) — antes
    * "Químico" era solo un checkbox sobre un código de texto libre, sin
    * ninguna garantía de que ese código existiera en Inventario; recién se
    * descubría el desfase en Pumping, al asignar recursos ("no aparece
-   * como químico en el inventario"). Ahora, al marcar una línea como
-   * químico, el código se elige de este catálogo (por código, no por
-   * nombre — dos químicos pueden compartir nombre comercial) y
-   * descripción/unidad se autocompletan del artículo real.
+   * como químico en el inventario"). Se carga completo una sola vez;
+   * `quimicosCatalogo` (más abajo) es el que realmente se ofrece para
+   * elegir, filtrado por el cliente seleccionado.
    */
-  private readonly quimicosCatalogo = signal<Articulo[]>([]);
+  private readonly quimicosCatalogoCompleto = signal<Articulo[]>([]);
+  /** Mismo mecanismo que `quimicosCatalogoCompleto`, pero para herramientas (categoría FISHING & TOOLS de Inventario). */
+  private readonly herramientasCatalogoCompleto = signal<Articulo[]>([]);
+
+  /**
+   * Solo se pueden elegir los códigos que además están en la Lista de
+   * Precios del cliente seleccionado — Inventario es el catálogo interno de
+   * Dynadrill (no distingue cliente), así que sin este filtro se podían
+   * elegir códigos que le pertenecen a otro cliente. Sin cliente elegido (o
+   * sin Lista de Precios activa para él) no hay nada para ofrecer todavía.
+   */
+  protected readonly quimicosCatalogo = computed<Articulo[]>(() => {
+    const lista = this.listaCliente();
+    if (!lista) return [];
+    const codigos = new Set(lista.items.map(i => i.codigo));
+    return this.quimicosCatalogoCompleto().filter(a => codigos.has(a.codigo));
+  });
   protected readonly quimicoOptions = computed<DynadrillSelectOption[]>(() =>
     this.quimicosCatalogo().map(a => ({ label: `${a.codigo} — ${a.nombre}`, value: a.codigo })),
   );
 
-  /** Mismo mecanismo que `quimicosCatalogo`, pero para herramientas (categoría HERRAMIENTAS de Inventario). */
-  private readonly herramientasCatalogo = signal<Articulo[]>([]);
+  /** Espejo de `quimicosCatalogo`, para herramientas. */
+  protected readonly herramientasCatalogo = computed<Articulo[]>(() => {
+    const lista = this.listaCliente();
+    if (!lista) return [];
+    const codigos = new Set(lista.items.map(i => i.codigo));
+    return this.herramientasCatalogoCompleto().filter(a => codigos.has(a.codigo));
+  });
   protected readonly herramientaOptions = computed<DynadrillSelectOption[]>(() =>
     this.herramientasCatalogo().map(a => ({ label: `${a.codigo} — ${a.nombre}`, value: a.codigo })),
   );
@@ -617,7 +637,7 @@ export class NuevoPedidoDialog {
     });
     this.catalogosService.clientes().subscribe(clientes => this.clientesCatalogo.set(clientes));
     this.articulosService.list({ categoria: 'QUIMICA', activo: true }).subscribe({
-      next: articulos => this.quimicosCatalogo.set(articulos),
+      next: articulos => this.quimicosCatalogoCompleto.set(articulos),
       // Antes fallaba en silencio (403 de permisos) y el select de químicos
       // quedaba vacío sin ninguna pista de por qué (bug reportado).
       error: () => this.notify.error('Químicos', 'No se pudo cargar el catálogo de químicos de Inventario — las líneas marcadas como químico no van a poder elegir código.'),
@@ -627,7 +647,7 @@ export class NuevoPedidoDialog {
     // de datos de prueba (51 ítems, sin ningún precio real) que usa FCR para
     // su checklist de inspección, un concepto distinto al de esta pantalla.
     this.articulosService.list({ categoria: 'FISHING & TOOLS', activo: true }).subscribe({
-      next: articulos => this.herramientasCatalogo.set(articulos),
+      next: articulos => this.herramientasCatalogoCompleto.set(articulos),
       error: () => this.notify.error('Herramientas', 'No se pudo cargar el catálogo de herramientas de Inventario — las líneas marcadas como herramienta no van a poder elegir código.'),
     });
     this.cargarPersonas('agente_comercial', this.agenteComercialOptions);

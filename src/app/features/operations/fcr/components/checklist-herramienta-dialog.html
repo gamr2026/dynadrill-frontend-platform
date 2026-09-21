@@ -11,31 +11,38 @@
       <dynadrill-banner variant="info" message="'Reparado por' ya firmó — los datos y las partes quedan bloqueados. Solo faltan las firmas restantes." />
     }
 
+    @if (reparada()) {
+      <dynadrill-banner variant="info" [message]="'Herramienta reparada' + (fechaReparadaTexto() ? (' el ' + (fechaReparadaTexto() | date: 'dd/MM/yyyy HH:mm')) : '')" />
+    }
+
     <fieldset class="checklist-dialog__section" [disabled]="formularioBloqueado()">
       <legend><dynadrill-text variant="h2">Datos generales</dynadrill-text></legend>
 
       <div class="checklist-dialog__grid">
-        <dynadrill-input label="Cliente" placeholder="Cliente del pedido" [value]="cliente()" (valueChange)="cliente.set($event)" />
-        <dynadrill-input label="Pozo" placeholder="Pozo del pedido" [value]="pozo()" (valueChange)="pozo.set($event)" />
-        <dynadrill-input label="Descripción de la herramienta" placeholder="Descripción de la herramienta" [value]="descripcionHerramienta()" (valueChange)="descripcionHerramienta.set($event)" />
-        <dynadrill-input label="N° de serie" placeholder="N° de serie de la herramienta" [value]="numeroSerie()" (valueChange)="numeroSerie.set($event)" />
+        <dynadrill-input label="Cliente" placeholder="Cliente del pedido" [value]="cliente()" [disabled]="true" (valueChange)="cliente.set($event)" />
+        <dynadrill-input label="Pozo" placeholder="Pozo del pedido" [value]="pozo()" [disabled]="true" (valueChange)="pozo.set($event)" />
+        <dynadrill-input label="Descripción de la herramienta" placeholder="Descripción de la herramienta" [value]="descripcionHerramienta()" [disabled]="true" (valueChange)="descripcionHerramienta.set($event)" />
+        <dynadrill-input label="N° de serie" placeholder="N° de serie de la herramienta" [value]="numeroSerie()" [disabled]="true" (valueChange)="numeroSerie.set($event)" />
 
         <dynadrill-datetime-picker
           label="Fecha de inspección"
           [value]="$any(fechaInspeccion())"
           [allowClear]="true"
+          [disabled]="true"
           (valueChange)="fechaInspeccion.set($event)"
         />
         <dynadrill-datetime-picker
-          label="Fecha de reparación"
+          label="Fecha de revisión"
           [value]="$any(fechaReparacion())"
           [allowClear]="true"
+          [disabled]="true"
           (valueChange)="fechaReparacion.set($event)"
         />
         <dynadrill-datetime-picker
           label="Fecha de envío"
           [value]="$any(fechaEnvio())"
           [allowClear]="true"
+          [disabled]="true"
           (valueChange)="fechaEnvio.set($event)"
         />
 
@@ -46,7 +53,8 @@
           [value]="inspeccionadoPor()"
           (valueChange)="inspeccionadoPor.set($any($event ?? ''))"
         />
-        <dynadrill-input label="Reparado por" placeholder="Nombre de quien repara" [value]="reparadoPor()" (valueChange)="reparadoPor.set($event)" />
+        <dynadrill-input label="Operador mecánico (Reparado por)" [value]="reparadoPor()" [disabled]="true" (valueChange)="reparadoPor.set($event)" />
+        <dynadrill-input label="Operador de campo asignado" [value]="data.operadorCampoAsignado || 'Sin asignar'" [disabled]="true" />
       </div>
     </fieldset>
 

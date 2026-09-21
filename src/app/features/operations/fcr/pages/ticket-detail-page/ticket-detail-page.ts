@@ -88,6 +88,11 @@ import {
 } from '../../../shared/ticket-qhse.util';
 import { SolicitarCorreccionDialog, SolicitarCorreccionDialogData, SolicitarCorreccionDialogResult } from '../../components/solicitar-correccion-dialog';
 import { AsignarOperadorDialog, AsignarOperadorDialogData, AsignarOperadorDialogResult } from '../../components/asignar-operador-dialog';
+import {
+  AsignarOperadorMecanicoDialog,
+  AsignarOperadorMecanicoDialogData,
+  AsignarOperadorMecanicoDialogResult,
+} from '../../components/asignar-operador-mecanico-dialog';
 import { FirmaActaDialog, FirmaActaDialogData, FirmaActaDialogResult } from '../../components/firma-acta-dialog';
 import { ChecklistHerramientaDialog, ChecklistHerramientaDialogData } from '../../components/checklist-herramienta-dialog';
 import { HerramientaFaltanteDialog, HerramientaFaltanteDialogData, HerramientaFaltanteDialogResult } from '../../components/herramienta-faltante-dialog';
@@ -103,6 +108,8 @@ import {
   ReporteJobPdfDialog,
   ReporteJobPdfDialogData,
   OperativoDocsBridgeService,
+  descargarCsv,
+  parseCsvFile,
   TimelinePopoverTriggerDirective,
 } from '../../../../../shared/index';
 
@@ -728,6 +735,61 @@ export class FcrTicketDetailPage {
     this.updateTicket(this.fcrService.removeActivityLogEntry(t.id, entryId));
   }
 
+  /** Plantilla CSV (se abre en Excel) con las mismas columnas que ya captura el formulario manual de arriba. */
+  protected descargarPlantillaActividades(): void {
+    descargarCsv('plantilla-actividades-diarias.csv', [
+      ['Fecha', 'Hora inicio', 'Hora fin', 'Detalle de actividad'],
+      ['2026-09-21', '06:00', '14:00', 'Ejemplo: jornada de operación en pozo — reemplace por sus filas reales'],
+    ]);
+  }
+
+  /**
+   * Carga masiva de actividades diarias: parsea el CSV subido y crea una
+   * entrada de `activity-log` por fila, reusando el mismo endpoint que ya usa
+   * "+ Agregar actividad" — fila por fila y en orden, para no perder ninguna
+   * si una falla a mitad de camino.
+   */
+  protected async onActividadesFileSelected(file: NzUploadFile): Promise<void> {
+    const t = this.ticket();
+    const archivo = this.extraerArchivoValido(file);
+    if (!t || !archivo) return;
+    const author = this.auth.currentUser()?.name ?? this.roleName();
+    let filas: string[][];
+    try {
+      filas = await parseCsvFile(archivo);
+    } catch {
+      this.notify.error('Error', 'No se pudo leer el archivo. Verifica que sea un CSV válido.');
+      return;
+    }
+    const dataRows = filas.slice(1).filter(row => row.some(cell => cell.trim().length > 0));
+    if (dataRows.length === 0) {
+      this.notify.error('Error', 'El archivo no tiene filas de actividades para cargar.');
+      return;
+    }
+
+    let cargadas = 0;
+    const errores: string[] = [];
+    for (const [fecha, horaInicio, horaFin, ...detalleParts] of dataRows) {
+      const detalle = detalleParts.join(',').trim();
+      if (!fecha?.trim() || !horaInicio?.trim() || !horaFin?.trim() || !detalle) {
+        errores.push(`Fila incompleta: ${[fecha, horaInicio, horaFin, detalle].join(' / ')}`);
+        continue;
+      }
+      try {
+        const actualizado = await firstValueFrom(
+          this.fcrService.addActivityLogEntry(t.id, { date: fecha.trim(), startTime: horaInicio.trim(), endTime: horaFin.trim(), detail: detalle, author }),
+        );
+        this.ticket.set(actualizado);
+        cargadas++;
+      } catch {
+        errores.push(`No se pudo cargar: ${fecha} ${horaInicio}-${horaFin}`);
+      }
+    }
+
+    if (cargadas > 0) this.notify.success('Carga masiva completada', `${cargadas} actividad(es) cargada(s).`);
+    if (errores.length > 0) this.notify.error('Algunas filas no se cargaron', errores.join(' · '));
+  }
+
   // ══════════════════════════════════════════════
   // FASE: Ejecución de Campo — registro de uso de herramientas (Reporte de Htas.)
   // ══════════════════════════════════════════════
@@ -1038,10 +1100,15 @@ export class FcrTicketDetailPage {
   protected readonly phaseLabel = (phase: FcrPhase): string => FCR_PHASE_LABELS[phase];
 
   /**
-   * KPIs del dashboard de cierre. "Documentos subidos" cuenta los 6 flags
-   * reales de documento (3 de la rama SERVICIOS + 3 de la rama VENTA) más
-   * los otros 6 hitos/documentos generados durante el ticket — el mismo
-   * universo que `closureOtherDocuments` + `checklistDocumentosReadOnly`.
+   * KPIs del dashboard de cierre. "Documentos subidos" cuenta solo los 6
+   * flags de documento con archivo real (3 de la rama SERVICIOS + 3 de la
+   * rama VENTA) — los otros 6 hitos (`workReportUploaded`,
+   * `toolReportUploaded`, `finalReviewGuideUploaded`,
+   * `movementGuideGenerated`, `reviewGuideGenerated`,
+   * `bodegaExitGuideGenerated`) nunca tuvieron opción real de "subir un
+   * documento" (se marcan solos como efecto de otra acción), así que no
+   * cuentan como documento acá — evita que el resumen de cierre los muestre
+   * como si faltara adjuntar algo que jamás se pudo adjuntar.
    */
   protected readonly closureStats = computed(() => {
     const t = this.ticket();
@@ -1053,12 +1120,6 @@ export class FcrTicketDetailPage {
       t.registroDurezaUploaded,
       t.registroQaqcUploaded,
       t.inspectionDocumentUploaded,
-      t.workReportUploaded,
-      t.toolReportUploaded,
-      t.finalReviewGuideUploaded,
-      t.movementGuideGenerated,
-      t.reviewGuideGenerated,
-      t.bodegaExitGuideGenerated,
     ];
     return {
       toolsCount: t.tools.length,
@@ -1068,7 +1129,15 @@ export class FcrTicketDetailPage {
     };
   });
 
-  /** Hitos/documentos generados durante el ticket que quedan fuera de los 6 flags reales ya cubiertos por `checklistDocumentosReadOnly` / los documentos de VENTA. */
+  /**
+   * Hitos generados durante el ticket, fuera de los 6 flags reales de
+   * documento. Ninguno de estos 6 es en realidad "subir un documento" (se
+   * marcan solos como efecto de otra acción: "Finalizar ejecución", subir el
+   * documento de inspección, o "Generar guía de salida de bodega") — por
+   * eso, mientras estén pendientes, NO se muestran (dejarían la falsa
+   * impresión de un documento faltante que nunca tuvo opción de cargarse).
+   * Solo aparecen una vez generados, para no perder el acceso a "Ver PDF".
+   */
   protected readonly closureOtherDocuments = computed(() => {
     const t = this.ticket();
     if (!t) return [];
@@ -1079,7 +1148,7 @@ export class FcrTicketDetailPage {
       { key: 'movementGuide' as const, label: 'Guía de movimiento', uploaded: t.movementGuideGenerated },
       { key: 'reviewGuide' as const, label: 'Guía de revisión', uploaded: t.reviewGuideGenerated },
       { key: 'bodegaExitGuide' as const, label: 'Guía de salida de bodega', uploaded: t.bodegaExitGuideGenerated },
-    ];
+    ].filter(doc => doc.uploaded);
   });
 
   /** Abre la vista imprimible del resumen de cierre — datos derivados del ticket completo, sin llamada adicional al backend. */
@@ -1087,6 +1156,9 @@ export class FcrTicketDetailPage {
     const t = this.ticket();
     if (!t) return;
 
+    // Solo los 6 documentos con archivo real — los otros 6 hitos (reporte de
+    // trabajo/herramientas, guías) nunca fueron un documento que se "sube",
+    // así que no van en el reporte formal de cierre (ver `closureOtherDocuments`).
     const documentos: ReporteCierrePdfDocumentRow[] = [
       { label: 'Formulario de inspección externo', uploaded: !!t.formularioInspeccionExternoUploaded, nombreArchivo: t.formularioInspeccionExternoNombreArchivo },
       { label: 'Formato de dimensionamiento', uploaded: !!t.formatoDimensionamientoServicioUploaded, nombreArchivo: t.formatoDimensionamientoServicioNombreArchivo },
@@ -1094,12 +1166,6 @@ export class FcrTicketDetailPage {
       { label: 'Documento de inspección', uploaded: t.inspectionDocumentUploaded, nombreArchivo: t.inspectionDocumentNombreArchivo },
       { label: 'Registro de dureza', uploaded: !!t.registroDurezaUploaded, nombreArchivo: t.registroDurezaNombreArchivo },
       { label: 'Registro firmado de QAQC', uploaded: !!t.registroQaqcUploaded, nombreArchivo: t.registroQaqcNombreArchivo },
-      { label: 'Reporte de trabajo', uploaded: t.workReportUploaded },
-      { label: 'Reporte de herramientas', uploaded: t.toolReportUploaded },
-      { label: 'Guía de revisión final', uploaded: t.finalReviewGuideUploaded },
-      { label: 'Guía de movimiento', uploaded: t.movementGuideGenerated },
-      { label: 'Guía de revisión', uploaded: t.reviewGuideGenerated },
-      { label: 'Guía de salida de bodega', uploaded: t.bodegaExitGuideGenerated },
     ];
 
     const byDate = new Map<string, { count: number; totalHours: number }>();
@@ -1141,10 +1207,17 @@ export class FcrTicketDetailPage {
     const t = this.ticket();
     if (!t || !this.isMyTurn()) return;
     const returned = t.tools.filter(tool => tool.status === 'devuelta').length;
+    const enviados = t.tools.filter(tool => this.toolInspectionByToolId().get(tool.id)?.estado === 'enviado').length;
     const ref = this.dialog.open<CierreTicketDialog, CierreTicketDialogData>({
       title: 'Cerrar ticket FCR',
       content: CierreTicketDialog,
-      data: { ticketCode: t.code, clientName: t.clientName, toolsReturnedSummary: `${returned} de ${t.tools.length} devueltas` },
+      data: {
+        ticketCode: t.code,
+        clientName: t.clientName,
+        toolsReturnedSummary: `${returned} de ${t.tools.length} devueltas`,
+        documentsSummary: `${this.closureStats().documentsCount} documentos cargados`,
+        checklistsSummary: t.tipoOt === 'servicio' ? `${enviados} de ${t.tools.length} enviados` : 'No aplica',
+      },
       footer: false,
     });
     ref.afterClose.subscribe((result: CierreTicketDialogResult | undefined) => {
@@ -1208,17 +1281,46 @@ export class FcrTicketDetailPage {
     Object.entries(TIPO_OPERADOR_LABELS) as [TipoOperador, string][]
   ).map(([value, label]) => ({ value, label }));
   protected readonly tipoOperadorSeleccionado = signal<TipoOperador | null>(null);
+  /** Persona elegida en `AsignarOperadorMecanicoDialog` — nombre concreto, no solo la especialidad. */
+  protected readonly operadorMecanicoSeleccionado = signal<string | null>(null);
+
+  protected onTipoOperadorChange(value: TipoOperador | null): void {
+    this.tipoOperadorSeleccionado.set(value);
+    this.operadorMecanicoSeleccionado.set(null);
+  }
+
+  protected openAsignarOperadorMecanico(): void {
+    const t = this.ticket();
+    const tipo = this.tipoOperadorSeleccionado();
+    if (!t || !tipo) return;
+    const ref = this.dialog.open<AsignarOperadorMecanicoDialog, AsignarOperadorMecanicoDialogData>({
+      title: 'Asignar operador mecánico',
+      content: AsignarOperadorMecanicoDialog,
+      data: { ticketCode: t.code, tipoOperador: tipo },
+      footer: false,
+    });
+    ref.afterClose.subscribe((result: AsignarOperadorMecanicoDialogResult | undefined) => {
+      if (!result?.assigned || !result.operatorName) return;
+      this.operadorMecanicoSeleccionado.set(result.operatorName);
+    });
+  }
 
   protected async confirmTipoOperador(): Promise<void> {
     const t = this.ticket();
-    const value = this.tipoOperadorSeleccionado();
-    if (!t || !value) return;
+    const tipo = this.tipoOperadorSeleccionado();
+    const operatorName = this.operadorMecanicoSeleccionado();
+    if (!t || !tipo || !operatorName) return;
     const ok = await this.confirmStep('Confirmar tipo de operador', 'El ticket avanzará a Reparación.');
     if (!ok) return;
-    this.fcrService.setTipoOperador(t.id, value).subscribe({
-      next: updated => {
-        this.ticket.set(updated);
-        this.advancePhase('reparacion');
+    this.fcrService.setTipoOperador(t.id, tipo).subscribe({
+      next: () => {
+        this.fcrService.assignMechanicOperator(t.id, operatorName).subscribe({
+          next: updated => {
+            this.ticket.set(updated);
+            this.advancePhase('reparacion');
+          },
+          error: () => this.notify.error('Error', 'No se pudo guardar el operador mecánico asignado.'),
+        });
       },
       error: () => this.notify.error('Error', 'No se pudo guardar el tipo de operador.'),
     });
@@ -1354,7 +1456,15 @@ export class FcrTicketDetailPage {
     const ref = this.dialog.open<ChecklistHerramientaDialog, ChecklistHerramientaDialogData>({
       title: 'Checklist de inspección',
       content: ChecklistHerramientaDialog,
-      data: { ticketId: t.id, toolId: tool.id, articuloId: tool.articuloId, toolName: tool.name, cliente: t.clientName, pozo: t.wellName },
+      data: {
+        ticketId: t.id,
+        toolId: tool.id,
+        articuloId: tool.articuloId,
+        toolName: tool.name,
+        operadorCampoAsignado: t.assignedOperator,
+        cliente: t.clientName,
+        pozo: t.wellName,
+      },
       footer: false,
       width: '90vw',
     });

@@ -95,12 +95,22 @@
           placeholder="Selecciona"
           [options]="tipoOperadorOptions"
           [value]="tipoOperadorSeleccionado()"
-          (valueChange)="tipoOperadorSeleccionado.set($any($event))"
+          (valueChange)="onTipoOperadorChange($any($event))"
         />
+
+        @if (tipoOperadorSeleccionado()) {
+          <dynadrill-button variant="secondary" (clicked)="openAsignarOperadorMecanico()">
+            {{ operadorMecanicoSeleccionado() ? 'Cambiar operador (' + operadorMecanicoSeleccionado() + ')' : 'Seleccionar operador' }}
+          </dynadrill-button>
+        }
 
         @if (isMyTurn()) {
           <footer class="fcr-detail__actions">
-            <dynadrill-button variant="primary" [disabled]="!tipoOperadorSeleccionado()" (clicked)="confirmTipoOperador()">Continuar a Reparación</dynadrill-button>
+            <dynadrill-button
+              variant="primary"
+              [disabled]="!tipoOperadorSeleccionado() || !operadorMecanicoSeleccionado()"
+              (clicked)="confirmTipoOperador()"
+            >Continuar a Reparación</dynadrill-button>
           </footer>
         }
       </section>
@@ -651,6 +661,15 @@
           <dynadrill-text variant="body">Reportes de campo subidos, pendientes de revisión del Supervisor.</dynadrill-text>
         } @else {
           @if (isMyTurn()) {
+            <div class="fcr-detail__log-form">
+              <dynadrill-text variant="subtitle">Carga masiva de actividades</dynadrill-text>
+              <dynadrill-text variant="caption">Descarga la plantilla, complétala con las jornadas del período y súbela para registrarlas todas de una vez.</dynadrill-text>
+              <div class="fcr-detail__log-form-row">
+                <dynadrill-button variant="secondary" size="small" (clicked)="descargarPlantillaActividades()">Descargar plantilla</dynadrill-button>
+                <dynadrill-upload-zone (fileSelected)="onActividadesFileSelected($event)" />
+              </div>
+            </div>
+
             <div class="fcr-detail__log-form">
               <dynadrill-text variant="subtitle">Registrar actividad</dynadrill-text>
               <div class="fcr-detail__log-form-row">

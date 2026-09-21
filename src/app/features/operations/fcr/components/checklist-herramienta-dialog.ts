@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import type { NzUploadFile } from 'ng-zorro-antd/upload';
@@ -38,6 +39,8 @@ export interface ChecklistHerramientaDialogData {
   toolId: number;
   articuloId: number;
   toolName: string;
+  /** Operador de campo asignado al ticket (fase `asignacion`) — quien se lleva la herramienta al pozo. Solo informativo acá, no se edita desde este diálogo. */
+  operadorCampoAsignado?: string;
   /** Del ticket — solo se usan para precargar `cliente`/`pozo` en la primera creación del checklist (ver `iniciar()`). */
   cliente?: string;
   pozo?: string;
@@ -104,6 +107,7 @@ function normalizeResultado(raw: string): FcrToolInspectionParteResultado | null
 @Component({
   selector: 'app-checklist-herramienta-dialog',
   imports: [
+    DatePipe,
     DynadrillTextComponent,
     DynadrillInputComponent,
     DynadrillSelectComponent,
@@ -160,6 +164,10 @@ export class ChecklistHerramientaDialog {
   protected readonly yaEnviado = computed(() => this.estado() === 'enviado' || this.estado() === 'aprobado');
   /** "Reparado por" certifica los datos y las partes tal como quedaron — a partir de ahí nadie más (Revisado por, Liberado QHSE) puede editarlos, solo firmar. */
   protected readonly formularioBloqueado = computed(() => this.yaEnviado() || !!this.firmas()['reparadoPor']?.firmado);
+
+  /** Indicador para el operador de campo: la herramienta ya quedó reparada (mecánico firmó su parte) y cuándo. No es un nuevo estado de `FcrToolStatus`, solo deriva de la firma ya persistida. */
+  protected readonly reparada = computed(() => !!this.firmas()['reparadoPor']?.firmado);
+  protected readonly fechaReparadaTexto = computed(() => this.firmas()['reparadoPor']?.fecha ?? null);
 
   /** Las 3 firmas ya persistidas en el backend — no un checkbox marcado localmente. */
   protected readonly canEnviar = computed(
@@ -417,9 +425,40 @@ export class ChecklistHerramientaDialog {
     }
   }
 
+  /**
+   * Campos obligatorios para poder firmar "Reparado por" (certifica los
+   * datos y las partes tal como quedaron, justo antes de que el formulario
+   * se bloquee) — todo salvo "Observaciones", que sigue siendo opcional.
+   * En borrador (antes de esta firma) sí se permite dejar campos vacíos.
+   */
+  protected camposFaltantes(): string[] {
+    const faltantes: string[] = [];
+    if (!this.cliente().trim()) faltantes.push('Cliente');
+    if (!this.pozo().trim()) faltantes.push('Pozo');
+    if (!this.fechaInspeccion()) faltantes.push('Fecha de inspección');
+    if (!this.fechaReparacion()) faltantes.push('Fecha de revisión');
+    if (!this.fechaEnvio()) faltantes.push('Fecha de envío');
+    if (!this.descripcionHerramienta().trim()) faltantes.push('Descripción de la herramienta');
+    if (!this.numeroSerie().trim()) faltantes.push('N° de serie');
+    if (!this.inspeccionadoPor()) faltantes.push('Inspeccionado por');
+    if (!this.reparadoPor().trim()) faltantes.push('Operador mecánico (Reparado por)');
+    const parteIncompleta = this.partes().some(
+      p => !p.visualResultado || !p.endResultado || p.cambioCantidad === null || !p.accion.trim(),
+    );
+    if (parteIncompleta) faltantes.push('Resultado visual, resultado final, cambio de cantidad y acción de cada parte');
+    return faltantes;
+  }
+
   /** Handler del checkbox de firma: solo actúa al tildar (nunca al destildar) y solo si el paso realmente está habilitado. Pide confirmación antes de firmar — es irreversible (bloquea el formulario si es "Reparado por", o queda registrado a nombre de quien firma). */
   protected async onFirmaChange(rol: FcrToolInspectionFirmaRol, checked: boolean): Promise<void> {
     if (!checked || !this.puedeFirmar(rol)) return;
+    if (rol === 'reparadoPor') {
+      const faltantes = this.camposFaltantes();
+      if (faltantes.length > 0) {
+        this.notify.error('Faltan datos por completar', `Antes de firmar "Reparado por": ${faltantes.join(', ')}.`);
+        return;
+      }
+    }
     const nombre = this.auth.currentUser()?.name ?? this.roleName();
     const contenido =
       rol === 'reparadoPor'
@@ -430,7 +469,16 @@ export class ChecklistHerramientaDialog {
     void this.firmar(rol);
   }
 
-  /** Firma ESTE rol solo, de inmediato — no espera a un botón final que firme las 3 juntas. */
+  /**
+   * Firma ESTE rol solo, de inmediato — no espera a un botón final que firme
+   * las 3 juntas. Antes de firmar persiste cabecera+partes si el formulario
+   * todavía es editable: "Reparado por" bloquea el formulario server-side
+   * apenas queda firmado (`assertFormularioEditable`), así que si no se
+   * guarda ANTES de esa firma, lo marcado localmente nunca llega al backend
+   * y se pierde (bug reportado: el revisor abre el checklist y no ve nada
+   * marcado). Para `revisadoPor`/`liberadoQhse` el formulario ya está
+   * bloqueado en ese punto, así que este guardado no hace nada extra.
+   */
   private async firmar(rol: FcrToolInspectionFirmaRol): Promise<void> {
     const ticketId = this.data.ticketId;
     const inspectionId = this.inspectionId();
@@ -438,8 +486,9 @@ export class ChecklistHerramientaDialog {
 
     this.firmando.set(rol);
     try {
+      if (!this.formularioBloqueado()) await this.persistirCambios();
       const actualizado = await firstValueFrom(this.toolInspecciones.firmar(ticketId, inspectionId, rol, todayIso()));
-      this.firmas.set(actualizado.firmas);
+      this.aplicarInspection(actualizado);
       this.notify.success('Firma registrada', `"${FCR_TOOL_INSPECTION_FIRMA_LABELS[rol]}" quedó firmado.`);
     } catch {
       this.notify.error('Error', 'No se pudo registrar la firma. Verifica tu rol e inténtalo de nuevo.');

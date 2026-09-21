@@ -358,18 +358,40 @@ export class NuevoPedidoDialog {
   }
 
   /**
+   * Precio con el que autocompletar `valorUnitario` al elegir un código de
+   * Inventario: primero el precio REAL de la Lista de Precios del cliente
+   * elegido (es el precio ya pactado, no hace falta retipearlo); si el
+   * código no está ahí, el precio sugerido del catálogo de referencia
+   * "Normal" (sin cliente asociado) como punto de partida editable — nunca
+   * el costo interno Dynadrill (`costoUnitario`), que no es precio de venta.
+   */
+  private precioSugeridoParaCodigo(codigo: string): number | null {
+    const enListaCliente = this.listaCliente()?.items.find(i => i.codigo === codigo)?.precio;
+    if (enListaCliente != null) return enListaCliente;
+    const listaReferencia = this.todasLasListas.find(lp => lp.clienteId == null);
+    return listaReferencia?.items.find(i => i.codigo === codigo)?.precio ?? null;
+  }
+
+  /**
    * Al marcar una línea como "Químico" se selecciona el código del
    * catálogo real de Inventario (no se tipea) — garantiza que el código
    * que llega a Pumping siempre matchee contra Inventario. Autocompleta
-   * descripción y unidad del artículo real; el precio/cantidad/descuento
-   * los sigue definiendo Ventas (Inventario no cotiza).
+   * descripción, unidad y precio unitario (ver `precioSugeridoParaCodigo`)
+   * — Ventas puede seguir ajustando el precio y la cantidad a mano.
    */
   protected onQuimicoCodigoSeleccionado(index: number, codigo: string | null): void {
     const articulo = this.quimicosCatalogo().find(a => a.codigo === codigo);
+    const precio = codigo ? this.precioSugeridoParaCodigo(codigo) : null;
     this.lineasEstimadas.update(ls =>
       ls.map((l, i) =>
         i === index
-          ? { ...l, codigo: articulo?.codigo ?? '', descripcion: articulo?.nombre ?? l.descripcion, unidad: articulo?.unidadStock ?? l.unidad }
+          ? {
+              ...l,
+              codigo: articulo?.codigo ?? '',
+              descripcion: articulo?.nombre ?? l.descripcion,
+              unidad: articulo?.unidadStock ?? l.unidad,
+              valorUnitario: precio != null ? String(precio) : l.valorUnitario,
+            }
           : l,
       ),
     );
@@ -392,10 +414,17 @@ export class NuevoPedidoDialog {
   /** Espejo de `onQuimicoCodigoSeleccionado`, contra el catálogo de herramientas. */
   protected onHerramientaCodigoSeleccionado(index: number, codigo: string | null): void {
     const articulo = this.herramientasCatalogo().find(a => a.codigo === codigo);
+    const precio = codigo ? this.precioSugeridoParaCodigo(codigo) : null;
     this.lineasEstimadas.update(ls =>
       ls.map((l, i) =>
         i === index
-          ? { ...l, codigo: articulo?.codigo ?? '', descripcion: articulo?.nombre ?? l.descripcion, unidad: articulo?.unidadStock ?? l.unidad }
+          ? {
+              ...l,
+              codigo: articulo?.codigo ?? '',
+              descripcion: articulo?.nombre ?? l.descripcion,
+              unidad: articulo?.unidadStock ?? l.unidad,
+              valorUnitario: precio != null ? String(precio) : l.valorUnitario,
+            }
           : l,
       ),
     );

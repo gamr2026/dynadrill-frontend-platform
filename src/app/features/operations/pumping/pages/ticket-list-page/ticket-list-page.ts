@@ -88,6 +88,8 @@ export class TicketListPage {
   // ── Rol actual ──
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
   protected readonly isJefeBase = computed(() => this.roleName() === 'Jefe de Base');
+  /** Jefe de Base y Superadmin ven cualquier ticket sin importar el paso — mismo criterio "admin ve todo" del resto de la app. */
+  protected readonly esAdmin = computed(() => this.roleName() === 'Jefe de Base' || this.roleName() === 'Superadmin');
   protected readonly isSupervisor = computed(() => this.roleName() === 'Supervisor' || this.roleName() === 'Supervisor Pumping');
   protected readonly isOperador = computed(() => this.roleName() === 'Operador');
 
@@ -395,6 +397,7 @@ export class TicketListPage {
    * coincide con el rol responsable del paso.
    */
   protected canViewDetail(row: Record<string, unknown>): boolean {
+    if (this.esAdmin()) return true;
     const step = row['step'] as PumpingStep;
     const expectedRole = PUMPING_STEP_ROLE[step];
     return esRolResponsablePumping(expectedRole?.roleName, this.roleName());

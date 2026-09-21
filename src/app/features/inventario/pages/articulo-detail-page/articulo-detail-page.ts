@@ -25,7 +25,13 @@ const TIPO_TONE: Record<MovimientoInventario['tipo'], DynadrillTagVariant> = {
   salida: 'warning',
 };
 
-const CATEGORIA_HERRAMIENTAS = 'HERRAMIENTAS';
+/**
+ * Categorías de `Articulo` que tienen BOM/partes (sección "Partes" de esta pantalla, y el
+ * checklist de inspección de FCR que lo consume vía `ArticuloParte.findByArticulo`).
+ * Incluye tanto `HERRAMIENTAS` (catálogo de prueba, 51 ítems) como `FISHING & TOOLS`
+ * (catálogo real importado, 151 ítems, el que usa FCR para agregar herramientas a un ticket).
+ */
+const CATEGORIAS_CON_PARTES = new Set(['HERRAMIENTAS', 'FISHING & TOOLS']);
 
 @Component({
   selector: 'app-articulo-detail-page',
@@ -56,7 +62,7 @@ export class ArticuloDetailPage {
   protected readonly partes = signal<ArticuloParte[]>([]);
   protected readonly loadingPartes = signal(false);
 
-  protected readonly esHerramienta = computed(() => this.articulo()?.categoria === CATEGORIA_HERRAMIENTAS);
+  protected readonly esHerramienta = computed(() => CATEGORIAS_CON_PARTES.has(this.articulo()?.categoria ?? ''));
 
   protected readonly contextItems = computed<DynadrillContextCardItem[]>(() => {
     const a = this.articulo();
@@ -132,7 +138,7 @@ export class ArticuloDetailPage {
       next: articulo => {
         this.articulo.set(articulo);
         this.loading.set(false);
-        if (articulo.categoria === CATEGORIA_HERRAMIENTAS) this.reloadPartes();
+        if (CATEGORIAS_CON_PARTES.has(articulo.categoria)) this.reloadPartes();
       },
       error: () => {
         this.loading.set(false);

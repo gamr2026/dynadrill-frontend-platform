@@ -232,7 +232,7 @@ export class NuevoPedidoDialog {
    * elegir, filtrado por el cliente seleccionado.
    */
   private readonly quimicosCatalogoCompleto = signal<Articulo[]>([]);
-  /** Mismo mecanismo que `quimicosCatalogoCompleto`, pero para herramientas (categoría FISHING & TOOLS de Inventario). */
+  /** Mismo mecanismo que `quimicosCatalogoCompleto`, pero para herramientas (categoría HERRAMIENTAS de Inventario). */
   private readonly herramientasCatalogoCompleto = signal<Articulo[]>([]);
 
   /**
@@ -647,11 +647,13 @@ export class NuevoPedidoDialog {
       // quedaba vacío sin ninguna pista de por qué (bug reportado).
       error: () => this.notify.error('Químicos', 'No se pudo cargar el catálogo de químicos de Inventario — las líneas marcadas como químico no van a poder elegir código.'),
     });
-    // 'FISHING & TOOLS' es la categoría real de herramientas del catálogo de
-    // Inventario importado (151 ítems) — 'HERRAMIENTAS' es un catálogo viejo
-    // de datos de prueba (51 ítems, sin ningún precio real) que usa FCR para
-    // su checklist de inspección, un concepto distinto al de esta pantalla.
-    this.articulosService.list({ categoria: 'FISHING & TOOLS', activo: true }).subscribe({
+    // `categoria='HERRAMIENTAS'` (no 'FISHING & TOOLS'): es el único catálogo con
+    // partes/BOM cargado (`ArticuloParte`, ver articulo-partes.service.ts) — el
+    // checklist de inspección de FCR se rompe (queda vacío) si se agrega al
+    // ticket una herramienta sin BOM. 'FISHING & TOOLS' tiene más ítems y precio
+    // real, pero cero partes cargadas todavía, así que queda afuera de este
+    // selector hasta que alguien migre/cargue su BOM.
+    this.articulosService.list({ categoria: 'HERRAMIENTAS', activo: true }).subscribe({
       next: articulos => this.herramientasCatalogoCompleto.set(articulos),
       error: () => this.notify.error('Herramientas', 'No se pudo cargar el catálogo de herramientas de Inventario — las líneas marcadas como herramienta no van a poder elegir código.'),
     });

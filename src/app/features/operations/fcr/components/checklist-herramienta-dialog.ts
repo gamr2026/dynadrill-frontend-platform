@@ -428,7 +428,11 @@ export class ChecklistHerramientaDialog {
   /**
    * Campos obligatorios para poder firmar "Reparado por" (certifica los
    * datos y las partes tal como quedaron, justo antes de que el formulario
-   * se bloquee) — todo salvo "Observaciones", que sigue siendo opcional.
+   * se bloquee) — todo salvo "Observaciones" (opcional) y "Fecha de revisión"
+   * (`fechaReparacion`): esa fecha la fija el backend automáticamente recién
+   * AL firmar "reparadoPor" (ver `fcr-tool-inspecciones.service.ts`), nunca
+   * antes — exigirla acá como requisito previo era un candado imposible de
+   * abrir (bug: nunca se podía firmar "Reparado por").
    * En borrador (antes de esta firma) sí se permite dejar campos vacíos.
    */
   protected camposFaltantes(): string[] {
@@ -436,7 +440,6 @@ export class ChecklistHerramientaDialog {
     if (!this.cliente().trim()) faltantes.push('Cliente');
     if (!this.pozo().trim()) faltantes.push('Pozo');
     if (!this.fechaInspeccion()) faltantes.push('Fecha de inspección');
-    if (!this.fechaReparacion()) faltantes.push('Fecha de revisión');
     if (!this.fechaEnvio()) faltantes.push('Fecha de envío');
     if (!this.descripcionHerramienta().trim()) faltantes.push('Descripción de la herramienta');
     if (!this.numeroSerie().trim()) faltantes.push('N° de serie');

@@ -3,7 +3,7 @@
     El pedido se registra en el Portal y el gateway lo sincroniza con AS2. El número secuencial lo asigna AS2.
   </dynadrill-text>
 
-  <section class="fact-card">
+  <section class="nuevo-pedido__section">
     <header class="nuevo-pedido__head"><h2><span class="nuevo-pedido__section-mark"></span>Cliente</h2></header>
     <div class="nuevo-pedido__grid">
       <dynadrill-select
@@ -20,7 +20,7 @@
     </div>
   </section>
 
-  <section class="fact-card">
+  <section class="nuevo-pedido__section">
     <header class="nuevo-pedido__head"><h2><span class="nuevo-pedido__section-mark"></span>Servicio</h2></header>
     <div class="nuevo-pedido__grid--ancho">
       <dynadrill-select label="Línea de servicio" placeholder="Selecciona" [options]="lineaOptions" [value]="lineaServicio()" (valueChange)="onLineaServicioChange($any($event))" />
@@ -44,7 +44,7 @@
     />
   </section>
 
-  <section class="fact-card">
+  <section class="nuevo-pedido__section">
     <header class="nuevo-pedido__head">
       <h2>
         <span class="nuevo-pedido__section-mark"></span>
@@ -96,7 +96,7 @@
   </section>
 
   @if (puedeVerAdministrativos()) {
-    <section class="fact-card">
+    <section class="nuevo-pedido__section">
       <header class="nuevo-pedido__head"><h2><span class="nuevo-pedido__section-mark"></span>Administrativos (AS2)</h2></header>
       <div class="nuevo-pedido__grid">
         <dynadrill-select
@@ -113,7 +113,7 @@
     </section>
   }
 
-  <section class="fact-card">
+  <section class="nuevo-pedido__section">
     <header class="nuevo-pedido__head"><h2><span class="nuevo-pedido__section-mark"></span>Líneas estimadas (cotizado)</h2></header>
     @if (avisoPrefactura(); as aviso) {
       <dynadrill-banner [variant]="aviso.variant" [message]="aviso.mensaje" />
@@ -248,7 +248,7 @@
   </section>
 
   @if (esPumping()) {
-    <section class="fact-card">
+    <section class="nuevo-pedido__section">
       <header class="nuevo-pedido__head"><h2><span class="nuevo-pedido__section-mark"></span>Documentos de referencia (Pumping)</h2></header>
       <dynadrill-text variant="caption">
         Adjuntá acá cualquier documento que Pumping vaya a necesitar más adelante (ej. ficha de mezcla de químicos), con

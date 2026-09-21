@@ -5,10 +5,25 @@
   flex-direction: column;
   gap: 16px;
 
-  .fact-card { @include f.card; }
+  // Una sola columna de secciones separadas por una línea fina — NO tarjetas
+  // individuales con sombra (la referencia de diseño es un único bloque con
+  // divisores, no varias cajas apiladas).
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #ecebf1;
+
+    &:last-of-type {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+  }
 
   &__head {
-    @include f.card-head;
+    display: flex;
+    align-items: center;
 
     h2 {
       display: flex;

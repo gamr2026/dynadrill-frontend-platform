@@ -270,7 +270,7 @@ export class VehicleInspectionDialog {
     if (!base) {
       this.proximoMantenimientoLeyenda.set(
         unidad.tipo === 'Transporte'
-          ? 'Transporte se controla por kilometraje (cada 5.000 km), no por fecha calendario — completar manualmente según el odómetro.'
+          ? this.leyendaProximoMantenimientoKm(unidad)
           : `Esta unidad no tiene fecha de último mantenimiento registrada — no se puede calcular. Completar manualmente y registrar el mantenimiento en Unidades para que se calcule solo la próxima vez.`,
       );
       return;
@@ -283,6 +283,29 @@ export class VehicleInspectionDialog {
         ? `Calculado: 6 meses (180 días) desde el último mantenimiento (${base}) — regla de respaldo por tiempo si no se alcanzan antes las 250h de horómetro.`
         : `Calculado: 6 meses (180 días) desde el último mantenimiento (${base}) — regla semestral para unidades Auxiliares.`,
     );
+  }
+
+  /**
+   * Transporte no tiene una FECHA de próximo mantenimiento (se controla por
+   * kilometraje, cada 5.000 km) — pero sí se le puede decir al inspector qué
+   * tan cerca está, en vez de dejarlo sin ninguna referencia. Usa el km
+   * INICIAL recién leído del odómetro si ya se cargó (más confiable que
+   * `Unidad.kmActual`, que puede estar desactualizado); si no, cae a ese.
+   */
+  private leyendaProximoMantenimientoKm(unidad: Unidad): string {
+    const INTERVALO_KM = 5000;
+    if (unidad.kmUltimoMantenimiento == null) {
+      return 'Transporte se controla por kilometraje (cada 5.000 km) — esta unidad no tiene un último mantenimiento por km registrado, no se puede estimar cuán cerca está.';
+    }
+    const proximoKm = unidad.kmUltimoMantenimiento + INTERVALO_KM;
+    const kmReferencia = Number(this.kmInicial()) || unidad.kmActual;
+    if (!kmReferencia) {
+      return `Transporte se controla por kilometraje (cada 5.000 km) — próximo mantenimiento a los ${proximoKm.toLocaleString('es-EC')} km. Completa el km inicial para saber cuánto falta.`;
+    }
+    const faltan = proximoKm - kmReferencia;
+    return faltan > 0
+      ? `Por kilometraje: próximo mantenimiento a los ${proximoKm.toLocaleString('es-EC')} km — faltan ${faltan.toLocaleString('es-EC')} km (actual: ${kmReferencia.toLocaleString('es-EC')} km).`
+      : `⚠ Por kilometraje: esta unidad ya superó su km de próximo mantenimiento (${proximoKm.toLocaleString('es-EC')} km — actual: ${kmReferencia.toLocaleString('es-EC')} km).`;
   }
 
   constructor() {

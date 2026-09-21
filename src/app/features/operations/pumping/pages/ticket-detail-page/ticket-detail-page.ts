@@ -359,6 +359,15 @@ export class TicketDetailPage {
     const insp = retorno ? (llegada ?? salida) : salida;
     return insp?.inspeccionadoPor ?? '';
   }
+
+  /** Quién hizo la inspección de vehículo de esa unidad en este tramo (salida o llegada) — para el Reporte de Unidad. */
+  private inspectorDeUnidad(mapa: Map<number, unknown>, unitCode: string): string {
+    for (const insp of mapa.values()) {
+      const i = insp as VehicleInspection;
+      if (i.unidadCode === unitCode) return i.inspeccionadoPor;
+    }
+    return '';
+  }
   private readonly vehicleInspectionsService = inject(VehicleInspectionsService);
   private readonly maintenanceOrdersService = inject(MaintenanceOrdersService);
   private readonly articulosService = inject(ArticulosService);
@@ -2269,9 +2278,15 @@ export class TicketDetailPage {
       unitReady: this.unitReadySelection()[0] === 'Sí' ? true : this.unitReadySelection()[0] === 'No' ? false : null,
       operationInterrupted: this.operationInterruptedSelection()[0] === 'Sí' ? true : this.operationInterruptedSelection()[0] === 'No' ? false : null,
       interruptionDetail: this.interruptionDetail(),
-      departureOperatorName: this.departureOperatorName(),
+      // Nadie llenaba `departureOperatorName`/`arrivalOperatorName` (no había
+      // campo editable para eso) — siempre se guardaban vacíos. Se toman del
+      // operador que realmente hizo la inspección de vehículo de esa unidad
+      // en cada tramo (bug reportado: "Operador salida/llegada" vacíos).
+      departureOperatorName:
+        this.inspectorDeUnidad(this.completedInspections(), this.reportUnitCode()) || this.departureOperatorName(),
       departureApprovalDate: this.departureApprovalDate(),
-      arrivalOperatorName: this.arrivalOperatorName(),
+      arrivalOperatorName:
+        this.inspectorDeUnidad(this.completedLlegadaInspections(), this.reportUnitCode()) || this.arrivalOperatorName(),
       arrivalApprovalDate: this.arrivalApprovalDate(),
     };
 

@@ -390,7 +390,11 @@ export class NuevoPedidoDialog {
               codigo: articulo?.codigo ?? '',
               descripcion: articulo?.nombre ?? l.descripcion,
               unidad: articulo?.unidadStock ?? l.unidad,
-              valorUnitario: precio != null ? String(precio) : l.valorUnitario,
+              // Siempre se reescribe (nunca se deja el precio de la selección
+              // anterior) — si el código nuevo no tiene precio conocido en
+              // ningún catálogo, se resetea a 0 en vez de quedar "pegado" al
+              // precio de lo que estaba elegido antes.
+              valorUnitario: precio != null ? String(precio) : '0',
             }
           : l,
       ),
@@ -423,7 +427,7 @@ export class NuevoPedidoDialog {
               codigo: articulo?.codigo ?? '',
               descripcion: articulo?.nombre ?? l.descripcion,
               unidad: articulo?.unidadStock ?? l.unidad,
-              valorUnitario: precio != null ? String(precio) : l.valorUnitario,
+              valorUnitario: precio != null ? String(precio) : '0',
             }
           : l,
       ),

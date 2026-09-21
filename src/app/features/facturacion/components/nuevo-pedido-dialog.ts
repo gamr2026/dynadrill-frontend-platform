@@ -396,8 +396,9 @@ export class NuevoPedidoDialog {
    * Al marcar una línea como "Químico" se selecciona el código del
    * catálogo real de Inventario (no se tipea) — garantiza que el código
    * que llega a Pumping siempre matchee contra Inventario. Autocompleta
-   * descripción, unidad y precio unitario (ver `precioSugeridoParaCodigo`)
-   * — Ventas puede seguir ajustando el precio y la cantidad a mano.
+   * descripción, unidad, precio unitario (ver `precioSugeridoParaCodigo`) y
+   * % de descuento sugerido (Lista de Descuentos, a nivel general) — Ventas
+   * puede seguir ajustando cualquiera de estos valores a mano.
    */
   protected onQuimicoCodigoSeleccionado(index: number, codigo: string | null): void {
     const articulo = this.quimicosCatalogo().find(a => a.codigo === codigo);
@@ -415,6 +416,7 @@ export class NuevoPedidoDialog {
               // ningún catálogo, se resetea a 0 en vez de quedar "pegado" al
               // precio de lo que estaba elegido antes.
               valorUnitario: precio != null ? String(precio) : '0',
+              descuentoPorcentaje: articulo?.descuentoSugerido != null ? String(articulo.descuentoSugerido) : '0',
             }
           : l,
       ),
@@ -448,6 +450,7 @@ export class NuevoPedidoDialog {
               descripcion: articulo?.nombre ?? l.descripcion,
               unidad: articulo?.unidadStock ?? l.unidad,
               valorUnitario: precio != null ? String(precio) : '0',
+              descuentoPorcentaje: articulo?.descuentoSugerido != null ? String(articulo.descuentoSugerido) : '0',
             }
           : l,
       ),

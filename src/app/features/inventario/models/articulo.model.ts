@@ -27,6 +27,8 @@ export interface Articulo {
   informacionAdicional?: string;
   /** Costo interno Dynadrill (no es precio de venta) — referencia para Ventas cuando el código no está aún en la Lista de Precios del cliente. */
   costoUnitario?: number;
+  /** % de descuento sugerido a nivel general (no por cliente), de la Lista de Descuentos de Dynadrill. */
+  descuentoSugerido?: number;
   /** Calculado a partir de los movimientos de kardex — nunca se edita directo. */
   stockActual: number;
 }

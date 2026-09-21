@@ -162,7 +162,7 @@
                     [searchable]="true"
                     (valueChange)="onQuimicoCodigoSeleccionado($index, $any($event))"
                   />
-                } @else if (l.esHerramienta) {
+                } @else if (l.esHerramienta || esFcr()) {
                   <dynadrill-select
                     label=""
                     [placeholder]="cliente() ? 'Elegir herramienta de la Lista de Precios del cliente' : 'Selecciona primero el cliente'"
@@ -193,11 +193,11 @@
               </td>
               <td class="nuevo-pedido__td--full">
                 <span class="nuevo-pedido__td-label">Descripción</span>
-                <dynadrill-input label="" [value]="l.descripcion" [disabled]="l.esQuimico || l.esHerramienta" (valueChange)="onLineaCampoChange($index, 'descripcion', $event)" />
+                <dynadrill-input label="" [value]="l.descripcion" [disabled]="l.esQuimico || l.esHerramienta || esFcr()" (valueChange)="onLineaCampoChange($index, 'descripcion', $event)" />
               </td>
               <td>
                 <span class="nuevo-pedido__td-label">Unidad</span>
-                <dynadrill-input label="" [value]="l.unidad" [disabled]="l.esQuimico || l.esHerramienta" (valueChange)="onLineaCampoChange($index, 'unidad', $event)" />
+                <dynadrill-input label="" [value]="l.unidad" [disabled]="l.esQuimico || l.esHerramienta || esFcr()" (valueChange)="onLineaCampoChange($index, 'unidad', $event)" />
               </td>
               <td class="num">
                 <span class="nuevo-pedido__td-label">Cantidad</span>

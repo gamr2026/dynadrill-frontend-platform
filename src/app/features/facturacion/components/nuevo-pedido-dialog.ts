@@ -219,6 +219,8 @@ export class NuevoPedidoDialog {
     ([value, label]) => ({ label, value }),
   );
   protected readonly esPumping = computed(() => this.lineaServicio() === 'pumping');
+  /** FCR (fishing/completion) se asume siempre herramienta — no hace falta un checkbox para elegirlo línea por línea, el selector de herramienta aparece directo en la columna Código. */
+  protected readonly esFcr = computed(() => this.lineaServicio() === 'fcr');
 
   /**
    * Catálogo completo de químicos de Inventario (categoría QUÍMICA) — antes
@@ -770,7 +772,8 @@ export class NuevoPedidoDialog {
       valorUnitario: Number(l.valorUnitario),
       descuentoPorcentaje: Number(l.descuentoPorcentaje) || 0,
       esQuimico: l.esQuimico,
-      esHerramienta: l.esHerramienta,
+      // FCR se asume siempre herramienta, aunque no haya checkbox para marcarlo línea por línea.
+      esHerramienta: l.esHerramienta || this.esFcr(),
     }));
 
     const payload = {

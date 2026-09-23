@@ -253,7 +253,10 @@ export class PtwDetailPage {
    * documento personal del trabajador, no una plantilla que Dynadrill
    * provea.
    */
-  protected descargarFormatoBlanco(tipo: Exclude<PtwDocumentoTipo, 'carnet_vacunas'>): void {
+  // `sfi` queda afuera a propósito: no es un formato que el cliente/MSP provea
+  // para completar y volver a cargar — lo elabora QHSE directamente (punto 6
+  // del plan QHSE↔Pumping), no tiene sentido un "formato en blanco" para él.
+  protected descargarFormatoBlanco(tipo: Exclude<PtwDocumentoTipo, 'carnet_vacunas' | 'sfi'>): void {
     const doc = PTW_DOCUMENTOS_REQUERIDOS.find(d => d.tipo === tipo);
     if (!doc) return;
 

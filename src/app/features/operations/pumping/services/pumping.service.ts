@@ -118,4 +118,82 @@ export class PumpingService {
   eliminarDocumento(ticketId: number, campo: string): Observable<{ ok: boolean }> {
     return this.http.delete<{ ok: boolean }>(`${this.baseUrl}/tickets/${ticketId}/documentos/${campo}`);
   }
+
+  // ── Documentos QHSE reales (Formato de Recepción / ART / PT / SFI) — Fase 2
+  // del plan QHSE↔Pumping. Formato de Recepción y SFI los sube QHSE (ver
+  // `QhseDocumentosService` del front, página "Documentos por pedido"); acá
+  // solo se leen/descargan. ART y PT los sube el Supervisor desde este ticket.
+
+  documentosQhse(ticketId: number): Observable<DocumentosQhseTicket> {
+    return this.http.get<DocumentosQhseTicket>(`${this.baseUrl}/tickets/${ticketId}/documentos-qhse`);
+  }
+
+  subirArtQhse(ticketId: number, fechaEmision: string, archivo: File): Observable<unknown> {
+    const form = new FormData();
+    form.append('fechaEmision', fechaEmision);
+    form.append('file', archivo);
+    return this.http.post(`${this.baseUrl}/tickets/${ticketId}/documentos-qhse/art`, form);
+  }
+
+  subirPtQhse(ticketId: number, ptwCode: string, archivo: File): Observable<unknown> {
+    const form = new FormData();
+    form.append('file', archivo);
+    return this.http.post(`${this.baseUrl}/tickets/${ticketId}/documentos-qhse/pt/${encodeURIComponent(ptwCode)}`, form);
+  }
+
+  descargarDocumentoQhse(ticketId: number, tipo: string, referencia: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/tickets/${ticketId}/documentos-qhse/${tipo}/${encodeURIComponent(referencia)}`, {
+      responseType: 'blob',
+    });
+  }
+
+  // ── Checklist QHSE por equipo (Fase 4, D5) — bloquea traslado_salida
+  // hasta que QHSE apruebe el checklist de todas las unidades asignadas.
+
+  checklistQhse(ticketId: number): Observable<ChecklistQhseEstado> {
+    return this.http.get<ChecklistQhseEstado>(`${this.baseUrl}/tickets/${ticketId}/checklist-qhse`);
+  }
+
+  cargarChecklistQhse(ticketId: number, checklistId: number, archivo: File): Observable<ChecklistQhseEquipo> {
+    const form = new FormData();
+    form.append('file', archivo);
+    return this.http.post<ChecklistQhseEquipo>(`${this.baseUrl}/tickets/${ticketId}/checklist-qhse/${checklistId}`, form);
+  }
+}
+
+/** `QhseChecklistEquipo` del backend — un caso por unidad asignada. */
+export interface ChecklistQhseEquipo {
+  id: number;
+  pumpingTicketId: number;
+  equipoTipo: string;
+  equipoId: number;
+  equipoNombre: string;
+  estado: 'pendiente' | 'cargado' | 'aprobado' | 'rechazado';
+  abiertoPor: string;
+  documentoNombreOriginal: string | null;
+  cargadoPor: string | null;
+  cargadoAt: string | null;
+  revisadoPor: string | null;
+  revisadoAt: string | null;
+  motivoRechazo: string | null;
+}
+
+/** Respuesta de `GET .../tickets/:id/checklist-qhse`. `gate` usa el mismo criterio exacto que bloquea `advance`/`unit-report` en el backend (D5). */
+export interface ChecklistQhseEstado {
+  casos: ChecklistQhseEquipo[];
+  gate: { ok: boolean; faltantes: string[] };
+}
+
+/** Respuesta de `GET .../tickets/:id/documentos-qhse` — ver `PumpingDocumentosQhseController` y `EstadoDocumentalPedido` del backend. */
+export interface DocumentosQhseTicket {
+  pedidoId: number;
+  formatoRecepcion: boolean;
+  sfi: boolean;
+  artVigente: boolean | null;
+  artFechaEmision: string | null;
+  artVigenciaHasta: string | null;
+  artVenceEnDias: number | null;
+  ptHoy: boolean;
+  ptwAbierto: { id: number; code: string } | null;
+  ptDeHoy: boolean;
 }

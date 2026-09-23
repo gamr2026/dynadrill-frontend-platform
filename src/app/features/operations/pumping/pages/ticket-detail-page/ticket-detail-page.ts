@@ -64,7 +64,7 @@ import {
   type TravelManagement,
   type DailyActivityReport,
 } from '../../models/pumping.model';
-import { PumpingService } from '../../services/pumping.service';
+import { PumpingService, type DocumentosQhseTicket, type ChecklistQhseEstado, type ChecklistQhseEquipo } from '../../services/pumping.service';
 import { SolicitudCambioItemsService } from '../../services/solicitud-cambio-items.service';
 import type { SolicitudCambioItems } from '../../models/solicitud-cambio-items.model';
 import {
@@ -593,6 +593,132 @@ export class TicketDetailPage {
         setTimeout(() => URL.revokeObjectURL(url), 60_000);
       },
       error: () => this.notify.error('Error', 'No se pudo abrir el documento.'),
+    });
+  }
+
+  // ══════════════════════════════════════════════
+  // Documentos QHSE (Formato de Recepción / ART / PT / SFI) — Fase 2 del
+  // plan QHSE↔Pumping. Visible desde `asignacion` en adelante. Formato de
+  // Recepción y SFI los sube QHSE (solo descarga acá); ART y PT los sube
+  // el Supervisor desde este mismo ticket.
+  // ══════════════════════════════════════════════
+
+  protected readonly documentosQhse = signal<DocumentosQhseTicket | null>(null);
+  protected readonly artFechaEmision = signal<Date | null>(new Date());
+  protected readonly artArchivo = signal<File | null>(null);
+  protected readonly ptArchivo = signal<File | null>(null);
+  protected readonly documentosQhseSubmitting = signal(false);
+
+  /** El bloque "Documentos QHSE" recién aplica desde `asignacion` en adelante — antes ni existe el Supervisor asignado. */
+  protected readonly mostrarDocumentosQhse = computed(() => this.currentStep() !== 'revision_inicial');
+
+  private loadDocumentosQhse(ticketId: number): void {
+    this.pumpingService.documentosQhse(ticketId).subscribe({
+      next: d => this.documentosQhse.set(d),
+      error: () => this.documentosQhse.set(null),
+    });
+  }
+
+  protected onArtArchivoSeleccionado(file: NzUploadFile): void {
+    this.artArchivo.set((file.originFileObj as File | undefined) ?? (file as unknown as File));
+  }
+
+  protected onPtArchivoSeleccionado(file: NzUploadFile): void {
+    this.ptArchivo.set((file.originFileObj as File | undefined) ?? (file as unknown as File));
+  }
+
+  protected subirArtQhse(): void {
+    const t = this.ticket();
+    const archivo = this.artArchivo();
+    const fecha = this.artFechaEmision();
+    if (!t || !archivo || !fecha) {
+      this.notify.error('ART', 'Elegí la fecha de emisión y el archivo del ART.');
+      return;
+    }
+    this.documentosQhseSubmitting.set(true);
+    this.pumpingService.subirArtQhse(t.id, toLocalDateString(fecha), archivo).subscribe({
+      next: () => {
+        this.documentosQhseSubmitting.set(false);
+        this.artArchivo.set(null);
+        this.notify.success('ART guardado', 'El ART quedó registrado para este pedido.');
+        this.loadDocumentosQhse(t.id);
+      },
+      error: () => {
+        this.documentosQhseSubmitting.set(false);
+        this.notify.error('Error', 'No se pudo subir el ART.');
+      },
+    });
+  }
+
+  protected subirPtQhse(): void {
+    const t = this.ticket();
+    const archivo = this.ptArchivo();
+    const ptwCode = this.documentosQhse()?.ptwAbierto?.code;
+    if (!t || !archivo || !ptwCode) {
+      this.notify.error('PT', 'No hay un PTW abierto contra el cual subir el PT de hoy.');
+      return;
+    }
+    this.documentosQhseSubmitting.set(true);
+    this.pumpingService.subirPtQhse(t.id, ptwCode, archivo).subscribe({
+      next: () => {
+        this.documentosQhseSubmitting.set(false);
+        this.ptArchivo.set(null);
+        this.notify.success('PT guardado', 'El Permiso de Trabajo de hoy quedó registrado.');
+        this.loadDocumentosQhse(t.id);
+      },
+      error: () => {
+        this.documentosQhseSubmitting.set(false);
+        this.notify.error('Error', 'No se pudo subir el PT.');
+      },
+    });
+  }
+
+  protected descargarDocumentoQhse(tipo: string, referencia: string): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.pumpingService.descargarDocumentoQhse(t.id, tipo, referencia).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      },
+      error: () => this.notify.error('Error', 'No se pudo abrir el documento.'),
+    });
+  }
+
+  // ══════════════════════════════════════════════
+  // Checklist QHSE por equipo (Fase 4, D5) — bloquea `traslado_salida`
+  // hasta que QHSE apruebe el checklist de todas las unidades asignadas.
+  // ══════════════════════════════════════════════
+
+  protected readonly checklistQhse = signal<ChecklistQhseEstado | null>(null);
+  protected readonly checklistQhseSubmitting = signal<number | null>(null); // id del checklist en curso, o null
+
+  /** Solo bloquea el formulario en `traslado_salida` — en cualquier otro paso el checklist ya no aplica (D5). */
+  protected readonly checklistQhseBloquea = computed(() => this.currentStep() === 'traslado_salida' && this.checklistQhse()?.gate.ok === false);
+
+  private loadChecklistQhse(ticketId: number): void {
+    this.pumpingService.checklistQhse(ticketId).subscribe({
+      next: c => this.checklistQhse.set(c),
+      error: () => this.checklistQhse.set(null),
+    });
+  }
+
+  protected onChecklistArchivoSeleccionado(caso: ChecklistQhseEquipo, file: NzUploadFile): void {
+    const t = this.ticket();
+    const archivo = (file.originFileObj as File | undefined) ?? (file as unknown as File);
+    if (!t || !archivo) return;
+    this.checklistQhseSubmitting.set(caso.id);
+    this.pumpingService.cargarChecklistQhse(t.id, caso.id, archivo).subscribe({
+      next: () => {
+        this.checklistQhseSubmitting.set(null);
+        this.notify.success('Checklist guardado', `Se cargó el checklist de ${caso.equipoNombre} — queda pendiente de revisión de QHSE.`);
+        this.loadChecklistQhse(t.id);
+      },
+      error: () => {
+        this.checklistQhseSubmitting.set(null);
+        this.notify.error('Error', `No se pudo cargar el checklist de ${caso.equipoNombre}.`);
+      },
     });
   }
 
@@ -1847,6 +1973,8 @@ export class TicketDetailPage {
         this.loading.set(false);
         this.initFromTicket(ticket);
         this.loadMaintenanceOrders();
+        this.loadDocumentosQhse(ticket.id);
+        this.loadChecklistQhse(ticket.id);
         if (ticket.pedidoId) {
           this.pedidoService.get(ticket.pedidoId).subscribe({
             next: p => {
@@ -2172,7 +2300,9 @@ export class TicketDetailPage {
   private withdrawChemicalsFromWarehouse(t: PumpingTicket): Observable<unknown> {
     const rows = this.selectedChemicalRows();
     if (rows.length === 0) return of(null);
-    const responsable = this.auth.currentUser()?.name ?? t.assignedSupervisor ?? 'Supervisor';
+    // `asignacion` ahora la actúa el Jefe de Base (Fase 1, D1) — el fallback
+    // ya no debe caer en el Supervisor asignado al ticket.
+    const responsable = this.auth.currentUser()?.name ?? 'Jefe de Base';
     return forkJoin(rows.map(articulo =>
       this.movimientosInventarioService.registrar({
         articuloId: articulo.id,

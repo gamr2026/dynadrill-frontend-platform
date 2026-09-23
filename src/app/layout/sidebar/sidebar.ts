@@ -87,6 +87,7 @@ const QHSE_ITEM: DynadrillMenuItem = {
         { label: 'IPERC', link: '/dashboard/qhse/iperc' },
         { label: 'Cobertura IPERC por línea', link: '/dashboard/qhse/iperc-cobertura' },
         { label: 'PTW / Recibimiento', link: '/dashboard/qhse/ptw' },
+        { label: 'Documentos por pedido', link: '/dashboard/qhse/documentos' },
       ],
     },
     {
@@ -95,6 +96,7 @@ const QHSE_ITEM: DynadrillMenuItem = {
         { label: 'Inspecciones', link: '/dashboard/qhse/inspecciones' },
         { label: 'Desechos', link: '/dashboard/qhse/desechos' },
         { label: 'Entrega de EPI', link: '/dashboard/qhse/epi' },
+        { label: 'Checklist de equipos', link: '/dashboard/qhse/checklist-equipos' },
       ],
     },
     {

@@ -58,6 +58,75 @@
 
 <app-ticket-qhse-banner [vinculo]="ipercVinculo()" [canView]="puedeVerMatrizIperc()" />
 
+<!-- ═══════════════════════════════════════════ -->
+<!-- Documentos QHSE (Formato de Recepción/ART/PT/SFI) — Fase 2 del plan  -->
+<!-- QHSE↔Pumping. Visible desde `asignacion` en adelante.                -->
+<!-- ═══════════════════════════════════════════ -->
+@if (!loading() && mostrarDocumentosQhse() && documentosQhse(); as dq) {
+  <section class="ticket-detail__section">
+    <dynadrill-text variant="h2">Documentos QHSE</dynadrill-text>
+
+    <dynadrill-text variant="body">
+      Formato de Recepción:
+      @if (dq.formatoRecepcion) {
+        <strong>Cargado</strong> — <a (click)="descargarDocumentoQhse('qhse_formato_recepcion', 'vigente')">descargar</a>
+      } @else {
+        <strong>Pendiente</strong> — QHSE todavía no lo sube.
+      }
+    </dynadrill-text>
+
+    <dynadrill-text variant="body">
+      SFI (Formato de Seguridad de Ingreso):
+      @if (dq.sfi) {
+        <strong>Cargado</strong> — <a (click)="descargarDocumentoQhse('qhse_sfi', 'vigente')">descargar</a>
+      } @else {
+        <strong>Pendiente</strong> — QHSE todavía no lo sube.
+      }
+    </dynadrill-text>
+
+    <dynadrill-text variant="body">
+      ART:
+      @if (dq.artVigente === true) {
+        <strong>Vigente</strong> hasta {{ dq.artVigenciaHasta | date: 'dd/MM/yyyy' }}
+        @if (dq.artVenceEnDias !== null && dq.artVenceEnDias <= 3) {
+          — ⚠ vence en {{ dq.artVenceEnDias }} día(s)
+        }
+        — <a (click)="descargarDocumentoQhse('qhse_art', dq.artFechaEmision!)">descargar</a>
+      } @else if (dq.artVigente === false) {
+        <strong>Vencido</strong> desde {{ dq.artVigenciaHasta | date: 'dd/MM/yyyy' }} — hay que subir uno nuevo (D4: vigencia de 15 días).
+      } @else {
+        <strong>Sin ART cargado.</strong>
+      }
+    </dynadrill-text>
+    <dynadrill-datetime-picker mode="date" label="Fecha de emisión del ART" [value]="artFechaEmision()!" (valueChange)="artFechaEmision.set($event)" />
+    <dynadrill-upload-zone
+      [state]="artArchivo() ? 'uploaded' : 'idle'"
+      [fileName]="artArchivo()?.name ?? ''"
+      (fileSelected)="onArtArchivoSeleccionado($event)"
+    />
+    <dynadrill-button variant="secondary" size="small" [disabled]="!artArchivo() || documentosQhseSubmitting()" (clicked)="subirArtQhse()">Subir ART</dynadrill-button>
+
+    <dynadrill-text variant="body">
+      PT (Permiso de Trabajo) de hoy:
+      @if (!dq.ptwAbierto) {
+        <strong>QHSE aún no abrió el PTW del día.</strong>
+      } @else if (dq.ptDeHoy) {
+        <strong>Cargado</strong> — <a (click)="descargarDocumentoQhse('qhse_pt', dq.ptwAbierto.code)">descargar</a>
+      } @else {
+        <strong>Pendiente</strong> — PTW {{ dq.ptwAbierto.code }} abierto, falta subir el PT de hoy.
+      }
+    </dynadrill-text>
+    @if (dq.ptwAbierto && !dq.ptDeHoy) {
+      <dynadrill-upload-zone
+        [state]="ptArchivo() ? 'uploaded' : 'idle'"
+        [fileName]="ptArchivo()?.name ?? ''"
+        (fileSelected)="onPtArchivoSeleccionado($event)"
+      />
+      <dynadrill-button variant="secondary" size="small" [disabled]="!ptArchivo() || documentosQhseSubmitting()" (clicked)="subirPtQhse()">Subir PT de hoy</dynadrill-button>
+    }
+  </section>
+}
+
 @if (loading()) {
   <dynadrill-text variant="body">Cargando ticket...</dynadrill-text>
 } @else {
@@ -702,6 +771,40 @@
   <!-- PASO 3a: En ejecución (SALIDA) — Solo Chasis modo salida         -->
   <!-- ══════════════════════════════════════════════════════════════════ -->
   @if (currentStep() === 'traslado_salida') {
+    <!-- Checklist QHSE por equipo (Fase 4, D5) — mientras falte aprobar el checklist
+         de alguna unidad asignada, no se puede enviar el reporte de salida. -->
+    @if (checklistQhse(); as cq) {
+      @if (checklistQhseBloquea()) {
+        <div class="ticket-detail__quimico-sin-match">
+          <dynadrill-text variant="body"><strong>⚠ Traslado de salida bloqueado por QHSE.</strong></dynadrill-text>
+          <dynadrill-text variant="caption">Falta la aprobación del checklist QHSE de: {{ cq.gate.faltantes.join(', ') }}.</dynadrill-text>
+        </div>
+      }
+
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="h2">Checklist QHSE por equipo</dynadrill-text>
+        @if (cq.casos.length === 0) {
+          <dynadrill-text variant="caption">QHSE todavía no abrió el checklist de las unidades asignadas.</dynadrill-text>
+        }
+        @for (caso of cq.casos; track caso.id) {
+          <div class="ticket-detail__quimico-sin-match">
+            <dynadrill-text variant="body">
+              <strong>{{ caso.equipoNombre }}</strong> —
+              @switch (caso.estado) {
+                @case ('aprobado') { Aprobado por {{ caso.revisadoPor }} }
+                @case ('cargado') { Cargado, esperando revisión de QHSE }
+                @case ('rechazado') { Rechazado — {{ caso.motivoRechazo }} }
+                @default { Pendiente de cargar }
+              }
+            </dynadrill-text>
+            @if (caso.estado !== 'aprobado') {
+              <dynadrill-upload-zone state="idle" fileName="" (fileSelected)="onChecklistArchivoSeleccionado(caso, $event)" />
+            }
+          </div>
+        }
+      </section>
+    }
+
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
 
@@ -835,7 +938,7 @@
 
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || submitting()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
+      <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || submitting() || checklistQhseBloquea()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
     </footer>
   }
 

@@ -1,0 +1,45 @@
+<dynadrill-screen-header
+  eyebrow="QHSE"
+  title="Checklist de equipos"
+  subtitle="Un caso por unidad asignada — bloquea traslado_salida hasta que todos estén aprobados (D5)"
+  roleTag="HSE"
+/>
+
+<section class="checklist-equipos-page__toolbar">
+  <dynadrill-button variant="secondary" size="small" (clicked)="toggleFiltro()">
+    {{ soloPorRevisar() ? 'Viendo: solo por revisar' : 'Viendo: todos' }} — cambiar
+  </dynadrill-button>
+
+  <div class="checklist-equipos-page__abrir">
+    <dynadrill-input label="Abrir checklist del ticket #" type="number" placeholder="ID del ticket" [value]="ticketIdAbrir() ?? ''" (valueChange)="ticketIdAbrir.set($any($event))" />
+    <dynadrill-button variant="secondary" size="small" [disabled]="!ticketIdAbrir()" (clicked)="abrirParaTicket()">Abrir</dynadrill-button>
+  </div>
+</section>
+
+<ng-template #actionsTpl let-row>
+  <div class="checklist-equipos-page__row-actions">
+    @if (row.caso.documentoNombreOriginal) {
+      <dynadrill-icon-button icon="download" tooltip="Descargar documento" tooltipPlacement="top" (clicked)="descargar(row.caso.id)" />
+    }
+    @if (row.caso.estado === 'cargado') {
+      <dynadrill-icon-button icon="check" tooltip="Aprobar" tooltipPlacement="top" [disabled]="submittingId() === row.caso.id" (clicked)="aprobar(row.caso)" />
+      <dynadrill-input placeholder="Motivo de rechazo" [value]="motivoDe(row.caso.id)" (valueChange)="setMotivo(row.caso.id, $any($event))" />
+      <dynadrill-icon-button icon="close" tooltip="Rechazar" tooltipPlacement="top" [disabled]="submittingId() === row.caso.id" (clicked)="rechazar(row.caso)" />
+    }
+    @if (row.caso.estado === 'rechazado' && row.caso.motivoRechazo) {
+      <dynadrill-text variant="caption">Motivo: {{ row.caso.motivoRechazo }}</dynadrill-text>
+    }
+  </div>
+</ng-template>
+
+<div class="table-scroll">
+  <dynadrill-data-table
+    [columns]="columns"
+    [rows]="rows()"
+    [loading]="loading()"
+    [rowKey]="rowKeyFn"
+    [pageSize]="10"
+    actionsHeader="Acciones"
+    [actionsTemplate]="actionsTpl"
+  />
+</div>

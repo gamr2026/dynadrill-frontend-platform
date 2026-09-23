@@ -46,7 +46,10 @@ import {
   FCR_PHASE_ROLE,
   FCR_TOOL_DAILY_STATUS_CODE,
   FCR_TOOL_DAILY_STATUS_LABELS,
+  FCR_TOOL_ESTADO_LABELS,
+  FCR_TOOL_ESTADO_VARIANT,
   FCR_TOOL_STATUS_LABELS,
+  estadoDeHerramienta,
   type FcrPhase,
   type FcrPhaseApproval,
   type FcrToolDailyStatus,
@@ -87,6 +90,7 @@ import {
   swaActivo,
 } from '../../../shared/ticket-qhse.util';
 import { SolicitarCorreccionDialog, SolicitarCorreccionDialogData, SolicitarCorreccionDialogResult } from '../../components/solicitar-correccion-dialog';
+import { ObservacionesTimelineDialog, ObservacionesTimelineDialogData, ObservacionesTimelineDialogResult } from '../../components/observaciones-timeline-dialog';
 import { AsignarOperadorDialog, AsignarOperadorDialogData, AsignarOperadorDialogResult } from '../../components/asignar-operador-dialog';
 import {
   AsignarOperadorMecanicoDialog,
@@ -302,12 +306,36 @@ export class FcrTicketDetailPage {
       if (hasSentSelected) return 'Bodeguero';
       const hasUnsentPrepared = t.tools.some(tool => tool.status === 'en_preparacion' && !tool.sentToSupervisor);
       if (hasUnsentPrepared) return 'Bodeguero';
-      const hasSentPrepared = t.tools.some(tool => tool.status === 'en_preparacion' && tool.sentToSupervisor);
-      if (hasSentPrepared) return 'Supervisor';
+      const hasUnreceived = t.tools.some(
+        tool => tool.status === 'en_preparacion' && tool.sentToSupervisor && !tool.recepcion?.marcado,
+      );
+      if (hasUnreceived) return 'Supervisor';
     }
     return FCR_PHASE_ROLE[this.currentPhase()].roleName;
   });
   protected readonly isMyTurn = computed(() => this.responsibleRole() === this.roleName());
+
+  /** Accesible desde cualquier fase — a diferencia de "Solicitar corrección" (atado a rechazar 'revision_inicial'), esto no dispara ninguna otra acción de negocio. */
+  protected openObservaciones(): void {
+    const t = this.ticket();
+    if (!t) return;
+    const ref = this.dialog.open<ObservacionesTimelineDialog, ObservacionesTimelineDialogData>({
+      title: 'Observaciones',
+      content: ObservacionesTimelineDialog,
+      data: { ticketCode: t.code, observations: t.observations },
+      footer: false,
+    });
+    ref.afterClose.subscribe((result: ObservacionesTimelineDialogResult | undefined) => {
+      if (!result?.added || !result.message) return;
+      this.fcrService.addObservation(t.id, result.message, this.roleName()).subscribe({
+        next: updated => {
+          this.ticket.set(updated);
+          this.notify.success('Observación agregada.');
+        },
+        error: () => this.notify.error('Error', 'No se pudo agregar la observación.'),
+      });
+    });
+  }
 
   /** Quién confirmó el avance hacia la fase actual — mostrado en el encabezado. */
   protected readonly previousPhaseApproval = computed<FcrPhaseApproval | undefined>(() => {
@@ -335,9 +363,9 @@ export class FcrTicketDetailPage {
 
   /** Detalle completo del Pedido de Facturación que originó este ticket — `null` si el ticket no tiene uno vinculado (tickets legado sembrados sin puente). */
   protected readonly pedido = signal<Pedido | null>(null);
-  protected readonly pedidoTipoServicioLabel = computed(() => {
+  protected readonly pedidoTipoServicioLabels = computed(() => {
     const p = this.pedido();
-    return p ? TIPO_SERVICIO_LABELS[p.tipoServicio] : '';
+    return p ? p.tipoServicio.map(t => TIPO_SERVICIO_LABELS[t]) : [];
   });
   protected readonly pedidoItems = computed(() => {
     const p = this.pedido();
@@ -401,6 +429,12 @@ export class FcrTicketDetailPage {
 
   protected readonly toolStatusLabel = (status: FcrToolStatus): string => FCR_TOOL_STATUS_LABELS[status];
 
+  /** Estado general de la herramienta (columna "Estado", chip de color) — derivado de los 3 checks, nunca se guarda. */
+  protected readonly estadoTag = (tool: FcrTool): { label: string; variant: (typeof FCR_TOOL_ESTADO_VARIANT)[keyof typeof FCR_TOOL_ESTADO_VARIANT] } => {
+    const estado = estadoDeHerramienta(tool);
+    return { label: FCR_TOOL_ESTADO_LABELS[estado], variant: FCR_TOOL_ESTADO_VARIANT[estado] };
+  };
+
   /** Separa las herramientas de la tanda original de las agregadas después de que el proceso ya había avanzado — se muestran en secciones distintas sin duplicar la lógica de fila. */
   protected readonly originalTools = computed(() => (this.ticket()?.tools ?? []).filter(tool => !tool.addedLate));
   protected readonly lateTools = computed(() => (this.ticket()?.tools ?? []).filter(tool => tool.addedLate));
@@ -413,6 +447,12 @@ export class FcrTicketDetailPage {
    * `HERRAMIENTAS` es el único catálogo con partes/BOM cargado (`ArticuloParte`) —
    * el checklist de inspección de FCR se rompe (queda vacío) si se agrega al ticket
    * una herramienta sin BOM.
+   *
+   * Ya NO es el flujo primario para agregar herramientas — el ticket ya nace
+   * con las que el Pedido pidió (`itemsEstimados` con `esHerramienta`,
+   * resueltas por el backend al crear el ticket). Este select solo sirve
+   * para la excepción: agregar algo que el Pedido no contempló, o sustituir
+   * una herramienta dañada (`origen: 'manual'` en la que se agrega).
    */
   protected readonly herramientasCatalogo = toSignal(
     this.articulosService.list({ categoria: 'HERRAMIENTAS', activo: true }),
@@ -427,6 +467,15 @@ export class FcrTicketDetailPage {
   });
 
   protected readonly toolToAdd = signal<number | null>(null);
+
+  /** Herramienta+columna con el textarea de novedad abierto — a la vez solo una, porque en cualquier momento cada herramienta tiene un único check activo (ver `estadoDeHerramienta`). */
+  protected readonly novedadDraftToolId = signal<number | null>(null);
+  protected readonly novedadDraftText = signal('');
+
+  protected toggleNovedadDraft(toolId: number): void {
+    this.novedadDraftToolId.set(this.novedadDraftToolId() === toolId ? null : toolId);
+    this.novedadDraftText.set('');
+  }
 
   protected readonly allToolsReceived = computed(() => {
     const tools = this.ticket()?.tools ?? [];
@@ -456,25 +505,11 @@ export class FcrTicketDetailPage {
     this.updateTicket(this.fcrService.setToolListConfirmed(t.id, false));
   }
 
-  /**
-   * Bodega solo ve "Marcar preparada" en las herramientas que el Supervisor
-   * ya envió formalmente — el envío es de un solo sentido, por herramienta:
-   * no existe "reabrir" para volver a quitar una ya enviada.
-   */
-  protected readonly canSendToBodega = computed(() => {
-    const t = this.ticket();
-    return !!t && t.tools.some(tool => tool.status === 'seleccionada' && !tool.sentToBodega);
-  });
-
-  protected async sendToolsToBodega(): Promise<void> {
+  /** Botón embebido en la fila (columna Bodega) — envío de un solo sentido, por herramienta: no existe "reabrir" para volver a quitar una ya enviada. */
+  protected sendToolToBodega(toolId: number): void {
     const t = this.ticket();
     if (!t) return;
-    const ok = await this.confirmStep(
-      'Enviar herramientas a Bodega',
-      'Bodega podrá empezar a preparar las herramientas seleccionadas. Esta acción no se puede deshacer para estas herramientas.',
-    );
-    if (!ok) return;
-    this.updateTicket(this.fcrService.sendToolsToBodega(t.id));
+    this.updateTicket(this.fcrService.sendToolToBodega(t.id, toolId));
   }
 
   protected onToolToAddChange(value: unknown): void {
@@ -503,58 +538,71 @@ export class FcrTicketDetailPage {
     this.updateTicket(this.fcrService.removeTool(t.id, toolId));
   }
 
-  /** Bodega marca la herramienta como preparada físicamente (FCR-002). */
-  protected async markToolPrepared(toolId: number): Promise<void> {
-    const ok = await this.confirmStep('Marcar herramienta preparada', 'Confirma que la herramienta ya está físicamente preparada y lista para que el Supervisor la reciba.');
-    if (!ok) return;
-    this.updateToolStatus(toolId, 'en_preparacion');
+  /** Bodega marca la herramienta como preparada físicamente (FCR-002) — o con novedad, si algo no está bien. */
+  protected marcarBodega(toolId: number, novedad?: string): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.updateTicket(this.fcrService.setBodegaCheck(t.id, toolId, novedad));
+    this.novedadDraftToolId.set(null);
   }
 
-  /** Supervisor recibe formalmente la herramienta preparada por Bodega (RN-FCR-008C). */
-  protected async receiveTool(toolId: number): Promise<void> {
-    const ok = await this.confirmStep('Recibir herramienta', 'Confirma la recepción formal de esta herramienta. Una vez recibida, solo usted puede corregirlo desde aquí.');
-    if (!ok) return;
-    this.updateToolStatus(toolId, 'recibida');
+  /** Botón embebido en la fila (columna Recepción) — Bodega envía formalmente al Supervisor una herramienta ya preparada sin novedad. */
+  protected sendToolToSupervisor(toolId: number): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.updateTicket(this.fcrService.sendToolToSupervisor(t.id, toolId));
+  }
+
+  /** Supervisor recibe formalmente la herramienta preparada por Bodega (RN-FCR-008C) — o con novedad. El `status` todavía no cambia: falta la revisión del Mecánico. */
+  protected marcarRecepcion(toolId: number, novedad?: string): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.updateTicket(this.fcrService.setRecepcionCheck(t.id, toolId, novedad));
+    this.novedadDraftToolId.set(null);
   }
 
   /**
-   * Simétrico al envío a Bodega: Bodega envía formalmente al Supervisor lo
-   * que ya preparó, antes de que pueda recibirlo. También de un solo
-   * sentido — si Bodega necesita corregir una herramienta ya enviada, usa
-   * "Corregir" (vuelve a "Seleccionada"), no un botón de reabrir el envío.
+   * Columna Mecánico — 100% automática, derivada del checklist real de
+   * inspección (`FcrToolInspection`/`toolInspectionByToolId`, ver más abajo)
+   * que se llena en la fase 'inspeccion', posterior a esta. No hay check
+   * manual acá: el Mecánico/Soldador todavía ni está asignado en este punto
+   * del ticket (RN del usuario — "no se puede pedir que ponga check sin que
+   * el Supervisor lo haya asignado"). Solo aplica a la entrada SERVICIOS
+   * (VENTA no tiene fase 'inspeccion' ni operador mecánico).
    */
-  protected readonly canSendToSupervisor = computed(() => {
-    const t = this.ticket();
-    return !!t && t.tools.some(tool => tool.status === 'en_preparacion' && !tool.sentToSupervisor);
-  });
-
-  protected async sendToolsToSupervisor(): Promise<void> {
-    const t = this.ticket();
-    if (!t) return;
-    const ok = await this.confirmStep(
-      'Enviar herramientas al Supervisor',
-      'El Supervisor podrá empezar a recibir las herramientas preparadas. Esta acción no se puede deshacer para estas herramientas.',
-    );
-    if (!ok) return;
-    this.updateTicket(this.fcrService.sendToolsToSupervisor(t.id));
+  protected mecanicoInfo(tool: FcrTool): { label: string; variant: 'success' | 'warning' | 'neutral'; novedad?: string } {
+    if (this.ticket()?.tipoOt !== 'servicio') return { label: 'No aplica', variant: 'neutral' };
+    const inspection = this.toolInspectionByToolId().get(tool.id);
+    if (!inspection || inspection.estado === 'borrador') return { label: 'Se define en Inspección', variant: 'neutral' };
+    if (inspection.estado === 'rechazado') {
+      return { label: 'Con novedad', variant: 'warning', novedad: inspection.observaciones || 'Checklist rechazado.' };
+    }
+    const defectuosas = inspection.partes.filter(p => p.visualResultado === 'defectuoso' || p.endResultado === 'defectuoso');
+    if (defectuosas.length > 0) {
+      return { label: 'Con novedad', variant: 'warning', novedad: `${defectuosas.length} parte(s) con defecto: ${defectuosas.map(p => p.descripcion).join(', ')}` };
+    }
+    if (inspection.observaciones.trim()) {
+      return { label: 'Con novedad', variant: 'warning', novedad: inspection.observaciones };
+    }
+    return { label: 'OK', variant: 'success' };
   }
 
   /**
-   * Corrige un paso ya confirmado por error (única vía de "deshacer" en
-   * Preparación de Herramientas): Bodega puede regresar una herramienta de
-   * "En preparación" a "Seleccionada", y el Supervisor puede regresar una
-   * "Recibida" a "En preparación" si la recibió por equivocación.
+   * Corrige el check de UN solo paso, sin afectar a otras herramientas ni a
+   * envíos/checks de otros pasos de la MISMA herramienta — cada actor
+   * deshace solo lo suyo (antes esto revertía `status` en cascada y la
+   * herramienta "desaparecía" de la cola del actor que la corregía).
    */
-  protected async correctTool(toolId: number, revertTo: FcrToolStatus): Promise<void> {
-    const ok = await this.confirmStep('Corregir herramienta', `Esto revierte el estado de la herramienta a "${this.toolStatusLabel(revertTo)}". ¿Continuar?`, true);
-    if (!ok) return;
-    this.updateToolStatus(toolId, revertTo);
-  }
-
-  private updateToolStatus(toolId: number, status: FcrToolStatus): void {
+  protected clearBodegaCheck(toolId: number): void {
     const t = this.ticket();
     if (!t) return;
-    this.updateTicket(this.fcrService.setToolStatus(t.id, toolId, status));
+    this.updateTicket(this.fcrService.clearBodegaCheck(t.id, toolId));
+  }
+
+  protected clearRecepcionCheck(toolId: number): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.updateTicket(this.fcrService.clearRecepcionCheck(t.id, toolId));
   }
 
   protected readonly inspectionUploadState = computed(() => (this.ticket()?.inspectionDocumentUploaded ? 'uploaded' : 'idle'));
@@ -1046,9 +1094,11 @@ export class FcrTicketDetailPage {
   protected readonly pendingReturnTools = computed(() => (this.ticket()?.tools ?? []).filter(t => t.status === 'recibida'));
 
   protected async markToolReturned(toolId: number): Promise<void> {
+    const t = this.ticket();
+    if (!t) return;
     const ok = await this.confirmStep('Confirmar devolución', 'Confirma que esta herramienta fue devuelta y conciliada contra la Guía de Movimiento. No podrá deshacer este paso.');
     if (!ok) return;
-    this.updateToolStatus(toolId, 'devuelta');
+    this.updateTicket(this.fcrService.setToolStatus(t.id, toolId, 'devuelta'));
   }
 
   protected openHerramientaFaltante(): void {
@@ -1280,6 +1330,8 @@ export class FcrTicketDetailPage {
   protected readonly tipoOperadorOptions: DynadrillSelectOption[] = (
     Object.entries(TIPO_OPERADOR_LABELS) as [TipoOperador, string][]
   ).map(([value, label]) => ({ value, label }));
+  /** Para el resumen de solo lectura de esta fase una vez completada (pantalla acumulativa). */
+  protected readonly tipoOperadorLabels = TIPO_OPERADOR_LABELS;
   protected readonly tipoOperadorSeleccionado = signal<TipoOperador | null>(null);
   /** Persona elegida en `AsignarOperadorMecanicoDialog` — nombre concreto, no solo la especialidad. */
   protected readonly operadorMecanicoSeleccionado = signal<string | null>(null);

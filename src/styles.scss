@@ -106,6 +106,13 @@ body {
   color: var(--dynadrill-purple, #662e9b);
 }
 
+.dyn-pedido-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .dyn-pedido-card__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));

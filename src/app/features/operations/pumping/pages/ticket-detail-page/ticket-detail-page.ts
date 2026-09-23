@@ -391,9 +391,9 @@ export class TicketDetailPage {
   protected readonly pedidoItemsTotal = computed(() =>
     this.pedidoItems().reduce((sum, item) => sum + item.cantidad * item.valorUnitario, 0),
   );
-  protected readonly pedidoTipoServicioLabel = computed(() => {
+  protected readonly pedidoTipoServicioLabels = computed(() => {
     const p = this.pedido();
-    return p ? TIPO_SERVICIO_LABELS[p.tipoServicio] : '';
+    return p ? p.tipoServicio.map(t => TIPO_SERVICIO_LABELS[t]) : [];
   });
   /** Solicitud de cambio de ítems todavía sin resolver por el Supervisor (si hay una). */
   protected readonly solicitudPendiente = signal<SolicitudCambioItems | null>(null);

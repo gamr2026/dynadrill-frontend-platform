@@ -60,24 +60,44 @@ export class FcrService {
     return this.http.delete<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}`);
   }
 
+  /** Supervisor solicita a Bodega, herramienta por herramienta — botón embebido en la fila. */
+  sendToolToBodega(ticketId: number, toolId: number): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/send-to-bodega`, {});
+  }
+
+  /** Bodega marca una herramienta preparada (o con novedad). */
+  setBodegaCheck(ticketId: number, toolId: number, novedad?: string): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/bodega-check`, { novedad });
+  }
+
+  /** Corrige (deshace) el check de Bodega de una sola herramienta — no afecta a las demás ni a envíos ya hechos de otros pasos. */
+  clearBodegaCheck(ticketId: number, toolId: number): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/bodega-check/clear`, {});
+  }
+
+  /** Simétrico: Bodega envía formalmente al Supervisor una herramienta ya preparada. */
+  sendToolToSupervisor(ticketId: number, toolId: number): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/send-to-supervisor`, {});
+  }
+
+  /** Supervisor recibe (o marca novedad en) una herramienta ya preparada por Bodega. */
+  setRecepcionCheck(ticketId: number, toolId: number, novedad?: string): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/recepcion-check`, { novedad });
+  }
+
+  /** Corrige (deshace) el check de Recepción de una sola herramienta. */
+  clearRecepcionCheck(ticketId: number, toolId: number): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/recepcion-check/clear`, {});
+  }
+
+  /** Genérico — usado solo en Control de Retorno (`markToolReturned` → 'devuelta'), fuera de Preparación de Herramientas. */
   setToolStatus(ticketId: number, toolId: number, status: FcrToolStatus): Observable<FcrTicket> {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/status`, { status });
   }
 
-  /**
-   * Envío formal a Bodega de todas las herramientas "Seleccionada" aún no
-   * enviadas — marca cada una individualmente (`sentToBodega: true`), sin
-   * afectar herramientas nuevas que se agreguen después. Es de un solo
-   * sentido: no hay "deshacer envío", solo el botón puntual de "Corregir"
-   * sobre una herramienta ya preparada.
-   */
-  sendToolsToBodega(ticketId: number): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/send-to-bodega`, {});
-  }
-
-  /** Simétrico: Bodega envía formalmente al Supervisor las herramientas "En preparación" ya listas. */
-  sendToolsToSupervisor(ticketId: number): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/send-to-supervisor`, {});
+  /** Observación libre, agregable en cualquier fase — ver `ObservacionesTimelineDialog`. */
+  addObservation(ticketId: number, message: string, role: string): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/observations`, { message, role });
   }
 
   /** RN-FCR-005 / SP7: declara si quedan o no herramientas por agregar antes de habilitar el documento de inspección. */

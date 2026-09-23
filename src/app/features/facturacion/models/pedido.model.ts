@@ -25,12 +25,29 @@ export const LINEA_SERVICIO_LABELS: Record<LineaServicio, string> = {
  * `LineaServicio` con 4 valores (fishing/completion/ctu eran línea de
  * servicio propia); ahora esos 3 son tipos de servicio de FCR, y "Coiled
  * Tubing" (ex-CTU) pasa a ser tipo de servicio de Pumping, no de FCR.
+ *
+ * Catálogo real de FCR (columna "Tipo de Servicio" del KPI Ventas
+ * Consolidado, hoja "datos1") — los primeros 4 son los que ya existían
+ * antes de este catálogo real (y tienen cobertura IPERC ya cargada, ver
+ * IpercCoberturaLinea); los 11 restantes son nuevos y arrancan sin
+ * actividades IPERC asignadas (QHSE las completa desde su UI).
  */
 export type TipoServicio =
   | 'wellbore_cleanup_tools'
   | 'fishing_services'
   | 'remedial_tools'
   | 'completion_tools'
+  | 'lower_completion'
+  | 'milling'
+  | 'casing_repair'
+  | 'thru_tubing'
+  | 'esp_equipment'
+  | 'flow_control_tools'
+  | 'liner_hanger'
+  | 'pesca_wireline_tools'
+  | 'pipe_recovery'
+  | 'servicios_integrados'
+  | 'slickline'
   | 'coiled_tubing'
   | 'cementing';
 
@@ -39,14 +56,93 @@ export const TIPO_SERVICIO_LABELS: Record<TipoServicio, string> = {
   fishing_services: 'Fishing Services',
   remedial_tools: 'Remedial Tools',
   completion_tools: 'Completion Tools',
+  lower_completion: 'Lower Completion',
+  milling: 'Milling',
+  casing_repair: 'Casing Repair',
+  thru_tubing: 'Thru Tubing',
+  esp_equipment: 'ESP Equipment',
+  flow_control_tools: 'Flow Control Tools',
+  liner_hanger: 'Liner Hanger',
+  pesca_wireline_tools: 'Pesca Wireline Tools',
+  pipe_recovery: 'Pipe Recovery',
+  servicios_integrados: 'Servicios Integrados',
+  slickline: 'Slickline',
   coiled_tubing: 'Coiled Tubing',
   cementing: 'Cementing',
 };
 
 export const TIPOS_SERVICIO_POR_LINEA: Record<LineaServicio, TipoServicio[]> = {
-  fcr: ['wellbore_cleanup_tools', 'fishing_services', 'remedial_tools', 'completion_tools'],
+  fcr: [
+    'wellbore_cleanup_tools',
+    'fishing_services',
+    'remedial_tools',
+    'completion_tools',
+    'lower_completion',
+    'milling',
+    'casing_repair',
+    'thru_tubing',
+    'esp_equipment',
+    'flow_control_tools',
+    'liner_hanger',
+    'pesca_wireline_tools',
+    'pipe_recovery',
+    'servicios_integrados',
+    'slickline',
+  ],
   pumping: ['coiled_tubing', 'cementing'],
 };
+
+/** Un pedido puede llevar más de un tipo de servicio en la misma OT (ej. Fishing + Milling) — para mostrarlos juntos como texto. */
+export function tiposServicioLabel(tipos: TipoServicio[]): string {
+  return tipos.map(t => TIPO_SERVICIO_LABELS[t]).join(', ');
+}
+
+/**
+ * Sub-tipo de servicio — tercer select, columna "SUB-SERVICIOS" del KPI
+ * Ventas Consolidado, hoja "datos1". Depende de los Tipos de servicio
+ * elegidos (varios tipos → unión de sus sub-tipos, sin agrupar). A
+ * diferencia de `TipoServicio`, no está acoplado a la cobertura IPERC —
+ * es solo texto descriptivo del pedido, así que se modela como lista de
+ * strings libres (más fácil de mantener a medida que Ventas agrega
+ * variantes) en vez de un union type estricto.
+ */
+export const SUBTIPOS_SERVICIO_POR_TIPO: Record<TipoServicio, string[]> = {
+  wellbore_cleanup_tools: ['Milling', 'Run Venturi Basket', 'Sand Bailer', 'Sand Bailer + Multiplier', 'WBCU Tools', 'WBCU-Milling'],
+  fishing_services: [
+    'Casing Pulling Tool',
+    'Centralizador',
+    'Fishing CIBP',
+    'Hydraulic Packers',
+    'Milling',
+    'Milling-Motor',
+    'Pesca Cable Slick Line',
+    'Pesca CTU',
+    'Pesca Hanger',
+    'Pesca Wireline Tools',
+    'Protector Lizer',
+    'Renta de Drillpipe 2 3/8',
+  ],
+  remedial_tools: ['Run CIBP + HST', 'Run CR + HST', 'Services Packer', 'Squeeze Jobs'],
+  completion_tools: ['Completion Specialist', 'Flow Control Tools', 'Hydraulic Packers', 'Mechanical Packers', 'Seal Bore Packer', 'Services Packer'],
+  lower_completion: ['Cavidad Guiberson', 'Completación Inteligente', 'Max-R', 'One Trip', 'Seal Bore Packer', 'Selective Completion', 'SXAR-E'],
+  milling: ['Mill Cement & CR', 'Milling', 'Milling CIBP', 'Milling-Motor'],
+  casing_repair: ['Casing Repair'],
+  thru_tubing: ['Thru Tubing'],
+  esp_equipment: ["Camisa Refrigeración 5 1/2", "Camisa Refrigeración 7''", 'Casing Pulling Tool', 'Dual ESP', 'ESP Equipment'],
+  flow_control_tools: ['Reparación FCT'],
+  liner_hanger: ["Top Packer 7 x 9 5/8''"],
+  pesca_wireline_tools: ['Pesca Wireline Tools'],
+  pipe_recovery: ['External Cutter'],
+  servicios_integrados: ['Squeeze Jobs'],
+  slickline: ['Servicios de Slickline'],
+  coiled_tubing: [],
+  cementing: [],
+};
+
+/** Unión (sin duplicados) de los sub-tipos disponibles para los Tipos de servicio elegidos. */
+export function subTiposServicioDisponibles(tipos: TipoServicio[]): string[] {
+  return [...new Set(tipos.flatMap(t => SUBTIPOS_SERVICIO_POR_TIPO[t]))];
+}
 
 /**
  * Clasifica un pedido como Venta o Servicio para el reporte de Facturación
@@ -192,7 +288,10 @@ export interface Pedido {
 
   // ── Servicio ──
   lineaServicio: LineaServicio;
-  tipoServicio: TipoServicio;
+  /** Un pedido puede tener más de un tipo de servicio en la misma OT (ej. Fishing + Milling). */
+  tipoServicio: TipoServicio[];
+  /** Sub-tipos técnicos de los Tipos de servicio elegidos (ver SUBTIPOS_SERVICIO_POR_TIPO) — solo descriptivo, opcional. */
+  subTipoServicio?: string[];
   tipoOt: TipoOt;
   campo: string;
   bloque: string;

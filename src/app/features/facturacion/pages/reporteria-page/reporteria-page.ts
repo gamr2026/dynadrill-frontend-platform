@@ -15,7 +15,7 @@ import {
   type DynadrillKpiRowItem,
   type DynadrillTab,
 } from '@digitec-it-projects/dynadrill-ui';
-import { ESTADO_PEDIDO_LABELS, TIPO_SERVICIO_LABELS, EstadoPedido, Pedido, TIPO_OT_LABELS, TipoOt, itemsEstimadosDe, valorEstimadoPedido } from '../../models/pedido.model';
+import { ESTADO_PEDIDO_LABELS, TIPO_SERVICIO_LABELS, EstadoPedido, Pedido, TIPO_OT_LABELS, TipoOt, itemsEstimadosDe, tiposServicioLabel, valorEstimadoPedido } from '../../models/pedido.model';
 import { Prefactura } from '../../models/prefactura.model';
 import { GuiaRemision } from '../../models/guia-remision.model';
 import { Aot } from '../../models/aot.model';
@@ -149,7 +149,7 @@ export class ReporteriaPage {
         return {
           id: pf.id,
           pozo: p?.pozo ?? '—',
-          linea: p ? TIPO_SERVICIO_LABELS[p.tipoServicio] : '—',
+          linea: p ? tiposServicioLabel(p.tipoServicio) : '—',
           cliente: p?.cliente ?? '—',
           revenue: '$' + pf.subtotal.toFixed(2),
         };
@@ -161,13 +161,21 @@ export class ReporteriaPage {
     { key: 'cliente', header: 'Cliente', searchable: true },
     { key: 'revenue', header: 'Revenue real' },
   ];
-  /** Ingresos agregados por tipo de servicio (segundo select del Pedido) — mismo corte que "ventas por sublínea" del VENTAS_DYNADRILL, ahora con la granularidad de 6 categorías en vez de las 4 líneas viejas. */
+  /**
+   * Ingresos agregados por tipo de servicio (segundo select del Pedido) —
+   * mismo corte que "ventas por sublínea" del VENTAS_DYNADRILL, ahora con
+   * el catálogo real de 17 categorías. Un pedido puede tener más de un
+   * tipo de servicio: su revenue se suma en el bucket de CADA tipo que
+   * tenga, así que el total del gráfico puede superar el ingreso real
+   * cuando hay pedidos multi-tipo (es el comportamiento esperado de un
+   * breakdown por etiqueta múltiple, no un bug).
+   */
   protected readonly porLineaChartData = computed(() => {
     const acc = new Map<string, number>();
     for (const pf of this.prefacturas().filter(p => p.estado === 'firmada')) {
       const p = this.pedidoDe(pf.pedidoId);
-      const linea = p ? TIPO_SERVICIO_LABELS[p.tipoServicio] : 'Sin línea';
-      acc.set(linea, (acc.get(linea) ?? 0) + pf.subtotal);
+      const tipos = p?.tipoServicio?.length ? p.tipoServicio.map(t => TIPO_SERVICIO_LABELS[t]) : ['Sin línea'];
+      for (const linea of tipos) acc.set(linea, (acc.get(linea) ?? 0) + pf.subtotal);
     }
     return [...acc.entries()].sort(([a], [b]) => a.localeCompare(b));
   });
@@ -256,7 +264,7 @@ export class ReporteriaPage {
         id: p.id,
         code: p.code,
         cliente: p.cliente,
-        linea: TIPO_SERVICIO_LABELS[p.tipoServicio],
+        linea: tiposServicioLabel(p.tipoServicio),
         pozo: p.pozo,
         analista: p.analistaFacturacion ?? '—',
         vendedor: p.agenteComercial,
@@ -358,7 +366,7 @@ export class ReporteriaPage {
         ot: aot ? String(aot.numeroOt) : '—',
         cliente: p.cliente,
         mes: p.fechaInicioServicio ? p.fechaInicioServicio.slice(0, 7) : '—',
-        linea: TIPO_SERVICIO_LABELS[p.tipoServicio],
+        linea: tiposServicioLabel(p.tipoServicio),
         pozo: p.pozo,
         bloque: p.bloque,
         rig: p.taladroRig,

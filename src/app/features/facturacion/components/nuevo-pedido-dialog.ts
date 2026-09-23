@@ -22,6 +22,7 @@ import {
   LINEA_SERVICIO_LABELS,
   LineaServicio,
   Pedido,
+  subTiposServicioDisponibles,
   TIPO_OT_LABELS,
   TIPO_SERVICIO_LABELS,
   TIPOS_SERVICIO_POR_LINEA,
@@ -195,18 +196,37 @@ export class NuevoPedidoDialog {
     ([value, label]) => ({ label, value }),
   );
 
-  /** Segundo select, depende de la línea elegida — ver TIPOS_SERVICIO_POR_LINEA. */
-  protected readonly tipoServicio = signal<TipoServicio | null>(null);
+  /** Segundo select, depende de la línea elegida — ver TIPOS_SERVICIO_POR_LINEA. Un pedido puede llevar más de un tipo (ej. Fishing + Milling en la misma OT). */
+  protected readonly tipoServicio = signal<TipoServicio[]>([]);
   protected readonly tipoServicioOptions = computed<DynadrillSelectOption[]>(() => {
     const linea = this.lineaServicio();
     if (!linea) return [];
     return TIPOS_SERVICIO_POR_LINEA[linea].map(value => ({ label: TIPO_SERVICIO_LABELS[value], value }));
   });
 
-  /** Cambia la línea de servicio — el tipo de servicio elegido puede no aplicar a la línea nueva, así que se limpia. */
+  /** Cambia la línea de servicio — los tipos de servicio elegidos pueden no aplicar a la línea nueva, así que se limpian. */
   protected onLineaServicioChange(value: LineaServicio | null): void {
     this.lineaServicio.set(value);
-    this.tipoServicio.set(null);
+    this.tipoServicio.set([]);
+    this.subTipoServicio.set([]);
+  }
+
+  /** Tercer select, depende de los Tipos de servicio elegidos (varios tipos → unión de sus sub-tipos). Solo descriptivo, no acoplado a IPERC. */
+  protected readonly subTipoServicio = signal<string[]>([]);
+  protected readonly subTipoServicioOptions = computed<DynadrillSelectOption[]>(() =>
+    subTiposServicioDisponibles(this.tipoServicio()).map(value => ({ label: value, value })),
+  );
+
+  protected onTipoServicioChange(value: unknown): void {
+    const tipos = Array.isArray(value) ? (value as TipoServicio[]) : [];
+    this.tipoServicio.set(tipos);
+    // Un sub-tipo ya elegido puede dejar de aplicar si se destilda el tipo que lo traía.
+    const disponibles = new Set(subTiposServicioDisponibles(tipos));
+    this.subTipoServicio.update(actuales => actuales.filter(s => disponibles.has(s)));
+  }
+
+  protected onSubTipoServicioChange(value: unknown): void {
+    this.subTipoServicio.set(Array.isArray(value) ? (value as string[]) : []);
   }
 
   /**
@@ -580,7 +600,7 @@ export class NuevoPedidoDialog {
     () =>
       !!this.cliente() &&
       !!this.lineaServicio() &&
-      !!this.tipoServicio() &&
+      this.tipoServicio().length > 0 &&
       !!this.tipoOt() &&
       this.ubicacion().pozoId !== null &&
       this.ubicacion().taladroId !== null &&
@@ -686,7 +706,8 @@ export class NuevoPedidoDialog {
     this.subcliente.set(p.subcliente ?? '');
     this.numeroContrato.set(p.numeroContrato ?? '');
     this.lineaServicio.set(p.lineaServicio);
-    this.tipoServicio.set(p.tipoServicio ?? null);
+    this.tipoServicio.set(p.tipoServicio ?? []);
+    this.subTipoServicio.set(p.subTipoServicio ?? []);
     this.tipoOt.set(p.tipoOt);
     this.fechaInicioServicio.set(p.fechaInicioServicio ? new Date(p.fechaInicioServicio) : null);
     this.fechaFinServicio.set(p.fechaFinServicio ? new Date(p.fechaFinServicio) : null);
@@ -785,7 +806,8 @@ export class NuevoPedidoDialog {
       clienteId: this.clienteId() ?? undefined,
       subcliente: this.subcliente().trim() || undefined,
       lineaServicio: this.lineaServicio()!,
-      tipoServicio: this.tipoServicio()!,
+      tipoServicio: this.tipoServicio(),
+      subTipoServicio: this.subTipoServicio().length ? this.subTipoServicio() : undefined,
       tipoOt: this.tipoOt()!,
       campo: this.ubicacion().campo,
       bloque: this.ubicacion().bloque,

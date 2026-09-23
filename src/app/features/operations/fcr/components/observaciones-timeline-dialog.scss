@@ -1,0 +1,37 @@
+.fcr-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.5rem 0;
+
+  &__observations {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--surface-secondary, #f8f9fa);
+    border-radius: 0.5rem;
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+
+  &__observation {
+    font-size: 0.8125rem;
+
+    strong {
+      margin-right: 0.5rem;
+    }
+
+    p {
+      margin: 0.25rem 0 0;
+      color: var(--text-secondary, #555);
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding-top: 1rem;
+  }
+}

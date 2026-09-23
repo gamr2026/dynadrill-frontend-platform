@@ -2,7 +2,7 @@ import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import { DynadrillButtonComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
-import { itemsEstimadosDe, LINEA_SERVICIO_LABELS, TIPO_SERVICIO_LABELS, type Pedido } from '../models/pedido.model';
+import { itemsEstimadosDe, LINEA_SERVICIO_LABELS, tiposServicioLabel, type Pedido } from '../models/pedido.model';
 
 export interface VerPedidoDialogData {
   pedido: Pedido;
@@ -34,7 +34,8 @@ export class VerPedidoDialog {
   private readonly modalRef = inject(NzModalRef<VerPedidoDialog>);
   protected readonly data = inject<VerPedidoDialogData>(NZ_MODAL_DATA);
   protected readonly lineaServicioLabels = LINEA_SERVICIO_LABELS;
-  protected readonly tipoServicioLabels = TIPO_SERVICIO_LABELS;
+  protected readonly tipoServicioLabel = tiposServicioLabel(this.data.pedido.tipoServicio);
+  protected readonly subTipoServicioLabel = this.data.pedido.subTipoServicio?.length ? this.data.pedido.subTipoServicio.join(', ') : '—';
   protected readonly items = itemsEstimadosDe(this.data.pedido);
 
   protected cerrar(): void {

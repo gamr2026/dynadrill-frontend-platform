@@ -1,0 +1,19 @@
+<div class="anular-pedido">
+  <dynadrill-text variant="body">
+    El pedido {{ data.pedido.code }} queda cerrado como "Anulado" — no se puede retomar después de esto.
+  </dynadrill-text>
+  <dynadrill-textarea
+    label="Motivo de la anulación"
+    placeholder="Ej. el cliente canceló el servicio…"
+    [rows]="4"
+    [value]="motivo()"
+    (valueChange)="motivo.set($event)"
+  />
+</div>
+
+<footer class="anular-pedido__actions">
+  <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+  <dynadrill-button variant="primary" [disabled]="!puedeEnviar() || submitting()" (clicked)="anular()">
+    {{ submitting() ? 'Anulando…' : 'Anular pedido' }}
+  </dynadrill-button>
+</footer>

@@ -30,8 +30,15 @@
         <ul class="dashboard-page__legend">
           @for (segment of card.segments; track segment.label) {
             <li class="dashboard-page__legend-item">
-              <span class="dashboard-page__legend-dot" [style.background]="dotColor(segment.tone)" aria-hidden="true"></span>
-              <span class="dashboard-page__legend-text">{{ segment.value }} {{ segment.label }}</span>
+              @if (segment.link) {
+                <a class="dashboard-page__legend-link" [routerLink]="segment.link" [queryParams]="segment.queryParams">
+                  <span class="dashboard-page__legend-dot" [style.background]="dotColor(segment.tone)" aria-hidden="true"></span>
+                  <span class="dashboard-page__legend-text">{{ segment.value }} {{ segment.label }}</span>
+                </a>
+              } @else {
+                <span class="dashboard-page__legend-dot" [style.background]="dotColor(segment.tone)" aria-hidden="true"></span>
+                <span class="dashboard-page__legend-text">{{ segment.value }} {{ segment.label }}</span>
+              }
             </li>
           }
         </ul>

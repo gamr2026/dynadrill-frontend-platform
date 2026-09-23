@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import {
   DynadrillButtonComponent,
@@ -14,9 +15,11 @@ import {
   type DynadrillKpiRowItem,
   type DynadrillTab,
 } from '@digitec-it-projects/dynadrill-ui';
-import { ESTADO_PEDIDO_LABELS, TIPO_SERVICIO_LABELS, Pedido, TIPO_OT_LABELS, TipoOt, valorEstimadoPedido } from '../../models/pedido.model';
+import { ESTADO_PEDIDO_LABELS, TIPO_SERVICIO_LABELS, EstadoPedido, Pedido, TIPO_OT_LABELS, TipoOt, itemsEstimadosDe, valorEstimadoPedido } from '../../models/pedido.model';
 import { Prefactura } from '../../models/prefactura.model';
-import { PedidoService, PrefacturaService } from '../../services/pedido.service';
+import { GuiaRemision } from '../../models/guia-remision.model';
+import { Aot } from '../../models/aot.model';
+import { AotService, GuiaRemisionService, PedidoService, PrefacturaService } from '../../services/pedido.service';
 
 function descargarCsv(nombre: string, headers: string[], filas: (string | number)[][]): void {
   const esc = (v: string | number) => `"${String(v ?? '').replace(/"/g, '""')}"`;
@@ -44,6 +47,12 @@ function semaforo(d: number | null): 'success' | 'warning' | 'error' | 'neutral'
   return d <= 3 ? 'success' : d <= 7 ? 'warning' : 'error';
 }
 
+/** Opciones del filtro (ícono de embudo de nz-table) de una columna — valores realmente presentes en `rows`, no un enum fijo. */
+function uniqueFilters(rows: Record<string, unknown>[], key: string): { text: string; value: string }[] {
+  const valores = new Set(rows.map(r => String(r[key] ?? '')).filter(Boolean));
+  return [...valores].sort((a, b) => a.localeCompare(b)).map(v => ({ text: v, value: v }));
+}
+
 /** FACT-005 — Reportería y control de gestión. */
 @Component({
   selector: 'app-reporteria-page',
@@ -63,12 +72,31 @@ function semaforo(d: number | null): 'success' | 'warning' | 'error' | 'neutral'
 export class ReporteriaPage {
   private readonly pedidoService = inject(PedidoService);
   private readonly prefacturaService = inject(PrefacturaService);
+  private readonly aotService = inject(AotService);
+  private readonly guiaService = inject(GuiaRemisionService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   protected readonly loading = signal(true);
   protected readonly pedidos = signal<Pedido[]>([]);
   protected readonly prefacturas = signal<Prefactura[]>([]);
+  protected readonly aots = signal<Aot[]>([]);
+  protected readonly guias = signal<GuiaRemision[]>([]);
+  /** Pestaña "Secuencial TK" (índice 6) — mismo índice que en `tabs` abajo. */
+  private static readonly TAB_SECUENCIAL_TK = 6;
   protected readonly activeTab = signal(0);
+  /**
+   * `?estado=<EstadoPedido>` en la URL — acceso directo desde la card de
+   * Facturación del dashboard ("Enviados para firmar", etc.): al entrar acá
+   * ya con un estado, la vista abre en "Secuencial TK" filtrada, sin que la
+   * clienta tenga que buscar/filtrar a mano.
+   */
+  protected readonly estadoFiltro = signal<EstadoPedido | null>(null);
+  protected readonly estadoFiltroLabel = computed(() => {
+    const e = this.estadoFiltro();
+    return e ? ESTADO_PEDIDO_LABELS[e] : null;
+  });
 
   protected readonly tabs: DynadrillTab[] = [
     { label: 'Por mes' },
@@ -77,6 +105,7 @@ export class ReporteriaPage {
     { label: 'Cotizado vs. real' },
     { label: 'Control de tickets' },
     { label: 'Servicio vs. Venta' },
+    { label: 'Secuencial TK' },
   ];
 
   private pedidoDe(id: number): Pedido | undefined {
@@ -300,30 +329,144 @@ export class ReporteriaPage {
     { name: 'Revenue real', data: this.servicioVentaRows().map(r => r._real) },
   ]);
 
+  // ── 7. Secuencial TK — vista consolidada estilo "Secuencial Tk Control" ──
+  /**
+   * Todos los campos que la clienta de Facturación maneja hoy en el Excel
+   * "Secuencial Tk Control", en una sola tabla filtrable por columna (en vez
+   * de repartirlos en pestañas separadas) — pidió explícitamente no tener
+   * que ir pestaña por pestaña. `Estado`/`Estado TKT` reemplazan a las tres
+   * columnas de estado del Excel (Estado Servicio/TKT/OT): `EstadoPedido` ya
+   * se diseñó alineado a esas tres (ver comentario en pedido.model.ts), así
+   * que exponerlas por separado sería redundante.
+   */
+  protected readonly tkRows = computed(() => {
+    const aotByPedido = new Map(this.aots().map(a => [a.pedidoId, a]));
+    const guiaByPedido = new Map(this.guias().map(g => [g.pedidoId, g]));
+    return this.pedidos().map(p => {
+      const pf = this.prefacturas().find(x => x.pedidoId === p.id);
+      const aot = aotByPedido.get(p.id);
+      const guia = guiaByPedido.get(p.id);
+      const recibeTkt = this.hito(p, 'documentos_completos');
+      const entregaFirmas = this.hito(p, 'enviado_para_firmas');
+      // Mismas fórmulas del Excel: DIAS PREFAC = Entrega para firmas − Recibe tkt; DIAS SUPERV = Recibe tkt − Fecha Fin.
+      const dPref = dias(recibeTkt, entregaFirmas);
+      const dSuperv = dias(p.fechaFinServicio, recibeTkt);
+      const primerItem = itemsEstimadosDe(p)[0];
+      return {
+        id: p.id,
+        code: p.code,
+        ot: aot ? String(aot.numeroOt) : '—',
+        cliente: p.cliente,
+        mes: p.fechaInicioServicio ? p.fechaInicioServicio.slice(0, 7) : '—',
+        linea: TIPO_SERVICIO_LABELS[p.tipoServicio],
+        pozo: p.pozo,
+        bloque: p.bloque,
+        rig: p.taladroRig,
+        fechaInicio: p.fechaInicioServicio || '—',
+        fechaFin: p.fechaFinServicio || '—',
+        descripcion: primerItem?.descripcion ?? '—',
+        analista: p.analistaFacturacion ?? '— Sin asignar —',
+        vendedor: p.agenteComercial,
+        companyMan: p.representanteCampo || '— Sin asignar —',
+        representanteQuito: p.representanteQuito || '— Sin asignar —',
+        estadoRaw: p.estado,
+        estado: ESTADO_PEDIDO_LABELS[p.estado],
+        estadoTkt: pf ? pf.estado.replace(/_/g, ' ') : '— Sin generar —',
+        guia: guia ? guia.guiaRemisionAs2Ref || 'Elaborada' : 'N/A',
+        recibeTkt: recibeTkt ? recibeTkt.slice(0, 10) : '—',
+        entregaFirmas: entregaFirmas ? entregaFirmas.slice(0, 10) : '—',
+        diasPrefBadge: { text: dPref === null ? '—' : dPref + ' d', tone: semaforo(dPref) },
+        diasSupervBadge: { text: dSuperv === null ? '—' : dSuperv + ' d', tone: semaforo(dSuperv) },
+      };
+    });
+  });
+  /**
+   * Columnas + filtros dinámicos (ícono de embudo de nz-table, ver
+   * `dynadrill-data-table.component.ts`) armados sobre los valores que
+   * realmente existen en `tkRows` — es lo que pidió la clienta: poder
+   * filtrar por Cliente/Línea/Company Man/Estado, etc., no solo buscar.
+   */
+  protected readonly tkColumns = computed<DynadrillDataTableColumn[]>(() => {
+    const rows = this.tkRows();
+    const filtros = (key: string) => uniqueFilters(rows, key);
+    return [
+      { key: 'code', header: 'Ticket', sortable: true, searchable: true, fixed: 'left' },
+      { key: 'ot', header: 'OT', sortable: true },
+      { key: 'cliente', header: 'Cliente', sortable: true, filters: filtros('cliente') },
+      { key: 'mes', header: 'Mes', sortable: true, filters: filtros('mes') },
+      { key: 'linea', header: 'Línea Serv.', filters: filtros('linea') },
+      { key: 'pozo', header: 'Pozo', searchable: true },
+      { key: 'bloque', header: 'Bloque', searchable: true },
+      { key: 'rig', header: 'Rig', searchable: true },
+      { key: 'fechaInicio', header: 'Fecha Inicio', sortable: true },
+      { key: 'fechaFin', header: 'Fecha Fin', sortable: true },
+      { key: 'descripcion', header: 'Descripción breve' },
+      { key: 'analista', header: 'Analista', filters: filtros('analista') },
+      { key: 'vendedor', header: 'Dyna_Ventas', filters: filtros('vendedor') },
+      { key: 'companyMan', header: 'Represent. Campo', filters: filtros('companyMan') },
+      { key: 'representanteQuito', header: 'Represent. Quito', filters: filtros('representanteQuito') },
+      { key: 'estado', header: 'Estado', filters: filtros('estado') },
+      { key: 'estadoTkt', header: 'Estado TKT', filters: filtros('estadoTkt') },
+      { key: 'guia', header: 'Guía de remisión' },
+      { key: 'recibeTkt', header: 'Recibe tkt en Jef Prefact' },
+      { key: 'entregaFirmas', header: 'Entrega para firmas a cliente' },
+      { key: 'diasPrefBadge', header: 'Días prefact.', type: 'badge' },
+      { key: 'diasSupervBadge', header: 'Días superv.', type: 'badge' },
+    ];
+  });
+  /** `tkRows` acotado por el acceso directo del dashboard (`estadoFiltro`) — el ícono de embudo por columna sigue disponible para filtrar más allá de este. */
+  protected readonly tkRowsFiltradas = computed(() => {
+    const f = this.estadoFiltro();
+    const rows = this.tkRows();
+    return f ? rows.filter(r => r.estadoRaw === f) : rows;
+  });
+
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
     const firmadas = this.prefacturas().filter(p => p.estado === 'firmada');
     const total = firmadas.reduce((s, p) => s + p.subtotal, 0);
-    const enProceso = this.pedidos().filter(p => !['facturado', 'listo_para_facturar', 'enviado_a_control_de_costos'].includes(p.estado));
+    const enProceso = this.pedidos().filter(p => !['facturado', 'listo_para_facturar', 'enviado_a_control_de_costos', 'anulado'].includes(p.estado));
     return [
       { label: 'Revenue real acumulado', value: '$' + total.toFixed(2), tone: 'brand' },
       { label: 'Trabajos facturados', value: firmadas.length, tone: 'success' },
       { label: 'Pedidos en proceso', value: enProceso.length, tone: 'neutral' },
       { label: 'Accrual (por facturar)', value: '$' + this.pedidos().filter(p => !this.prefacturas().some(x => x.pedidoId === p.id && x.estado === 'firmada')).reduce((s, p) => s + valorEstimadoPedido(p), 0).toFixed(2), tone: 'warning' },
+      { label: 'Tickets pendientes de firma', value: this.pendientesFirma().length, tone: this.pendientesFirma().length > 0 ? 'warning' : 'neutral' },
     ];
   });
 
+  /** Pedidos con prefactura ya enviada al cliente y todavía sin firmar ni rechazar — el "a quién contactar hoy" de Facturación. */
+  protected readonly pendientesFirma = computed(() => this.pedidos().filter(p => p.estado === 'enviado_para_firmas'));
+
   constructor() {
+    const estado = this.route.snapshot.queryParamMap.get('estado') as EstadoPedido | null;
+    if (estado) {
+      this.estadoFiltro.set(estado);
+      this.activeTab.set(ReporteriaPage.TAB_SECUENCIAL_TK);
+    }
     this.reload();
+  }
+
+  /** Quita el filtro por estado y su rastro en la URL, sin recargar la página (misma pestaña). */
+  protected limpiarFiltroEstado(): void {
+    this.estadoFiltro.set(null);
+    this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
   }
 
   private reload(): void {
     this.loading.set(true);
-    forkJoin({ pedidos: this.pedidoService.list(), prefacturas: this.prefacturaService.list() }).subscribe({
-      next: ({ pedidos, prefacturas }) => {
+    forkJoin({
+      pedidos: this.pedidoService.list(),
+      prefacturas: this.prefacturaService.list(),
+      aots: this.aotService.list(),
+      guias: this.guiaService.list(),
+    }).subscribe({
+      next: ({ pedidos, prefacturas, aots, guias }) => {
         this.pedidos.set(pedidos);
         this.prefacturas.set(prefacturas);
+        this.aots.set(aots);
+        this.guias.set(guias);
         this.loading.set(false);
       },
       error: () => {
@@ -350,11 +493,26 @@ export class ReporteriaPage {
           ['Ticket', 'Cliente', 'Tipo de servicio', 'Pozo', 'Analista', 'Vendedor', 'Estado', 'Días prefact.', 'Días firma'],
           this.controlRows().map(r => [r.code, r.cliente, r.linea, r.pozo, r.analista, r.vendedor, r.estado, r.diasPrefBadge.text, r.diasFirmaBadge.text]),
         );
-      default:
+      case 5:
         return descargarCsv(
           `servicio-vs-venta-${hoy}.csv`,
           ['Tipo de OT', 'Nº de pedidos', 'Facturados', 'Cotizado', 'Real'],
           this.servicioVentaRows().map(r => [r.tipo, r.pedidos, r.facturados, r.cotizado, r.real]),
+        );
+      default:
+        return descargarCsv(
+          `secuencial-tk-${hoy}.csv`,
+          [
+            'Ticket', 'OT', 'Cliente', 'Mes', 'Línea Serv.', 'Pozo', 'Bloque', 'Rig', 'Fecha Inicio', 'Fecha Fin',
+            'Descripción breve', 'Analista', 'Dyna_Ventas', 'Represent. Campo', 'Represent. Quito', 'Estado',
+            'Estado TKT', 'Guía de remisión', 'Recibe tkt en Jef Prefact', 'Entrega para firmas a cliente',
+            'Días prefact.', 'Días superv.',
+          ],
+          this.tkRowsFiltradas().map(r => [
+            r.code, r.ot, r.cliente, r.mes, r.linea, r.pozo, r.bloque, r.rig, r.fechaInicio, r.fechaFin,
+            r.descripcion, r.analista, r.vendedor, r.companyMan, r.representanteQuito, r.estado, r.estadoTkt,
+            r.guia, r.recibeTkt, r.entregaFirmas, r.diasPrefBadge.text, r.diasSupervBadge.text,
+          ]),
         );
     }
   }

@@ -65,6 +65,7 @@ const INVENTARIO_ITEM: DynadrillMenuItem = {
   children: [
     { label: 'Artículos', link: '/dashboard/inventario/articulos' },
     { label: 'Vehículos', link: '/dashboard/inventario/vehiculos' },
+    { label: 'Despachos a Facturación', link: '/dashboard/inventario/despachos' },
   ],
 };
 

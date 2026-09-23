@@ -1,0 +1,57 @@
+<div class="gestionar-despacho">
+  <dynadrill-text variant="caption">Pedido {{ data.solicitud.pedidoCode }} — {{ data.solicitud.pedidoCliente }}</dynadrill-text>
+
+  <dl class="gestionar-despacho__defs">
+    <div><dt>Bodega origen</dt><dd>{{ data.solicitud.bodegaOrigen }}</dd></div>
+    <div><dt>Fecha requerida</dt><dd>{{ data.solicitud.fechaRequerida | slice: 0 : 10 }}</dd></div>
+    <div><dt>Solicitado por</dt><dd>{{ data.solicitud.solicitadoPor }}</dd></div>
+    @if (data.solicitud.nota) {
+      <div><dt>Nota de Facturación</dt><dd>{{ data.solicitud.nota }}</dd></div>
+    }
+  </dl>
+
+  <table class="gestionar-despacho__items">
+    <thead><tr><th>Código</th><th>Descripción</th><th>Tipo</th><th>Cantidad</th></tr></thead>
+    <tbody>
+      @for (item of data.solicitud.items; track item.codigo) {
+        <tr>
+          <td>{{ item.codigo }}</td>
+          <td>{{ item.descripcion }}</td>
+          <td>{{ item.tipo === 'herramienta' ? 'Herramienta' : 'Material' }}</td>
+          <td>{{ item.cantidad }} {{ item.unidad }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  @if (esPendiente) {
+    <div class="gestionar-despacho__despachar">
+      <dynadrill-text variant="caption" class="gestionar-despacho__section-title">Despachar</dynadrill-text>
+      <label class="gestionar-despacho__file">
+        <input type="file" (change)="seleccionarArchivo($any($event.target).files)" />
+        <span>{{ archivo()?.name || 'Adjuntar documento de respaldo (obligatorio)…' }}</span>
+      </label>
+      <dynadrill-input label="Referencia AS2 (opcional)" placeholder="Nº de Orden Salida Material en AS2" [value]="referenciaAs2()" (valueChange)="referenciaAs2.set($event)" />
+      <dynadrill-textarea label="Nota (opcional)" placeholder="Ej. diferencias de cantidad, sustituciones…" [rows]="2" [value]="notaBodega()" (valueChange)="notaBodega.set($event)" />
+      <dynadrill-button [disabled]="!puedeDespachar() || submitting()" (clicked)="despachar()">
+        {{ submitting() ? 'Guardando…' : 'Marcar como despachado' }}
+      </dynadrill-button>
+    </div>
+
+    <div class="gestionar-despacho__rechazar">
+      <dynadrill-text variant="caption" class="gestionar-despacho__section-title">Rechazar</dynadrill-text>
+      <dynadrill-textarea label="Motivo del rechazo" placeholder="Ej. sin stock, ítem incorrecto…" [rows]="2" [value]="motivoRechazo()" (valueChange)="motivoRechazo.set($event)" />
+      <dynadrill-button variant="error" [disabled]="!puedeRechazar() || submitting()" (clicked)="rechazar()">
+        {{ submitting() ? 'Guardando…' : 'Rechazar solicitud' }}
+      </dynadrill-button>
+    </div>
+  } @else if (data.solicitud.estado === 'despachado') {
+    <dynadrill-text variant="caption">Despachado por {{ data.solicitud.despachadoPor }} el {{ data.solicitud.despachadoAt | slice: 0 : 10 }}.</dynadrill-text>
+  } @else {
+    <dynadrill-text variant="caption">Rechazado por {{ data.solicitud.rechazadoPor }}: {{ data.solicitud.motivoRechazo }}</dynadrill-text>
+  }
+
+  <footer class="gestionar-despacho__actions">
+    <dynadrill-button variant="secondary" (clicked)="cerrar()">Cerrar</dynadrill-button>
+  </footer>
+</div>

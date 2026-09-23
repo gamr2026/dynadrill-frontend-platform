@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { Observable, catchError, forkJoin, of } from 'rxjs';
 import { DynadrillIconComponent, DynadrillIconName, DynadrillScreenHeaderComponent, DynadrillSectionComponent, DynadrillSpinnerComponent } from '@digitec-it-projects/dynadrill-ui';
 import { NgxEchartsDirective } from 'ngx-echarts';
@@ -17,6 +18,7 @@ import { ArticulosService } from '../../inventario/services/articulos.service';
 import { PumpingService } from '../../operations/pumping/services/pumping.service';
 import { FcrService } from '../../operations/fcr/services/fcr.service';
 import { PedidoService } from '../../facturacion/services/pedido.service';
+import { ESTADO_PEDIDO_LABELS, EstadoPedido } from '../../facturacion/models/pedido.model';
 import { UsersService, RolesService } from '../../users/services/users.service';
 
 type DashboardKpiTone = 'success' | 'error' | 'info' | 'brand';
@@ -33,6 +35,9 @@ interface DashboardChartSegment {
   label: string;
   value: number;
   tone: DashboardChartTone;
+  /** Acceso directo al segmento equivalente ya filtrado — hoy solo lo trae Facturación (ver `FACTURACION_ESTADOS_SEGMENT`). */
+  link?: string;
+  queryParams?: Record<string, string>;
 }
 
 /** Color de acento del ícono de la card — sin definir, dynadrill-section usa su morado de marca por defecto. */
@@ -110,6 +115,30 @@ function pieOptions(segments: DashboardChartSegment[]): EChartsCoreOption {
 }
 
 /**
+ * Los 12 `EstadoPedido` dentro del alcance del app (los 3 últimos son
+ * placeholders de AS2/SRI, ver comentario en pedido.model.ts) — la clienta
+ * de Facturación pidió un acceso rápido desde el dashboard a "quién está en
+ * qué estado" sin tener que ir a buscar/filtrar en Reportería, así que cada
+ * segmento es un link directo a Secuencial TK ya filtrado por ese estado.
+ */
+const FACTURACION_ESTADOS_SEGMENT: { estado: EstadoPedido; tone: DashboardChartTone }[] = [
+  { estado: 'borrador', tone: 'info' },
+  { estado: 'abierto', tone: 'info' },
+  { estado: 'en_operacion', tone: 'info' },
+  { estado: 'en_elaboracion_operativa', tone: 'info' },
+  { estado: 'documentos_completos', tone: 'info' },
+  { estado: 'en_revision_prefacturacion', tone: 'warning' },
+  { estado: 'en_correccion', tone: 'warning' },
+  { estado: 'prefactura_generada', tone: 'info' },
+  { estado: 'por_despachar_bodega', tone: 'warning' },
+  { estado: 'enviado_para_firmas', tone: 'warning' },
+  { estado: 'rechazado_por_cliente', tone: 'error' },
+  { estado: 'ticket_firmado', tone: 'success' },
+  { estado: 'aot_generada', tone: 'success' },
+  { estado: 'anulado', tone: 'error' },
+];
+
+/**
  * Qué card(s) ve cada rol — mismo criterio "lista explícita por rol, sin
  * rama por defecto" que sidebar.ts: un rol sin entrada acá no ve ningún
  * module card (solo los KPI de arriba). Superadmin es el único con acceso
@@ -137,7 +166,7 @@ const CARDS_POR_ROL: Record<string, string[]> = {
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [DynadrillScreenHeaderComponent, DynadrillSectionComponent, DynadrillIconComponent, DynadrillSpinnerComponent, NgxEchartsDirective],
+  imports: [DynadrillScreenHeaderComponent, DynadrillSectionComponent, DynadrillIconComponent, DynadrillSpinnerComponent, NgxEchartsDirective, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard-page.html',
   styleUrl: './dashboard-page.scss',
@@ -234,9 +263,14 @@ export class DashboardPage {
         const enRevision = tickets.filter(t => t.status === 'en_revision').length;
         const enEjecucion = tickets.filter(t => t.status === 'en_ejecucion').length;
 
-        // ── Facturación: Pedidos — "por aprobar" = prefactura en revisión interna, "aprobados" = ticket ya firmado por el cliente ──
-        const porAprobar = pedidos.filter(p => p.estado === 'en_revision_prefacturacion').length;
-        const aprobados = pedidos.filter(p => p.estado === 'ticket_firmado').length;
+        // ── Facturación: un segmento por cada EstadoPedido en alcance CON al menos un pedido — un estado en 0 no aporta nada al desglose y solo alarga la lista. ──
+        const segmentosFacturacion: DashboardChartSegment[] = FACTURACION_ESTADOS_SEGMENT.map(({ estado, tone }) => ({
+          label: ESTADO_PEDIDO_LABELS[estado],
+          value: pedidos.filter(p => p.estado === estado).length,
+          tone,
+          link: '/dashboard/facturacion/reporteria',
+          queryParams: { estado },
+        })).filter(s => s.value > 0);
 
         // ── Usuarios ──
         const roleById = new Map(roles.map(r => [r.id, r.name]));
@@ -302,10 +336,7 @@ export class DashboardPage {
             viewAllLink: '/dashboard/facturacion',
             accent: 'warning',
             summaryLine: `${pedidos.length} pedidos`,
-            segments: [
-              { label: 'Por aprobar', value: porAprobar, tone: 'warning' },
-              { label: 'Aprobados', value: aprobados, tone: 'success' },
-            ],
+            segments: segmentosFacturacion,
           },
           {
             title: 'Usuarios',

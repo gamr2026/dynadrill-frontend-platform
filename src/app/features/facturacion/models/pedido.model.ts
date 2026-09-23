@@ -77,10 +77,14 @@ export type EstadoPedido =
   | 'en_revision_prefacturacion'
   | 'en_correccion'
   | 'prefactura_generada'
+  /** Facturación pidió a Bodega el despacho de materiales/herramientas (correlación con "Orden Salida Material" de AS2) — vuelve a `prefactura_generada` al despacharse o rechazarse. */
+  | 'por_despachar_bodega'
   | 'enviado_para_firmas'
   | 'rechazado_por_cliente'
   | 'ticket_firmado'
   | 'aot_generada'
+  /** Cierre definitivo — puede pasar en cualquier punto del flujo (ver `ESTADOS_NO_ANULABLES` en facturacion-domain.service.ts). "Anulado" del Excel real "Secuencial Tk Control". */
+  | 'anulado'
   // ── Fuera de alcance del app (placeholders) ──
   | 'enviado_a_control_de_costos'
   | 'listo_para_facturar'
@@ -95,10 +99,12 @@ export const ESTADO_PEDIDO_LABELS: Record<EstadoPedido, string> = {
   en_revision_prefacturacion: 'En revisión de prefacturación',
   en_correccion: 'En corrección',
   prefactura_generada: 'Prefactura generada',
+  por_despachar_bodega: 'Por despachar en bodega',
   enviado_para_firmas: 'Enviado para firmas',
   rechazado_por_cliente: 'Rechazado por el cliente',
   ticket_firmado: 'Ticket firmado',
   aot_generada: 'OT generada',
+  anulado: 'Anulado',
   enviado_a_control_de_costos: 'Enviado a Control de Costos',
   listo_para_facturar: 'Listo para facturar',
   facturado: 'Facturado',
@@ -119,6 +125,9 @@ export const ESTADOS_RECHAZABLES: readonly EstadoPedido[] = [
   'documentos_completos',
   'en_revision_prefacturacion',
 ];
+
+/** Estados desde los que YA NO se puede anular el pedido (cerrado) — espejo de `ESTADOS_NO_ANULABLES` en `facturacion-domain.service.ts`. Cualquier otro estado admite anular. */
+export const ESTADOS_NO_ANULABLES: readonly EstadoPedido[] = ['anulado', 'facturado'];
 
 export type PedidoOrigen = 'as2' | 'portal';
 

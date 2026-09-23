@@ -7,6 +7,7 @@ import { AvanceDocumental, DocumentoOperativo, PushDocumentoOperativoInput } fro
 import { Prefactura } from '../models/prefactura.model';
 import { CreateGuiaRemisionInput, GuiaRemision } from '../models/guia-remision.model';
 import { Aot } from '../models/aot.model';
+import { CreateSolicitudDespachoInput, EstadoSolicitudDespacho, SolicitudDespachoBodega } from '../models/solicitud-despacho-bodega.model';
 import { environment } from '@env';
 
 /**
@@ -46,6 +47,23 @@ export class PedidoService {
   /** Facturación rechaza el pedido de vuelta a Ventas para que lo corrija — solo antes de generar la prefactura. */
   rechazar(id: number, usuario: string, motivo: string): Observable<Pedido> {
     return this.http.post<Pedido>(`${this.base}/${id}/rechazar`, { usuario, motivo });
+  }
+
+  /** Cierre definitivo del pedido (ej. el cliente canceló el servicio) — a diferencia de `rechazar`, aplica en cualquier estado salvo uno ya cerrado (ver `ESTADOS_NO_ANULABLES`). */
+  anular(id: number, usuario: string, motivo: string): Observable<Pedido> {
+    return this.http.post<Pedido>(`${this.base}/${id}/anular`, { usuario, motivo });
+  }
+
+  // ── Solicitud de Despacho a Bodega (correlación con "Orden Salida Material" de AS2) ──
+
+  /** Vigente, o la última ya resuelta — `null` si el pedido nunca tuvo una. */
+  solicitudDespacho(id: number): Observable<SolicitudDespachoBodega | null> {
+    return this.http.get<SolicitudDespachoBodega | null>(`${this.base}/${id}/solicitud-despacho`);
+  }
+
+  /** Solo con la prefactura ya generada — el pedido queda `por_despachar_bodega` hasta que Bodega la resuelva. */
+  solicitarDespacho(id: number, usuario: string, input: CreateSolicitudDespachoInput): Observable<Pedido> {
+    return this.http.post<Pedido>(`${this.base}/${id}/solicitud-despacho`, { usuario, ...input });
   }
 
   // ── Documentos adjuntos reales (ej. ficha de mezcla de químicos) ──
@@ -180,6 +198,11 @@ export class PrefacturaService {
 export class GuiaRemisionService {
   private readonly http = inject(HttpClient);
 
+  /** Todas las guías (todos los pedidos) — para la vista consolidada de Reportería, sin un GET por pedido. */
+  list(): Observable<GuiaRemision[]> {
+    return this.http.get<GuiaRemision[]>(`${environment.apiUrl}/facturacion/guias-remision`);
+  }
+
   dePedido(pedidoId: number): Observable<GuiaRemision | null> {
     return this.http.get<GuiaRemision>(`${environment.apiUrl}/facturacion/pedidos/${pedidoId}/guia-remision`).pipe(
       catchError((err: HttpErrorResponse) => (err.status === 404 ? of(null) : throwError(() => err))),
@@ -219,5 +242,33 @@ export class AotService {
 
   marcarFirmada(id: number, usuario: string): Observable<Aot> {
     return this.http.patch<Aot>(`${environment.apiUrl}/facturacion/aots/${id}/firmar`, { usuario });
+  }
+}
+
+/** Bandeja de Bodega — resuelve las Solicitudes de Despacho que Facturación emite (ver `PedidoService.solicitarDespacho`). */
+@Injectable({ providedIn: 'root' })
+export class SolicitudesDespachoBodegaService {
+  private readonly http = inject(HttpClient);
+  private readonly base = `${environment.apiUrl}/facturacion/solicitudes-despacho`;
+
+  /** Sin `estado`, trae todas (Bodega puede querer ver el historial, no solo lo pendiente). */
+  listar(estado?: EstadoSolicitudDespacho): Observable<SolicitudDespachoBodega[]> {
+    const params = estado ? { params: { estado } } : {};
+    return this.http.get<SolicitudDespachoBodega[]>(this.base, params);
+  }
+
+  /** Adjunta el documento de respaldo y marca la solicitud como despachada — el pedido vuelve a `prefactura_generada`. */
+  despachar(id: number, usuario: string, archivo: File, extra: { notaBodega?: string; referenciaAs2?: string }): Observable<SolicitudDespachoBodega> {
+    const form = new FormData();
+    form.append('file', archivo);
+    form.append('usuario', usuario);
+    if (extra.notaBodega) form.append('notaBodega', extra.notaBodega);
+    if (extra.referenciaAs2) form.append('referenciaAs2', extra.referenciaAs2);
+    return this.http.post<SolicitudDespachoBodega>(`${this.base}/${id}/despachar`, form);
+  }
+
+  /** Rechaza la solicitud (ej. sin stock) — el pedido vuelve a `prefactura_generada` para que Facturación la corrija. */
+  rechazar(id: number, usuario: string, motivo: string): Observable<SolicitudDespachoBodega> {
+    return this.http.post<SolicitudDespachoBodega>(`${this.base}/${id}/rechazar`, { usuario, motivo });
   }
 }

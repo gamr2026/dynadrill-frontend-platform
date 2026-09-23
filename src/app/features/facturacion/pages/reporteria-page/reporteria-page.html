@@ -18,10 +18,18 @@
             @case (2) { <p>Accruals (tickets por facturar) por cliente y estado de proceso.</p> }
             @case (3) { <p>Valor cotizado por Ventas vs. valor real de la prefactura.</p> }
             @case (4) { <p>Control de tickets con semáforo de días (≤3 verde · 4-7 amarillo · &gt;7 rojo).</p> }
-            @default { <p>Pedidos de línea FCR (fishing/completion/CTU) agrupados por Tipo de OT — Pumping no aplica.</p> }
+            @case (5) { <p>Pedidos de línea FCR (fishing/completion/CTU) agrupados por Tipo de OT — Pumping no aplica.</p> }
+            @default { <p>Todos los tickets con los mismos campos del Excel "Secuencial Tk Control" en una sola vista — usa el ícono de embudo para filtrar por columna (Cliente, Company Man, Estado, etc.) o la lupa para buscar texto.</p> }
           }
           <dynadrill-button variant="secondary" size="small" (clicked)="exportar()">Exportar a CSV</dynadrill-button>
         </div>
+
+        @if (index === 6 && estadoFiltroLabel()) {
+          <div class="reporteria-page__filtro-chip">
+            Filtrando por estado: <strong>{{ estadoFiltroLabel() }}</strong>
+            <button type="button" (click)="limpiarFiltroEstado()">Quitar filtro ✕</button>
+          </div>
+        }
 
         @switch (index) {
           @case (0) {
@@ -49,7 +57,7 @@
               <dynadrill-chart type="bar" [categories]="semaforoChartCategories" [series]="semaforoChartSeries()" height="240px" />
             }
           }
-          @default {
+          @case (5) {
             @if (servicioVentaRows().length) {
               <dynadrill-chart type="bar" [categories]="servicioVentaChartCategories()" [series]="servicioVentaChartSeries()" height="240px" />
             }
@@ -63,7 +71,8 @@
             @case (2) { <dynadrill-data-table [columns]="estadoClienteColumns" [rows]="estadoClienteRows()" [rowKey]="rowKeyFn" [pageSize]="12" /> }
             @case (3) { <dynadrill-data-table [columns]="cotizadoRealColumns" [rows]="cotizadoRealRows()" [rowKey]="rowKeyFn" [pageSize]="12" /> }
             @case (4) { <dynadrill-data-table [columns]="controlColumns" [rows]="controlRows()" [rowKey]="rowKeyFn" [pageSize]="12" /> }
-            @default { <dynadrill-data-table [columns]="servicioVentaColumns" [rows]="servicioVentaRows()" [rowKey]="rowKeyFn" [pageSize]="12" /> }
+            @case (5) { <dynadrill-data-table [columns]="servicioVentaColumns" [rows]="servicioVentaRows()" [rowKey]="rowKeyFn" [pageSize]="12" /> }
+            @default { <dynadrill-data-table [columns]="tkColumns()" [rows]="tkRowsFiltradas()" [rowKey]="rowKeyFn" [pageSize]="20" scrollX="2200px" [customizable]="true" /> }
           }
         </div>
       </ng-template>

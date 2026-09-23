@@ -11,6 +11,9 @@
       @if (puedeRechazar()) {
         <dynadrill-button variant="secondary" (clicked)="rechazarPedido()">Rechazar pedido</dynadrill-button>
       }
+      @if (puedeAnular()) {
+        <dynadrill-button variant="error" (clicked)="anularPedido()">Anular pedido</dynadrill-button>
+      }
     </div>
 
     <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
@@ -259,6 +262,29 @@
           <dynadrill-banner variant="info" message="La prefactura se habilita cuando la documentación de respaldo (y la guía de remisión, si aplica) está completa." />
         }
       </section>
+
+      <!-- ── Despacho de Bodega — correlación con "Orden Salida Material" de AS2 ── -->
+      @if (puedeSolicitarDespacho() || solicitudDespacho(); as _) {
+        <section class="fact-card">
+          <header class="pedido-detail__head">
+            <h2>Despacho de Bodega</h2>
+            @if (puedeSolicitarDespacho()) {
+              <dynadrill-button size="small" (clicked)="solicitarDespachoBodega()">Solicitar despacho a Bodega</dynadrill-button>
+            }
+          </header>
+          @if (solicitudDespacho(); as sd) {
+            @if (sd.estado === 'pendiente') {
+              <dynadrill-banner variant="warning" [message]="'Solicitud ' + sd.numero + ' pendiente — esperando que Bodega la despache o la rechace.'" />
+            } @else if (sd.estado === 'despachado') {
+              <dynadrill-banner variant="info" [message]="'Solicitud ' + sd.numero + ' despachada por ' + sd.despachadoPor + '. El documento de respaldo ya está en \'Documentos de respaldo\'.'" />
+            } @else {
+              <dynadrill-banner variant="critical" [message]="'Solicitud ' + sd.numero + ' rechazada por Bodega: ' + sd.motivoRechazo" />
+            }
+          } @else {
+            <dynadrill-text variant="caption">Con la prefactura ya generada, se le puede pedir a Bodega el despacho de materiales/herramientas del pedido.</dynadrill-text>
+          }
+        </section>
+      }
 
       <section class="fact-card">
         <header class="pedido-detail__head"><h2>Cliente</h2></header>

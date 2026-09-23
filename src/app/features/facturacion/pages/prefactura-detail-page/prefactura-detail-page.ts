@@ -147,8 +147,14 @@ export class PrefacturaDetailPage {
     const a = this.avance();
     return !!a && (a.documentosReales?.length ?? 0) > 0 && !a.documentosFirmadosCompletos;
   });
+  /** Mientras Bodega no resuelva la Solicitud de Despacho, el pedido queda `por_despachar_bodega` — no se debe enviar al cliente con una solicitud todavía en el aire. */
+  protected readonly esperandoDespachoBodega = computed(() => this.pedido()?.estado === 'por_despachar_bodega');
   protected readonly puedeEnviar = computed(
-    () => this.prefactura()?.estado === 'generada' && this.checklistCompleto() && !this.faltanDocumentosFirmados(),
+    () =>
+      this.prefactura()?.estado === 'generada' &&
+      this.checklistCompleto() &&
+      !this.faltanDocumentosFirmados() &&
+      !this.esperandoDespachoBodega(),
   );
   protected readonly esperandoFirma = computed(() => this.prefactura()?.estado === 'enviada_para_firmas');
   protected readonly esRechazada = computed(() => this.prefactura()?.estado === 'rechazada');
@@ -198,6 +204,7 @@ export class PrefacturaDetailPage {
     reporte_job: 'Reporte Job',
     reporte_herramientas: 'Reporte de Herramientas',
     prefactura: 'Prefactura',
+    despacho_bodega: 'Despacho de Bodega',
   };
 
   protected enviarAlCliente(): void {

@@ -1,0 +1,49 @@
+<div class="solicitar-despacho">
+  <dynadrill-text variant="caption">
+    El pedido queda "Por despachar en bodega" hasta que Bodega resuelva esta solicitud (la despache o la rechace) desde su bandeja.
+  </dynadrill-text>
+
+  <div class="solicitar-despacho__grid">
+    <dynadrill-input label="Bodega origen" [value]="bodegaOrigen()" (valueChange)="bodegaOrigen.set($event)" />
+    <dynadrill-datetime-picker mode="date" label="Fecha requerida de despacho" [value]="fechaRequerida()!" (valueChange)="fechaRequerida.set($event)" />
+  </div>
+  <dynadrill-textarea label="Nota / instrucciones para Bodega" placeholder="Opcional…" [rows]="2" [value]="nota()" (valueChange)="nota.set($event)" />
+
+  <div class="solicitar-despacho__items-form">
+    <dynadrill-text variant="caption" class="solicitar-despacho__items-form-title">Agregar ítem a despachar</dynadrill-text>
+    <div class="solicitar-despacho__row-triple">
+      <dynadrill-input label="Código" [value]="draft().codigo" (valueChange)="updateDraft('codigo', $event)" />
+      <dynadrill-input label="Unidad" [value]="draft().unidad" (valueChange)="updateDraft('unidad', $event)" />
+      <dynadrill-select label="Tipo" [options]="tipoItemOptions" [value]="draft().tipo" (valueChange)="updateDraft('tipo', $any($event))" />
+    </div>
+    <dynadrill-input label="Descripción" [value]="draft().descripcion" (valueChange)="updateDraft('descripcion', $event)" />
+    <div class="solicitar-despacho__row-cantidad">
+      <dynadrill-input label="Cantidad" type="number" [value]="draft().cantidad" (valueChange)="updateDraft('cantidad', +$event)" />
+      <dynadrill-button variant="secondary" size="small" (clicked)="agregarItem()">+ Agregar ítem</dynadrill-button>
+    </div>
+  </div>
+
+  @if (items().length) {
+    <table class="solicitar-despacho__items">
+      <thead><tr><th>Código</th><th>Descripción</th><th>Tipo</th><th>Cantidad</th><th></th></tr></thead>
+      <tbody>
+        @for (item of items(); track $index) {
+          <tr>
+            <td>{{ item.codigo }}</td>
+            <td>{{ item.descripcion }}</td>
+            <td>{{ item.tipo === 'herramienta' ? 'Herramienta' : 'Material' }}</td>
+            <td>{{ item.cantidad }} {{ item.unidad }}</td>
+            <td><dynadrill-button variant="secondary" size="small" (clicked)="quitarItem($index)">Quitar</dynadrill-button></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+
+  <div class="solicitar-despacho__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeEnviar() || submitting()" (clicked)="solicitar()">
+      {{ submitting() ? 'Enviando…' : 'Solicitar despacho' }}
+    </dynadrill-button>
+  </div>
+</div>

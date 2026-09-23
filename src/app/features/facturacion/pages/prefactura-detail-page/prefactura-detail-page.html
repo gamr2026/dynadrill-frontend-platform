@@ -101,6 +101,12 @@
               message="Faltan documentos firmados — subí la versión firmada de cada documento de monitoreo/mezcla desde el Pedido antes de enviar al cliente."
             />
           }
+          @if (esperandoDespachoBodega()) {
+            <dynadrill-banner
+              variant="warning"
+              message="Hay una Solicitud de Despacho pendiente con Bodega — esperá a que la resuelva antes de enviar al cliente (ver 'Despacho de Bodega' en el Pedido)."
+            />
+          }
           <div class="pf-detail__head-actions">
             <dynadrill-button [disabled]="!puedeEnviar()" (clicked)="enviarAlCliente()">Enviar al cliente</dynadrill-button>
           </div>

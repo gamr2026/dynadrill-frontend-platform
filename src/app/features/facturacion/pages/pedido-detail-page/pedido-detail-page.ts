@@ -22,6 +22,7 @@ import {
 } from '../../../../shared/index';
 import {
   ESTADOS_FUERA_DE_ALCANCE,
+  ESTADOS_NO_ANULABLES,
   ESTADOS_RECHAZABLES,
   ESTADO_PEDIDO_LABELS,
   EstadoPedido,
@@ -45,6 +46,9 @@ import { FcrService } from '../../../operations/fcr/services/fcr.service';
 import { PumpingService } from '../../../operations/pumping/services/pumping.service';
 import { NuevoPedidoDialog } from '../../components/nuevo-pedido-dialog';
 import { RechazarPedidoDialog, RechazarPedidoDialogData } from '../../components/rechazar-pedido-dialog';
+import { AnularPedidoDialog, AnularPedidoDialogData } from '../../components/anular-pedido-dialog';
+import { SolicitarDespachoDialog, SolicitarDespachoDialogData } from '../../components/solicitar-despacho-dialog';
+import { SolicitudDespachoBodega } from '../../models/solicitud-despacho-bodega.model';
 
 interface Dato {
   label: string;
@@ -95,6 +99,7 @@ export class PedidoDetailPage {
   protected readonly prefactura = signal<Prefactura | null>(null);
   protected readonly guiaRemision = signal<GuiaRemision | null>(null);
   protected readonly fcrTicket = signal<FcrTicket | null>(null);
+  protected readonly solicitudDespacho = signal<SolicitudDespachoBodega | null>(null);
   protected readonly simulando = signal(false);
   protected readonly generando = signal(false);
   protected readonly generandoGuia = signal(false);
@@ -129,6 +134,22 @@ export class PedidoDetailPage {
     return rolPermitido && !!p && ESTADOS_RECHAZABLES.includes(p.estado);
   });
 
+  /** Solo Facturación — cierre definitivo, aplica en cualquier estado salvo uno ya cerrado (ver `ESTADOS_NO_ANULABLES`). */
+  protected readonly puedeAnular = computed(() => {
+    const p = this.pedido();
+    const role = this.auth.currentUser()?.roleName;
+    const rolPermitido = role === 'Facturación' || role === 'Superadmin' || role === 'Jefe de Base';
+    return rolPermitido && !!p && !ESTADOS_NO_ANULABLES.includes(p.estado);
+  });
+
+  /** Solo Facturación, y solo con la prefactura ya generada y sin una solicitud pendiente — ver `solicitarDespachoBodega` en el backend. */
+  protected readonly puedeSolicitarDespacho = computed(() => {
+    const p = this.pedido();
+    const role = this.auth.currentUser()?.roleName;
+    const rolPermitido = role === 'Facturación' || role === 'Superadmin' || role === 'Jefe de Base';
+    return rolPermitido && p?.estado === 'prefactura_generada';
+  });
+
   protected readonly estadoLabel = computed(() => {
     const p = this.pedido();
     return p ? ESTADO_PEDIDO_LABELS[p.estado] : '';
@@ -147,7 +168,12 @@ export class PedidoDetailPage {
   protected readonly reporteHtasDocs = computed(() => this.documentos().filter(d => d.tipo === 'reporte_herramientas'));
   protected readonly documentosMonitoreo = computed(() => this.avance()?.documentosReales?.filter(d => d.tipo === 'monitoreo') ?? []);
   protected readonly documentosMezcla = computed(() => this.avance()?.documentosReales?.filter(d => d.tipo === 'mezcla') ?? []);
-  /** Reporte Job/Herramientas consolidados + Prefactura — sin archivo real detrás, "Descargar" abre el mismo diálogo que "Ver PDF" (ahí está el botón que arma el PDF real). */
+  /**
+   * Reporte Job/Herramientas consolidados + Prefactura (sin archivo real
+   * detrás, "Descargar" abre el mismo diálogo que "Ver PDF", ahí está el
+   * botón que arma el PDF real) + Despacho de Bodega (ese sí es un archivo
+   * real, el que Bodega adjuntó al despachar — ver `descargarDocumentoReal`).
+   */
   protected readonly documentosGenerados = computed(() => this.avance()?.documentosReales?.filter(d => d.origen === 'generado') ?? []);
 
   protected readonly datosCliente = computed<Dato[]>(() => {
@@ -245,14 +271,16 @@ export class PedidoDetailPage {
       prefactura: this.prefacturaService.dePedido(this.pedidoId),
       guiaRemision: this.guiaService.dePedido(this.pedidoId),
       fcrTickets: this.fcrService.listTickets(),
+      solicitudDespacho: this.pedidoService.solicitudDespacho(this.pedidoId),
     }).subscribe({
-      next: ({ pedido, documentos, avance, prefactura, guiaRemision, fcrTickets }) => {
+      next: ({ pedido, documentos, avance, prefactura, guiaRemision, fcrTickets, solicitudDespacho }) => {
         this.pedido.set(pedido);
         this.documentos.set(documentos);
         this.avance.set(avance);
         this.prefactura.set(prefactura);
         this.guiaRemision.set(guiaRemision);
         this.fcrTicket.set(fcrTickets.find(t => t.pedidoCode === pedido.code) ?? null);
+        this.solicitudDespacho.set(solicitudDespacho);
         this.loading.set(false);
       },
       error: () => {
@@ -287,6 +315,36 @@ export class PedidoDetailPage {
       data: { pedido: p },
       footer: false,
       width: '520px',
+    });
+    ref.afterClose.subscribe(actualizado => {
+      if (actualizado) this.reload();
+    });
+  }
+
+  protected anularPedido(): void {
+    const p = this.pedido();
+    if (!p || !this.puedeAnular()) return;
+    const ref = this.dialog.open<AnularPedidoDialog, AnularPedidoDialogData>({
+      title: `Anular pedido ${p.code}`,
+      content: AnularPedidoDialog,
+      data: { pedido: p },
+      footer: false,
+      width: '520px',
+    });
+    ref.afterClose.subscribe(actualizado => {
+      if (actualizado) this.reload();
+    });
+  }
+
+  protected solicitarDespachoBodega(): void {
+    const p = this.pedido();
+    if (!p || !this.puedeSolicitarDespacho()) return;
+    const ref = this.dialog.open<SolicitarDespachoDialog, SolicitarDespachoDialogData>({
+      title: `Solicitar despacho a Bodega — ${p.code}`,
+      content: SolicitarDespachoDialog,
+      data: { pedido: p },
+      footer: false,
+      width: '640px',
     });
     ref.afterClose.subscribe(actualizado => {
       if (actualizado) this.reload();
@@ -356,16 +414,23 @@ export class PedidoDetailPage {
    * propio botón "Descargar PDF" (jsPDF).
    */
   protected descargarDocumentoReal(doc: DocumentoRealPedido): void {
-    if (doc.origen === 'generado') {
+    if (doc.origen === 'generado' && doc.tipo !== 'despacho_bodega') {
       if (doc.tipo === 'reporte_job') this.verReporteJobConsolidado();
       else if (doc.tipo === 'reporte_herramientas') this.verReporteHerramientas();
       else if (doc.tipo === 'prefactura') this.verPrefacturaPdf();
       return;
     }
+    // 'despacho_bodega' SÍ es un archivo real (el que Bodega adjuntó al
+    // despachar) aunque `origen` sea 'generado' — mismo mecanismo de
+    // descarga que un documento ya firmado (documentos-firmados), porque
+    // literalmente se guardó ahí (ver `despacharSolicitudDespacho` en el
+    // backend).
     const obs$ =
-      doc.origen === 'pumping'
-        ? this.pumpingService.descargarDocumento(doc.ticketId!, doc.campo!)
-        : this.pedidoService.descargarDocumentoAdjunto(this.pedidoId, doc.pedidoDocumentoId!);
+      doc.tipo === 'despacho_bodega'
+        ? this.pedidoService.descargarDocumentoFirmado(this.pedidoId, doc.tipo, doc.referencia)
+        : doc.origen === 'pumping'
+          ? this.pumpingService.descargarDocumento(doc.ticketId!, doc.campo!)
+          : this.pedidoService.descargarDocumentoAdjunto(this.pedidoId, doc.pedidoDocumentoId!);
     obs$.subscribe({
       next: blob => {
         const url = URL.createObjectURL(blob);

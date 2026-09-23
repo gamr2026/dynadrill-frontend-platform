@@ -1,7 +1,14 @@
 <section class="fcr-dialog">
   <dynadrill-text variant="h1">Cerrar ticket FCR</dynadrill-text>
 
-  <dynadrill-context-card [items]="summaryItems" />
+  <div class="fcr-dialog__summary">
+    @for (item of summaryItems; track item.label) {
+      <div class="fcr-dialog__summary-row">
+        <dynadrill-text variant="caption">{{ item.label }}</dynadrill-text>
+        <dynadrill-text variant="body">{{ item.value }}</dynadrill-text>
+      </div>
+    }
+  </div>
 
   <dynadrill-banner
     variant="info"

@@ -92,12 +92,6 @@ import {
 import { SolicitarCorreccionDialog, SolicitarCorreccionDialogData, SolicitarCorreccionDialogResult } from '../../components/solicitar-correccion-dialog';
 import { ObservacionesTimelineDialog, ObservacionesTimelineDialogData, ObservacionesTimelineDialogResult } from '../../components/observaciones-timeline-dialog';
 import { AsignarOperadorDialog, AsignarOperadorDialogData, AsignarOperadorDialogResult } from '../../components/asignar-operador-dialog';
-import {
-  AsignarOperadorMecanicoDialog,
-  AsignarOperadorMecanicoDialogData,
-  AsignarOperadorMecanicoDialogResult,
-} from '../../components/asignar-operador-mecanico-dialog';
-import { FirmaActaDialog, FirmaActaDialogData, FirmaActaDialogResult } from '../../components/firma-acta-dialog';
 import { ChecklistHerramientaDialog, ChecklistHerramientaDialogData } from '../../components/checklist-herramienta-dialog';
 import { HerramientaFaltanteDialog, HerramientaFaltanteDialogData, HerramientaFaltanteDialogResult } from '../../components/herramienta-faltante-dialog';
 import { GuiaSalidaBodegaDialog, GuiaSalidaBodegaDialogData, GuiaSalidaBodegaDialogResult } from '../../components/guia-salida-bodega-dialog';
@@ -114,11 +108,19 @@ import {
   OperativoDocsBridgeService,
   descargarCsv,
   parseCsvFile,
+  normalizeFechaCsv,
   TimelinePopoverTriggerDirective,
 } from '../../../../../shared/index';
 
 /** RN de negocio (fcr-adjuntos-reales): el backend es la fuente de verdad, esto es solo UX para no esperar el round-trip. */
 const MAX_UPLOAD_SIZE_BYTES = 2 * 1024 * 1024;
+
+/** Fila de la tabla de operadores de 'tipo_operador' — antes vivía en `AsignarOperadorMecanicoDialog` (modal ya eliminado). */
+interface MechanicOperator {
+  name: string;
+  tipo: TipoOperador;
+  disponible: boolean;
+}
 
 /** Mapea las 3 claves cortas históricas de la rama SERVICIOS al nombre de campo real de `CAMPOS_DOCUMENTO_FCR` (backend). */
 const CAMPO_DOCUMENTO_SERVICIO: Record<'formularioExterno' | 'dimensionamiento' | 'dureza', CampoDocumentoFcr> = {
@@ -190,7 +192,6 @@ const PHASE_KEYS_SERVICIO: FcrPhase[] = [
   'revision_inicial',
   'preparacion_herramientas',
   'tipo_operador',
-  'reparacion',
   'inspeccion',
   'aprobacion_supervisor_operaciones',
   'asignacion',
@@ -263,6 +264,43 @@ export class FcrTicketDetailPage {
   protected readonly currentPhaseIndex = computed(() => {
     const t = this.ticket();
     return t ? this.phaseKeys().indexOf(t.currentPhase) : 0;
+  });
+
+  /**
+   * Pantalla acumulativa: 'aprobacion_supervisor_operaciones' (solo SERVICIOS),
+   * 'asignacion' y 'reunion_operativa' son 3 secciones grandes que, una vez
+   * completas, solo aportan un dato cada una — se muestran como una sola
+   * tabla de 3 filas en vez de 3 secciones apiladas. Se renderiza en la
+   * posición de la que aparece primero en `phaseKeys()` (VENTA no tiene la
+   * fase de aprobación, así que ahí "primera" es 'asignacion').
+   */
+  private readonly FASES_RESUMEN_TRIADA: FcrPhase[] = ['aprobacion_supervisor_operaciones', 'asignacion', 'reunion_operativa'];
+  protected readonly primeraFaseTriada = computed<FcrPhase | null>(
+    () => this.FASES_RESUMEN_TRIADA.find(f => this.phaseKeys().includes(f)) ?? null,
+  );
+  protected readonly resumenTriada = computed(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    const idx = (f: FcrPhase) => this.phaseKeys().indexOf(f);
+    const rows: { label: string; estado: string; variant: 'success' | 'warning' | 'neutral' }[] = [];
+    if (this.phaseKeys().includes('aprobacion_supervisor_operaciones') && idx('aprobacion_supervisor_operaciones') < this.currentPhaseIndex()) {
+      rows.push({
+        label: 'Aprobación de Supervisor de Operaciones',
+        estado: t.inspeccionAprobada ? 'Aprobado' : 'Rechazado',
+        variant: t.inspeccionAprobada ? 'success' : 'warning',
+      });
+    }
+    if (this.phaseKeys().includes('asignacion') && idx('asignacion') < this.currentPhaseIndex()) {
+      rows.push({ label: 'Asignación de Operador', estado: t.assignedOperator || '—', variant: 'neutral' });
+    }
+    if (this.phaseKeys().includes('reunion_operativa') && idx('reunion_operativa') < this.currentPhaseIndex()) {
+      rows.push({
+        label: 'Reunión Operativa',
+        estado: t.operationalActaSigned ? `Acta firmada — ${this.formatDate(t.operationalMeetingDate)}` : 'Pendiente',
+        variant: t.operationalActaSigned ? 'success' : 'neutral',
+      });
+    }
+    return rows;
   });
 
   // El tracker hace scroll horizontal en mobile (ver .scss) — sin esto, en
@@ -493,7 +531,7 @@ export class FcrTicketDetailPage {
       'Declara que no quedan herramientas por agregar. La lista quedará cerrada y podrá subir el documento de inspección.',
     );
     if (!ok) return;
-    this.updateTicket(this.fcrService.setToolListConfirmed(t.id, true));
+    this.updateTicket(this.fcrService.setToolListConfirmed(t.id, true), 'Lista de herramientas confirmada.');
   }
 
   /** Corrección puntual: reabre la lista para agregar una herramienta olvidada, antes de continuar a la siguiente fase. */
@@ -502,14 +540,14 @@ export class FcrTicketDetailPage {
     if (!t) return;
     const ok = await this.confirmStep('Reabrir lista de herramientas', 'Esto permite agregar más herramientas antes de subir el documento de inspección. ¿Continuar?', true);
     if (!ok) return;
-    this.updateTicket(this.fcrService.setToolListConfirmed(t.id, false));
+    this.updateTicket(this.fcrService.setToolListConfirmed(t.id, false), 'Lista de herramientas reabierta.');
   }
 
   /** Botón embebido en la fila (columna Bodega) — envío de un solo sentido, por herramienta: no existe "reabrir" para volver a quitar una ya enviada. */
   protected sendToolToBodega(toolId: number): void {
     const t = this.ticket();
     if (!t) return;
-    this.updateTicket(this.fcrService.sendToolToBodega(t.id, toolId));
+    this.updateTicket(this.fcrService.sendToolToBodega(t.id, toolId), 'Herramienta enviada a Bodega.');
   }
 
   protected onToolToAddChange(value: unknown): void {
@@ -524,6 +562,7 @@ export class FcrTicketDetailPage {
       next: updated => {
         this.ticket.set(updated);
         this.toolToAdd.set(null);
+        this.notify.success('Herramienta agregada a la lista.');
       },
       error: () => this.notify.error('Error', 'No se pudo agregar la herramienta.'),
     });
@@ -535,14 +574,14 @@ export class FcrTicketDetailPage {
     if (!t) return;
     const ok = await this.confirmStep('Quitar herramienta', 'Esta acción no se puede deshacer. ¿Quitar la herramienta de la lista?', true);
     if (!ok) return;
-    this.updateTicket(this.fcrService.removeTool(t.id, toolId));
+    this.updateTicket(this.fcrService.removeTool(t.id, toolId), 'Herramienta quitada de la lista.');
   }
 
   /** Bodega marca la herramienta como preparada físicamente (FCR-002) — o con novedad, si algo no está bien. */
   protected marcarBodega(toolId: number, novedad?: string): void {
     const t = this.ticket();
     if (!t) return;
-    this.updateTicket(this.fcrService.setBodegaCheck(t.id, toolId, novedad));
+    this.updateTicket(this.fcrService.setBodegaCheck(t.id, toolId, novedad), novedad ? 'Check de Bodega guardado con novedad.' : 'Check de Bodega guardado.');
     this.novedadDraftToolId.set(null);
   }
 
@@ -550,14 +589,14 @@ export class FcrTicketDetailPage {
   protected sendToolToSupervisor(toolId: number): void {
     const t = this.ticket();
     if (!t) return;
-    this.updateTicket(this.fcrService.sendToolToSupervisor(t.id, toolId));
+    this.updateTicket(this.fcrService.sendToolToSupervisor(t.id, toolId), 'Herramienta enviada al Supervisor.');
   }
 
   /** Supervisor recibe formalmente la herramienta preparada por Bodega (RN-FCR-008C) — o con novedad. El `status` todavía no cambia: falta la revisión del Mecánico. */
   protected marcarRecepcion(toolId: number, novedad?: string): void {
     const t = this.ticket();
     if (!t) return;
-    this.updateTicket(this.fcrService.setRecepcionCheck(t.id, toolId, novedad));
+    this.updateTicket(this.fcrService.setRecepcionCheck(t.id, toolId, novedad), novedad ? 'Recepción registrada con novedad.' : 'Recepción registrada.');
     this.novedadDraftToolId.set(null);
   }
 
@@ -596,13 +635,13 @@ export class FcrTicketDetailPage {
   protected clearBodegaCheck(toolId: number): void {
     const t = this.ticket();
     if (!t) return;
-    this.updateTicket(this.fcrService.clearBodegaCheck(t.id, toolId));
+    this.updateTicket(this.fcrService.clearBodegaCheck(t.id, toolId), 'Check de Bodega corregido.');
   }
 
   protected clearRecepcionCheck(toolId: number): void {
     const t = this.ticket();
     if (!t) return;
-    this.updateTicket(this.fcrService.clearRecepcionCheck(t.id, toolId));
+    this.updateTicket(this.fcrService.clearRecepcionCheck(t.id, toolId), 'Check de Recepción corregido.');
   }
 
   protected readonly inspectionUploadState = computed(() => (this.ticket()?.inspectionDocumentUploaded ? 'uploaded' : 'idle'));
@@ -641,26 +680,26 @@ export class FcrTicketDetailPage {
     const t = this.ticket();
     const archivo = this.extraerArchivoValido(file);
     if (!t || !archivo) return;
-    this.updateTicket(this.fcrService.subirDocumento(t.id, 'registroDureza', archivo));
+    this.updateTicket(this.fcrService.subirDocumento(t.id, 'registroDureza', archivo), 'Registro de dureza subido.');
   }
 
   protected onEliminarRegistroDureza(): void {
     const t = this.ticket();
     if (!t) return;
-    this.updateTicket(this.fcrService.eliminarDocumento(t.id, 'registroDureza'));
+    this.updateTicket(this.fcrService.eliminarDocumento(t.id, 'registroDureza'), 'Registro de dureza eliminado.');
   }
 
   protected onRegistroQaqcUploaded(file: NzUploadFile): void {
     const t = this.ticket();
     const archivo = this.extraerArchivoValido(file);
     if (!t || !archivo) return;
-    this.updateTicket(this.fcrService.subirDocumento(t.id, 'registroQaqc', archivo));
+    this.updateTicket(this.fcrService.subirDocumento(t.id, 'registroQaqc', archivo), 'Registro firmado de QAQC subido.');
   }
 
   protected onEliminarRegistroQaqc(): void {
     const t = this.ticket();
     if (!t) return;
-    this.updateTicket(this.fcrService.eliminarDocumento(t.id, 'registroQaqc'));
+    this.updateTicket(this.fcrService.eliminarDocumento(t.id, 'registroQaqc'), 'Registro firmado de QAQC eliminado.');
   }
 
   // ══════════════════════════════════════════════
@@ -687,7 +726,7 @@ export class FcrTicketDetailPage {
     });
     ref.afterClose.subscribe((result: AsignarOperadorDialogResult | undefined) => {
       if (!result?.assigned || !result.operatorName) return;
-      this.updateTicket(this.fcrService.assignOperator(t.id, result.operatorName));
+      this.updateTicket(this.fcrService.assignOperator(t.id, result.operatorName), `Operador asignado: ${result.operatorName}.`);
     });
   }
 
@@ -695,19 +734,11 @@ export class FcrTicketDetailPage {
   // FASE: Reunión Operativa
   // ══════════════════════════════════════════════
 
-  protected openFirmaActa(): void {
+  /** Un solo clic — antes abría un modal con date-picker (precargado a "ahora" igual) + checkbox de confirmación, sin dato adicional real. */
+  protected firmarActa(): void {
     const t = this.ticket();
     if (!t) return;
-    const ref = this.dialog.open<FirmaActaDialog, FirmaActaDialogData>({
-      title: 'Reunión operativa',
-      content: FirmaActaDialog,
-      data: { ticketCode: t.code },
-      footer: false,
-    });
-    ref.afterClose.subscribe((result: FirmaActaDialogResult | undefined) => {
-      if (!result?.confirmed || !result.meetingDate) return;
-      this.updateTicket(this.fcrService.confirmActa(t.id, result.meetingDate));
-    });
+    this.updateTicket(this.fcrService.confirmActa(t.id, new Date().toISOString()), 'Acta de reunión firmada.');
   }
 
   // ══════════════════════════════════════════════
@@ -770,6 +801,7 @@ export class FcrTicketDetailPage {
           this.activityStart.set('');
           this.activityEnd.set('');
           this.activityDetail.set('');
+          this.notify.success('Actividad registrada en la bitácora.');
         },
         error: () => this.notify.error('Error', 'No se pudo registrar la actividad.'),
       });
@@ -780,7 +812,7 @@ export class FcrTicketDetailPage {
     if (!t) return;
     const ok = await this.confirmStep('Quitar actividad', 'Esta acción no se puede deshacer. ¿Quitar esta entrada de la bitácora?', true);
     if (!ok) return;
-    this.updateTicket(this.fcrService.removeActivityLogEntry(t.id, entryId));
+    this.updateTicket(this.fcrService.removeActivityLogEntry(t.id, entryId), 'Actividad eliminada de la bitácora.');
   }
 
   /** Plantilla CSV (se abre en Excel) con las mismas columnas que ya captura el formulario manual de arriba. */
@@ -817,20 +849,25 @@ export class FcrTicketDetailPage {
 
     let cargadas = 0;
     const errores: string[] = [];
-    for (const [fecha, horaInicio, horaFin, ...detalleParts] of dataRows) {
+    for (const [fechaCelda, horaInicio, horaFin, ...detalleParts] of dataRows) {
       const detalle = detalleParts.join(',').trim();
-      if (!fecha?.trim() || !horaInicio?.trim() || !horaFin?.trim() || !detalle) {
-        errores.push(`Fila incompleta: ${[fecha, horaInicio, horaFin, detalle].join(' / ')}`);
+      const fecha = normalizeFechaCsv(fechaCelda);
+      if (!fecha || !horaInicio?.trim() || !horaFin?.trim() || !detalle) {
+        errores.push(
+          fechaCelda?.trim() && !fecha
+            ? `Fecha inválida "${fechaCelda.trim()}" — use el formato AAAA-MM-DD.`
+            : `Fila incompleta: ${[fechaCelda, horaInicio, horaFin, detalle].join(' / ')}`,
+        );
         continue;
       }
       try {
         const actualizado = await firstValueFrom(
-          this.fcrService.addActivityLogEntry(t.id, { date: fecha.trim(), startTime: horaInicio.trim(), endTime: horaFin.trim(), detail: detalle, author }),
+          this.fcrService.addActivityLogEntry(t.id, { date: fecha, startTime: horaInicio.trim(), endTime: horaFin.trim(), detail: detalle, author }),
         );
         this.ticket.set(actualizado);
         cargadas++;
       } catch {
-        errores.push(`No se pudo cargar: ${fecha} ${horaInicio}-${horaFin}`);
+        errores.push(`No se pudo cargar: ${fechaCelda} ${horaInicio}-${horaFin}`);
       }
     }
 
@@ -918,6 +955,7 @@ export class FcrTicketDetailPage {
           this.usagePresion.set('');
           this.usagePeso.set('');
           this.usageObservacion.set('');
+          this.notify.success('Uso de herramienta registrado.');
         },
         error: () => this.notify.error('Error', 'No se pudo registrar el uso de la herramienta.'),
       });
@@ -928,7 +966,7 @@ export class FcrTicketDetailPage {
     if (!t) return;
     const ok = await this.confirmStep('Quitar registro', 'Esta acción no se puede deshacer. ¿Quitar este registro de uso?', true);
     if (!ok) return;
-    this.updateTicket(this.fcrService.removeToolUsageEntry(t.id, entryId));
+    this.updateTicket(this.fcrService.removeToolUsageEntry(t.id, entryId), 'Registro de uso eliminado.');
   }
 
   // ══════════════════════════════════════════════
@@ -955,7 +993,7 @@ export class FcrTicketDetailPage {
       confirming ? 'Declara que no queda nada pendiente por registrar.' : 'Permite seguir editando antes de finalizar.',
     );
     if (!ok) return;
-    this.updateTicket(this.fcrService.confirmPickerUsageList(t.id, confirming));
+    this.updateTicket(this.fcrService.confirmPickerUsageList(t.id, confirming), confirming ? 'Listado de uso declarado completo.' : 'Listado de uso reabierto.');
   }
 
   // ══════════════════════════════════════════════
@@ -1044,9 +1082,18 @@ export class FcrTicketDetailPage {
         if (decision === 'approved') {
           this.enviarReportesAFacturacion(updated);
           this.advancePhase('control_retorno');
+        } else {
+          this.notify.success('Corrección solicitada al Operador.');
         }
       },
-      error: () => this.notify.error('Error', 'No se pudo registrar la revisión de reportes.'),
+      // Si falla, `reportsDecision` vuelve a null — sin esto, el aviso "El ticket
+      // continúa a..." (que es solo la vista previa de la consecuencia, ligada
+      // a la opción marcada) se quedaba pegado en pantalla como si algo se
+      // hubiera completado, aunque la acción real nunca se haya guardado.
+      error: () => {
+        this.reportsDecision.set(null);
+        this.notify.error('Error', 'No se pudo registrar la revisión de reportes.');
+      },
     });
   }
 
@@ -1098,7 +1145,7 @@ export class FcrTicketDetailPage {
     if (!t) return;
     const ok = await this.confirmStep('Confirmar devolución', 'Confirma que esta herramienta fue devuelta y conciliada contra la Guía de Movimiento. No podrá deshacer este paso.');
     if (!ok) return;
-    this.updateTicket(this.fcrService.setToolStatus(t.id, toolId, 'devuelta'));
+    this.updateTicket(this.fcrService.setToolStatus(t.id, toolId, 'devuelta'), 'Herramienta marcada como devuelta.');
   }
 
   protected openHerramientaFaltante(): void {
@@ -1112,7 +1159,7 @@ export class FcrTicketDetailPage {
     });
     ref.afterClose.subscribe((result: HerramientaFaltanteDialogResult | undefined) => {
       if (!result?.registered || result.toolId === undefined || !result.reason) return;
-      this.updateTicket(this.fcrService.registerMissingTool(t.id, result.toolId, result.reason));
+      this.updateTicket(this.fcrService.registerMissingTool(t.id, result.toolId, result.reason), 'Herramienta faltante registrada.');
     });
   }
 
@@ -1127,7 +1174,7 @@ export class FcrTicketDetailPage {
     });
     ref.afterClose.subscribe((result: GuiaSalidaBodegaDialogResult | undefined) => {
       if (!result?.generated) return;
-      this.updateTicket(this.fcrService.generateBodegaExitGuide(t.id, tool.id));
+      this.updateTicket(this.fcrService.generateBodegaExitGuide(t.id, tool.id), 'Guía de Salida de Bodega generada.');
     });
   }
 
@@ -1206,17 +1253,25 @@ export class FcrTicketDetailPage {
     const t = this.ticket();
     if (!t) return;
 
-    // Solo los 6 documentos con archivo real — los otros 6 hitos (reporte de
+    // Solo los documentos con archivo real — los otros hitos (reporte de
     // trabajo/herramientas, guías) nunca fueron un documento que se "sube",
     // así que no van en el reporte formal de cierre (ver `closureOtherDocuments`).
-    const documentos: ReporteCierrePdfDocumentRow[] = [
-      { label: 'Formulario de inspección externo', uploaded: !!t.formularioInspeccionExternoUploaded, nombreArchivo: t.formularioInspeccionExternoNombreArchivo },
-      { label: 'Formato de dimensionamiento', uploaded: !!t.formatoDimensionamientoServicioUploaded, nombreArchivo: t.formatoDimensionamientoServicioNombreArchivo },
-      { label: 'Formato de Dureza', uploaded: !!t.formatoDurezaServicioUploaded, nombreArchivo: t.formatoDurezaServicioNombreArchivo },
-      { label: 'Documento de inspección', uploaded: t.inspectionDocumentUploaded, nombreArchivo: t.inspectionDocumentNombreArchivo },
-      { label: 'Registro de dureza', uploaded: !!t.registroDurezaUploaded, nombreArchivo: t.registroDurezaNombreArchivo },
-      { label: 'Registro firmado de QAQC', uploaded: !!t.registroQaqcUploaded, nombreArchivo: t.registroQaqcNombreArchivo },
-    ];
+    // Las 2 entradas (SERVICIOS/VENTA) usan campos de documento distintos y
+    // mutuamente excluyentes (ver 'inspeccion' vs 'preparacion_herramientas'
+    // en el HTML) — listar los 6 siempre mostraba 3 "Pendiente" que esa
+    // entrada nunca iba a llenar, por diseño.
+    const documentos: ReporteCierrePdfDocumentRow[] =
+      t.tipoOt === 'servicio'
+        ? [
+            { label: 'Formulario de inspección externo', uploaded: !!t.formularioInspeccionExternoUploaded, nombreArchivo: t.formularioInspeccionExternoNombreArchivo },
+            { label: 'Formato de dimensionamiento', uploaded: !!t.formatoDimensionamientoServicioUploaded, nombreArchivo: t.formatoDimensionamientoServicioNombreArchivo },
+            { label: 'Formato de Dureza', uploaded: !!t.formatoDurezaServicioUploaded, nombreArchivo: t.formatoDurezaServicioNombreArchivo },
+          ]
+        : [
+            { label: 'Documento de inspección', uploaded: t.inspectionDocumentUploaded, nombreArchivo: t.inspectionDocumentNombreArchivo },
+            { label: 'Registro de dureza', uploaded: !!t.registroDurezaUploaded, nombreArchivo: t.registroDurezaNombreArchivo },
+            { label: 'Registro firmado de QAQC', uploaded: !!t.registroQaqcUploaded, nombreArchivo: t.registroQaqcNombreArchivo },
+          ];
 
     const byDate = new Map<string, { count: number; totalHours: number }>();
     for (const entry of t.activityLog) {
@@ -1324,37 +1379,43 @@ export class FcrTicketDetailPage {
   }
 
   // ══════════════════════════════════════════════
-  // Entrada SERVICIOS — tipo_operador / reparacion
+  // Entrada SERVICIOS — tipo_operador (tabla de operadores inline, sin modal)
   // ══════════════════════════════════════════════
 
-  protected readonly tipoOperadorOptions: DynadrillSelectOption[] = (
-    Object.entries(TIPO_OPERADOR_LABELS) as [TipoOperador, string][]
-  ).map(([value, label]) => ({ value, label }));
   /** Para el resumen de solo lectura de esta fase una vez completada (pantalla acumulativa). */
   protected readonly tipoOperadorLabels = TIPO_OPERADOR_LABELS;
   protected readonly tipoOperadorSeleccionado = signal<TipoOperador | null>(null);
-  /** Persona elegida en `AsignarOperadorMecanicoDialog` — nombre concreto, no solo la especialidad. */
+  /** Persona elegida en la tabla — nombre concreto, no solo la especialidad. */
   protected readonly operadorMecanicoSeleccionado = signal<string | null>(null);
 
-  protected onTipoOperadorChange(value: TipoOperador | null): void {
-    this.tipoOperadorSeleccionado.set(value);
-    this.operadorMecanicoSeleccionado.set(null);
+  protected readonly mecanicoFiltroOptions: DynadrillSelectOption[] = [
+    { label: 'Todos', value: 'todos' },
+    ...(Object.entries(TIPO_OPERADOR_LABELS) as [TipoOperador, string][]).map(([value, label]) => ({ value, label })),
+  ];
+  protected readonly mecanicoFiltro = signal<TipoOperador | 'todos'>('todos');
+  /** Roster simulado — sin backend real de personal todavía (mismo criterio que `OPERATOR_SCHEDULE` de `AsignarOperadorDialog`). */
+  protected readonly mecanicoRoster: MechanicOperator[] = [
+    { name: 'F. Ortega', tipo: 'mecanico', disponible: true },
+    { name: 'L. Andrade', tipo: 'mecanico', disponible: false },
+    { name: 'S. Moreno', tipo: 'mecanico', disponible: true },
+    { name: 'D. Herrera', tipo: 'soldador', disponible: true },
+    { name: 'C. Benítez', tipo: 'soldador', disponible: true },
+    { name: 'N. Castillo', tipo: 'soldador', disponible: false },
+  ];
+  protected readonly mecanicoFilasVisibles = computed(() => {
+    const f = this.mecanicoFiltro();
+    return f === 'todos' ? this.mecanicoRoster : this.mecanicoRoster.filter(op => op.tipo === f);
+  });
+
+  protected onMecanicoFiltroChange(value: unknown): void {
+    this.mecanicoFiltro.set(value as TipoOperador | 'todos');
   }
 
-  protected openAsignarOperadorMecanico(): void {
-    const t = this.ticket();
-    const tipo = this.tipoOperadorSeleccionado();
-    if (!t || !tipo) return;
-    const ref = this.dialog.open<AsignarOperadorMecanicoDialog, AsignarOperadorMecanicoDialogData>({
-      title: 'Asignar operador mecánico',
-      content: AsignarOperadorMecanicoDialog,
-      data: { ticketCode: t.code, tipoOperador: tipo },
-      footer: false,
-    });
-    ref.afterClose.subscribe((result: AsignarOperadorMecanicoDialogResult | undefined) => {
-      if (!result?.assigned || !result.operatorName) return;
-      this.operadorMecanicoSeleccionado.set(result.operatorName);
-    });
+  /** Un solo paso: elegir la fila ya fija tipo + operador (antes eran 2 pasos con un modal aparte). */
+  protected seleccionarOperadorMecanico(op: MechanicOperator): void {
+    if (!op.disponible) return;
+    this.tipoOperadorSeleccionado.set(op.tipo);
+    this.operadorMecanicoSeleccionado.set(op.name);
   }
 
   protected async confirmTipoOperador(): Promise<void> {
@@ -1362,36 +1423,19 @@ export class FcrTicketDetailPage {
     const tipo = this.tipoOperadorSeleccionado();
     const operatorName = this.operadorMecanicoSeleccionado();
     if (!t || !tipo || !operatorName) return;
-    const ok = await this.confirmStep('Confirmar tipo de operador', 'El ticket avanzará a Reparación.');
+    const ok = await this.confirmStep('Confirmar tipo de operador', 'El ticket avanzará al Formulario de Inspección.');
     if (!ok) return;
     this.fcrService.setTipoOperador(t.id, tipo).subscribe({
       next: () => {
         this.fcrService.assignMechanicOperator(t.id, operatorName).subscribe({
           next: updated => {
             this.ticket.set(updated);
-            this.advancePhase('reparacion');
+            this.advancePhase('inspeccion');
           },
           error: () => this.notify.error('Error', 'No se pudo guardar el operador mecánico asignado.'),
         });
       },
       error: () => this.notify.error('Error', 'No se pudo guardar el tipo de operador.'),
-    });
-  }
-
-  protected readonly reparacionDescripcion = signal('');
-
-  protected async confirmReparacion(): Promise<void> {
-    const t = this.ticket();
-    const descripcion = this.reparacionDescripcion().trim();
-    if (!t || !descripcion) return;
-    const ok = await this.confirmStep('Confirmar reparación', 'El ticket avanzará al Formulario de Inspección.');
-    if (!ok) return;
-    this.fcrService.registrarReparacion(t.id, descripcion).subscribe({
-      next: updated => {
-        this.ticket.set(updated);
-        this.advancePhase('inspeccion');
-      },
-      error: () => this.notify.error('Error', 'No se pudo guardar la reparación.'),
     });
   }
 
@@ -1492,6 +1536,15 @@ export class FcrTicketDetailPage {
       const roles = this.rolesConAccionPendienteEnInspeccion();
       if (roles.length > 0) return `Esperando firma de checklist: ${roles.join(', ')}`;
     }
+    // El acta ya la firmó el Supervisor — si sigue bloqueado es por el gate
+    // QHSE (HSE-PLAN-001 / HSE-SITIO-001), que no es acción del Supervisor.
+    if (this.currentPhase() === 'reunion_operativa' && this.ticket()?.operationalActaSigned && !this.ptwFirmadoOk()) {
+      if (!this.coberturaOk()) return 'Esperando acción de HSE: aprobar actividades pendientes en la Matriz IPERC';
+      const ptw = this.qhseVinculo()?.ptw;
+      return ptw
+        ? `Esperando acción de HSE: firma del PTW ${ptw.code} en sitio (HSE-SITIO-001)`
+        : 'Esperando acción de HSE: apertura del PTW / Recibimiento de Sitio';
+    }
     return `Esperando acción de: ${this.responsibleRole()}`;
   });
 
@@ -1531,7 +1584,7 @@ export class FcrTicketDetailPage {
     const t = this.ticket();
     const archivo = this.extraerArchivoValido(file);
     if (!t || !archivo) return;
-    this.updateTicket(this.fcrService.subirDocumento(t.id, CAMPO_DOCUMENTO_SERVICIO[documento], archivo));
+    this.updateTicket(this.fcrService.subirDocumento(t.id, CAMPO_DOCUMENTO_SERVICIO[documento], archivo), 'Documento subido.');
   }
 
   protected readonly simulandoCargaDocumentos = signal(false);
@@ -1581,7 +1634,7 @@ export class FcrTicketDetailPage {
   protected onEliminarInspeccionServicio(documento: 'formularioExterno' | 'dimensionamiento' | 'dureza'): void {
     const t = this.ticket();
     if (!t) return;
-    this.updateTicket(this.fcrService.eliminarDocumento(t.id, CAMPO_DOCUMENTO_SERVICIO[documento]));
+    this.updateTicket(this.fcrService.eliminarDocumento(t.id, CAMPO_DOCUMENTO_SERVICIO[documento]), 'Documento eliminado.');
   }
 
   /**
@@ -1643,7 +1696,10 @@ export class FcrTicketDetailPage {
         this.inspeccionRejectionNote.set('');
         this.advancePhase(decision === 'approved' ? 'asignacion' : 'inspeccion');
       },
-      error: () => this.notify.error('Error', 'No se pudo registrar la revisión de inspección.'),
+      error: () => {
+        this.inspeccionDecision.set(null);
+        this.notify.error('Error', 'No se pudo registrar la revisión de inspección.');
+      },
     });
   }
 
@@ -1667,11 +1723,15 @@ export class FcrTicketDetailPage {
   /**
    * La mayoría de acciones de este flujo actualizaban `ticket` sin ningún callback de
    * error — si la petición fallaba (red caída, 500, etc.), la UI simplemente parecía
-   * no haber hecho nada, sin ningún aviso de que la acción no se guardó.
+   * no haber hecho nada, sin ningún aviso de que la acción no se guardó. Tampoco había
+   * confirmación de que sí se guardó — `successMessage` cubre ambos con un solo toast.
    */
-  private updateTicket(request: Observable<FcrTicket>): void {
+  private updateTicket(request: Observable<FcrTicket>, successMessage = 'Cambios guardados.'): void {
     request.subscribe({
-      next: updated => this.ticket.set(updated),
+      next: updated => {
+        this.ticket.set(updated);
+        this.notify.success(successMessage);
+      },
       error: () => this.notify.error('Error', 'No se pudo completar la acción. Inténtalo de nuevo.'),
     });
   }
@@ -1744,7 +1804,10 @@ export class FcrTicketDetailPage {
 
     const approver = this.auth.currentUser();
     this.fcrService.advancePhase(t.id, phase, approver?.name ?? '', approver?.roleName ?? '').subscribe({
-      next: updated => this.ticket.set(updated),
+      next: updated => {
+        this.ticket.set(updated);
+        this.notify.success('Fase actualizada', `El ticket ahora está en "${FCR_PHASE_LABELS[phase]}".`);
+      },
       error: () => this.notify.error('Error', 'No se pudo avanzar de fase.'),
     });
   }

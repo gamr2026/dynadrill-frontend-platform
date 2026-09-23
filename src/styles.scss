@@ -20,6 +20,17 @@ body {
  * redondeada) en vez de como una hoja de reporte. Por eso vive acá, sin encapsular.
  */
 @media print {
+  // `app-root` sí se saca del flujo con `display: none` — es un elemento
+  // suelto (no parte de la cadena de overlay), así que no tiene el problema
+  // de altura-0 que sí afecta a `.cdk-overlay-container` de abajo. Sin esto,
+  // el árbol entero del SPA (con `visibility: hidden` pero AÚN ocupando su
+  // alto real, que en páginas largas como el detalle de ticket es de varias
+  // pantallas) seguía sumando hojas en blanco al imprimir — el reporte
+  // quedaba bien en pantalla pero salían 4-5 páginas vacías de más.
+  app-root {
+    display: none !important;
+  }
+
   // `visibility` en vez de `display: none` — la cadena de ancestros CDK/ng-zorro
   // usa `display: flex` + `position: absolute/fixed` con anchos fijados por
   // configuración del diálogo (ej. `width: '820px'`); forzar esos ancestros a

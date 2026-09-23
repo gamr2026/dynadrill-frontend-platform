@@ -17,7 +17,6 @@ export type TipoOt = 'venta' | 'servicio';
 export type FcrPhase =
   // ── Entrada SERVICIOS (nueva) — arranca en preparacion_herramientas ──
   | 'tipo_operador'
-  | 'reparacion'
   | 'inspeccion'
   | 'aprobacion_supervisor_operaciones'
   // ── Entrada VENTA + tronco común (ya existían) ──
@@ -32,7 +31,6 @@ export type FcrPhase =
 
 export const FCR_PHASE_LABELS: Record<FcrPhase, string> = {
   tipo_operador: 'Tipo de Operador',
-  reparacion: 'Reparación',
   inspeccion: 'Formulario de Inspección',
   aprobacion_supervisor_operaciones: 'Aprobación de Supervisor de Operaciones',
   revision_inicial: 'Revisión Inicial',
@@ -53,7 +51,6 @@ export const FCR_PHASE_LABELS: Record<FcrPhase, string> = {
  */
 export const FCR_PHASE_ROLE: Record<FcrPhase, { roleName: string; roleId: number }> = {
   tipo_operador: { roleName: 'Supervisor', roleId: 1 },
-  reparacion: { roleName: 'Operador FCR', roleId: 18 },
   inspeccion: { roleName: 'Operador FCR', roleId: 18 },
   aprobacion_supervisor_operaciones: { roleName: 'Supervisor Operaciones FCR', roleId: 15 },
   revision_inicial: { roleName: 'Supervisor', roleId: 1 },
@@ -246,7 +243,6 @@ export interface FcrTicket extends Ticket {
   tipoOperador?: TipoOperador;
   /** Operador mecánico/soldador elegido en 'tipo_operador' (roster simulado) — quien repara e inspecciona por herramienta. Autocompleta "Reparado por" en cada checklist. */
   assignedMechanicOperator?: string;
-  reparacionDescripcion?: string;
   formularioInspeccionExternoUploaded?: boolean;
   formularioInspeccionExternoNombreArchivo?: string;
   formatoDimensionamientoServicioUploaded?: boolean;

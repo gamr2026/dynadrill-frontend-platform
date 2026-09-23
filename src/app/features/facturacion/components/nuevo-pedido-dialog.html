@@ -25,12 +25,22 @@
     <div class="nuevo-pedido__grid--ancho">
       <dynadrill-select label="Línea de servicio" placeholder="Selecciona" [options]="lineaOptions" [value]="lineaServicio()" (valueChange)="onLineaServicioChange($any($event))" />
       <dynadrill-select
-        label="Tipo de servicio"
+        label="Tipos de servicio"
         placeholder="Selecciona primero la línea"
         [options]="tipoServicioOptions()"
         [value]="tipoServicio()"
+        [multiple]="true"
         [disabled]="!lineaServicio()"
-        (valueChange)="tipoServicio.set($any($event))"
+        (valueChange)="onTipoServicioChange($event)"
+      />
+      <dynadrill-select
+        label="Sub-tipos de servicio"
+        placeholder="Selecciona primero el/los tipo(s)"
+        [options]="subTipoServicioOptions()"
+        [value]="subTipoServicio()"
+        [multiple]="true"
+        [disabled]="!tipoServicio().length"
+        (valueChange)="onSubTipoServicioChange($event)"
       />
       <dynadrill-select label="Tipo de OT" placeholder="Selecciona" [options]="tipoOtOptions" [value]="tipoOt()" (valueChange)="tipoOt.set($any($event))" />
       <dynadrill-datetime-picker mode="date" label="Inicio de servicio" [value]="fechaInicioServicio()!" (valueChange)="fechaInicioServicio.set($event)" />

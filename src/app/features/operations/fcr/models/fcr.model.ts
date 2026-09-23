@@ -79,6 +79,14 @@ export const FCR_TOOL_STATUS_LABELS: Record<FcrToolStatus, string> = {
   faltante: 'Faltante',
 };
 
+/** Check de un actor sobre una herramienta, en Preparación de Herramientas — `novedad` bloquea el avance al siguiente paso hasta corregirlo. */
+export interface FcrToolCheck {
+  marcado: boolean;
+  usuario?: string;
+  fecha?: string;
+  novedad?: string;
+}
+
 export interface FcrTool {
   id: number;
   /**
@@ -90,6 +98,10 @@ export interface FcrTool {
   name: string;
   status: FcrToolStatus;
   missingReason?: string;
+  /** 'pedido' = auto-cargada de itemsEstimados del Pedido (esHerramienta); 'manual' = agregada como excepción (herramienta dañada a sustituir, algo que el Pedido no contempló). */
+  origen?: 'pedido' | 'manual';
+  /** Snapshot de `Articulo.stockActual` al momento de auto-cargar — informativo, no hay reserva real de stock en el sistema. */
+  stockDisponible?: number;
   /** Se agregó después de que el resto de la selección ya había avanzado — se muestra aparte para no confundirla con la tanda original. */
   addedLate?: boolean;
   /**
@@ -101,6 +113,75 @@ export interface FcrTool {
   sentToBodega?: boolean;
   /** Simétrico a `sentToBodega`, para el envío de Bodega de vuelta al Supervisor. */
   sentToSupervisor?: boolean;
+  /**
+   * Solicitud del Supervisor → Bodega → Recepción del Supervisor. El
+   * Mecánico/Soldador NO tiene check acá: todavía no está asignado (eso
+   * pasa después, en 'tipo_operador') — su estado en la UI es un reflejo
+   * automático del checklist real de inspección (`FcrToolInspection`, fase
+   * 'inspeccion'), no un check manual de esta pantalla.
+   */
+  bodega?: FcrToolCheck;
+  recepcion?: FcrToolCheck;
+}
+
+/** Estado general de una herramienta en Preparación de Herramientas — derivado de los 2 checks manuales (Bodega/Recepción), nunca se persiste. */
+export type FcrToolEstado =
+  | 'pendiente_solicitud'
+  | 'pendiente_bodega'
+  | 'novedad_bodega'
+  | 'pendiente_envio_bodega'
+  | 'pendiente_recepcion'
+  | 'novedad_recepcion'
+  | 'check';
+
+export const FCR_TOOL_ESTADO_LABELS: Record<FcrToolEstado, string> = {
+  pendiente_solicitud: 'Pendiente de solicitud del Supervisor',
+  pendiente_bodega: 'Pendiente de Bodega',
+  novedad_bodega: 'Con novedad — Bodega',
+  pendiente_envio_bodega: 'Pendiente de envío a Supervisor',
+  pendiente_recepcion: 'Pendiente de recepción',
+  novedad_recepcion: 'Con novedad — Recepción',
+  check: 'Check',
+};
+
+/**
+ * Un color distinto por etapa del proceso (no solo éxito/advertencia) —
+ * mismo vocabulario que `DynadrillTagVariant` de la librería UI, sin
+ * importarlo acá para no acoplar el modelo a la UI (estructuralmente
+ * compatible igual).
+ */
+export const FCR_TOOL_ESTADO_VARIANT: Record<FcrToolEstado, 'brand' | 'neutral' | 'success' | 'warning' | 'error' | 'info'> = {
+  pendiente_solicitud: 'neutral',
+  pendiente_bodega: 'info',
+  novedad_bodega: 'error',
+  pendiente_envio_bodega: 'info',
+  pendiente_recepcion: 'brand',
+  novedad_recepcion: 'error',
+  check: 'success',
+};
+
+/**
+ * Deriva el Estado general de la herramienta a partir de sus 3 checks — se
+ * calcula siempre en el cliente, nunca se guarda (mismo criterio que
+ * `toolStatusLabel` antes de este cambio). Una novedad en cualquier paso
+ * bloquea el avance al siguiente hasta que se corrija.
+ */
+export function estadoDeHerramienta(tool: FcrTool): FcrToolEstado {
+  // `status === 'recibida'` es la señal terminal (la pone `setRecepcionCheck` sin novedad) —
+  // se chequea primero para que tickets sembrados antes de este cambio (sin los objetos
+  // `bodega`/`recepcion`) igual muestren "Check" en vez de "Pendiente de Bodega".
+  if (tool.status === 'recibida') return 'check';
+  if (!tool.sentToBodega) return 'pendiente_solicitud';
+  if (!tool.bodega?.marcado) return 'pendiente_bodega';
+  if (tool.bodega.novedad) return 'novedad_bodega';
+  if (!tool.sentToSupervisor) return 'pendiente_envio_bodega';
+  if (!tool.recepcion?.marcado) return 'pendiente_recepcion';
+  if (tool.recepcion.novedad) return 'novedad_recepcion';
+  // Llegar hasta acá (bodega y recepción OK, sin novedad) implica `status === 'recibida'`
+  // salvo un dato viejo de una build anterior donde Recepción no cambiaba `status` —
+  // TS ya probó arriba que en este punto `status` no puede ser 'recibida', así que se
+  // muestra "Pendiente de recepción" en vez de mentir "Check" en ese caso.
+  return 'pendiente_recepcion';
 }
 
 // ── Historial de observaciones (FCR-001 / FCR-006) ──

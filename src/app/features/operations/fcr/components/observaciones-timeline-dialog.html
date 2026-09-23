@@ -1,0 +1,30 @@
+<section class="fcr-dialog">
+  <dynadrill-text variant="caption">Ticket {{ data.ticketCode }}</dynadrill-text>
+
+  @if (data.observations.length > 0) {
+    <div class="fcr-dialog__observations">
+      @for (obs of data.observations; track obs.id) {
+        <div class="fcr-dialog__observation">
+          <strong>{{ obs.author }} · {{ obs.role }}</strong>
+          <span class="fcr-dialog__observation-date">{{ obs.date }}</span>
+          <p>{{ obs.message }}</p>
+        </div>
+      }
+    </div>
+  } @else {
+    <dynadrill-text variant="caption">Todavía no hay observaciones registradas en este ticket.</dynadrill-text>
+  }
+
+  <dynadrill-textarea
+    label="Agregar observación"
+    placeholder="Detalle lo que sea necesario para entender el proceso…"
+    [rows]="3"
+    [value]="message()"
+    (valueChange)="message.set($event)"
+  />
+</section>
+
+<footer class="fcr-dialog__actions">
+  <dynadrill-button variant="secondary" (clicked)="cerrar()">Cerrar</dynadrill-button>
+  <dynadrill-button variant="primary" [disabled]="!canSend()" (clicked)="agregar()">Agregar observación</dynadrill-button>
+</footer>

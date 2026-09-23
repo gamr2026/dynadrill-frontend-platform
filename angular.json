@@ -85,6 +85,7 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "options": {
+            "proxyConfig": "proxy.conf.json",
             "prebundle": {
               "exclude": ["@digitec-it-projects/dynadrill-ui"]
             }

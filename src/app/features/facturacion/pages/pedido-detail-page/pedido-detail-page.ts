@@ -25,8 +25,8 @@ import {
   ESTADO_PEDIDO_LABELS,
   EstadoPedido,
   LINEA_SERVICIO_LABELS,
-  TIPO_SERVICIO_LABELS,
   Pedido,
+  tiposServicioLabel,
   valorEstimadoPedido,
   itemsEstimadosDe,
 } from '../../models/pedido.model';
@@ -149,7 +149,8 @@ export class PedidoDetailPage {
     if (!p) return [];
     return [
       { label: 'Línea de servicio', value: LINEA_SERVICIO_LABELS[p.lineaServicio] },
-      { label: 'Tipo de servicio', value: TIPO_SERVICIO_LABELS[p.tipoServicio] },
+      { label: 'Tipo de servicio', value: tiposServicioLabel(p.tipoServicio) },
+      { label: 'Sub-tipo de servicio', value: p.subTipoServicio?.length ? p.subTipoServicio.join(', ') : '—' },
       { label: 'Campo', value: p.campo },
       { label: 'Bloque', value: p.bloque },
       { label: 'Pozo', value: p.pozo },

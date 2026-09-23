@@ -64,7 +64,7 @@ import {
   type TravelManagement,
   type DailyActivityReport,
 } from '../../models/pumping.model';
-import { PumpingService } from '../../services/pumping.service';
+import { PumpingService, type DocumentosQhseTicket } from '../../services/pumping.service';
 import { SolicitudCambioItemsService } from '../../services/solicitud-cambio-items.service';
 import type { SolicitudCambioItems } from '../../models/solicitud-cambio-items.model';
 import {
@@ -587,6 +587,96 @@ export class TicketDetailPage {
     const p = this.pedido();
     if (!p) return;
     this.pedidoService.descargarDocumentoAdjunto(p.id, doc.id).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      },
+      error: () => this.notify.error('Error', 'No se pudo abrir el documento.'),
+    });
+  }
+
+  // ══════════════════════════════════════════════
+  // Documentos QHSE (Formato de Recepción / ART / PT / SFI) — Fase 2 del
+  // plan QHSE↔Pumping. Visible desde `asignacion` en adelante. Formato de
+  // Recepción y SFI los sube QHSE (solo descarga acá); ART y PT los sube
+  // el Supervisor desde este mismo ticket.
+  // ══════════════════════════════════════════════
+
+  protected readonly documentosQhse = signal<DocumentosQhseTicket | null>(null);
+  protected readonly artFechaEmision = signal<Date | null>(new Date());
+  protected readonly artArchivo = signal<File | null>(null);
+  protected readonly ptArchivo = signal<File | null>(null);
+  protected readonly documentosQhseSubmitting = signal(false);
+
+  /** El bloque "Documentos QHSE" recién aplica desde `asignacion` en adelante — antes ni existe el Supervisor asignado. */
+  protected readonly mostrarDocumentosQhse = computed(() => this.currentStep() !== 'revision_inicial');
+
+  private loadDocumentosQhse(ticketId: number): void {
+    this.pumpingService.documentosQhse(ticketId).subscribe({
+      next: d => this.documentosQhse.set(d),
+      error: () => this.documentosQhse.set(null),
+    });
+  }
+
+  protected onArtArchivoSeleccionado(file: NzUploadFile): void {
+    this.artArchivo.set((file.originFileObj as File | undefined) ?? (file as unknown as File));
+  }
+
+  protected onPtArchivoSeleccionado(file: NzUploadFile): void {
+    this.ptArchivo.set((file.originFileObj as File | undefined) ?? (file as unknown as File));
+  }
+
+  protected subirArtQhse(): void {
+    const t = this.ticket();
+    const archivo = this.artArchivo();
+    const fecha = this.artFechaEmision();
+    if (!t || !archivo || !fecha) {
+      this.notify.error('ART', 'Elegí la fecha de emisión y el archivo del ART.');
+      return;
+    }
+    this.documentosQhseSubmitting.set(true);
+    this.pumpingService.subirArtQhse(t.id, toLocalDateString(fecha), archivo).subscribe({
+      next: () => {
+        this.documentosQhseSubmitting.set(false);
+        this.artArchivo.set(null);
+        this.notify.success('ART guardado', 'El ART quedó registrado para este pedido.');
+        this.loadDocumentosQhse(t.id);
+      },
+      error: () => {
+        this.documentosQhseSubmitting.set(false);
+        this.notify.error('Error', 'No se pudo subir el ART.');
+      },
+    });
+  }
+
+  protected subirPtQhse(): void {
+    const t = this.ticket();
+    const archivo = this.ptArchivo();
+    const ptwCode = this.documentosQhse()?.ptwAbierto?.code;
+    if (!t || !archivo || !ptwCode) {
+      this.notify.error('PT', 'No hay un PTW abierto contra el cual subir el PT de hoy.');
+      return;
+    }
+    this.documentosQhseSubmitting.set(true);
+    this.pumpingService.subirPtQhse(t.id, ptwCode, archivo).subscribe({
+      next: () => {
+        this.documentosQhseSubmitting.set(false);
+        this.ptArchivo.set(null);
+        this.notify.success('PT guardado', 'El Permiso de Trabajo de hoy quedó registrado.');
+        this.loadDocumentosQhse(t.id);
+      },
+      error: () => {
+        this.documentosQhseSubmitting.set(false);
+        this.notify.error('Error', 'No se pudo subir el PT.');
+      },
+    });
+  }
+
+  protected descargarDocumentoQhse(tipo: string, referencia: string): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.pumpingService.descargarDocumentoQhse(t.id, tipo, referencia).subscribe({
       next: blob => {
         const url = URL.createObjectURL(blob);
         window.open(url, '_blank');
@@ -1847,6 +1937,7 @@ export class TicketDetailPage {
         this.loading.set(false);
         this.initFromTicket(ticket);
         this.loadMaintenanceOrders();
+        this.loadDocumentosQhse(ticket.id);
         if (ticket.pedidoId) {
           this.pedidoService.get(ticket.pedidoId).subscribe({
             next: p => {

@@ -37,7 +37,7 @@
   <section class="ptw-detail-page__fase">
     <header class="ptw-detail-page__fase-head">
       <h3 class="ptw-detail-page__fase-title">1. Preparación en gabinete</h3>
-      @if (p.fase === 'gabinete') {
+      @if (p.fase === 'gabinete' && !p.pedidoId) {
         <dynadrill-button variant="secondary" size="small" (clicked)="simularCargaDocumentos()">Simular carga de documentos</dynadrill-button>
       }
     </header>
@@ -45,21 +45,35 @@
       Formato de Recepción, ART, PTW pre-llenado y Carnet de Vacunas son formatos del cliente o estándares externos
       (MSP) — el sistema los carga, valida y archiva, no los construye como formulario propio.
     </p>
+    @if (p.pedidoId) {
+      <p class="ptw-detail-page__fase-note">
+        Este PTW está ligado al Pedido {{ p.pedidoCode }} — Formato de Recepción, ART, PT y SFI se cargan reales desde
+        <strong>"Documentos por pedido"</strong> (QHSE) y desde el ticket de Pumping (Supervisor), no acá. Este bloque
+        solo muestra su estado; Carnet de Vacunas sigue cargándose acá mismo.
+      </p>
+    }
 
     <div class="ptw-detail-page__documentos">
       @for (doc of p.documentos; track doc.tipo) {
         <div class="ptw-detail-page__documento">
           <div class="ptw-detail-page__documento-head">
             <p class="ptw-detail-page__documento-label">{{ doc.label }}</p>
-            @if (doc.tipo !== 'carnet_vacunas') {
+            @if (doc.tipo !== 'carnet_vacunas' && doc.tipo !== 'sfi' && !p.pedidoId) {
               <dynadrill-button variant="secondary" size="small" (clicked)="descargarFormatoBlanco($any(doc.tipo))">⬇ Descargar formato</dynadrill-button>
             }
           </div>
-          <dynadrill-upload-zone
-            [state]="doc.cargado ? 'uploaded' : 'idle'"
-            [fileName]="doc.fileName ?? ''"
-            (fileSelected)="onDocumentoUpload(doc.tipo, $event)"
-          />
+          @if (doc.tipo !== 'carnet_vacunas' && p.pedidoId) {
+            <!-- Real (Fase 2 QHSE↔Pumping): solo lectura acá, se carga desde "Documentos por pedido" o el ticket de Pumping. -->
+            <p class="ptw-detail-page__documento-estado">
+              {{ doc.cargado ? ('Cargado' + (doc.fileName ? ' — ' + doc.fileName : '')) : 'Pendiente' }}
+            </p>
+          } @else {
+            <dynadrill-upload-zone
+              [state]="doc.cargado ? 'uploaded' : 'idle'"
+              [fileName]="doc.fileName ?? ''"
+              (fileSelected)="onDocumentoUpload(doc.tipo, $event)"
+            />
+          }
         </div>
       }
     </div>

@@ -97,6 +97,13 @@
   font-size: 0.85rem;
 }
 
+/** Fase 2 QHSE↔Pumping: estado de solo lectura de un documento real (ver ptw-detail-page.html). */
+.ptw-detail-page__documento-estado {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--dynadrill-color-text-secondary, #666);
+}
+
 .ptw-detail-page__gas-table {
   width: 100%;
   border-collapse: collapse;

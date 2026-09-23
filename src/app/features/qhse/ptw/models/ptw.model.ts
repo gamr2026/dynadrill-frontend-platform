@@ -33,13 +33,17 @@ export const PTW_FASE_LABELS: Record<PtwFase, string> = {
  * externos (MSP) — el sistema únicamente los carga, valida y archiva, no
  * los construye como formulario propio (a diferencia de la Matriz IPERC).
  */
-export type PtwDocumentoTipo = 'formato_recepcion' | 'art' | 'ptw_prellenado' | 'carnet_vacunas';
+export type PtwDocumentoTipo = 'formato_recepcion' | 'art' | 'ptw_prellenado' | 'carnet_vacunas' | 'sfi';
 
 export const PTW_DOCUMENTOS_REQUERIDOS: { tipo: PtwDocumentoTipo; label: string }[] = [
   { tipo: 'formato_recepcion', label: 'Formato de Recepción de la Locación' },
   { tipo: 'art', label: 'Análisis de Riesgo en el Trabajo (ART)' },
-  { tipo: 'ptw_prellenado', label: 'Permiso de Trabajo (PTW) pre-llenado' },
+  // Antes "Permiso de Trabajo (PTW) pre-llenado" — D3: mismo documento
+  // (`tipo` sin cambios), solo cambia el label pedido por el negocio.
+  { tipo: 'ptw_prellenado', label: 'Permiso de Trabajo (PT)' },
   { tipo: 'carnet_vacunas', label: 'Carnet o Registro de Vacunas' },
+  // Nuevo (Fase 2, punto 6): lo elabora QHSE, el Supervisor se lo entrega a PE.
+  { tipo: 'sfi', label: 'Formato de Seguridad de Ingreso (SFI)' },
 ];
 
 export interface PtwDocumento {

@@ -127,4 +127,12 @@ export const qhseRoutes: Routes = [
     canActivate: [roleGuard],
     data: { allowedRoles: HSE_STAFF_ROLES },
   },
+  {
+    // Fase 2, PLAN-QHSE-PUMPING-NOTIFICACIONES: bandeja "Documentos por pedido".
+    path: 'documentos',
+    loadComponent: () =>
+      import('./documentos/pages/documentos-pedidos-page/documentos-pedidos-page').then(m => m.DocumentosPedidosPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES },
+  },
 ];

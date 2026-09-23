@@ -58,6 +58,75 @@
 
 <app-ticket-qhse-banner [vinculo]="ipercVinculo()" [canView]="puedeVerMatrizIperc()" />
 
+<!-- ═══════════════════════════════════════════ -->
+<!-- Documentos QHSE (Formato de Recepción/ART/PT/SFI) — Fase 2 del plan  -->
+<!-- QHSE↔Pumping. Visible desde `asignacion` en adelante.                -->
+<!-- ═══════════════════════════════════════════ -->
+@if (!loading() && mostrarDocumentosQhse() && documentosQhse(); as dq) {
+  <section class="ticket-detail__section">
+    <dynadrill-text variant="h2">Documentos QHSE</dynadrill-text>
+
+    <dynadrill-text variant="body">
+      Formato de Recepción:
+      @if (dq.formatoRecepcion) {
+        <strong>Cargado</strong> — <a (click)="descargarDocumentoQhse('qhse_formato_recepcion', 'vigente')">descargar</a>
+      } @else {
+        <strong>Pendiente</strong> — QHSE todavía no lo sube.
+      }
+    </dynadrill-text>
+
+    <dynadrill-text variant="body">
+      SFI (Formato de Seguridad de Ingreso):
+      @if (dq.sfi) {
+        <strong>Cargado</strong> — <a (click)="descargarDocumentoQhse('qhse_sfi', 'vigente')">descargar</a>
+      } @else {
+        <strong>Pendiente</strong> — QHSE todavía no lo sube.
+      }
+    </dynadrill-text>
+
+    <dynadrill-text variant="body">
+      ART:
+      @if (dq.artVigente === true) {
+        <strong>Vigente</strong> hasta {{ dq.artVigenciaHasta | date: 'dd/MM/yyyy' }}
+        @if (dq.artVenceEnDias !== null && dq.artVenceEnDias <= 3) {
+          — ⚠ vence en {{ dq.artVenceEnDias }} día(s)
+        }
+        — <a (click)="descargarDocumentoQhse('qhse_art', dq.artFechaEmision!)">descargar</a>
+      } @else if (dq.artVigente === false) {
+        <strong>Vencido</strong> desde {{ dq.artVigenciaHasta | date: 'dd/MM/yyyy' }} — hay que subir uno nuevo (D4: vigencia de 15 días).
+      } @else {
+        <strong>Sin ART cargado.</strong>
+      }
+    </dynadrill-text>
+    <dynadrill-datetime-picker mode="date" label="Fecha de emisión del ART" [value]="artFechaEmision()!" (valueChange)="artFechaEmision.set($event)" />
+    <dynadrill-upload-zone
+      [state]="artArchivo() ? 'uploaded' : 'idle'"
+      [fileName]="artArchivo()?.name ?? ''"
+      (fileSelected)="onArtArchivoSeleccionado($event)"
+    />
+    <dynadrill-button variant="secondary" size="small" [disabled]="!artArchivo() || documentosQhseSubmitting()" (clicked)="subirArtQhse()">Subir ART</dynadrill-button>
+
+    <dynadrill-text variant="body">
+      PT (Permiso de Trabajo) de hoy:
+      @if (!dq.ptwAbierto) {
+        <strong>QHSE aún no abrió el PTW del día.</strong>
+      } @else if (dq.ptDeHoy) {
+        <strong>Cargado</strong> — <a (click)="descargarDocumentoQhse('qhse_pt', dq.ptwAbierto.code)">descargar</a>
+      } @else {
+        <strong>Pendiente</strong> — PTW {{ dq.ptwAbierto.code }} abierto, falta subir el PT de hoy.
+      }
+    </dynadrill-text>
+    @if (dq.ptwAbierto && !dq.ptDeHoy) {
+      <dynadrill-upload-zone
+        [state]="ptArchivo() ? 'uploaded' : 'idle'"
+        [fileName]="ptArchivo()?.name ?? ''"
+        (fileSelected)="onPtArchivoSeleccionado($event)"
+      />
+      <dynadrill-button variant="secondary" size="small" [disabled]="!ptArchivo() || documentosQhseSubmitting()" (clicked)="subirPtQhse()">Subir PT de hoy</dynadrill-button>
+    }
+  </section>
+}
+
 @if (loading()) {
   <dynadrill-text variant="body">Cargando ticket...</dynadrill-text>
 } @else {

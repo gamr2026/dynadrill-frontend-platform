@@ -21,7 +21,6 @@ type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
 
 const PHASE_BADGES: Record<FcrPhase, { text: string; tone: BadgeTone }> = {
   tipo_operador: { text: 'Tipo de Operador', tone: 'warning' },
-  reparacion: { text: 'Reparación', tone: 'info' },
   inspeccion: { text: 'Formulario de Inspección', tone: 'info' },
   aprobacion_supervisor_operaciones: { text: 'Aprobación de Supervisor', tone: 'warning' },
   revision_inicial: { text: 'Revisión Inicial', tone: 'warning' },

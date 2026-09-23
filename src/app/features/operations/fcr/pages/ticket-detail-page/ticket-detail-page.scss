@@ -14,10 +14,8 @@
 .fcr-detail__phase-block {
   margin-bottom: 1.5rem;
 
-  &--historial {
-    opacity: 0.85;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px dashed var(--border, #ddd);
+  &--historial .fcr-detail__section {
+    opacity: 0.92;
   }
 }
 
@@ -159,11 +157,35 @@
 
 // ── Secciones de fase ──
 
+// Misma tarjeta que .dyn-pedido-card (src/styles.scss) — todas las fases
+// del detalle de ticket comparten el mismo lenguaje visual (borde, sombra,
+// header con ícono + línea morada) en vez de texto plano suelto.
 .fcr-detail__section {
   margin-top: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: 0.75rem;
+  background: var(--surface, #fff);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(19, 21, 41, 0.05));
+}
+
+.fcr-detail__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--dynadrill-purple, #662e9b);
+}
+
+.fcr-detail__section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--dynadrill-purple, #662e9b);
 }
 
 .fcr-detail__actions {
@@ -437,6 +459,20 @@
     font-weight: 600;
     color: var(--text-secondary, #666);
     white-space: nowrap;
+    background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
+  }
+
+  // La tabla seleccionable (tipo_operador) ya tiene su propio hover/estado de
+  // fila — la cebra de acá compite en especificidad con `--selected`, así
+  // que se excluye a propósito.
+  &:not(.fcr-detail__table--seleccionable) tbody tr:nth-child(even) {
+    background: var(--surface-muted, #faf9fc);
+  }
+
+  tfoot td {
+    font-weight: 700;
+    color: var(--dynadrill-purple, #662e9b);
+    background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
   }
 
   @media (max-width: 480px) {
@@ -446,5 +482,26 @@
     td {
       padding: 0.4rem 0.5rem;
     }
+  }
+}
+
+.fcr-detail__table--seleccionable tbody tr {
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-secondary, #f8f9fa);
+  }
+}
+
+.fcr-detail__row--selected {
+  background: var(--dynadrill-purple-light, rgba(102, 46, 155, 0.08));
+}
+
+.fcr-detail__row--disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+
+  &:hover {
+    background: none;
   }
 }

@@ -4,6 +4,29 @@
   gap: 1rem;
   padding: 0.5rem 0;
 
+  // Lista vertical en vez de una grilla horizontal (nz-descriptions) — esa
+  // grilla decide sus columnas por el ancho de la VENTANA (media queries),
+  // no por el ancho real del modal, así que en un modal angosto igual
+  // intentaba armar 3-4 columnas y partía valores largos letra por letra.
+  &__summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  &__summary-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border, #e5e4ea);
+
+    &:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+  }
+
   &__actions {
     display: flex;
     justify-content: flex-end;

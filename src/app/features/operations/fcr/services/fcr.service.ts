@@ -129,10 +129,6 @@ export class FcrService {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/assign-mechanic-operator`, { operatorName });
   }
 
-  registrarReparacion(ticketId: number, descripcion: string): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/reparacion`, { descripcion });
-  }
-
   reviewInspeccion(ticketId: number, decision: 'approved' | 'rejected', observation?: string): Observable<FcrTicket> {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/review-inspeccion`, { decision, observation });
   }

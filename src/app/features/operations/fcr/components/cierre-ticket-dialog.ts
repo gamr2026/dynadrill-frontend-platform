@@ -1,12 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
-import {
-  DynadrillBannerComponent,
-  DynadrillButtonComponent,
-  DynadrillContextCardComponent,
-  DynadrillTextComponent,
-  type DynadrillContextCardItem,
-} from '@digitec-it-projects/dynadrill-ui';
+import { DynadrillBannerComponent, DynadrillButtonComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
+
+interface SummaryItem {
+  label: string;
+  value: string;
+}
 
 export interface CierreTicketDialogData {
   ticketCode: string;
@@ -24,7 +23,7 @@ export interface CierreTicketDialogResult {
 
 @Component({
   selector: 'app-cierre-ticket-dialog',
-  imports: [DynadrillTextComponent, DynadrillContextCardComponent, DynadrillBannerComponent, DynadrillButtonComponent],
+  imports: [DynadrillTextComponent, DynadrillBannerComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './cierre-ticket-dialog.html',
   styleUrl: './cierre-ticket-dialog.scss',
@@ -33,7 +32,7 @@ export class CierreTicketDialog {
   private readonly modalRef = inject(NzModalRef<CierreTicketDialog, CierreTicketDialogResult | undefined>);
   protected readonly data = inject<CierreTicketDialogData>(NZ_MODAL_DATA);
 
-  protected readonly summaryItems: DynadrillContextCardItem[] = [
+  protected readonly summaryItems: SummaryItem[] = [
     { label: 'Ticket', value: this.data.ticketCode },
     { label: 'Cliente', value: this.data.clientName },
     { label: 'Herramientas', value: this.data.toolsReturnedSummary },

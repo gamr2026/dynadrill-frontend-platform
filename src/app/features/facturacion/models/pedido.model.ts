@@ -92,8 +92,16 @@ export const TIPOS_SERVICIO_POR_LINEA: Record<LineaServicio, TipoServicio[]> = {
   pumping: ['coiled_tubing', 'cementing'],
 };
 
-/** Un pedido puede llevar más de un tipo de servicio en la misma OT (ej. Fishing + Milling) — para mostrarlos juntos como texto. */
-export function tiposServicioLabel(tipos: TipoServicio[]): string {
+/**
+ * Un pedido puede llevar más de un tipo de servicio en la misma OT (ej.
+ * Fishing + Milling) — para mostrarlos juntos como texto. Tolerante a
+ * `tipoServicio` no-array (`null`/`undefined`, o un pedido legado con el
+ * valor viejo sin migrar a array — ver `scripts/migrate-tiposervicio-array.ts`
+ * del backend): sin este guard, un solo pedido así rompía toda la
+ * pantalla de Reportería (`tipos.map is not a function`).
+ */
+export function tiposServicioLabel(tipos: TipoServicio[] | null | undefined): string {
+  if (!Array.isArray(tipos)) return '—';
   return tipos.map(t => TIPO_SERVICIO_LABELS[t]).join(', ');
 }
 

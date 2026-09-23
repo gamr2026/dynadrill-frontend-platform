@@ -174,7 +174,12 @@ export class ReporteriaPage {
     const acc = new Map<string, number>();
     for (const pf of this.prefacturas().filter(p => p.estado === 'firmada')) {
       const p = this.pedidoDe(pf.pedidoId);
-      const tipos = p?.tipoServicio?.length ? p.tipoServicio.map(t => TIPO_SERVICIO_LABELS[t]) : ['Sin línea'];
+      // Array.isArray (no solo `?.length`): un pedido legado con tipoServicio
+      // sin migrar a array (string plano) también tiene `.length` truthy pero
+      // no `.map` — ver tiposServicioLabel() en pedido.model.ts.
+      const tipos = Array.isArray(p?.tipoServicio) && p.tipoServicio.length
+        ? p.tipoServicio.map(t => TIPO_SERVICIO_LABELS[t])
+        : ['Sin línea'];
       for (const linea of tipos) acc.set(linea, (acc.get(linea) ?? 0) + pf.subtotal);
     }
     return [...acc.entries()].sort(([a], [b]) => a.localeCompare(b));

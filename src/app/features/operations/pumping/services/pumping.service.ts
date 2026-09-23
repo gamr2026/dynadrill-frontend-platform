@@ -146,6 +146,42 @@ export class PumpingService {
       responseType: 'blob',
     });
   }
+
+  // ── Checklist QHSE por equipo (Fase 4, D5) — bloquea traslado_salida
+  // hasta que QHSE apruebe el checklist de todas las unidades asignadas.
+
+  checklistQhse(ticketId: number): Observable<ChecklistQhseEstado> {
+    return this.http.get<ChecklistQhseEstado>(`${this.baseUrl}/tickets/${ticketId}/checklist-qhse`);
+  }
+
+  cargarChecklistQhse(ticketId: number, checklistId: number, archivo: File): Observable<ChecklistQhseEquipo> {
+    const form = new FormData();
+    form.append('file', archivo);
+    return this.http.post<ChecklistQhseEquipo>(`${this.baseUrl}/tickets/${ticketId}/checklist-qhse/${checklistId}`, form);
+  }
+}
+
+/** `QhseChecklistEquipo` del backend — un caso por unidad asignada. */
+export interface ChecklistQhseEquipo {
+  id: number;
+  pumpingTicketId: number;
+  equipoTipo: string;
+  equipoId: number;
+  equipoNombre: string;
+  estado: 'pendiente' | 'cargado' | 'aprobado' | 'rechazado';
+  abiertoPor: string;
+  documentoNombreOriginal: string | null;
+  cargadoPor: string | null;
+  cargadoAt: string | null;
+  revisadoPor: string | null;
+  revisadoAt: string | null;
+  motivoRechazo: string | null;
+}
+
+/** Respuesta de `GET .../tickets/:id/checklist-qhse`. `gate` usa el mismo criterio exacto que bloquea `advance`/`unit-report` en el backend (D5). */
+export interface ChecklistQhseEstado {
+  casos: ChecklistQhseEquipo[];
+  gate: { ok: boolean; faltantes: string[] };
 }
 
 /** Respuesta de `GET .../tickets/:id/documentos-qhse` — ver `PumpingDocumentosQhseController` y `EstadoDocumentalPedido` del backend. */

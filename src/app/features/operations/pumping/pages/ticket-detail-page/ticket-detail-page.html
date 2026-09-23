@@ -771,6 +771,40 @@
   <!-- PASO 3a: En ejecución (SALIDA) — Solo Chasis modo salida         -->
   <!-- ══════════════════════════════════════════════════════════════════ -->
   @if (currentStep() === 'traslado_salida') {
+    <!-- Checklist QHSE por equipo (Fase 4, D5) — mientras falte aprobar el checklist
+         de alguna unidad asignada, no se puede enviar el reporte de salida. -->
+    @if (checklistQhse(); as cq) {
+      @if (checklistQhseBloquea()) {
+        <div class="ticket-detail__quimico-sin-match">
+          <dynadrill-text variant="body"><strong>⚠ Traslado de salida bloqueado por QHSE.</strong></dynadrill-text>
+          <dynadrill-text variant="caption">Falta la aprobación del checklist QHSE de: {{ cq.gate.faltantes.join(', ') }}.</dynadrill-text>
+        </div>
+      }
+
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="h2">Checklist QHSE por equipo</dynadrill-text>
+        @if (cq.casos.length === 0) {
+          <dynadrill-text variant="caption">QHSE todavía no abrió el checklist de las unidades asignadas.</dynadrill-text>
+        }
+        @for (caso of cq.casos; track caso.id) {
+          <div class="ticket-detail__quimico-sin-match">
+            <dynadrill-text variant="body">
+              <strong>{{ caso.equipoNombre }}</strong> —
+              @switch (caso.estado) {
+                @case ('aprobado') { Aprobado por {{ caso.revisadoPor }} }
+                @case ('cargado') { Cargado, esperando revisión de QHSE }
+                @case ('rechazado') { Rechazado — {{ caso.motivoRechazo }} }
+                @default { Pendiente de cargar }
+              }
+            </dynadrill-text>
+            @if (caso.estado !== 'aprobado') {
+              <dynadrill-upload-zone state="idle" fileName="" (fileSelected)="onChecklistArchivoSeleccionado(caso, $event)" />
+            }
+          </div>
+        }
+      </section>
+    }
+
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
 
@@ -904,7 +938,7 @@
 
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || submitting()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
+      <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || submitting() || checklistQhseBloquea()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
     </footer>
   }
 

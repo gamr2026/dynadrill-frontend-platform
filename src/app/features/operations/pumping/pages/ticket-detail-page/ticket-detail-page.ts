@@ -64,7 +64,7 @@ import {
   type TravelManagement,
   type DailyActivityReport,
 } from '../../models/pumping.model';
-import { PumpingService, type DocumentosQhseTicket } from '../../services/pumping.service';
+import { PumpingService, type DocumentosQhseTicket, type ChecklistQhseEstado, type ChecklistQhseEquipo } from '../../services/pumping.service';
 import { SolicitudCambioItemsService } from '../../services/solicitud-cambio-items.service';
 import type { SolicitudCambioItems } from '../../models/solicitud-cambio-items.model';
 import {
@@ -683,6 +683,42 @@ export class TicketDetailPage {
         setTimeout(() => URL.revokeObjectURL(url), 60_000);
       },
       error: () => this.notify.error('Error', 'No se pudo abrir el documento.'),
+    });
+  }
+
+  // ══════════════════════════════════════════════
+  // Checklist QHSE por equipo (Fase 4, D5) — bloquea `traslado_salida`
+  // hasta que QHSE apruebe el checklist de todas las unidades asignadas.
+  // ══════════════════════════════════════════════
+
+  protected readonly checklistQhse = signal<ChecklistQhseEstado | null>(null);
+  protected readonly checklistQhseSubmitting = signal<number | null>(null); // id del checklist en curso, o null
+
+  /** Solo bloquea el formulario en `traslado_salida` — en cualquier otro paso el checklist ya no aplica (D5). */
+  protected readonly checklistQhseBloquea = computed(() => this.currentStep() === 'traslado_salida' && this.checklistQhse()?.gate.ok === false);
+
+  private loadChecklistQhse(ticketId: number): void {
+    this.pumpingService.checklistQhse(ticketId).subscribe({
+      next: c => this.checklistQhse.set(c),
+      error: () => this.checklistQhse.set(null),
+    });
+  }
+
+  protected onChecklistArchivoSeleccionado(caso: ChecklistQhseEquipo, file: NzUploadFile): void {
+    const t = this.ticket();
+    const archivo = (file.originFileObj as File | undefined) ?? (file as unknown as File);
+    if (!t || !archivo) return;
+    this.checklistQhseSubmitting.set(caso.id);
+    this.pumpingService.cargarChecklistQhse(t.id, caso.id, archivo).subscribe({
+      next: () => {
+        this.checklistQhseSubmitting.set(null);
+        this.notify.success('Checklist guardado', `Se cargó el checklist de ${caso.equipoNombre} — queda pendiente de revisión de QHSE.`);
+        this.loadChecklistQhse(t.id);
+      },
+      error: () => {
+        this.checklistQhseSubmitting.set(null);
+        this.notify.error('Error', `No se pudo cargar el checklist de ${caso.equipoNombre}.`);
+      },
     });
   }
 
@@ -1938,6 +1974,7 @@ export class TicketDetailPage {
         this.initFromTicket(ticket);
         this.loadMaintenanceOrders();
         this.loadDocumentosQhse(ticket.id);
+        this.loadChecklistQhse(ticket.id);
         if (ticket.pedidoId) {
           this.pedidoService.get(ticket.pedidoId).subscribe({
             next: p => {

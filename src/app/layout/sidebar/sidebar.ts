@@ -96,6 +96,7 @@ const QHSE_ITEM: DynadrillMenuItem = {
         { label: 'Inspecciones', link: '/dashboard/qhse/inspecciones' },
         { label: 'Desechos', link: '/dashboard/qhse/desechos' },
         { label: 'Entrega de EPI', link: '/dashboard/qhse/epi' },
+        { label: 'Checklist de equipos', link: '/dashboard/qhse/checklist-equipos' },
       ],
     },
     {

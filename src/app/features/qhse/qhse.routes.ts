@@ -135,4 +135,12 @@ export const qhseRoutes: Routes = [
     canActivate: [roleGuard],
     data: { allowedRoles: HSE_STAFF_ROLES },
   },
+  {
+    // Fase 4, PLAN-QHSE-PUMPING-NOTIFICACIONES: checklist QHSE por equipo (D5).
+    path: 'checklist-equipos',
+    loadComponent: () =>
+      import('./checklist-equipos/pages/checklist-equipos-page/checklist-equipos-page').then(m => m.ChecklistEquiposPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES },
+  },
 ];

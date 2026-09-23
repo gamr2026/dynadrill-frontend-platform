@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
+import autoTable from 'jspdf-autotable';
 import { DynadrillButtonComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
 import {
   TOOL_DAILY_STATUS_CODE,
@@ -8,6 +9,7 @@ import {
   type OperativoToolUsageEntry,
   type ToolDailyStatus,
 } from '../../models/operativo-docs.model';
+import { crearReportePdf, descargarReportePdf } from '../../utils/reporte-pdf.util';
 
 export interface ReporteHerramientasPdfDialogData {
   header: OperativoDocHeader;
@@ -113,6 +115,51 @@ export class ReporteHerramientasPdfDialog {
 
   print(): void {
     window.print();
+  }
+
+  /** Baja el PDF real (jsPDF) — matriz herramienta×día + detalle FCR (si hay) + leyenda O/S/D/V. */
+  descargarPdf(): void {
+    const { doc, y } = crearReportePdf('Reporte Diario de Herramientas en Renta', `DYN-FCR-RE-008 · Ticket ${this.data.header.code}`, this.data.header);
+    const fechas = this.dates();
+    const filasMatriz = this.rows().map(r => [
+      r.name,
+      r.serie,
+      ...fechas.map(d => r.cellsByDate[d] ?? '—'),
+      String(r.counts.operacion),
+      String(r.counts.stand_by),
+      String(r.counts.daily_charge),
+      String(r.counts.venta),
+      String(r.total),
+    ]);
+    autoTable(doc, {
+      startY: y,
+      head: [['Herramienta', 'Serie', ...fechas.map(d => this.formatShort(d)), 'O', 'S', 'D', 'V', 'Total']],
+      body: filasMatriz.length ? filasMatriz : [[`Sin uso de herramientas registrado todavía.`, ...Array(fechas.length + 6).fill('')]],
+      styles: { fontSize: 7.5, cellPadding: 4 },
+      headStyles: { fillColor: [45, 45, 60] },
+    });
+
+    const detalle = this.detailRows();
+    let y2 = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 24;
+    if (detalle.length > 0) {
+      doc.setFontSize(9);
+      doc.setTextColor(30);
+      doc.text('Detalle de completación / tipo de trabajo y picker', 40, y2);
+      autoTable(doc, {
+        startY: y2 + 8,
+        head: [['Herramienta', 'Fecha', 'Tipo', 'Picker', 'Presión', 'Peso', 'Observación']],
+        body: detalle.map(r => [r.toolName, r.date, r.tipo, r.picker, r.presion, r.peso, r.observacion]),
+        styles: { fontSize: 7.5, cellPadding: 4 },
+        headStyles: { fillColor: [45, 45, 60] },
+      });
+      y2 = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 24;
+    }
+
+    doc.setFontSize(9);
+    doc.setTextColor(30);
+    doc.text('O: Operación · S: Stand-by · D: Daily charge · V: Consumible / venta', 40, y2);
+
+    descargarReportePdf(doc, `Reporte de Herramientas - ${this.data.header.code}.pdf`);
   }
 
   close(): void {

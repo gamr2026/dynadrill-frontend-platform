@@ -95,6 +95,12 @@
               </li>
             }
           </ul>
+          @if (faltanDocumentosFirmados()) {
+            <dynadrill-banner
+              variant="warning"
+              message="Faltan documentos firmados — subí la versión firmada de cada documento de monitoreo/mezcla desde el Pedido antes de enviar al cliente."
+            />
+          }
           <div class="pf-detail__head-actions">
             <dynadrill-button [disabled]="!puedeEnviar()" (clicked)="enviarAlCliente()">Enviar al cliente</dynadrill-button>
           </div>
@@ -155,7 +161,7 @@
           <dynadrill-text variant="body">Generada el {{ g.fecha }} · {{ g.items.length }} ítem(s) de material</dynadrill-text>
           <dynadrill-text variant="caption">{{ g.personaTransporte?.nombreORazonSocial }} · {{ g.placa }}</dynadrill-text>
         </section>
-      } @else if (materialesCount() > 0) {
+      } @else if (faltaGuiaRemision()) {
         <section class="fact-card fact-card--warning">
           <header class="pf-detail__head"><h2>Guía de remisión</h2></header>
           <dynadrill-banner variant="warning" message="Esta prefactura tiene ítems Material sin guía de remisión asociada — revisa el Pedido." />

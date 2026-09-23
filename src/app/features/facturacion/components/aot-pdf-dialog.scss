@@ -10,6 +10,11 @@
     padding-bottom: 8px;
   }
 
+  &__nota {
+    align-self: flex-end;
+    font-style: italic;
+  }
+
   &__header {
     display: grid;
     grid-template-columns: 2fr 2fr 1fr;

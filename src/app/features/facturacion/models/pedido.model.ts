@@ -111,6 +111,15 @@ export const ESTADOS_FUERA_DE_ALCANCE: readonly EstadoPedido[] = [
   'facturado',
 ];
 
+/** Estados en los que Facturación todavía puede rechazar el pedido a Ventas — espejo de `ESTADOS_RECHAZABLES` en `facturacion-domain.service.ts`. */
+export const ESTADOS_RECHAZABLES: readonly EstadoPedido[] = [
+  'abierto',
+  'en_operacion',
+  'en_elaboracion_operativa',
+  'documentos_completos',
+  'en_revision_prefacturacion',
+];
+
 export type PedidoOrigen = 'as2' | 'portal';
 
 /** Línea estimada que Ventas captura al abrir el Pedido — base "cotizado" del reporte cotizado-vs-real. */

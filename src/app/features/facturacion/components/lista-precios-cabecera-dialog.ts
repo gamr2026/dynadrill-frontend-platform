@@ -13,12 +13,9 @@ import { ListaPrecios } from '../models/lista-precios.model';
 import { ListaPreciosService } from '../services/pedido.service';
 import { CatalogosService, type ClienteCatalogo } from '../../../shared/index';
 
-export interface ListaPreciosCabeceraDialogData {
-  /** Cuando viene, es edición de esa lista; si no, es alta. */
-  lista?: ListaPrecios;
-}
+export interface ListaPreciosCabeceraDialogData {}
 
-/** Fase 2 — alta/edición de la cabecera de una Lista de Precios (cliente/contrato). */
+/** Fase 2 — alta de una Lista de Precios (cliente/contrato). La edición se retiró de la UI (RN: solo se actualiza vía import real de datos). */
 @Component({
   selector: 'app-lista-precios-cabecera-dialog',
   imports: [
@@ -39,8 +36,6 @@ export class ListaPreciosCabeceraDialog {
   private readonly modalRef = inject(NzModalRef<ListaPreciosCabeceraDialog, ListaPrecios | undefined>);
   protected readonly data = inject<ListaPreciosCabeceraDialogData>(NZ_MODAL_DATA);
 
-  protected readonly esEdicion = !!this.data.lista;
-
   /**
    * Catálogo real de clientes — antes era texto libre, así que dos personas
    * podían escribir el mismo cliente real con dos strings distintos y la
@@ -55,12 +50,10 @@ export class ListaPreciosCabeceraDialog {
     () => this.clientesCatalogo().find(c => c.nombreComercial === this.cliente())?.id ?? null,
   );
 
-  protected readonly cliente = signal(this.data.lista?.cliente ?? '');
-  protected readonly numeroContrato = signal(this.data.lista?.numeroContrato ?? '');
-  protected readonly vigenteDesde = signal<Date | null>(
-    this.data.lista?.vigenteDesde ? new Date(this.data.lista.vigenteDesde) : new Date(),
-  );
-  protected readonly activa = signal(this.data.lista?.activa ?? true);
+  protected readonly cliente = signal('');
+  protected readonly numeroContrato = signal('');
+  protected readonly vigenteDesde = signal<Date | null>(new Date());
+  protected readonly activa = signal(true);
   protected readonly submitting = signal(false);
 
   protected readonly activaOptions: DynadrillSelectOption[] = [
@@ -92,13 +85,9 @@ export class ListaPreciosCabeceraDialog {
       activa: this.activa(),
     };
 
-    const req$ = this.esEdicion
-      ? this.listaService.actualizarCabecera(this.data.lista!.id, payload)
-      : this.listaService.create({ ...payload, items: [] });
-
-    req$.subscribe({
+    this.listaService.create({ ...payload, items: [] }).subscribe({
       next: lista => {
-        this.notify.success(this.esEdicion ? 'Lista actualizada' : 'Lista creada', `${lista.cliente} — ${lista.numeroContrato}`);
+        this.notify.success('Lista creada', `${lista.cliente} — ${lista.numeroContrato}`);
         this.modalRef.close(lista);
       },
       error: () => {

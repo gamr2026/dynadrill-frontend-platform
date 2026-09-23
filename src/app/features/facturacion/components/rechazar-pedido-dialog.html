@@ -1,0 +1,19 @@
+<div class="rechazar-pedido">
+  <dynadrill-text variant="body">
+    El pedido {{ data.pedido.code }} vuelve a Ventas en estado "En corrección" — Ventas podrá editarlo desde "Editar pedido".
+  </dynadrill-text>
+  <dynadrill-textarea
+    label="Motivo del rechazo"
+    placeholder="Detalle qué debe corregirse…"
+    [rows]="4"
+    [value]="motivo()"
+    (valueChange)="motivo.set($event)"
+  />
+</div>
+
+<footer class="rechazar-pedido__actions">
+  <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+  <dynadrill-button variant="primary" [disabled]="!puedeEnviar() || submitting()" (clicked)="rechazar()">
+    {{ submitting() ? 'Rechazando…' : 'Rechazar pedido' }}
+  </dynadrill-button>
+</footer>

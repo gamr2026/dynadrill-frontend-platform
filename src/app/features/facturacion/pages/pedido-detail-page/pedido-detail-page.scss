@@ -12,6 +12,7 @@
   &__toolbar {
     display: flex;
     justify-content: flex-end;
+    gap: 10px;
   }
 
   &__head-actions {
@@ -19,6 +20,12 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
+  }
+
+  &__doc-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
   &__avance {

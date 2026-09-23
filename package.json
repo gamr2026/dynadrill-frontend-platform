@@ -23,6 +23,8 @@
     "@digitec-it-projects/dynadrill-ui": "^1.1.0",
     "echarts": "^6.1.0",
     "exceljs": "^4.4.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "ng-zorro-antd": "^21.0.0",
     "ngx-echarts": "^21.0.0",
     "rxjs": "~7.8.0",

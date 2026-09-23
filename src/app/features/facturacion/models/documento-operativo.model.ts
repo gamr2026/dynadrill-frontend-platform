@@ -79,5 +79,25 @@ export interface AvanceDocumental {
   /** Solo aplica a Pumping — documento de monitoreo (subida real a disco por día, ver PumpingDocumentosService). Informativo: no bloquea "Generar prefactura". */
   monitoreoAplica?: boolean;
   monitoreoDocsCargados?: number;
+  /** Documentos de respaldo reales (archivo en disco, no solo un nombre) recuperables desde Facturación — monitoreo y mezcla de químicos. */
+  documentosReales?: DocumentoRealPedido[];
+  /** `true` cuando TODOS los `documentosReales` ya tienen su versión firmada subida — condición para habilitar "Enviar al cliente" (ver `puedeEnviar` en prefactura-detail-page.ts). */
+  documentosFirmadosCompletos?: boolean;
   completo: boolean;
+}
+
+/** Un documento de respaldo real (monitoreo o mezcla) — ver `AvanceDocumental.documentosReales`. */
+export interface DocumentoRealPedido {
+  tipo: 'monitoreo' | 'mezcla' | 'reporte_job' | 'reporte_herramientas' | 'prefactura';
+  /** `pumping` = archivo subido en el ticket de Pumping (`PumpingDocumento`, requiere `ticketId`+`campo` para descargarlo). `pedido` = archivo que Ventas adjuntó al crear el Pedido (`PedidoDocumento`, requiere `pedidoDocumentoId`). `generado` = Reporte Job/Herramientas/Prefactura — no hay archivo real detrás, "Descargar" arma el PDF al vuelo (jsPDF) en vez de pedirlo al backend. */
+  origen: 'pumping' | 'pedido' | 'generado';
+  nombreOriginal: string;
+  fecha: string;
+  ticketId?: number;
+  campo?: string;
+  pedidoDocumentoId?: number;
+  /** Clave para `POST/GET/DELETE :id/documentos-firmados/:tipo/:referencia` — mismo valor que `campo` o `pedidoDocumentoId` como texto. */
+  referencia: string;
+  /** `true` si Facturación ya subió la versión firmada de este documento puntual. */
+  firmado: boolean;
 }

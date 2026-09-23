@@ -22,6 +22,7 @@ import {
 } from '../../../../shared/index';
 import {
   ESTADOS_FUERA_DE_ALCANCE,
+  ESTADOS_RECHAZABLES,
   ESTADO_PEDIDO_LABELS,
   EstadoPedido,
   LINEA_SERVICIO_LABELS,
@@ -30,7 +31,7 @@ import {
   valorEstimadoPedido,
   itemsEstimadosDe,
 } from '../../models/pedido.model';
-import { AvanceDocumental, DocumentoOperativo } from '../../models/documento-operativo.model';
+import { AvanceDocumental, DocumentoOperativo, DocumentoRealPedido } from '../../models/documento-operativo.model';
 import { Prefactura } from '../../models/prefactura.model';
 import { GuiaRemision } from '../../models/guia-remision.model';
 import { DocumentoOperativoService, GuiaRemisionService, PedidoService, PrefacturaService } from '../../services/pedido.service';
@@ -38,9 +39,12 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { Router } from '@angular/router';
 import { GuiaRemisionDialog, GuiaRemisionDialogData } from '../../components/guia-remision-dialog';
 import { GuiaRemisionPdfDialog, GuiaRemisionPdfDialogData } from '../../components/guia-remision-pdf-dialog';
+import { PrefacturaPdfDialog, PrefacturaPdfDialogData } from '../../components/prefactura-pdf-dialog';
 import { FCR_PHASE_LABELS, FcrTicket } from '../../../operations/fcr/models/fcr.model';
 import { FcrService } from '../../../operations/fcr/services/fcr.service';
+import { PumpingService } from '../../../operations/pumping/services/pumping.service';
 import { NuevoPedidoDialog } from '../../components/nuevo-pedido-dialog';
+import { RechazarPedidoDialog, RechazarPedidoDialogData } from '../../components/rechazar-pedido-dialog';
 
 interface Dato {
   label: string;
@@ -77,6 +81,7 @@ export class PedidoDetailPage {
   private readonly prefacturaService = inject(PrefacturaService);
   private readonly guiaService = inject(GuiaRemisionService);
   private readonly fcrService = inject(FcrService);
+  private readonly pumpingService = inject(PumpingService);
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
@@ -116,6 +121,14 @@ export class PedidoDetailPage {
   protected readonly esRegeneracion = computed(() => this.prefactura()?.estado === 'rechazada');
   protected readonly puedeGenerarGuia = computed(() => !!this.avance()?.guiaRemisionAplica && !this.guiaRemision());
 
+  /** Solo Facturación, y solo antes de que exista prefactura generada — ver `ESTADOS_RECHAZABLES`. */
+  protected readonly puedeRechazar = computed(() => {
+    const p = this.pedido();
+    const role = this.auth.currentUser()?.roleName;
+    const rolPermitido = role === 'Facturación' || role === 'Superadmin' || role === 'Jefe de Base';
+    return rolPermitido && !!p && ESTADOS_RECHAZABLES.includes(p.estado);
+  });
+
   protected readonly estadoLabel = computed(() => {
     const p = this.pedido();
     return p ? ESTADO_PEDIDO_LABELS[p.estado] : '';
@@ -132,6 +145,10 @@ export class PedidoDetailPage {
       .sort((a, b) => (a.fecha ?? '').localeCompare(b.fecha ?? '')),
   );
   protected readonly reporteHtasDocs = computed(() => this.documentos().filter(d => d.tipo === 'reporte_herramientas'));
+  protected readonly documentosMonitoreo = computed(() => this.avance()?.documentosReales?.filter(d => d.tipo === 'monitoreo') ?? []);
+  protected readonly documentosMezcla = computed(() => this.avance()?.documentosReales?.filter(d => d.tipo === 'mezcla') ?? []);
+  /** Reporte Job/Herramientas consolidados + Prefactura — sin archivo real detrás, "Descargar" abre el mismo diálogo que "Ver PDF" (ahí está el botón que arma el PDF real). */
+  protected readonly documentosGenerados = computed(() => this.avance()?.documentosReales?.filter(d => d.origen === 'generado') ?? []);
 
   protected readonly datosCliente = computed<Dato[]>(() => {
     const p = this.pedido();
@@ -261,6 +278,21 @@ export class PedidoDetailPage {
     });
   }
 
+  protected rechazarPedido(): void {
+    const p = this.pedido();
+    if (!p || !this.puedeRechazar()) return;
+    const ref = this.dialog.open<RechazarPedidoDialog, RechazarPedidoDialogData>({
+      title: `Rechazar pedido ${p.code}`,
+      content: RechazarPedidoDialog,
+      data: { pedido: p },
+      footer: false,
+      width: '520px',
+    });
+    ref.afterClose.subscribe(actualizado => {
+      if (actualizado) this.reload();
+    });
+  }
+
   protected verReporteJob(doc: DocumentoOperativo): void {
     if (!doc.header || !doc.actividades) return;
     this.dialog.open<ReporteJobPdfDialog, ReporteJobPdfDialogData>({
@@ -284,6 +316,85 @@ export class PedidoDetailPage {
       data: { header: docs[0].header, tools: herramientas, usageLog: usoHerramientas },
       footer: false,
       width: '920px',
+    });
+  }
+
+  /** Consolida los días recibidos en un solo PDF — mismo criterio que `verReporteHerramientas()`. */
+  protected verReporteJobConsolidado(): void {
+    const docs = this.reporteJobDocs();
+    if (!docs.length || !docs[0].header) return;
+    const log = docs.flatMap(d => d.actividades ?? []);
+    this.dialog.open<ReporteJobPdfDialog, ReporteJobPdfDialogData>({
+      title: 'Reporte Job (consolidado)',
+      content: ReporteJobPdfDialog,
+      data: { header: docs[0].header, log },
+      footer: false,
+      width: '820px',
+    });
+  }
+
+  protected verPrefacturaPdf(): void {
+    const pf = this.prefactura();
+    const p = this.pedido();
+    if (!pf || !p) return;
+    this.dialog.open<PrefacturaPdfDialog, PrefacturaPdfDialogData>({
+      title: 'Prefactura — Vista de impresión',
+      content: PrefacturaPdfDialog,
+      data: { prefactura: pf, pedido: p },
+      footer: false,
+      width: '900px',
+    });
+  }
+
+  /**
+   * Descarga real (archivo en disco) del documento de monitoreo o mezcla —
+   * `origen: 'pumping'` va al ticket de Pumping (`PumpingDocumento`),
+   * `origen: 'pedido'` va a los documentos adjuntos del propio Pedido
+   * (`PedidoDocumento`, el que Ventas cargó al crear el pedido). Para
+   * `origen: 'generado'` (Reporte Job/Herramientas/Prefactura) no hay
+   * archivo real: se abre el mismo diálogo de vista previa, que trae su
+   * propio botón "Descargar PDF" (jsPDF).
+   */
+  protected descargarDocumentoReal(doc: DocumentoRealPedido): void {
+    if (doc.origen === 'generado') {
+      if (doc.tipo === 'reporte_job') this.verReporteJobConsolidado();
+      else if (doc.tipo === 'reporte_herramientas') this.verReporteHerramientas();
+      else if (doc.tipo === 'prefactura') this.verPrefacturaPdf();
+      return;
+    }
+    const obs$ =
+      doc.origen === 'pumping'
+        ? this.pumpingService.descargarDocumento(doc.ticketId!, doc.campo!)
+        : this.pedidoService.descargarDocumentoAdjunto(this.pedidoId, doc.pedidoDocumentoId!);
+    obs$.subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = doc.nombreOriginal;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => this.notify.error('Error', 'No se pudo descargar el documento.'),
+    });
+  }
+
+  /**
+   * Sube la versión firmada (electrónicamente, fuera del sistema) del
+   * documento de monitoreo/mezcla — habilita "Enviar al cliente" cuando
+   * todos los `documentosReales` del pedido ya tienen la suya (ver
+   * `avance.documentosFirmadosCompletos` y `puedeEnviar` en
+   * prefactura-detail-page.ts).
+   */
+  protected subirDocumentoFirmado(doc: DocumentoRealPedido, files: FileList | null): void {
+    const archivo = files?.[0];
+    if (!archivo) return;
+    this.pedidoService.subirDocumentoFirmado(this.pedidoId, doc.tipo, doc.referencia, archivo).subscribe({
+      next: () => {
+        this.notify.success('Documento firmado cargado', `${doc.nombreOriginal} — versión firmada guardada.`);
+        this.reload();
+      },
+      error: () => this.notify.error('Error', 'No se pudo subir el documento firmado.'),
     });
   }
 

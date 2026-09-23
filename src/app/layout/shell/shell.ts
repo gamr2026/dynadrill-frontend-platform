@@ -6,6 +6,7 @@ import { Header } from '../header/header';
 import { Sidebar } from '../sidebar/sidebar';
 import { Footer } from '../footer/footer';
 import { SidebarStateService } from '../sidebar-state.service';
+import { QhseAvisosFeederService } from '../../core/services/qhse-avisos-feeder.service';
 
 @Component({
   selector: 'app-shell',
@@ -28,6 +29,11 @@ export class Shell {
 
   constructor() {
     const router = inject(Router);
+
+    // Fase 3, PLAN-QHSE-PUMPING-NOTIFICACIONES: alimenta la campana global
+    // con los avisos de QHSE — se inicializa acá (el shell, no una página
+    // de QHSE) para que se vea en toda la app.
+    inject(QhseAvisosFeederService).start();
 
     router.events.pipe(takeUntilDestroyed()).subscribe(e => {
       if (e instanceof NavigationStart) this.navigating.set(true);

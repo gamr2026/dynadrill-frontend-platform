@@ -8,6 +8,9 @@
 
     <div class="pedido-detail__toolbar">
       <dynadrill-button variant="secondary" (clicked)="editarPedido()">Editar pedido</dynadrill-button>
+      @if (puedeRechazar()) {
+        <dynadrill-button variant="secondary" (clicked)="rechazarPedido()">Rechazar pedido</dynadrill-button>
+      }
     </div>
 
     <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
@@ -144,6 +147,56 @@
                   <td><dynadrill-button variant="secondary" size="small" (clicked)="verReporteHerramientas()">Ver PDF</dynadrill-button></td>
                 </tr>
               }
+              @for (d of documentosMonitoreo(); track d.campo) {
+                <tr>
+                  <td>Documento de monitoreo</td>
+                  <td>Pumping</td>
+                  <td>{{ d.fecha }}</td>
+                  <td>—</td>
+                  <td><dynadrill-tag [label]="d.firmado ? 'Firmado' : 'Falta firmar'" [variant]="d.firmado ? 'success' : 'warning'" /></td>
+                  <td class="pedido-detail__doc-actions">
+                    <dynadrill-button variant="secondary" size="small" (clicked)="descargarDocumentoReal(d)">Descargar</dynadrill-button>
+                    <input #fileMonitoreo type="file" hidden (change)="subirDocumentoFirmado(d, fileMonitoreo.files)" />
+                    <dynadrill-button variant="secondary" size="small" (clicked)="fileMonitoreo.click()">{{ d.firmado ? 'Reemplazar firmado' : 'Subir firmado' }}</dynadrill-button>
+                  </td>
+                </tr>
+              }
+              @for (d of documentosMezcla(); track d.origen + (d.campo ?? d.pedidoDocumentoId)) {
+                <tr>
+                  <td>Documento de mezcla</td>
+                  <td>{{ d.origen === 'pumping' ? 'Pumping' : 'Pedido (Ventas)' }}</td>
+                  <td>{{ d.fecha | date: 'dd/MM/yyyy HH:mm' }}</td>
+                  <td>—</td>
+                  <td><dynadrill-tag [label]="d.firmado ? 'Firmado' : 'Falta firmar'" [variant]="d.firmado ? 'success' : 'warning'" /></td>
+                  <td class="pedido-detail__doc-actions">
+                    <dynadrill-button variant="secondary" size="small" (clicked)="descargarDocumentoReal(d)">Descargar</dynadrill-button>
+                    <input #fileMezcla type="file" hidden (change)="subirDocumentoFirmado(d, fileMezcla.files)" />
+                    <dynadrill-button variant="secondary" size="small" (clicked)="fileMezcla.click()">{{ d.firmado ? 'Reemplazar firmado' : 'Subir firmado' }}</dynadrill-button>
+                  </td>
+                </tr>
+              }
+              @for (d of documentosGenerados(); track d.tipo) {
+                <tr>
+                  <td>
+                    {{
+                      d.tipo === 'reporte_job'
+                        ? 'Reporte Job (consolidado)'
+                        : d.tipo === 'reporte_herramientas'
+                          ? 'Reporte de Herramientas (consolidado)'
+                          : 'Prefactura'
+                    }}
+                  </td>
+                  <td>{{ d.tipo === 'prefactura' ? 'Facturación' : d.tipo === 'reporte_herramientas' ? 'FCR' : 'FCR / Pumping' }}</td>
+                  <td>{{ d.fecha | date: 'dd/MM/yyyy' }}</td>
+                  <td>—</td>
+                  <td><dynadrill-tag [label]="d.firmado ? 'Firmado' : 'Falta firmar'" [variant]="d.firmado ? 'success' : 'warning'" /></td>
+                  <td class="pedido-detail__doc-actions">
+                    <dynadrill-button variant="secondary" size="small" (clicked)="descargarDocumentoReal(d)">Ver / Descargar PDF</dynadrill-button>
+                    <input #fileGenerado type="file" hidden (change)="subirDocumentoFirmado(d, fileGenerado.files)" />
+                    <dynadrill-button variant="secondary" size="small" (clicked)="fileGenerado.click()">{{ d.firmado ? 'Reemplazar firmado' : 'Subir firmado' }}</dynadrill-button>
+                  </td>
+                </tr>
+              }
               @if (guiaRemision(); as g) {
                 <tr>
                   <td>Guía de Remisión</td>
@@ -160,7 +213,7 @@
                   <td><dynadrill-button size="small" [disabled]="generandoGuia()" (clicked)="abrirGuiaRemision()">Generar guía</dynadrill-button></td>
                 </tr>
               }
-              @if (!reporteJobDocs().length && !reporteHtasDocs().length) {
+              @if (!reporteJobDocs().length && !reporteHtasDocs().length && !documentosMonitoreo().length && !documentosMezcla().length) {
                 <tr><td colspan="6">Todavía no se ha recibido documentación operativa para este pedido.</td></tr>
               }
             </tbody>

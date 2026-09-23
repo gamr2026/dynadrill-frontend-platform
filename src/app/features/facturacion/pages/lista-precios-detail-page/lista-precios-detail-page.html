@@ -12,7 +12,6 @@
           <h2>Datos de la lista</h2>
           <div class="lp-detail__head-actions">
             <dynadrill-tag [label]="l.activa ? 'Activa' : 'Inactiva'" [variant]="l.activa ? 'success' : 'neutral'" />
-            <dynadrill-button variant="secondary" size="small" (clicked)="editarCabecera()">Editar datos</dynadrill-button>
           </div>
         </header>
       </section>
@@ -20,68 +19,37 @@
       <section class="fact-card">
         <header class="lp-detail__head">
           <h2>Ítems ({{ items().length }})</h2>
-          @if (!editando()) {
-            <div class="lp-detail__head-actions">
-              <dynadrill-button variant="secondary" size="small" [disabled]="!l.items.length" (clicked)="descargarExcel()">Descargar Excel</dynadrill-button>
-              <dynadrill-button variant="secondary" size="small" (clicked)="iniciarEdicionItems()">Editar ítems</dynadrill-button>
-            </div>
-          } @else {
-            <div class="lp-detail__head-actions">
-              <dynadrill-button variant="secondary" size="small" (clicked)="cancelarEdicionItems()">Cancelar</dynadrill-button>
-              <dynadrill-button size="small" [disabled]="guardando()" (clicked)="guardarItems()">
-                {{ guardando() ? 'Guardando…' : 'Guardar ítems' }}
-              </dynadrill-button>
-            </div>
-          }
-        </header>
-
-        @if (editando()) {
-          <div class="lp-detail__new">
-            <dynadrill-input label="Código" [value]="nuevo().codigo" (valueChange)="updateNuevo('codigo', $event)" />
-            <dynadrill-input label="Descripción" [value]="nuevo().descripcion" (valueChange)="updateNuevo('descripcion', $event)" />
-            <dynadrill-input label="Unidad" [value]="nuevo().unidad" (valueChange)="updateNuevo('unidad', $event)" />
-            <dynadrill-input label="Precio" type="number" [value]="nuevo().precio" (valueChange)="updateNuevo('precio', +$event)" />
-            <dynadrill-select label="Tipo" [options]="tipoOptions" [value]="nuevo().tipo" (valueChange)="updateNuevo('tipo', asTipo($event))" />
-            <dynadrill-button variant="secondary" size="small" (clicked)="agregarItem()">+ Agregar</dynadrill-button>
+          <div class="lp-detail__head-actions">
+            <dynadrill-button variant="secondary" size="small" [disabled]="!l.items.length" (clicked)="descargarExcel()">Descargar Excel</dynadrill-button>
           </div>
-        }
+        </header>
 
         <div class="table-scroll">
           <table class="lp-detail__table">
             <thead>
-              <tr><th>Código</th><th>Descripción</th><th>Unidad</th><th class="num">Precio</th><th>Tipo</th>@if (editando()) { <th></th> }</tr>
+              <tr><th>Código</th><th>Descripción</th><th>Unidad</th><th class="num">Precio</th><th>Tipo</th></tr>
             </thead>
             <tbody>
               @for (it of items(); track $index) {
                 <tr>
-                  @if (editando()) {
-                    <td><dynadrill-input label="" [value]="it.codigo" (valueChange)="updateItem($index, 'codigo', $event)" /></td>
-                    <td><dynadrill-input label="" [value]="it.descripcion" (valueChange)="updateItem($index, 'descripcion', $event)" /></td>
-                    <td><dynadrill-input label="" [value]="it.unidad" (valueChange)="updateItem($index, 'unidad', $event)" /></td>
-                    <td class="num"><dynadrill-input label="" type="number" [value]="it.precio" (valueChange)="updateItem($index, 'precio', +$event)" /></td>
-                    <td><dynadrill-select label="" [options]="tipoOptions" [value]="it.tipo" (valueChange)="updateItem($index, 'tipo', asTipo($event))" /></td>
-                    <td><dynadrill-button variant="secondary" size="small" (clicked)="quitarItem($index)">Quitar</dynadrill-button></td>
-                  } @else {
-                    <td>{{ it.codigo }}</td>
-                    <td>{{ it.descripcion }}</td>
-                    <td>{{ it.unidad }}</td>
-                    <td class="num">${{ it.precio }}</td>
-                    <td>{{ it.tipo }}</td>
-                  }
+                  <td>{{ it.codigo }}</td>
+                  <td>{{ it.descripcion }}</td>
+                  <td>{{ it.unidad }}</td>
+                  <td class="num">${{ it.precio }}</td>
+                  <td>{{ it.tipo }}</td>
                 </tr>
               } @empty {
-                <tr><td [attr.colspan]="editando() ? 6 : 5">Sin ítems. {{ editando() ? 'Agrega el primero arriba.' : 'Pulsa "Editar ítems".' }}</td></tr>
+                <tr><td colspan="5">Sin ítems.</td></tr>
               }
             </tbody>
             @if (items().length) {
               <tfoot>
                 <tr>
-                  <td [attr.colspan]="3"></td>
+                  <td colspan="3"></td>
                   <td class="num">Totales</td>
                   <td>
                     {{ totalServicio() }} Servicio (${{ sumaServicio().toFixed(2) }}) · {{ totalMaterial() }} Material (${{ sumaMaterial().toFixed(2) }})
                   </td>
-                  @if (editando()) { <td></td> }
                 </tr>
               </tfoot>
             }

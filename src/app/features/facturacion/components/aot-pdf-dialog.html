@@ -4,6 +4,8 @@
     <dynadrill-text variant="h2">RESUMEN DE COSTOS</dynadrill-text>
   </div>
 
+  <dynadrill-text variant="caption" class="aot-pdf__nota">NOTA: No inicie actividades sin información previa</dynadrill-text>
+
   <div class="aot-pdf__header">
     <div>
       <dynadrill-text variant="caption">CONTRATISTA</dynadrill-text>
@@ -16,6 +18,7 @@
     <div>
       <dynadrill-text variant="caption">FECHA</dynadrill-text>
       <dynadrill-text variant="body">{{ data.aot.fecha }}</dynadrill-text>
+      <dynadrill-text variant="caption">Página 1 de 1</dynadrill-text>
     </div>
   </div>
 
@@ -71,6 +74,7 @@
 
   <div class="aot-pdf__actions no-print">
     <dynadrill-button variant="secondary" (clicked)="close()">Cerrar</dynadrill-button>
-    <dynadrill-button (clicked)="print()">Imprimir / Exportar PDF</dynadrill-button>
+    <dynadrill-button variant="secondary" (clicked)="print()">Imprimir</dynadrill-button>
+    <dynadrill-button (clicked)="descargarPdf()">Descargar PDF</dynadrill-button>
   </div>
 </div>

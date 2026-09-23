@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, of, throwError } from 'rxjs';
 import { CreatePedidoInput, EstadoPedido, Pedido, PedidoDocumentoAdjunto } from '../models/pedido.model';
-import { CreateListaPreciosInput, ListaPrecios, ListaPreciosItemDraft } from '../models/lista-precios.model';
+import { CreateListaPreciosInput, ListaPrecios } from '../models/lista-precios.model';
 import { AvanceDocumental, DocumentoOperativo, PushDocumentoOperativoInput } from '../models/documento-operativo.model';
 import { Prefactura } from '../models/prefactura.model';
 import { CreateGuiaRemisionInput, GuiaRemision } from '../models/guia-remision.model';
@@ -43,6 +43,11 @@ export class PedidoService {
     return this.http.patch<Pedido>(`${this.base}/${id}/estado`, { estado, usuario, motivo });
   }
 
+  /** Facturación rechaza el pedido de vuelta a Ventas para que lo corrija — solo antes de generar la prefactura. */
+  rechazar(id: number, usuario: string, motivo: string): Observable<Pedido> {
+    return this.http.post<Pedido>(`${this.base}/${id}/rechazar`, { usuario, motivo });
+  }
+
   // ── Documentos adjuntos reales (ej. ficha de mezcla de químicos) ──
 
   listarDocumentosAdjuntos(pedidoId: number): Observable<PedidoDocumentoAdjunto[]> {
@@ -63,6 +68,20 @@ export class PedidoService {
 
   eliminarDocumentoAdjunto(pedidoId: number, docId: number): Observable<{ ok: boolean }> {
     return this.http.delete<{ ok: boolean }>(`${this.base}/${pedidoId}/documentos-adjuntos/${docId}`);
+  }
+
+  // ── Documentos firmados (RN: monitoreo/mezcla deben ir firmados al cliente antes de "Enviar al cliente") ──
+
+  /** Solo Facturación (ver `ModuleRoles.facturacion` en el backend). */
+  subirDocumentoFirmado(pedidoId: number, tipo: string, referencia: string, archivo: File): Observable<unknown> {
+    const form = new FormData();
+    form.append('file', archivo);
+    return this.http.post(`${this.base}/${pedidoId}/documentos-firmados/${tipo}/${encodeURIComponent(referencia)}`, form);
+  }
+
+  /** Blob autenticado — mismo criterio que `descargarDocumentoAdjunto`. */
+  descargarDocumentoFirmado(pedidoId: number, tipo: string, referencia: string): Observable<Blob> {
+    return this.http.get(`${this.base}/${pedidoId}/documentos-firmados/${tipo}/${encodeURIComponent(referencia)}`, { responseType: 'blob' });
   }
 
   /** Trae los cambios que AS2 haya empujado desde el otro lado (mock). */
@@ -86,18 +105,6 @@ export class ListaPreciosService {
 
   create(input: CreateListaPreciosInput): Observable<ListaPrecios> {
     return this.http.post<ListaPrecios>(this.base, input);
-  }
-
-  actualizarCabecera(
-    id: number,
-    patch: Partial<Pick<ListaPrecios, 'cliente' | 'numeroContrato' | 'vigenteDesde' | 'activa'>>,
-  ): Observable<ListaPrecios> {
-    return this.http.patch<ListaPrecios>(`${this.base}/${id}`, patch);
-  }
-
-  /** Reemplaza la lista completa de ítems (mismo patrón que `actualizarItems` de la OTQ anterior). */
-  reemplazarItems(id: number, items: ListaPreciosItemDraft[]): Observable<ListaPrecios> {
-    return this.http.put<ListaPrecios>(`${this.base}/${id}/items`, items);
   }
 }
 

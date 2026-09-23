@@ -16,8 +16,9 @@ import {
 import { Pedido, itemEstimadoPrincipal } from '../../models/pedido.model';
 import { Prefactura } from '../../models/prefactura.model';
 import { GuiaRemision } from '../../models/guia-remision.model';
+import { AvanceDocumental } from '../../models/documento-operativo.model';
 import { Aot } from '../../models/aot.model';
-import { AotService, GuiaRemisionService, PedidoService, PrefacturaService } from '../../services/pedido.service';
+import { AotService, DocumentoOperativoService, GuiaRemisionService, PedidoService, PrefacturaService } from '../../services/pedido.service';
 import { PrefacturaPdfDialog, PrefacturaPdfDialogData } from '../../components/prefactura-pdf-dialog';
 import { EnviarClienteDialog, EnviarClienteDialogData } from '../../components/enviar-cliente-dialog';
 import { RespuestaClienteDialog, RespuestaClienteDialogData } from '../../components/respuesta-cliente-dialog';
@@ -70,6 +71,7 @@ export class PrefacturaDetailPage {
   private readonly router = inject(Router);
   private readonly prefacturaService = inject(PrefacturaService);
   private readonly pedidoService = inject(PedidoService);
+  private readonly docService = inject(DocumentoOperativoService);
   private readonly guiaService = inject(GuiaRemisionService);
   private readonly aotService = inject(AotService);
   private readonly dialog = inject(DynadrillDialogService);
@@ -82,6 +84,7 @@ export class PrefacturaDetailPage {
   protected readonly pedido = signal<Pedido | null>(null);
   protected readonly guiaRemision = signal<GuiaRemision | null>(null);
   protected readonly aot = signal<Aot | null>(null);
+  protected readonly avance = signal<AvanceDocumental | null>(null);
 
   protected readonly puedeGenerarAot = computed(() => this.prefactura()?.estado === 'firmada' && !this.aot());
 
@@ -121,8 +124,32 @@ export class PrefacturaDetailPage {
     return pf ? '$' + pf.netoCobrar.toFixed(2) : '';
   });
 
-  protected readonly materialesCount = computed(() => this.prefactura()?.items.filter(i => i.tipo === 'Material').length ?? 0);
-  protected readonly puedeEnviar = computed(() => this.prefactura()?.estado === 'generada' && this.checklistCompleto());
+  /**
+   * `guiaRemisionAplica` es la regla de negocio real (viene de si hubo uso de
+   * herramientas marcado como "venta" en Reporte de Herramientas, ver
+   * `calcularAvance` en el backend) — antes este banner se disparaba
+   * contando ítems `tipo==='Material'` de la prefactura directamente, una
+   * regla distinta que podía marcar "falta guía" aunque el Pedido, por su
+   * propia regla, no la necesitara (bug reportado).
+   */
+  protected readonly faltaGuiaRemision = computed(() => {
+    const a = this.avance();
+    return !!a && a.guiaRemisionAplica && !a.guiaRemisionGenerada;
+  });
+  /**
+   * RN: los documentos de respaldo reales (monitoreo, mezcla) deben ir
+   * firmados al cliente — Facturación sube esa versión desde el Pedido
+   * (`documentos-firmados`, ver `subirDocumentoFirmado` en
+   * pedido-detail-page.ts). Sin `documentosReales` (pedido sin ninguno) no
+   * bloquea nada.
+   */
+  protected readonly faltanDocumentosFirmados = computed(() => {
+    const a = this.avance();
+    return !!a && (a.documentosReales?.length ?? 0) > 0 && !a.documentosFirmadosCompletos;
+  });
+  protected readonly puedeEnviar = computed(
+    () => this.prefactura()?.estado === 'generada' && this.checklistCompleto() && !this.faltanDocumentosFirmados(),
+  );
   protected readonly esperandoFirma = computed(() => this.prefactura()?.estado === 'enviada_para_firmas');
   protected readonly esRechazada = computed(() => this.prefactura()?.estado === 'rechazada');
 
@@ -148,10 +175,12 @@ export class PrefacturaDetailPage {
           pedidos: this.pedidoService.list(),
           guia: this.guiaService.dePedido(pf.pedidoId),
           aot: this.aotService.dePedido(pf.pedidoId),
-        }).subscribe(({ pedidos, guia, aot }) => {
+          avance: this.docService.avance(pf.pedidoId),
+        }).subscribe(({ pedidos, guia, aot, avance }) => {
           this.pedido.set(pedidos.find(p => p.id === pf.pedidoId) ?? null);
           this.guiaRemision.set(guia);
           this.aot.set(aot);
+          this.avance.set(avance);
         });
         this.loading.set(false);
       },
@@ -162,22 +191,36 @@ export class PrefacturaDetailPage {
     });
   }
 
+  /** Etiqueta legible por tipo de documento real — antes solo distinguía monitoreo vs "todo lo demás = mezcla", lo que mostraba Reporte Job/Herramientas/Prefactura como "Documento de mezcla (firmado)". */
+  private static readonly ETIQUETA_TIPO_DOC: Record<string, string> = {
+    monitoreo: 'Documento de monitoreo',
+    mezcla: 'Documento de mezcla',
+    reporte_job: 'Reporte Job',
+    reporte_herramientas: 'Reporte de Herramientas',
+    prefactura: 'Prefactura',
+  };
+
   protected enviarAlCliente(): void {
     const pf = this.prefactura();
     if (!pf || !this.puedeEnviar()) return;
-    // El Reporte de Herramientas es exclusivo de FCR (Pumping no lo genera) —
-    // antes se listaba siempre, aunque el pedido fuera de Pumping.
-    const esFcr = this.pedido()?.lineaServicio === 'fcr';
     const ref = this.dialog.open<EnviarClienteDialog, EnviarClienteDialogData>({
       title: 'Enviar prefactura al cliente',
       content: EnviarClienteDialog,
       data: {
         prefacturaId: pf.id,
         adjuntosBase: [
-          `Prefactura ${pf.code}.pdf`,
-          'Reporte Job (PDF).pdf',
-          ...(esFcr ? ['Reporte de Herramientas (PDF).pdf'] : []),
           ...(this.guiaRemision() ? ['Guía de Remisión (PDF).pdf'] : []),
+          // Un único ítem por documento real (monitoreo/mezcla/Reporte
+          // Job/Reporte de Herramientas/Prefactura), ya en su versión
+          // FIRMADA — `documentosReales` (calcularAvance en el backend) ya
+          // cubre estos 5 tipos, así que no hay que listar aparte "Reporte
+          // Job (PDF).pdf"/"Prefactura X.pdf" sin firmar: eso duplicaba el
+          // mismo documento (bug reportado, ver captura). Se descarga desde
+          // el Pedido ("Documentos de respaldo" → "Descargar" al lado de
+          // cada uno, no el original sin firmar).
+          ...(this.avance()?.documentosReales ?? []).map(
+            d => `${PrefacturaDetailPage.ETIQUETA_TIPO_DOC[d.tipo]} (firmado) — ${d.nombreOriginal} (descargar del Pedido)`,
+          ),
         ],
       },
       footer: false,

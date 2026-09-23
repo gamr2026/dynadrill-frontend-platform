@@ -159,6 +159,9 @@ function createMockCompletedInspection(
 
 const STEP_KEYS: PumpingStep[] = ['revision_inicial', 'asignacion', 'traslado_salida', 'revision_reportes_salida', 'ejecucion_operativa', 'control_retorno', 'traslado_llegada', 'mantenimiento', 'revision_reportes_llegada', 'revision_final', 'cierre'];
 
+/** Mismo límite que el documento de monitoreo (`daily-activity-report-dialog.ts`). */
+const MAX_CHEMICAL_MIXTURE_BYTES = 5 * 1024 * 1024;
+
 /**
  * PumpingUnitReport guarda fechas como string ISO (yyyy-MM-dd);
  * dynadrill-datetime-picker trabaja con Date. Se usan los getters LOCALES
@@ -523,8 +526,9 @@ export class TicketDetailPage {
   protected readonly chemicalQuantities = signal<Map<number, number>>(new Map());
   /** Documento de mezcla de químicos — obligatorio en cuanto se selecciona al menos un químico. */
   protected readonly chemicalMixtureDocument = signal<NzUploadFile | null>(null);
-  /** Si `chemicalMixtureDocument` viene de precargar un documento REAL del pedido (subida a disco, `PedidoDocumento`), acá queda la referencia para poder previsualizarlo/descargarlo — null si el usuario adjuntó uno a mano (solo se guarda el nombre, sin contenido, ver `onChemicalMixtureDocumentSelected`). */
+  /** Si `chemicalMixtureDocument` viene de precargar un documento REAL del pedido (subida a disco, `PedidoDocumento`), acá queda la referencia para poder previsualizarlo/descargarlo — `null` si el que está cargado es uno subido acá mismo en Pumping (también real, `PumpingDocumento` campo='mezcla', ver `onChemicalMixtureDocumentSelected`). */
   protected readonly chemicalMixtureDocumentoOrigen = signal<PedidoDocumentoAdjunto | null>(null);
+  protected readonly chemicalMixtureUploading = signal(false);
 
   private loadChemicalArticulos(): void {
     this.articulosService.list().subscribe({
@@ -625,9 +629,37 @@ export class TicketDetailPage {
     this.chemicalQuantities.update(map => new Map(map).set(articuloId, item.cantidad));
   }
 
+  /**
+   * Sube el archivo real a disco (`PumpingDocumento`, campo='mezcla') — antes
+   * solo se guardaba `file.name` en el payload del ticket, sin contenido
+   * real detrás (bug: Facturación no tenía forma de recuperar el documento
+   * firmado para adjuntarlo antes de "Enviar al cliente"). Mismo patrón que
+   * el documento de monitoreo (`daily-activity-report-dialog.ts`).
+   */
   protected onChemicalMixtureDocumentSelected(file: NzUploadFile): void {
-    this.chemicalMixtureDocument.set(file);
-    this.chemicalMixtureDocumentoOrigen.set(null);
+    const ticketId = this.ticket()?.id;
+    const archivo = (file.originFileObj as File | undefined) ?? (file as unknown as File);
+    if (!ticketId || !archivo || typeof archivo.size !== 'number') {
+      this.notify.error('Archivo no reconocido', 'No se pudo leer el archivo seleccionado. Probá de nuevo.');
+      return;
+    }
+    if (archivo.size > MAX_CHEMICAL_MIXTURE_BYTES) {
+      this.notify.error('Archivo demasiado grande', 'El archivo supera el máximo permitido de 5MB.');
+      return;
+    }
+    this.chemicalMixtureUploading.set(true);
+    this.pumpingService.subirDocumento(ticketId, 'mezcla', archivo).subscribe({
+      next: doc => {
+        this.chemicalMixtureDocument.set({ uid: '-1', name: doc.nombreOriginal } as NzUploadFile);
+        this.chemicalMixtureDocumentoOrigen.set(null);
+        this.chemicalMixtureUploading.set(false);
+        this.notify.success('Documento cargado', `${doc.nombreOriginal} — documento de mezcla de químicos.`);
+      },
+      error: () => {
+        this.chemicalMixtureUploading.set(false);
+        this.notify.error('Error', 'No se pudo subir el documento de mezcla.');
+      },
+    });
   }
 
   /** Motivo de bloqueo (cantidad sin definir o stock insuficiente en bodega), o null si todo está en regla. */

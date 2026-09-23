@@ -17,12 +17,12 @@
       (valueChange)="activa.set($any($event) === 'si')"
     />
   </div>
-  <dynadrill-text variant="caption">Los ítems se agregan/editan desde el detalle de la lista.</dynadrill-text>
+  <dynadrill-text variant="caption">Los ítems se cargan por el import real de datos, no desde acá.</dynadrill-text>
 
   <div class="lp-cab__actions">
     <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
     <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">
-      {{ submitting() ? 'Guardando…' : esEdicion ? 'Guardar cambios' : 'Crear lista' }}
+      {{ submitting() ? 'Guardando…' : 'Crear lista' }}
     </dynadrill-button>
   </div>
 </div>

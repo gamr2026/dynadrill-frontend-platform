@@ -2172,7 +2172,9 @@ export class TicketDetailPage {
   private withdrawChemicalsFromWarehouse(t: PumpingTicket): Observable<unknown> {
     const rows = this.selectedChemicalRows();
     if (rows.length === 0) return of(null);
-    const responsable = this.auth.currentUser()?.name ?? t.assignedSupervisor ?? 'Supervisor';
+    // `asignacion` ahora la actúa el Jefe de Base (Fase 1, D1) — el fallback
+    // ya no debe caer en el Supervisor asignado al ticket.
+    const responsable = this.auth.currentUser()?.name ?? 'Jefe de Base';
     return forkJoin(rows.map(articulo =>
       this.movimientosInventarioService.registrar({
         articuloId: articulo.id,

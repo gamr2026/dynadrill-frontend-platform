@@ -63,7 +63,10 @@ export const PUMPING_STEP_LABELS: Record<PumpingStep, string> = {
  */
 export const PUMPING_STEP_ROLE: Record<PumpingStep, { roleName: string; roleId: number }> = {
   revision_inicial: { roleName: 'Jefe de Base', roleId: 4 },
-  asignacion: { roleName: 'Supervisor', roleId: 1 },
+  // Antes 'Supervisor' — el negocio pasó toda la asignación (Supervisor,
+  // operadores, unidades y químicos) al Jefe de Base — ver
+  // PLAN-QHSE-PUMPING-NOTIFICACIONES, Fase 1, D1. Solo Pumping (D2).
+  asignacion: { roleName: 'Jefe de Base', roleId: 4 },
   traslado_salida: { roleName: 'Operador', roleId: 2 },
   revision_reportes_salida: { roleName: 'Supervisor', roleId: 1 },
   // El Reporte Diario de Actividades (DYN-SGI-RE-047) lo llena el Operador,

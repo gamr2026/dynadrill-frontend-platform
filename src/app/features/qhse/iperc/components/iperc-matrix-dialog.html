@@ -46,6 +46,6 @@
 
   <div class="iperc-matrix-dialog__actions">
     <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
-    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">{{ submitting() ? 'Creando…' : 'Crear matriz' }}</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">{{ submitting() ? 'Agregando…' : 'Agregar actividad' }}</dynadrill-button>
   </div>
 </div>

@@ -1,13 +1,13 @@
 <dynadrill-screen-header
   eyebrow="QHSE"
-  title="Matrices IPERC"
-  subtitle="Identificación de Peligros, Evaluación de Riesgos y Controles"
+  title="Matriz Maestra IPERC"
+  subtitle="DYN-SGI-RE-087 — un solo documento anual; cada fila es una actividad con su propio estado de evaluación"
   roleTag="HSE"
 />
 
 <div class="iperc-list-page__toolbar">
   <dynadrill-button variant="secondary" (clicked)="verMatrizConsolidada()">Ver matriz consolidada</dynadrill-button>
-  <dynadrill-button (clicked)="nuevaMatriz()">+ Nueva matriz IPERC</dynadrill-button>
+  <dynadrill-button (clicked)="nuevaMatriz()">+ Agregar actividad</dynadrill-button>
 </div>
 
 <dynadrill-kpi-row [items]="kpis()" />

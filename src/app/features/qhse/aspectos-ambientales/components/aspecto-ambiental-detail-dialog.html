@@ -1,0 +1,7 @@
+<div class="aspecto-ambiental-detail-dialog">
+  <dynadrill-tag [label]="clasificacionLabels[aspecto.clasificacion] + ' — nivel ' + nivel" [variant]="clasificacionTone" />
+
+  <dynadrill-context-card [items]="identificacionItems()" layout="vertical" />
+  <dynadrill-context-card [items]="controlItems()" layout="vertical" />
+  <dynadrill-context-card [items]="seguimientoItems()" layout="vertical" />
+</div>

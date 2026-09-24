@@ -1,0 +1,28 @@
+<dynadrill-screen-header
+  eyebrow="QHSE"
+  title="Aspectos e Impactos Ambientales"
+  subtitle="Actividad → aspecto/impacto → valoración de riesgo → control → seguimiento"
+  roleTag="HSE"
+/>
+
+<div class="aspecto-ambiental-list-page__toolbar">
+  <dynadrill-button (clicked)="nuevoAspecto()">+ Nuevo aspecto ambiental</dynadrill-button>
+</div>
+
+<dynadrill-kpi-row [items]="kpis()" />
+
+<ng-template #actionsTpl let-row>
+  <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="verDetalle(row)" />
+</ng-template>
+
+<div class="table-scroll">
+  <dynadrill-data-table
+    [columns]="columns"
+    [rows]="rows()"
+    [loading]="loading()"
+    [rowKey]="rowKeyFn"
+    [pageSize]="10"
+    actionsHeader="Acciones"
+    [actionsTemplate]="actionsTpl"
+  />
+</div>

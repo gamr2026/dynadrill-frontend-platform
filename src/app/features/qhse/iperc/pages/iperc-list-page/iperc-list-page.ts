@@ -79,7 +79,7 @@ export class IpercListPage {
   protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
     const all = this.matrices();
     return [
-      { label: 'Total IPERC', value: all.length },
+      { label: 'Actividades evaluadas', value: all.length },
       { label: 'En evaluación', value: all.filter(m => m.status === 'en_evaluacion').length },
       { label: 'En revisión', value: all.filter(m => m.status === 'en_revision').length },
       { label: 'Aprobadas', value: all.filter(m => m.status === 'aprobada').length },
@@ -161,7 +161,7 @@ export class IpercListPage {
   }
 
   protected nuevaMatriz(): void {
-    const ref = this.dialogService.open<IpercMatrixDialog>({ title: 'Nueva matriz IPERC', content: IpercMatrixDialog, footer: false });
+    const ref = this.dialogService.open<IpercMatrixDialog>({ title: 'Agregar actividad a la Matriz Maestra', content: IpercMatrixDialog, footer: false });
     ref.afterClose.subscribe(created => {
       if (created) this.router.navigate([created.id], { relativeTo: this.route });
     });

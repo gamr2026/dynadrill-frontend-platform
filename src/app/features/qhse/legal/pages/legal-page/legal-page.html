@@ -1,0 +1,41 @@
+<dynadrill-screen-header
+  eyebrow="QHSE"
+  title="Cumplimiento legal"
+  subtitle="Matrices de evaluación de requisitos legales — Ambiente y SST"
+  roleTag="HSE"
+/>
+
+<dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
+  <div class="legal-page__grid">
+    @for (t of tarjetas(); track t.tipo) {
+      <dynadrill-card [accent]="t.documento ? 'success' : 'neutral'">
+        <span card-title>{{ t.label }}</span>
+        <dynadrill-tag card-extra [label]="t.documento ? 'Cargado' : 'Pendiente'" [variant]="t.documento ? 'success' : 'warning'" />
+
+        @if (t.documento) {
+          <p class="legal-page__archivo">{{ t.documento.nombreOriginal }}</p>
+          <dl class="legal-page__meta">
+            @if (t.documento.revision) {
+              <div><dt>Revisión</dt><dd>{{ t.documento.revision }}</dd></div>
+            }
+            <div><dt>Subido por</dt><dd>{{ t.documento.uploadedBy }}</dd></div>
+            <div><dt>Fecha</dt><dd>{{ t.documento.uploadedAt | date: 'short' }}</dd></div>
+          </dl>
+        } @else {
+          <p class="legal-page__archivo">Todavía no se subió ningún documento.</p>
+        }
+
+        <div class="legal-page__actions">
+          @if (t.documento) {
+            <dynadrill-button variant="secondary" size="small" (clicked)="descargar(t.tipo)">Descargar</dynadrill-button>
+          }
+          <dynadrill-input placeholder="N° de revisión (opcional)" [value]="revisionDe(t.tipo)" (valueChange)="setRevision(t.tipo, $event)" />
+          <dynadrill-button size="small" [disabled]="subiendo() === t.tipo" (clicked)="archivoInput.click()">
+            {{ t.documento ? 'Reemplazar' : 'Subir' }}
+          </dynadrill-button>
+          <input #archivoInput type="file" hidden (change)="subir(t.tipo, archivoInput)" />
+        </div>
+      </dynadrill-card>
+    }
+  </div>
+</dynadrill-spinner>

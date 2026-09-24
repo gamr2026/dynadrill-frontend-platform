@@ -88,7 +88,7 @@ export class IpercMatrixDialog {
 
     this.ipercService.create(input).subscribe({
       next: matrix => {
-        this.notify.success('Matriz creada', `${matrix.code} creada en Borrador — ahora desglosa la actividad en tareas.`);
+        this.notify.success('Actividad agregada', `${matrix.code} creada en Borrador — ahora desglosa la actividad en tareas.`);
         this.modalRef.close(matrix);
       },
       error: () => {

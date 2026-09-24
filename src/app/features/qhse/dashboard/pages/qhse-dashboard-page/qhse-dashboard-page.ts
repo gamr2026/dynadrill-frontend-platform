@@ -26,10 +26,12 @@ import {
   SemaforoColor,
 } from '../../models/dashboard-kpi.model';
 import { DashboardMetasService } from '../../services/dashboard-metas.service';
-import { IPERC_STATUS_LABELS, IpercMatrix, IpercStatus } from '../../../iperc/models/iperc.model';
-import { IpercService } from '../../../iperc/services/iperc.service';
 import { PTW_FASE_LABELS, PTW_FASE_ORDER, PtwFase, PtwMatrix, ptwCerrado } from '../../../ptw/models/ptw.model';
 import { PtwService } from '../../../ptw/services/ptw.service';
+import { ChecklistEquiposService } from '../../../checklist-equipos/services/checklist-equipos.service';
+import { ChecklistEquipo } from '../../../checklist-equipos/models/checklist-equipo.model';
+import { EntregaEpiService } from '../../../epi/services/entrega-epi.service';
+import { EntregaEpi, EpiEstado, EPI_ESTADO_LABELS } from '../../../epi/models/entrega-epi.model';
 import { InspeccionEquipoService } from '../../../inspecciones/services/inspeccion-equipo.service';
 import { inspeccionVencida } from '../../../inspecciones/models/inspeccion-equipo.model';
 import { DesechoService } from '../../../desechos/services/desecho.service';
@@ -61,12 +63,18 @@ function daysBetween(a: Date, b: Date): number {
   return Math.abs(a.getTime() - b.getTime()) / 86_400_000;
 }
 
-const IPERC_ESTADO_TONE: Record<IpercStatus, DynadrillTagVariant> = {
-  borrador: 'neutral',
-  en_evaluacion: 'info',
-  en_revision: 'warning',
-  aprobada: 'success',
-  rechazada: 'error',
+const CHECKLIST_EQUIPO_TONE: Record<ChecklistEquipo['estado'], DynadrillTagVariant> = {
+  pendiente: 'neutral',
+  cargado: 'warning',
+  aprobado: 'success',
+  rechazado: 'error',
+};
+
+const EPI_TONE: Record<EpiEstado, DynadrillTagVariant> = {
+  solicitado: 'warning',
+  aprobado: 'brand',
+  despachado: 'success',
+  rechazado: 'error',
 };
 
 /** Fases "abiertas" agrupadas de forma simple para el mini-resumen — el detalle fase por fase ya vive en la bandeja de PTW. */
@@ -112,8 +120,9 @@ interface AtencionItem {
   styleUrl: './qhse-dashboard-page.scss',
 })
 export class QhseDashboardPage {
-  private readonly ipercService = inject(IpercService);
   private readonly ptwService = inject(PtwService);
+  private readonly checklistEquiposService = inject(ChecklistEquiposService);
+  private readonly epiService = inject(EntregaEpiService);
   private readonly inspeccionService = inject(InspeccionEquipoService);
   private readonly desechoService = inject(DesechoService);
   private readonly derrameService = inject(DerrameService);
@@ -139,40 +148,51 @@ export class QhseDashboardPage {
 
   protected readonly metaEdits = signal<Record<string, string>>({});
 
-  // ── Estado operativo — IPERC y PTW (distinto del reporte por matriz: acá es agregado y accionable, no el detalle de un solo caso) ──
-  protected readonly ipercStatusLabels = IPERC_STATUS_LABELS;
+  // ── Estado operativo — Checklist de equipos, Entrega de EPI y PTW (distinto del reporte por caso: acá es agregado y accionable) ──
   protected readonly ptwFaseLabels = PTW_FASE_LABELS;
   protected readonly ptwDiasSinActividadAlerta = PTW_DIAS_SIN_ACTIVIDAD_ALERTA;
-  private readonly matricesRaw = signal<IpercMatrix[]>([]);
+  protected readonly epiEstadoLabels = EPI_ESTADO_LABELS;
+  private readonly checklistEquiposRaw = signal<ChecklistEquipo[]>([]);
+  private readonly entregasEpiRaw = signal<EntregaEpi[]>([]);
   private readonly ptwRaw = signal<PtwMatrix[]>([]);
 
-  protected readonly matricesRawTotal = computed(() => this.matricesRaw().length);
+  protected readonly checklistEquiposTotal = computed(() => this.checklistEquiposRaw().length);
 
-  protected readonly matricesPorEstado = computed(() => {
-    const all = this.matricesRaw();
-    return (Object.keys(IPERC_STATUS_LABELS) as IpercStatus[]).map(estado => ({
+  protected readonly checklistEquiposPorEstado = computed(() => {
+    const all = this.checklistEquiposRaw();
+    return (['pendiente', 'cargado', 'aprobado', 'rechazado'] as const).map(estado => ({
       estado,
-      label: IPERC_STATUS_LABELS[estado],
-      tone: IPERC_ESTADO_TONE[estado],
-      count: all.filter(m => m.status === estado).length,
+      label: estado === 'cargado' ? 'Cargado — a revisar' : estado.charAt(0).toUpperCase() + estado.slice(1),
+      tone: CHECKLIST_EQUIPO_TONE[estado],
+      count: all.filter(c => c.estado === estado).length,
     }));
   });
 
-  /** Matrices que alguien tiene que revisar hoy: rechazadas, esperando aprobación, o con una lección aprendida sin cerrar el ciclo. */
-  protected readonly matricesAtencion = computed<AtencionItem[]>(() => {
-    const items: AtencionItem[] = [];
-    for (const m of this.matricesRaw()) {
-      if (m.status === 'rechazada') {
-        items.push({ id: m.id, code: m.code, titulo: m.actividad, estado: 'Rechazada', detalle: 'Pendiente de corregir', tone: 'error' });
-      } else if (m.status === 'en_revision') {
-        items.push({ id: m.id, code: m.code, titulo: m.actividad, estado: 'En revisión', detalle: 'Pendiente de aprobar', tone: 'warning' });
-      }
-      if (m.leccionAprendidaPendiente) {
-        items.push({ id: m.id, code: m.code, titulo: m.actividad, estado: 'Lección aprendida', detalle: 'Pendiente de revisar', tone: 'warning' });
-      }
-    }
-    return items;
+  /** Casos "cargado" — lo que QHSE tiene pendiente de aprobar/rechazar hoy (Fase 4). */
+  protected readonly checklistEquiposAtencion = computed<AtencionItem[]>(() =>
+    this.checklistEquiposRaw()
+      .filter(c => c.estado === 'cargado')
+      .map(c => ({ id: c.id, code: `Ticket ${c.pumpingTicketId}`, titulo: c.equipoNombre, estado: 'Por revisar', tone: 'warning' as DynadrillTagVariant })),
+  );
+
+  protected readonly entregasEpiTotal = computed(() => this.entregasEpiRaw().length);
+
+  protected readonly entregasEpiPorEstado = computed(() => {
+    const all = this.entregasEpiRaw();
+    return (['solicitado', 'aprobado', 'despachado', 'rechazado'] as const).map(estado => ({
+      estado,
+      label: EPI_ESTADO_LABELS[estado],
+      tone: EPI_TONE[estado],
+      count: all.filter(e => e.estado === estado).length,
+    }));
   });
+
+  /** Entregas "solicitado" — lo que QHSE tiene pendiente de aprobar/rechazar hoy (Fase 5). */
+  protected readonly entregasEpiAtencion = computed<AtencionItem[]>(() =>
+    this.entregasEpiRaw()
+      .filter(e => e.estado === 'solicitado')
+      .map(e => ({ id: e.id, code: e.code, titulo: `${e.trabajadorNombre} — ${e.trabajadorCargo}`, estado: 'Solicitado', tone: 'warning' as DynadrillTagVariant })),
+  );
 
   protected readonly ptwAbiertosTotal = computed(() => this.ptwRaw().filter(p => !ptwCerrado(p)).length);
 
@@ -204,8 +224,12 @@ export class QhseDashboardPage {
       }));
   });
 
-  protected verIperc(id: number): void {
-    this.router.navigate(['/dashboard/qhse/iperc', id]);
+  protected verChecklistEquipos(): void {
+    this.router.navigate(['/dashboard/qhse/checklist-equipos']);
+  }
+
+  protected verEpi(): void {
+    this.router.navigate(['/dashboard/qhse/epi']);
   }
 
   protected verPtw(id: number): void {
@@ -272,7 +296,8 @@ export class QhseDashboardPage {
 
   constructor() {
     forkJoin({
-      matrices: this.ipercService.list(),
+      checklistEquipos: this.checklistEquiposService.listar(),
+      entregasEpi: this.epiService.list(),
       ptw: this.ptwService.list(),
       inspecciones: this.inspeccionService.list(),
       desechos: this.desechoService.list(),
@@ -286,7 +311,7 @@ export class QhseDashboardPage {
       usuarios: this.usersService.list().pipe(catchError(() => of<User[]>([]))),
       metas: this.metasService.get(),
     }).subscribe({
-      next: ({ matrices, ptw, inspecciones, desechos, derrames, stop, swa, investigaciones, usuarios, metas }) => {
+      next: ({ checklistEquipos, entregasEpi, ptw, inspecciones, desechos, derrames, stop, swa, investigaciones, usuarios, metas }) => {
         const ahora = new Date();
         const detalleLegal: string[] = [];
 
@@ -312,11 +337,6 @@ export class QhseDashboardPage {
         const ptwTiempoPromDias =
           cerrados.length > 0
             ? Math.round((cerrados.reduce((sum, p) => sum + daysBetween(new Date(p.createdAt), new Date(p.updatedAt)), 0) / cerrados.length) * 10) / 10
-            : null;
-
-        const ipercVigentePct =
-          ptw.length > 0
-            ? Math.round((ptw.filter((p: PtwMatrix) => matrices.find(m => m.id === p.ipercMatrixId)?.status === 'aprobada').length / ptw.length) * 100)
             : null;
 
         // ── Ambiental ──
@@ -360,7 +380,6 @@ export class QhseDashboardPage {
           ptw_cerrados_pct: ptwCerradosPct,
           inspecciones_vigentes_pct: inspeccionesVigentesPct,
           ptw_tiempo_prom_dias: ptwTiempoPromDias,
-          iperc_vigente_pct: ipercVigentePct,
           desechos_peligrosos_kg_mes: desechosPeligrososKgMes,
           reciclaje_pct: reciclajePct,
           derrames_trimestre: derramesTrimestre,
@@ -371,7 +390,8 @@ export class QhseDashboardPage {
         this.incumplimientoLegal.set(detalleLegal.length > 0);
         this.incumplimientoDetalle.set(detalleLegal);
         this.metas.set(metas);
-        this.matricesRaw.set(matrices);
+        this.checklistEquiposRaw.set(checklistEquipos);
+        this.entregasEpiRaw.set(entregasEpi);
         this.ptwRaw.set(ptw);
         this.loading.set(false);
       },

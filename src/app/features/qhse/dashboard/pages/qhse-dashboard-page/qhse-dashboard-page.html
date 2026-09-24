@@ -34,23 +34,23 @@
     <h2 class="qhse-dashboard-page__operativo-title">Estado operativo</h2>
 
     <div class="qhse-dashboard-page__operativo-cols">
-      <dynadrill-section title="Matrices IPERC" icon="modules" viewAllLink="/dashboard/qhse/iperc">
+      <dynadrill-section title="Checklist de equipos" icon="modules" viewAllLink="/dashboard/qhse/checklist-equipos">
         <div class="qhse-dashboard-page__estado-chips">
-          @for (e of matricesPorEstado(); track e.estado) {
+          @for (e of checklistEquiposPorEstado(); track e.estado) {
             @if (e.count > 0) {
               <dynadrill-tag [label]="e.count + ' ' + e.label" [variant]="e.tone" />
             }
           }
-          @if (matricesRawTotal() === 0) {
-            <span class="qhse-dashboard-page__operativo-empty">Sin matrices registradas todavía.</span>
+          @if (checklistEquiposTotal() === 0) {
+            <span class="qhse-dashboard-page__operativo-empty">Sin checklists registrados todavía.</span>
           }
         </div>
 
-        @if (matricesAtencion().length > 0) {
+        @if (checklistEquiposAtencion().length > 0) {
           <ul class="qhse-dashboard-page__atencion-list">
-            @for (item of matricesAtencion(); track item.id + item.estado) {
+            @for (item of checklistEquiposAtencion(); track item.id) {
               <li>
-                <button type="button" class="qhse-dashboard-page__atencion-btn" (click)="verIperc(item.id)">
+                <button type="button" class="qhse-dashboard-page__atencion-btn" (click)="verChecklistEquipos()">
                   <div class="qhse-dashboard-page__atencion-head">
                     <strong>{{ item.code }}</strong>
                     <dynadrill-tag [label]="item.estado" [variant]="item.tone" />
@@ -59,18 +59,46 @@
                     <dynadrill-icon name="file-text" [size]="14" />
                     <span>{{ item.titulo }}</span>
                   </div>
-                  @if (item.detalle) {
-                    <div class="qhse-dashboard-page__atencion-row">
-                      <dynadrill-icon name="clock" [size]="14" />
-                      <span>{{ item.detalle }}</span>
-                    </div>
-                  }
                 </button>
               </li>
             }
           </ul>
         } @else {
-          <p class="qhse-dashboard-page__operativo-empty">Nada pendiente de revisión en IPERC.</p>
+          <p class="qhse-dashboard-page__operativo-empty">Nada pendiente de revisión.</p>
+        }
+      </dynadrill-section>
+
+      <dynadrill-section title="Entrega de EPI" icon="box" viewAllLink="/dashboard/qhse/epi">
+        <div class="qhse-dashboard-page__estado-chips">
+          @for (e of entregasEpiPorEstado(); track e.estado) {
+            @if (e.count > 0) {
+              <dynadrill-tag [label]="e.count + ' ' + e.label" [variant]="e.tone" />
+            }
+          }
+          @if (entregasEpiTotal() === 0) {
+            <span class="qhse-dashboard-page__operativo-empty">Sin entregas de EPI registradas todavía.</span>
+          }
+        </div>
+
+        @if (entregasEpiAtencion().length > 0) {
+          <ul class="qhse-dashboard-page__atencion-list">
+            @for (item of entregasEpiAtencion(); track item.id) {
+              <li>
+                <button type="button" class="qhse-dashboard-page__atencion-btn" (click)="verEpi()">
+                  <div class="qhse-dashboard-page__atencion-head">
+                    <strong>{{ item.code }}</strong>
+                    <dynadrill-tag [label]="item.estado" [variant]="item.tone" />
+                  </div>
+                  <div class="qhse-dashboard-page__atencion-row">
+                    <dynadrill-icon name="file-text" [size]="14" />
+                    <span>{{ item.titulo }}</span>
+                  </div>
+                </button>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="qhse-dashboard-page__operativo-empty">Nada pendiente de revisión.</p>
         }
       </dynadrill-section>
 

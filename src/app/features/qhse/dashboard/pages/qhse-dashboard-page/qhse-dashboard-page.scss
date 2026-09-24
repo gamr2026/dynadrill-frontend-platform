@@ -96,6 +96,9 @@
   // fondo, radius, header con ícono + "Ver todo") — acá solo se define la
   // grilla que las reparte, no su apariencia. Mobile-first: 1 columna por
   // defecto, 2 desde md (840px) donde ya entra cómodo el layout de 2 cards.
+  // 3 paneles ahora (Checklist de equipos, Entrega de EPI, PTW) — auto-fit en
+  // vez de un fijo repeat(2, ...) para que acomode 1/2/3 columnas según el
+  // ancho disponible, sin dejar un panel huérfano en su propia fila.
   &__operativo-cols {
     display: grid;
     grid-template-columns: 1fr;
@@ -103,7 +106,7 @@
     align-items: start;
 
     @media (min-width: 840px) {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     }
 
     // El track puede achicarse por el minmax(0, 1fr), pero el ítem en sí

@@ -40,7 +40,7 @@ export const DASHBOARD_KPI_DEFS: DashboardKpiDef[] = [
   { id: 'ptw_cerrados_pct', categoria: 'Operacional', label: '% de PTW cerrados', unidad: '%', direccion: 'mayor_mejor', disponible: true },
   { id: 'inspecciones_vigentes_pct', categoria: 'Operacional', label: '% de inspecciones vigentes', unidad: '%', direccion: 'mayor_mejor', disponible: true },
   { id: 'ptw_tiempo_prom_dias', categoria: 'Operacional', label: 'Tiempo promedio apertura → cierre PTW', unidad: 'días', direccion: 'menor_mejor', disponible: true },
-  { id: 'iperc_vigente_pct', categoria: 'Operacional', label: '% de PTW con IPERC vigente (aprobada)', unidad: '%', direccion: 'mayor_mejor', disponible: true },
+  { id: 'iperc_vigente_pct', categoria: 'Operacional', label: '% de PTW con IPERC vigente (aprobada)', unidad: '%', direccion: 'mayor_mejor', disponible: false, motivoNoDisponible: 'La Matriz IPERC pasó a ser maestra/anual (no se vincula por PTW individual) — ya no hay "IPERC vigente" que medir por trabajo.' },
 
   { id: 'desechos_peligrosos_kg_mes', categoria: 'Ambiental', label: 'Desechos peligrosos generados (mes actual)', unidad: 'kg', direccion: 'menor_mejor', disponible: true },
   { id: 'reciclaje_pct', categoria: 'Ambiental', label: '% de reciclaje (peso en contenedor azul)', unidad: '%', direccion: 'mayor_mejor', disponible: true },

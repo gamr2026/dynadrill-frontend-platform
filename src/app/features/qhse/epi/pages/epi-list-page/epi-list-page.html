@@ -10,9 +10,13 @@
 
     <div class="epi-list-page__grid">
       @for (c of viewCards(); track c.id) {
-        <dynadrill-card [accent]="c.completa ? 'success' : 'neutral'">
+        <dynadrill-card [accent]="c.estado === 'rechazado' ? 'error' : c.completa ? 'success' : 'neutral'">
           <span card-title>{{ c.code }}</span>
-          <dynadrill-tag card-extra [label]="c.completa ? 'Expediente cerrado' : 'Pendiente de cierre'" [variant]="c.completa ? 'success' : 'warning'" />
+          <dynadrill-tag
+            card-extra
+            [label]="estadoLabels[c.estado]"
+            [variant]="c.estado === 'despachado' ? 'success' : c.estado === 'rechazado' ? 'error' : c.estado === 'aprobado' ? 'brand' : 'warning'"
+          />
 
           <div class="epi-list-page__heading">
             <p class="epi-list-page__nombre">{{ c.trabajadorNombre }}</p>
@@ -35,10 +39,27 @@
             <dynadrill-tag [label]="c.sinCapacitacion + ' ítem(s) sin capacitación'" variant="warning" />
           }
 
+          @if (c.estado === 'rechazado' && c.motivoRechazo) {
+            <dynadrill-tag [label]="'Motivo: ' + c.motivoRechazo" variant="error" />
+          }
+
+          @if (c.estado === 'solicitado') {
+            <dynadrill-input label="Motivo de rechazo (si aplica)" [value]="motivoDe(c.id)" (valueChange)="onMotivoChange(c.id, $event)" />
+          }
+
           <div class="epi-list-page__actions">
             <dynadrill-button variant="secondary" size="small" (clicked)="verDetalle(c.id)">Ver detalle</dynadrill-button>
+            @switch (c.estado) {
+              @case ('solicitado') {
+                <dynadrill-button size="small" variant="success" (clicked)="aprobar(c.id)">Aprobar</dynadrill-button>
+                <dynadrill-button size="small" variant="error" (clicked)="rechazar(c.id)">Rechazar</dynadrill-button>
+              }
+              @case ('aprobado') {
+                <dynadrill-button size="small" (clicked)="despachar(c.id)">Despachar</dynadrill-button>
+              }
+            }
             @if (!c.completa) {
-              <dynadrill-button size="small" (clicked)="cerrarExpediente(c.id)">Recibe conforme (Talento Humano)</dynadrill-button>
+              <dynadrill-button variant="secondary" size="small" (clicked)="cerrarExpediente(c.id)">Recibe conforme (Talento Humano)</dynadrill-button>
             }
           </div>
         </dynadrill-card>

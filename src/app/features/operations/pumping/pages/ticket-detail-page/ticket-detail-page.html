@@ -878,6 +878,37 @@
       </section>
     }
 
+    <!-- Entrega de EPI (Fase 5, PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS) — el
+         operativo genera la orden, QHSE aprueba/rechaza/despacha. Se suma al
+         gate de arriba: bloquea hasta que TODOS los operadores asignados
+         tengan su EPI despachado. -->
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Entrega de EPI</dynadrill-text>
+      @if (epiBloquea()) {
+        <div class="ticket-detail__quimico-sin-match">
+          <dynadrill-text variant="body"><strong>⚠ Traslado de salida bloqueado.</strong></dynadrill-text>
+          <dynadrill-text variant="caption">Falta despachar la entrega de EPI de uno o más operadores asignados.</dynadrill-text>
+        </div>
+      }
+      @for (p of epiPorOperador(); track p.operador.id) {
+        <div class="ticket-detail__quimico-sin-match">
+          <dynadrill-text variant="body">
+            <strong>{{ p.operador.name }}</strong> —
+            @switch (p.entrega?.estado) {
+              @case ('despachado') { Despachado }
+              @case ('aprobado') { Aprobado, esperando despacho de QHSE }
+              @case ('rechazado') { Rechazado — {{ p.entrega?.motivoRechazo }} }
+              @case ('solicitado') { Solicitado, esperando revisión de QHSE }
+              @default { Sin solicitar }
+            }
+          </dynadrill-text>
+          @if (!p.entrega || p.entrega.estado === 'rechazado') {
+            <dynadrill-button variant="secondary" size="small" (click)="solicitarEpi(p.operador)">Solicitar EPI</dynadrill-button>
+          }
+        </div>
+      }
+    </section>
+
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
 
@@ -1011,7 +1042,7 @@
 
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || submitting() || checklistQhseBloquea() || checklistIngresoBloquea()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
+      <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || submitting() || checklistQhseBloquea() || checklistIngresoBloquea() || epiBloquea()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
     </footer>
   }
 

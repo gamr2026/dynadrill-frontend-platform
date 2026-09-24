@@ -36,6 +36,22 @@ export interface EpiItem {
   entregadoAt: string;
 }
 
+/**
+ * Ciclo de vida (Fase 5, PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS): "el
+ * operativo genera la orden" — la solicitud nace en 'solicitado' y QHSE la
+ * aprueba/rechaza y despacha. `despachado` es, junto al PTW firmado en
+ * sitio y el checklist de Ingreso/Verificaciones, uno de los candados que
+ * bloquean el paso a ejecución en campo (`traslado_salida`).
+ */
+export type EpiEstado = 'solicitado' | 'aprobado' | 'despachado' | 'rechazado';
+
+export const EPI_ESTADO_LABELS: Record<EpiEstado, string> = {
+  solicitado: 'Solicitado',
+  aprobado: 'Aprobado',
+  despachado: 'Despachado',
+  rechazado: 'Rechazado',
+};
+
 export interface EntregaEpi {
   id: number;
   code: string;
@@ -49,10 +65,22 @@ export interface EntregaEpi {
   /** "Recibe conforme Talento Humano" — cierra el expediente (NOTA del formato: "entregar el registro al file del trabajador en talento Humano"). */
   firmaTalentoHumano?: EpiFirma;
 
+  /** Ticket de Pumping/FCR que originó la solicitud — `undefined` para entregas sueltas (ej. oficina) sin ticket asociado. */
+  pumpingTicketId?: number;
+  estado: EpiEstado;
+  aprobadoPor?: string;
+  aprobadoAt?: string;
+  motivoRechazo?: string;
+  rechazadoPor?: string;
+  rechazadoAt?: string;
+  despachadoPor?: string;
+  despachadoAt?: string;
+
   createdAt: string;
 }
 
-export type CreateEntregaEpiInput = Pick<EntregaEpi, 'lugar' | 'trabajadorNombre' | 'trabajadorCargo' | 'items'>;
+export type CreateEntregaEpiInput = Pick<EntregaEpi, 'lugar' | 'trabajadorNombre' | 'trabajadorCargo' | 'items'> &
+  Partial<Pick<EntregaEpi, 'pumpingTicketId'>>;
 
 /** Expediente completo — declarado por el trabajador y recibido conforme por Talento Humano. */
 export function entregaEpiCompleta(e: Pick<EntregaEpi, 'firmaTrabajador' | 'firmaTalentoHumano'>): boolean {

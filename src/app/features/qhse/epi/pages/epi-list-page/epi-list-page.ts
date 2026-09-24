@@ -5,6 +5,7 @@ import {
   DynadrillCardComponent,
   DynadrillDialogService,
   DynadrillIconComponent,
+  DynadrillInputComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
@@ -13,7 +14,7 @@ import {
   type DynadrillKpiRowItem,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../../../core/services/auth.service';
-import { EntregaEpi, entregaEpiCompleta, entregaEpiSinCapacitacion } from '../../models/entrega-epi.model';
+import { EntregaEpi, EPI_ESTADO_LABELS, entregaEpiCompleta, entregaEpiSinCapacitacion } from '../../models/entrega-epi.model';
 import { EntregaEpiService } from '../../services/entrega-epi.service';
 import { EntregaEpiDialog } from '../../components/entrega-epi-dialog';
 import { EntregaEpiDetailDialog, EntregaEpiDetailDialogData } from '../../components/entrega-epi-detail-dialog';
@@ -32,6 +33,7 @@ function formatDate(iso: string): string {
     DynadrillCardComponent,
     DynadrillTagComponent,
     DynadrillIconComponent,
+    DynadrillInputComponent,
     DynadrillSpinnerComponent,
     DynadrillBannerComponent,
   ],
@@ -47,6 +49,8 @@ export class EpiListPage {
 
   protected readonly loading = signal(true);
   protected readonly entregas = signal<EntregaEpi[]>([]);
+  protected readonly estadoLabels = EPI_ESTADO_LABELS;
+  protected readonly motivoPorId = signal<Record<number, string>>({});
 
   protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
     const all = this.entregas();
@@ -71,6 +75,9 @@ export class EpiListPage {
       itemsCount: e.items.length,
       sinCapacitacion: entregaEpiSinCapacitacion(e).length,
       completa: entregaEpiCompleta(e),
+      estado: e.estado,
+      estadoLabel: this.estadoLabels[e.estado],
+      motivoRechazo: e.motivoRechazo,
     })),
   );
 
@@ -120,6 +127,50 @@ export class EpiListPage {
         this.reload();
       },
       error: () => this.notify.error('Error', 'No se pudo cerrar el expediente.'),
+    });
+  }
+
+  protected motivoDe(id: number): string {
+    return this.motivoPorId()[id] ?? '';
+  }
+
+  protected onMotivoChange(id: number, valor: string): void {
+    this.motivoPorId.update(m => ({ ...m, [id]: valor }));
+  }
+
+  /** Fase 5 — ciclo de vida: aprobar/rechazar/despachar (solo QHSE). */
+  protected aprobar(id: number): void {
+    this.epiService.aprobar(id).subscribe({
+      next: () => {
+        this.notify.success('Aprobada', 'La entrega de EPI quedó aprobada.');
+        this.reload();
+      },
+      error: () => this.notify.error('Error', 'No se pudo aprobar la entrega.'),
+    });
+  }
+
+  protected rechazar(id: number): void {
+    const motivo = this.motivoDe(id).trim();
+    if (!motivo) {
+      this.notify.error('Motivo requerido', 'Escribí el motivo del rechazo antes de confirmar.');
+      return;
+    }
+    this.epiService.rechazar(id, motivo).subscribe({
+      next: () => {
+        this.notify.success('Rechazada', 'La entrega de EPI quedó rechazada.');
+        this.reload();
+      },
+      error: () => this.notify.error('Error', 'No se pudo rechazar la entrega.'),
+    });
+  }
+
+  protected despachar(id: number): void {
+    this.epiService.despachar(id).subscribe({
+      next: () => {
+        this.notify.success('Despachada', 'La entrega de EPI quedó despachada.');
+        this.reload();
+      },
+      error: () => this.notify.error('Error', 'No se pudo despachar la entrega.'),
     });
   }
 }

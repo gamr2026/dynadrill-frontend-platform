@@ -60,6 +60,7 @@ import {
   nextHubodometroAxleLabel,
   type PumpingStep,
   type PumpingChemical,
+  type PumpingOperator,
   type HubodometroEntry,
   type TireEntry,
   type TravelManagement,
@@ -76,6 +77,9 @@ import {
   type ChecklistIngresoBooleanos,
   CHECKLIST_INGRESO_GAS_LIMITES,
 } from '../../services/pumping.service';
+import { EntregaEpiService } from '../../../../qhse/epi/services/entrega-epi.service';
+import { type EntregaEpi } from '../../../../qhse/epi/models/entrega-epi.model';
+import { EntregaEpiDialog, type EntregaEpiDialogData } from '../../../../qhse/epi/components/entrega-epi-dialog';
 import { SolicitudCambioItemsService } from '../../services/solicitud-cambio-items.service';
 import type { SolicitudCambioItems } from '../../models/solicitud-cambio-items.model';
 import {
@@ -229,6 +233,7 @@ export class TicketDetailPage {
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly docsBridge = inject(OperativoDocsBridgeService);
+  private readonly epiService = inject(EntregaEpiService);
 
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
 
@@ -814,6 +819,51 @@ export class TicketDetailPage {
     this.pumpingService.companyManAprobo(t.id).subscribe({
       next: actualizado => this.ticket.set(actualizado),
       error: () => this.notify.error('Error', 'No se pudo guardar la confirmación.'),
+    });
+  }
+
+  // ══════════════════════════════════════════════
+  // Entrega de EPI (Fase 5, PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS) — "el
+  // operativo genera la orden", QHSE aprueba/rechaza/despacha. Se suma al
+  // gate de `traslado_salida` junto al checklist QHSE de equipos y al de
+  // Ingreso/Verificaciones.
+  // ══════════════════════════════════════════════
+
+  protected readonly epiEntregas = signal<EntregaEpi[]>([]);
+
+  /** Estado de EPI de cada operador asignado — el más reciente si tiene varias solicitudes. */
+  protected readonly epiPorOperador = computed(() => {
+    const t = this.ticket();
+    const entregas = this.epiEntregas();
+    return (t?.operators ?? []).map(o => ({
+      operador: o,
+      entrega: [...entregas].reverse().find(e => e.trabajadorNombre === o.name) ?? null,
+    }));
+  });
+
+  protected readonly epiBloquea = computed(
+    () => this.currentStep() === 'traslado_salida' && this.epiPorOperador().some(p => p.entrega?.estado !== 'despachado'),
+  );
+
+  private loadEpiEntregas(ticketId: number): void {
+    this.epiService.listDeTicket(ticketId).subscribe({
+      next: e => this.epiEntregas.set(e),
+      error: () => this.epiEntregas.set([]),
+    });
+  }
+
+  protected solicitarEpi(operador: PumpingOperator): void {
+    const t = this.ticket();
+    if (!t) return;
+    const ref = this.dialog.open<EntregaEpiDialog, EntregaEpiDialogData>({
+      title: 'Solicitar entrega de EPI',
+      content: EntregaEpiDialog,
+      data: { pumpingTicketId: t.id, trabajadorNombre: operador.name, trabajadorCargo: operador.role },
+      footer: false,
+      width: '680px',
+    });
+    ref.afterClose.subscribe(result => {
+      if (result) this.loadEpiEntregas(t.id);
     });
   }
 
@@ -2071,6 +2121,7 @@ export class TicketDetailPage {
         this.loadDocumentosQhse(ticket.id);
         this.loadChecklistQhse(ticket.id);
         this.loadChecklistIngreso(ticket.id);
+        this.loadEpiEntregas(ticket.id);
         if (ticket.pedidoId) {
           this.pedidoService.get(ticket.pedidoId).subscribe({
             next: p => {

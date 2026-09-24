@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { NzModalRef } from 'ng-zorro-antd/modal';
+import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import {
   DynadrillButtonComponent,
   DynadrillCheckboxComponent,
@@ -9,6 +9,13 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { CreateEntregaEpiInput, EntregaEpi, EpiItem } from '../models/entrega-epi.model';
 import { EntregaEpiService } from '../services/entrega-epi.service';
+
+export interface EntregaEpiDialogData {
+  /** Ticket de Pumping/FCR desde el que se abre la solicitud — ver ticket-detail-page. */
+  pumpingTicketId?: number;
+  trabajadorNombre?: string;
+  trabajadorCargo?: string;
+}
 
 interface ItemDraft {
   elemento: string;
@@ -40,10 +47,11 @@ export class EntregaEpiDialog {
   private readonly epiService = inject(EntregaEpiService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<EntregaEpiDialog, EntregaEpi | undefined>);
+  private readonly data = inject<EntregaEpiDialogData | null>(NZ_MODAL_DATA, { optional: true });
 
   protected readonly lugar = signal('');
-  protected readonly trabajadorNombre = signal('');
-  protected readonly trabajadorCargo = signal('');
+  protected readonly trabajadorNombre = signal(this.data?.trabajadorNombre ?? '');
+  protected readonly trabajadorCargo = signal(this.data?.trabajadorCargo ?? '');
 
   protected readonly items = signal<EpiItem[]>([]);
   // Contador monotónico: `items().length + 1` reasigna un id ya usado en cuanto se
@@ -104,6 +112,7 @@ export class EntregaEpiDialog {
       trabajadorNombre: this.trabajadorNombre().trim(),
       trabajadorCargo: this.trabajadorCargo().trim(),
       items: this.items(),
+      ...(this.data?.pumpingTicketId ? { pumpingTicketId: this.data.pumpingTicketId } : {}),
     };
 
     this.epiService.create(input).subscribe({

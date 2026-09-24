@@ -20,6 +20,7 @@ const CARGADO: Badge = { text: 'Cargado', tone: 'success' };
 const PENDIENTE: Badge = { text: 'Pendiente', tone: 'warning' };
 const VENCIDO: Badge = { text: 'Vencido', tone: 'error' };
 const SIN_ART: Badge = { text: 'Sin ART', tone: 'neutral' };
+const APROBADO: Badge = { text: 'Aprobado', tone: 'success' };
 
 /**
  * Bandeja "Documentos por pedido" de QHSE — ver PLAN-QHSE-PUMPING-NOTIFICACIONES,
@@ -50,6 +51,7 @@ export class DocumentosPedidosPage {
     { key: 'ptBadge', header: 'PT (hoy)', type: 'badge' },
     { key: 'sfiBadge', header: 'SFI', type: 'badge' },
     { key: 'checklistIngresoBadge', header: 'Ingreso + Verif.', type: 'badge' },
+    { key: 'companyManBadge', header: 'Company Man', type: 'badge' },
   ];
 
   protected readonly rows = computed(() =>
@@ -63,6 +65,7 @@ export class DocumentosPedidosPage {
       ptBadge: p.estado.ptHoy ? CARGADO : PENDIENTE,
       sfiBadge: p.estado.sfi ? CARGADO : PENDIENTE,
       checklistIngresoBadge: p.estado.checklistIngreso?.completo ? CARGADO : PENDIENTE,
+      companyManBadge: p.estado.companyManAprobado ? APROBADO : PENDIENTE,
       estado: p.estado,
     })),
   );

@@ -804,6 +804,19 @@ export class TicketDetailPage {
     });
   }
 
+  /**
+   * Fase 3: "Formalización de ejecución" — el Supervisor confirma que el
+   * Company Man aprobó (hoy de palabra) el inicio del trabajo en la zona.
+   */
+  protected confirmarCompanyManAprobo(): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.pumpingService.companyManAprobo(t.id).subscribe({
+      next: actualizado => this.ticket.set(actualizado),
+      error: () => this.notify.error('Error', 'No se pudo guardar la confirmación.'),
+    });
+  }
+
   protected chemicalArticulo(articuloId: number): Articulo | undefined {
     return this.chemicalArticulos().find(a => a.id === articuloId);
   }

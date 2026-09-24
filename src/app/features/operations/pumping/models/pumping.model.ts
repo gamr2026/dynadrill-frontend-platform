@@ -218,6 +218,15 @@ export interface PumpingTicket extends Ticket {
    */
   travelManagements?: Record<number, TravelManagement>;
   returnTravelManagements?: Record<number, TravelManagement>;
+  /**
+   * Fase 3, PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS: "Formalización de
+   * ejecución" — el Supervisor confirma en el sistema la aprobación (hoy de
+   * palabra) del Company Man para iniciar el trabajo en una zona. Vive acá
+   * (no en el PTW); QHSE solo lo consulta desde "Documentos por pedido".
+   */
+  companyManAprobo?: boolean;
+  companyManAprobadoPor?: string;
+  companyManAprobadoAt?: string;
 }
 
 // ── Templates de inspección (ítems del formulario físico DYN-MNT-RE-012) ──

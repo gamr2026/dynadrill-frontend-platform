@@ -14,6 +14,13 @@ export interface EstadoDocumentalPedido {
   ptHoy: boolean;
   /** `null` = el pedido todavía no tiene ticket de Pumping. Ver Fase 2, PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS. */
   checklistIngreso: ChecklistIngresoEstado | null;
+  /** Fase 3: aprobación del Company Man, confirmada por el Supervisor en el ticket de Pumping. `null` = todavía no se confirmó. */
+  companyManAprobado: CompanyManAprobado | null;
+}
+
+export interface CompanyManAprobado {
+  aprobadoPor: string;
+  aprobadoAt: string;
 }
 
 /** Solo lectura para QHSE — lo llena Operativo desde su ticket de Pumping. */

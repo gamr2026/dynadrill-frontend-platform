@@ -864,6 +864,20 @@
       </section>
     }
 
+    <!-- Formalización de ejecución (Fase 3, PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS)
+         — el Supervisor confirma que el Company Man aprobó (hoy de palabra) el
+         inicio del trabajo. Solo informativo: no bloquea el paso. -->
+    @if (ticket(); as t) {
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="h2">Formalización de ejecución</dynadrill-text>
+        @if (t.companyManAprobo) {
+          <dynadrill-tag [label]="'Company Man aprobó — confirmado por ' + t.companyManAprobadoPor" variant="success" />
+        } @else {
+          <dynadrill-button variant="secondary" size="small" (click)="confirmarCompanyManAprobo()">Confirmar aprobación del Company Man</dynadrill-button>
+        }
+      </section>
+    }
+
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
 

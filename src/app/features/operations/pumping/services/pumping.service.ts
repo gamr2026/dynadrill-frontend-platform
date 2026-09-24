@@ -179,6 +179,11 @@ export class PumpingService {
   toggleLotoIngreso(ticketId: number, index: number): Observable<ChecklistIngreso> {
     return this.http.patch<ChecklistIngreso>(`${this.baseUrl}/tickets/${ticketId}/checklist-ingreso/loto/${index}`, {});
   }
+
+  /** Fase 3: confirmación del Supervisor de que el Company Man aprobó el inicio del trabajo. */
+  companyManAprobo(ticketId: number): Observable<PumpingTicket> {
+    return this.http.patch<PumpingTicket>(`${this.baseUrl}/tickets/${ticketId}/company-man-aprobo`, {});
+  }
 }
 
 /** `QhseChecklistEquipo` del backend — un caso por unidad asignada. */

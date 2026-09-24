@@ -1,4 +1,6 @@
 <div class="stop-card-detail-dialog">
+  <dynadrill-tag [label]="estadoLabels[card().estado]" [variant]="card().estado === 'cerrado' ? 'neutral' : card().estado === 'abierto' ? 'warning' : 'success'" />
+
   <dynadrill-context-card [items]="reporteItems()" layout="vertical" />
 
   <section class="stop-card-detail-dialog__bloque">
@@ -15,11 +17,11 @@
     } @else {
       <dynadrill-text variant="caption">Sin ítems marcados en este bloque.</dynadrill-text>
     }
-    @if (card.queObservaAcciones) {
-      <div class="stop-card-detail-dialog__nota"><dynadrill-text variant="caption">Qué observa</dynadrill-text><p>{{ card.queObservaAcciones }}</p></div>
+    @if (card().queObservaAcciones) {
+      <div class="stop-card-detail-dialog__nota"><dynadrill-text variant="caption">Qué observa</dynadrill-text><p>{{ card().queObservaAcciones }}</p></div>
     }
-    @if (card.accionesAcciones) {
-      <div class="stop-card-detail-dialog__nota"><dynadrill-text variant="caption">Acciones</dynadrill-text><p>{{ card.accionesAcciones }}</p></div>
+    @if (card().accionesAcciones) {
+      <div class="stop-card-detail-dialog__nota"><dynadrill-text variant="caption">Acciones</dynadrill-text><p>{{ card().accionesAcciones }}</p></div>
     }
   </section>
 
@@ -37,11 +39,33 @@
     } @else {
       <dynadrill-text variant="caption">Sin ítems marcados en este bloque.</dynadrill-text>
     }
-    @if (card.queObservaCondiciones) {
-      <div class="stop-card-detail-dialog__nota"><dynadrill-text variant="caption">Qué observa</dynadrill-text><p>{{ card.queObservaCondiciones }}</p></div>
+    @if (card().queObservaCondiciones) {
+      <div class="stop-card-detail-dialog__nota"><dynadrill-text variant="caption">Qué observa</dynadrill-text><p>{{ card().queObservaCondiciones }}</p></div>
     }
-    @if (card.accionesCondiciones) {
-      <div class="stop-card-detail-dialog__nota"><dynadrill-text variant="caption">Acciones</dynadrill-text><p>{{ card.accionesCondiciones }}</p></div>
+    @if (card().accionesCondiciones) {
+      <div class="stop-card-detail-dialog__nota"><dynadrill-text variant="caption">Acciones</dynadrill-text><p>{{ card().accionesCondiciones }}</p></div>
     }
   </section>
+
+  @if (card().estado === 'cerrado') {
+    <section class="stop-card-detail-dialog__bloque">
+      <dynadrill-text variant="caption">Cerrada por {{ card().cerradoPor }} — {{ card().cerradoAt | date: 'short' }}</dynadrill-text>
+    </section>
+  } @else {
+    <section class="stop-card-detail-dialog__bloque">
+      <dynadrill-text variant="h2">Derivar / cerrar</dynadrill-text>
+      @if (card().derivadoA) {
+        <dynadrill-text variant="caption">
+          Derivada a {{ estadoLabels[card().estado] }} por {{ card().derivadoPor }} — {{ card().derivadoAt | date: 'short' }}
+          @if (card().derivadoObservacion) { : {{ card().derivadoObservacion }} }
+        </dynadrill-text>
+      }
+      <dynadrill-select label="Derivar a" [options]="destinoOpciones" [value]="destino()" (valueChange)="onDestinoChange($event)" />
+      <dynadrill-textarea label="Observación (opcional)" [value]="observacion()" (valueChange)="observacion.set($event)" [rows]="2" />
+      <div class="stop-card-detail-dialog__actions">
+        <dynadrill-button variant="secondary" [disabled]="submitting()" (clicked)="derivar()">Derivar</dynadrill-button>
+        <dynadrill-button variant="error" [disabled]="submitting()" (clicked)="cerrar()">Cerrar tarjeta</dynadrill-button>
+      </div>
+    </section>
+  }
 </div>

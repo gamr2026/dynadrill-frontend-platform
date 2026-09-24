@@ -16,7 +16,7 @@ import {
   type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
-import { StopCard, stopCardInseguros, stopCardTieneInseguroEn } from '../../models/stop-card.model';
+import { StopCard, STOP_ESTADO_LABELS, stopCardInseguros, stopCardTieneInseguroEn } from '../../models/stop-card.model';
 import { StopCardService } from '../../services/stop-card.service';
 import { StopCardDialog } from '../../components/stop-card-dialog';
 import { StopCardDetailDialog, StopCardDetailDialogData } from '../../components/stop-card-detail-dialog';
@@ -78,6 +78,8 @@ export class StopListPage {
     { name: 'Ítems inseguros', data: this.paretoSubcategorias().map(([, count]) => count) },
   ]);
 
+  protected readonly estadoLabels = STOP_ESTADO_LABELS;
+
   protected readonly viewCards = computed(() =>
     this.cards().map(c => {
       const inseguros = stopCardInseguros(c);
@@ -90,6 +92,8 @@ export class StopListPage {
         resumenLabel: inseguros.length === 0 ? 'Sin hallazgos' : `${inseguros.length} ítem(s) inseguro(s)`,
         locacion: c.locacion,
         observadorNombre: c.observadorNombre,
+        estado: c.estado,
+        estadoLabel: this.estadoLabels[c.estado],
       };
     }),
   );
@@ -122,12 +126,15 @@ export class StopListPage {
   protected verDetalle(id: number): void {
     const card = this.cards().find(c => c.id === id);
     if (!card) return;
-    this.dialogService.open<StopCardDetailDialog, StopCardDetailDialogData>({
+    const ref = this.dialogService.open<StopCardDetailDialog, StopCardDetailDialogData>({
       title: `Tarjeta STOP — ${card.code}`,
       content: StopCardDetailDialog,
       data: { card },
       footer: false,
       width: '640px',
+    });
+    ref.afterClose.subscribe(result => {
+      if (result) this.reload();
     });
   }
 }

@@ -83,6 +83,20 @@ export function crearStopChecklist(): StopChecklistItem[] {
   return items;
 }
 
+/**
+ * Ciclo de vida (Fase 4, PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS): 'abierto'
+ * al crearse, y QHSE la deriva o la resuelve — nunca queda "creada y ya".
+ */
+export type StopEstado = 'abierto' | 'derivado_mantenimiento' | 'resuelto_qhse' | 'derivado_otro' | 'cerrado';
+
+export const STOP_ESTADO_LABELS: Record<StopEstado, string> = {
+  abierto: 'Abierta',
+  derivado_mantenimiento: 'Derivada a Mantenimiento',
+  resuelto_qhse: 'Resuelta por QHSE',
+  derivado_otro: 'Derivada a otro departamento',
+  cerrado: 'Cerrada',
+};
+
 export interface StopCard {
   id: number;
   code: string;
@@ -100,11 +114,21 @@ export interface StopCard {
   locacion: string;
   operadora: string;
   contacto?: string;
+  /** Código de la Unidad relacionada (opcional) — si se deriva a Mantenimiento, habilita abrir un Reporte de Unidad real. */
+  equipoCodigo?: string;
 
   createdAt: string;
+
+  estado: StopEstado;
+  derivadoA?: 'mantenimiento' | 'qhse' | 'otro';
+  derivadoObservacion?: string;
+  derivadoPor?: string;
+  derivadoAt?: string;
+  cerradoPor?: string;
+  cerradoAt?: string;
 }
 
-export type CreateStopCardInput = Omit<StopCard, 'id' | 'code' | 'createdAt'>;
+export type CreateStopCardInput = Omit<StopCard, 'id' | 'code' | 'createdAt' | 'estado' | 'derivadoA' | 'derivadoObservacion' | 'derivadoPor' | 'derivadoAt' | 'cerradoPor' | 'cerradoAt'>;
 
 /** ¿Algún ítem del bloque quedó marcado "Inseguro"? — usado para el acento de la tarjeta y el KPI de la bandeja. */
 export function stopCardTieneInseguroEn(card: Pick<StopCard, 'checklist'>, bloque: StopBloque): boolean {

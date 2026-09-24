@@ -28,6 +28,7 @@
             <div><dt><dynadrill-icon name="users" [size]="14" />Observador</dt><dd>{{ c.observadorNombre }}</dd></div>
             <div><dt><dynadrill-icon name="calendar" [size]="14" />Fecha</dt><dd>{{ c.fecha }}</dd></div>
           </dl>
+          <dynadrill-tag [label]="c.estadoLabel" [variant]="c.estado === 'cerrado' ? 'neutral' : c.estado === 'abierto' ? 'warning' : 'success'" />
 
           <dynadrill-button variant="secondary" size="small" (clicked)="verDetalle(c.id)">Ver detalle</dynadrill-button>
         </dynadrill-card>

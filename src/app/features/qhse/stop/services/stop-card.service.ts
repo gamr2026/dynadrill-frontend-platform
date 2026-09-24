@@ -16,4 +16,13 @@ export class StopCardService {
   create(input: CreateStopCardInput): Observable<StopCard> {
     return this.http.post<StopCard>(this.baseUrl, input);
   }
+
+  /** Fase 4: deriva la tarjeta a Mantenimiento, la resuelve QHSE misma, o la deriva a otro departamento. */
+  derivar(id: number, destino: 'mantenimiento' | 'qhse' | 'otro', observacion?: string): Observable<StopCard> {
+    return this.http.patch<StopCard>(`${this.baseUrl}/${id}/derivar`, { destino, observacion });
+  }
+
+  cerrar(id: number): Observable<StopCard> {
+    return this.http.patch<StopCard>(`${this.baseUrl}/${id}/cerrar`, {});
+  }
 }

@@ -79,6 +79,7 @@ export class StopCardDialog {
   protected readonly locacion = signal('');
   protected readonly operadora = signal('');
   protected readonly contacto = signal('');
+  protected readonly equipoCodigo = signal('');
   protected readonly submitting = signal(false);
 
   protected readonly puedeGuardar = computed(() => {
@@ -111,6 +112,7 @@ export class StopCardDialog {
       locacion: this.locacion().trim(),
       operadora: this.operadora().trim(),
       contacto: this.contacto().trim() || undefined,
+      equipoCodigo: this.equipoCodigo().trim() || undefined,
     };
 
     this.stopService.create(input).subscribe({

@@ -224,14 +224,13 @@ export class TicketDetailPage {
   /** Resultado del chequeo del backend: la matriz maestra cubre —aprobadas— las actividades del trabajo. */
   protected readonly ipercVinculo = computed(() => this.ticket()?.qhse ?? null);
   /**
-   * El servicio no avanza (asignar personal, ejecutar) si alguna actividad
-   * de la línea no está aprobada en la matriz maestra. Tickets sin vínculo
-   * (datos viejos / backend sin reiniciar) no se bloquean.
+   * Antes bloqueaba el ticket hasta que la Matriz Maestra IPERC quedara con
+   * cobertura aprobada — se retiró ese candado (Fase 1,
+   * PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS.md): la matriz es maestra/anual,
+   * no se aprueba por pedido, ya no debe bloquear el flujo operativo. Queda
+   * como computed (siempre `true`) para no tener que tocar cada call site.
    */
-  protected readonly coberturaOk = computed(() => {
-    const v = this.ipercVinculo();
-    return !v || v.cobertura === 'ok';
-  });
+  protected readonly coberturaOk = computed(() => true);
   /** Actividades que todavía no están aprobadas — lo que HSE tiene pendiente. */
   protected readonly actividadesPendientes = computed(() =>
     (this.ipercVinculo()?.actividades ?? []).filter(a => a.estado !== 'aprobada'),
@@ -260,17 +259,15 @@ export class TicketDetailPage {
   }
 
   // ── PTW / Recibimiento de Sitio (HSE-SITIO-001) ──
-  /** Estado del PTW del servicio (lo adjunta el backend). `null` mientras la cobertura IPERC no esté completa. */
+  /** Estado del PTW del servicio (lo adjunta el backend) — nace junto con el ticket, ya no espera ninguna cobertura IPERC. */
   protected readonly ptwVinculo = computed(() => this.ipercVinculo()?.ptw ?? null);
   /**
-   * Segundo gate: no se pasa a ejecución en campo (Reporte Diario) sin el
-   * PTW firmado en sitio — PUM-004 "Descargar documentos HSE", RN-PUM-004-06.
-   * Si aún no hay PTW (ticket sembrado / sin pedido) no se bloquea; el
-   * bloqueo aplica en cuanto el PTW existe (se abre solo al completarse la
-   * cobertura IPERC).
+   * Único candado real hoy: no se pasa a ejecución en campo (Reporte Diario)
+   * sin el PTW firmado en sitio — PUM-004 "Descargar documentos HSE",
+   * RN-PUM-004-06. Si aún no hay PTW (ticket sembrado / sin pedido) no se
+   * bloquea.
    */
   protected readonly ptwFirmadoOk = computed(() => {
-    if (!this.coberturaOk()) return false;
     const p = this.ptwVinculo();
     return !p || p.firmadoSitio;
   });

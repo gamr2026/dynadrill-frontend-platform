@@ -1,10 +1,11 @@
 import { TicketQhseActividad, TicketQhseEmergencia, TicketQhseSwa, TicketQhseVinculo } from '../../../shared/models/ticket.model';
 
 /**
- * Helpers compartidos por los detalles de ticket de Pumping y FCR para los
- * dos gates QHSE: cobertura de la Matriz Maestra IPERC (HSE-PLAN-001) y
- * firma en sitio del PTW (HSE-SITIO-001). Un ticket sin `qhse` (datos
- * viejos / backend sin reiniciar) no se bloquea.
+ * Helpers compartidos por los detalles de ticket de Pumping y FCR. El único
+ * gate QHSE real hoy es la firma en sitio del PTW (HSE-SITIO-001) —
+ * `coberturaOk` queda por compatibilidad (siempre `true`, ver su comentario)
+ * desde que se retiró el candado de cobertura de la Matriz Maestra IPERC.
+ * Un ticket sin `qhse` (datos viejos / backend sin reiniciar) no se bloquea.
  */
 
 /** Roles que pueden abrir el módulo QHSE y su endpoint. */
@@ -36,9 +37,17 @@ export function ptwFaseLabel(fase: string): string {
   return PTW_FASE_LABELS[fase] ?? fase;
 }
 
-/** `true` si el servicio puede avanzar por el lado de la Matriz IPERC. */
-export function coberturaOk(vinculo: TicketQhseVinculo | null | undefined): boolean {
-  return !vinculo || vinculo.cobertura === 'ok';
+/**
+ * Antes bloqueaba el ticket hasta que la Matriz Maestra IPERC quedara con
+ * cobertura aprobada — se retiró ese candado (Fase 1,
+ * PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS.md): la matriz es maestra/anual, no
+ * se aprueba por pedido, y el negocio confirmó que ya no debe bloquear el
+ * flujo operativo — el único candado real que queda es el PTW
+ * (`ptwFirmadoOk`). Queda como función (siempre `true`) en vez de borrar
+ * cada call site, para no tener que tocar los ~10 lugares que la llaman.
+ */
+export function coberturaOk(_vinculo: TicketQhseVinculo | null | undefined): boolean {
+  return true;
 }
 
 /** Actividades de la línea que HSE todavía no aprobó. */
@@ -53,18 +62,17 @@ export function actividadesPendientesTexto(vinculo: TicketQhseVinculo | null | u
 }
 
 /**
- * `true` si el servicio puede pasar a ejecución en campo: cobertura IPERC
- * OK y —si ya se abrió un PTW— firmado en sitio (PUM-004 "Descargar
- * documentos HSE", RN-PUM-004-06 / RN-FCR-016).
+ * `true` si el servicio puede pasar a ejecución en campo: el PTW —si ya se
+ * abrió— está firmado en sitio (PUM-004 "Descargar documentos HSE",
+ * RN-PUM-004-06 / RN-FCR-016). Único candado real hoy (Fase 1 del plan).
  *
  * Si todavía no hay PTW (`ptw == null`) NO se bloquea el paso: los tickets
  * sembrados o previos a la integración no tienen pedido vinculado y nunca
- * llegan a tener uno. El banner igual avisa que falta abrirlo. El bloqueo
- * real aplica en cuanto el PTW existe (que es lo normal: se abre solo al
- * quedar completa la cobertura IPERC).
+ * llegan a tener uno. El banner igual avisa que falta abrirlo. En un ticket
+ * normal el PTW ya existe desde que se crea (nace junto con el ticket), así
+ * que el bloqueo real aplica casi de inmediato.
  */
 export function ptwFirmadoOk(vinculo: TicketQhseVinculo | null | undefined): boolean {
-  if (!coberturaOk(vinculo)) return false;
   const ptw = vinculo?.ptw;
   return !ptw || ptw.firmadoSitio;
 }

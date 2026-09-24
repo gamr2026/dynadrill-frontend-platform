@@ -50,11 +50,11 @@ export function calculateTravelRiskLevel(totalPoints: number): TravelRiskLevel {
 export function getTravelRiskDescription(level: TravelRiskLevel): string {
   switch (level) {
     case 'ALTO':
-      return 'Requiere además la aprobación del Director General (Quito), fuera del alcance del sistema.';
+      return 'Requiere la autorización del Jefe de Base y, además, el visto bueno del Director General (Quito), fuera del alcance del sistema.';
     case 'MEDIO':
       return 'Requiere la autorización del Jefe de Base antes de viajar.';
     case 'BAJO':
-      return 'Viaje de rutina con bajo riesgo — se aprueba automáticamente.';
+      return 'Viaje de rutina con bajo riesgo — requiere la autorización del Supervisor de Pumping antes de viajar.';
   }
 }
 

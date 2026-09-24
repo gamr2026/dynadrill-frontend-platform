@@ -104,9 +104,9 @@ export class GerenciamientoViajeDialog {
     { key: 'schedule', header: 'GESTIÓN DE RIESGOS' },
   ];
   protected readonly riskTableRows = [
-    { level: 'ALTO', points: '> 75', schedule: 'Requiere aprobación del Director General (Quito)' },
-    { level: 'MEDIO', points: '31 a 75', schedule: 'Requiere autorización del Jefe de Base' },
-    { level: 'BAJO', points: '< 30', schedule: 'Se aprueba automáticamente' },
+    { level: 'ALTO', points: '> 75', schedule: 'Jefe de Base + Director General (Quito)' },
+    { level: 'MEDIO', points: '31 a 75', schedule: 'Autoriza el Jefe de Base' },
+    { level: 'BAJO', points: '< 30', schedule: 'Autoriza el Supervisor de Pumping' },
   ];
 
   protected onQuestionAnswer(questionId: number, optionIndex: number, value: number): void {
@@ -172,10 +172,8 @@ export class GerenciamientoViajeDialog {
       })
       .subscribe({
         next: gv => {
-          this.notify.success(
-            'Gerenciamiento de viaje enviado',
-            gv.estado === 'aprobado' ? `${gv.code} — riesgo BAJO, aprobado automáticamente.` : `${gv.code} — pendiente de autorización del Jefe de Base.`,
-          );
+          const revisor = gv.riskLevel === 'BAJO' ? 'del Supervisor de Pumping' : 'del Jefe de Base';
+          this.notify.success('Gerenciamiento de viaje enviado', `${gv.code} — pendiente de autorización ${revisor}.`);
           this.modalRef.close(gv);
         },
         error: () => {

@@ -61,7 +61,7 @@ export class GerenciamientoViajeDetailDialog {
     const g = this.gv;
     if (g.estado === 'aprobado') {
       return [
-        { label: 'Aprobado por', value: g.aprobadoPor || 'Sistema (riesgo BAJO)' },
+        { label: 'Aprobado por', value: g.aprobadoPor || '—' },
         { label: 'Aprobado el', value: g.aprobadoAt ? new Date(g.aprobadoAt).toLocaleString('es-EC') : '—' },
       ];
     }
@@ -71,6 +71,7 @@ export class GerenciamientoViajeDetailDialog {
         { label: 'Motivo', value: g.motivoRechazo || '—' },
       ];
     }
-    return [{ label: 'Estado', value: 'Pendiente de autorización del Jefe de Base' }];
+    const revisor = g.riskLevel === 'BAJO' ? 'del Supervisor de Pumping' : 'del Jefe de Base';
+    return [{ label: 'Estado', value: `Pendiente de autorización ${revisor}` }];
   });
 }

@@ -213,9 +213,10 @@ export class Sidebar {
     }
 
     // supervisor.pumping@dynadrill.com — mismas acciones que Supervisor pero
-    // acotado a Pumping y su bandeja de Aprobaciones (nunca FCR).
+    // acotado a Pumping y su bandeja de Aprobaciones (nunca FCR). También
+    // autoriza/rechaza Gerenciamiento de Viaje de riesgo BAJO (DYN-SGI-RE-049).
     if (roleName === 'Supervisor Pumping') {
-      return [dashboard, { label: 'Módulos', icon: 'modules', children: [PUMPING_APROBACIONES_ITEM] }];
+      return [dashboard, { label: 'Módulos', icon: 'modules', children: [PUMPING_APROBACIONES_ITEM] }, GERENCIAMIENTO_VIAJE_ITEM];
     }
 
     if (roleName === 'Jefe de Mantenimiento') {

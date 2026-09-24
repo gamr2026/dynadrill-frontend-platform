@@ -5,8 +5,14 @@ import { roleGuard } from '../../core/guards/role.guard';
 
 /** Superadmin/Jefe de Base ven todos los módulos (ver sidebar.ts). */
 const JEFE_MANTENIMIENTO_ROLES = ['Jefe de Mantenimiento', 'Superadmin', 'Jefe de Base'];
-/** Autoriza/rechaza Gerenciamiento de Viaje MEDIO/ALTO — mismo criterio que ModuleRoles.gerenciamientoViajeApprove en el backend (sin Jefe de Mantenimiento). */
-const GERENCIAMIENTO_VIAJE_APPROVE_ROLES = ['Jefe de Base', 'Superadmin'];
+/**
+ * Autoriza/rechaza Gerenciamiento de Viaje — mismo criterio que
+ * ModuleRoles.gerenciamientoViajeApprove en el backend (sin Jefe de
+ * Mantenimiento): Jefe de Base/Superadmin gestionan cualquier nivel,
+ * Supervisor Pumping solo BAJO (el corte real por nivel de riesgo lo aplica
+ * el backend, esto solo decide quién entra a la página).
+ */
+const GERENCIAMIENTO_VIAJE_APPROVE_ROLES = ['Jefe de Base', 'Superadmin', 'Supervisor Pumping'];
 
 export const maintenanceRoutes: Routes = [
   {

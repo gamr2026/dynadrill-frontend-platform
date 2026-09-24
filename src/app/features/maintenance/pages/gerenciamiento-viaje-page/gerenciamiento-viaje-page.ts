@@ -19,6 +19,7 @@ import {
 import { GerenciamientoViajeService } from '../../../conductor/services/gerenciamiento-viaje.service';
 import { GerenciamientoViajeDetailDialog, GerenciamientoViajeDetailDialogData } from '../../../conductor/components/gerenciamiento-viaje-detail-dialog';
 import { MotivoDialog, MotivoDialogData } from '../../../../shared/components/motivo-dialog/motivo-dialog';
+import { AuthService } from '../../../../core/services/auth.service';
 
 const ESTADO_TONE: Record<GerenciamientoViajeEstado, DynadrillTagVariant> = {
   pendiente: 'warning',
@@ -26,7 +27,13 @@ const ESTADO_TONE: Record<GerenciamientoViajeEstado, DynadrillTagVariant> = {
   rechazado: 'error',
 };
 
-/** Bandeja del Jefe de Base — autoriza/rechaza los Gerenciamientos de Viaje MEDIO/ALTO que los conductores solicitan. */
+/**
+ * Bandeja compartida — el Supervisor (de Pumping) autoriza/rechaza los de
+ * riesgo BAJO; el Jefe de Base (y Superadmin) los de MEDIO/ALTO. Ambos ven
+ * la misma lista; los botones de acción solo aparecen cuando el nivel de
+ * riesgo del registro corresponde a lo que el rol actual puede gestionar
+ * (`puedeGestionar`) — el backend igual lo hace cumplir (403 si no).
+ */
 @Component({
   selector: 'app-gerenciamiento-viaje-page',
   imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillButtonComponent, DynadrillIconButtonComponent, DynadrillDataTableComponent],
@@ -38,6 +45,13 @@ export class GerenciamientoViajePage {
   private readonly service = inject(GerenciamientoViajeService);
   private readonly dialogService = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly auth = inject(AuthService);
+
+  /** Jefe de Base/Superadmin gestionan cualquier nivel; el resto (Supervisor/Supervisor Pumping) solo BAJO — mismo corte que GerenciamientoViajeController.assertPuedeGestionar en el backend. */
+  protected readonly esJefeDeBase = computed(() => {
+    const roleName = this.auth.currentUser()?.roleName;
+    return roleName === 'Jefe de Base' || roleName === 'Superadmin';
+  });
 
   protected readonly loading = signal(true);
   protected readonly viajes = signal<GerenciamientoViaje[]>([]);
@@ -89,6 +103,7 @@ export class GerenciamientoViajePage {
       destino: g.destino,
       riskLevel: g.riskLevel,
       estadoBadge: { text: this.estadoLabels[g.estado], tone: ESTADO_TONE[g.estado] },
+      puedeGestionar: this.esJefeDeBase() || g.riskLevel === 'BAJO',
       gv: g,
     })),
   );

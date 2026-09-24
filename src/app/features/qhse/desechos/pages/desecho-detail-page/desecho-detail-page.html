@@ -7,6 +7,36 @@
 
   <dynadrill-context-card [items]="contextItems()" layout="vertical" />
 
+  <section class="desecho-detail-page__section">
+    <h3>Ítems (DYN-SGI-RE-063)</h3>
+    @if (d.items.length > 0) {
+      <table class="desecho-detail-page__items-table">
+        <thead>
+          <tr>
+            <th>Descripción</th>
+            <th># de lote</th>
+            <th>Código</th>
+            <th>Cantidad (gal)</th>
+            <th>Bultos</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (i of d.items; track i.id) {
+            <tr>
+              <td>{{ i.descripcion }}</td>
+              <td>{{ i.numeroLote || '—' }}</td>
+              <td>{{ i.codigo }}</td>
+              <td>{{ i.cantidadGalones }}</td>
+              <td>{{ i.bultos }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <p class="desecho-detail-page__note">Sin ítems registrados.</p>
+    }
+  </section>
+
   @if (!d.manifiesto) {
     <section class="desecho-detail-page__section">
       <h3>Manifiesto Único</h3>
@@ -25,27 +55,27 @@
 
       <div class="desecho-detail-page__firmas">
         <div class="desecho-detail-page__firma">
-          <span>Generador</span>
-          @if (d.manifiesto!.firmaGenerador; as f) {
+          <span>Despachado por</span>
+          @if (d.manifiesto!.firmaDespachadoPor; as f) {
             <dynadrill-tag label="Firmado por {{ f.nombre }}" variant="success" />
           } @else {
-            <dynadrill-button variant="secondary" size="small" (clicked)="firmar('firmaGenerador')">Firmar</dynadrill-button>
+            <dynadrill-button variant="secondary" size="small" (clicked)="firmar('firmaDespachadoPor')">Firmar</dynadrill-button>
           }
         </div>
         <div class="desecho-detail-page__firma">
-          <span>Transportista</span>
-          @if (d.manifiesto!.firmaTransportista; as f) {
+          <span>Transportado por</span>
+          @if (d.manifiesto!.firmaTransportadoPor; as f) {
             <dynadrill-tag label="Firmado por {{ f.nombre }}" variant="success" />
           } @else {
-            <dynadrill-button variant="secondary" size="small" (clicked)="firmar('firmaTransportista')">Firmar</dynadrill-button>
+            <dynadrill-button variant="secondary" size="small" (clicked)="firmar('firmaTransportadoPor')">Firmar</dynadrill-button>
           }
         </div>
         <div class="desecho-detail-page__firma">
-          <span>Gestor final</span>
-          @if (d.manifiesto!.firmaGestor; as f) {
+          <span>Recibido por</span>
+          @if (d.manifiesto!.firmaRecibidoPor; as f) {
             <dynadrill-tag label="Firmado por {{ f.nombre }}" variant="success" />
           } @else {
-            <dynadrill-button variant="secondary" size="small" (clicked)="firmar('firmaGestor')">Firmar</dynadrill-button>
+            <dynadrill-button variant="secondary" size="small" (clicked)="firmar('firmaRecibidoPor')">Firmar</dynadrill-button>
           }
         </div>
       </div>

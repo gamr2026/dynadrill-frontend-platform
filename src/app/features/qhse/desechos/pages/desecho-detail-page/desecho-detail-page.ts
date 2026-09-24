@@ -19,11 +19,12 @@ import {
   Desecho,
   DesechoFirma,
   certificadoPlazoVence,
+  desechoTotalGalones,
   manifiestoCompleto,
 } from '../../models/desecho.model';
 import { DesechoService } from '../../services/desecho.service';
 
-type FirmaCampo = 'firmaGenerador' | 'firmaTransportista' | 'firmaGestor';
+type FirmaCampo = 'firmaDespachadoPor' | 'firmaTransportadoPor' | 'firmaRecibidoPor';
 
 /** HSE-AMBIENTAL-001 — manifiesto único (3 firmas) y certificado de disposición final. */
 @Component({
@@ -65,9 +66,13 @@ export class DesechoDetailPage {
     return [
       { label: 'Desecho', value: d.code },
       { label: 'Contenedor', value: this.contenedorLabels[d.contenedorColor] },
-      { label: 'Peso', value: `${d.pesoKg} kg` },
+      { label: 'Ítems', value: `${d.items.length} (${desechoTotalGalones(d.items)} gal)` },
       { label: 'Generado por', value: d.generadoPorNombre },
       { label: 'Estado', value: DESECHO_ESTADO_LABELS[d.estado] },
+      ...(d.cliente ? [{ label: 'Cliente', value: d.cliente + (d.clienteRuc ? ` — RUC ${d.clienteRuc}` : '') }] : []),
+      ...(d.transportista?.conductorNombre
+        ? [{ label: 'Transportista', value: `${d.transportista.conductorNombre} — ${d.transportista.vehiculo ?? '—'} (${d.transportista.placas ?? '—'})` }]
+        : []),
     ];
   });
 

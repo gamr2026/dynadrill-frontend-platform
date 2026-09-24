@@ -33,16 +33,22 @@ export interface DesechoFirma {
   firmadoAt: string;
 }
 
-/** Manifiesto Único — 3 firmas: generador, transportista, gestor final. */
+/**
+ * Manifiesto Único — 3 firmas, con las mismas etiquetas del documento real
+ * (DYN-SGI-RE-063 Guía de remisión de desechos: "DESPACHADO POR" /
+ * "TRANSPORTADO POR" / "RECIBIDO POR"). `numero`/`gestorLicenciaSuia` no
+ * están en ese formato pero se mantienen como control interno adicional
+ * (SUIA es un registro ambiental real en Ecuador).
+ */
 export interface ManifiestoUnico {
   numero: string;
   fecha: string;
   gestorNombre: string;
   /** Verificación de que el gestor tiene licencia ambiental vigente (SUIA) — campo obligatorio para poder generar el manifiesto. */
   gestorLicenciaSuia: string;
-  firmaGenerador?: DesechoFirma;
-  firmaTransportista?: DesechoFirma;
-  firmaGestor?: DesechoFirma;
+  firmaDespachadoPor?: DesechoFirma;
+  firmaTransportadoPor?: DesechoFirma;
+  firmaRecibidoPor?: DesechoFirma;
 }
 
 export interface CertificadoDisposicionFinal {
@@ -50,6 +56,36 @@ export interface CertificadoDisposicionFinal {
   fileName: string;
 }
 
+/**
+ * Línea de la tabla de ítems del documento real — columnas exactas de
+ * DYN-SGI-RE-063: DESCRIPCIÓN, # DE LOTE DEL ENVASE, CÓDIGO DEL DESECHO,
+ * CANTIDAD EN GLNS, No. BULTOS/CONTENEDORES.
+ */
+export interface DesechoItem {
+  id: number;
+  descripcion: string;
+  numeroLote?: string;
+  codigo: string;
+  cantidadGalones: number;
+  bultos: number;
+}
+
+/** Bloque "TRANSPORTISTA" del documento real. */
+export interface DesechoTransportista {
+  companiaNombre?: string;
+  conductorNombre?: string;
+  cedulaConductor?: string;
+  vehiculo?: string;
+  placas?: string;
+}
+
+/**
+ * DYN-SGI-RE-063 "Guía de remisión de desechos" — remodelado a la forma
+ * real (Fase 6, PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS): antes era un
+ * registro por lote con `pesoKg` único; ahora es una guía con línea de
+ * ítems, igual que `GuiaRemision` de Facturación (mismo patrón, campos
+ * propios porque las columnas del formato son distintas).
+ */
 export interface Desecho {
   id: number;
   code: string;
@@ -58,10 +94,19 @@ export interface Desecho {
   cretib: CretibCaracteristica[];
   contenedorColor: ContenedorColor;
   descripcion: string;
-  pesoKg: number;
+  items: DesechoItem[];
   ubicacion?: string;
   generadoPorNombre: string;
   estado: DesechoEstado;
+
+  // Encabezado de la guía real.
+  cliente?: string;
+  clienteRuc?: string;
+  solicitadoPor?: string;
+  despachadoPor?: string;
+  horaSalida?: string;
+  horaLlegada?: string;
+  transportista?: DesechoTransportista;
 
   createdAt: string;
   /** AM 142 — máximo 12 meses de almacenamiento. */
@@ -73,8 +118,26 @@ export interface Desecho {
 
 export type CreateDesechoInput = Pick<
   Desecho,
-  'clasificacion' | 'cretib' | 'contenedorColor' | 'descripcion' | 'pesoKg' | 'ubicacion' | 'generadoPorNombre'
+  | 'clasificacion'
+  | 'cretib'
+  | 'contenedorColor'
+  | 'descripcion'
+  | 'items'
+  | 'ubicacion'
+  | 'generadoPorNombre'
+  | 'cliente'
+  | 'clienteRuc'
+  | 'solicitadoPor'
+  | 'despachadoPor'
+  | 'horaSalida'
+  | 'horaLlegada'
+  | 'transportista'
 >;
+
+/** Total de galones de la guía — para la fila "TOTAL DESECHOS GENERADOS" del formato real. */
+export function desechoTotalGalones(items: DesechoItem[]): number {
+  return items.reduce((total, i) => total + i.cantidadGalones, 0);
+}
 
 export function desechoLimiteAlmacenamiento(fechaIso: string): string {
   const d = new Date(fechaIso);
@@ -94,5 +157,5 @@ export function certificadoPlazoVence(manifiestoFechaIso: string): string {
 }
 
 export function manifiestoCompleto(m: ManifiestoUnico): boolean {
-  return !!(m.firmaGenerador && m.firmaTransportista && m.firmaGestor);
+  return !!(m.firmaDespachadoPor && m.firmaTransportadoPor && m.firmaRecibidoPor);
 }

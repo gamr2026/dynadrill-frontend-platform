@@ -9,24 +9,57 @@
 
   <div class="desecho-dialog__grid">
     <dynadrill-select label="Contenedor (código de color)" [options]="contenedorOptions" [value]="contenedorColor()" (valueChange)="contenedorColor.set($any($event))" />
-    <dynadrill-input label="Peso (kg)" type="number" [value]="pesoKg()" (valueChange)="pesoKg.set($event)" />
+    <dynadrill-input label="Generado por" [value]="generadoPorNombre()" (valueChange)="generadoPorNombre.set($event)" />
   </div>
 
   <dynadrill-textarea label="Descripción" [value]="descripcion()" (valueChange)="descripcion.set($event)" [rows]="2" />
 
+  <dynadrill-select
+    label="Ubicación"
+    placeholder="Selecciona o agrega una ubicación"
+    [options]="ubicacionOptions()"
+    [value]="ubicacion()"
+    [searchable]="true"
+    [creatable]="true"
+    (valueChange)="ubicacion.set($any($event) ?? '')"
+    (itemCreated)="agregarUbicacion($event)"
+  />
+
+  <dynadrill-text variant="caption">Cliente (opcional — DYN-SGI-RE-063)</dynadrill-text>
   <div class="desecho-dialog__grid">
-    <dynadrill-select
-      label="Ubicación"
-      placeholder="Selecciona o agrega una ubicación"
-      [options]="ubicacionOptions()"
-      [value]="ubicacion()"
-      [searchable]="true"
-      [creatable]="true"
-      (valueChange)="ubicacion.set($any($event) ?? '')"
-      (itemCreated)="agregarUbicacion($event)"
-    />
-    <dynadrill-input label="Generado por" [value]="generadoPorNombre()" (valueChange)="generadoPorNombre.set($event)" />
+    <dynadrill-input label="Cliente" [value]="cliente()" (valueChange)="cliente.set($event)" />
+    <dynadrill-input label="RUC" [value]="clienteRuc()" (valueChange)="clienteRuc.set($event)" />
+    <dynadrill-input label="Solicitado por" [value]="solicitadoPor()" (valueChange)="solicitadoPor.set($event)" />
+    <dynadrill-input label="Despachado por" [value]="despachadoPor()" (valueChange)="despachadoPor.set($event)" />
   </div>
+
+  <dynadrill-text variant="caption">Transportista (opcional)</dynadrill-text>
+  <div class="desecho-dialog__grid">
+    <dynadrill-input label="Compañía" [value]="companiaTransportista()" (valueChange)="companiaTransportista.set($event)" />
+    <dynadrill-input label="Conductor" [value]="conductorNombre()" (valueChange)="conductorNombre.set($event)" />
+    <dynadrill-input label="Cédula" [value]="cedulaConductor()" (valueChange)="cedulaConductor.set($event)" />
+    <dynadrill-input label="Vehículo" [value]="vehiculo()" (valueChange)="vehiculo.set($event)" />
+    <dynadrill-input label="Placas" [value]="placas()" (valueChange)="placas.set($event)" />
+  </div>
+
+  <dynadrill-text variant="caption">Ítems (DESCRIPCIÓN / # DE LOTE / CÓDIGO / CANTIDAD EN GLNS / BULTOS)</dynadrill-text>
+  @for (item of items(); track item.id) {
+    <div class="desecho-dialog__item-row">
+      <span>{{ item.descripcion }} — {{ item.codigo }} — lote {{ item.numeroLote || '—' }} — {{ item.cantidadGalones }} gal — {{ item.bultos }} bulto(s)</span>
+      <dynadrill-button variant="secondary" size="small" (clicked)="quitarItem(item.id)">Quitar</dynadrill-button>
+    </div>
+  } @empty {
+    <dynadrill-text variant="caption">Todavía no hay ítems agregados.</dynadrill-text>
+  }
+
+  <div class="desecho-dialog__grid">
+    <dynadrill-input label="Descripción del ítem" [value]="itemDescripcion()" (valueChange)="itemDescripcion.set($event)" />
+    <dynadrill-input label="Código del desecho" [value]="itemCodigo()" (valueChange)="itemCodigo.set($event)" />
+    <dynadrill-input label="# de lote del envase" [value]="itemNumeroLote()" (valueChange)="itemNumeroLote.set($event)" />
+    <dynadrill-input label="Cantidad en galones" type="number" [value]="itemCantidadGalones()" (valueChange)="itemCantidadGalones.set($event)" />
+    <dynadrill-input label="Nº bultos/contenedores" type="number" [value]="itemBultos()" (valueChange)="itemBultos.set($event)" />
+  </div>
+  <dynadrill-button variant="secondary" size="small" [disabled]="!puedeAgregarItem()" (clicked)="agregarItem()">+ Agregar ítem</dynadrill-button>
 
   <div class="desecho-dialog__actions">
     <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>

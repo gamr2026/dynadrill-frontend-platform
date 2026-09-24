@@ -33,6 +33,7 @@ import { PtwService } from '../../../ptw/services/ptw.service';
 import { InspeccionEquipoService } from '../../../inspecciones/services/inspeccion-equipo.service';
 import { inspeccionVencida } from '../../../inspecciones/models/inspeccion-equipo.model';
 import { DesechoService } from '../../../desechos/services/desecho.service';
+import { desechoTotalGalones } from '../../../desechos/models/desecho.model';
 import { DerrameService } from '../../../derrames/services/derrame.service';
 import { derrameRequiereNotificacionMae } from '../../../derrames/models/derrame.model';
 import { StopCardService } from '../../../stop/services/stop-card.service';
@@ -327,10 +328,10 @@ export class QhseDashboardPage {
             const f = new Date(d.createdAt);
             return f.getMonth() === mesActual && f.getFullYear() === anioActual;
           })
-          .reduce((sum, d) => sum + d.pesoKg, 0);
+          .reduce((sum, d) => sum + desechoTotalGalones(d.items), 0);
 
-        const totalKg = desechos.reduce((sum, d) => sum + d.pesoKg, 0);
-        const azulKg = desechos.filter(d => d.contenedorColor === 'azul').reduce((sum, d) => sum + d.pesoKg, 0);
+        const totalKg = desechos.reduce((sum, d) => sum + desechoTotalGalones(d.items), 0);
+        const azulKg = desechos.filter(d => d.contenedorColor === 'azul').reduce((sum, d) => sum + desechoTotalGalones(d.items), 0);
         const reciclajePct = totalKg > 0 ? Math.round((azulKg / totalKg) * 100) : null;
 
         const hace90Dias = new Date(ahora.getTime() - 90 * 86_400_000);

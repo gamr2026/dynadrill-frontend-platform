@@ -12,7 +12,7 @@ import {
   type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
-import { DESECHO_ESTADO_LABELS, Desecho } from '../../models/desecho.model';
+import { DESECHO_ESTADO_LABELS, Desecho, desechoTotalGalones } from '../../models/desecho.model';
 import { DesechoService } from '../../services/desecho.service';
 import { DesechoDialog } from '../../components/desecho-dialog';
 
@@ -71,7 +71,8 @@ export class DesechoListPage {
         { text: 'No peligroso', value: 'No peligroso' },
       ],
     },
-    { key: 'pesoKg', header: 'Peso (kg)', sortable: true },
+    { key: 'itemsCount', header: 'Ítems', sortable: true },
+    { key: 'totalGalones', header: 'Total (gal)', sortable: true },
     { key: 'limiteAlmacenamiento', header: 'Límite almacenamiento', sortable: true },
     {
       key: 'estadoBadge',
@@ -87,7 +88,8 @@ export class DesechoListPage {
       code: d.code,
       descripcion: d.descripcion,
       clasificacionLabel: d.clasificacion === 'peligroso' ? 'Peligroso' : 'No peligroso',
-      pesoKg: d.pesoKg,
+      itemsCount: d.items.length,
+      totalGalones: desechoTotalGalones(d.items),
       limiteAlmacenamiento: formatDate(d.limiteAlmacenamientoHasta),
       estadoBadge: { text: DESECHO_ESTADO_LABELS[d.estado], tone: ESTADO_TONE[d.estado] },
     })),

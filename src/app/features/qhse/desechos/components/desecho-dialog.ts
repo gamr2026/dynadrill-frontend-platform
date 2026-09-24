@@ -19,6 +19,7 @@ import {
   CreateDesechoInput,
   CretibCaracteristica,
   Desecho,
+  DesechoItem,
 } from '../models/desecho.model';
 import { DesechoService } from '../services/desecho.service';
 import { CatalogosService } from '../../../../shared/index';
@@ -64,16 +65,61 @@ export class DesechoDialog {
   protected readonly contenedorOptions = CONTENEDOR_OPTIONS;
   protected readonly contenedorColor = signal<ContenedorColor>('gris');
   protected readonly descripcion = signal('');
-  protected readonly pesoKg = signal('');
   protected readonly ubicacionOptions = signal<DynadrillSelectOption[]>([]);
   protected readonly ubicacion = signal('');
   protected readonly generadoPorNombre = signal(this.auth.currentUser()?.name ?? '');
   protected readonly submitting = signal(false);
 
+  // ── Encabezado de la guía real (DYN-SGI-RE-063) ──
+  protected readonly cliente = signal('');
+  protected readonly clienteRuc = signal('');
+  protected readonly solicitadoPor = signal('');
+  protected readonly despachadoPor = signal('');
+  protected readonly companiaTransportista = signal('');
+  protected readonly conductorNombre = signal('');
+  protected readonly cedulaConductor = signal('');
+  protected readonly vehiculo = signal('');
+  protected readonly placas = signal('');
+
+  // ── Ítems (DESCRIPCIÓN / # DE LOTE / CÓDIGO / CANTIDAD EN GLNS / BULTOS) ──
+  protected readonly items = signal<DesechoItem[]>([]);
+  private nextItemId = 1;
+  protected readonly itemDescripcion = signal('');
+  protected readonly itemNumeroLote = signal('');
+  protected readonly itemCodigo = signal('');
+  protected readonly itemCantidadGalones = signal('');
+  protected readonly itemBultos = signal('');
+
   protected readonly esPeligroso = computed(() => this.clasificacionLabel()[0] === 'Peligroso');
 
+  protected readonly puedeAgregarItem = computed(
+    () => this.itemDescripcion().trim().length > 0 && this.itemCodigo().trim().length > 0 && Number(this.itemCantidadGalones()) > 0,
+  );
+
+  protected agregarItem(): void {
+    if (!this.puedeAgregarItem()) return;
+    const item: DesechoItem = {
+      id: this.nextItemId++,
+      descripcion: this.itemDescripcion().trim(),
+      numeroLote: this.itemNumeroLote().trim() || undefined,
+      codigo: this.itemCodigo().trim(),
+      cantidadGalones: Number(this.itemCantidadGalones()),
+      bultos: Number(this.itemBultos()) || 0,
+    };
+    this.items.update(list => [...list, item]);
+    this.itemDescripcion.set('');
+    this.itemNumeroLote.set('');
+    this.itemCodigo.set('');
+    this.itemCantidadGalones.set('');
+    this.itemBultos.set('');
+  }
+
+  protected quitarItem(id: number): void {
+    this.items.update(list => list.filter(i => i.id !== id));
+  }
+
   protected readonly puedeGuardar = computed(
-    () => this.descripcion().trim().length > 0 && Number(this.pesoKg()) > 0 && (!this.esPeligroso() || this.cretib().length > 0),
+    () => this.descripcion().trim().length > 0 && this.items().length > 0 && (!this.esPeligroso() || this.cretib().length > 0),
   );
 
   protected agregarUbicacion(nombre: string): void {
@@ -94,14 +140,29 @@ export class DesechoDialog {
     this.submitting.set(true);
 
     const clasificacion: ClasificacionDesecho = this.esPeligroso() ? 'peligroso' : 'no_peligroso';
+    const transportista =
+      this.companiaTransportista() || this.conductorNombre() || this.cedulaConductor() || this.vehiculo() || this.placas()
+        ? {
+            companiaNombre: this.companiaTransportista().trim() || undefined,
+            conductorNombre: this.conductorNombre().trim() || undefined,
+            cedulaConductor: this.cedulaConductor().trim() || undefined,
+            vehiculo: this.vehiculo().trim() || undefined,
+            placas: this.placas().trim() || undefined,
+          }
+        : undefined;
     const input: CreateDesechoInput = {
       clasificacion,
       cretib: clasificacion === 'peligroso' ? (this.cretib() as CretibCaracteristica[]) : [],
       contenedorColor: this.contenedorColor(),
       descripcion: this.descripcion(),
-      pesoKg: Number(this.pesoKg()),
+      items: this.items(),
       ubicacion: this.ubicacion() || undefined,
       generadoPorNombre: this.generadoPorNombre(),
+      cliente: this.cliente().trim() || undefined,
+      clienteRuc: this.clienteRuc().trim() || undefined,
+      solicitadoPor: this.solicitadoPor().trim() || undefined,
+      despachadoPor: this.despachadoPor().trim() || undefined,
+      transportista,
     };
 
     this.desechoService.create(input).subscribe({

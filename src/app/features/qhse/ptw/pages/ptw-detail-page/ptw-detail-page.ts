@@ -4,8 +4,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
-  DynadrillChecklistComponent,
-  type DynadrillChecklistItem,
   DynadrillInputComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
@@ -30,7 +28,6 @@ import {
   ptwControlDeHoyPendiente,
   ptwDailyLogSeguro,
   ptwGasEsSeguro,
-  ptwGasLimiteLabel,
 } from '../../models/ptw.model';
 import { PtwService } from '../../services/ptw.service';
 import { downloadQhseReport, escapeHtml, qhseBadge, type QhseReportSection } from '../../../shared/utils/qhse-report.util';
@@ -45,7 +42,6 @@ type FirmaCampo = 'ptwFirmadoSitio' | 'actaRecibimientoFirmada' | 'ptwCerrado' |
     DynadrillScreenHeaderComponent,
     DynadrillStepperComponent,
     DynadrillBannerComponent,
-    DynadrillChecklistComponent,
     DynadrillUploadZoneComponent,
     DynadrillInputComponent,
     DynadrillTagComponent,
@@ -68,9 +64,8 @@ export class PtwDetailPage {
   protected readonly steps = PTW_FASE_STEPS;
   protected readonly gasKeys: PtwGas[] = ['H2S', 'LEL', 'O2', 'CO'];
   protected readonly gasLimites = PTW_GAS_LIMITES;
-  protected readonly gasDraft = signal<Record<PtwGas, string>>({ H2S: '', LEL: '', O2: '', CO: '' });
 
-  // ── Registro diario (Fase 5 — control del día a día durante la ejecución) ──
+  // ── Registro diario (Fase 3 — control del día a día durante la ejecución) ──
   protected readonly dailyGasDraft = signal<Record<PtwGas, string>>({ H2S: '', LEL: '', O2: '', CO: '' });
   protected readonly dailyToolboxTalk = signal(false);
   protected readonly dailyLoto = signal(false);
@@ -95,80 +90,7 @@ export class PtwDetailPage {
    */
   protected readonly diasEjecucionRegistrados = computed(() => this.ptw()?.dailyLogs.length ?? 0);
 
-  protected readonly latestGasByType = computed<Partial<Record<PtwGas, PtwGasReading>>>(() => {
-    const p = this.ptw();
-    const map: Partial<Record<PtwGas, PtwGasReading>> = {};
-    if (!p) return map;
-    for (const gas of this.gasKeys) {
-      const readings = p.gasReadings.filter(r => r.gas === gas);
-      if (readings.length > 0) map[gas] = readings[readings.length - 1];
-    }
-    return map;
-  });
-
-  protected limiteLabel(gas: PtwGas): string {
-    return ptwGasLimiteLabel(gas);
-  }
-
-  protected gasEstadoLabel(gas: PtwGas): string {
-    const r = this.latestGasByType()[gas];
-    if (!r) return 'Sin lectura';
-    return r.seguro ? 'Seguro' : 'Fuera de rango';
-  }
-
-  protected gasEstadoVariant(gas: PtwGas): 'success' | 'error' | 'neutral' {
-    const r = this.latestGasByType()[gas];
-    if (!r) return 'neutral';
-    return r.seguro ? 'success' : 'error';
-  }
-
-  protected readonly gasInseguroDetalle = computed(() => {
-    const latest = this.latestGasByType();
-    for (const gas of this.gasKeys) {
-      const r = latest[gas];
-      if (r && !r.seguro) {
-        return `${this.gasLimites[gas].label}: ${r.lectura} ${this.gasLimites[gas].unidad} — fuera del rango seguro (${ptwGasLimiteLabel(gas)}). Detener el trabajo.`;
-      }
-    }
-    return '';
-  });
-
-  protected readonly ingresoChecklist = computed<DynadrillChecklistItem[]>(() => {
-    const p = this.ptw();
-    if (!p) return [];
-    return [
-      { label: 'Toolbox Talk realizado (5 min obligatorios)', checked: p.toolboxTalkRealizado },
-      { label: 'Inspección conjunta Walk-around', checked: p.walkaroundCompletado },
-      { label: 'Línea base ambiental documentada', checked: p.lineaBaseAmbientalDocumentada },
-      { label: 'Rutas de emergencia verificadas', checked: p.rutasEmergenciaVerificadas },
-      { label: 'SIMOPS confirmado — sin trabajos incompatibles', checked: p.simopsConfirmado },
-    ];
-  });
-
-  protected readonly lotoChecklist = computed<DynadrillChecklistItem[]>(() => this.ptw()?.lotoChecklist ?? []);
-
   protected readonly puedeAvanzarDeGabinete = computed(() => (this.ptw()?.documentos ?? []).every(d => d.cargado));
-
-  protected readonly puedeAvanzarDeIngreso = computed(() => {
-    const p = this.ptw();
-    if (!p) return false;
-    return (
-      p.toolboxTalkRealizado &&
-      p.walkaroundCompletado &&
-      p.lineaBaseAmbientalDocumentada &&
-      p.rutasEmergenciaVerificadas &&
-      p.simopsConfirmado
-    );
-  });
-
-  protected readonly puedeAvanzarDeVerificaciones = computed(() => {
-    const p = this.ptw();
-    if (!p || p.gasReadings.length === 0) return false;
-    const latest = this.latestGasByType();
-    const gasesOk = this.gasKeys.every(g => latest[g]?.seguro === true);
-    const lotoOk = p.lotoChecklist.every(i => i.checked);
-    return gasesOk && lotoOk;
-  });
 
   protected readonly puedeAvanzarDeFormalizacion = computed(() => {
     const p = this.ptw();
@@ -288,83 +210,6 @@ export class PtwDetailPage {
     this.notify.success('Documentos simulados', 'Los 4 documentos de gabinete quedaron marcados como cargados.');
   }
 
-  /** Marca todo el checklist de Ingreso a locación de una vez (pruebas). */
-  protected marcarTodoIngreso(): void {
-    this.patch({
-      toolboxTalkRealizado: true,
-      walkaroundCompletado: true,
-      lineaBaseAmbientalDocumentada: true,
-      rutasEmergenciaVerificadas: true,
-      simopsConfirmado: true,
-    });
-  }
-
-  protected onIngresoToggle(index: number): void {
-    const p = this.ptw();
-    if (!p) return;
-    switch (index) {
-      case 0:
-        this.patch({ toolboxTalkRealizado: !p.toolboxTalkRealizado });
-        break;
-      case 1:
-        this.patch({ walkaroundCompletado: !p.walkaroundCompletado });
-        break;
-      case 2:
-        this.patch({ lineaBaseAmbientalDocumentada: !p.lineaBaseAmbientalDocumentada });
-        break;
-      case 3:
-        this.patch({ rutasEmergenciaVerificadas: !p.rutasEmergenciaVerificadas });
-        break;
-      case 4:
-        this.patch({ simopsConfirmado: !p.simopsConfirmado });
-        break;
-    }
-  }
-
-  /**
-   * HSE-SITIO-001: "Notificación al cliente cuando se completa LOTO" — se
-   * dispara sola en el instante en que el checklist pasa a estar 100%
-   * marcado (no hace falta un botón aparte, y no se re-dispara si ya se
-   * había notificado antes en esta misma sesión de marcado).
-   */
-  protected onLotoToggle(index: number): void {
-    const p = this.ptw();
-    if (!p) return;
-    const lotoChecklist = p.lotoChecklist.map((item, i) => (i === index ? { ...item, checked: !item.checked } : item));
-    const yaCompleto = p.lotoChecklist.every(i => i.checked);
-    const ahoraCompleto = lotoChecklist.every(i => i.checked);
-
-    if (ahoraCompleto && !yaCompleto && !p.lotoNotificadoClienteAt) {
-      this.patch({ lotoChecklist, lotoNotificadoClienteAt: new Date().toISOString() });
-      this.notify.success('Cliente notificado', 'Se notificó al cliente que el bloqueo y etiquetado (LOTO) quedó completo.');
-    } else {
-      this.patch({ lotoChecklist });
-    }
-  }
-
-  protected onGasDraftChange(gas: PtwGas, value: string): void {
-    this.gasDraft.update(d => ({ ...d, [gas]: value }));
-  }
-
-  protected registrarMonitoreo(): void {
-    const p = this.ptw();
-    if (!p) return;
-    const now = new Date().toISOString();
-    const draft = this.gasDraft();
-    const nuevas: PtwGasReading[] = [];
-    for (const gas of this.gasKeys) {
-      const raw = draft[gas];
-      if (raw === '') continue;
-      const lectura = Number(raw);
-      if (Number.isNaN(lectura)) continue;
-      nuevas.push({ gas, lectura, seguro: ptwGasEsSeguro(gas, lectura), medidoAt: now });
-    }
-    if (nuevas.length === 0) return;
-    this.patch({ gasReadings: [...p.gasReadings, ...nuevas] });
-    this.gasDraft.set({ H2S: '', LEL: '', O2: '', CO: '' });
-    this.notify.success('Monitoreo registrado', 'Las lecturas quedaron guardadas.');
-  }
-
   protected onDailyGasDraftChange(gas: PtwGas, value: string): void {
     this.dailyGasDraft.update(d => ({ ...d, [gas]: value }));
   }
@@ -407,8 +252,9 @@ export class PtwDetailPage {
    * describe un paso "Descargar documentos HSE Ref: HSE-SITIO-001" — este
    * PTW es exactamente ese HSE-SITIO-001. Mientras Pumping no tenga su
    * propia integración con este módulo, este botón deja lista la misma
-   * descarga que ese flujo necesitaría consumir: documentos cargados,
-   * verificaciones de seguridad y firmas del Recibimiento de Sitio.
+   * descarga que ese flujo necesitaría consumir: documentos cargados y
+   * firmas del Recibimiento de Sitio (Ingreso/Verificaciones ya no viven
+   * acá — ver el certificado de Ingreso desde el ticket de Pumping/QHSE).
    */
   protected descargarDocumentosHse(): void {
     const p = this.ptw();
@@ -428,28 +274,6 @@ export class PtwDetailPage {
     const documentosSection: QhseReportSection = {
       title: 'Documentos de recepción (Fase 1 — Gabinete)',
       bodyHtml: `<table><tr><th>Documento</th><th>Estado</th><th>Archivo</th><th>Cargado</th></tr>${documentosRows}</table>`,
-    };
-
-    const gasRows = p.gasReadings
-      .map(
-        r => `
-          <tr>
-            <td>${this.gasLimites[r.gas].label}</td>
-            <td>${r.lectura} ${this.gasLimites[r.gas].unidad}</td>
-            <td>${r.seguro ? qhseBadge('Seguro', 'ok') : qhseBadge('Fuera de rango', 'error')}</td>
-            <td>${new Date(r.medidoAt).toLocaleString('es-EC')}</td>
-          </tr>`,
-      )
-      .join('');
-    const verificacionesSection: QhseReportSection = {
-      title: 'Verificaciones de seguridad (Fase 3)',
-      bodyHtml:
-        (p.gasReadings.length === 0
-          ? '<p class="qr-empty">Sin lecturas de gas registradas.</p>'
-          : `<table><tr><th>Gas</th><th>Lectura</th><th>Estado</th><th>Medido</th></tr>${gasRows}</table>`) +
-        `<p class="qr-meta">LOTO: ${p.lotoChecklist.every(i => i.checked) ? qhseBadge('Verificado completo', 'ok') : qhseBadge('Incompleto', 'warn')} — SIMOPS: ${
-          p.simopsConfirmado ? qhseBadge('Sin trabajos incompatibles', 'ok') : qhseBadge('Sin confirmar', 'neutral')
-        }</p>`,
     };
 
     const firmaFila = (label: string, f?: PtwFirma) =>
@@ -488,7 +312,7 @@ export class PtwDetailPage {
       `hse-sitio-001-${p.code}.html`,
       `Documentos HSE — ${p.code}`,
       `${p.actividad} — ${p.ubicacion} — Orden de trabajo ${p.ordenTrabajo} — IPERC origen ${p.ipercCode}`,
-      [documentosSection, verificacionesSection, firmasSection, dailyLogSection],
+      [documentosSection, firmasSection, dailyLogSection],
     );
   }
 

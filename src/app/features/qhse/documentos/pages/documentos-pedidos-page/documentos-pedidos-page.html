@@ -20,6 +20,10 @@
       <dynadrill-icon-button icon="upload" tooltip="Subir SFI" tooltipPlacement="top" [disabled]="subiendoTipo(row.pedidoId, 'qhse_sfi')" (clicked)="sfiInput.click()" />
     }
     <input #sfiInput type="file" hidden (change)="subir(row.pedidoId, 'qhse_sfi', sfiInput)" />
+
+    @if (row.estado.checklistIngreso?.completo) {
+      <dynadrill-icon-button icon="download" tooltip="Descargar certificado de Ingreso y Verificaciones" tooltipPlacement="top" (clicked)="descargarCertificadoChecklistIngreso(row)" />
+    }
   </div>
 </ng-template>
 

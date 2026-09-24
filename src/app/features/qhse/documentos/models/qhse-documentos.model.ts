@@ -12,6 +12,22 @@ export interface EstadoDocumentalPedido {
   artVigenciaHasta: string | null;
   artVenceEnDias: number | null;
   ptHoy: boolean;
+  /** `null` = el pedido todavía no tiene ticket de Pumping. Ver Fase 2, PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS. */
+  checklistIngreso: ChecklistIngresoEstado | null;
+}
+
+/** Solo lectura para QHSE — lo llena Operativo desde su ticket de Pumping. */
+export interface ChecklistIngresoEstado {
+  toolboxTalkRealizado: boolean;
+  walkaroundCompletado: boolean;
+  lineaBaseAmbientalDocumentada: boolean;
+  rutasEmergenciaVerificadas: boolean;
+  simopsConfirmado: boolean;
+  gasReadings: { gas: string; lectura: number; seguro: boolean; medidoAt: string }[];
+  lotoChecklist: { label: string; checked: boolean }[];
+  completo: boolean;
+  confirmadoPor: string | null;
+  confirmadoAt: string | null;
 }
 
 export interface PedidoConEstadoDocumental {

@@ -8,6 +8,7 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { QhseDocumentosService } from '../../services/qhse-documentos.service';
 import { PedidoConEstadoDocumental, QHSE_REFERENCIA_VIGENTE, QHSE_TIPO_FORMATO_RECEPCION, QHSE_TIPO_SFI } from '../../models/qhse-documentos.model';
+import { crearReportePdf, descargarReportePdf } from '../../../../../shared/utils/reporte-pdf.util';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
 interface Badge {
@@ -48,6 +49,7 @@ export class DocumentosPedidosPage {
     { key: 'artBadge', header: 'ART', type: 'badge' },
     { key: 'ptBadge', header: 'PT (hoy)', type: 'badge' },
     { key: 'sfiBadge', header: 'SFI', type: 'badge' },
+    { key: 'checklistIngresoBadge', header: 'Ingreso + Verif.', type: 'badge' },
   ];
 
   protected readonly rows = computed(() =>
@@ -60,6 +62,7 @@ export class DocumentosPedidosPage {
       artBadge: p.estado.artVigente === true ? CARGADO : p.estado.artVigente === false ? VENCIDO : SIN_ART,
       ptBadge: p.estado.ptHoy ? CARGADO : PENDIENTE,
       sfiBadge: p.estado.sfi ? CARGADO : PENDIENTE,
+      checklistIngresoBadge: p.estado.checklistIngreso?.completo ? CARGADO : PENDIENTE,
       estado: p.estado,
     })),
   );
@@ -117,5 +120,70 @@ export class DocumentosPedidosPage {
       },
       error: () => this.notify.error('Error', 'No se pudo abrir el documento.'),
     });
+  }
+
+  /**
+   * Certificado de respaldo (Fase 2, PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS)
+   * — QHSE ya no llena el checklist de Ingreso/Verificaciones, pero sí
+   * necesita poder emitir constancia de que Operativo lo hizo. Mismo patrón
+   * de PDF con membrete (`crearReportePdf`/`descargarReportePdf`) que
+   * Reporte Job/Reporte de Herramientas.
+   */
+  protected descargarCertificadoChecklistIngreso(row: { code: string; cliente: string; campo: string; estado: { checklistIngreso: PedidoConEstadoDocumental['estado']['checklistIngreso'] } }): void {
+    const c = row.estado.checklistIngreso;
+    if (!c || !c.completo) return;
+
+    const { doc, y } = crearReportePdf('Certificado de Ingreso y Verificaciones de Seguridad', `Pedido ${row.code}`, {
+      code: row.code,
+      cliente: row.cliente,
+      pozo: row.campo,
+      supervisor: c.confirmadoPor ?? '—',
+      operador: '',
+    });
+
+    let cursorY = y;
+    doc.setFontSize(10);
+    doc.setTextColor(30);
+    const items: [string, boolean][] = [
+      ['Toolbox Talk realizado', c.toolboxTalkRealizado],
+      ['Inspección conjunta Walk-around', c.walkaroundCompletado],
+      ['Línea base ambiental documentada', c.lineaBaseAmbientalDocumentada],
+      ['Rutas de emergencia verificadas', c.rutasEmergenciaVerificadas],
+      ['SIMOPS confirmado — sin trabajos incompatibles', c.simopsConfirmado],
+    ];
+    for (const [label, ok] of items) {
+      doc.text(`${ok ? '✓' : '✗'} ${label}`, 40, cursorY);
+      cursorY += 16;
+    }
+
+    cursorY += 8;
+    doc.text('Monitoreo de gases:', 40, cursorY);
+    cursorY += 16;
+    if (c.gasReadings.length === 0) {
+      doc.text('Sin lecturas registradas.', 40, cursorY);
+      cursorY += 16;
+    } else {
+      for (const r of c.gasReadings) {
+        doc.text(`${r.gas}: ${r.lectura} (${r.seguro ? 'seguro' : 'fuera de rango'}) — ${new Date(r.medidoAt).toLocaleString('es-EC')}`, 40, cursorY);
+        cursorY += 16;
+      }
+    }
+
+    cursorY += 8;
+    doc.text('Verificación LOTO:', 40, cursorY);
+    cursorY += 16;
+    for (const item of c.lotoChecklist) {
+      doc.text(`${item.checked ? '✓' : '✗'} ${item.label}`, 40, cursorY);
+      cursorY += 16;
+    }
+
+    cursorY += 8;
+    doc.text(
+      `Confirmado por: ${c.confirmadoPor ?? '—'} — ${c.confirmadoAt ? new Date(c.confirmadoAt).toLocaleString('es-EC') : '—'}`,
+      40,
+      cursorY,
+    );
+
+    descargarReportePdf(doc, `Certificado Ingreso - ${row.code}.pdf`);
   }
 }

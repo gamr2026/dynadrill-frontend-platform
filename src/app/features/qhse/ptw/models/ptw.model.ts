@@ -1,23 +1,20 @@
 /**
  * Fases de HSE-SITIO-001 (Recibimiento de Sitio y Apertura de PTW):
- * Gabinete → Ingreso → Verificaciones → Formalización → Ejecución →
- * Gestión documental. Un PTW solo puede abrirse desde un HSE-PLAN-001
- * (IPERC) ya aprobado — HSE-MASTER-001 lo marca como integración
- * automática ("sin IPERC aprobado, el sistema bloquea la apertura del
- * PTW"); esa validación vive en el mock/servicio de creación, no acá.
+ * Gabinete → Formalización → Ejecución → Gestión documental. Ya no pasa por
+ * un PTW aprobado (ver `PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS.md`, Fase 1:
+ * la Matriz IPERC es maestra/anual, no bloquea la apertura). `'ingreso'` y
+ * `'verificaciones'` siguen siendo valores válidos del tipo (compatibilidad
+ * con PTWs sembrados antes de la Fase 2 del mismo plan) pero ya no aparecen
+ * en `PTW_FASE_ORDER`/`PTW_FASE_STEPS`: ese checklist ("Ingreso a locación" +
+ * "Verificaciones de seguridad") pasó a ser propiedad de Pumping
+ * (`ChecklistIngresoPumping`, ver ticket-detail-page de Pumping), QHSE ya no
+ * lo llena.
  */
 export type PtwFase = 'gabinete' | 'ingreso' | 'verificaciones' | 'formalizacion' | 'ejecucion' | 'gestion_documental';
 
-export const PTW_FASE_ORDER: PtwFase[] = [
-  'gabinete',
-  'ingreso',
-  'verificaciones',
-  'formalizacion',
-  'ejecucion',
-  'gestion_documental',
-];
+export const PTW_FASE_ORDER: PtwFase[] = ['gabinete', 'formalizacion', 'ejecucion', 'gestion_documental'];
 
-export const PTW_FASE_STEPS = ['Gabinete', 'Ingreso', 'Verificaciones', 'Formalización', 'Ejecución', 'Gest. doc.'];
+export const PTW_FASE_STEPS = ['Gabinete', 'Formalización', 'Ejecución', 'Gest. doc.'];
 
 export const PTW_FASE_LABELS: Record<PtwFase, string> = {
   gabinete: 'Preparación en gabinete',
@@ -143,36 +140,21 @@ export interface PtwMatrix {
   // Fase 1: Gabinete
   documentos: PtwDocumento[];
 
-  // Fase 2: Ingreso
-  toolboxTalkRealizado: boolean;
-  walkaroundCompletado: boolean;
-  lineaBaseAmbientalDocumentada: boolean;
-  rutasEmergenciaVerificadas: boolean;
-  simopsConfirmado: boolean;
+  // "Ingreso a locación" + "Verificaciones de seguridad" ya no viven acá —
+  // ver `ChecklistIngresoPumping` en el ticket de Pumping (Fase 2 del plan).
 
-  // Fase 3: Verificaciones
-  gasReadings: PtwGasReading[];
-  lotoChecklist: { label: string; checked: boolean }[];
-  /**
-   * HSE-SITIO-001, "Funcionalidades Requeridas": "Notificación al cliente
-   * cuando se completa LOTO". Se dispara sola apenas el checklist queda
-   * 100% marcado — no hay integración real de envío, así que esto solo
-   * deja constancia de que la notificación (simulada) se disparó.
-   */
-  lotoNotificadoClienteAt?: string;
-
-  // Fase 4: Formalización
+  // Fase 2: Formalización
   ptwFirmadoSitio?: PtwFirma;
   actaRecibimientoFirmada?: PtwFirma;
   barricadasInstaladas: boolean;
 
-  // Fase 5: Ejecución y devolución
+  // Fase 3: Ejecución y devolución
   limpiezaCompletada: boolean;
   inspeccionFinalConforme: boolean;
   /** Control diario mientras el trabajo dura varios días — ver PtwDailyLog. */
   dailyLogs: PtwDailyLog[];
 
-  // Fase 6: Gestión documental final
+  // Fase 4: Gestión documental final
   ptwCerrado?: PtwFirma;
   actaDevolucionFirmada?: PtwFirma;
   /**
@@ -202,10 +184,3 @@ export const PTW_TICKET_TIPO_LABELS: Record<'pumping' | 'fcr', string> = {
 export function ptwCerrado(p: PtwMatrix): boolean {
   return !!(p.ptwCerrado && p.actaDevolucionFirmada && p.respaldosEnviados);
 }
-
-export const DEFAULT_LOTO_CHECKLIST = [
-  { label: 'Válvulas bloqueadas con candado', checked: false },
-  { label: 'Etiquetas "NO OPERAR" visibles', checked: false },
-  { label: 'Líneas despresorizadas', checked: false },
-  { label: 'Prueba de cero energía realizada', checked: false },
-];

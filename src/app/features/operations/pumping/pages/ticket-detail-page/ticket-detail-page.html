@@ -805,6 +805,65 @@
       </section>
     }
 
+    <!-- Checklist de Ingreso a locación + Verificaciones de seguridad (Fase 2,
+         PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS) — antes vivía en el PTW (solo
+         QHSE), ahora lo llena Operativo. Se suma al gate de arriba. -->
+    @if (checklistIngreso(); as ci) {
+      @if (checklistIngresoBloquea()) {
+        <div class="ticket-detail__quimico-sin-match">
+          <dynadrill-text variant="body"><strong>⚠ Traslado de salida bloqueado.</strong></dynadrill-text>
+          <dynadrill-text variant="caption">Falta completar el checklist de Ingreso a locación y Verificaciones de seguridad.</dynadrill-text>
+        </div>
+      }
+
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="h2">Ingreso a locación</dynadrill-text>
+        <dynadrill-checkbox label="Toolbox Talk realizado (5 min obligatorios)" [checked]="ci.toolboxTalkRealizado" (checkedChange)="onChecklistIngresoBooleanoToggle('toolboxTalkRealizado')" />
+        <dynadrill-checkbox label="Inspección conjunta Walk-around" [checked]="ci.walkaroundCompletado" (checkedChange)="onChecklistIngresoBooleanoToggle('walkaroundCompletado')" />
+        <dynadrill-checkbox label="Línea base ambiental documentada" [checked]="ci.lineaBaseAmbientalDocumentada" (checkedChange)="onChecklistIngresoBooleanoToggle('lineaBaseAmbientalDocumentada')" />
+        <dynadrill-checkbox label="Rutas de emergencia verificadas" [checked]="ci.rutasEmergenciaVerificadas" (checkedChange)="onChecklistIngresoBooleanoToggle('rutasEmergenciaVerificadas')" />
+        <dynadrill-checkbox label="SIMOPS confirmado — sin trabajos incompatibles" [checked]="ci.simopsConfirmado" (checkedChange)="onChecklistIngresoBooleanoToggle('simopsConfirmado')" />
+      </section>
+
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="h2">Verificaciones de seguridad</dynadrill-text>
+
+        <dynadrill-text variant="subtitle">Monitoreo de gases</dynadrill-text>
+        @for (gas of checklistIngresoGasKeys; track gas) {
+          <div class="ticket-detail__quimico-sin-match">
+            <dynadrill-text variant="body">
+              <strong>{{ checklistIngresoGasLimites[gas].label }}</strong> —
+              @if (checklistIngresoUltimaLecturaPorGas()[gas]; as r) {
+                {{ r.lectura }} {{ checklistIngresoGasLimites[gas].unidad }}
+                <dynadrill-tag [label]="r.seguro ? 'Seguro' : 'Fuera de rango'" [variant]="r.seguro ? 'success' : 'error'" />
+              } @else {
+                Sin lectura
+              }
+            </dynadrill-text>
+            <dynadrill-input
+              [label]="'Lectura (' + checklistIngresoGasLimites[gas].unidad + ')'"
+              type="number"
+              [value]="checklistIngresoGasDraft()[gas]"
+              (valueChange)="onChecklistIngresoGasDraftChange(gas, $event)"
+            />
+            <dynadrill-button variant="secondary" size="small" (click)="registrarLecturaChecklistIngreso(gas)">Registrar</dynadrill-button>
+          </div>
+        }
+
+        <dynadrill-text variant="subtitle">Verificación LOTO (Lock-out/Tag-out)</dynadrill-text>
+        @for (item of ci.lotoChecklist; track $index) {
+          <dynadrill-checkbox [label]="item.label" [checked]="item.checked" (checkedChange)="onChecklistIngresoLotoToggle($index)" />
+        }
+        @if (ci.lotoNotificadoClienteAt) {
+          <dynadrill-tag [label]="'Cliente notificado ' + (ci.lotoNotificadoClienteAt | date: 'short')" variant="success" />
+        }
+
+        @if (ci.completo) {
+          <dynadrill-tag [label]="'Completo — confirmado por ' + ci.confirmadoPor" variant="success" />
+        }
+      </section>
+    }
+
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
 
@@ -938,7 +997,7 @@
 
     <footer class="ticket-detail__actions">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || submitting() || checklistQhseBloquea()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
+      <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || submitting() || checklistQhseBloquea() || checklistIngresoBloquea()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
     </footer>
   }
 

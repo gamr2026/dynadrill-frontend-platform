@@ -20,6 +20,7 @@ import {
   DynadrillApprovalActionsComponent,
   DynadrillBannerComponent,
   DynadrillButtonComponent,
+  DynadrillCheckboxComponent,
   DynadrillChipGroupComponent,
   DynadrillContextCardComponent,
   DynadrillDataTableColumn,
@@ -64,7 +65,17 @@ import {
   type TravelManagement,
   type DailyActivityReport,
 } from '../../models/pumping.model';
-import { PumpingService, type DocumentosQhseTicket, type ChecklistQhseEstado, type ChecklistQhseEquipo } from '../../services/pumping.service';
+import {
+  PumpingService,
+  type DocumentosQhseTicket,
+  type ChecklistQhseEstado,
+  type ChecklistQhseEquipo,
+  type ChecklistIngreso,
+  type ChecklistIngresoGas,
+  type ChecklistIngresoGasReading,
+  type ChecklistIngresoBooleanos,
+  CHECKLIST_INGRESO_GAS_LIMITES,
+} from '../../services/pumping.service';
 import { SolicitudCambioItemsService } from '../../services/solicitud-cambio-items.service';
 import type { SolicitudCambioItems } from '../../models/solicitud-cambio-items.model';
 import {
@@ -202,6 +213,7 @@ function toFuelReading(raw: string): number | null {
     DynadrillIconComponent,
     DynadrillIconButtonComponent,
     DynadrillTagComponent,
+    DynadrillCheckboxComponent,
     UbicacionSelectorComponent,
     TicketQhseBanner,
     TimelinePopoverTriggerDirective,
@@ -716,6 +728,79 @@ export class TicketDetailPage {
         this.checklistQhseSubmitting.set(null);
         this.notify.error('Error', `No se pudo cargar el checklist de ${caso.equipoNombre}.`);
       },
+    });
+  }
+
+  // ══════════════════════════════════════════════
+  // Checklist de Ingreso a locación + Verificaciones de seguridad (Fase 2,
+  // PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS) — antes vivía en el PTW (solo
+  // QHSE), ahora lo llena Operativo. Se suma al gate de `traslado_salida`
+  // junto al Checklist QHSE de equipos de arriba.
+  // ══════════════════════════════════════════════
+
+  protected readonly checklistIngreso = signal<ChecklistIngreso | null>(null);
+  protected readonly checklistIngresoGasKeys: ChecklistIngresoGas[] = ['H2S', 'LEL', 'O2', 'CO'];
+  protected readonly checklistIngresoGasLimites = CHECKLIST_INGRESO_GAS_LIMITES;
+  protected readonly checklistIngresoGasDraft = signal<Record<ChecklistIngresoGas, string>>({ H2S: '', LEL: '', O2: '', CO: '' });
+
+  /** Solo bloquea en `traslado_salida` — mismo criterio que `checklistQhseBloquea`. */
+  protected readonly checklistIngresoBloquea = computed(
+    () => this.currentStep() === 'traslado_salida' && this.checklistIngreso()?.completo === false,
+  );
+
+  protected readonly checklistIngresoUltimaLecturaPorGas = computed<Partial<Record<ChecklistIngresoGas, ChecklistIngresoGasReading>>>(() => {
+    const c = this.checklistIngreso();
+    const map: Partial<Record<ChecklistIngresoGas, ChecklistIngresoGasReading>> = {};
+    if (!c) return map;
+    for (const gas of this.checklistIngresoGasKeys) {
+      const lecturas = c.gasReadings.filter(r => r.gas === gas);
+      if (lecturas.length > 0) map[gas] = lecturas[lecturas.length - 1];
+    }
+    return map;
+  });
+
+  private loadChecklistIngreso(ticketId: number): void {
+    this.pumpingService.checklistIngreso(ticketId).subscribe({
+      next: c => this.checklistIngreso.set(c),
+      error: () => this.checklistIngreso.set(null),
+    });
+  }
+
+  protected onChecklistIngresoBooleanoToggle(campo: keyof ChecklistIngresoBooleanos): void {
+    const t = this.ticket();
+    const c = this.checklistIngreso();
+    if (!t || !c) return;
+    this.pumpingService.actualizarChecklistIngreso(t.id, { [campo]: !c[campo] }).subscribe({
+      next: actualizado => this.checklistIngreso.set(actualizado),
+      error: () => this.notify.error('Error', 'No se pudo guardar el cambio.'),
+    });
+  }
+
+  protected onChecklistIngresoGasDraftChange(gas: ChecklistIngresoGas, value: string): void {
+    this.checklistIngresoGasDraft.update(d => ({ ...d, [gas]: value }));
+  }
+
+  protected registrarLecturaChecklistIngreso(gas: ChecklistIngresoGas): void {
+    const t = this.ticket();
+    const raw = this.checklistIngresoGasDraft()[gas];
+    if (!t || raw === '') return;
+    const lectura = Number(raw);
+    if (Number.isNaN(lectura)) return;
+    this.pumpingService.actualizarChecklistIngreso(t.id, { nuevaLectura: { gas, lectura } }).subscribe({
+      next: actualizado => {
+        this.checklistIngreso.set(actualizado);
+        this.checklistIngresoGasDraft.update(d => ({ ...d, [gas]: '' }));
+      },
+      error: () => this.notify.error('Error', 'No se pudo registrar la lectura.'),
+    });
+  }
+
+  protected onChecklistIngresoLotoToggle(index: number): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.pumpingService.toggleLotoIngreso(t.id, index).subscribe({
+      next: actualizado => this.checklistIngreso.set(actualizado),
+      error: () => this.notify.error('Error', 'No se pudo guardar el cambio.'),
     });
   }
 
@@ -1972,6 +2057,7 @@ export class TicketDetailPage {
         this.loadMaintenanceOrders();
         this.loadDocumentosQhse(ticket.id);
         this.loadChecklistQhse(ticket.id);
+        this.loadChecklistIngreso(ticket.id);
         if (ticket.pedidoId) {
           this.pedidoService.get(ticket.pedidoId).subscribe({
             next: p => {

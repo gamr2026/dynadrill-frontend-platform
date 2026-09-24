@@ -159,6 +159,26 @@ export class PumpingService {
     form.append('file', archivo);
     return this.http.post<ChecklistQhseEquipo>(`${this.baseUrl}/tickets/${ticketId}/checklist-qhse/${checklistId}`, form);
   }
+
+  // ── Checklist de Ingreso a locación + Verificaciones de seguridad (Fase 2,
+  // PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS) — se suma al gate D5 de arriba
+  // sobre la misma transición `traslado_salida`. Antes vivía en el PTW,
+  // solo QHSE lo veía; ahora lo llena Operativo.
+
+  checklistIngreso(ticketId: number): Observable<ChecklistIngreso> {
+    return this.http.get<ChecklistIngreso>(`${this.baseUrl}/tickets/${ticketId}/checklist-ingreso`);
+  }
+
+  actualizarChecklistIngreso(
+    ticketId: number,
+    cambios: Partial<ChecklistIngresoBooleanos> & { nuevaLectura?: { gas: ChecklistIngresoGas; lectura: number } },
+  ): Observable<ChecklistIngreso> {
+    return this.http.patch<ChecklistIngreso>(`${this.baseUrl}/tickets/${ticketId}/checklist-ingreso`, cambios);
+  }
+
+  toggleLotoIngreso(ticketId: number, index: number): Observable<ChecklistIngreso> {
+    return this.http.patch<ChecklistIngreso>(`${this.baseUrl}/tickets/${ticketId}/checklist-ingreso/loto/${index}`, {});
+  }
 }
 
 /** `QhseChecklistEquipo` del backend — un caso por unidad asignada. */
@@ -182,6 +202,51 @@ export interface ChecklistQhseEquipo {
 export interface ChecklistQhseEstado {
   casos: ChecklistQhseEquipo[];
   gate: { ok: boolean; faltantes: string[] };
+}
+
+export type ChecklistIngresoGas = 'H2S' | 'LEL' | 'O2' | 'CO';
+
+export const CHECKLIST_INGRESO_GAS_LIMITES: Record<ChecklistIngresoGas, { label: string; unidad: string; min?: number; max: number }> = {
+  H2S: { label: 'H2S (Ácido Sulfhídrico)', unidad: 'ppm', max: 10 },
+  LEL: { label: 'LEL (Límite Explosivo Inferior)', unidad: '%', max: 10 },
+  O2: { label: 'O2 (Oxígeno)', unidad: '%', min: 19.5, max: 23.5 },
+  CO: { label: 'CO (Monóxido de Carbono)', unidad: 'ppm', max: 25 },
+};
+
+export interface ChecklistIngresoGasReading {
+  gas: ChecklistIngresoGas;
+  lectura: number;
+  seguro: boolean;
+  medidoAt: string;
+}
+
+export interface ChecklistIngresoLotoItem {
+  label: string;
+  checked: boolean;
+}
+
+export interface ChecklistIngresoBooleanos {
+  toolboxTalkRealizado: boolean;
+  walkaroundCompletado: boolean;
+  lineaBaseAmbientalDocumentada: boolean;
+  rutasEmergenciaVerificadas: boolean;
+  simopsConfirmado: boolean;
+}
+
+/**
+ * `ChecklistIngresoPumping` del backend — checklist unificado "Ingreso a
+ * locación" + "Verificaciones de seguridad" (Fase 2,
+ * PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS), un registro por ticket.
+ */
+export interface ChecklistIngreso extends ChecklistIngresoBooleanos {
+  id: number;
+  pumpingTicketId: number;
+  gasReadings: ChecklistIngresoGasReading[];
+  lotoChecklist: ChecklistIngresoLotoItem[];
+  lotoNotificadoClienteAt: string | null;
+  confirmadoPor: string | null;
+  confirmadoAt: string | null;
+  completo: boolean;
 }
 
 /** Respuesta de `GET .../tickets/:id/documentos-qhse` — ver `PumpingDocumentosQhseController` y `EstadoDocumentalPedido` del backend. */

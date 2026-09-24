@@ -80,106 +80,21 @@
 
     @if (p.fase === 'gabinete') {
       <dynadrill-button [disabled]="!puedeAvanzarDeGabinete()" (click)="avanzarFase()">
-        Continuar a Ingreso a locación
-      </dynadrill-button>
-    }
-  </section>
-
-  <!-- Fase 2: Ingreso -->
-  <section class="ptw-detail-page__fase">
-    <header class="ptw-detail-page__fase-head">
-      <h3 class="ptw-detail-page__fase-title">2. Ingreso a locación</h3>
-      @if (p.fase === 'ingreso') {
-        <dynadrill-button variant="secondary" size="small" (clicked)="marcarTodoIngreso()">Marcar todo</dynadrill-button>
-      }
-    </header>
-    <p class="ptw-detail-page__fase-note">Check-in con Company Man, Toolbox Talk y validaciones iniciales de campo.</p>
-
-    <dynadrill-checklist [items]="ingresoChecklist()" (itemToggle)="onIngresoToggle($event)" />
-
-    @if (p.fase === 'ingreso') {
-      <dynadrill-button [disabled]="!puedeAvanzarDeIngreso()" (click)="avanzarFase()">
-        Continuar a Verificaciones de seguridad
-      </dynadrill-button>
-    }
-  </section>
-
-  <!-- Fase 3: Verificaciones -->
-  <section class="ptw-detail-page__fase">
-    <h3 class="ptw-detail-page__fase-title">3. Verificaciones de seguridad</h3>
-
-    @if (gasInseguroDetalle()) {
-      <dynadrill-banner variant="critical" [message]="gasInseguroDetalle()" />
-    }
-
-    <h4 class="ptw-detail-page__subtitle">Monitoreo de gases</h4>
-    <table class="ptw-detail-page__gas-table">
-      <thead>
-        <tr>
-          <th>Gas</th>
-          <th>Lectura</th>
-          <th>Límite</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (gas of gasKeys; track gas) {
-          <tr>
-            <td data-label="Gas">{{ gasLimites[gas].label }}</td>
-            <td data-label="Lectura">
-              @if (latestGasByType()[gas]; as r) {
-                {{ r.lectura }} {{ gasLimites[gas].unidad }}
-              } @else {
-                Sin lectura
-              }
-            </td>
-            <td data-label="Límite">{{ limiteLabel(gas) }}</td>
-            <td data-label="Estado"><dynadrill-tag [label]="gasEstadoLabel(gas)" [variant]="gasEstadoVariant(gas)" /></td>
-          </tr>
-        }
-      </tbody>
-    </table>
-
-    @if (p.fase === 'verificaciones') {
-      <div class="ptw-detail-page__gas-form">
-        @for (gas of gasKeys; track gas) {
-          <dynadrill-input
-            [label]="gas + ' (' + gasLimites[gas].unidad + ')'"
-            type="number"
-            [value]="gasDraft()[gas]"
-            (valueChange)="onGasDraftChange(gas, $event)"
-          />
-        }
-        <dynadrill-button variant="secondary" size="small" (click)="registrarMonitoreo()">Registrar monitoreo</dynadrill-button>
-      </div>
-    } @else {
-      <p class="ptw-detail-page__fase-note">
-        El registro de lecturas se habilita al llegar a esta fase (completa "2. Ingreso a locación" primero).
-      </p>
-    }
-
-    <h4 class="ptw-detail-page__subtitle">Verificación LOTO (Lock-out/Tag-out)</h4>
-    <dynadrill-checklist [items]="lotoChecklist()" (itemToggle)="onLotoToggle($event)" />
-    @if (p.lotoNotificadoClienteAt) {
-      <dynadrill-tag [label]="'Cliente notificado ' + (p.lotoNotificadoClienteAt | date: 'short')" variant="success" />
-    }
-
-    <h4 class="ptw-detail-page__subtitle">SIMOPS</h4>
-    <dynadrill-tag
-      [label]="p.simopsConfirmado ? 'Sin trabajos incompatibles' : 'Pendiente de confirmar'"
-      [variant]="p.simopsConfirmado ? 'success' : 'neutral'"
-    />
-
-    @if (p.fase === 'verificaciones') {
-      <dynadrill-button [disabled]="!puedeAvanzarDeVerificaciones()" (click)="avanzarFase()">
         Continuar a Formalización
       </dynadrill-button>
     }
   </section>
 
-  <!-- Fase 4: Formalización -->
+  <!--
+    "Ingreso a locación" y "Verificaciones de seguridad" ya no viven acá —
+    ver el checklist unificado en el ticket de Pumping (Fase 2,
+    PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS.md). QHSE lo consulta desde
+    "Documentos por pedido".
+  -->
+
+  <!-- Fase 2: Formalización -->
   <section class="ptw-detail-page__fase">
-    <h3 class="ptw-detail-page__fase-title">4. Formalización del recibimiento</h3>
+    <h3 class="ptw-detail-page__fase-title">2. Formalización del recibimiento</h3>
 
     <div class="ptw-detail-page__firma">
       <p>Firmar PTW en sitio</p>
@@ -213,9 +128,9 @@
     }
   </section>
 
-  <!-- Fase 5: Ejecución y devolución -->
+  <!-- Fase 3: Ejecución y devolución -->
   <section class="ptw-detail-page__fase">
-    <h3 class="ptw-detail-page__fase-title">5. Ejecución y devolución</h3>
+    <h3 class="ptw-detail-page__fase-title">3. Ejecución y devolución</h3>
     <p class="ptw-detail-page__fase-note">Monitoreo HSE continuo durante el trabajo. Al finalizar: limpieza total e inspección conjunta final.</p>
 
     <h4 class="ptw-detail-page__subtitle">Registro diario de control</h4>
@@ -318,9 +233,9 @@
     }
   </section>
 
-  <!-- Fase 6: Gestión documental final -->
+  <!-- Fase 4: Gestión documental final -->
   <section class="ptw-detail-page__fase">
-    <h3 class="ptw-detail-page__fase-title">6. Gestión documental final</h3>
+    <h3 class="ptw-detail-page__fase-title">4. Gestión documental final</h3>
 
     <div class="ptw-detail-page__firma">
       <p>Cerrar PTW</p>

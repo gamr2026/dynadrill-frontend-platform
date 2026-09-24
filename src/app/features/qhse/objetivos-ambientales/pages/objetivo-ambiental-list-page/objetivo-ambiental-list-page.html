@@ -1,0 +1,28 @@
+<dynadrill-screen-header
+  eyebrow="QHSE"
+  title="Objetivos Ambientales"
+  subtitle="Objetivo → meta → indicador → plazo → plan de acción (revisión anual del SGA)"
+  roleTag="HSE"
+/>
+
+<div class="objetivo-ambiental-list-page__toolbar">
+  <dynadrill-button (clicked)="nuevoObjetivo()">+ Nuevo objetivo</dynadrill-button>
+</div>
+
+<dynadrill-kpi-row [items]="kpis()" />
+
+<ng-template #actionsTpl let-row>
+  <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="verDetalle(row)" />
+</ng-template>
+
+<div class="table-scroll">
+  <dynadrill-data-table
+    [columns]="columns"
+    [rows]="rows()"
+    [loading]="loading()"
+    [rowKey]="rowKeyFn"
+    [pageSize]="10"
+    actionsHeader="Acciones"
+    [actionsTemplate]="actionsTpl"
+  />
+</div>

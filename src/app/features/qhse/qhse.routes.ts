@@ -104,6 +104,13 @@ export const qhseRoutes: Routes = [
     data: { allowedRoles: HSE_STAFF_ROLES },
   },
   {
+    path: 'objetivos-ambientales',
+    loadComponent: () =>
+      import('./objetivos-ambientales/pages/objetivo-ambiental-list-page/objetivo-ambiental-list-page').then(m => m.ObjetivoAmbientalListPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES },
+  },
+  {
     path: 'derrames/:id',
     loadComponent: () => import('./derrames/pages/derrame-detail-page/derrame-detail-page').then(m => m.DerrameDetailPage),
     canActivate: [roleGuard],

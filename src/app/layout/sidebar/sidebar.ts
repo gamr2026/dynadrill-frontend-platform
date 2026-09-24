@@ -88,6 +88,7 @@ const QHSE_ITEM: DynadrillMenuItem = {
         { label: 'PTW / Recibimiento', link: '/dashboard/qhse/ptw' },
         { label: 'Documentos por pedido', link: '/dashboard/qhse/documentos' },
         { label: 'Cumplimiento legal', link: '/dashboard/qhse/legal' },
+        { label: 'Objetivos ambientales', link: '/dashboard/qhse/objetivos-ambientales' },
       ],
     },
     {

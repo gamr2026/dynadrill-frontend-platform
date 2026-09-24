@@ -22,13 +22,6 @@
     }
     <p><strong>Orden de trabajo:</strong> {{ p.ordenTrabajo }}</p>
     <p><strong>IPERC origen:</strong> {{ p.ipercCode }} — "{{ p.actividad }}" (HSE-PLAN-001)</p>
-    @if (diasEjecucionRegistrados() > 0 || p.fase === 'ejecucion') {
-      <p>
-        <strong>Ejecución:</strong>
-        {{ diasEjecucionRegistrados() > 0 ? diasEjecucionRegistrados() + ' día(s) registrado(s)' : 'sin registros diarios todavía' }}
-        — un PTW no es de un solo día, dura lo que dure el trabajo (ver Fase 5 más abajo).
-      </p>
-    }
   </section>
 
   <dynadrill-stepper [steps]="steps" [currentIndex]="currentIndex()" />
@@ -47,9 +40,9 @@
     </p>
     @if (p.pedidoId) {
       <p class="ptw-detail-page__fase-note">
-        Este PTW está ligado al Pedido {{ p.pedidoCode }} — Formato de Recepción, ART, PT y SFI se cargan reales desde
-        <strong>"Documentos por pedido"</strong> (QHSE) y desde el ticket de Pumping (Supervisor), no acá. Este bloque
-        solo muestra su estado; Carnet de Vacunas sigue cargándose acá mismo.
+        Este PTW está ligado al Pedido {{ p.pedidoCode }} — Formato de Recepción, ART, PT, SFI y Carnet de Vacunas se
+        cargan reales desde <strong>"Documentos por pedido"</strong> (QHSE) y desde el ticket de Pumping (Supervisor),
+        no acá. Este bloque solo muestra su estado.
       </p>
     }
 
@@ -62,7 +55,7 @@
               <dynadrill-button variant="secondary" size="small" (clicked)="descargarFormatoBlanco($any(doc.tipo))">⬇ Descargar formato</dynadrill-button>
             }
           </div>
-          @if (doc.tipo !== 'carnet_vacunas' && p.pedidoId) {
+          @if (p.pedidoId) {
             <!-- Real (Fase 2 QHSE↔Pumping): solo lectura acá, se carga desde "Documentos por pedido" o el ticket de Pumping. -->
             <p class="ptw-detail-page__documento-estado">
               {{ doc.cargado ? ('Cargado' + (doc.fileName ? ' — ' + doc.fileName : '')) : 'Pendiente' }}
@@ -123,119 +116,14 @@
 
     @if (p.fase === 'formalizacion') {
       <dynadrill-button [disabled]="!puedeAvanzarDeFormalizacion()" (click)="avanzarFase()">
-        Continuar a Ejecución
-      </dynadrill-button>
-    }
-  </section>
-
-  <!-- Fase 3: Ejecución y devolución -->
-  <section class="ptw-detail-page__fase">
-    <h3 class="ptw-detail-page__fase-title">3. Ejecución y devolución</h3>
-    <p class="ptw-detail-page__fase-note">Monitoreo HSE continuo durante el trabajo. Al finalizar: limpieza total e inspección conjunta final.</p>
-
-    <h4 class="ptw-detail-page__subtitle">Registro diario de control</h4>
-    <p class="ptw-detail-page__fase-note">
-      Un registro por cada día que dure el trabajo — Toolbox Talk, verificación LOTO y monitoreo de gases no son un
-      trámite único al abrir el PTW.
-    </p>
-
-    @if (controlDeHoyPendiente()) {
-      <dynadrill-banner variant="warning" message="Todavía no se registró el control diario de hoy." />
-    }
-
-    @if (p.dailyLogs.length > 0) {
-      <table class="ptw-detail-page__daily-table">
-        <thead>
-          <tr>
-            <th>Día</th>
-            <th>Fecha</th>
-            <th>Registrado por</th>
-            <th>Toolbox Talk</th>
-            <th>LOTO</th>
-            <th>Gases</th>
-            <th>Observaciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (log of p.dailyLogs; track log.id; let i = $index) {
-            <tr>
-              <td data-label="Día">{{ i + 1 }}</td>
-              <td data-label="Fecha">{{ log.fecha | date: 'short' }}</td>
-              <td data-label="Registrado por">{{ log.registradoPorNombre }}</td>
-              <td data-label="Toolbox Talk">{{ log.toolboxTalkRealizado ? 'Sí' : 'No' }}</td>
-              <td data-label="LOTO">{{ log.lotoVerificado ? 'Sí' : 'No' }}</td>
-              <td data-label="Gases">
-                @if (log.gasReadings.length > 0) {
-                  <dynadrill-tag [label]="dailyLogSeguro(log) ? 'Seguros' : 'Fuera de rango'" [variant]="dailyLogSeguro(log) ? 'success' : 'error'" />
-                  @for (r of log.gasReadings; track r.gas) {
-                    <span class="ptw-detail-page__daily-gas">{{ r.gas }} {{ r.lectura }}</span>
-                  }
-                } @else {
-                  <span class="ptw-detail-page__fase-note">Sin lecturas</span>
-                }
-              </td>
-              <td data-label="Observaciones">{{ log.observaciones || '—' }}</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    } @else {
-      <p class="ptw-detail-page__fase-note">Sin registros diarios todavía.</p>
-    }
-
-    @if (p.fase === 'ejecucion') {
-      <div class="ptw-detail-page__gas-form">
-        @for (gas of gasKeys; track gas) {
-          <dynadrill-input
-            [label]="gas + ' (' + gasLimites[gas].unidad + ')'"
-            type="number"
-            [value]="dailyGasDraft()[gas]"
-            (valueChange)="onDailyGasDraftChange(gas, $event)"
-          />
-        }
-      </div>
-      <div class="ptw-detail-page__firma">
-        <p>Toolbox Talk realizado hoy</p>
-        <dynadrill-button size="small" variant="secondary" (click)="dailyToolboxTalk.set(!dailyToolboxTalk())">
-          {{ dailyToolboxTalk() ? 'Sí ✓' : 'Marcar como realizado' }}
-        </dynadrill-button>
-      </div>
-      <div class="ptw-detail-page__firma">
-        <p>LOTO reverificado hoy</p>
-        <dynadrill-button size="small" variant="secondary" (click)="dailyLoto.set(!dailyLoto())">
-          {{ dailyLoto() ? 'Sí ✓' : 'Marcar como verificado' }}
-        </dynadrill-button>
-      </div>
-      <dynadrill-textarea label="Observaciones (opcional)" [value]="dailyObservaciones()" (valueChange)="dailyObservaciones.set($event)" [rows]="2" />
-      <dynadrill-button variant="secondary" size="small" (click)="registrarControlDiario()">Registrar control de hoy</dynadrill-button>
-    }
-
-    <h4 class="ptw-detail-page__subtitle">Cierre de la ejecución</h4>
-
-    <div class="ptw-detail-page__firma">
-      <p>Limpieza total del área (housekeeping)</p>
-      <dynadrill-button size="small" variant="secondary" (click)="toggleLimpieza()">
-        {{ p.limpiezaCompletada ? 'Completada ✓' : 'Marcar como completada' }}
-      </dynadrill-button>
-    </div>
-
-    <div class="ptw-detail-page__firma">
-      <p>Inspección conjunta final — sitio conforme</p>
-      <dynadrill-button size="small" variant="secondary" (click)="toggleInspeccionFinal()">
-        {{ p.inspeccionFinalConforme ? 'Conforme ✓' : 'Marcar como conforme' }}
-      </dynadrill-button>
-    </div>
-
-    @if (p.fase === 'ejecucion') {
-      <dynadrill-button [disabled]="!puedeAvanzarDeEjecucion()" (click)="avanzarFase()">
         Continuar a Gestión documental
       </dynadrill-button>
     }
   </section>
 
-  <!-- Fase 4: Gestión documental final -->
+  <!-- Fase 3: Gestión documental final -->
   <section class="ptw-detail-page__fase">
-    <h3 class="ptw-detail-page__fase-title">4. Gestión documental final</h3>
+    <h3 class="ptw-detail-page__fase-title">3. Gestión documental final</h3>
 
     <div class="ptw-detail-page__firma">
       <p>Cerrar PTW</p>
@@ -267,8 +155,8 @@
     @if (cerrado()) {
       <dynadrill-tag label="Sitio devuelto — PTW cerrado" variant="success" />
       <p class="ptw-detail-page__fase-note">
-        Este PTW quedó cerrado y archivado. No requiere ninguna acción adicional aquí — para un nuevo trabajo en esta
-        actividad se abre un PTW nuevo desde una Matriz IPERC aprobada.
+        Este PTW quedó cerrado y archivado. No requiere ninguna acción adicional aquí — para un nuevo trabajo se abre
+        un PTW nuevo automáticamente junto con el ticket de Pumping/FCR correspondiente.
       </p>
       <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a Recibimiento de Sitio</dynadrill-button>
     }

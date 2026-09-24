@@ -1,20 +1,22 @@
 /**
  * Fases de HSE-SITIO-001 (Recibimiento de Sitio y Apertura de PTW):
- * Gabinete → Formalización → Ejecución → Gestión documental. Ya no pasa por
- * un PTW aprobado (ver `PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS.md`, Fase 1:
- * la Matriz IPERC es maestra/anual, no bloquea la apertura). `'ingreso'` y
- * `'verificaciones'` siguen siendo valores válidos del tipo (compatibilidad
- * con PTWs sembrados antes de la Fase 2 del mismo plan) pero ya no aparecen
- * en `PTW_FASE_ORDER`/`PTW_FASE_STEPS`: ese checklist ("Ingreso a locación" +
- * "Verificaciones de seguridad") pasó a ser propiedad de Pumping
- * (`ChecklistIngresoPumping`, ver ticket-detail-page de Pumping), QHSE ya no
- * lo llena.
+ * Gabinete → Formalización → Gestión documental. Ya no pasa por un PTW
+ * aprobado (ver `PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS.md`, Fase 1: la
+ * Matriz IPERC es maestra/anual, no bloquea la apertura). `'ingreso'`,
+ * `'verificaciones'` y `'ejecucion'` siguen siendo valores válidos del tipo
+ * (compatibilidad con PTWs sembrados antes de este cambio) pero ya no
+ * aparecen en `PTW_FASE_ORDER`/`PTW_FASE_STEPS`: "Ingreso a locación" +
+ * "Verificaciones de seguridad" pasaron a ser propiedad de Pumping
+ * (`ChecklistIngresoPumping`, ver ticket-detail-page de Pumping); "Ejecución
+ * y devolución" (registro diario + cierre de campo) se retiró del todo a
+ * pedido del negocio — el PTW pasa directo de Formalización a Gestión
+ * documental.
  */
 export type PtwFase = 'gabinete' | 'ingreso' | 'verificaciones' | 'formalizacion' | 'ejecucion' | 'gestion_documental';
 
-export const PTW_FASE_ORDER: PtwFase[] = ['gabinete', 'formalizacion', 'ejecucion', 'gestion_documental'];
+export const PTW_FASE_ORDER: PtwFase[] = ['gabinete', 'formalizacion', 'gestion_documental'];
 
-export const PTW_FASE_STEPS = ['Gabinete', 'Formalización', 'Ejecución', 'Gest. doc.'];
+export const PTW_FASE_STEPS = ['Gabinete', 'Formalización', 'Gest. doc.'];
 
 export const PTW_FASE_LABELS: Record<PtwFase, string> = {
   gabinete: 'Preparación en gabinete',
@@ -51,70 +53,10 @@ export interface PtwDocumento {
   cargadoAt?: string;
 }
 
-export type PtwGas = 'H2S' | 'LEL' | 'O2' | 'CO';
-
-/**
- * Límites de HSE-SITIO-001 ("Puntos Críticos de Seguridad · Monitoreo de
- * Gases"). O2 es el único de rango doble (déficit o exceso de oxígeno son
- * ambos inseguros); el resto es límite superior.
- */
-export const PTW_GAS_LIMITES: Record<PtwGas, { label: string; unidad: string; min?: number; max: number }> = {
-  H2S: { label: 'H2S (Ácido Sulfhídrico)', unidad: 'ppm', max: 10 },
-  LEL: { label: 'LEL (Límite Explosivo Inferior)', unidad: '%', max: 10 },
-  O2: { label: 'O2 (Oxígeno)', unidad: '%', min: 19.5, max: 23.5 },
-  CO: { label: 'CO (Monóxido de Carbono)', unidad: 'ppm', max: 25 },
-};
-
-export function ptwGasLimiteLabel(gas: PtwGas): string {
-  const l = PTW_GAS_LIMITES[gas];
-  return l.min != null ? `${l.min}% - ${l.max}%` : `< ${l.max} ${l.unidad}`;
-}
-
-export function ptwGasEsSeguro(gas: PtwGas, lectura: number): boolean {
-  const l = PTW_GAS_LIMITES[gas];
-  if (l.min != null) return lectura >= l.min && lectura <= l.max;
-  return lectura < l.max;
-}
-
-export interface PtwGasReading {
-  gas: PtwGas;
-  lectura: number;
-  seguro: boolean;
-  medidoAt: string;
-}
-
 /** "Una línea": usuario + fecha, sin captura de firma manuscrita (decisiones del plan de desarrollo del módulo QHSE). */
 export interface PtwFirma {
   nombre: string;
   firmadoAt: string;
-}
-
-/**
- * HSE-SITIO-001 describe el monitoreo de gases y el Toolbox Talk como
- * control continuo, no un trámite único al abrir el PTW — un trabajo que
- * dura varios días necesita su propio control cada día. Fase 3
- * (Verificaciones) sigue siendo la verificación inicial que habilita
- * avanzar a Formalización; este registro es el control del día a día
- * durante Fase 5 (Ejecución), donde vive el trabajo real de campo.
- */
-export interface PtwDailyLog {
-  id: number;
-  fecha: string;
-  registradoPorNombre: string;
-  toolboxTalkRealizado: boolean;
-  lotoVerificado: boolean;
-  gasReadings: PtwGasReading[];
-  observaciones?: string;
-}
-
-export function ptwDailyLogSeguro(log: Pick<PtwDailyLog, 'gasReadings'>): boolean {
-  return log.gasReadings.every(r => r.seguro);
-}
-
-/** true si hoy (fecha local) todavía no tiene un registro de control diario — para avisar que falta el de hoy, no para bloquear nada. */
-export function ptwControlDeHoyPendiente(logs: PtwDailyLog[], ahora = new Date()): boolean {
-  const hoy = ahora.toDateString();
-  return !logs.some(l => new Date(l.fecha).toDateString() === hoy);
 }
 
 /** DYN-SGI-RE-087 no aplica acá — HSE-SITIO-001 no tiene formato propio generado por el sistema (ver tabla de formatos del proceso). */
@@ -148,13 +90,7 @@ export interface PtwMatrix {
   actaRecibimientoFirmada?: PtwFirma;
   barricadasInstaladas: boolean;
 
-  // Fase 3: Ejecución y devolución
-  limpiezaCompletada: boolean;
-  inspeccionFinalConforme: boolean;
-  /** Control diario mientras el trabajo dura varios días — ver PtwDailyLog. */
-  dailyLogs: PtwDailyLog[];
-
-  // Fase 4: Gestión documental final
+  // Fase 3: Gestión documental final
   ptwCerrado?: PtwFirma;
   actaDevolucionFirmada?: PtwFirma;
   /**

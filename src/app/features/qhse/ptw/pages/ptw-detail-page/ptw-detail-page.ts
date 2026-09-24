@@ -2,14 +2,11 @@ import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
-  DynadrillBannerComponent,
   DynadrillButtonComponent,
-  DynadrillInputComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillStepperComponent,
   DynadrillTagComponent,
-  DynadrillTextareaComponent,
   DynadrillUploadZoneComponent,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../../../core/services/auth.service';
@@ -17,17 +14,10 @@ import {
   PTW_DOCUMENTOS_REQUERIDOS,
   PTW_FASE_ORDER,
   PTW_FASE_STEPS,
-  PTW_GAS_LIMITES,
-  type PtwDailyLog,
   type PtwDocumentoTipo,
   type PtwFirma,
-  type PtwGas,
-  type PtwGasReading,
   type PtwMatrix,
   ptwCerrado,
-  ptwControlDeHoyPendiente,
-  ptwDailyLogSeguro,
-  ptwGasEsSeguro,
 } from '../../models/ptw.model';
 import { PtwService } from '../../services/ptw.service';
 import { downloadQhseReport, escapeHtml, qhseBadge, type QhseReportSection } from '../../../shared/utils/qhse-report.util';
@@ -41,11 +31,8 @@ type FirmaCampo = 'ptwFirmadoSitio' | 'actaRecibimientoFirmada' | 'ptwCerrado' |
     DatePipe,
     DynadrillScreenHeaderComponent,
     DynadrillStepperComponent,
-    DynadrillBannerComponent,
     DynadrillUploadZoneComponent,
-    DynadrillInputComponent,
     DynadrillTagComponent,
-    DynadrillTextareaComponent,
     DynadrillButtonComponent,
   ],
   templateUrl: './ptw-detail-page.html',
@@ -62,14 +49,6 @@ export class PtwDetailPage {
   protected readonly ptw = signal<PtwMatrix | null>(null);
 
   protected readonly steps = PTW_FASE_STEPS;
-  protected readonly gasKeys: PtwGas[] = ['H2S', 'LEL', 'O2', 'CO'];
-  protected readonly gasLimites = PTW_GAS_LIMITES;
-
-  // ── Registro diario (Fase 3 — control del día a día durante la ejecución) ──
-  protected readonly dailyGasDraft = signal<Record<PtwGas, string>>({ H2S: '', LEL: '', O2: '', CO: '' });
-  protected readonly dailyToolboxTalk = signal(false);
-  protected readonly dailyLoto = signal(false);
-  protected readonly dailyObservaciones = signal('');
 
   protected readonly currentIndex = computed(() => {
     const p = this.ptw();
@@ -81,15 +60,6 @@ export class PtwDetailPage {
     return !!p && ptwCerrado(p);
   });
 
-  /**
-   * Un PTW no es de un solo día — la Fase 5 ("Ejecución y devolución") dura
-   * lo que dure el trabajo, con un registro diario propio (dailyLogs) que
-   * antes solo se notaba si se bajaba hasta esa fase. Este contador va
-   * arriba, junto al resto de metadatos, para que quede claro desde que se
-   * abre la pantalla que esto puede llevar varios días.
-   */
-  protected readonly diasEjecucionRegistrados = computed(() => this.ptw()?.dailyLogs.length ?? 0);
-
   protected readonly puedeAvanzarDeGabinete = computed(() => (this.ptw()?.documentos ?? []).every(d => d.cargado));
 
   protected readonly puedeAvanzarDeFormalizacion = computed(() => {
@@ -97,25 +67,10 @@ export class PtwDetailPage {
     return !!p && !!p.ptwFirmadoSitio && !!p.actaRecibimientoFirmada && p.barricadasInstaladas;
   });
 
-  protected readonly puedeAvanzarDeEjecucion = computed(() => {
-    const p = this.ptw();
-    return !!p && p.limpiezaCompletada && p.inspeccionFinalConforme;
-  });
-
   protected readonly puedeCerrar = computed(() => {
     const p = this.ptw();
     return !!p && !!p.ptwCerrado && !!p.actaDevolucionFirmada && p.respaldosEnviados;
   });
-
-  /** Solo informativo mientras se está ejecutando el trabajo — no bloquea nada, es un recordatorio de que hoy todavía no se registró control. */
-  protected readonly controlDeHoyPendiente = computed(() => {
-    const p = this.ptw();
-    return !!p && p.fase === 'ejecucion' && ptwControlDeHoyPendiente(p.dailyLogs);
-  });
-
-  protected dailyLogSeguro(log: PtwDailyLog): boolean {
-    return ptwDailyLogSeguro(log);
-  }
 
   constructor() {
     const id = Number(this.route.snapshot.paramMap.get('id'));
@@ -210,43 +165,6 @@ export class PtwDetailPage {
     this.notify.success('Documentos simulados', 'Los 4 documentos de gabinete quedaron marcados como cargados.');
   }
 
-  protected onDailyGasDraftChange(gas: PtwGas, value: string): void {
-    this.dailyGasDraft.update(d => ({ ...d, [gas]: value }));
-  }
-
-  /** Un registro por día mientras el trabajo dure — HSE-SITIO-001 pide Toolbox Talk y monitoreo continuos, no solo al abrir el PTW. */
-  protected registrarControlDiario(): void {
-    const p = this.ptw();
-    if (!p) return;
-    const now = new Date().toISOString();
-    const draft = this.dailyGasDraft();
-    const gasReadings: PtwGasReading[] = [];
-    for (const gas of this.gasKeys) {
-      const raw = draft[gas];
-      if (raw === '') continue;
-      const lectura = Number(raw);
-      if (Number.isNaN(lectura)) continue;
-      gasReadings.push({ gas, lectura, seguro: ptwGasEsSeguro(gas, lectura), medidoAt: now });
-    }
-
-    const log: PtwDailyLog = {
-      id: Date.now(),
-      fecha: now,
-      registradoPorNombre: this.auth.currentUser()?.name ?? '',
-      toolboxTalkRealizado: this.dailyToolboxTalk(),
-      lotoVerificado: this.dailyLoto(),
-      gasReadings,
-      observaciones: this.dailyObservaciones().trim() || undefined,
-    };
-    this.patch({ dailyLogs: [...p.dailyLogs, log] });
-
-    this.dailyGasDraft.set({ H2S: '', LEL: '', O2: '', CO: '' });
-    this.dailyToolboxTalk.set(false);
-    this.dailyLoto.set(false);
-    this.dailyObservaciones.set('');
-    this.notify.success('Control diario registrado', 'Quedó guardado en el historial de este PTW.');
-  }
-
   /**
    * PUM-004 (Consolidación y Carga de Documentación Operativa de Pumping)
    * describe un paso "Descargar documentos HSE Ref: HSE-SITIO-001" — este
@@ -288,31 +206,11 @@ export class PtwDetailPage {
       </table>`,
     };
 
-    const dailyLogRows = p.dailyLogs
-      .map(
-        l => `
-          <tr>
-            <td>${new Date(l.fecha).toLocaleString('es-EC')}</td>
-            <td>${escapeHtml(l.registradoPorNombre)}</td>
-            <td>${l.toolboxTalkRealizado ? 'Sí' : 'No'}</td>
-            <td>${l.lotoVerificado ? 'Sí' : 'No'}</td>
-            <td>${l.gasReadings.length > 0 ? (l.gasReadings.every(r => r.seguro) ? qhseBadge('Seguro', 'ok') : qhseBadge('Fuera de rango', 'error')) : '—'}</td>
-          </tr>`,
-      )
-      .join('');
-    const dailyLogSection: QhseReportSection = {
-      title: 'Registro diario de control (Fase 5 — Ejecución)',
-      bodyHtml:
-        p.dailyLogs.length === 0
-          ? '<p class="qr-empty">Sin registros diarios.</p>'
-          : `<table><tr><th>Fecha</th><th>Registrado por</th><th>Toolbox Talk</th><th>LOTO</th><th>Gases</th></tr>${dailyLogRows}</table>`,
-    };
-
     downloadQhseReport(
       `hse-sitio-001-${p.code}.html`,
       `Documentos HSE — ${p.code}`,
       `${p.actividad} — ${p.ubicacion} — Orden de trabajo ${p.ordenTrabajo} — IPERC origen ${p.ipercCode}`,
-      [documentosSection, firmasSection, dailyLogSection],
+      [documentosSection, firmasSection],
     );
   }
 
@@ -343,16 +241,6 @@ export class PtwDetailPage {
   protected toggleBarricadas(): void {
     const p = this.ptw();
     if (p) this.patch({ barricadasInstaladas: !p.barricadasInstaladas });
-  }
-
-  protected toggleLimpieza(): void {
-    const p = this.ptw();
-    if (p) this.patch({ limpiezaCompletada: !p.limpiezaCompletada });
-  }
-
-  protected toggleInspeccionFinal(): void {
-    const p = this.ptw();
-    if (p) this.patch({ inspeccionFinalConforme: !p.inspeccionFinalConforme });
   }
 
   protected avanzarFase(): void {

@@ -104,78 +104,6 @@
   color: var(--dynadrill-color-text-secondary, #666);
 }
 
-.ptw-detail-page__gas-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-  margin-bottom: 1rem;
-}
-
-.ptw-detail-page__gas-table th,
-.ptw-detail-page__gas-table td {
-  text-align: left;
-  padding: 0.5rem 0.75rem;
-  border-bottom: var(--border-width, 1px) solid var(--border, #e5e4ea);
-}
-
-// < 560px: la tabla de 4 columnas no cabe (label de gas incluye el nombre
-// completo entre paréntesis) — cada fila pasa a ser una tarjeta con
-// pares etiqueta/valor apilados, mismo patrón CSS-only de "tabla
-// responsive" (sin duplicar el template en dos vistas distintas).
-@media (max-width: 560px) {
-  .ptw-detail-page__gas-table {
-    border: none;
-  }
-
-  .ptw-detail-page__gas-table thead {
-    display: none;
-  }
-
-  .ptw-detail-page__gas-table tbody,
-  .ptw-detail-page__gas-table tr {
-    display: block;
-  }
-
-  .ptw-detail-page__gas-table tr {
-    margin-bottom: 10px;
-    padding: 10px 12px;
-    border: var(--border-width, 1px) solid var(--border, #e5e4ea);
-    border-radius: var(--radius-md, 6px);
-    background: var(--surface, #ffffff);
-  }
-
-  .ptw-detail-page__gas-table td {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 6px 0;
-    border-bottom: none;
-
-    &:first-child {
-      font-family: var(--font-heading, sans-serif);
-      font-weight: 700;
-      color: var(--dynadrill-navy, #131529);
-    }
-
-    &::before {
-      content: attr(data-label);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-      color: var(--text-muted, #5c5870);
-    }
-  }
-}
-
-.ptw-detail-page__gas-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
 .ptw-detail-page__firma {
   display: flex;
   align-items: center;
@@ -194,81 +122,10 @@
   font-size: 0.85rem;
 }
 
-.ptw-detail-page__daily-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-  margin-bottom: 1rem;
-}
-
-.ptw-detail-page__daily-table th,
-.ptw-detail-page__daily-table td {
-  text-align: left;
-  padding: 0.5rem 0.75rem;
-  border-bottom: var(--border-width, 1px) solid var(--border, #e5e4ea);
-  vertical-align: top;
-}
-
-.ptw-detail-page__daily-gas {
-  display: inline-block;
-  margin-left: 6px;
-  font-size: 0.8em;
-  color: var(--text-muted, #5c5870);
-}
-
-// Mismo patrón responsive que .ptw-detail-page__gas-table — filas como
-// tarjetas apiladas en vez de una tabla angosta e ilegible en mobile.
-@media (max-width: 700px) {
-  .ptw-detail-page__daily-table {
-    border: none;
-  }
-
-  .ptw-detail-page__daily-table thead {
-    display: none;
-  }
-
-  .ptw-detail-page__daily-table tbody,
-  .ptw-detail-page__daily-table tr {
-    display: block;
-  }
-
-  .ptw-detail-page__daily-table tr {
-    margin-bottom: 10px;
-    padding: 10px 12px;
-    border: var(--border-width, 1px) solid var(--border, #e5e4ea);
-    border-radius: var(--radius-md, 6px);
-    background: var(--surface, #ffffff);
-  }
-
-  .ptw-detail-page__daily-table td {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 6px 0;
-    border-bottom: none;
-
-    &:first-child {
-      font-family: var(--font-heading, sans-serif);
-      font-weight: 700;
-      color: var(--dynadrill-navy, #131529);
-    }
-
-    &::before {
-      content: attr(data-label);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-      color: var(--text-muted, #5c5870);
-    }
-  }
-}
-
 // Los botones de avance de fase y las notas van pegados a lo que viene
 // justo antes (grilla de documentos, checklist, tabla) sin este margen —
 // se leían como si formaran parte del mismo bloque.
-.ptw-detail-page__fase > dynadrill-button,
-.ptw-detail-page__fase > dynadrill-banner {
+.ptw-detail-page__fase > dynadrill-button {
   display: block;
   margin-top: 1.25rem;
 }

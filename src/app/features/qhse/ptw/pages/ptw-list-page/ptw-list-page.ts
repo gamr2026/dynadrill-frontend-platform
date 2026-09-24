@@ -76,7 +76,6 @@ export class PtwListPage {
   /** Sin fixed:'left'/'right' ni scrollX — ver nota en iperc-list-page.ts (mismo criterio contra el pipeline de columnas fijas de nz-table). */
   protected readonly columns = computed<DynadrillDataTableColumn[]>(() => [
     { key: 'code', header: 'Código', sortable: true, searchable: true },
-    { key: 'ipercCode', header: 'IPERC origen', searchable: true },
     { key: 'servicio', header: 'Servicio', searchable: true },
     { key: 'ubicacion', header: 'Ubicación', searchable: true },
     { key: 'faseBadge', header: 'Fase actual', type: 'badge' },
@@ -89,7 +88,6 @@ export class PtwListPage {
     this.records().map(p => ({
       id: p.id,
       code: p.code,
-      ipercCode: p.ipercCode,
       servicio: p.ticketTipo ? PTW_TICKET_TIPO_LABELS[p.ticketTipo] : '—',
       ubicacion: p.ubicacion,
       pedidoId: p.pedidoId,

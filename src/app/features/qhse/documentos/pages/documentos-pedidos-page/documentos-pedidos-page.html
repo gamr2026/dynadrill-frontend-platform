@@ -1,7 +1,7 @@
 <dynadrill-screen-header
   eyebrow="QHSE"
   title="Documentos por pedido"
-  subtitle="Formato de Recepción y SFI (QHSE) — ART y PT los sube el Supervisor desde su ticket de Pumping"
+  subtitle="Formato de Recepción, SFI y Carnet de Vacunas (QHSE) — ART y PT los sube el Supervisor desde su ticket de Pumping"
   roleTag="HSE"
 />
 
@@ -13,6 +13,13 @@
       <dynadrill-icon-button icon="upload" tooltip="Subir Formato de Recepción" tooltipPlacement="top" [disabled]="subiendoTipo(row.pedidoId, 'qhse_formato_recepcion')" (clicked)="formatoInput.click()" />
     }
     <input #formatoInput type="file" hidden (change)="subir(row.pedidoId, 'qhse_formato_recepcion', formatoInput)" />
+
+    @if (row.estado.carnetVacunas) {
+      <dynadrill-icon-button icon="download" tooltip="Descargar Carnet de Vacunas" tooltipPlacement="top" (clicked)="descargar(row.pedidoId, 'qhse_carnet_vacunas')" />
+    } @else {
+      <dynadrill-icon-button icon="upload" tooltip="Subir Carnet de Vacunas" tooltipPlacement="top" [disabled]="subiendoTipo(row.pedidoId, 'qhse_carnet_vacunas')" (clicked)="carnetInput.click()" />
+    }
+    <input #carnetInput type="file" hidden (change)="subir(row.pedidoId, 'qhse_carnet_vacunas', carnetInput)" />
 
     @if (row.estado.sfi) {
       <dynadrill-icon-button icon="download" tooltip="Descargar SFI" tooltipPlacement="top" (clicked)="descargar(row.pedidoId, 'qhse_sfi')" />

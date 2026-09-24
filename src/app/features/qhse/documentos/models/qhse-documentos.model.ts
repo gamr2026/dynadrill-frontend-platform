@@ -6,6 +6,7 @@
 export interface EstadoDocumentalPedido {
   formatoRecepcion: boolean;
   sfi: boolean;
+  carnetVacunas: boolean;
   /** `null` = nunca se subió un ART para este pedido. */
   artVigente: boolean | null;
   artFechaEmision: string | null;
@@ -50,4 +51,5 @@ export interface PedidoConEstadoDocumental {
 
 export const QHSE_TIPO_FORMATO_RECEPCION = 'qhse_formato_recepcion';
 export const QHSE_TIPO_SFI = 'qhse_sfi';
+export const QHSE_TIPO_CARNET_VACUNAS = 'qhse_carnet_vacunas';
 export const QHSE_REFERENCIA_VIGENTE = 'vigente';

@@ -1,5 +1,14 @@
+// Sin flex-wrap: con wrap, esta fila de hasta 4 íconos (Formato de
+// Recepción, Carnet de Vacunas, SFI, certificado de Ingreso) se apilaba en
+// columna apenas la celda quedaba angosta. Sin wrap, la tabla scrollea
+// horizontal (.table-scroll) en vez de apilar — mismo criterio que el
+// resto de tablas QHSE.
 .documentos-pedidos-page__row-actions {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.table-scroll {
+  overflow-x: auto;
 }

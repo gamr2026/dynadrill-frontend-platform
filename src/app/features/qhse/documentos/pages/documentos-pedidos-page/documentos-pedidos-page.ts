@@ -7,7 +7,13 @@ import {
   DynadrillScreenHeaderComponent,
 } from '@digitec-it-projects/dynadrill-ui';
 import { QhseDocumentosService } from '../../services/qhse-documentos.service';
-import { PedidoConEstadoDocumental, QHSE_REFERENCIA_VIGENTE, QHSE_TIPO_FORMATO_RECEPCION, QHSE_TIPO_SFI } from '../../models/qhse-documentos.model';
+import {
+  PedidoConEstadoDocumental,
+  QHSE_REFERENCIA_VIGENTE,
+  QHSE_TIPO_CARNET_VACUNAS,
+  QHSE_TIPO_FORMATO_RECEPCION,
+  QHSE_TIPO_SFI,
+} from '../../models/qhse-documentos.model';
 import { crearReportePdf, descargarReportePdf } from '../../../../../shared/utils/reporte-pdf.util';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
@@ -24,8 +30,9 @@ const APROBADO: Badge = { text: 'Aprobado', tone: 'success' };
 
 /**
  * Bandeja "Documentos por pedido" de QHSE — ver PLAN-QHSE-PUMPING-NOTIFICACIONES,
- * Fase 2. QHSE sube acá el Formato de Recepción y el SFI; ART y PT los sube
- * el Supervisor desde su ticket de Pumping (esta pantalla solo los muestra).
+ * Fase 2. QHSE sube acá el Formato de Recepción, el SFI y el Carnet de
+ * Vacunas; ART y PT los sube el Supervisor desde su ticket de Pumping (esta
+ * pantalla solo los muestra).
  */
 @Component({
   selector: 'app-documentos-pedidos-page',
@@ -47,6 +54,7 @@ export class DocumentosPedidosPage {
     { key: 'cliente', header: 'Cliente', searchable: true },
     { key: 'campo', header: 'Campo / Pozo', searchable: true },
     { key: 'formatoRecepcionBadge', header: 'Formato de Recepción', type: 'badge' },
+    { key: 'carnetVacunasBadge', header: 'Carnet de Vacunas', type: 'badge' },
     { key: 'artBadge', header: 'ART', type: 'badge' },
     { key: 'ptBadge', header: 'PT (hoy)', type: 'badge' },
     { key: 'sfiBadge', header: 'SFI', type: 'badge' },
@@ -61,6 +69,7 @@ export class DocumentosPedidosPage {
       cliente: p.cliente,
       campo: `${p.campo} / ${p.pozo}`,
       formatoRecepcionBadge: p.estado.formatoRecepcion ? CARGADO : PENDIENTE,
+      carnetVacunasBadge: p.estado.carnetVacunas ? CARGADO : PENDIENTE,
       artBadge: p.estado.artVigente === true ? CARGADO : p.estado.artVigente === false ? VENCIDO : SIN_ART,
       ptBadge: p.estado.ptHoy ? CARGADO : PENDIENTE,
       sfiBadge: p.estado.sfi ? CARGADO : PENDIENTE,
@@ -95,8 +104,12 @@ export class DocumentosPedidosPage {
     return this.subiendo() === this.key(pedidoId, tipo);
   }
 
-  /** Sube (o reemplaza) el Formato de Recepción o el SFI de un pedido — únicos dos tipos que QHSE sube directamente. */
-  protected subir(pedidoId: number, tipo: typeof QHSE_TIPO_FORMATO_RECEPCION | typeof QHSE_TIPO_SFI, input: HTMLInputElement): void {
+  /** Sube (o reemplaza) el Formato de Recepción, el SFI o el Carnet de Vacunas de un pedido — los tipos que QHSE sube directamente. */
+  protected subir(
+    pedidoId: number,
+    tipo: typeof QHSE_TIPO_FORMATO_RECEPCION | typeof QHSE_TIPO_SFI | typeof QHSE_TIPO_CARNET_VACUNAS,
+    input: HTMLInputElement,
+  ): void {
     const archivo = input.files?.[0];
     input.value = '';
     if (!archivo) return;

@@ -45,7 +45,7 @@ export const DASHBOARD_KPI_DEFS: DashboardKpiDef[] = [
   { id: 'desechos_peligrosos_kg_mes', categoria: 'Ambiental', label: 'Desechos peligrosos generados (mes actual)', unidad: 'kg', direccion: 'menor_mejor', disponible: true },
   { id: 'reciclaje_pct', categoria: 'Ambiental', label: '% de reciclaje (peso en contenedor azul)', unidad: '%', direccion: 'mayor_mejor', disponible: true },
   { id: 'derrames_trimestre', categoria: 'Ambiental', label: 'Derrames en el trimestre actual', unidad: 'eventos', direccion: 'menor_mejor', disponible: true },
-  { id: 'derrames_mayor_year', categoria: 'Ambiental', label: 'Derrames Mayor en el año', unidad: 'eventos', direccion: 'menor_mejor', disponible: true },
+  { id: 'derrames_volumen_barriles_year', categoria: 'Ambiental', label: 'Volumen total derramado (año)', unidad: 'barriles', direccion: 'menor_mejor', disponible: true },
 
   { id: 'stop_per_capita', categoria: 'Cultura Preventiva', label: 'Tarjetas STOP per cápita', unidad: 'tarjetas/persona', direccion: 'mayor_mejor', disponible: true },
   { id: 'stop_participacion_pct', categoria: 'Cultura Preventiva', label: '% de participación en programa STOP', unidad: '%', direccion: 'mayor_mejor', disponible: false, motivoNoDisponible: 'Requiere nómina de personal — no existe módulo de personal en el sistema.' },

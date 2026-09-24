@@ -7,6 +7,7 @@ import {
   type DynadrillChecklistItem,
   DynadrillContextCardComponent,
   DynadrillDialogService,
+  DynadrillInputComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillTagComponent,
@@ -33,6 +34,7 @@ import { EmergenciaAlertDialog, EmergenciaAlertDialogData } from '../../../emerg
     DynadrillButtonComponent,
     DynadrillChecklistComponent,
     DynadrillTagComponent,
+    DynadrillInputComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './derrame-detail-page.html',
@@ -52,13 +54,16 @@ export class DerrameDetailPage {
   protected readonly loading = signal(true);
   protected readonly evento = signal<DerrameEvento | null>(null);
   protected readonly generandoDesecho = signal(false);
+  protected readonly volumenBarrilesInput = signal('');
+  protected readonly guardandoVolumen = signal(false);
 
   protected readonly contextItems = computed<DynadrillContextCardItem[]>(() => {
     const e = this.evento();
     if (!e) return [];
     return [
       { label: 'Evento', value: e.code },
-      { label: 'Volumen', value: this.volumenLabels[e.volumen] },
+      { label: 'Volumen (banda reportada)', value: this.volumenLabels[e.volumen] },
+      { label: 'Volumen real (barriles)', value: e.volumenBarriles != null ? `${e.volumenBarriles} bbl` : 'Sin confirmar' },
       { label: 'Ubicación', value: this.ubicacionLabels[e.ubicacion] },
       { label: 'Activado por', value: e.activadoPorNombre },
       { label: 'Estado', value: DERRAME_ESTADO_LABELS[e.estado] },
@@ -93,6 +98,7 @@ export class DerrameDetailPage {
     this.derrameService.get(id).subscribe({
       next: e => {
         this.evento.set(e);
+        this.volumenBarrilesInput.set(e.volumenBarriles != null ? String(e.volumenBarriles) : '');
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
@@ -125,6 +131,25 @@ export class DerrameDetailPage {
 
   protected notificarMae(): void {
     this.patch({ notificadoMae: true, notificadoMaeAt: new Date().toISOString() });
+  }
+
+  /** HSE-MASTER-001: alimenta "Volumen total derramado (barriles/año)" del dashboard — solo QHSE la confirma, tras la contención. */
+  protected guardarVolumenBarriles(): void {
+    const e = this.evento();
+    const valor = Number(this.volumenBarrilesInput());
+    if (!e || this.guardandoVolumen() || !Number.isFinite(valor) || valor < 0) return;
+    this.guardandoVolumen.set(true);
+    this.derrameService.update(e.id, { volumenBarriles: valor }).subscribe({
+      next: updated => {
+        this.evento.set(updated);
+        this.guardandoVolumen.set(false);
+        this.notify.success('Guardado', 'Volumen real del derrame actualizado.');
+      },
+      error: () => {
+        this.guardandoVolumen.set(false);
+        this.notify.error('Error', 'No se pudo guardar el volumen.');
+      },
+    });
   }
 
   protected generarDesecho(): void {

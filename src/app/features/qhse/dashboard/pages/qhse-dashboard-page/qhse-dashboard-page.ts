@@ -356,7 +356,9 @@ export class QhseDashboardPage {
 
         const hace90Dias = new Date(ahora.getTime() - 90 * 86_400_000);
         const derramesTrimestre = derrames.filter(d => new Date(d.activadoAt) >= hace90Dias).length;
-        const derramesMayorYear = derrames.filter(d => d.volumen === 'mayor' && new Date(d.activadoAt).getFullYear() === anioActual).length;
+        const derramesVolumenBarrilesYear = derrames
+          .filter(d => new Date(d.activadoAt).getFullYear() === anioActual)
+          .reduce((sum, d) => sum + (d.volumenBarriles ?? 0), 0);
 
         // ── Cultura Preventiva ──
         const swaEventos = swa.length;
@@ -383,7 +385,7 @@ export class QhseDashboardPage {
           desechos_peligrosos_kg_mes: desechosPeligrososKgMes,
           reciclaje_pct: reciclajePct,
           derrames_trimestre: derramesTrimestre,
-          derrames_mayor_year: derramesMayorYear,
+          derrames_volumen_barriles_year: derramesVolumenBarrilesYear,
           swa_eventos: swaEventos,
           stop_per_capita: stopPerCapita,
         });

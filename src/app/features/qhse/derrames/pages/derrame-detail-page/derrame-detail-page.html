@@ -24,6 +24,21 @@
     }
   </section>
 
+  @if (e.estado !== 'activo') {
+    <section class="derrame-detail-page__section">
+      <h3>Volumen real derramado (confirmado por QHSE)</h3>
+      <dynadrill-input
+        label="Volumen (barriles)"
+        type="number"
+        [value]="volumenBarrilesInput()"
+        (valueChange)="volumenBarrilesInput.set($event)"
+      />
+      <dynadrill-button variant="secondary" [disabled]="guardandoVolumen()" (click)="guardarVolumenBarriles()">
+        {{ guardandoVolumen() ? 'Guardando…' : 'Guardar volumen' }}
+      </dynadrill-button>
+    </section>
+  }
+
   @if (requiereMae()) {
     <section class="derrame-detail-page__section">
       <h3>2. Notificación obligatoria a MAE</h3>

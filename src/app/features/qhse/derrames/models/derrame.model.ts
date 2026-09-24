@@ -61,6 +61,9 @@ export interface DerrameEvento {
   checklistContencion: DerrameChecklistItem[];
   contenidoAt?: string;
 
+  /** Volumen real estimado tras la contención (barriles) — alimenta el KPI "Volumen total derramado (barriles/año)" de HSE-MASTER-001. `volumen` (menor/moderado/mayor) es la banda reportada al activar la alerta; este es el número que QHSE confirma después. */
+  volumenBarriles?: number;
+
   /** Obligatoria cuando volumen === 'mayor' (>5 barriles) o ubicacion === 'cuerpo_agua' — ver derrameRequiereNotificacionMae(). */
   notificadoMae: boolean;
   notificadoMaeAt?: string;

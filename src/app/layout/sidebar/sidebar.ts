@@ -59,6 +59,13 @@ const MANTENIMIENTO_ITEM: DynadrillMenuItem = {
   ],
 };
 
+/** Solo Jefe de Base/Superadmin autorizan (ver ModuleRoles.gerenciamientoViajeApprove en el backend) — Jefe de Mantenimiento no entra, por eso no vive dentro de MANTENIMIENTO_ITEM. */
+const GERENCIAMIENTO_VIAJE_ITEM: DynadrillMenuItem = {
+  label: 'Gerenciamiento de Viaje',
+  icon: 'tool' as DynadrillIconName,
+  link: '/dashboard/mantenimiento/gerenciamiento-viaje',
+};
+
 const INVENTARIO_ITEM: DynadrillMenuItem = {
   label: 'Inventario',
   icon: 'tool' as DynadrillIconName,
@@ -264,7 +271,7 @@ export class Sidebar {
      * la UI solo debe ver Operativo > Pumping.
      */
     if (roleName === 'Jefe de Base') {
-      return [dashboard, { label: 'Módulos', icon: 'modules', children: [PUMPING_ONLY_ITEM] }];
+      return [dashboard, { label: 'Módulos', icon: 'modules', children: [PUMPING_ONLY_ITEM] }, GERENCIAMIENTO_VIAJE_ITEM];
     }
 
     /** Único caso con acceso completo en el sidebar — el único que ve Administración. */
@@ -277,7 +284,13 @@ export class Sidebar {
           icon: 'modules',
           children: [OPERATIVO_ITEM, MANTENIMIENTO_ITEM, INVENTARIO_ITEM, QHSE_ITEM, FACTURACION_ITEM_ADMIN],
         },
+        GERENCIAMIENTO_VIAJE_ITEM,
       ];
+    }
+
+    // conductor.cvega@dynadrill.com y similares — solo su propio Gerenciamiento de Viaje, sin ningún otro módulo.
+    if (roleName === 'Conductor') {
+      return [dashboard, { label: 'Gerenciamiento de Viaje', icon: 'tool' as DynadrillIconName, link: '/dashboard/mantenimiento/mis-viajes' }];
     }
 
     return [dashboard];

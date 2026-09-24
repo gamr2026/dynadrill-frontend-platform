@@ -1,0 +1,14 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mis-viajes-page__toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}

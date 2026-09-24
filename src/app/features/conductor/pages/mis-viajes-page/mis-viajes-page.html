@@ -1,0 +1,28 @@
+<dynadrill-screen-header
+  eyebrow="Conductor"
+  title="Gerenciamiento de Viaje"
+  subtitle="DYN-SGI-RE-049 — solicita y consulta el estado de tus viajes"
+  roleTag="Conductor"
+/>
+
+<div class="mis-viajes-page__toolbar">
+  <dynadrill-button (clicked)="solicitar()">+ Solicitar Gerenciamiento de Viaje</dynadrill-button>
+</div>
+
+<dynadrill-kpi-row [items]="kpis()" />
+
+<ng-template #actionsTpl let-row>
+  <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="verDetalle(row)" />
+</ng-template>
+
+<div class="table-scroll">
+  <dynadrill-data-table
+    [columns]="columns"
+    [rows]="rows()"
+    [loading]="loading()"
+    [rowKey]="rowKeyFn"
+    [pageSize]="10"
+    actionsHeader="Acciones"
+    [actionsTemplate]="actionsTpl"
+  />
+</div>

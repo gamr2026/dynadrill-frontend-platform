@@ -1,0 +1,11 @@
+.gv-detail-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+}

@@ -1,0 +1,38 @@
+<dynadrill-screen-header
+  eyebrow="Mantenimiento"
+  title="Gerenciamiento de Viaje"
+  subtitle="DYN-SGI-RE-049 — autoriza o rechaza los viajes de riesgo MEDIO/ALTO que solicitan los conductores"
+  roleTag="Jefe de Base"
+/>
+
+<div class="gerenciamiento-viaje-page__filtros">
+  @for (f of filtros; track f.value) {
+    <dynadrill-button [variant]="filtro() === f.value ? 'primary' : 'secondary'" size="small" (clicked)="filtro.set(f.value)">
+      {{ f.label }}
+    </dynadrill-button>
+  }
+</div>
+
+<dynadrill-kpi-row [items]="kpis()" />
+
+<ng-template #actionsTpl let-row>
+  <div class="gerenciamiento-viaje-page__row-actions">
+    <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="verDetalle(row)" />
+    @if (row.gv.estado === 'pendiente') {
+      <dynadrill-icon-button icon="check" tooltip="Autorizar" tooltipPlacement="top" (clicked)="aprobar(row)" />
+      <dynadrill-icon-button icon="close" tooltip="Rechazar" tooltipPlacement="top" (clicked)="rechazar(row)" />
+    }
+  </div>
+</ng-template>
+
+<div class="table-scroll">
+  <dynadrill-data-table
+    [columns]="columns"
+    [rows]="rows()"
+    [loading]="loading()"
+    [rowKey]="rowKeyFn"
+    [pageSize]="10"
+    actionsHeader="Acciones"
+    [actionsTemplate]="actionsTpl"
+  />
+</div>

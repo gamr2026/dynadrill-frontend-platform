@@ -1,0 +1,10 @@
+<div class="gv-detail-dialog">
+  <div class="gv-detail-dialog__tags">
+    <dynadrill-tag [label]="estadoLabels[gv.estado]" [variant]="estadoTone" />
+    <dynadrill-tag [label]="'Riesgo ' + gv.riskLevel + ' — ' + gv.totalPoints + ' pts'" [variant]="riesgoTone" />
+  </div>
+
+  <dynadrill-context-card [items]="generalItems()" layout="vertical" />
+  <dynadrill-context-card [items]="logisticaItems()" layout="vertical" />
+  <dynadrill-context-card [items]="aprobacionItems()" layout="vertical" />
+</div>

@@ -1,0 +1,89 @@
+<div class="gv-dialog">
+  <dynadrill-text variant="caption">Documento: DYN-SGI-RE-049 — Evaluación de riesgos de viajes y Plan de gestión de viajes</dynadrill-text>
+
+  <section class="gv-dialog__section">
+    <dynadrill-text variant="h2">Información general</dynadrill-text>
+    <div class="gv-dialog__form-grid">
+      <dynadrill-datetime-picker mode="date" label="Fecha" [value]="$any(fecha())" (valueChange)="fecha.set($event)" />
+      <dynadrill-input label="Motivo del viaje" [value]="motivoViaje()" (valueChange)="motivoViaje.set($event)" />
+      <dynadrill-input label="Origen" [value]="origen()" (valueChange)="origen.set($event)" />
+      <dynadrill-input label="Destino" [value]="destino()" (valueChange)="destino.set($event)" />
+      <dynadrill-input label="Ticket relacionado (opcional)" [value]="ticketCode()" (valueChange)="ticketCode.set($event)" />
+      <dynadrill-select label="Tipo de vehículo" placeholder="Seleccionar tipo" [options]="vehicleTypeOptions" [value]="vehicleType()" (valueChange)="onVehicleTypeChange($event)" />
+      <dynadrill-input label="Placas" [value]="placas()" (valueChange)="placas.set($event)" />
+    </div>
+  </section>
+
+  <section class="gv-dialog__section gv-dialog__section--tight">
+    <dynadrill-text variant="h2">Plan y logística</dynadrill-text>
+    <div class="gv-dialog__form-grid">
+      <dynadrill-input label="Pasajeros" [value]="passengers()" (valueChange)="passengers.set($event)" />
+      <dynadrill-input label="Hora de salida" [value]="departureTime()" (valueChange)="departureTime.set($event)" />
+      <dynadrill-input label="Hora de llegada estimada" [value]="arrivalTime()" (valueChange)="arrivalTime.set($event)" />
+      <dynadrill-input label="Pernoctación (si aplica)" [value]="overnightData()" (valueChange)="overnightData.set($event)" />
+    </div>
+  </section>
+
+  <section class="gv-dialog__section">
+    <dynadrill-text variant="h2">Evaluación de riesgos de viaje</dynadrill-text>
+    <dynadrill-text variant="caption">Responde cada pregunta para calcular el nivel de riesgo del viaje.</dynadrill-text>
+
+    <div class="gv-dialog__questions-scroll">
+      <table class="gv-dialog__questions-table">
+        <caption class="gv-dialog__sr-only">Preguntas de evaluación de riesgo y sus opciones de respuesta</caption>
+        <thead>
+          <tr>
+            <th scope="col" class="gv-dialog__questions-table-num">#</th>
+            <th scope="col">Pregunta</th>
+            <th scope="col">Opciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (question of riskQuestions(); track question.id) {
+            <tr>
+              <td class="gv-dialog__questions-table-num">{{ question.id }}</td>
+              <td>{{ question.question }}</td>
+              <td>
+                <div class="gv-dialog__question-options" role="group" [attr.aria-label]="'Pregunta ' + question.id">
+                  @for (option of question.options; track $index) {
+                    <button
+                      type="button"
+                      class="gv-dialog__option-btn"
+                      [class.gv-dialog__option-btn--selected]="isOptionSelected(question, $index)"
+                      [class.gv-dialog__option-btn--blocking]="isBlockingOption(option)"
+                      [attr.aria-pressed]="isOptionSelected(question, $index)"
+                      (click)="onQuestionAnswer(question.id, $index, option.value)"
+                    >{{ optionDisplayLabel(option) }}</button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="gv-dialog__section">
+    <dynadrill-text variant="h2">Resultado</dynadrill-text>
+
+    @if (hasBlockingAnswer()) {
+      <div class="gv-dialog__risk-result gv-dialog__risk-result--error">
+        <dynadrill-text variant="body"><strong>NO PUEDES VIAJAR</strong> — una de las respuestas bloquea el viaje.</dynadrill-text>
+      </div>
+    } @else {
+      <div class="gv-dialog__risk-result gv-dialog__risk-result--{{ riskLevelColor() }}">
+        <dynadrill-text variant="body">Total de puntos: <strong>{{ totalPoints() }}</strong></dynadrill-text>
+        <dynadrill-text variant="body">Nivel de riesgo: <strong>{{ riskLevel() }}</strong></dynadrill-text>
+        <dynadrill-text variant="caption">{{ riskDescription() }}</dynadrill-text>
+      </div>
+    }
+
+    <dynadrill-data-table [columns]="riskTableColumns" [rows]="riskTableRows" [loading]="false" />
+  </section>
+
+  <div class="gv-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">{{ submitting() ? 'Enviando…' : 'Solicitar Gerenciamiento de Viaje' }}</dynadrill-button>
+  </div>
+</div>

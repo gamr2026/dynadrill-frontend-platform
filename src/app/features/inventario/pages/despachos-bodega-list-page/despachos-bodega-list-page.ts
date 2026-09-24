@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import {
-  DynadrillButtonComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
@@ -40,7 +39,6 @@ const ESTADO_BADGE: Record<EstadoSolicitudDespacho, { text: string; tone: 'succe
     DynadrillScreenHeaderComponent,
     DynadrillKpiRowComponent,
     DynadrillDataTableComponent,
-    DynadrillButtonComponent,
     DynadrillIconButtonComponent,
     DynadrillSelectComponent,
     DynadrillSpinnerComponent,

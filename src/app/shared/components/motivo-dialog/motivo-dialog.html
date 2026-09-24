@@ -1,0 +1,8 @@
+<div class="motivo-dialog">
+  <dynadrill-text variant="body">{{ mensaje }}</dynadrill-text>
+  <dynadrill-textarea [label]="label" [value]="motivo()" (valueChange)="motivo.set($event)" [rows]="3" />
+  <div class="motivo-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button variant="error" [disabled]="!motivo().trim()" (clicked)="confirmar()">Confirmar</dynadrill-button>
+  </div>
+</div>

@@ -5,70 +5,36 @@
 
   &__toolbar {
     display: flex;
-    justify-content: flex-end;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
   }
 
-  &__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-  }
-
-  &__heading {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-  }
-
-  &__nombre {
-    margin: 0;
-    font-weight: 700;
-    color: var(--dynadrill-navy, #131529);
-  }
-
-  &__cargo {
-    margin: 0;
-    font-size: 13px;
-    color: var(--text-muted, #5c5870);
-  }
-
-  &__meta {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin: 0;
-
-    div {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      font-size: 13px;
-    }
-
-    dt {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--text-muted, #5c5870);
-    }
-
-    dd {
-      margin: 0;
-      text-align: right;
-    }
-  }
-
-  &__capacitacion-ok {
-    dt, dd {
-      color: var(--success, #52c41a) !important;
-      font-weight: 600;
-    }
-  }
-
-  &__actions {
+  &__filtros {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 4px;
   }
+
+  &__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  // Sin flex-wrap: con wrap, apenas la celda de acciones queda angosta
+  // (varias filas con 3 íconos) cada botón se apila en su propia línea en
+  // vez de quedar en fila — mismo criterio que el resto de tablas QHSE
+  // (documentos-pedidos-page, checklist-equipos-page).
+  &__row-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
 }

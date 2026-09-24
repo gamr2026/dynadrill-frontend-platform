@@ -1,33 +1,56 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { NZ_MODAL_DATA } from 'ng-zorro-antd/modal';
-import { DynadrillContextCardComponent, DynadrillDataTableColumn, DynadrillDataTableComponent, type DynadrillContextCardItem } from '@digitec-it-projects/dynadrill-ui';
-import { EntregaEpi } from '../models/entrega-epi.model';
+import { DatePipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
+import {
+  DynadrillButtonComponent,
+  DynadrillContextCardComponent,
+  DynadrillDataTableColumn,
+  DynadrillDataTableComponent,
+  DynadrillNotificationService,
+  DynadrillTagComponent,
+  DynadrillTextComponent,
+  type DynadrillContextCardItem,
+} from '@digitec-it-projects/dynadrill-ui';
+import { AuthService } from '../../../../core/services/auth.service';
+import { EntregaEpi, EPI_ESTADO_LABELS } from '../models/entrega-epi.model';
+import { EntregaEpiService } from '../services/entrega-epi.service';
 
 export interface EntregaEpiDetailDialogData {
   entrega: EntregaEpi;
 }
 
-/** Detalle de solo lectura de una entrega de EPI (DYN-SGI-RE-032) — mismo patrón que VehicleInspectionDetailDialog/StopCardDetailDialog. */
+/**
+ * Detalle de una entrega de EPI (DYN-SGI-RE-032). Acá vive "Recibe conforme
+ * Talento Humano" — un archivo administrativo aparte del ciclo de
+ * solicitar/aprobar/despachar (Fase 5): deja constancia de que Talento
+ * Humano recibió el registro firmado para el file del trabajador (nota del
+ * formato físico). No bloquea ni participa del flujo de aprobación/despacho.
+ */
 @Component({
   selector: 'app-entrega-epi-detail-dialog',
-  imports: [DynadrillContextCardComponent, DynadrillDataTableComponent],
+  imports: [DatePipe, DynadrillContextCardComponent, DynadrillDataTableComponent, DynadrillTagComponent, DynadrillButtonComponent, DynadrillTextComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './entrega-epi-detail-dialog.html',
   styleUrl: './entrega-epi-detail-dialog.scss',
 })
 export class EntregaEpiDetailDialog {
   private readonly data = inject<EntregaEpiDetailDialogData>(NZ_MODAL_DATA);
+  private readonly modalRef = inject(NzModalRef<EntregaEpiDetailDialog, EntregaEpi | undefined>);
+  private readonly epiService = inject(EntregaEpiService);
+  private readonly notify = inject(DynadrillNotificationService);
+  private readonly auth = inject(AuthService);
 
-  protected readonly entrega = this.data.entrega;
+  protected readonly entrega = signal(this.data.entrega);
+  protected readonly estadoLabels = EPI_ESTADO_LABELS;
+  protected readonly submitting = signal(false);
 
   protected readonly generalItems = computed<DynadrillContextCardItem[]>(() => {
-    const e = this.entrega;
+    const e = this.entrega();
     return [
       { label: 'Lugar', value: e.lugar },
       { label: 'Trabajador', value: e.trabajadorNombre },
       { label: 'Cargo', value: e.trabajadorCargo },
       { label: 'Trabajador firmó declaración', value: e.firmaTrabajador ? `${e.firmaTrabajador.nombre} — ${new Date(e.firmaTrabajador.firmadoAt).toLocaleString('es-EC')}` : 'Pendiente' },
-      { label: 'Talento Humano — recibe conforme', value: e.firmaTalentoHumano ? `${e.firmaTalentoHumano.nombre} — ${new Date(e.firmaTalentoHumano.firmadoAt).toLocaleString('es-EC')}` : 'Pendiente' },
     ];
   });
 
@@ -41,7 +64,7 @@ export class EntregaEpiDetailDialog {
   ];
 
   protected readonly itemsRows = computed(() =>
-    this.entrega.items.map(i => ({
+    this.entrega().items.map(i => ({
       elemento: i.elemento,
       cantidad: String(i.cantidad),
       talla: i.talla ?? '—',
@@ -50,4 +73,26 @@ export class EntregaEpiDetailDialog {
       observaciones: i.observaciones ?? '—',
     })),
   );
+
+  /** "Recibe conforme Talento Humano" — cierra el expediente administrativo (NOTA del formato físico), no el ciclo de aprobación/despacho. */
+  protected recibirEnTalentoHumano(): void {
+    if (this.submitting()) return;
+    this.submitting.set(true);
+    const nombre = this.auth.currentUser()?.name ?? '';
+    this.epiService.update(this.entrega().id, { firmaTalentoHumano: { nombre, firmadoAt: new Date().toISOString() } }).subscribe({
+      next: actualizada => {
+        this.submitting.set(false);
+        this.entrega.set(actualizada);
+        this.notify.success('Recibido', 'Talento Humano recibió conforme — expediente archivado.');
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.notify.error('Error', 'No se pudo registrar la recepción.');
+      },
+    });
+  }
+
+  protected cerrar(): void {
+    this.modalRef.close(this.entrega());
+  }
 }

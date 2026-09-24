@@ -1,71 +1,45 @@
 <div class="epi-list-page">
-  <dynadrill-screen-header title="Entrega de EPI" subtitle="DYN-SGI-RE-032 — registro de entrega de equipo de protección individual" />
+  <dynadrill-screen-header title="Entrega de EPI" subtitle="DYN-SGI-RE-032 — solicitar → aprobar/rechazar → despachar" />
+
+  <dynadrill-kpi-row [items]="kpis()" />
 
   <div class="epi-list-page__toolbar">
-    <dynadrill-button (clicked)="nuevaEntrega()">+ Nueva entrega de EPI</dynadrill-button>
-  </div>
-
-  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
-    <dynadrill-kpi-row [items]="kpis()" />
-
-    <div class="epi-list-page__grid">
-      @for (c of viewCards(); track c.id) {
-        <dynadrill-card [accent]="c.estado === 'rechazado' ? 'error' : c.completa ? 'success' : 'neutral'">
-          <span card-title>{{ c.code }}</span>
-          <dynadrill-tag
-            card-extra
-            [label]="estadoLabels[c.estado]"
-            [variant]="c.estado === 'despachado' ? 'success' : c.estado === 'rechazado' ? 'error' : c.estado === 'aprobado' ? 'brand' : 'warning'"
-          />
-
-          <div class="epi-list-page__heading">
-            <p class="epi-list-page__nombre">{{ c.trabajadorNombre }}</p>
-            <p class="epi-list-page__cargo">{{ c.trabajadorCargo }}</p>
-          </div>
-
-          <dl class="epi-list-page__meta">
-            <div><dt><dynadrill-icon name="location" [size]="14" />Lugar</dt><dd>{{ c.lugar }}</dd></div>
-            <div><dt><dynadrill-icon name="calendar" [size]="14" />Fecha</dt><dd>{{ c.fecha }}</dd></div>
-            <div><dt><dynadrill-icon name="box" [size]="14" />Elementos entregados</dt><dd>{{ c.itemsCount }}</dd></div>
-            @if (c.sinCapacitacion === 0) {
-              <div class="epi-list-page__capacitacion-ok">
-                <dt><dynadrill-icon name="success" [size]="14" />Capacitación</dt>
-                <dd>Completa</dd>
-              </div>
-            }
-          </dl>
-
-          @if (c.sinCapacitacion > 0) {
-            <dynadrill-tag [label]="c.sinCapacitacion + ' ítem(s) sin capacitación'" variant="warning" />
-          }
-
-          @if (c.estado === 'rechazado' && c.motivoRechazo) {
-            <dynadrill-tag [label]="'Motivo: ' + c.motivoRechazo" variant="error" />
-          }
-
-          @if (c.estado === 'solicitado') {
-            <dynadrill-input label="Motivo de rechazo (si aplica)" [value]="motivoDe(c.id)" (valueChange)="onMotivoChange(c.id, $event)" />
-          }
-
-          <div class="epi-list-page__actions">
-            <dynadrill-button variant="secondary" size="small" (clicked)="verDetalle(c.id)">Ver detalle</dynadrill-button>
-            @switch (c.estado) {
-              @case ('solicitado') {
-                <dynadrill-button size="small" variant="success" (clicked)="aprobar(c.id)">Aprobar</dynadrill-button>
-                <dynadrill-button size="small" variant="error" (clicked)="rechazar(c.id)">Rechazar</dynadrill-button>
-              }
-              @case ('aprobado') {
-                <dynadrill-button size="small" (clicked)="despachar(c.id)">Despachar</dynadrill-button>
-              }
-            }
-            @if (!c.completa) {
-              <dynadrill-button variant="secondary" size="small" (clicked)="cerrarExpediente(c.id)">Recibe conforme (Talento Humano)</dynadrill-button>
-            }
-          </div>
-        </dynadrill-card>
-      } @empty {
-        <dynadrill-banner variant="info" message="Todavía no hay entregas de EPI registradas." />
+    <div class="epi-list-page__filtros">
+      @for (f of filtros; track f.value) {
+        <dynadrill-button [variant]="filtroEstado() === f.value ? 'primary' : 'secondary'" size="small" (clicked)="filtroEstado.set(f.value)">
+          {{ f.label }} {{ conteos()[f.value] }}
+        </dynadrill-button>
       }
     </div>
-  </dynadrill-spinner>
+    <div class="epi-list-page__acciones">
+      <dynadrill-input placeholder="Buscar por ID, nombre, lugar…" [value]="busqueda()" (valueChange)="busqueda.set($event)" />
+      <dynadrill-button (clicked)="nuevaEntrega()">+ Nueva entrega de EPI</dynadrill-button>
+    </div>
+  </div>
+
+  <ng-template #actionsTpl let-row>
+    <div class="epi-list-page__row-actions">
+      <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="verDetalle(row.entrega)" />
+
+      @if (row.entrega.estado === 'solicitado') {
+        <dynadrill-icon-button icon="check" tooltip="Aprobar" tooltipPlacement="top" [disabled]="submittingId() === row.id" (clicked)="aprobar(row.id)" />
+        <dynadrill-icon-button icon="close" tooltip="Rechazar" tooltipPlacement="top" [disabled]="submittingId() === row.id" (clicked)="rechazar(row.id)" />
+      }
+      @if (row.entrega.estado === 'aprobado') {
+        <dynadrill-icon-button icon="upload" tooltip="Despachar" tooltipPlacement="top" [disabled]="submittingId() === row.id" (clicked)="despachar(row.id)" />
+      }
+    </div>
+  </ng-template>
+
+  <div class="table-scroll">
+    <dynadrill-data-table
+      [columns]="columns"
+      [rows]="rows()"
+      [loading]="loading()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="10"
+      actionsHeader="Acciones"
+      [actionsTemplate]="actionsTpl"
+    />
+  </div>
 </div>

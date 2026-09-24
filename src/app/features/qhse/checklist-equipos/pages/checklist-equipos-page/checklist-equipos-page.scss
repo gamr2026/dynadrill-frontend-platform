@@ -7,15 +7,25 @@
   flex-wrap: wrap;
 }
 
+.checklist-equipos-page__filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .checklist-equipos-page__abrir {
   display: flex;
   align-items: flex-end;
   gap: 0.5rem;
 }
 
+// Sin flex-wrap: ver nota en epi-list-page.scss.
 .checklist-equipos-page__row-actions {
   display: flex;
   align-items: center;
   gap: 4px;
-  flex-wrap: wrap;
+}
+
+.table-scroll {
+  overflow-x: auto;
 }

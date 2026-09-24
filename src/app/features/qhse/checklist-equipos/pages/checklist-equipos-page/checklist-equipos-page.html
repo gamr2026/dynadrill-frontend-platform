@@ -6,9 +6,13 @@
 />
 
 <section class="checklist-equipos-page__toolbar">
-  <dynadrill-button variant="secondary" size="small" (clicked)="toggleFiltro()">
-    {{ soloPorRevisar() ? 'Viendo: solo por revisar' : 'Viendo: todos' }} — cambiar
-  </dynadrill-button>
+  <div class="checklist-equipos-page__filtros">
+    @for (f of filtros; track f.value) {
+      <dynadrill-button [variant]="filtro() === f.value ? 'primary' : 'secondary'" size="small" (clicked)="filtro.set(f.value)">
+        {{ f.label }} {{ conteos()[f.value] }}
+      </dynadrill-button>
+    }
+  </div>
 
   <div class="checklist-equipos-page__abrir">
     <dynadrill-input label="Abrir checklist del ticket #" type="number" placeholder="ID del ticket" [value]="ticketIdAbrir() ?? ''" (valueChange)="ticketIdAbrir.set($any($event))" />
@@ -23,7 +27,6 @@
     }
     @if (row.caso.estado === 'cargado') {
       <dynadrill-icon-button icon="check" tooltip="Aprobar" tooltipPlacement="top" [disabled]="submittingId() === row.caso.id" (clicked)="aprobar(row.caso)" />
-      <dynadrill-input placeholder="Motivo de rechazo" [value]="motivoDe(row.caso.id)" (valueChange)="setMotivo(row.caso.id, $any($event))" />
       <dynadrill-icon-button icon="close" tooltip="Rechazar" tooltipPlacement="top" [disabled]="submittingId() === row.caso.id" (clicked)="rechazar(row.caso)" />
     }
     @if (row.caso.estado === 'rechazado' && row.caso.motivoRechazo) {

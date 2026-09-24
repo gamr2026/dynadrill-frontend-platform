@@ -1,4 +1,23 @@
 <div class="entrega-epi-detail-dialog">
+  <dynadrill-tag [label]="estadoLabels[entrega().estado]" variant="brand" />
+
   <dynadrill-context-card [items]="generalItems()" layout="vertical" />
   <dynadrill-data-table [columns]="itemsColumns" [rows]="itemsRows()" [pageSize]="0" />
+
+  <section class="entrega-epi-detail-dialog__talento-humano">
+    <dynadrill-text variant="h2">Recibe conforme Talento Humano</dynadrill-text>
+    <dynadrill-text variant="caption">
+      Archivo administrativo aparte del ciclo de aprobación/despacho — deja constancia de que Talento Humano recibió
+      este registro firmado para guardarlo en el file del trabajador. No bloquea ni participa del flujo de EPI.
+    </dynadrill-text>
+    @if (entrega().firmaTalentoHumano; as f) {
+      <dynadrill-tag [label]="'Recibido por ' + f.nombre + ' — ' + (f.firmadoAt | date: 'short')" variant="success" />
+    } @else {
+      <dynadrill-button variant="secondary" size="small" [disabled]="submitting()" (clicked)="recibirEnTalentoHumano()">Recibe conforme (Talento Humano)</dynadrill-button>
+    }
+  </section>
+
+  <div class="entrega-epi-detail-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cerrar()">Cerrar</dynadrill-button>
+  </div>
 </div>

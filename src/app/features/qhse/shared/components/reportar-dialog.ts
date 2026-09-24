@@ -3,19 +3,16 @@ import { NzModalRef } from 'ng-zorro-antd/modal';
 import { DynadrillDialogService, DynadrillIconComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
 import { StopCardDialog } from '../../stop/components/stop-card-dialog';
 import { SwaActivationDialog } from '../../swa/components/swa-activation-dialog';
-import { InspeccionEquipoDialog } from '../../inspecciones/components/inspeccion-equipo-dialog';
 import { DesechoDialog } from '../../desechos/components/desecho-dialog';
 import { DerrameAlertDialog } from '../../derrames/components/derrame-alert-dialog';
-import { EmergenciaAlertDialog } from '../../emergencias/components/emergencia-alert-dialog';
 
 /**
  * Acceso rápido universal "Reportar": las acciones que la documentación
  * asigna a "Cualquier Trabajador" — Tarjeta STOP (HSE-SEGUIMIENTO-002),
- * Stop Work Authority (HSE-SEGUIMIENTO-003), Inspección pre-operacional
- * (HSE-SEGUIMIENTO-001), clasificación de desechos en campo
- * (HSE-AMBIENTAL-001), alerta de derrame (HSE-AMBIENTAL-002) y activación
- * de emergencia (HSE-TRIAGE-001, "Cualquier Trabajador — Detector
- * Inicial") — sin pasar por el roleGuard de QHSE.
+ * Stop Work Authority (HSE-SEGUIMIENTO-003), clasificación de desechos en
+ * campo (HSE-AMBIENTAL-001) y alerta de derrame (HSE-AMBIENTAL-002) — sin
+ * pasar por el roleGuard de QHSE. Inspección pre-operacional y activación
+ * de emergencia se quitaron de este acceso rápido a pedido del usuario.
  */
 @Component({
   selector: 'app-reportar-dialog',
@@ -28,11 +25,6 @@ export class ReportarDialog {
   private readonly dialogService = inject(DynadrillDialogService);
   private readonly modalRef = inject(NzModalRef<ReportarDialog>);
 
-  protected reportarEmergencia(): void {
-    this.modalRef.close();
-    this.dialogService.open<EmergenciaAlertDialog>({ title: 'Activar Emergencia — HSE-TRIAGE-001', content: EmergenciaAlertDialog, footer: false });
-  }
-
   protected reportarStop(): void {
     this.modalRef.close();
     this.dialogService.open<StopCardDialog>({ title: 'Tarjeta STOP — HSE-SEGUIMIENTO-002', content: StopCardDialog, footer: false });
@@ -41,11 +33,6 @@ export class ReportarDialog {
   protected reportarSwa(): void {
     this.modalRef.close();
     this.dialogService.open<SwaActivationDialog>({ title: 'Stop Work Authority — HSE-SEGUIMIENTO-003', content: SwaActivationDialog, footer: false });
-  }
-
-  protected reportarInspeccion(): void {
-    this.modalRef.close();
-    this.dialogService.open<InspeccionEquipoDialog>({ title: 'Inspección pre-operacional — HSE-SEGUIMIENTO-001', content: InspeccionEquipoDialog, footer: false });
   }
 
   protected reportarDesecho(): void {

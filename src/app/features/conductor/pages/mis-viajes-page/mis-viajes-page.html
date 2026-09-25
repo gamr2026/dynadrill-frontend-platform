@@ -6,7 +6,8 @@
 />
 
 <div class="mis-viajes-page__toolbar">
-  <dynadrill-button (clicked)="solicitar()">+ Solicitar Gerenciamiento de Viaje</dynadrill-button>
+  <dynadrill-button variant="secondary" (clicked)="solicitar('salida')">+ Gerenciamiento de Salida</dynadrill-button>
+  <dynadrill-button (clicked)="solicitar('retorno')">+ Gerenciamiento de Retorno</dynadrill-button>
 </div>
 
 <dynadrill-kpi-row [items]="kpis()" />

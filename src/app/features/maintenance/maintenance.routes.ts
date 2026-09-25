@@ -12,7 +12,7 @@ const JEFE_MANTENIMIENTO_ROLES = ['Jefe de Mantenimiento', 'Superadmin', 'Jefe d
  * Supervisor Pumping solo BAJO (el corte real por nivel de riesgo lo aplica
  * el backend, esto solo decide quién entra a la página).
  */
-const GERENCIAMIENTO_VIAJE_APPROVE_ROLES = ['Jefe de Base', 'Superadmin', 'Supervisor Pumping'];
+const GERENCIAMIENTO_VIAJE_APPROVE_ROLES = ['Jefe de Base', 'Superadmin', 'Supervisor Pumping', 'Gerente HSE'];
 
 export const maintenanceRoutes: Routes = [
   {

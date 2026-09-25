@@ -1,18 +1,27 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { NzModalRef } from 'ng-zorro-antd/modal';
+import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import {
   DynadrillButtonComponent,
+  DynadrillChipGroupComponent,
+  DynadrillContextCardComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDatetimePickerComponent,
+  DynadrillIconComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
   DynadrillSelectComponent,
+  DynadrillStepperComponent,
+  DynadrillTagComponent,
   DynadrillTextComponent,
+  type DynadrillContextCardItem,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
+import { AuthService } from '../../../core/services/auth.service';
 import {
   GerenciamientoViaje,
+  GerenciamientoViajeTipo,
+  GERENCIAMIENTO_VIAJE_TIPO_LABELS,
   TravelRiskOption,
   TravelRiskQuestion,
   VehicleType,
@@ -23,10 +32,30 @@ import {
 import { GerenciamientoViajeService } from '../services/gerenciamiento-viaje.service';
 import { toLocalDateString } from '../../../shared/utils';
 
+export interface GerenciamientoViajeDialogData {
+  tipo: GerenciamientoViajeTipo;
+}
+
 /** Ponderación que bloquea el viaje — ver createTravelRiskQuestions() en gerenciamiento-viaje.model.ts */
 const BLOCKING_RISK_VALUE = 999;
 
-/** El conductor solicita su propio Gerenciamiento de Viaje (DYN-SGI-RE-049) — mismo cuestionario que ya usaba el Supervisor dentro del ticket Pumping. */
+const STEPS = ['General', 'Evaluación', 'Plan y ruta', 'Confirmación'];
+
+const VEHICLE_TYPE_OPTIONS: DynadrillSelectOption[] = [
+  { label: 'Liviano', value: 'Liviano' },
+  { label: 'Pesado', value: 'Pesado' },
+];
+
+/**
+ * El conductor solicita su propio Gerenciamiento de Viaje (DYN-SGI-RE-049)
+ * — antes lo llenaba el Supervisor desde dentro del ticket Pumping (ver
+ * `travel-management-dialog.ts`, retirado); mismo cuestionario de riesgo y
+ * mismos campos, reconstruidos acá porque el conductor no tiene acceso al
+ * ticket. `approverName`/`approverSignature`/`phoneApprovalBy` del formato
+ * original nunca los llenaba quien creaba el gerenciamiento (quedaban vacíos
+ * o los fijaba el Jefe de Base al autorizar) — acá directamente no se piden:
+ * la autorización real es el `aprobar`/`rechazar` de la bandeja.
+ */
 @Component({
   selector: 'app-gerenciamiento-viaje-dialog',
   imports: [
@@ -36,43 +65,78 @@ const BLOCKING_RISK_VALUE = 999;
     DynadrillDatetimePickerComponent,
     DynadrillButtonComponent,
     DynadrillDataTableComponent,
+    DynadrillStepperComponent,
+    DynadrillContextCardComponent,
+    DynadrillChipGroupComponent,
+    DynadrillTagComponent,
+    DynadrillIconComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './gerenciamiento-viaje-dialog.html',
   styleUrl: './gerenciamiento-viaje-dialog.scss',
 })
 export class GerenciamientoViajeDialog {
+  private readonly data = inject<GerenciamientoViajeDialogData>(NZ_MODAL_DATA);
   private readonly service = inject(GerenciamientoViajeService);
+  private readonly auth = inject(AuthService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<GerenciamientoViajeDialog, GerenciamientoViaje | undefined>);
 
+  protected readonly steps = STEPS;
+  protected readonly currentStep = signal(0);
   protected readonly submitting = signal(false);
+  protected readonly tipo = this.data.tipo;
+  protected readonly tipoLabel = GERENCIAMIENTO_VIAJE_TIPO_LABELS[this.tipo];
 
-  // ── Información general ──
+  // ── Paso 1: Información general ──
   protected readonly fecha = signal<Date | null>(new Date());
   protected readonly motivoViaje = signal('');
+  protected readonly ticketCode = signal('');
+  protected readonly buscandoTicket = signal(false);
+  protected readonly ticketEncontrado = signal(false);
+  protected readonly ticketId = signal<number | undefined>(undefined);
+  protected readonly lineaServicio = signal('');
   protected readonly origen = signal('');
   protected readonly destino = signal('');
-  protected readonly ticketCode = signal('');
+  protected readonly assignedSupervisorNombre = signal('');
   protected readonly vehicleType = signal<VehicleType | null>(null);
   protected readonly placas = signal('');
-
-  protected readonly vehicleTypeOptions: DynadrillSelectOption[] = [
-    { label: 'Liviano', value: 'Liviano' },
-    { label: 'Pesado', value: 'Pesado' },
-  ];
+  protected readonly vehicleTypeOptions = VEHICLE_TYPE_OPTIONS;
 
   protected onVehicleTypeChange(value: unknown): void {
     this.vehicleType.set(value as VehicleType);
   }
 
-  // ── Plan y logística ──
-  protected readonly passengers = signal('');
-  protected readonly departureTime = signal('');
-  protected readonly arrivalTime = signal('');
-  protected readonly overnightData = signal('');
+  /** Autocompleta origen/destino/línea de servicio/supervisor asignado — el conductor no debe volver a tipearlos. */
+  protected buscarTicket(): void {
+    const code = this.ticketCode().trim();
+    if (!code || this.buscandoTicket()) return;
+    this.buscandoTicket.set(true);
+    this.ticketEncontrado.set(false);
+    this.service.contextoDeTicket(code).subscribe({
+      next: ctx => {
+        this.ticketId.set(ctx.id);
+        this.origen.set(ctx.origen);
+        this.destino.set(ctx.destino);
+        this.lineaServicio.set(ctx.serviceType);
+        this.assignedSupervisorNombre.set(ctx.assignedSupervisor);
+        this.ticketEncontrado.set(true);
+        this.buscandoTicket.set(false);
+      },
+      error: () => {
+        this.buscandoTicket.set(false);
+        this.ticketEncontrado.set(false);
+        this.notify.error('No encontrado', `No se encontró el ticket "${code}".`);
+      },
+    });
+  }
 
-  // ── Evaluación de riesgos ──
+  protected readonly headerItems = computed<DynadrillContextCardItem[]>(() => [
+    { label: 'Documento', value: 'DYN-SGI-RE-049' },
+    { label: 'Tipo de viaje', value: this.tipoLabel },
+  ]);
+
+  // ── Paso 2: Evaluación de riesgos ──
   protected readonly riskQuestions = signal<TravelRiskQuestion[]>(createTravelRiskQuestions());
   private readonly selectedOptionIndexByQuestion = signal<Record<number, number>>({});
 
@@ -104,8 +168,8 @@ export class GerenciamientoViajeDialog {
     { key: 'schedule', header: 'GESTIÓN DE RIESGOS' },
   ];
   protected readonly riskTableRows = [
-    { level: 'ALTO', points: '> 75', schedule: 'Jefe de Base + Director General (Quito)' },
-    { level: 'MEDIO', points: '31 a 75', schedule: 'Autoriza el Jefe de Base' },
+    { level: 'ALTO', points: '> 75', schedule: 'Jefe de Base o Gerente HSE + Director General (Quito)' },
+    { level: 'MEDIO', points: '31 a 75', schedule: 'Autoriza el Jefe de Base o el Gerente HSE' },
     { level: 'BAJO', points: '< 30', schedule: 'Autoriza el Supervisor de Pumping' },
   ];
 
@@ -124,24 +188,75 @@ export class GerenciamientoViajeDialog {
     return option.value === BLOCKING_RISK_VALUE;
   }
 
-  /** Mismo criterio que TravelManagementDialog: se muestra la opción sin la ponderación interna. */
+  /** Mismo criterio que el formulario original: se muestra la opción sin la ponderación interna. */
   protected optionDisplayLabel(option: TravelRiskOption): string {
     return option.label.replace(/\s*=\s*\d+\b/, '').trim();
   }
 
   protected readonly allQuestionsAnswered = computed(() => this.riskQuestions().every(q => q.selectedLabel !== null));
 
+  // ── Paso 3: Plan y ruta ──
+  protected readonly passengerDraft = signal('');
+  protected readonly passengersList = signal<string[]>([]);
+  protected readonly passengersLabel = computed(() => {
+    const count = this.passengersList().length;
+    return count > 0 ? `Pasajeros (${count} agregado${count === 1 ? '' : 's'})` : 'Pasajeros';
+  });
+  protected readonly canCombineTrips = signal<string[]>([]);
+  protected readonly combineOptions = ['Sí', 'No'];
+
+  protected addPassenger(): void {
+    const name = this.passengerDraft().trim();
+    if (!name) return;
+    this.passengersList.update(list => [...list, name]);
+    this.passengerDraft.set('');
+  }
+
+  protected removePassenger(index: number): void {
+    this.passengersList.update(list => list.filter((_, i) => i !== index));
+  }
+
+  protected onPassengerDraftKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' || event.key === ',') {
+      event.preventDefault();
+      this.addPassenger();
+    } else if (event.key === 'Backspace' && this.passengerDraft() === '') {
+      this.passengersList.update(list => list.slice(0, -1));
+    }
+  }
+
+  protected readonly routeLocation = signal('');
+  protected readonly routeArrivalTime = signal('');
+  protected readonly routeDepartureTime = signal('');
+  protected readonly routeOvernightDetails = signal('');
+
+  protected readonly commFrequency = signal('');
+  protected readonly commContactPerson = signal('');
+  protected readonly commContactDetails = signal('');
+
+  // ── Paso 4: Confirmación ──
+  protected readonly conductorNames = signal(this.auth.currentUser()?.name ?? '');
+
   protected readonly puedeGuardar = computed(
     () =>
       this.fecha() !== null &&
       this.motivoViaje().trim().length > 0 &&
-      this.origen().trim().length > 0 &&
-      this.destino().trim().length > 0 &&
+      this.ticketEncontrado() &&
       this.vehicleType() !== null &&
       this.placas().trim().length > 0 &&
       this.allQuestionsAnswered() &&
-      !this.hasBlockingAnswer(),
+      !this.hasBlockingAnswer() &&
+      this.routeLocation().trim().length > 0 &&
+      this.conductorNames().trim().length > 0,
   );
+
+  protected goToNextStep(): void {
+    if (this.currentStep() < this.steps.length - 1) this.currentStep.update(s => s + 1);
+  }
+
+  protected goToPreviousStep(): void {
+    if (this.currentStep() > 0) this.currentStep.update(s => s - 1);
+  }
 
   protected cancelar(): void {
     this.modalRef.close();
@@ -154,25 +269,47 @@ export class GerenciamientoViajeDialog {
     this.service
       .create({
         riskLevel: this.riskLevel(),
+        tipo: this.tipo,
+        ticketId: this.ticketId(),
         payload: {
           fecha: toLocalDateString(this.fecha()!),
           motivoViaje: this.motivoViaje().trim(),
-          origen: this.origen().trim(),
-          destino: this.destino().trim(),
-          ticketCode: this.ticketCode().trim() || undefined,
+          lineaServicio: this.lineaServicio(),
+          origen: this.origen(),
+          destino: this.destino(),
+          assignedSupervisorNombre: this.assignedSupervisorNombre(),
+          ticketCode: this.ticketCode().trim(),
           vehicleType: this.vehicleType()!,
           placas: this.placas().trim(),
-          passengers: this.passengers().trim() || undefined,
-          departureTime: this.departureTime().trim() || undefined,
-          arrivalTime: this.arrivalTime().trim() || undefined,
-          overnightData: this.overnightData().trim() || undefined,
           riskQuestions: this.riskQuestions(),
           totalPoints: this.totalPoints(),
+          passengers: this.passengersList().join(', ') || undefined,
+          canCombineTrips: this.canCombineTrips()[0] === 'Sí' ? true : this.canCombineTrips()[0] === 'No' ? false : null,
+          routeInfo: [
+            {
+              location: this.routeLocation(),
+              arrivalTime: this.routeArrivalTime(),
+              departureTime: this.routeDepartureTime(),
+              overnightDetails: this.routeOvernightDetails(),
+            },
+          ],
+          communication: [
+            {
+              frequency: this.commFrequency(),
+              contactPerson: this.commContactPerson(),
+              contactDetails: this.commContactDetails(),
+            },
+          ],
+          departureTime: this.routeDepartureTime() || undefined,
+          arrivalTime: this.routeArrivalTime() || undefined,
+          overnightData: this.routeOvernightDetails() || undefined,
+          conductorNames: this.conductorNames().trim(),
+          conductorSignature: this.conductorNames().trim(),
         },
       })
       .subscribe({
         next: gv => {
-          const revisor = gv.riskLevel === 'BAJO' ? 'del Supervisor de Pumping' : 'del Jefe de Base';
+          const revisor = gv.riskLevel === 'BAJO' ? 'del Supervisor de Pumping' : 'del Jefe de Base o Gerente HSE';
           this.notify.success('Gerenciamiento de viaje enviado', `${gv.code} — pendiente de autorización ${revisor}.`);
           this.modalRef.close(gv);
         },

@@ -252,7 +252,7 @@ export class Sidebar {
       return [dashboard, FCR_ONLY_ITEM];
     }
 
-    if (roleName === 'Técnico HSE' || roleName === 'Coordinador HSE' || roleName === 'Gerente HSE') {
+    if (roleName === 'Técnico HSE' || roleName === 'Coordinador HSE') {
       // Con FCR_ONLY_ITEM: QHSE firma "Liberado por QHSE" en el checklist de
       // inspección por herramienta (ModuleRoles.fcr/fcrRead ya lo permitía a
       // nivel backend), pero sin esta entrada de menú no tenía forma de
@@ -260,6 +260,12 @@ export class Sidebar {
       // alguien le pasaba el link directo. Mismo ítem (sin Pumping) que
       // Bodeguero/Operador FCR/Ingeniería de Ventas FCR.
       return [dashboard, QHSE_ITEM, FCR_ONLY_ITEM];
+    }
+
+    // Gerente HSE: mismo acceso que Técnico/Coordinador HSE, más
+    // Gerenciamiento de Viaje (autoriza MEDIO/ALTO junto con Jefe de Base).
+    if (roleName === 'Gerente HSE') {
+      return [dashboard, QHSE_ITEM, FCR_ONLY_ITEM, GERENCIAMIENTO_VIAJE_ITEM];
     }
 
     if (roleName === 'Facturación') {

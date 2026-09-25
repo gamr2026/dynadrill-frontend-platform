@@ -13,6 +13,7 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import {
   GERENCIAMIENTO_VIAJE_ESTADO_LABELS,
+  GERENCIAMIENTO_VIAJE_TIPO_LABELS,
   GerenciamientoViaje,
   GerenciamientoViajeEstado,
 } from '../../../conductor/models/gerenciamiento-viaje.model';
@@ -47,15 +48,16 @@ export class GerenciamientoViajePage {
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
 
-  /** Jefe de Base/Superadmin gestionan cualquier nivel; el resto (Supervisor/Supervisor Pumping) solo BAJO — mismo corte que GerenciamientoViajeController.assertPuedeGestionar en el backend. */
-  protected readonly esJefeDeBase = computed(() => {
+  /** Jefe de Base/Gerente HSE/Superadmin gestionan cualquier nivel; el resto (Supervisor/Supervisor Pumping) solo BAJO — mismo corte que GerenciamientoViajeController.assertPuedeGestionar en el backend. */
+  protected readonly puedeGestionarCualquierNivel = computed(() => {
     const roleName = this.auth.currentUser()?.roleName;
-    return roleName === 'Jefe de Base' || roleName === 'Superadmin';
+    return roleName === 'Jefe de Base' || roleName === 'Gerente HSE' || roleName === 'Superadmin';
   });
 
   protected readonly loading = signal(true);
   protected readonly viajes = signal<GerenciamientoViaje[]>([]);
   protected readonly estadoLabels = GERENCIAMIENTO_VIAJE_ESTADO_LABELS;
+  protected readonly tipoLabels = GERENCIAMIENTO_VIAJE_TIPO_LABELS;
   protected readonly filtro = signal<GerenciamientoViajeEstado | 'todos'>('pendiente');
 
   protected readonly filtros: { label: string; value: GerenciamientoViajeEstado | 'todos' }[] = [
@@ -82,6 +84,7 @@ export class GerenciamientoViajePage {
 
   protected readonly columns: DynadrillDataTableColumn[] = [
     { key: 'code', header: 'Código', sortable: true, searchable: true },
+    { key: 'tipo', header: 'Tipo' },
     { key: 'fecha', header: 'Fecha', sortable: true },
     { key: 'origen', header: 'Origen', searchable: true },
     { key: 'destino', header: 'Destino', searchable: true },
@@ -98,12 +101,13 @@ export class GerenciamientoViajePage {
     this.filtrados().map(g => ({
       id: g.id,
       code: g.code,
+      tipo: this.tipoLabels[g.tipo],
       fecha: g.fecha,
       origen: g.origen,
       destino: g.destino,
       riskLevel: g.riskLevel,
       estadoBadge: { text: this.estadoLabels[g.estado], tone: ESTADO_TONE[g.estado] },
-      puedeGestionar: this.esJefeDeBase() || g.riskLevel === 'BAJO',
+      puedeGestionar: this.puedeGestionarCualquierNivel() || g.riskLevel === 'BAJO',
       gv: g,
     })),
   );

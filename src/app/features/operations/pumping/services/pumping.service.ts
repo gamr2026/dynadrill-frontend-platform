@@ -27,6 +27,13 @@ export class PumpingService {
     return this.http.get<PumpingTicket>(`${this.baseUrl}/tickets/${id}`);
   }
 
+  /** Panel de solo lectura de Gerenciamiento de Viaje dentro del ticket — ya no se crea desde acá, lo genera el Conductor. */
+  gerenciamientosViaje(id: number): Observable<{ id: number; code: string; estado: string; riskLevel: string; tipo: string }[]> {
+    return this.http.get<{ id: number; code: string; estado: string; riskLevel: string; tipo: string }[]>(
+      `${this.baseUrl}/tickets/${id}/gerenciamientos-viaje`,
+    );
+  }
+
   /** PUT genérico del ticket — para guardar campos que no tienen su propia acción dedicada (ej. gerenciamientos de viaje ya completados). */
   updateTicket(id: number, patch: Partial<PumpingTicket>): Observable<PumpingTicket> {
     return this.http.put<PumpingTicket>(`${this.baseUrl}/tickets/${id}`, patch);

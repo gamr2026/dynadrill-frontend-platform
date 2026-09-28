@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import * as XLSX from 'xlsx';
 import {
@@ -12,6 +12,7 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { ListaPrecios } from '../../models/lista-precios.model';
 import { ListaPreciosService } from '../../services/pedido.service';
+import { DetailHeaderService } from '../../../../layout/detail-header.service';
 
 const TODOS = 'Todos';
 
@@ -34,6 +35,7 @@ export class ListaPreciosDetailPage {
   private readonly route = inject(ActivatedRoute);
   private readonly listaService = inject(ListaPreciosService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly detailHeader = inject(DetailHeaderService);
 
   private readonly listaId = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -74,6 +76,18 @@ export class ListaPreciosDetailPage {
 
   constructor() {
     this.reload();
+
+    // Barra "Detail" del header (Figma Nav/TopAppBar, solo móvil).
+    effect(() => {
+      const l = this.lista();
+      if (!l) return;
+      this.detailHeader.set({
+        title: l.cliente,
+        backLink: '/dashboard/facturacion/lista-precios',
+        menuItems: l.items.length ? [{ label: 'Descargar Excel', action: () => this.descargarExcel() }] : [],
+      });
+    });
+    inject(DestroyRef).onDestroy(() => this.detailHeader.clear());
   }
 
   private reload(): void {

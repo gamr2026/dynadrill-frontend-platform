@@ -1,4 +1,27 @@
-<header class="app-header">
+<header class="app-header" [class.app-header--detail]="detail.config()">
+  @if (detail.config(); as d) {
+    <!-- Barra "Detail" (Figma Nav/TopAppBar): solo móvil, ver header.scss — reemplaza la barra "Home" de abajo. -->
+    <button type="button" class="app-header__back" aria-label="Volver" (click)="goBack()">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m12 19-7-7 7-7" />
+        <path d="M19 12H5" />
+      </svg>
+    </button>
+    <h1 class="app-header__detail-title">{{ d.title }}</h1>
+    @if (d.menuItems?.length) {
+      <button type="button" class="app-header__detail-menu" nz-dropdown [nzDropdownMenu]="detailMenu" nzTrigger="click" nzPlacement="bottomRight" aria-label="Más acciones">
+        <dynadrill-icon name="more" [size]="20" />
+      </button>
+      <nz-dropdown-menu #detailMenu="nzDropdownMenu">
+        <ul nz-menu class="app-header__detail-menu-list">
+          @for (item of d.menuItems; track item.label) {
+            <li nz-menu-item [nzDanger]="!!item.danger" (click)="item.action()">{{ item.label }}</li>
+          }
+        </ul>
+      </nz-dropdown-menu>
+    }
+  }
+
   <button type="button" class="app-header__menu-toggle" aria-label="Abrir/cerrar menú" (click)="sidebarState.toggle()">
     <span></span>
     <span></span>

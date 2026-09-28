@@ -1,6 +1,7 @@
 <div class="pf-detail">
   @if (prefactura(); as pf) {
     <dynadrill-screen-header
+      class="screen-header--compact-mobile"
       eyebrow="FACTURACIÓN — PREFACTURA"
       [title]="pf.code"
       [subtitle]="(pedido()?.cliente ?? '') + ' — Pedido ' + (pedido()?.code ?? pf.pedidoId)"

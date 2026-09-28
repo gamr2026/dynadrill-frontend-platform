@@ -1,41 +1,31 @@
 <div class="pedido-detail">
   @if (pedido(); as p) {
     <dynadrill-screen-header
+      class="screen-header--compact-mobile"
       eyebrow="FACTURACIÓN — PEDIDO"
       [title]="'Pedido ' + p.code"
       [subtitle]="p.cliente + ' — ' + p.campo + ' / ' + p.pozo"
     />
 
+    <!--
+      3 botones siempre en el DOM: en escritorio se ven los 3 en línea. En
+      móvil (Figma "M · Pedidos · Detalle") el CSS deja solo "Editar pedido"
+      a ancho completo — Rechazar/Anular ya están en el menú "⋮" de la barra
+      superior (ver DetailHeaderService, seteado en el constructor).
+    -->
     <div class="pedido-detail__toolbar">
-      @if (isMobile()) {
-        <button type="button" class="pedido-detail__menu-btn" nz-dropdown [nzDropdownMenu]="acciones" nzTrigger="click" nzPlacement="bottomRight" aria-label="Acciones del pedido">
-          <dynadrill-icon name="more" [size]="20" />
-        </button>
-        <nz-dropdown-menu #acciones="nzDropdownMenu">
-          <ul nz-menu class="pedido-detail__menu">
-            <li nz-menu-item (click)="editarPedido()">Editar pedido</li>
-            @if (puedeRechazar()) {
-              <li nz-menu-item (click)="rechazarPedido()">Rechazar pedido</li>
-            }
-            @if (puedeAnular()) {
-              <li nz-menu-item nzDanger (click)="anularPedido()">Anular pedido</li>
-            }
-          </ul>
-        </nz-dropdown-menu>
-      } @else {
-        <dynadrill-button variant="secondary" (clicked)="editarPedido()">Editar pedido</dynadrill-button>
-        @if (puedeRechazar()) {
-          <dynadrill-button variant="secondary" (clicked)="rechazarPedido()">Rechazar pedido</dynadrill-button>
-        }
-        @if (puedeAnular()) {
-          <dynadrill-button variant="error" (clicked)="anularPedido()">Anular pedido</dynadrill-button>
-        }
+      <dynadrill-button variant="secondary" (clicked)="editarPedido()">Editar pedido</dynadrill-button>
+      @if (puedeRechazar()) {
+        <dynadrill-button variant="secondary" (clicked)="rechazarPedido()">Rechazar pedido</dynadrill-button>
+      }
+      @if (puedeAnular()) {
+        <dynadrill-button variant="error" (clicked)="anularPedido()">Anular pedido</dynadrill-button>
       }
     </div>
 
     <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
      <div class="pedido-detail__grid">
-      <section class="fact-card pedido-detail__aside-item" [class.fact-card--brand]="!estadoFueraDeAlcance()">
+      <section class="fact-card pedido-detail__aside-item">
         <header class="pedido-detail__head">
           <h2>Estado</h2>
           <dynadrill-tag [label]="estadoLabel()" [variant]="estadoFueraDeAlcance() ? 'neutral' : 'brand'" />
@@ -86,7 +76,7 @@
 
       <!-- ── Ticket operativo asociado (Pedido -> FCR) ── -->
       @if (fcrTicket(); as t) {
-        <section class="fact-card fact-card--brand">
+        <section class="fact-card">
           <header class="pedido-detail__head">
             <h2>Ticket FCR asociado</h2>
             <dynadrill-button variant="secondary" size="small" (clicked)="irAFcr()">Ir a FCR</dynadrill-button>
@@ -243,7 +233,7 @@
       </section>
 
       <!-- ── Prefactura (FACT-003) ── -->
-      <section class="fact-card pedido-detail__aside-item" [class.fact-card--brand]="!!prefactura() && !esRegeneracion()" [class.fact-card--warning]="esRegeneracion()">
+      <section class="fact-card pedido-detail__aside-item">
         <header class="pedido-detail__head">
           <h2>Prefactura</h2>
           <div class="pedido-detail__head-actions">

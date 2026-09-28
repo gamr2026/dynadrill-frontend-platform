@@ -1,9 +1,5 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { BreakpointObserver } from '@angular/cdk/layout';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { NzDropDownModule } from 'ng-zorro-antd/dropdown';
-import { map } from 'rxjs';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked, DestroyRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import {
@@ -12,12 +8,12 @@ import {
   DynadrillDialogService,
   DynadrillNotificationService,
   DynadrillProgressComponent,
-  DynadrillIconComponent,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
   DynadrillTagComponent,
   DynadrillTextComponent,
 } from '@digitec-it-projects/dynadrill-ui';
+import { DetailHeaderService } from '../../../../layout/detail-header.service';
 import {
   ReporteHerramientasPdfDialog,
   ReporteHerramientasPdfDialogData,
@@ -77,8 +73,6 @@ interface Dato {
     DynadrillSpinnerComponent,
     DynadrillBannerComponent,
     TimelinePopoverTriggerDirective,
-    NzDropDownModule,
-    DynadrillIconComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pedido-detail-page.html',
@@ -96,6 +90,7 @@ export class PedidoDetailPage {
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly detailHeader = inject(DetailHeaderService);
 
   private readonly pedidoId = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -134,13 +129,6 @@ export class PedidoDetailPage {
   protected readonly puedeGenerarGuia = computed(() => !!this.avance()?.guiaRemisionAplica && !this.guiaRemision());
 
   /** Solo Facturación, y solo antes de que exista prefactura generada — ver `ESTADOS_RECHAZABLES`. */
-  protected readonly isMobile = toSignal(
-    inject(BreakpointObserver)
-      .observe('(max-width: 840px)')
-      .pipe(map(state => state.matches)),
-    { initialValue: false },
-  );
-
   protected readonly puedeRechazar = computed(() => {
     const p = this.pedido();
     const role = this.auth.currentUser()?.roleName;
@@ -275,6 +263,23 @@ export class PedidoDetailPage {
       this.pedido();
       untracked(() => this.manualHistorialIndex.set(null));
     });
+
+    // Barra "Detail" del header (Figma Nav/TopAppBar, solo móvil) — se
+    // recalcula cada vez que cambian el pedido o los permisos de rechazar/
+    // anular, para que el menú "⋮" siempre refleje lo mismo que el toolbar.
+    effect(() => {
+      const p = this.pedido();
+      if (!p) return;
+      this.detailHeader.set({
+        title: 'Pedido ' + p.code,
+        menuItems: [
+          { label: 'Editar pedido', action: () => this.editarPedido() },
+          ...(this.puedeRechazar() ? [{ label: 'Rechazar pedido', action: () => this.rechazarPedido() }] : []),
+          ...(this.puedeAnular() ? [{ label: 'Anular pedido', action: () => this.anularPedido(), danger: true }] : []),
+        ],
+      });
+    });
+    inject(DestroyRef).onDestroy(() => this.detailHeader.clear());
   }
 
   private reload(): void {

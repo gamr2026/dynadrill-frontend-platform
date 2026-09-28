@@ -13,36 +13,21 @@
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-  }
 
-  // Botón "⋮" (Figma móvil): abre el menú de acciones — en escritorio los 3 botones van en línea.
-  &__menu-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border: 1px solid var(--border, #e5e4ea);
-    border-radius: var(--radius-md, 12px);
-    background: var(--surface, #fff);
-    color: var(--text, #2c2b35);
-    cursor: pointer;
+    // Figma móvil: solo "Editar pedido", a ancho completo — Rechazar/Anular
+    // viven en el "⋮" de la barra superior (ver DetailHeaderService).
+    @media (max-width: 840px) {
+      dynadrill-button:nth-child(n + 2) {
+        display: none;
+      }
 
-    &:hover {
-      background: var(--surface-subtle, #f3f2f7);
-    }
+      dynadrill-button:first-child {
+        flex: 1 1 100%;
 
-    &:focus-visible {
-      outline: 2px solid var(--dynadrill-purple, #662e9b);
-      outline-offset: 2px;
-    }
-  }
-
-  &__menu {
-    min-width: 180px;
-
-    ::ng-deep &.ant-dropdown-menu-item[nzdanger] {
-      color: var(--error-text, #cf1322);
+        ::ng-deep .ant-btn {
+          width: 100%;
+        }
+      }
     }
   }
 

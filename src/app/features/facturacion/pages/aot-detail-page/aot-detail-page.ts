@@ -1,5 +1,5 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   DynadrillBannerComponent,
@@ -14,6 +14,7 @@ import { Aot } from '../../models/aot.model';
 import { AotService } from '../../services/pedido.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AotPdfDialog, AotPdfDialogData } from '../../components/aot-pdf-dialog';
+import { DetailHeaderService } from '../../../../layout/detail-header.service';
 
 /** Fase 6 — detalle de la AOT (documento oficial final). */
 @Component({
@@ -38,6 +39,7 @@ export class AotDetailPage {
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
+  private readonly detailHeader = inject(DetailHeaderService);
 
   private readonly aotId = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -48,6 +50,21 @@ export class AotDetailPage {
 
   constructor() {
     this.reload();
+
+    // Barra "Detail" del header (Figma Nav/TopAppBar, solo móvil).
+    effect(() => {
+      const aot = this.aot();
+      if (!aot) return;
+      this.detailHeader.set({
+        title: aot.numeroOpr,
+        menuItems: [
+          { label: 'Ir al pedido', action: () => this.irAlPedido() },
+          { label: 'Ver / Imprimir PDF', action: () => this.verPdf() },
+          ...(aot.estado !== 'firmada' ? [{ label: 'Marcar como firmada', action: () => this.marcarFirmada() }] : []),
+        ],
+      });
+    });
+    inject(DestroyRef).onDestroy(() => this.detailHeader.clear());
   }
 
   private reload(): void {

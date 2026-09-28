@@ -1,6 +1,6 @@
 <div class="aot-detail">
   @if (aot(); as a) {
-    <dynadrill-screen-header eyebrow="FACTURACIÓN — OT" [title]="a.numeroOpr" subtitle="ORDEN DE TRABAJO / RESUMEN DE COSTOS" />
+    <dynadrill-screen-header class="screen-header--compact-mobile" eyebrow="FACTURACIÓN — OT" [title]="a.numeroOpr" subtitle="ORDEN DE TRABAJO / RESUMEN DE COSTOS" />
 
     <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
       <section class="fact-card">

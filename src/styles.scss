@@ -413,3 +413,13 @@ body {
     }
   }
 }
+
+// Páginas de detalle con barra "Detail" en el header móvil (ver
+// layout/detail-header.service.ts): el título ya vive en esa barra, así que
+// el <dynadrill-screen-header> con esta clase esconde su título bajo 840px
+// (mantiene eyebrow + subtitle). En escritorio no cambia nada.
+@media (max-width: 840px) {
+  dynadrill-screen-header.screen-header--compact-mobile .ant-page-header-heading-title {
+    display: none;
+  }
+}

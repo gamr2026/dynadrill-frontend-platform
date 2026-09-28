@@ -1,6 +1,7 @@
 <div class="lp-detail">
   @if (lista(); as l) {
     <dynadrill-screen-header
+      class="screen-header--compact-mobile"
       eyebrow="FACTURACIÓN — LISTA DE PRECIOS"
       [title]="l.cliente"
       [subtitle]="'Contrato ' + l.numeroContrato + ' · vigente desde ' + l.vigenteDesde"

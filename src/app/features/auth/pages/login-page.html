@@ -1,37 +1,52 @@
-<div class="login-page">
+<main class="login-page">
   <div class="login-page__card">
-    <div class="login-page__image"></div>
+    <div class="login-page__brand" aria-hidden="true">
+      <img class="login-page__brand-logo" ngSrc="/brand/dynadrill-logo-white.svg" width="213" height="120" alt="" priority />
+    </div>
 
-    <form class="login-page__form" [formGroup]="form" (ngSubmit)="submit()">
+    <form class="login-page__form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="login-page__header">
-        <img class="login-page__logo" src="/brand/dynadrill-logo.svg" alt="Dynadrill" />
+        <img class="login-page__logo" ngSrc="/brand/dynadrill-logo.svg" width="99" height="56" alt="Dynadrill" priority />
         <dynadrill-text variant="h1">Iniciar sesión</dynadrill-text>
         <dynadrill-text variant="subtitle">Ingresa tus credenciales para continuar.</dynadrill-text>
       </div>
 
+      @if (errorMessage(); as message) {
+        <div class="login-page__banner" role="alert">
+          <dynadrill-banner variant="critical" [message]="message" />
+        </div>
+      }
+
       <dynadrill-input
+        class="login-page__field"
+        [class.login-page__field--error]="invalidCredentials()"
         label="Correo"
         type="text"
         placeholder="nombre@dynadrill.com"
+        [disabled]="submitting()"
         [value]="form.controls.email.value"
         (valueChange)="form.controls.email.setValue($event)"
       />
 
-      <dynadrill-input
-        label="Contraseña"
-        type="password"
-        placeholder="••••••••"
-        [value]="form.controls.password.value"
-        (valueChange)="form.controls.password.setValue($event)"
-      />
+      <div class="login-page__password">
+        <dynadrill-input
+          class="login-page__field"
+          [class.login-page__field--error]="invalidCredentials()"
+          label="Contraseña"
+          type="password"
+          placeholder="••••••••"
+          [disabled]="submitting()"
+          [value]="form.controls.password.value"
+          (valueChange)="form.controls.password.setValue($event)"
+        />
+        <button type="button" class="login-page__forgot-link" (click)="onForgotPassword()">
+          ¿Olvidaste tu contraseña?
+        </button>
+      </div>
 
-      @if (errorMessage(); as message) {
-        <dynadrill-text variant="caption" class="login-page__error">{{ message }}</dynadrill-text>
-      }
-
-      <dynadrill-button class="login-page__submit" [disabled]="submitting()">
+      <dynadrill-button class="login-page__submit" size="large" [disabled]="submitting()">
         {{ submitting() ? 'Ingresando…' : 'Ingresar' }}
       </dynadrill-button>
     </form>
   </div>
-</div>
+</main>

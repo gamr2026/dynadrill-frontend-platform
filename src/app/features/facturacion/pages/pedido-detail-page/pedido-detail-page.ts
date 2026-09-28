@@ -300,7 +300,7 @@ export class PedidoDetailPage {
       content: NuevoPedidoDialog,
       data: { pedido: p },
       footer: false,
-      width: '1200px',
+      width: '960px',
     });
     ref.afterClose.subscribe(actualizado => {
       if (actualizado) this.reload();

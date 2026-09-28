@@ -362,3 +362,54 @@ body {
     }
   }
 }
+
+// Diálogos con [data-full-screen] (Nuevo pedido…) ocupan toda la pantalla en móvil:
+// barra superior blanca con la X a la izquierda y cuerpo con scroll propio (Figma).
+@media (max-width: 840px) {
+  .ant-modal:has([data-full-screen]) {
+    position: fixed;
+    inset: 0;
+    top: 0;
+    width: 100% !important;
+    max-width: 100vw;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+
+    .ant-modal-content {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      border-radius: 0;
+    }
+
+    .ant-modal-header {
+      display: flex;
+      align-items: center;
+      min-height: 64px;
+      padding: 0 16px 0 64px;
+      border-bottom: 1px solid var(--border, #e5e4ea);
+      background: var(--surface, #fff);
+    }
+
+    .ant-modal-title {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text, #2c2b35);
+    }
+
+    .ant-modal-close {
+      top: 8px;
+      right: auto;
+      left: 8px;
+      color: var(--text, #2c2b35);
+    }
+
+    .ant-modal-body {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding: 0;
+      background: var(--surface-muted, #faf9fc);
+    }
+  }
+}

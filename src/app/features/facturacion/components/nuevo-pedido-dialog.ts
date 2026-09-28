@@ -1,12 +1,15 @@
 import { DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import type { NzUploadFile } from 'ng-zorro-antd/upload';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 import * as XLSX from 'xlsx';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
+  DynadrillChipGroupComponent,
   DynadrillDatetimePickerComponent,
   DynadrillIconButtonComponent,
   DynadrillInputComponent,
@@ -144,6 +147,7 @@ export interface NuevoPedidoDialogData {
     DynadrillSelectComponent,
     DynadrillDatetimePickerComponent,
     DynadrillButtonComponent,
+    DynadrillChipGroupComponent,
     DynadrillIconButtonComponent,
     DynadrillTextComponent,
     DynadrillUploadZoneComponent,
@@ -152,6 +156,8 @@ export interface NuevoPedidoDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './nuevo-pedido-dialog.html',
   styleUrl: './nuevo-pedido-dialog.scss',
+  // Marca para styles.scss: en móvil el diálogo se abre a pantalla completa (Figma "Nuevo pedido").
+  host: { 'data-full-screen': '' },
 })
 export class NuevoPedidoDialog {
   private readonly pedidoService = inject(PedidoService);
@@ -778,12 +784,83 @@ export class NuevoPedidoDialog {
     this.emparejarLista();
   }
 
+  // ── Validación (Figma "Nuevo pedido · Validación") ──
+  /** Tras un primer intento fallido de guardar se muestra el aviso; antes no, para no regañar un formulario recién abierto. */
+  protected readonly intentoGuardar = signal(false);
+  private readonly avisoRef = viewChild<ElementRef<HTMLElement>>('aviso');
+
+  /** Campos obligatorios sin completar — mismas reglas que `puedeGuardar`, una por una para poder contarlas. */
+  protected readonly camposFaltantes = computed(() => {
+    const faltan: string[] = [];
+    if (!this.cliente()) faltan.push('Cliente');
+    if (!this.lineaServicio()) faltan.push('Línea de servicio');
+    if (this.tipoServicio().length === 0) faltan.push('Tipos de servicio');
+    if (!this.tipoOt()) faltan.push('Tipo de OT');
+    if (this.ubicacion().pozoId === null) faltan.push('Pozo');
+    if (this.ubicacion().taladroId === null) faltan.push('Taladro / Rig');
+    if (this.agenteComercial().trim().length === 0) faltan.push('Agente comercial');
+    if (this.representanteCampo().trim().length === 0) faltan.push('Representante en campo');
+    if (this.representanteQuito().trim().length === 0) faltan.push('Representante en Quito (PEC)');
+    if (this.tecnicoHseResponsableId() === null) faltan.push('Técnico HSE responsable');
+    if (!this.lineasTodasValidas()) faltan.push('Líneas estimadas');
+    if (!this.documentosAdjuntosValidos()) faltan.push('Documentos de referencia');
+    return faltan;
+  });
+
+  protected readonly avisoValidacion = computed(() => {
+    const n = this.camposFaltantes().length;
+    if (!this.intentoGuardar() || n === 0) return null;
+    return `Revisa ${n} ${n === 1 ? 'campo obligatorio' : 'campos obligatorios'} antes de ${this.editando() ? 'guardar el pedido' : 'crear el pedido'}: ${this.camposFaltantes().join(', ')}.`;
+  });
+
+  // ── Móvil: los selects de 2 opciones (Línea, Tipo de OT, Solicitud) pasan a chips ──
+  protected readonly isMobile = toSignal(
+    inject(BreakpointObserver)
+      .observe('(max-width: 840px)')
+      .pipe(map(state => state.matches)),
+    { initialValue: false },
+  );
+
+  protected readonly lineaChips = this.lineaOptions.map(o => o.label);
+  protected readonly lineaChipSeleccionado = computed(() => this.chipDe(this.lineaOptions, this.lineaServicio()));
+  protected onLineaChip(selected: string[]): void {
+    this.onLineaServicioChange(this.valorDe<LineaServicio>(this.lineaOptions, selected));
+  }
+
+  protected readonly tipoOtChips = this.tipoOtOptions.map(o => o.label);
+  protected readonly tipoOtChipSeleccionado = computed(() => this.chipDe(this.tipoOtOptions, this.tipoOt()));
+  protected onTipoOtChip(selected: string[]): void {
+    this.tipoOt.set(this.valorDe<TipoOt>(this.tipoOtOptions, selected));
+  }
+
+  protected readonly solicitudChips = this.solicitudMedioOptions.map(o => o.label);
+  protected readonly solicitudChipSeleccionado = computed(() => this.chipDe(this.solicitudMedioOptions, this.solicitudMedio()));
+  protected onSolicitudChip(selected: string[]): void {
+    this.solicitudMedio.set(this.valorDe<'verbal' | 'escrita'>(this.solicitudMedioOptions, selected) ?? 'escrita');
+  }
+
+  /** dynadrill-chip-group trabaja con textos: se traduce label ↔ valor de la opción. */
+  private chipDe(options: DynadrillSelectOption[], value: unknown): string[] {
+    const label = options.find(o => o.value === value)?.label;
+    return label ? [label] : [];
+  }
+
+  private valorDe<T>(options: DynadrillSelectOption[], selected: string[]): T | null {
+    return (options.find(o => o.label === selected[0])?.value as T | undefined) ?? null;
+  }
+
   protected cancelar(): void {
     this.modalRef.close();
   }
 
   protected guardar(): void {
-    if (!this.puedeGuardar() || this.submitting()) return;
+    if (this.submitting()) return;
+    if (!this.puedeGuardar()) {
+      // Sin botón deshabilitado: el usuario ve por qué no avanza (aviso con los campos que faltan).
+      this.intentoGuardar.set(true);
+      queueMicrotask(() => this.avisoRef()?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+      return;
+    }
     this.submitting.set(true);
 
     const nombre = this.auth.currentUser()?.name ?? 'Ventas';

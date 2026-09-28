@@ -1,13 +1,24 @@
 <div class="nuevo-pedido">
+  @if (avisoValidacion(); as aviso) {
+    <div #aviso class="nuevo-pedido__aviso" role="alert">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+        <path d="M12 9v4" />
+        <path d="M12 17h.01" />
+      </svg>
+      <p>{{ aviso }}</p>
+    </div>
+  }
+
   <dynadrill-text variant="caption">
-    El pedido se registra en el Portal y el gateway lo sincroniza con AS2. El número secuencial lo asigna AS2.
+    Los campos marcados con * son obligatorios. El pedido se registra en el Portal y el gateway lo sincroniza con AS2, que asigna el número secuencial.
   </dynadrill-text>
 
   <section class="nuevo-pedido__section">
     <header class="nuevo-pedido__head"><h2><span class="nuevo-pedido__section-mark"></span>Cliente</h2></header>
     <div class="nuevo-pedido__grid">
       <dynadrill-select
-        label="Cliente"
+        label="Cliente *"
         placeholder="Busca un cliente"
         [options]="clienteOptions()"
         [value]="cliente()"
@@ -23,9 +34,16 @@
   <section class="nuevo-pedido__section">
     <header class="nuevo-pedido__head"><h2><span class="nuevo-pedido__section-mark"></span>Servicio</h2></header>
     <div class="nuevo-pedido__grid--ancho">
-      <dynadrill-select label="Línea de servicio" placeholder="Selecciona" [options]="lineaOptions" [value]="lineaServicio()" (valueChange)="onLineaServicioChange($any($event))" />
+      @if (isMobile()) {
+        <div class="nuevo-pedido__chip-field">
+          <span class="nuevo-pedido__chip-label">Línea de servicio *</span>
+          <dynadrill-chip-group mode="single" [options]="lineaChips" [selected]="lineaChipSeleccionado()" (selectedChange)="onLineaChip($event)" />
+        </div>
+      } @else {
+        <dynadrill-select label="Línea de servicio *" placeholder="Selecciona" [options]="lineaOptions" [value]="lineaServicio()" (valueChange)="onLineaServicioChange($any($event))" />
+      }
       <dynadrill-select
-        label="Tipos de servicio"
+        label="Tipos de servicio *"
         placeholder="Selecciona primero la línea"
         [options]="tipoServicioOptions()"
         [value]="tipoServicio()"
@@ -42,7 +60,14 @@
         [disabled]="!tipoServicio().length"
         (valueChange)="onSubTipoServicioChange($event)"
       />
-      <dynadrill-select label="Tipo de OT" placeholder="Selecciona" [options]="tipoOtOptions" [value]="tipoOt()" (valueChange)="tipoOt.set($any($event))" />
+      @if (isMobile()) {
+        <div class="nuevo-pedido__chip-field">
+          <span class="nuevo-pedido__chip-label">Tipo de OT *</span>
+          <dynadrill-chip-group mode="single" [options]="tipoOtChips" [selected]="tipoOtChipSeleccionado()" (selectedChange)="onTipoOtChip($event)" />
+        </div>
+      } @else {
+        <dynadrill-select label="Tipo de OT *" placeholder="Selecciona" [options]="tipoOtOptions" [value]="tipoOt()" (valueChange)="tipoOt.set($any($event))" />
+      }
       <dynadrill-datetime-picker mode="date" label="Inicio de servicio" [value]="fechaInicioServicio()!" (valueChange)="fechaInicioServicio.set($event)" />
       <dynadrill-datetime-picker mode="date" label="Fin de servicio" [value]="fechaFinServicio()!" (valueChange)="fechaFinServicio.set($event)" />
     </div>
@@ -64,7 +89,7 @@
     </header>
     <div class="nuevo-pedido__grid nuevo-pedido__grid--ancho">
       <dynadrill-select
-        label="Agente comercial (Dynadrill)"
+        label="Agente comercial (Dynadrill) *"
         placeholder="Busca un agente comercial"
         [options]="agenteComercialOptions()"
         [value]="agenteComercial()"
@@ -72,7 +97,7 @@
         (valueChange)="agenteComercial.set($any($event))"
       />
       <dynadrill-select
-        label="Representante en campo"
+        label="Representante en campo *"
         placeholder="Busca un representante de campo"
         [options]="representanteCampoOptions()"
         [value]="representanteCampo()"
@@ -80,7 +105,7 @@
         (valueChange)="representanteCampo.set($any($event))"
       />
       <dynadrill-select
-        label="Representante en Quito (PEC)"
+        label="Representante en Quito (PEC) *"
         placeholder="Busca un representante en Quito"
         [options]="representanteQuitoOptions()"
         [value]="representanteQuito()"
@@ -96,7 +121,7 @@
         (valueChange)="analistaFacturacion.set($any($event))"
       />
       <dynadrill-select
-        label="Técnico HSE responsable"
+        label="Técnico HSE responsable *"
         placeholder="Selecciona un Técnico HSE activo"
         [options]="tecnicoHseOptions()"
         [value]="tecnicoHseResponsableId()"
@@ -110,7 +135,7 @@
       <header class="nuevo-pedido__head"><h2><span class="nuevo-pedido__section-mark"></span>Administrativos (AS2)</h2></header>
       <div class="nuevo-pedido__grid">
         <dynadrill-select
-          label="Condición de pago"
+          label="Condición de pago *"
           [options]="condicionPagoOptions"
           [grouped]="true"
           [value]="condicionPago()"
@@ -118,7 +143,14 @@
         />
         <dynadrill-input label="Zona" [value]="zona()" (valueChange)="zona.set($event)" />
         <dynadrill-input label="Bodega" [value]="bodega()" (valueChange)="bodega.set($event)" />
-        <dynadrill-select label="Solicitud" [options]="solicitudMedioOptions" [value]="solicitudMedio()" (valueChange)="solicitudMedio.set($any($event))" />
+        @if (isMobile()) {
+          <div class="nuevo-pedido__chip-field">
+            <span class="nuevo-pedido__chip-label">Solicitud</span>
+            <dynadrill-chip-group mode="single" [options]="solicitudChips" [selected]="solicitudChipSeleccionado()" (selectedChange)="onSolicitudChip($event)" />
+          </div>
+        } @else {
+          <dynadrill-select label="Solicitud" [options]="solicitudMedioOptions" [value]="solicitudMedio()" (valueChange)="solicitudMedio.set($any($event))" />
+        }
       </div>
     </section>
   }
@@ -291,7 +323,7 @@
 
   <div class="nuevo-pedido__actions">
     <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
-    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">
+    <dynadrill-button [disabled]="submitting()" (clicked)="guardar()">
       {{ submitting() ? 'Guardando…' : editando() ? 'Guardar cambios' : 'Crear pedido' }}
     </dynadrill-button>
   </div>

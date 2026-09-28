@@ -273,7 +273,7 @@ export class PedidosListPage {
       title: 'Nuevo pedido',
       content: NuevoPedidoDialog,
       footer: false,
-      width: '1200px',
+      width: '960px',
     });
     ref.afterClose.subscribe(pedido => {
       if (pedido) this.reload();
@@ -293,7 +293,7 @@ export class PedidosListPage {
       content: NuevoPedidoDialog,
       data: { pedido },
       footer: false,
-      width: '1200px',
+      width: '960px',
     });
     ref.afterClose.subscribe(actualizado => {
       if (actualizado) this.reload();

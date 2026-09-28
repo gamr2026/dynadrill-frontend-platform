@@ -3,6 +3,16 @@
     <dynadrill-icon name="close" [size]="16" />
   </button>
 
+  @if (user(); as u) {
+    <div class="app-sidebar__profile">
+      <dynadrill-avatar [name]="u.name" size="md" />
+      <div class="app-sidebar__profile-text">
+        <span class="app-sidebar__profile-name">{{ u.name }}</span>
+        <span class="app-sidebar__profile-role">{{ u.roleName }}</span>
+      </div>
+    </div>
+  }
+
   <dynadrill-menu [items]="items()" />
 
   <dynadrill-button class="app-sidebar__reportar" variant="error" size="small" (clicked)="openReportar()">

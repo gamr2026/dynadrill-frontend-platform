@@ -1,24 +1,33 @@
+// Figma "Reportar": tarjetas blancas con borde y radio 12; en escritorio lleva
+// botón "Cerrar" abajo, en móvil es un bottom sheet (ver styles.scss) y se cierra con la X.
 .reportar-dialog {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-md, 12px);
+
+  &__intro {
+    color: var(--text-muted, #5c5870);
+  }
 
   &__option {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    background: var(--surface-muted, #faf9fc);
+    gap: var(--space-md, 12px);
+    min-height: 56px;
+    padding: var(--space-md, 12px) var(--space-lg, 16px);
+    background: var(--surface, #fff);
     border: 1px solid var(--border, #e5e4ea);
-    border-radius: var(--radius-sm, 4px);
+    border-radius: var(--radius-md, 12px);
+    box-shadow: var(--shadow-sm, 0 1px 2px rgba(19, 21, 41, 0.05));
     cursor: pointer;
     text-align: left;
     font-family: inherit;
-    color: var(--text, #1b1b2a);
+    color: var(--text, #2c2b35);
 
     strong {
       display: block;
       font-size: 14px;
+      font-weight: 600;
     }
 
     span {
@@ -31,12 +40,34 @@
       border-color: var(--dynadrill-purple, #662e9b);
     }
 
+    &:focus-visible {
+      outline: 2px solid var(--dynadrill-purple, #662e9b);
+      outline-offset: 2px;
+    }
+
+    dynadrill-icon {
+      flex: none;
+      color: var(--dynadrill-purple, #662e9b);
+    }
+
     &--stop dynadrill-icon {
       color: var(--warning, #faad14);
     }
 
     &--swa dynadrill-icon {
       color: var(--error, #ff4d4f);
+    }
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: var(--space-xs, 4px);
+  }
+
+  @media (max-width: 840px) {
+    &__footer {
+      display: none;
     }
   }
 }

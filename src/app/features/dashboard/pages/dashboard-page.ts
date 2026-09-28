@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Observable, catchError, forkJoin, of } from 'rxjs';
-import { DynadrillIconComponent, DynadrillIconName, DynadrillScreenHeaderComponent, DynadrillSectionComponent, DynadrillSpinnerComponent } from '@digitec-it-projects/dynadrill-ui';
+import { DynadrillIconComponent, DynadrillIconName, DynadrillScreenHeaderComponent, DynadrillSpinnerComponent } from '@digitec-it-projects/dynadrill-ui';
 import { NgxEchartsDirective } from 'ngx-echarts';
 import type { EChartsCoreOption } from 'echarts/core';
 import { AuthService } from '../../../core/services/auth.service';
@@ -27,8 +27,11 @@ type DashboardChartTone = 'error' | 'warning' | 'info' | 'success';
 interface DashboardKpi {
   value: number;
   label: string;
+  /** Línea secundaria bajo el título (Figma Card/KPI › caption). */
+  caption: string;
   tone: DashboardKpiTone;
-  icon: DynadrillIconName;
+  /** Módulo dueño del KPI — decide qué roles lo ven (ver CARDS_POR_ROL). */
+  module: string;
 }
 
 interface DashboardChartSegment {
@@ -115,27 +118,18 @@ function pieOptions(segments: DashboardChartSegment[]): EChartsCoreOption {
 }
 
 /**
- * Los 12 `EstadoPedido` dentro del alcance del app (los 3 últimos son
- * placeholders de AS2/SRI, ver comentario en pedido.model.ts) — la clienta
- * de Facturación pidió un acceso rápido desde el dashboard a "quién está en
- * qué estado" sin tener que ir a buscar/filtrar en Reportería, así que cada
- * segmento es un link directo a Secuencial TK ya filtrado por ese estado.
+ * Estados de Facturación que el dashboard destaca — solo los 4 que marcan el
+ * avance real del pedido (en curso, esperando firmas, rechazado, cerrado), como
+ * en el diseño Figma. Antes eran los 14 `EstadoPedido` y la card se estiraba
+ * hasta duplicar la altura del resto. Cada segmento sigue siendo un link a
+ * Secuencial TK ya filtrado por ese estado (Reportería acepta uno solo), y el
+ * resto de estados se consulta ahí mismo con los filtros de Reportería.
  */
 const FACTURACION_ESTADOS_SEGMENT: { estado: EstadoPedido; tone: DashboardChartTone }[] = [
-  { estado: 'borrador', tone: 'info' },
-  { estado: 'abierto', tone: 'info' },
   { estado: 'en_operacion', tone: 'info' },
-  { estado: 'en_elaboracion_operativa', tone: 'info' },
-  { estado: 'documentos_completos', tone: 'info' },
-  { estado: 'en_revision_prefacturacion', tone: 'warning' },
-  { estado: 'en_correccion', tone: 'warning' },
-  { estado: 'prefactura_generada', tone: 'info' },
-  { estado: 'por_despachar_bodega', tone: 'warning' },
   { estado: 'enviado_para_firmas', tone: 'warning' },
   { estado: 'rechazado_por_cliente', tone: 'error' },
   { estado: 'ticket_firmado', tone: 'success' },
-  { estado: 'aot_generada', tone: 'success' },
-  { estado: 'anulado', tone: 'error' },
 ];
 
 /**
@@ -166,7 +160,7 @@ const CARDS_POR_ROL: Record<string, string[]> = {
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [DynadrillScreenHeaderComponent, DynadrillSectionComponent, DynadrillIconComponent, DynadrillSpinnerComponent, NgxEchartsDirective, RouterLink],
+  imports: [DynadrillScreenHeaderComponent, DynadrillIconComponent, DynadrillSpinnerComponent, NgxEchartsDirective, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard-page.html',
   styleUrl: './dashboard-page.scss',
@@ -188,17 +182,25 @@ export class DashboardPage {
   private readonly rolesService = inject(RolesService);
 
   protected readonly loading = signal(true);
-  protected readonly kpis = signal<DashboardKpi[]>([]);
+  private readonly allKpis = signal<DashboardKpi[]>([]);
   private readonly allCards = signal<DashboardModuleCard[]>([]);
 
-  /** Solo las cards que el rol de la sesión puede ver (ver CARDS_POR_ROL) — sin rama por defecto: un rol sin entrada no ve ninguna. */
-  protected readonly moduleCards = computed(() => {
-    const roleName = this.auth.currentUser()?.roleName ?? '';
-    const permitidas = new Set(CARDS_POR_ROL[roleName] ?? []);
-    return this.allCards()
-      .filter(card => permitidas.has(card.title))
-      .map(card => ({ ...card, pieOptions: pieOptions(card.segments) }));
-  });
+  /** Módulos que el rol de la sesión puede ver (ver CARDS_POR_ROL) — sin rama por defecto: un rol sin entrada no ve nada. */
+  private readonly modulosPermitidos = computed(() => new Set(CARDS_POR_ROL[this.auth.currentUser()?.roleName ?? ''] ?? []));
+
+  /** Solo Superadmin ve todos los módulos: al resto se le avisa que la vista está filtrada por su rol. */
+  protected readonly showRoleNotice = computed(() => this.auth.currentUser()?.roleName !== 'Superadmin');
+
+  /** Mismo criterio que las cards: cada KPI pertenece a un módulo y solo lo ve quien tiene ese módulo. */
+  protected readonly kpis = computed(() => this.allKpis().filter(kpi => this.modulosPermitidos().has(kpi.module)));
+
+  protected readonly moduleCards = computed(() =>
+    this.allCards()
+      .filter(card => this.modulosPermitidos().has(card.title))
+      .map(card => ({ ...card, pieOptions: pieOptions(card.segments) })),
+  );
+
+  protected readonly isEmpty = computed(() => !this.loading() && this.kpis().length === 0 && this.moduleCards().length === 0);
 
   protected dotColor(tone: DashboardChartTone): string {
     return toneColor(tone);
@@ -263,7 +265,7 @@ export class DashboardPage {
         const enRevision = tickets.filter(t => t.status === 'en_revision').length;
         const enEjecucion = tickets.filter(t => t.status === 'en_ejecucion').length;
 
-        // ── Facturación: un segmento por cada EstadoPedido en alcance CON al menos un pedido — un estado en 0 no aporta nada al desglose y solo alarga la lista. ──
+        // ── Facturación: solo los estados destacados (ver FACTURACION_ESTADOS_SEGMENT) que tengan al menos un pedido — un estado en 0 no aporta nada al desglose. ──
         const segmentosFacturacion: DashboardChartSegment[] = FACTURACION_ESTADOS_SEGMENT.map(({ estado, tone }) => ({
           label: ESTADO_PEDIDO_LABELS[estado],
           value: pedidos.filter(p => p.estado === estado).length,
@@ -278,11 +280,11 @@ export class DashboardPage {
         const administradores = activosUsuarios.filter(u => roleById.get(u.roleId) === 'Superadmin').length;
         const operadores = activosUsuarios.filter(u => (roleById.get(u.roleId) ?? '').startsWith('Operador')).length;
 
-        this.kpis.set([
-          { value: unidades.length, label: 'Unidades con alertas de mantenimiento', tone: vencidas > 0 ? 'error' : 'success', icon: 'tool' },
-          { value: incidentesAbiertos, label: 'Incidentes QHSE abiertos', tone: 'error', icon: 'alert' },
-          { value: articulos.length, label: 'Artículos en inventario', tone: 'brand', icon: 'box' },
-          { value: tickets.length, label: 'Tickets de operación activos', tone: 'info', icon: 'modules' },
+        this.allKpis.set([
+          { value: unidades.length, label: 'Unidades con alertas de mantenimiento', caption: `${vencidas} vencidas`, tone: vencidas > 0 ? 'error' : 'success', module: 'Mantenimiento' },
+          { value: incidentesAbiertos, label: 'Incidentes QHSE abiertos', caption: 'Requieren atención', tone: 'error', module: 'QHSE' },
+          { value: articulos.length, label: 'Artículos en inventario', caption: 'Activos', tone: 'brand', module: 'Inventario' },
+          { value: tickets.length, label: 'Tickets de operación activos', caption: 'Pumping + FCR', tone: 'info', module: 'Operaciones' },
         ]);
 
         this.allCards.set([

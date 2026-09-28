@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { NzModalRef } from 'ng-zorro-antd/modal';
-import { DynadrillDialogService, DynadrillIconComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
+import { DynadrillButtonComponent, DynadrillDialogService, DynadrillIconComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
 import { StopCardDialog } from '../../stop/components/stop-card-dialog';
 import { SwaActivationDialog } from '../../swa/components/swa-activation-dialog';
 import { DesechoDialog } from '../../desechos/components/desecho-dialog';
@@ -16,7 +16,7 @@ import { DerrameAlertDialog } from '../../derrames/components/derrame-alert-dial
  */
 @Component({
   selector: 'app-reportar-dialog',
-  imports: [DynadrillTextComponent, DynadrillIconComponent],
+  imports: [DynadrillButtonComponent, DynadrillTextComponent, DynadrillIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './reportar-dialog.html',
   styleUrl: './reportar-dialog.scss',
@@ -24,6 +24,10 @@ import { DerrameAlertDialog } from '../../derrames/components/derrame-alert-dial
 export class ReportarDialog {
   private readonly dialogService = inject(DynadrillDialogService);
   private readonly modalRef = inject(NzModalRef<ReportarDialog>);
+
+  protected cerrar(): void {
+    this.modalRef.close();
+  }
 
   protected reportarStop(): void {
     this.modalRef.close();

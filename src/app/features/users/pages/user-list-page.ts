@@ -14,7 +14,10 @@ import { forkJoin } from 'rxjs';
 import { injectNarrowViewport } from '../../../core/utils/narrow-viewport.util';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { SearchField } from '../../../shared/components/search-field/search-field';
-import { UserCard } from '../components/user-card';
+import { EntityCard } from '../../../shared/components/entity-card/entity-card';
+import { ListPager } from '../../../shared/components/list-pager/list-pager';
+import type { RecordAction } from '../../../shared/components/record-card/record-card';
+import { createPagination } from '../../../shared/utils/pagination.util';
 import { UserFormDialog, UserFormDialogData } from '../components/user-form-dialog';
 import { UserRow, matchesUserQuery, toUserRows } from '../models/user-row.model';
 import { Role, User } from '../models/user.model';
@@ -28,7 +31,8 @@ const PAGE_SIZE = 10;
   imports: [
     PageHeader,
     SearchField,
-    UserCard,
+    EntityCard,
+    ListPager,
     DynadrillButtonComponent,
     DynadrillDataTableComponent,
     DynadrillEmptyStateComponent,
@@ -75,13 +79,23 @@ export class UserListPage {
     })),
   );
 
-  // ── Paginación de las tarjetas en móvil (la tabla de escritorio pagina sola) ──
-
-  private readonly requestedPage = signal(1);
-  protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.rows().length / PAGE_SIZE)));
-  /** Acotada al total: una búsqueda que achica la lista no deja la vista en una página vacía. */
-  protected readonly page = computed(() => Math.min(this.requestedPage(), this.totalPages()));
-  protected readonly pageRows = computed(() => this.rows().slice((this.page() - 1) * PAGE_SIZE, this.page() * PAGE_SIZE));
+  /** Tarjetas en móvil (M · Usuarios · Lista en Figma). */
+  protected readonly cards = computed(() =>
+    this.rows().map(row => ({
+      id: row.id,
+      title: row.name,
+      lines: [`${row.username} · ${row.email}`, `${row.cargo} · ${row.departamento}`],
+      tags: [
+        { text: row.role, tone: 'brand' as const },
+        row.active ? { text: 'Activo', tone: 'success' as const } : { text: 'Inactivo', tone: 'neutral' as const },
+      ],
+      actions: [
+        { icon: 'edit', label: `Editar a ${row.name}`, run: () => this.editUser(row) },
+        { icon: 'delete', label: `Eliminar a ${row.name}`, run: () => this.deleteUser(row) },
+      ] as RecordAction[],
+    })),
+  );
+  protected readonly pagination = createPagination(this.cards, PAGE_SIZE);
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
@@ -91,11 +105,7 @@ export class UserListPage {
 
   protected onQueryChange(query: string): void {
     this.query.set(query);
-    this.requestedPage.set(1);
-  }
-
-  protected goToPage(page: number): void {
-    this.requestedPage.set(page);
+    this.pagination.reset();
   }
 
   private reload(): void {

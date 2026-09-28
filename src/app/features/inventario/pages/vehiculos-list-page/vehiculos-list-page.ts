@@ -5,7 +5,7 @@ import {
   DynadrillDataTableComponent,
   DynadrillDialogService,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
+  DynadrillIconComponent,
   DynadrillSpinnerComponent,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
@@ -14,6 +14,11 @@ import { AlertaPreventivaNivel, calcularAlertas, Unidad } from '../../../mainten
 import { VehiculoPatrimonioDialog, VehiculoPatrimonioDialogData } from '../../components/vehiculo-patrimonio-dialog';
 import { UnidadCreateDialog } from '../../components/unidad-create-dialog';
 import { HistorialDialog, HistorialDialogData } from '../../../maintenance/components/historial-dialog';
+import { injectNarrowViewport } from '../../../../core/utils/narrow-viewport.util';
+import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { EntityCard } from '../../../../shared/components/entity-card/entity-card';
+import { SearchField } from '../../../../shared/components/search-field/search-field';
+import type { RecordAction } from '../../../../shared/components/record-card/record-card';
 
 /** Mismos tonos/etiquetas que la bandeja de Mantenimiento (maintenance-list-page) — un vehículo vencido se ve igual de urgente lo mires desde donde lo mires. */
 const PREVENTIVO_TONE: Record<AlertaPreventivaNivel, DynadrillTagVariant> = {
@@ -44,7 +49,7 @@ function peorNivel(niveles: AlertaPreventivaNivel[]): AlertaPreventivaNivel | nu
  */
 @Component({
   selector: 'app-vehiculos-list-page',
-  imports: [DynadrillScreenHeaderComponent, DynadrillDataTableComponent, DynadrillButtonComponent, DynadrillSpinnerComponent],
+  imports: [PageHeader, EntityCard, SearchField, DynadrillDataTableComponent, DynadrillButtonComponent, DynadrillIconComponent, DynadrillSpinnerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './vehiculos-list-page.html',
   styleUrl: './vehiculos-list-page.scss',
@@ -53,6 +58,10 @@ export class VehiculosListPage {
   private readonly unidadesService = inject(UnidadesService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
+
+  /** Móvil: buscador + tarjetas (M · Vehículos · Lista en Figma). */
+  protected readonly isMobile = injectNarrowViewport();
+  protected readonly query = signal('');
 
   protected readonly loading = signal(true);
   protected readonly unidades = signal<Unidad[]>([]);
@@ -89,6 +98,22 @@ export class VehiculosListPage {
       };
     }),
   );
+
+  protected readonly cards = computed(() => {
+    const q = this.query().trim().toLocaleLowerCase('es');
+    return this.rows()
+      .filter(r => !q || r.code.toLocaleLowerCase('es').includes(q) || r.nombre.toLocaleLowerCase('es').includes(q))
+      .map(r => ({
+        id: r.id,
+        title: `${r.code} · ${r.nombre}`,
+        lines: [[r.tipo, r.placa, r.marca, r.responsablePatrimonial].filter(v => v && v !== '—').join(' · ')],
+        tags: [r.preventivoBadge, r.estadoBadge],
+        actions: [
+          { icon: 'clock-circle', label: `Ver historial de ${r.code}`, run: () => this.verHistorial(r) },
+          { icon: 'edit', label: `Editar ${r.code}`, run: () => this.editar(r) },
+        ] as RecordAction[],
+      }));
+  });
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 

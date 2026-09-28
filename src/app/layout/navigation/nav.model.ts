@@ -13,11 +13,14 @@ export type NavIcon =
   | 'list'
   | 'route'
   | 'chart'
-  | 'truck';
+  | 'truck'
+  | 'send';
 
 /** Destino dentro de un módulo. Sin `link` = grupo que solo agrupa `children` (ej. QHSE › Planificación). */
 export interface NavEntry {
   label: string;
+  /** Etiqueta para la navegación inferior en móvil, cuando `label` no entra. */
+  shortLabel?: string;
   link?: string;
   icon?: NavIcon;
   children?: NavEntry[];

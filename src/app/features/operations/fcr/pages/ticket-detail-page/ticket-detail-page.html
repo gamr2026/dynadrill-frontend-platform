@@ -31,9 +31,9 @@
   </div>
 } @else if (ticket()) {
 
-  <div class="dyn-ticket-layout">
+  <div class="dyn-detail-layout">
   <app-ticket-progress
-    class="dyn-ticket-layout__progress"
+    class="dyn-detail-layout__aside"
     [labels]="phaseLabels()"
     [currentIndex]="currentPhaseIndex()"
     [selectedIndex]="selectedPhaseIndex()"
@@ -41,7 +41,7 @@
     [responsableRolActual]="ticket()!.timelineResumen?.responsableRolActual ?? null"
     (select)="seleccionarFase($event)"
   />
-  <div class="dyn-ticket-layout__main">
+  <div class="dyn-detail-layout__main">
 
   <dynadrill-banner
     [variant]="isMyTurn() ? 'warning' : 'info'"

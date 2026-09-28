@@ -36,6 +36,8 @@ const CATEGORIA_PESO_OPTIONS: DynadrillSelectOption[] = [
  */
 @Component({
   selector: 'app-unidad-create-dialog',
+  /** Pantalla completa en móvil (formulario largo) — ver styles.scss. */
+  host: { class: 'app-dialog-fullscreen-mobile' },
   imports: [DynadrillInputComponent, DynadrillSelectComponent, DynadrillTextareaComponent, DynadrillCheckboxComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './unidad-create-dialog.html',

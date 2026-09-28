@@ -26,6 +26,8 @@ const CLASE_TONE: Record<RegistroMantenimiento['clase'], DynadrillTagVariant> = 
 
 @Component({
   selector: 'app-historial-dialog',
+  /** Bottom sheet en móvil (Overlay/BottomSheet en Figma) — ver styles.scss. */
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [DynadrillTextComponent, DynadrillTagComponent, DynadrillCardComponent, DynadrillSpinnerComponent, DynadrillIconButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './historial-dialog.html',

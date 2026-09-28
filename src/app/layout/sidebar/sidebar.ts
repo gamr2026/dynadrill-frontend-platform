@@ -19,6 +19,7 @@ const MENU_ICON: Record<NavIcon, DynadrillIconName> = {
   route: 'location',
   chart: 'file-text',
   truck: 'box',
+  send: 'file-text',
 };
 
 /** Sub-ítems sin ícono — igual que Nav/SidebarSubItem en Figma. */

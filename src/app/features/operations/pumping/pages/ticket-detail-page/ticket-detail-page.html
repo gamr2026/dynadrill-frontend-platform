@@ -22,9 +22,9 @@
   />
 }
 
-<div class="dyn-ticket-layout">
+<div class="dyn-detail-layout">
 <app-ticket-progress
-  class="dyn-ticket-layout__progress"
+  class="dyn-detail-layout__aside"
   [labels]="stepLabels"
   [currentIndex]="currentStepIndex()"
   [selectedIndex]="selectedStepIndex()"
@@ -32,7 +32,7 @@
   [responsableRolActual]="ticket()?.timelineResumen?.responsableRolActual ?? null"
   (select)="seleccionarPaso($event)"
 />
-<div class="dyn-ticket-layout__main">
+<div class="dyn-detail-layout__main">
 
 <app-ticket-qhse-banner [vinculo]="ipercVinculo()" [canView]="puedeVerMatrizIperc()" />
 

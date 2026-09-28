@@ -3,42 +3,95 @@
   flex-direction: column;
   gap: 16px;
   padding: 1.5rem;
+
+  @media (max-width: 840px) {
+    padding: 0;
+  }
 }
 
 .articulo-detail-page__loading {
   color: var(--text-muted, #5c5870);
 }
 
-.articulo-detail-page__actions {
+.articulo-detail-page__aside,
+.articulo-detail-page__main {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.articulo-detail-page__kardex-title {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0 0 10px;
+.articulo-detail-page__aside {
+  align-items: flex-start;
+
+  > section {
+    align-self: stretch;
+  }
+}
+
+.articulo-detail-page__card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface, #fff);
+}
+
+.articulo-detail-page__card-title {
+  margin: 0;
   color: var(--dynadrill-navy, #131529);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.articulo-detail-page__add ::ng-deep .ant-btn {
+  width: 100%;
 }
 
 .articulo-detail-page__empty {
+  margin: 0;
   color: var(--text-muted, #5c5870);
   font-size: 0.85rem;
-  margin: 0;
 }
 
-.articulo-detail-page__partes-header {
+.articulo-detail-page__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.articulo-detail-page__list-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+
+  & + & {
+    border-top: 1px solid var(--border, #e5e4ea);
+  }
 }
 
-.articulo-detail-page__partes-title {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0;
-  color: var(--dynadrill-navy, #131529);
+.articulo-detail-page__list-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.articulo-detail-page__accent {
+  color: var(--dynadrill-purple, #662e9b);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.articulo-detail-page__meta {
+  color: var(--text-muted, #5c5870);
+  font-size: 12px;
+}
+
+.articulo-detail-page__qty {
+  font-weight: 700;
 }

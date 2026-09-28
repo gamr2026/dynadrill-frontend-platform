@@ -23,7 +23,7 @@ const MIS_VIAJES: NavEntry = { label: 'Mis viajes', icon: 'route', link: '/dashb
 const INVENTARIO_CHILDREN: NavEntry[] = [
   { label: 'Artículos', icon: 'box', link: '/dashboard/inventario/articulos' },
   { label: 'Vehículos', icon: 'truck', link: '/dashboard/inventario/vehiculos' },
-  { label: 'Despachos', icon: 'file-text', link: '/dashboard/inventario/despachos' },
+  { label: 'Despachos a Facturación', shortLabel: 'Despachos', icon: 'send', link: '/dashboard/inventario/despachos' },
 ];
 
 /**

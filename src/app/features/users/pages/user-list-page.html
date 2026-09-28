@@ -32,21 +32,16 @@
     } @else {
       <div class="user-list-page__summary">
         <span class="user-list-page__count">{{ rows().length }} usuarios</span>
-        <span>Página {{ page() }} de {{ totalPages() }}</span>
+        <span>Página {{ pagination.page() }} de {{ pagination.totalPages() }}</span>
       </div>
 
       <ul class="user-list-page__cards">
-        @for (user of pageRows(); track user.id) {
-          <li><app-user-card [user]="user" (edit)="editUser(user)" (remove)="deleteUser(user)" /></li>
+        @for (card of pagination.pageItems(); track card.id) {
+          <li><app-entity-card [title]="card.title" [lines]="card.lines" [tags]="card.tags" [actions]="card.actions" /></li>
         }
       </ul>
 
-      @if (totalPages() > 1) {
-        <nav class="user-list-page__pager" aria-label="Paginación de usuarios">
-          <dynadrill-icon-button icon="left" tooltip="Página anterior" [disabled]="page() === 1" (clicked)="goToPage(page() - 1)" />
-          <dynadrill-icon-button icon="right" tooltip="Página siguiente" [disabled]="page() === totalPages()" (clicked)="goToPage(page() + 1)" />
-        </nav>
-      }
+      <app-list-pager [pagination]="pagination" label="Paginación de usuarios" />
     }
   } @else {
     <dynadrill-data-table

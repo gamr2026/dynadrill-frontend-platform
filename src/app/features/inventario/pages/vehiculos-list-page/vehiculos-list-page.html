@@ -1,26 +1,41 @@
-<dynadrill-screen-header
+<app-page-header
   eyebrow="Inventario"
   title="Vehículos y Maquinaria"
   subtitle="Mismo registro que Mantenimiento — datos patrimoniales (placa, marca, responsable)"
-/>
+>
+  <dynadrill-button actions (clicked)="nuevaUnidad()">
+    <dynadrill-icon name="add" [size]="16" />
+    Nueva unidad
+  </dynadrill-button>
+</app-page-header>
 
-<div class="vehiculos-list-page__toolbar">
-  <dynadrill-button (clicked)="nuevaUnidad()">+ Nueva unidad</dynadrill-button>
-</div>
+@if (isMobile()) {
+  <app-search-field label="Buscar vehículos" placeholder="Buscar código o nombre…" [value]="query()" (valueChange)="query.set($event)" />
 
-<ng-template #actionsTpl let-row>
-  <div class="dyn-actions-row">
-    <dynadrill-button variant="secondary" size="small" (clicked)="verHistorial(row)">Ver historial</dynadrill-button>
-    <dynadrill-button variant="secondary" size="small" (clicked)="editar(row)">Editar</dynadrill-button>
-  </div>
-</ng-template>
+  <ul class="vehiculos-list-page__cards" [attr.aria-busy]="loading()">
+    @for (card of cards(); track card.id) {
+      <li><app-entity-card [title]="card.title" [lines]="card.lines" [tags]="card.tags" [actions]="card.actions" /></li>
+    } @empty {
+      @if (!loading()) {
+        <li class="vehiculos-list-page__empty">Ningún vehículo coincide con la búsqueda.</li>
+      }
+    }
+  </ul>
+} @else {
+  <ng-template #actionsTpl let-row>
+    <div class="dyn-actions-row">
+      <dynadrill-button variant="secondary" size="small" (clicked)="verHistorial(row)">Ver historial</dynadrill-button>
+      <dynadrill-button variant="secondary" size="small" (clicked)="editar(row)">Editar</dynadrill-button>
+    </div>
+  </ng-template>
 
-<dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando vehículos…">
-  <dynadrill-data-table
-    [columns]="columns"
-    [rows]="rows()"
-    [rowKey]="rowKeyFn"
-    [pageSize]="10"
-    [actionsTemplate]="actionsTpl"
-  />
-</dynadrill-spinner>
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando vehículos…">
+    <dynadrill-data-table
+      [columns]="columns"
+      [rows]="rows()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="10"
+      [actionsTemplate]="actionsTpl"
+    />
+  </dynadrill-spinner>
+}

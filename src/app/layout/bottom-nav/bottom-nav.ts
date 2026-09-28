@@ -39,7 +39,7 @@ export class BottomNav {
     if (module.key === home.key) return [homeItem];
 
     const moduleItems = (module.children ?? []).map(entry => ({
-      label: entry.label,
+      label: entry.shortLabel ?? entry.label,
       icon: entry.icon ?? module.icon,
       link: firstLink(entry) ?? '/dashboard',
       active: this.nav.isActive(entry),

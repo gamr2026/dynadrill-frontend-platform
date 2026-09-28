@@ -4,7 +4,17 @@
   gap: 16px;
 }
 
-.vehiculos-list-page__toolbar {
+.vehiculos-list-page__cards {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vehiculos-list-page__empty {
+  padding: 24px 0;
+  color: var(--text-muted, #5c5870);
+  text-align: center;
 }

@@ -14,3 +14,29 @@
 .despachos-bodega-page__filter {
   width: 220px;
 }
+
+.despachos-bodega-page__filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.despachos-bodega-page__filter-label {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.despachos-bodega-page__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.despachos-bodega-page__empty {
+  padding: 24px 0;
+  color: var(--text-muted, #5c5870);
+  text-align: center;
+}

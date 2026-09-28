@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import {
+  DynadrillChipGroupComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
   DynadrillIconButtonComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
   DynadrillSelectComponent,
   DynadrillSpinnerComponent,
   type DynadrillKpiRowItem,
@@ -15,6 +15,9 @@ import {
 import { EstadoSolicitudDespacho, SolicitudDespachoBodega } from '../../../facturacion/models/solicitud-despacho-bodega.model';
 import { SolicitudesDespachoBodegaService } from '../../../facturacion/services/pedido.service';
 import { GestionarDespachoDialog, GestionarDespachoDialogData } from '../../components/gestionar-despacho-dialog';
+import { injectNarrowViewport } from '../../../../core/utils/narrow-viewport.util';
+import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { RecordCard, type RecordCardData } from '../../../../shared/components/record-card/record-card';
 
 const ESTADO_BADGE: Record<EstadoSolicitudDespacho, { text: string; tone: 'success' | 'warning' | 'error' }> = {
   pendiente: { text: 'Pendiente', tone: 'warning' },
@@ -36,7 +39,9 @@ const ESTADO_BADGE: Record<EstadoSolicitudDespacho, { text: string; tone: 'succe
 @Component({
   selector: 'app-despachos-bodega-list-page',
   imports: [
-    DynadrillScreenHeaderComponent,
+    PageHeader,
+    RecordCard,
+    DynadrillChipGroupComponent,
     DynadrillKpiRowComponent,
     DynadrillDataTableComponent,
     DynadrillIconButtonComponent,
@@ -52,6 +57,9 @@ export class DespachosBodegaListPage {
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
 
+  /** Móvil: chips de estado + tarjetas (M · Despachos a Facturación · Lista en Figma). */
+  protected readonly isMobile = injectNarrowViewport();
+
   protected readonly loading = signal(true);
   protected readonly solicitudes = signal<SolicitudDespachoBodega[]>([]);
   protected readonly filtroEstado = signal<EstadoSolicitudDespacho | null>('pendiente');
@@ -62,6 +70,16 @@ export class DespachosBodegaListPage {
     { label: 'Rechazadas', value: 'rechazado' },
     { label: 'Todas', value: '' },
   ];
+
+  protected readonly estadoChips = this.estadoOptions.map(o => o.label);
+  protected readonly estadoChipActivo = computed(
+    () => this.estadoOptions.find(o => (o.value || null) === this.filtroEstado())?.label ?? 'Todas',
+  );
+
+  protected onEstadoChip(selected: string[]): void {
+    const option = this.estadoOptions.find(o => o.label === selected[0]);
+    if (option) this.filtroEstado.set((option.value as EstadoSolicitudDespacho | '') || null);
+  }
 
   protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
     const all = this.solicitudes();
@@ -93,6 +111,24 @@ export class DespachosBodegaListPage {
         bodegaOrigen: s.bodegaOrigen,
         fechaRequerida: s.fechaRequerida.slice(0, 10),
         estadoBadge: ESTADO_BADGE[s.estado],
+      }));
+  });
+
+  protected readonly cards = computed<(RecordCardData & { id: number })[]>(() => {
+    const filtro = this.filtroEstado();
+    return this.solicitudes()
+      .filter(s => !filtro || s.estado === filtro)
+      .map(s => ({
+        id: s.id,
+        eyebrow: s.numero,
+        title: s.pedidoCliente ?? '—',
+        subtitle: `Pedido ${s.pedidoCode ?? '—'} • ${s.bodegaOrigen}`,
+        status: ESTADO_BADGE[s.estado],
+        fields: [
+          { label: 'Fecha requerida', value: s.fechaRequerida.slice(0, 10) },
+          { label: 'Ítems', value: String(s.items.length) },
+        ],
+        actions: [{ icon: 'eye', label: 'Ver / gestionar', run: () => this.gestionar({ id: s.id }) }],
       }));
   });
 

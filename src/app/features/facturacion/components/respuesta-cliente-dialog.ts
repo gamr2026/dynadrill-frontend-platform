@@ -30,6 +30,7 @@ export interface RespuestaClienteDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './respuesta-cliente-dialog.html',
   styleUrl: './respuesta-cliente-dialog.scss',
+  host: { 'data-bottom-sheet': '' },
 })
 export class RespuestaClienteDialog {
   private readonly prefacturaService = inject(PrefacturaService);

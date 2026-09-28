@@ -23,6 +23,7 @@ export interface AotGenerarDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './aot-generar-dialog.html',
   styleUrl: './aot-generar-dialog.scss',
+  host: { 'data-bottom-sheet': '' },
 })
 export class AotGenerarDialog {
   private readonly aotService = inject(AotService);

@@ -23,6 +23,7 @@ export interface PersonaFormDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './persona-form-dialog.html',
   styleUrl: './persona-form-dialog.scss',
+  host: { 'data-bottom-sheet': '' },
 })
 export class PersonaFormDialog {
   private readonly catalogosService = inject(CatalogosService);

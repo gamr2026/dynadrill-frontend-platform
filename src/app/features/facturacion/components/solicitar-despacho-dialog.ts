@@ -43,6 +43,7 @@ const TIPO_ITEM_OPTIONS: DynadrillSelectOption[] = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './solicitar-despacho-dialog.html',
   styleUrl: './solicitar-despacho-dialog.scss',
+  host: { 'data-bottom-sheet': '' },
 })
 export class SolicitarDespachoDialog {
   private readonly pedidoService = inject(PedidoService);

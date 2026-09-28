@@ -6,7 +6,11 @@
   />
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
-    <dynadrill-kpi-row [items]="kpis()" />
+    <div class="kpi-stat-row" role="list">
+      @for (kpi of kpis(); track kpi.label) {
+        <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [caption]="kpi.caption" [tone]="kpi.tone" />
+      }
+    </div>
 
     <section class="fact-card">
       <dynadrill-tabs [tabs]="tabs" [activeIndex]="activeTab()" (activeIndexChange)="activeTab.set($event)" [contentTemplate]="tabContent" />

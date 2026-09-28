@@ -29,6 +29,7 @@ export interface EditarRepresentantesDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './editar-representantes-dialog.html',
   styleUrl: './editar-representantes-dialog.scss',
+  host: { 'data-bottom-sheet': '' },
 })
 export class EditarRepresentantesDialog {
   private readonly pedidoService = inject(PedidoService);

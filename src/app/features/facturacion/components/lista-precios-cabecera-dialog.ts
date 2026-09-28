@@ -28,6 +28,7 @@ export interface ListaPreciosCabeceraDialogData {}
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './lista-precios-cabecera-dialog.html',
   styleUrl: './lista-precios-cabecera-dialog.scss',
+  host: { 'data-bottom-sheet': '' },
 })
 export class ListaPreciosCabeceraDialog {
   private readonly listaService = inject(ListaPreciosService);

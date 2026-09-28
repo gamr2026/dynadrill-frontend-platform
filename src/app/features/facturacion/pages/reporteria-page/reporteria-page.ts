@@ -6,13 +6,11 @@ import {
   DynadrillChartComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
-  DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
   DynadrillTabsComponent,
   type DynadrillChartSeries,
-  type DynadrillKpiRowItem,
   type DynadrillTab,
 } from '@digitec-it-projects/dynadrill-ui';
 import { ESTADO_PEDIDO_LABELS, TIPO_SERVICIO_LABELS, EstadoPedido, Pedido, TIPO_OT_LABELS, TipoOt, itemsEstimadosDe, tiposServicioLabel, valorEstimadoPedido } from '../../models/pedido.model';
@@ -20,6 +18,7 @@ import { Prefactura } from '../../models/prefactura.model';
 import { GuiaRemision } from '../../models/guia-remision.model';
 import { Aot } from '../../models/aot.model';
 import { AotService, GuiaRemisionService, PedidoService, PrefacturaService } from '../../services/pedido.service';
+import { KpiStat, KpiStatTone } from '../../../../shared/components/kpi-stat/kpi-stat';
 
 function descargarCsv(nombre: string, headers: string[], filas: (string | number)[][]): void {
   const esc = (v: string | number) => `"${String(v ?? '').replace(/"/g, '""')}"`;
@@ -58,7 +57,7 @@ function uniqueFilters(rows: Record<string, unknown>[], key: string): { text: st
   selector: 'app-reporteria-page',
   imports: [
     DynadrillScreenHeaderComponent,
-    DynadrillKpiRowComponent,
+    KpiStat,
     DynadrillDataTableComponent,
     DynadrillTabsComponent,
     DynadrillButtonComponent,
@@ -436,16 +435,22 @@ export class ReporteriaPage {
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
-  protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
+  protected readonly kpis = computed<{ value: number | string; label: string; caption: string; tone: KpiStatTone }[]>(() => {
     const firmadas = this.prefacturas().filter(p => p.estado === 'firmada');
     const total = firmadas.reduce((s, p) => s + p.subtotal, 0);
     const enProceso = this.pedidos().filter(p => !['facturado', 'listo_para_facturar', 'enviado_a_control_de_costos', 'anulado'].includes(p.estado));
+    const pendientesFirma = this.pendientesFirma().length;
     return [
-      { label: 'Revenue real acumulado', value: '$' + total.toFixed(2), tone: 'brand' },
-      { label: 'Trabajos facturados', value: firmadas.length, tone: 'success' },
-      { label: 'Pedidos en proceso', value: enProceso.length, tone: 'neutral' },
-      { label: 'Accrual (por facturar)', value: '$' + this.pedidos().filter(p => !this.prefacturas().some(x => x.pedidoId === p.id && x.estado === 'firmada')).reduce((s, p) => s + valorEstimadoPedido(p), 0).toFixed(2), tone: 'warning' },
-      { label: 'Tickets pendientes de firma', value: this.pendientesFirma().length, tone: this.pendientesFirma().length > 0 ? 'warning' : 'neutral' },
+      { value: '$' + total.toFixed(2), label: 'Revenue real acumulado', caption: 'Prefacturas firmadas', tone: 'brand' },
+      { value: firmadas.length, label: 'Trabajos facturados', caption: 'En el período', tone: 'success' },
+      { value: enProceso.length, label: 'Pedidos en proceso', caption: 'Sin facturar aún', tone: 'neutral' },
+      {
+        value: '$' + this.pedidos().filter(p => !this.prefacturas().some(x => x.pedidoId === p.id && x.estado === 'firmada')).reduce((s, p) => s + valorEstimadoPedido(p), 0).toFixed(2),
+        label: 'Accrual (por facturar)',
+        caption: 'Valor estimado pendiente',
+        tone: 'info',
+      },
+      { value: pendientesFirma, label: 'Tickets pendientes de firma', caption: 'Esperando al cliente', tone: pendientesFirma > 0 ? 'error' : 'neutral' },
     ];
   });
 

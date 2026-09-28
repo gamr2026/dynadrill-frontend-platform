@@ -3,17 +3,16 @@ import { Router } from '@angular/router';
 import {
   DynadrillButtonComponent,
   DynadrillDialogService,
-  DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
   DynadrillTagComponent,
   DynadrillTextComponent,
-  type DynadrillKpiRowItem,
 } from '@digitec-it-projects/dynadrill-ui';
 import { ListaPrecios } from '../../models/lista-precios.model';
 import { ListaPreciosService } from '../../services/pedido.service';
 import { ListaPreciosCabeceraDialog } from '../../components/lista-precios-cabecera-dialog';
+import { KpiStat, KpiStatTone } from '../../../../shared/components/kpi-stat/kpi-stat';
 
 /**
  * Fase 2 — Lista de Precios multicliente. Índice de listas + alta. La edición
@@ -23,7 +22,7 @@ import { ListaPreciosCabeceraDialog } from '../../components/lista-precios-cabec
   selector: 'app-lista-precios-page',
   imports: [
     DynadrillScreenHeaderComponent,
-    DynadrillKpiRowComponent,
+    KpiStat,
     DynadrillButtonComponent,
     DynadrillTagComponent,
     DynadrillTextComponent,
@@ -42,13 +41,13 @@ export class ListaPreciosPage {
   protected readonly loading = signal(true);
   protected readonly listas = signal<ListaPrecios[]>([]);
 
-  protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
+  protected readonly kpis = computed<{ value: number; label: string; caption: string; tone: KpiStatTone }[]>(() => {
     const ls = this.listas();
     return [
-      { label: 'Listas', value: ls.length, tone: 'neutral' },
-      { label: 'Activas', value: ls.filter(l => l.activa).length, tone: 'success' },
-      { label: 'Clientes', value: new Set(ls.map(l => l.cliente)).size, tone: 'brand' },
-      { label: 'Ítems totales', value: ls.reduce((s, l) => s + l.items.length, 0), tone: 'neutral' },
+      { value: ls.length, label: 'Listas', caption: 'Registradas', tone: 'neutral' },
+      { value: ls.filter(l => l.activa).length, label: 'Activas', caption: 'Vigentes', tone: 'success' },
+      { value: new Set(ls.map(l => l.cliente)).size, label: 'Clientes', caption: 'Con tarifario', tone: 'brand' },
+      { value: ls.reduce((s, l) => s + l.items.length, 0), label: 'Ítems totales', caption: 'En todas las listas', tone: 'info' },
     ];
   });
 

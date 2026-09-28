@@ -1,11 +1,187 @@
 @use '../../facturacion-ui' as f;
 
+// Figma "03 · Facturación › Prefacturas · Lista": tarjetas en móvil, tabla en escritorio.
 .prefacturas-list-page {
   @include f.page;
 
   .fact-card {
     @include f.card;
     padding: 6px;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg, 16px);
+  }
+
+  &__search {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 8px);
+    height: 48px;
+    padding: 0 var(--space-md, 12px);
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-md, 12px);
+    background: var(--surface, #fff);
+    color: var(--text-muted, #5c5870);
+
+    &:focus-within {
+      border-color: var(--dynadrill-purple, #662e9b);
+    }
+
+    input {
+      flex: 1 1 0;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      background: none;
+      font: inherit;
+      font-size: 14px;
+      color: var(--text, #2c2b35);
+
+      &::placeholder {
+        color: var(--text-muted, #5c5870);
+      }
+    }
+  }
+
+  &__count {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-md, 12px);
+    font-size: 14px;
+    color: var(--text, #2c2b35);
+
+    span {
+      font-size: 12px;
+      color: var(--text-muted, #5c5870);
+    }
+  }
+
+  &__cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md, 12px);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+}
+
+.pf-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs, 4px);
+  padding: var(--space-lg, 16px);
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: var(--radius-lg, 16px);
+  background: var(--surface, #fff);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(19, 21, 41, 0.05));
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm, 8px);
+  }
+
+  &__code {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--dynadrill-purple, #662e9b);
+  }
+
+  &__status {
+    padding: 2px var(--space-sm, 8px);
+    border-radius: var(--radius-full, 9999px);
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--surface-subtle, #f3f2f7);
+    color: var(--text-muted, #5c5870);
+
+    &--success {
+      background: var(--success-bg, #e6f7e0);
+      color: var(--success-text, #237804);
+    }
+
+    &--warning {
+      background: var(--warning-bg, #fff7e0);
+      color: var(--warning-text, #ad6800);
+    }
+
+    &--error {
+      background: var(--error-bg, #ffeaea);
+      color: var(--error-text, #cf1322);
+    }
+
+    &--neutral {
+      background: var(--surface-subtle, #f3f2f7);
+      color: var(--text-muted, #5c5870);
+    }
+  }
+
+  &__title {
+    margin: var(--space-xs, 4px) 0 0;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--text, #2c2b35);
+  }
+
+  &__meta {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-sm, 8px);
+    margin: var(--space-sm, 8px) 0 0;
+    padding-top: var(--space-md, 12px);
+    border-top: 1px solid var(--border, #e5e4ea);
+
+    dt {
+      font-size: 11px;
+      color: var(--text-muted, #5c5870);
+    }
+
+    dd {
+      margin: 2px 0 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text, #2c2b35);
+    }
+  }
+
+  &__view {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    margin-top: var(--space-md, 12px);
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-md, 12px);
+    background: var(--surface, #fff);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--dynadrill-purple, #662e9b);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--dynadrill-purple-tint, #f6f3f9);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--dynadrill-purple, #662e9b);
+      outline-offset: 2px;
+    }
   }
 }
 

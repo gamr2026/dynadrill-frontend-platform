@@ -10,7 +10,11 @@
   </div>
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
-    <dynadrill-kpi-row [items]="kpis()" />
+    <div class="kpi-stat-row" role="list">
+      @for (kpi of kpis(); track kpi.label) {
+        <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [caption]="kpi.caption" [tone]="kpi.tone" />
+      }
+    </div>
 
     @if (listas().length) {
       <div class="lista-precios-page__grid">

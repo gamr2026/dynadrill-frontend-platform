@@ -15,6 +15,7 @@ export interface ClienteFormDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './cliente-form-dialog.html',
   styleUrl: './cliente-form-dialog.scss',
+  host: { 'data-bottom-sheet': '' },
 })
 export class ClienteFormDialog {
   private readonly catalogosService = inject(CatalogosService);

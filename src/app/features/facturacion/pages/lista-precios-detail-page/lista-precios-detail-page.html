@@ -18,11 +18,26 @@
 
       <section class="fact-card">
         <header class="lp-detail__head">
-          <h2>Ítems ({{ items().length }})</h2>
+          <h2>Ítems ({{ l.items.length }})</h2>
           <div class="lp-detail__head-actions">
             <dynadrill-button variant="secondary" size="small" [disabled]="!l.items.length" (clicked)="descargarExcel()">Descargar Excel</dynadrill-button>
           </div>
         </header>
+
+        <label class="lp-detail__search">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
+          <input
+            type="search"
+            placeholder="Buscar código o descripción…"
+            aria-label="Buscar código o descripción"
+            [value]="busqueda()"
+            (input)="busqueda.set($any($event.target).value)"
+          />
+        </label>
+        <dynadrill-chip-group mode="single" [options]="tipoChips" [selected]="tipoSeleccionado()" (selectedChange)="onTipoChip($event)" />
 
         <div class="table-scroll">
           <table class="lp-detail__table">
@@ -39,10 +54,10 @@
                   <td>{{ it.tipo }}</td>
                 </tr>
               } @empty {
-                <tr><td colspan="5">Sin ítems.</td></tr>
+                <tr><td colspan="5">{{ l.items.length ? 'Ningún ítem coincide con la búsqueda.' : 'Sin ítems.' }}</td></tr>
               }
             </tbody>
-            @if (items().length) {
+            @if (l.items.length) {
               <tfoot>
                 <tr>
                   <td colspan="3"></td>

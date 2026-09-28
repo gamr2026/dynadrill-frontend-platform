@@ -2,16 +2,71 @@
   <dynadrill-screen-header eyebrow="FACTURACIÓN" title="Prefacturas" subtitle="FACT-003 — armadas desde el Reporte de Herramientas y la Lista de Precios" />
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
-    <dynadrill-kpi-row [items]="kpis()" />
-
-    <ng-template #actionsTpl let-row>
-      <dynadrill-button variant="secondary" size="small" (clicked)="verDetalle(row)">Ver</dynadrill-button>
-    </ng-template>
-
-    <section class="fact-card">
-      <div class="table-scroll">
-        <dynadrill-data-table [columns]="columns" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" [actionsTemplate]="actionsTpl" />
+    <div class="prefacturas-list-page__body">
+      <div class="kpi-stat-row" role="list">
+        @for (kpi of kpis(); track kpi.label) {
+          <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [caption]="kpi.caption" [tone]="kpi.tone" />
+        }
       </div>
-    </section>
+
+      <label class="prefacturas-list-page__search">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.5-3.5" />
+        </svg>
+        <input
+          type="search"
+          placeholder="Buscar prefactura, cliente o pedido…"
+          aria-label="Buscar prefactura, cliente o pedido"
+          [value]="busqueda()"
+          (input)="busqueda.set($any($event.target).value)"
+        />
+      </label>
+
+      @if (isMobile()) {
+        <div class="prefacturas-list-page__count">
+          <strong>{{ rows().length }} prefacturas</strong>
+          <span>Ordenadas por generación</span>
+        </div>
+
+        <ul class="prefacturas-list-page__cards">
+          @for (row of rows(); track row.id) {
+            <li class="pf-card">
+              <header class="pf-card__head">
+                <span class="pf-card__code">{{ row.code }}</span>
+                <span class="pf-card__status pf-card__status--{{ row.estadoTono }}">{{ row.estadoTexto }}</span>
+              </header>
+              <h2 class="pf-card__title">{{ row.cliente }}</h2>
+              <p class="pf-card__meta">Pedido {{ row.pedido }} · Generada {{ row.fecha }}</p>
+
+              <dl class="pf-card__stats">
+                <div>
+                  <dt>Subtotal</dt>
+                  <dd>{{ row.subtotal }}</dd>
+                </div>
+                <div>
+                  <dt>Neto a cobrar</dt>
+                  <dd>{{ row.neto }}</dd>
+                </div>
+              </dl>
+
+              <button type="button" class="pf-card__view" (click)="verDetalle(row)">
+                Ver
+              </button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <ng-template #actionsTpl let-row>
+          <dynadrill-button variant="secondary" size="small" (clicked)="verDetalle(row)">Ver</dynadrill-button>
+        </ng-template>
+
+        <section class="fact-card">
+          <div class="table-scroll">
+            <dynadrill-data-table [columns]="columns" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" [actionsTemplate]="actionsTpl" />
+          </div>
+        </section>
+      }
+    </div>
   </dynadrill-spinner>
 </div>

@@ -1,0 +1,40 @@
+<section class="ticket-progress" aria-labelledby="ticket-progress-title">
+  <h2 class="ticket-progress__title" id="ticket-progress-title">Avance del ticket</h2>
+  <ol class="ticket-progress__steps">
+    @for (label of labels(); track $index) {
+      @let done = $index < currentIndex();
+      @let current = $index === currentIndex();
+      <li class="ticket-progress__item" [class.ticket-progress__item--done]="done" [class.ticket-progress__item--current]="current">
+        <button
+          type="button"
+          class="ticket-progress__step"
+          [class.ticket-progress__step--selected]="$index === selectedIndex()"
+          [attr.aria-current]="current ? 'step' : null"
+          [attr.aria-pressed]="$index === selectedIndex()"
+          [disabled]="$index > currentIndex()"
+          (click)="select.emit($index)"
+          [appTimelinePopoverTrigger]="tramos()?.[$index]"
+          [faseIndice]="$index + 1"
+          [faseLabel]="label"
+          [esFaseActual]="current"
+          [responsableRolActual]="responsableRolActual()"
+        >
+          <span class="ticket-progress__dot" aria-hidden="true">
+            @if (done) {
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M20 6 9 17l-5-5" /></svg>
+            }
+          </span>
+          <span class="ticket-progress__text">
+            <span class="ticket-progress__label">{{ label }}</span>
+            @if (done) {
+              <span class="ticket-progress__hint">Completado</span>
+            } @else if (current) {
+              <span class="ticket-progress__hint">Paso actual</span>
+            }
+          </span>
+        </button>
+      </li>
+    }
+  </ol>
+</section>

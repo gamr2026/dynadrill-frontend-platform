@@ -1,0 +1,52 @@
+<div class="mobile-drawer__backdrop" (click)="state.close()"></div>
+
+<aside #panel class="mobile-drawer__panel" id="mobile-drawer" aria-label="Menú de módulos">
+  @if (user(); as u) {
+    <div class="mobile-drawer__profile">
+      <dynadrill-avatar [name]="u.name" size="lg" />
+      <div class="mobile-drawer__identity">
+        <span class="mobile-drawer__name">{{ u.name }}</span>
+        <span class="mobile-drawer__role">{{ u.roleName }}</span>
+      </div>
+    </div>
+  }
+
+  <nav class="mobile-drawer__nav" aria-label="Módulos">
+    @for (item of items(); track item.module.key) {
+      @let active = item.module.key === nav.activeModule().key;
+      <a
+        class="mobile-drawer__item"
+        [class.mobile-drawer__item--active]="active"
+        [attr.aria-current]="active ? 'page' : null"
+        [routerLink]="item.link"
+      >
+        <app-nav-icon [name]="item.module.icon" />
+        {{ item.module.label }}
+      </a>
+    }
+  </nav>
+
+  <div class="mobile-drawer__footer">
+    <button type="button" class="mobile-drawer__action mobile-drawer__action--danger" (click)="actions.openReportar()">
+      <app-nav-icon name="alert" [size]="20" />
+      Reportar
+    </button>
+    <button
+      type="button"
+      class="mobile-drawer__action mobile-drawer__action--primary"
+      [disabled]="actions.loggingOut()"
+      (click)="actions.logout()"
+    >
+      @if (actions.loggingOut()) {
+        <dynadrill-spinner size="sm" />
+        Cerrando sesión…
+      } @else {
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5" /><path d="M21 12H9" />
+        </svg>
+        Cerrar sesión
+      }
+    </button>
+  </div>
+</aside>

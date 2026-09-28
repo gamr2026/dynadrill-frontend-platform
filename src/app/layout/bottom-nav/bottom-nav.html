@@ -1,0 +1,19 @@
+<nav class="bottom-nav" aria-label="Navegación del módulo">
+  @for (item of items(); track item.link) {
+    <a
+      class="bottom-nav__item"
+      [class.bottom-nav__item--active]="item.active"
+      [attr.aria-current]="item.active ? 'page' : null"
+      [routerLink]="item.link"
+    >
+      <span class="bottom-nav__indicator"><app-nav-icon [name]="item.icon" /></span>
+      <span class="bottom-nav__label">{{ item.label }}</span>
+    </a>
+  }
+  @if (showReportar()) {
+    <button type="button" class="bottom-nav__item" (click)="actions.openReportar()">
+      <span class="bottom-nav__indicator"><app-nav-icon name="alert" /></span>
+      <span class="bottom-nav__label">Reportar</span>
+    </button>
+  }
+</nav>

@@ -75,6 +75,8 @@ function formatShort(iso: string): string {
 
 @Component({
   selector: 'app-asignar-operador-dialog',
+  /** Bottom sheet en móvil (Overlay/BottomSheet en Figma) — ver styles.scss. */
+  host: { class: 'app-dialog-sheet-mobile' },
   // NzDatePickerModule/FormsModule en vez de dynadrill-datetime-picker: la
   // librería todavía no tiene un átomo de rango de fechas (dynadrill-
   // datetime-picker es de una sola fecha) — excepción puntual, mismo

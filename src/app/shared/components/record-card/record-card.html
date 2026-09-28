@@ -1,0 +1,42 @@
+<article class="record-card">
+  @if (eyebrow() || status()) {
+    <div class="record-card__top">
+      <span class="record-card__eyebrow">{{ eyebrow() }}</span>
+      @if (status(); as s) {
+        <dynadrill-tag [label]="s.text" [variant]="s.tone" />
+      }
+    </div>
+  }
+
+  <h2 class="record-card__title">{{ title() }}</h2>
+  @if (subtitle()) {
+    <p class="record-card__subtitle">{{ subtitle() }}</p>
+  }
+
+  @if (fields().length) {
+    <dl class="record-card__fields">
+      @for (field of fields(); track field.label) {
+        <div class="record-card__field">
+          <dt>{{ field.label }}</dt>
+          <dd>{{ field.value }}</dd>
+        </div>
+      }
+    </dl>
+  }
+
+  <ng-content />
+
+  @if (primaryAction(); as primary) {
+    <div class="record-card__actions">
+      <dynadrill-button class="record-card__primary" variant="secondary" (clicked)="primary.run()">
+        @if (primaryIcon(); as icon) {
+          <dynadrill-icon [name]="icon" [size]="18" />
+        }
+        {{ primary.label }}
+      </dynadrill-button>
+      @for (action of secondaryActions(); track action.label) {
+        <dynadrill-icon-button [icon]="action.icon" [tooltip]="action.label" (clicked)="action.run()" />
+      }
+    </div>
+  }
+</article>

@@ -8,7 +8,6 @@ import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillKpiRowComponent,
-  DynadrillScreenHeaderComponent,
   DynadrillSkeletonComponent,
   type DynadrillKpiRowItem,
 } from '@digitec-it-projects/dynadrill-ui';
@@ -16,6 +15,9 @@ import { FcrTicket, FCR_PHASE_LABELS, FCR_PHASE_ROLE, type FcrPhase, type TipoOt
 import { FcrService } from '../../services/fcr.service';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { MACRO_ESTADO_TONE } from '../../../../../shared/index';
+import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
+import { PageHeader } from '../../../../../shared/components/page-header/page-header';
+import { RecordAction, RecordCard } from '../../../../../shared/components/record-card/record-card';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
 
@@ -45,7 +47,8 @@ type QuickFilter = (typeof QUICK_FILTERS)[number];
   selector: 'app-fcr-ticket-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    DynadrillScreenHeaderComponent,
+    PageHeader,
+    RecordCard,
     DynadrillKpiRowComponent,
     DynadrillChipGroupComponent,
     DynadrillDataTableComponent,
@@ -62,6 +65,9 @@ export class FcrTicketListPage {
   private readonly auth = inject(AuthService);
 
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
+
+  /** Móvil: tarjetas (M · FCR · Tickets en Figma) en vez de la tabla. */
+  protected readonly isMobile = injectNarrowViewport();
 
   protected readonly loading = signal(true);
   protected readonly tickets = signal<FcrTicket[]>([]);
@@ -103,6 +109,7 @@ export class FcrTicketListPage {
         text: PHASE_BADGES[t.currentPhase].text,
         tone: MACRO_ESTADO_TONE[t.timelineResumen?.macroEstadoActual ?? 'pendiente'],
       },
+      actions: [{ icon: 'eye', label: 'Ver ticket', run: () => this.viewDetail({ id: t.id }) }] as RecordAction[],
     })),
   );
 

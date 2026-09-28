@@ -315,3 +315,143 @@ body {
 .app-timeline-popover-backdrop {
   background: transparent;
 }
+
+/**
+ * Diálogos en móvil (Figma: Overlay/BottomSheet y formularios a pantalla
+ * completa). `DynadrillDialogService` siempre usa el mismo wrapClassName
+ * (`dynadrill-dialog`), así que cada contenido elige su presentación con una
+ * clase en su host y acá se estiliza el overlay con `:has()` — global porque
+ * el overlay vive fuera del árbol de plantilla del componente. Un diálogo
+ * sin ninguna de las dos clases se sigue viendo como modal centrado.
+ */
+@media (max-width: 840px) {
+  .dynadrill-dialog:has(.app-dialog-fullscreen-mobile) {
+    .ant-modal {
+      top: 0;
+      width: 100vw !important;
+      max-width: 100vw;
+      margin: 0;
+      padding: 0;
+    }
+
+    .ant-modal-content {
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+      border-radius: 0;
+    }
+
+    // Nav/TopAppBar Type=Detail: cerrar a la izquierda del título, sobre fondo claro.
+    .ant-modal-header {
+      padding: 20px 16px 20px 64px;
+      border-radius: 0;
+      background: var(--surface, #fff);
+      border-bottom: 1px solid var(--border, #e5e4ea);
+
+      .ant-modal-title {
+        color: var(--dynadrill-navy, #131529);
+      }
+    }
+
+    .ant-modal-close {
+      left: 8px;
+      right: auto;
+      color: var(--dynadrill-navy, #131529);
+    }
+
+    .ant-modal-body {
+      flex: 1;
+      padding: 16px;
+      background: var(--surface-muted, #faf9fc);
+    }
+  }
+
+  .dynadrill-dialog:has(.app-dialog-sheet-mobile) {
+    display: flex;
+    align-items: flex-end;
+
+    .ant-modal {
+      top: 0;
+      width: 100vw !important;
+      max-width: 100vw;
+      margin: 0;
+      padding: 0;
+    }
+
+    .ant-modal-content {
+      max-height: 90dvh;
+      overflow-y: auto;
+      border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+
+    // Encabezado navy de marca (el de todos los diálogos, ver _tokens.less de
+    // dynadrill-ui) — solo cambian las esquinas y el asa de arrastre.
+    .ant-modal-header {
+      position: relative;
+      padding: 28px 56px 16px 16px;
+      border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
+
+      // Asa de arrastre del sheet (solo visual).
+      &::before {
+        content: '';
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        width: 32px;
+        height: 4px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.4);
+        transform: translateX(-50%);
+      }
+    }
+
+    .ant-modal-close {
+      top: 18px;
+    }
+  }
+}
+
+/**
+ * Layout de detalle de ticket (Pumping y FCR): contenido del paso a la
+ * izquierda y "Avance del ticket" a la derecha (D · Ticket Pumping en
+ * Figma); en pantallas angostas una sola columna con el avance arriba.
+ * Global porque lo comparten dos páginas cuyos .scss ya están cerca del
+ * budget de `anyComponentStyle` (mismo motivo que `.dyn-pedido-card`).
+ */
+.dyn-ticket-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.dyn-ticket-layout__main {
+  grid-row: 1;
+  grid-column: 1;
+  min-width: 0;
+}
+
+.dyn-ticket-layout__progress {
+  grid-row: 1;
+  grid-column: 2;
+  position: sticky;
+  top: 0;
+}
+
+@media (max-width: 1100px) {
+  .dyn-ticket-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .dyn-ticket-layout__progress {
+    position: static;
+    grid-column: 1;
+  }
+
+  .dyn-ticket-layout__main {
+    grid-row: 2;
+  }
+}

@@ -1,0 +1,118 @@
+:host {
+  display: block;
+}
+
+.ticket-progress {
+  padding: 16px;
+  border: var(--border-width, 1px) solid var(--border, #e5e4ea);
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface, #fff);
+}
+
+.ticket-progress__title {
+  margin: 0 0 12px;
+  color: var(--dynadrill-navy, #131529);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.ticket-progress__steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Línea vertical entre puntos: cada ítem dibuja el tramo hacia el siguiente.
+.ticket-progress__item {
+  position: relative;
+
+  &:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 30px;
+    bottom: -6px;
+    left: 19px;
+    width: 2px;
+    background: var(--border, #e5e4ea);
+  }
+
+  &--done:not(:last-child)::after {
+    background: var(--dynadrill-purple, #662e9b);
+  }
+}
+
+.ticket-progress__step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: var(--radius-sm, 8px);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--dynadrill-purple, #662e9b);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &--selected {
+    background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
+  }
+}
+
+.ticket-progress__dot {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border, #e5e4ea);
+  border-radius: 50%;
+  background: var(--surface, #fff);
+  color: var(--dynadrill-white, #fff);
+
+  .ticket-progress__item--done & {
+    border-color: var(--dynadrill-purple, #662e9b);
+    background: var(--dynadrill-purple, #662e9b);
+  }
+
+  .ticket-progress__item--current & {
+    border-color: var(--dynadrill-purple, #662e9b);
+  }
+}
+
+.ticket-progress__text {
+  display: flex;
+  flex-direction: column;
+  padding-top: 2px;
+}
+
+.ticket-progress__label {
+  color: var(--text-muted, #5c5870);
+  font-size: 14px;
+
+  .ticket-progress__item--done &,
+  .ticket-progress__item--current & {
+    color: var(--dynadrill-navy, #131529);
+    font-weight: 700;
+  }
+}
+
+.ticket-progress__hint {
+  color: var(--text-muted, #5c5870);
+  font-size: 12px;
+}

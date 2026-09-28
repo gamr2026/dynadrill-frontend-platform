@@ -52,8 +52,10 @@
     grid-area: footer;
   }
 
-  &__backdrop {
+  // Solo móvil — ver @media abajo.
+  &__bottom-nav {
     display: none;
+    grid-area: bottom-nav;
   }
 
   // Barra de progreso fija bajo el header — única señal visual mientras se
@@ -91,43 +93,34 @@
     }
   }
 
-  // Debajo de 840px el sidebar deja de ocupar espacio en el grid — pasa a
-  // ser un panel off-canvas fijo que se desliza sobre el contenido, con el
-  // botón hamburguesa del header (ver header.scss) como único trigger.
+  // Debajo de 840px (Figma: Móvil 412) el sidebar y el footer desaparecen:
+  // la navegación pasa al drawer de módulos (hamburguesa del header) y a la
+  // barra inferior contextual del módulo actual.
   @media (max-width: 840px) {
-    grid-template-columns: 0 1fr;
+    grid-template-areas:
+      'header'
+      'content'
+      'bottom-nav';
+    grid-template-columns: 1fr;
+    grid-template-rows: 64px 1fr auto;
+    height: 100dvh;
 
-    &__sidebar {
-      position: fixed;
-      top: 64px;
-      bottom: 48px;
-      left: 0;
-      width: 260px;
-      max-width: 80vw;
-      z-index: 40;
-      transform: translateX(-100%);
-      transition: transform 0.2s ease;
-      box-shadow: 4px 0 16px rgba(0, 0, 0, 0.25);
+    &__sidebar,
+    &__footer {
+      display: none;
+    }
+
+    &__bottom-nav {
+      display: block;
     }
 
     &__content {
       padding: 16px;
     }
-  }
 
-  &--sidebar-open {
-    @media (max-width: 840px) {
-      .shell__sidebar {
-        transform: translateX(0);
-      }
-
-      .shell__backdrop {
-        display: block;
-        position: fixed;
-        inset: 64px 0 48px 0;
-        background: rgba(0, 0, 0, 0.4);
-        z-index: 30;
-      }
+    // Una pantalla de detalle deja el borde inferior a sus propias acciones.
+    &--detail &__bottom-nav {
+      display: none;
     }
   }
 }

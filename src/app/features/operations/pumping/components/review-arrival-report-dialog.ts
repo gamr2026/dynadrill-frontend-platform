@@ -29,6 +29,8 @@ export interface ReviewArrivalReportDialogResult {
 
 @Component({
   selector: 'app-review-arrival-report-dialog',
+  /** Pantalla completa en móvil (formulario largo) — ver styles.scss. */
+  host: { class: 'app-dialog-fullscreen-mobile' },
   imports: [
     DynadrillTextComponent,
     DynadrillContextCardComponent,

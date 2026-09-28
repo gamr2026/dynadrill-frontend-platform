@@ -6,7 +6,7 @@
 />
 
 <div class="fcr-detail__top-actions">
-  <dynadrill-button variant="secondary" size="small" (clicked)="goBack()">← Volver a Tickets</dynadrill-button>
+  <dynadrill-button class="fcr-detail__back" variant="secondary" size="small" (clicked)="goBack()">← Volver a Tickets</dynadrill-button>
   @if (ticket(); as t) {
     <dynadrill-button variant="secondary" size="small" (clicked)="openObservaciones()">
       Observaciones ({{ t.observations.length }})
@@ -31,36 +31,17 @@
   </div>
 } @else if (ticket()) {
 
-  <div class="fcr-detail__tracker" #trackerScroll>
-    @for (label of phaseLabels(); track $index; let last = $last) {
-      <button
-        type="button"
-        class="fcr-detail__phase"
-        [class.fcr-detail__phase--active]="$index === currentPhaseIndex()"
-        [class.fcr-detail__phase--completed]="$index < currentPhaseIndex()"
-        [class.fcr-detail__phase--selected]="$index === selectedPhaseIndex()"
-        [disabled]="$index > currentPhaseIndex()"
-        (click)="seleccionarFase($index)"
-        [appTimelinePopoverTrigger]="ticket()!.timelineResumen?.tramos?.[$index]"
-        [faseIndice]="$index + 1"
-        [faseLabel]="label"
-        [esFaseActual]="$index === currentPhaseIndex()"
-        [responsableRolActual]="ticket()!.timelineResumen!.responsableRolActual"
-      >
-        <div class="fcr-detail__phase-dot">
-          @if ($index < currentPhaseIndex()) {
-            <span>✓</span>
-          } @else {
-            <span>{{ $index + 1 }}</span>
-          }
-        </div>
-        <span class="fcr-detail__phase-label">{{ label }}</span>
-      </button>
-      @if (!last) {
-        <div class="fcr-detail__phase-line" [class.fcr-detail__phase-line--completed]="$index < currentPhaseIndex()"></div>
-      }
-    }
-  </div>
+  <div class="dyn-ticket-layout">
+  <app-ticket-progress
+    class="dyn-ticket-layout__progress"
+    [labels]="phaseLabels()"
+    [currentIndex]="currentPhaseIndex()"
+    [selectedIndex]="selectedPhaseIndex()"
+    [tramos]="ticket()!.timelineResumen?.tramos"
+    [responsableRolActual]="ticket()!.timelineResumen?.responsableRolActual ?? null"
+    (select)="seleccionarFase($event)"
+  />
+  <div class="dyn-ticket-layout__main">
 
   <dynadrill-banner
     [variant]="isMyTurn() ? 'warning' : 'info'"
@@ -1290,6 +1271,8 @@
       </div>
     </section>
   </ng-template>
+  </div>
+  </div>
 } @else {
   <dynadrill-banner variant="critical" message="No se pudo cargar el ticket. Verifique la conexión e inténtelo de nuevo." />
 }

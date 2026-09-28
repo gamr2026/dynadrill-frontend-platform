@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -10,7 +11,6 @@ import {
   DynadrillIconButtonComponent,
   DynadrillKpiRowComponent,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
   DynadrillTabsComponent,
   DynadrillTagComponent,
   type DynadrillKpiRowItem,
@@ -33,6 +33,9 @@ import { SuborderReviewDialog, SuborderReviewDialogData } from '../../../../main
 import { SuborderDetailDialog, SuborderDetailDialogData } from '../../../../maintenance/components/suborder-detail-dialog';
 import { DocumentoOperativoService } from '../../../../facturacion/services/pedido.service';
 import { TicketDocumentosDialog, TicketDocumentosDialogData } from '../../components/ticket-documentos-dialog';
+import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
+import { PageHeader } from '../../../../../shared/components/page-header/page-header';
+import { RecordAction, RecordCard } from '../../../../../shared/components/record-card/record-card';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
 
@@ -63,7 +66,9 @@ const STEP_FILTERS = Object.entries(PUMPING_STEP_LABELS).map(
   selector: 'app-ticket-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    DynadrillScreenHeaderComponent,
+    NgTemplateOutlet,
+    PageHeader,
+    RecordCard,
     DynadrillKpiRowComponent,
     DynadrillDataTableComponent,
     DynadrillTabsComponent,
@@ -92,6 +97,9 @@ export class TicketListPage {
   protected readonly esAdmin = computed(() => this.roleName() === 'Jefe de Base' || this.roleName() === 'Superadmin');
   protected readonly isSupervisor = computed(() => this.roleName() === 'Supervisor' || this.roleName() === 'Supervisor Pumping');
   protected readonly isOperador = computed(() => this.roleName() === 'Operador');
+
+  /** Móvil: tarjetas (M · Pumping · Pedidos en Figma) en vez de la tabla. */
+  protected readonly isMobile = injectNarrowViewport();
 
   protected readonly loading = signal(true);
   protected readonly tickets = signal<PumpingTicket[]>([]);
@@ -194,6 +202,8 @@ export class TicketListPage {
             tone: MACRO_ESTADO_TONE[t.timelineResumen?.macroEstadoActual ?? 'pendiente'],
           },
           step: t.currentStep,
+          serviceTypeLabel: PUMPING_SERVICE_TYPE_LABELS[t.serviceType],
+          actions: this.inProcessActions(t.id, t.currentStep),
           isMaintenanceStep: isMaintenanceRelevant,
           hasMaintenanceOrders: isMaintenanceRelevant && orders.length > 0,
           maintenanceSubOrders: isMaintenanceRelevant
@@ -233,6 +243,8 @@ export class TicketListPage {
       statusBadge: { text: 'Finalizado', tone: MACRO_ESTADO_TONE[t.timelineResumen?.macroEstadoActual ?? 'aprobado'] },
       step: 'aprobado',
       pedidoId: t.pedidoId,
+      serviceTypeLabel: PUMPING_SERVICE_TYPE_LABELS[t.serviceType],
+      actions: [{ icon: 'eye', label: 'Ver documentos', primary: true, run: () => this.verDocumentos({ id: t.id, code: t.code, pedidoId: t.pedidoId }) }] as RecordAction[],
     })),
   );
 
@@ -380,6 +392,28 @@ export class TicketListPage {
       if (sub) return sub;
     }
     return undefined;
+  }
+
+  /**
+   * Acciones por fila según rol y paso — una sola lista para la tabla de
+   * escritorio y la tarjeta móvil. Solo si el rol puede ver ese paso.
+   */
+  private inProcessActions(id: number, step: PumpingStep): RecordAction[] {
+    const row = { id, step };
+    if (!this.canViewDetail(row)) return [];
+    if (this.isSupervisor() && step === 'asignacion') {
+      return [
+        { icon: 'user-add', label: 'Asignar', run: () => this.viewDetailMode(row, 'asignar') },
+        { icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetailMode(row, 'resumen') },
+      ];
+    }
+    if (this.isSupervisor() && step === 'revision_reportes_salida') {
+      return [{ icon: 'file-search', label: 'Revisar reportes de salida', run: () => this.viewDetail(row) }];
+    }
+    if (this.isSupervisor() && step === 'revision_reportes_llegada') {
+      return [{ icon: 'file-search', label: 'Revisar reportes de llegada', run: () => this.viewDetail(row) }];
+    }
+    return [{ icon: 'eye', label: 'Ver detalle', run: () => this.viewDetail(row) }];
   }
 
   protected viewDetail(row: Record<string, unknown>): void {

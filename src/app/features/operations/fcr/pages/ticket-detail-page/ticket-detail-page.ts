@@ -1,14 +1,11 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
-  afterRenderEffect,
   computed,
   effect,
   inject,
   signal,
   untracked,
-  viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NgTemplateOutlet, formatDate } from '@angular/common';
@@ -109,8 +106,9 @@ import {
   descargarCsv,
   parseCsvFile,
   normalizeFechaCsv,
-  TimelinePopoverTriggerDirective,
 } from '../../../../../shared/index';
+import { TicketProgress } from '../../../shared/ticket-progress/ticket-progress';
+import { useDetailChrome } from '../../../../../layout/page-chrome.service';
 
 /** RN de negocio (fcr-adjuntos-reales): el backend es la fuente de verdad, esto es solo UX para no esperar el round-trip. */
 const MAX_UPLOAD_SIZE_BYTES = 2 * 1024 * 1024;
@@ -224,7 +222,7 @@ const PHASE_KEYS_SERVICIO: FcrPhase[] = [
     DynadrillUploadZoneComponent,
     DynadrillApprovalActionsComponent,
     TicketQhseBanner,
-    TimelinePopoverTriggerDirective,
+    TicketProgress,
   ],
   templateUrl: './ticket-detail-page.html',
   styleUrl: './ticket-detail-page.scss',
@@ -302,11 +300,6 @@ export class FcrTicketDetailPage {
     }
     return rows;
   });
-
-  // El tracker hace scroll horizontal en mobile (ver .scss) — sin esto, en
-  // fases avanzadas la fase activa queda fuera de vista y el usuario tiene
-  // que descubrir por su cuenta que hay que deslizar para encontrarla.
-  private readonly trackerScrollEl = viewChild<ElementRef<HTMLElement>>('trackerScroll');
 
   /** `null` = sin selección manual → se muestra el detalle de la fase actual. Clic en una fase ya alcanzada la selecciona. */
   private readonly manualPhaseIndex = signal<number | null>(null);
@@ -1817,6 +1810,8 @@ export class FcrTicketDetailPage {
   // ══════════════════════════════════════════════
 
   constructor() {
+    // Móvil: barra "← FCR-XXXX" (Nav/TopAppBar Type=Detail) en vez de hamburguesa + logo.
+    useDetailChrome(() => this.ticket()?.code ?? 'Ticket', '/modulos/operativo/fcr');
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.fcrService.getTicket(id).subscribe({
       next: t => {
@@ -1831,13 +1826,6 @@ export class FcrTicketDetailPage {
         }
       },
       error: () => this.loading.set(false),
-    });
-
-    afterRenderEffect(() => {
-      this.currentPhaseIndex();
-      const container = this.trackerScrollEl()?.nativeElement;
-      const active = container?.querySelector<HTMLElement>('.fcr-detail__phase--active');
-      active?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     });
 
     // Si el ticket avanza de fase, la selección manual vieja del detalle ya no aplica.

@@ -1,4 +1,4 @@
-<dynadrill-screen-header
+<app-page-header
   eyebrow="PUM-01"
   title="Pedidos Pumping"
   subtitle="Dashboard de propuestas y pedidos activos"
@@ -13,20 +13,11 @@
   (activeIndexChange)="onTabChange($event)"
 />
 
-<!-- Template de acciones: muestra botón solo si el rol puede ver ese estado -->
+<!-- Acciones de la fila: la lista ya viene filtrada por rol y paso (ver inProcessActions) -->
 <ng-template #actionsTpl let-row>
   <div class="dyn-actions-row">
-    @if (canViewDetail(row)) {
-      @if (isSupervisor() && row['step'] === 'asignacion') {
-        <dynadrill-icon-button icon="user-add" tooltip="Asignar" (clicked)="viewDetailMode(row, 'asignar')" />
-        <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewDetailMode(row, 'resumen')" />
-      } @else if (isSupervisor() && row['step'] === 'revision_reportes_salida') {
-        <dynadrill-icon-button icon="file-search" tooltip="Revisar reportes de salida" (clicked)="viewDetail(row)" />
-      } @else if (isSupervisor() && row['step'] === 'revision_reportes_llegada') {
-        <dynadrill-icon-button icon="file-search" tooltip="Revisar reportes de llegada" (clicked)="viewDetail(row)" />
-      } @else {
-        <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewDetail(row)" />
-      }
+    @for (action of row['actions']; track action.label) {
+      <dynadrill-icon-button [icon]="action.icon" [tooltip]="action.label" (clicked)="action.run()" />
     }
   </div>
 </ng-template>
@@ -79,7 +70,30 @@
   }
 </ng-template>
 
-@if (isInProcessTab()) {
+@if (isMobile()) {
+  <ul class="ticket-cards" [attr.aria-busy]="loading()">
+    @for (row of isInProcessTab() ? inProcessRows() : approvedRows(); track row.id) {
+      <li>
+        <app-record-card
+          [eyebrow]="row.code"
+          [title]="row.wellName"
+          [subtitle]="row.clientName + ' • ' + row.serviceTypeLabel"
+          [status]="row.statusBadge"
+          [fields]="[{ label: 'Cliente', value: row.clientName }, { label: 'Tipo', value: row.serviceTypeLabel }]"
+          [actions]="row.actions"
+        >
+          @if (isSupervisor() && row.step === 'mantenimiento') {
+            <ng-container [ngTemplateOutlet]="maintenanceExpandTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+          }
+        </app-record-card>
+      </li>
+    } @empty {
+      @if (!loading()) {
+        <li class="ticket-cards__empty">No hay pedidos en esta pestaña.</li>
+      }
+    }
+  </ul>
+} @else if (isInProcessTab()) {
   <div class="table-scroll">
     <dynadrill-data-table
       [columns]="inProcessColumns()"
@@ -94,9 +108,6 @@
     />
   </div>
 } @else {
-  <ng-template #approvedActionsTpl let-row>
-    <dynadrill-icon-button icon="eye" tooltip="Ver documentos generados" (clicked)="verDocumentos(row)" />
-  </ng-template>
   <div class="table-scroll">
     <dynadrill-data-table
       [columns]="approvedColumns"
@@ -105,7 +116,7 @@
       [rowKey]="rowKeyFn"
       [pageSize]="10"
       actionsHeader="Documentos"
-      [actionsTemplate]="approvedActionsTpl"
+      [actionsTemplate]="actionsTpl"
     />
   </div>
 }

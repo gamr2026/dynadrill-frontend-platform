@@ -42,6 +42,12 @@
     }
   }
 
+  // Barra de detalle ("← título") — solo móvil, ver @media abajo.
+  &__back,
+  &__detail-title {
+    display: none;
+  }
+
   &__logout {
     display: inline-flex;
     align-items: center;
@@ -81,6 +87,51 @@
     &__logout-btn,
     &__reportar-btn {
       display: none;
+    }
+
+    // Nav/TopAppBar Type=Detail: el título de la pantalla reemplaza a la
+    // hamburguesa, el logo y la campana.
+    &--detail {
+      gap: 8px;
+      padding: 0 8px;
+
+      .app-header__menu-toggle,
+      .app-header__logo,
+      .app-header__spacer,
+      .app-header__bell {
+        display: none;
+      }
+
+      .app-header__back {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-full, 9999px);
+        color: var(--dynadrill-navy, #131529);
+
+        &:hover {
+          background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
+        }
+
+        &:focus-visible {
+          outline: 2px solid var(--dynadrill-purple, #662e9b);
+          outline-offset: -2px;
+        }
+      }
+
+      .app-header__detail-title {
+        display: block;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        color: var(--dynadrill-navy, #131529);
+        font-size: 18px;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
     }
   }
 }

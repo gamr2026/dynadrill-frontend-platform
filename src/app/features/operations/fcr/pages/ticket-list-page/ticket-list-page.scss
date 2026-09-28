@@ -22,3 +22,24 @@
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+.fcr-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &__empty {
+    padding: 24px 0;
+    color: var(--text-muted, #5c5870);
+    text-align: center;
+  }
+}
+
+@media (max-width: 840px) {
+  :host {
+    padding: 0;
+  }
+}

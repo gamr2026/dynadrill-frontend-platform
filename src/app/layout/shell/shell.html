@@ -1,12 +1,13 @@
-<div class="shell" [class.shell--sidebar-open]="sidebarState.open()">
+<div class="shell" [class.shell--detail]="detail()">
   @if (navigating()) {
     <div class="shell__nav-progress" role="status" aria-label="Cargando…"></div>
   }
   <app-header class="shell__header" />
   <app-sidebar class="shell__sidebar" />
-  <div class="shell__backdrop" (click)="sidebarState.close()"></div>
   <main class="shell__content">
     <router-outlet />
   </main>
   <app-footer class="shell__footer" />
+  <app-bottom-nav class="shell__bottom-nav" />
+  <app-mobile-drawer />
 </div>

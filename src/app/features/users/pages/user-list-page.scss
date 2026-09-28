@@ -3,17 +3,32 @@
   flex-direction: column;
   gap: 16px;
 
-  &__header {
+  &__summary {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    align-items: baseline;
     justify-content: space-between;
-    gap: 12px;
+    color: var(--text-muted, #5c5870);
+    font-size: 12px;
   }
 
-  &__actions {
+  &__count {
+    color: var(--text, #2c2b35);
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  &__cards {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__pager {
+    display: flex;
+    justify-content: center;
     gap: 8px;
   }
 }

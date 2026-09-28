@@ -25,6 +25,8 @@ export interface RevisarSolicitudDialogResult {
  */
 @Component({
   selector: 'app-revisar-solicitud-cambio-items-dialog',
+  /** Pantalla completa en móvil (formulario largo) — ver styles.scss. */
+  host: { class: 'app-dialog-fullscreen-mobile' },
   imports: [DatePipe, DecimalPipe, DynadrillTextComponent, DynadrillTagComponent, DynadrillTextareaComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './revisar-solicitud-cambio-items-dialog.html',

@@ -4,17 +4,17 @@
 
     <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
       <section class="fact-card">
-        <header class="aot-detail__head">
-          <h2>Documento</h2>
-          <div class="aot-detail__head-actions">
-            <dynadrill-tag [label]="a.estado === 'firmada' ? 'Firmada' : 'Generada'" [variant]="a.estado === 'firmada' ? 'success' : 'warning'" />
-            <dynadrill-button variant="secondary" size="small" (clicked)="irAlPedido()">Ir al pedido</dynadrill-button>
-            <dynadrill-button variant="secondary" size="small" (clicked)="verPdf()">Ver / Imprimir PDF</dynadrill-button>
-            @if (a.estado !== 'firmada') {
-              <dynadrill-button size="small" (clicked)="marcarFirmada()">Marcar como firmada</dynadrill-button>
-            }
-          </div>
-        </header>
+        <header class="aot-detail__head"><h2>Documento</h2></header>
+        <div class="aot-detail__estado">
+          <dynadrill-tag [label]="a.estado === 'firmada' ? 'Firmada' : 'Generada'" [variant]="a.estado === 'firmada' ? 'success' : 'warning'" />
+        </div>
+        <div class="aot-detail__actions">
+          <button type="button" class="aot-detail__btn aot-detail__btn--outline" (click)="irAlPedido()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 19-7-7 7-7" /><path d="M19 12H5" /></svg>Ir al pedido</button>
+          <button type="button" class="aot-detail__btn aot-detail__btn--outline" (click)="verPdf()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></svg>Ver / Imprimir PDF</button>
+        </div>
+        @if (a.estado !== 'firmada') {
+          <button type="button" class="aot-detail__btn aot-detail__btn--primary" (click)="marcarFirmada()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></svg>Marcar como firmada</button>
+        }
         <dl class="aot-detail__defs">
           <div><dt>Nº OT</dt><dd>{{ a.numeroOt }}</dd></div>
           <div><dt>Nº OPR</dt><dd>{{ a.numeroOpr }}</dd></div>
@@ -30,16 +30,27 @@
         </dl>
       </section>
 
-      <section class="fact-card">
-        <dynadrill-banner
-          variant="info"
-          message="Con la OT firmada, el valor real del pedido se registra en AS2 y el ticket pasa a Control de Costos / SRI — pasos fuera del alcance del aplicativo."
-        />
-      </section>
+      <dynadrill-banner
+        variant="info"
+        message="Con la OT firmada, el valor real del pedido se registra en AS2 y el ticket pasa a Control de Costos / SRI — pasos fuera del alcance del aplicativo."
+      />
 
       <section class="fact-card">
         <header class="aot-detail__head"><h2>Detalle ({{ a.detalle.length }})</h2></header>
-        <div class="table-scroll">
+        <ul class="aot-detail__lines">
+          @for (it of a.detalle; track $index) {
+            <li class="aot-detail__line">
+              <div class="aot-detail__line-top">
+                <span class="aot-detail__line-code">{{ it.codigo }}</span>
+                <span class="aot-detail__line-total">$ {{ it.total | number: '1.2-2' }}</span>
+              </div>
+              <p class="aot-detail__line-name">{{ it.servicioRequerido }}</p>
+              <p class="aot-detail__line-meta">{{ it.unidad }} · Tarifa ${{ it.tarifaUnitaria | number: '1.2-2' }} · Cant. {{ it.cantidad }}</p>
+            </li>
+          }
+          <li class="aot-detail__row"><span>Total</span><strong>$ {{ total() | number: '1.2-2' }}</strong></li>
+        </ul>
+        <div class="table-scroll aot-detail__table-wrap">
           <table class="aot-detail__table">
             <thead><tr><th>Código</th><th>Servicio requerido</th><th>Unidad</th><th class="num">Tarifa</th><th class="num">Cantidad</th><th class="num">Total</th></tr></thead>
             <tbody>

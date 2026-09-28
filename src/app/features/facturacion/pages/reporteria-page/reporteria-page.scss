@@ -6,7 +6,7 @@
   .fact-card { @include f.card; }
 
   // Móvil (Figma): las pestañas y su contenido van directo sobre el fondo, sin marco de card.
-  &__panel {
+  .fact-card.reporteria-page__panel {
     @media (max-width: 840px) {
       padding: 0;
       border: 0;

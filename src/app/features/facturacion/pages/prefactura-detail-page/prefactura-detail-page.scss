@@ -77,29 +77,33 @@
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 7px;
 
     div {
       display: flex;
+      align-items: center;
       justify-content: space-between;
       gap: 24px;
-      font-size: 13.5px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border, #e5e4ea);
+      font-size: 14px;
+      line-height: 1.45;
       color: var(--text-muted, #5c5870);
     }
 
     dt,
     dd { margin: 0; }
-    dd { font-variant-numeric: tabular-nums; }
+    dd {
+      font-weight: 600;
+      color: var(--text, #2c2b35);
+      font-variant-numeric: tabular-nums;
+    }
   }
 
   &__totals-sum {
-    padding-top: 7px;
-    border-top: 1px solid #ecebf1;
-    color: var(--text, #2c2b35) !important;
-    font-weight: 600;
+    color: var(--text-muted, #5c5870);
   }
 
-  &__totals-neg dd { color: var(--error, #ff4d4f); }
+  &__totals-neg dd { color: var(--text, #2c2b35); }
 
   &__defs { @include f.defs; }
 
@@ -121,6 +125,107 @@
 
     input {
       margin-top: 2px;
+    }
+  }
+}
+
+// Botones (Figma "Button": mín. 48px, radio 12) y bloques de "Enviado al cliente".
+.pf-detail {
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 12px 24px;
+    border: 0;
+    border-radius: var(--radius-md, 12px);
+    background: none;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--dynadrill-purple, #662e9b);
+      outline-offset: 2px;
+    }
+
+    &--outline {
+      flex: 1 1 0;
+      border: 1px solid var(--dynadrill-purple-tint-strong, #e7deef);
+      background: var(--surface, #fff);
+      color: var(--dynadrill-purple, #662e9b);
+
+      &:hover {
+        background: var(--dynadrill-purple-tint, #f6f3f9);
+      }
+
+      @media (min-width: 841px) {
+        flex: 0 0 auto;
+      }
+    }
+
+    &--primary {
+      width: 100%;
+      background: var(--dynadrill-purple, #662e9b);
+      color: var(--dynadrill-white, #fff);
+      box-shadow: 0 4px 6px rgba(19, 21, 41, 0.08);
+
+      &:hover {
+        background: var(--dynadrill-purple-hover, #55267f);
+      }
+    }
+
+    &--text {
+      align-self: flex-start;
+      color: var(--dynadrill-purple, #662e9b);
+
+      &:hover {
+        background: var(--dynadrill-purple-tint, #f6f3f9);
+      }
+    }
+  }
+
+  // Esperando la respuesta del cliente: borde ámbar completo (Figma).
+  .fact-card.pf-detail__pending {
+    border: 2px solid var(--warning, #faad14);
+  }
+
+  &__pack-title {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--text, #2c2b35);
+  }
+
+  &__pack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: var(--radius-md, 12px);
+      background: var(--surface-subtle, #f3f2f7);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.45;
+      color: var(--text, #2c2b35);
+      min-width: 0;
+    }
+
+    span {
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
   }
 }

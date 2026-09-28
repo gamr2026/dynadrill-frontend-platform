@@ -3,7 +3,6 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, injec
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   DynadrillBannerComponent,
-  DynadrillButtonComponent,
   DynadrillDialogService,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
@@ -24,7 +23,6 @@ import { DetailHeaderService } from '../../../../layout/detail-header.service';
     DecimalPipe,
     DynadrillScreenHeaderComponent,
     DynadrillTagComponent,
-    DynadrillButtonComponent,
     DynadrillSpinnerComponent,
     DynadrillBannerComponent,
   ],

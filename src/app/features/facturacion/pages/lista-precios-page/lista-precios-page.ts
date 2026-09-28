@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
-  DynadrillButtonComponent,
   DynadrillDialogService,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
@@ -23,7 +22,6 @@ import { KpiStat, KpiStatTone } from '../../../../shared/components/kpi-stat/kpi
   imports: [
     DynadrillScreenHeaderComponent,
     KpiStat,
-    DynadrillButtonComponent,
     DynadrillTagComponent,
     DynadrillTextComponent,
     DynadrillSpinnerComponent,

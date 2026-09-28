@@ -1,7 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { forkJoin, map } from 'rxjs';
 import {
   DynadrillButtonComponent,
+  DynadrillChipGroupComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
@@ -28,6 +31,7 @@ import { ClienteFormDialog, ClienteFormDialogData } from '../../components/clien
   imports: [
     DynadrillScreenHeaderComponent,
     DynadrillButtonComponent,
+    DynadrillChipGroupComponent,
     DynadrillDataTableComponent,
     DynadrillIconButtonComponent,
     DynadrillSpinnerComponent,
@@ -41,6 +45,14 @@ export class CatalogosVentasPage {
   private readonly catalogosService = inject(CatalogosService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
+
+  /** Móvil (<840px): tarjetas + botón flotante, como Figma "M · Catálogos". En escritorio, tablas. */
+  protected readonly isMobile = toSignal(
+    inject(BreakpointObserver)
+      .observe('(max-width: 840px)')
+      .pipe(map(state => state.matches)),
+    { initialValue: false },
+  );
 
   protected readonly loading = signal(true);
   protected readonly personas = signal<PersonaContacto[]>([]);
@@ -71,6 +83,33 @@ export class CatalogosVentasPage {
       nombre: p.nombre,
       tipoBadge: { text: TIPO_PERSONA_LABELS[p.tipo], tone: 'brand' as const },
       activoBadge: p.activo ? { text: 'Activo', tone: 'success' as const } : { text: 'Inactivo', tone: 'neutral' as const },
+    })),
+  );
+
+  // Móvil: chips por tipo de persona + tarjetas (Figma "M · Catálogos · Personas de contacto").
+  private static readonly TODOS = 'Todos';
+  protected readonly tipoChips = [CatalogosVentasPage.TODOS, ...Object.values(TIPO_PERSONA_LABELS)];
+  protected readonly tipoFiltro = signal<string>(CatalogosVentasPage.TODOS);
+  protected readonly tipoSeleccionado = computed(() => [this.tipoFiltro()]);
+
+  protected onTipoChip(selected: string[]): void {
+    this.tipoFiltro.set(selected[0] ?? CatalogosVentasPage.TODOS);
+  }
+
+  protected readonly personasCards = computed(() =>
+    this.personas()
+      .map(p => ({ id: p.id, nombre: p.nombre, tipo: TIPO_PERSONA_LABELS[p.tipo], activo: p.activo }))
+      .filter(p => this.tipoFiltro() === CatalogosVentasPage.TODOS || p.tipo === this.tipoFiltro()),
+  );
+
+  protected readonly clientesCards = computed(() =>
+    this.clientes().map(c => ({
+      id: c.id,
+      nombreComercial: c.nombreComercial,
+      nombreFiscal: c.nombreFiscal ?? '',
+      tipo: c.tipoIdentificacion.toUpperCase(),
+      identificacion: c.identificacion,
+      activo: c.activo,
     })),
   );
 

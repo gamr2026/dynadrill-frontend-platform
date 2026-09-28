@@ -6,7 +6,7 @@
   />
 
   <div class="lista-precios-page__toolbar">
-    <dynadrill-button (clicked)="nuevaLista()">+ Nueva lista</dynadrill-button>
+    <button type="button" class="lista-precios-page__new" (click)="nuevaLista()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>Nueva lista</button>
   </div>
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
@@ -19,16 +19,19 @@
     @if (listas().length) {
       <div class="lista-precios-page__grid">
         @for (l of listas(); track l.id) {
-          <button type="button" class="lista-precios-page__card" (click)="abrir(l.id)">
+          <button type="button" class="lista-precios-page__card" [attr.aria-label]="'Abrir lista de ' + l.cliente" (click)="abrir(l.id)">
             <div class="lista-precios-page__card-head">
               <strong>{{ l.cliente }}</strong>
               <dynadrill-tag [label]="l.activa ? 'Activa' : 'Inactiva'" [variant]="l.activa ? 'success' : 'neutral'" />
             </div>
-            <dynadrill-text variant="caption">Contrato {{ l.numeroContrato }} · vigente desde {{ l.vigenteDesde }}</dynadrill-text>
-            <dynadrill-text variant="body">{{ l.items.length }} ítem(s)</dynadrill-text>
-            <div class="lista-precios-page__card-tipos">
-              <dynadrill-tag [label]="contarPorTipo(l, 'Servicio') + ' Servicio'" variant="brand" />
-              <dynadrill-tag [label]="contarPorTipo(l, 'Material') + ' Material'" variant="neutral" />
+            <p class="lista-precios-page__card-meta">Contrato {{ l.numeroContrato }} · vigente desde {{ l.vigenteDesde }}</p>
+            <div class="lista-precios-page__card-foot">
+              <strong>{{ l.items.length }} ítems</strong>
+              <span class="lista-precios-page__card-tipos">
+                <dynadrill-tag [label]="contarPorTipo(l, 'Servicio') + ' Servicio'" variant="brand" />
+                <dynadrill-tag [label]="contarPorTipo(l, 'Material') + ' Material'" variant="neutral" />
+              </span>
+              <span class="lista-precios-page__chev" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6" /></svg></span>
             </div>
           </button>
         }

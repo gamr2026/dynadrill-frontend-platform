@@ -1,68 +1,143 @@
+// Propuesta Figma "Auth · Login": tarjeta 960×580 (panel de marca 440 + formulario),
+// fondo surface-muted en desktop; en móvil el formulario ocupa toda la pantalla.
 .login-page {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: 24px;
-  background: var(--dynadrill-navy, #131529);
+  padding: var(--space-xl, 24px);
+  background: var(--surface-muted, #faf9fc);
 
   &__card {
     display: flex;
     width: 100%;
     max-width: 960px;
-    min-height: 600px;
+    min-height: 580px;
     background: var(--surface, #fff);
-    border-radius: var(--radius-md, 6px);
+    border-radius: var(--radius-lg, 16px);
     overflow: hidden;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 8px 24px rgba(19, 21, 41, 0.12);
   }
 
-  &__image {
-    position: relative;
-    flex: 1 1 45%;
-    // 15% en X recorta la esquina inferior derecha de la foto (trae un watermark propio
-    // de la imagen) fuera del encuadre, sin perder el camión/grúas que son el sujeto principal.
-    background: url('/brand/login-bg.jpg') 15% center / cover no-repeat, var(--dynadrill-navy, #131529);
+  &__brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 440px;
+    background: linear-gradient(127deg, var(--dynadrill-navy, #131529) 0%, var(--dynadrill-purple, #662e9b) 71.4%);
+  }
+
+  &__brand-logo {
+    width: 212.5px;
+    height: auto;
+    opacity: 0.9;
+  }
+
+  &__form {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-lg, 16px);
+    padding: 0 56px;
   }
 
   &__header {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    text-align: center;
-    margin-bottom: 8px;
-
-    ::ng-deep .dynadrill-text {
-      text-align: center;
-    }
+    align-items: flex-start;
+    gap: var(--space-lg, 16px);
+    text-align: left;
   }
 
   &__logo {
-    height: 64px;
-    width: auto;
-    margin-bottom: 8px;
+    width: 99px;
+    height: auto;
   }
 
-  &__form {
-    flex: 1 1 55%;
+  &__banner {
+    // Figma: Feedback/Banner Error — icono + texto + borde lateral de 4px.
+    ::ng-deep .ant-alert {
+      border-left: 4px solid var(--error-text, #cf1322);
+      background: var(--error-bg, #ffeaea);
+    }
+
+    ::ng-deep .ant-alert-message {
+      font-weight: 400;
+      color: var(--text, #2c2b35);
+    }
+
+    ::ng-deep .ant-alert-icon {
+      color: var(--error-text, #cf1322);
+    }
+  }
+
+  &__field {
+    ::ng-deep input[nz-input] {
+      min-height: 48px;
+      border-radius: var(--radius-md, 12px) !important;
+    }
+
+    // Estado de error del campo (Figma Input/TextField State=Error): label, borde de 2px.
+    &--error {
+      ::ng-deep .dynadrill-input__label {
+        color: var(--error-text, #cf1322);
+      }
+
+      ::ng-deep input[nz-input] {
+        border: 2px solid var(--error-text, #cf1322) !important;
+      }
+    }
+  }
+
+  &__password {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    gap: 16px;
-    padding: 56px 64px;
+    align-items: flex-end;
+    gap: var(--space-sm, 8px);
+
+    dynadrill-input {
+      align-self: stretch;
+    }
   }
 
-  &__error {
-    color: var(--error, #ff4d4f);
+  &__forgot-link {
+    padding: var(--space-xs, 4px) 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--dynadrill-purple, #662e9b);
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--dynadrill-purple, #662e9b);
+      outline-offset: 2px;
+      border-radius: var(--radius-sm, 8px);
+    }
   }
 
   &__submit {
-    align-self: center;
+    display: block;
+    width: 100%;
+
+    ::ng-deep .ant-btn {
+      width: 100%;
+      min-height: 48px;
+      border-radius: var(--radius-md, 12px);
+      font-weight: 600;
+    }
   }
 
   @media (max-width: 840px) {
     padding: 0;
+    background: var(--surface, #fff);
 
     &__card {
       max-width: 100%;
@@ -71,13 +146,12 @@
       box-shadow: none;
     }
 
-    &__image {
+    &__brand {
       display: none;
     }
 
     &__form {
-      flex: 1 1 100%;
-      padding: 40px 24px;
+      padding: 40px var(--space-xl, 24px);
     }
   }
 }

@@ -1,5 +1,9 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NzDropDownModule } from 'ng-zorro-antd/dropdown';
+import { map } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import {
@@ -8,6 +12,7 @@ import {
   DynadrillDialogService,
   DynadrillNotificationService,
   DynadrillProgressComponent,
+  DynadrillIconComponent,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
   DynadrillTagComponent,
@@ -72,6 +77,8 @@ interface Dato {
     DynadrillSpinnerComponent,
     DynadrillBannerComponent,
     TimelinePopoverTriggerDirective,
+    NzDropDownModule,
+    DynadrillIconComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pedido-detail-page.html',
@@ -127,6 +134,13 @@ export class PedidoDetailPage {
   protected readonly puedeGenerarGuia = computed(() => !!this.avance()?.guiaRemisionAplica && !this.guiaRemision());
 
   /** Solo Facturación, y solo antes de que exista prefactura generada — ver `ESTADOS_RECHAZABLES`. */
+  protected readonly isMobile = toSignal(
+    inject(BreakpointObserver)
+      .observe('(max-width: 840px)')
+      .pipe(map(state => state.matches)),
+    { initialValue: false },
+  );
+
   protected readonly puedeRechazar = computed(() => {
     const p = this.pedido();
     const role = this.auth.currentUser()?.roleName;

@@ -1,0 +1,66 @@
+:host {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--space-xs, 4px);
+  min-width: 152px;
+  padding: var(--space-lg, 16px);
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: var(--radius-lg, 16px);
+  background: var(--surface, #fff);
+  box-shadow: 0 1px 1px rgba(19, 21, 41, 0.05);
+  scroll-snap-align: start;
+  --kpi-color: var(--dynadrill-purple, #662e9b);
+}
+
+:host(.kpi-stat--neutral) {
+  --kpi-color: var(--text, #2c2b35);
+}
+
+:host(.kpi-stat--brand) {
+  border-color: var(--dynadrill-purple-tint-strong, #e7deef);
+  background: var(--dynadrill-purple-tint, #f6f3f9);
+}
+
+:host(.kpi-stat--success) {
+  --kpi-color: var(--success-text, #237804);
+  border-color: var(--success-bg, #e6f7e0);
+  background: var(--success-bg, #e6f7e0);
+}
+
+:host(.kpi-stat--error) {
+  --kpi-color: var(--error-text, #cf1322);
+  border-color: var(--error-bg, #ffeaea);
+  background: var(--error-bg, #ffeaea);
+}
+
+:host(.kpi-stat--info) {
+  --kpi-color: var(--info-text, #0958d9);
+  border-color: var(--info-bg, #e3f2ff);
+  background: var(--info-bg, #e3f2ff);
+}
+
+p {
+  margin: 0;
+}
+
+.kpi-stat__value {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--kpi-color);
+}
+
+.kpi-stat__label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--text, #2c2b35);
+}
+
+.kpi-stat__caption {
+  margin-top: var(--space-sm, 8px);
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-muted, #5c5870);
+}

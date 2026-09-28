@@ -1,0 +1,20 @@
+<div class="filtros">
+  <section class="filtros__group">
+    <h3 class="filtros__label">Línea</h3>
+    <dynadrill-chip-group mode="single" [options]="lineaChips" [selected]="lineaSeleccionada()" (selectedChange)="onLinea($event)" />
+  </section>
+
+  <section class="filtros__group">
+    <dynadrill-select label="Estado" placeholder="Todos los estados" [options]="estadoOptions" [value]="estado()" (valueChange)="estado.set($any($event) || null)" />
+  </section>
+
+  <section class="filtros__group">
+    <h3 class="filtros__label">Origen</h3>
+    <dynadrill-chip-group mode="single" [options]="origenChips" [selected]="origenSeleccionado()" (selectedChange)="onOrigen($event)" />
+  </section>
+
+  <div class="filtros__footer">
+    <dynadrill-button variant="secondary" (clicked)="limpiar()">Limpiar</dynadrill-button>
+    <dynadrill-button (clicked)="aplicar()">Aplicar</dynadrill-button>
+  </div>
+</div>

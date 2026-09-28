@@ -316,11 +316,11 @@ body {
   background: transparent;
 }
 
-// Diálogo "Reportar" como bottom sheet en móvil (Figma "Reportar (bottom sheet)"):
+// Diálogos marcados con [data-bottom-sheet] (Reportar, filtros de Pedidos…) como bottom sheet en móvil (Figma):
 // anclado abajo, ancho completo, esquinas superiores redondeadas. :has() acota el
-// cambio a ese diálogo — el resto de modales conserva su posición centrada.
+// cambio a esos diálogos — el resto de modales conserva su posición centrada.
 @media (max-width: 840px) {
-  .ant-modal:has(app-reportar-dialog) {
+  .ant-modal:has([data-bottom-sheet]) {
     position: fixed;
     top: auto;
     bottom: 0;
@@ -333,6 +333,32 @@ body {
     .ant-modal-content {
       border-radius: 16px 16px 0 0;
       padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+  }
+}
+
+// Fila de <app-kpi-stat>: carrusel horizontal en móvil (tarjetas de 152–260px),
+// grilla de partes iguales desde 700px.
+.kpi-stat-row {
+  display: flex;
+  gap: var(--space-md, 12px);
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+
+  > app-kpi-stat {
+    max-width: 260px;
+  }
+
+  @media (min-width: 700px) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    overflow: visible;
+    padding-bottom: 0;
+
+    > app-kpi-stat {
+      max-width: none;
     }
   }
 }

@@ -1,18 +1,19 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, map } from 'rxjs';
 import {
   DynadrillButtonComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
   DynadrillIconButtonComponent,
-  DynadrillKpiRowComponent,
+  DynadrillIconComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSelectComponent,
   DynadrillSpinnerComponent,
-  type DynadrillKpiRowItem,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import {
@@ -28,6 +29,8 @@ import { MACRO_ESTADO_TONE } from '../../../../shared/index';
 import { DocumentoOperativo, TIPO_DOCUMENTO_OPERATIVO_LABELS } from '../../models/documento-operativo.model';
 import { DocumentoOperativoService, PedidoService } from '../../services/pedido.service';
 import { NuevoPedidoDialog } from '../../components/nuevo-pedido-dialog';
+import { PedidosFiltros, PedidosFiltrosDialog } from '../../components/pedidos-filtros-dialog';
+import { KpiStat, KpiStatTone } from '../../../../shared/components/kpi-stat/kpi-stat';
 import { AppNotificationItem, NotificationsService } from '../../../../core/services/notifications.service';
 import { AuthService } from '../../../../core/services/auth.service';
 
@@ -45,7 +48,8 @@ function diasDesde(desde?: string): number {
   selector: 'app-pedidos-list-page',
   imports: [
     DynadrillScreenHeaderComponent,
-    DynadrillKpiRowComponent,
+    KpiStat,
+    DynadrillIconComponent,
     DynadrillDataTableComponent,
     DynadrillButtonComponent,
     DynadrillIconButtonComponent,
@@ -68,6 +72,14 @@ export class PedidosListPage {
   /** El alta de pedido es solo de Ventas — Facturación ve/edita lo que Ventas registra, pero no lo crea (a pedido del cliente). */
   protected readonly puedeCrearPedido = computed(() => this.auth.currentUser()?.roleName !== 'Facturación');
 
+  /** Móvil (<840px): tarjetas + filtros en bottom sheet, como el shell. En escritorio, tabla + filtros en línea. */
+  protected readonly isMobile = toSignal(
+    inject(BreakpointObserver)
+      .observe('(max-width: 840px)')
+      .pipe(map(state => state.matches)),
+    { initialValue: false },
+  );
+
   protected readonly loading = signal(true);
   protected readonly sincronizando = signal(false);
   protected readonly pedidos = signal<Pedido[]>([]);
@@ -89,6 +101,8 @@ export class PedidosListPage {
     { label: 'Portal', value: 'portal' },
   ];
 
+  protected readonly busqueda = signal('');
+
   protected readonly hayFiltros = computed(() => !!this.filtroLinea() || !!this.filtroEstado() || !!this.filtroOrigen());
 
   protected limpiarFiltros(): void {
@@ -97,20 +111,58 @@ export class PedidosListPage {
     this.filtroOrigen.set(null);
   }
 
-  private readonly pedidosFiltrados = computed(() =>
-    this.pedidos().filter(
-      p =>
-        (!this.filtroLinea() || p.lineaServicio === this.filtroLinea()) &&
-        (!this.filtroEstado() || p.estado === this.filtroEstado()) &&
-        (!this.filtroOrigen() || p.origen === this.filtroOrigen()),
-    ),
-  );
+  /** Chips de filtros activos (móvil) — tocar uno lo quita. */
+  protected readonly filtrosActivos = computed(() => {
+    const chips: { key: 'linea' | 'estado' | 'origen'; label: string }[] = [];
+    const linea = this.filtroLinea();
+    const estado = this.filtroEstado();
+    const origen = this.filtroOrigen();
+    if (linea) chips.push({ key: 'linea', label: `Línea: ${LINEA_SERVICIO_LABELS[linea]}` });
+    if (estado) chips.push({ key: 'estado', label: `Estado: ${ESTADO_PEDIDO_LABELS[estado]}` });
+    if (origen) chips.push({ key: 'origen', label: `Origen: ${origen === 'as2' ? 'AS2' : 'Portal'}` });
+    return chips;
+  });
+
+  protected quitarFiltro(key: 'linea' | 'estado' | 'origen'): void {
+    if (key === 'linea') this.filtroLinea.set(null);
+    else if (key === 'estado') this.filtroEstado.set(null);
+    else this.filtroOrigen.set(null);
+  }
+
+  protected abrirFiltros(): void {
+    const ref = this.dialog.open<PedidosFiltrosDialog, PedidosFiltros>({
+      title: 'Filtros',
+      content: PedidosFiltrosDialog,
+      data: { linea: this.filtroLinea(), estado: this.filtroEstado(), origen: this.filtroOrigen() },
+      size: 'small',
+      footer: false,
+    });
+    ref.afterClose.subscribe((f: PedidosFiltros | undefined) => {
+      if (!f) return;
+      this.filtroLinea.set(f.linea);
+      this.filtroEstado.set(f.estado);
+      this.filtroOrigen.set(f.origen);
+    });
+  }
+
+  private readonly pedidosFiltrados = computed(() => {
+    const q = this.busqueda().trim().toLowerCase();
+    return this.pedidos()
+      .filter(
+        p =>
+          (!this.filtroLinea() || p.lineaServicio === this.filtroLinea()) &&
+          (!this.filtroEstado() || p.estado === this.filtroEstado()) &&
+          (!this.filtroOrigen() || p.origen === this.filtroOrigen()) &&
+          (!q || [p.code, p.cliente, p.campo, p.pozo, LINEA_SERVICIO_LABELS[p.lineaServicio]].some(v => v.toLowerCase().includes(q))),
+      )
+      .sort((a, b) => b.code.localeCompare(a.code, undefined, { numeric: true }));
+  });
 
   protected readonly columns: DynadrillDataTableColumn[] = [
-    { key: 'code', header: 'Pedido', sortable: true, searchable: true },
-    { key: 'cliente', header: 'Cliente', sortable: true, searchable: true },
-    { key: 'linea', header: 'Línea', sortable: true, searchable: true },
-    { key: 'ubicacion', header: 'Campo / Pozo', searchable: true },
+    { key: 'code', header: 'Pedido', sortable: true },
+    { key: 'cliente', header: 'Cliente', sortable: true },
+    { key: 'linea', header: 'Línea', sortable: true },
+    { key: 'ubicacion', header: 'Campo / Pozo' },
     { key: 'origen', header: 'Origen' },
     { key: 'estimado', header: 'Valor estimado' },
     { key: 'diasBadge', header: 'Días desde fin', type: 'badge' },
@@ -136,20 +188,25 @@ export class PedidosListPage {
         estimado: '$' + valorEstimadoPedido(p).toFixed(2),
         diasBadge: { text: dias + ' d', tone: tono },
         estadoBadge: { text: ESTADO_PEDIDO_LABELS[p.estado], tone: estadoTono },
+        // Solo para las tarjetas móviles (la tabla ignora estas claves).
+        dias: dias + ' d',
+        diasTono: tono,
+        estadoTexto: ESTADO_PEDIDO_LABELS[p.estado],
+        estadoTono,
       };
     }),
   );
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
-  protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
+  protected readonly kpis = computed<{ value: number; label: string; caption: string; tone: KpiStatTone }[]>(() => {
     const ps = this.pedidos();
     const enProceso = ps.filter(p => !ESTADOS_FUERA_DE_ALCANCE.includes(p.estado));
     return [
-      { label: 'Pedidos', value: ps.length, tone: 'neutral' },
-      { label: 'En proceso', value: enProceso.length, tone: 'brand' },
-      { label: 'Firmados / con OT', value: ps.filter(p => p.estado === 'ticket_firmado' || p.estado === 'aot_generada').length, tone: 'success' },
-      { label: 'Origen AS2', value: ps.filter(p => p.origen === 'as2').length, tone: 'neutral' },
+      { value: ps.length, label: 'Pedidos', caption: 'Pedidos registrados', tone: 'neutral' },
+      { value: enProceso.length, label: 'En proceso', caption: 'Requieren seguimiento', tone: 'brand' },
+      { value: ps.filter(p => p.estado === 'ticket_firmado' || p.estado === 'aot_generada').length, label: 'Firmados / con OT', caption: 'Listos para continuar', tone: 'success' },
+      { value: ps.filter(p => p.origen === 'as2').length, label: 'Origen AS2', caption: 'Sincronizados desde AS2', tone: 'neutral' },
     ];
   });
 

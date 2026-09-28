@@ -20,6 +20,7 @@ import { DerrameAlertDialog } from '../../derrames/components/derrame-alert-dial
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './reportar-dialog.html',
   styleUrl: './reportar-dialog.scss',
+  host: { 'data-bottom-sheet': '' },
 })
 export class ReportarDialog {
   private readonly dialogService = inject(DynadrillDialogService);

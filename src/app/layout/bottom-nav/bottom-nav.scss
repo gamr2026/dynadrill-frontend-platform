@@ -14,7 +14,9 @@
     align-items: center;
     justify-content: center;
     gap: var(--space-xs, 4px);
-    width: 76px;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 96px;
     height: 64px;
     padding: 0;
     border: 0;

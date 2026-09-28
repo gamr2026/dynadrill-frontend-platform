@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
+  DynadrillAvatarComponent,
   DynadrillButtonComponent,
   DynadrillDialogService,
   DynadrillIconComponent,
@@ -155,7 +156,7 @@ const ADMINISTRACION_ITEM: DynadrillMenuItem = {
 
 @Component({
   selector: 'app-sidebar',
-  imports: [DynadrillMenuComponent, DynadrillButtonComponent, DynadrillIconComponent, DynadrillSpinnerComponent],
+  imports: [DynadrillAvatarComponent, DynadrillMenuComponent, DynadrillButtonComponent, DynadrillIconComponent, DynadrillSpinnerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.scss',
@@ -165,6 +166,7 @@ export class Sidebar {
   private readonly router = inject(Router);
   private readonly dialogService = inject(DynadrillDialogService);
   protected readonly sidebarState = inject(SidebarStateService);
+  protected readonly user = this.auth.currentUser;
 
   /** Solo visible en mobile (ver sidebar.scss) — en desktop "Reportar" vive en el header. */
   protected openReportar(): void {

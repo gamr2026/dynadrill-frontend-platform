@@ -15,7 +15,8 @@
   // viven en el header.
   &__close,
   &__logout,
-  &__reportar {
+  &__reportar,
+  &__profile {
     display: none;
   }
 
@@ -61,6 +62,34 @@
       &:hover {
         background: rgba(255, 255, 255, 0.08);
       }
+    }
+
+    // Figma "Drawer Superadmin": perfil (avatar + nombre + rol) arriba del menú.
+    &__profile {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md, 12px);
+      padding: var(--space-sm, 8px) var(--space-md, 12px) var(--space-md, 12px);
+    }
+
+    &__profile-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    &__profile-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--dynadrill-white, #fff);
+    }
+
+    &__profile-role {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
     }
 
     // Empuja "Cerrar sesión" al fondo del panel, sin importar cuántos

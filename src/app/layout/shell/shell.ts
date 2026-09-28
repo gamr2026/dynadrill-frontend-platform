@@ -5,12 +5,13 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Header } from '../header/header';
 import { Sidebar } from '../sidebar/sidebar';
 import { Footer } from '../footer/footer';
+import { BottomNav } from '../bottom-nav/bottom-nav';
 import { SidebarStateService } from '../sidebar-state.service';
 import { QhseAvisosFeederService } from '../../core/services/qhse-avisos-feeder.service';
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, Header, Sidebar, Footer],
+  imports: [RouterOutlet, Header, Sidebar, Footer, BottomNav],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './shell.html',
   styleUrl: './shell.scss',

@@ -1,49 +1,79 @@
 <dynadrill-screen-header eyebrow="INICIO" title="Dashboard" />
 
-<dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
-<div class="dashboard-page__kpi-row">
-  @for (kpi of kpis(); track kpi.label) {
-    <div class="dashboard-page__kpi dashboard-page__kpi--{{ kpi.tone }}">
-      <div class="dashboard-page__kpi-icon" aria-hidden="true">
-        <dynadrill-icon [name]="kpi.icon" [size]="20" />
-      </div>
-      <p class="dashboard-page__kpi-value">{{ kpi.value }}</p>
-      <p class="dashboard-page__kpi-label">{{ kpi.label }}</p>
+@if (loading()) {
+  <div class="dashboard-page__loading" role="status" aria-live="polite">
+    <div class="dashboard-page__loading-icon" aria-hidden="true">
+      <dynadrill-spinner size="lg" />
+    </div>
+    <p class="dashboard-page__loading-title">Cargando…</p>
+    <p class="dashboard-page__loading-text">Obteniendo indicadores de tus módulos.</p>
+  </div>
+} @else {
+  @if (kpis().length > 0) {
+    <div class="dashboard-page__kpi-row" role="list">
+      @for (kpi of kpis(); track kpi.label) {
+        <div class="dashboard-page__kpi dashboard-page__kpi--{{ kpi.tone }}" role="listitem">
+          <p class="dashboard-page__kpi-value">{{ kpi.value }}</p>
+          <p class="dashboard-page__kpi-label">{{ kpi.label }}</p>
+          <p class="dashboard-page__kpi-caption">{{ kpi.caption }}</p>
+        </div>
+      }
     </div>
   }
-</div>
 
-<div class="dashboard-page__module-grid">
-  @for (card of moduleCards(); track card.title) {
-    <dynadrill-section
-      class="dashboard-page__module-card"
-      [attr.data-accent]="card.accent"
-      [title]="card.title"
-      [icon]="card.icon"
-      [viewAllLink]="card.viewAllLink"
-    >
-      @if (card.summaryLine) {
-        <p class="dashboard-page__module-line dashboard-page__module-line--total">{{ card.summaryLine }}</p>
-      }
-      <div class="dashboard-page__chart-row">
-        <div echarts class="dashboard-page__donut" [options]="card.pieOptions" [autoResize]="true" aria-hidden="true"></div>
-        <ul class="dashboard-page__legend">
-          @for (segment of card.segments; track segment.label) {
-            <li class="dashboard-page__legend-item">
-              @if (segment.link) {
-                <a class="dashboard-page__legend-link" [routerLink]="segment.link" [queryParams]="segment.queryParams">
-                  <span class="dashboard-page__legend-dot" [style.background]="dotColor(segment.tone)" aria-hidden="true"></span>
-                  <span class="dashboard-page__legend-text">{{ segment.value }} {{ segment.label }}</span>
-                </a>
-              } @else {
-                <span class="dashboard-page__legend-dot" [style.background]="dotColor(segment.tone)" aria-hidden="true"></span>
-                <span class="dashboard-page__legend-text">{{ segment.value }} {{ segment.label }}</span>
-              }
-            </li>
-          }
-        </ul>
-      </div>
-    </dynadrill-section>
+  @if (showRoleNotice()) {
+    <div class="dashboard-page__notice">
+      <svg class="dashboard-page__notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 16v-4" />
+        <path d="M12 8h.01" />
+      </svg>
+      <p>
+        @if (isEmpty()) {
+          Tu rol no tiene indicadores asignados en el dashboard.
+        } @else {
+          Cada rol ve solo los indicadores y tarjetas de su módulo. Superadmin ve todos.
+        }
+      </p>
+    </div>
   }
-</div>
-</dynadrill-spinner>
+
+  <div class="dashboard-page__module-grid">
+    @for (card of moduleCards(); track card.title) {
+      <section class="dashboard-page__module-card" [attr.data-accent]="card.accent" [attr.aria-label]="card.title">
+        <header class="dashboard-page__module-header">
+          <span class="dashboard-page__module-icon" aria-hidden="true">
+            <dynadrill-icon [name]="card.icon" [size]="20" />
+          </span>
+          <h2 class="dashboard-page__module-title">{{ card.title }}</h2>
+          <a class="dashboard-page__module-link" [routerLink]="card.viewAllLink" [attr.aria-label]="'Ver todo en ' + card.title">Ver todo</a>
+        </header>
+
+        @if (card.summaryLine) {
+          <p class="dashboard-page__module-line">{{ card.summaryLine }}</p>
+        }
+
+        <div class="dashboard-page__chart-row">
+          <div echarts class="dashboard-page__donut" [options]="card.pieOptions" [autoResize]="true" aria-hidden="true"></div>
+          <ul class="dashboard-page__legend">
+            @for (segment of card.segments; track segment.label) {
+              <li class="dashboard-page__legend-item">
+                @if (segment.link) {
+                  <a class="dashboard-page__legend-link" [routerLink]="segment.link" [queryParams]="segment.queryParams">
+                    <span class="dashboard-page__legend-dot" [style.background]="dotColor(segment.tone)" aria-hidden="true"></span>
+                    <span class="dashboard-page__legend-text">{{ segment.label }}</span>
+                    <span class="dashboard-page__legend-value">{{ segment.value }}</span>
+                  </a>
+                } @else {
+                  <span class="dashboard-page__legend-dot" [style.background]="dotColor(segment.tone)" aria-hidden="true"></span>
+                  <span class="dashboard-page__legend-text">{{ segment.label }}</span>
+                  <span class="dashboard-page__legend-value">{{ segment.value }}</span>
+                }
+              </li>
+            }
+          </ul>
+        </div>
+      </section>
+    }
+  </div>
+}

@@ -24,7 +24,10 @@
   // Escritorio (Figma "D · Prefacturas · Detalle"): 2 columnas — Liquidación
   // y Guía de remisión forman la barra lateral (.pf-detail__aside-item), el
   // resto fluye en la columna principal. Mismo truco que pedido-detail-page:
-  // todo hijo va explícito a columna 1 por defecto, solo aside-item la pisa.
+  // todo hijo que NO sea aside-item va explícito a columna 1 — con `:not()`
+  // en vez de un segundo selector `.aside-item{grid-column:2}` porque
+  // Angular reescribe `> *` a `> [_ngcontent-xxx]` para el scoping de
+  // estilos, lo que le suma especificidad y le gana al override.
   &__grid {
     display: flex;
     flex-direction: column;
@@ -36,7 +39,7 @@
       align-items: start;
       gap: 16px;
 
-      > * {
+      > *:not(.pf-detail__aside-item) {
         grid-column: 1;
       }
     }

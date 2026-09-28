@@ -50,12 +50,15 @@
   // forman una barra lateral a la derecha (marcadas con .pedido-detail__aside-item),
   // el resto de secciones fluye en la columna principal.
   //
-  // Todos los hijos van explícitamente a la columna 1 por defecto (regla de
-  // abajo) y solo .pedido-detail__aside-item la pisa a columna 2 — sin esto,
-  // `grid-auto-flow: dense` sin columna fija en los ítems "auto" los va
-  // colando en cualquier hueco libre de la columna 2 en cuanto la 1 se
+  // Todo hijo que NO sea aside-item va explícito a columna 1 (regla de abajo)
+  // — sin esto, `grid-auto-flow: dense` sin columna fija en los ítems "auto"
+  // los va colando en cualquier hueco libre de la columna 2 en cuanto la 1 se
   // adelanta de fila (ej. Cliente/Servicio terminando en la barra lateral en
-  // vez de la columna principal, bug reportado).
+  // vez de la columna principal, bug reportado). Se usa `:not()` en vez de
+  // pisar con un segundo selector `.aside-item{grid-column:2}` porque
+  // Angular reescribe `> *` a `> [_ngcontent-xxx]` para el scoping de
+  // estilos — dejar de ser un selector universal le suma especificidad y
+  // termina ganándole al override por orden de aparición.
   &__grid {
     display: flex;
     flex-direction: column;
@@ -67,7 +70,7 @@
       align-items: start;
       gap: 16px;
 
-      > * {
+      > *:not(.pedido-detail__aside-item) {
         grid-column: 1;
       }
     }

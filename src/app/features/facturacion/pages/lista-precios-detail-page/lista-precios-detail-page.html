@@ -20,7 +20,7 @@
       <section class="fact-card">
         <header class="lp-detail__head">
           <h2>Ítems ({{ l.items.length }})</h2>
-          <div class="lp-detail__head-actions">
+          <div class="lp-detail__head-actions lp-detail__desktop-only">
             <dynadrill-button variant="secondary" size="small" [disabled]="!l.items.length" (clicked)="descargarExcel()">Descargar Excel</dynadrill-button>
           </div>
         </header>
@@ -35,18 +35,34 @@
             placeholder="Buscar código o descripción…"
             aria-label="Buscar código o descripción"
             [value]="busqueda()"
-            (input)="busqueda.set($any($event.target).value)"
+            (input)="onBusqueda($any($event.target).value)"
           />
         </label>
         <dynadrill-chip-group mode="single" [options]="tipoChips" [selected]="tipoSeleccionado()" (selectedChange)="onTipoChip($event)" />
 
-        <div class="table-scroll">
+        <!-- Móvil (Figma "M · Listas de precios · Detalle"): cada ítem como fila de lista; la tabla queda para escritorio. -->
+        <ul class="lp-detail__items">
+          @for (it of itemsPagina(); track $index) {
+            <li class="lp-detail__item">
+              <div class="lp-detail__item-top">
+                <span class="lp-detail__item-code">{{ it.codigo }}</span>
+                <span class="lp-detail__item-price">$ {{ it.precio | number: '1.2-2' }}</span>
+              </div>
+              <p class="lp-detail__item-name">{{ it.descripcion }}</p>
+              <p class="lp-detail__item-meta">{{ it.unidad }} · {{ it.tipo }}</p>
+            </li>
+          } @empty {
+            <li class="lp-detail__item-meta">{{ l.items.length ? 'Ningún ítem coincide con la búsqueda.' : 'Sin ítems.' }}</li>
+          }
+        </ul>
+
+        <div class="table-scroll lp-detail__table-wrap">
           <table class="lp-detail__table">
             <thead>
               <tr><th>Código</th><th>Descripción</th><th>Unidad</th><th class="num">Precio</th><th>Tipo</th></tr>
             </thead>
             <tbody>
-              @for (it of items(); track $index) {
+              @for (it of itemsPagina(); track $index) {
                 <tr>
                   <td>{{ it.codigo }}</td>
                   <td>{{ it.descripcion }}</td>
@@ -71,6 +87,33 @@
             }
           </table>
         </div>
+
+        @if (items().length > 0) {
+          <nav class="lp-detail__pager" aria-label="Paginación de ítems">
+            <p class="lp-detail__pager-info" aria-live="polite">
+              {{ rangoTexto() }}
+              <span class="lp-detail__pager-page">Página {{ paginaActual() }} de {{ totalPaginas() }}</span>
+            </p>
+            <div class="lp-detail__pager-actions">
+              <button type="button" class="lp-detail__pager-btn" aria-label="Página anterior" [disabled]="paginaActual() === 1" (click)="irAPagina(-1)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 18-6-6 6-6" /></svg>
+              </button>
+              <button type="button" class="lp-detail__pager-btn" aria-label="Página siguiente" [disabled]="paginaActual() === totalPaginas()" (click)="irAPagina(1)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6" /></svg>
+              </button>
+            </div>
+          </nav>
+        }
+
+        @if (l.items.length) {
+          <p class="lp-detail__totals lp-detail__mobile-only">
+            Totales: {{ totalServicio() }} Servicio ($ {{ sumaServicio() | number: '1.2-2' }}) · {{ totalMaterial() }} Material ($ {{ sumaMaterial() | number: '1.2-2' }})
+          </p>
+        }
+        <button type="button" class="lp-detail__download lp-detail__mobile-only" [disabled]="!l.items.length" (click)="descargarExcel()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg>
+          Descargar Excel
+        </button>
       </section>
     </dynadrill-spinner>
   } @else if (!loading()) {

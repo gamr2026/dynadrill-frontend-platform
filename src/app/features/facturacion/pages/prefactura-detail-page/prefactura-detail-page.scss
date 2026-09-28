@@ -125,6 +125,71 @@
   }
 }
 
+// Ítems: tarjetas en móvil, tabla en escritorio.
+.pf-detail {
+  &__items {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    @media (min-width: 841px) {
+      display: none;
+    }
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 0;
+    border-top: 1px solid var(--border, #e5e4ea);
+  }
+
+  &__item-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  &__item-code {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dynadrill-purple, #662e9b);
+  }
+
+  &__item-total {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text, #2c2b35);
+  }
+
+  &__item-name {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--text, #2c2b35);
+  }
+
+  &__item-meta {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__table-wrap {
+    @media (max-width: 840px) {
+      display: none;
+    }
+  }
+}
+
 .table-scroll {
   overflow-x: auto;
 }

@@ -88,6 +88,18 @@ export class PrefacturaDetailPage {
   protected readonly aot = signal<Aot | null>(null);
   protected readonly avance = signal<AvanceDocumental | null>(null);
 
+  /** Etiqueta y tono del chip de estado (Figma "Chip/Status"). */
+  protected readonly estadoChip = computed<{ label: string; tone: 'neutral' | 'info' | 'brand' | 'warning' | 'success' | 'error' }>(() => {
+    switch (this.prefactura()?.estado) {
+      case 'en_revision': return { label: 'En revisión', tone: 'info' };
+      case 'generada': return { label: 'Generada', tone: 'brand' };
+      case 'enviada_para_firmas': return { label: 'Enviada para firmas', tone: 'warning' };
+      case 'firmada': return { label: 'Firmada', tone: 'success' };
+      case 'rechazada': return { label: 'Rechazada', tone: 'error' };
+      default: return { label: 'Borrador', tone: 'neutral' };
+    }
+  });
+
   protected readonly puedeGenerarAot = computed(() => this.prefactura()?.estado === 'firmada' && !this.aot());
 
   /** FACT #9 — igual criterio de labels que pedido-detail-page.ts. */

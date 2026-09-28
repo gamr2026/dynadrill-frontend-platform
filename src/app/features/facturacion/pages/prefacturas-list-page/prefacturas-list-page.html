@@ -9,25 +9,58 @@
         }
       </div>
 
-      <label class="prefacturas-list-page__search">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="11" cy="11" r="7" />
-          <path d="m20 20-3.5-3.5" />
-        </svg>
-        <input
-          type="search"
-          placeholder="Buscar prefactura, cliente o pedido…"
-          aria-label="Buscar prefactura, cliente o pedido"
-          [value]="busqueda()"
-          (input)="busqueda.set($any($event.target).value)"
-        />
-      </label>
+      <div class="prefacturas-list-page__filters">
+        <label class="prefacturas-list-page__search">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
+          <input
+            type="search"
+            placeholder="Buscar prefactura, cliente o pedido…"
+            aria-label="Buscar prefactura, cliente o pedido"
+            [value]="busqueda()"
+            (input)="busqueda.set($any($event.target).value)"
+          />
+        </label>
+
+        @if (isMobile()) {
+          <button type="button" class="prefacturas-list-page__filter-btn" (click)="abrirFiltros()">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3Z" />
+            </svg>
+            Filtros
+          </button>
+        }
+      </div>
+
+      @if (isMobile() && hayFiltros()) {
+        <div class="prefacturas-list-page__chips">
+          @for (chip of filtrosActivos(); track chip.key) {
+            <button type="button" class="prefacturas-list-page__chip" [attr.aria-label]="'Quitar filtro ' + chip.label" (click)="quitarFiltro()">
+              <dynadrill-icon name="check" [size]="14" />
+              {{ chip.label }}
+            </button>
+          }
+          <button type="button" class="prefacturas-list-page__clear" (click)="limpiarFiltros()">Limpiar filtros</button>
+        </div>
+      }
 
       @if (isMobile()) {
         <div class="prefacturas-list-page__count">
           <strong>{{ rows().length }} prefacturas</strong>
           <span>Ordenadas por generación</span>
         </div>
+
+        @if (rows().length === 0) {
+          <div class="prefacturas-list-page__empty" role="status">
+            <span class="prefacturas-list-page__empty-icon" aria-hidden="true">
+              <dynadrill-icon name="search" [size]="28" />
+            </span>
+            <p class="prefacturas-list-page__empty-title">Sin resultados</p>
+            <p class="prefacturas-list-page__empty-text">No hay prefacturas que coincidan con los filtros aplicados.</p>
+          </div>
+        }
 
         <ul class="prefacturas-list-page__cards">
           @for (row of rows(); track row.id) {

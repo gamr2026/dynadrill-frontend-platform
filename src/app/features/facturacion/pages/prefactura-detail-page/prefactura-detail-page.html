@@ -23,10 +23,27 @@
       <section class="fact-card">
         <header class="pf-detail__head">
           <h2>Ítems</h2>
-          <dynadrill-tag [label]="pf.estado.replace('_', ' ')" variant="warning" />
+          <dynadrill-tag [label]="estadoChip().label" [variant]="estadoChip().tone" />
         </header>
 
-        <div class="table-scroll">
+        <!-- Móvil (Figma "M · Prefacturas · Detalle"): cada ítem como tarjeta; la tabla queda para escritorio. -->
+        <ul class="pf-detail__items">
+          @for (it of pf.items; track it.id) {
+            <li class="pf-detail__item">
+              <div class="pf-detail__item-top">
+                <span class="pf-detail__item-code">{{ it.codigo }}</span>
+                <span class="pf-detail__item-total">${{ it.precioTotal | number: '1.2-2' }}</span>
+              </div>
+              <p class="pf-detail__item-name">{{ it.descripcion }}</p>
+              <p class="pf-detail__item-meta">{{ it.cantidad }} × ${{ it.precioUnitario | number: '1.2-2' }} · Serie {{ it.serie || '—' }}</p>
+              <p class="pf-detail__item-meta">{{ it.tipo }} · Fuente: {{ it.fuente }}</p>
+            </li>
+          } @empty {
+            <li class="pf-detail__item-meta">La prefactura no tiene líneas — revisa el Reporte de Herramientas y la Lista de Precios del cliente.</li>
+          }
+        </ul>
+
+        <div class="table-scroll pf-detail__table-wrap">
           <table class="pf-detail__table">
             <thead>
               <tr><th>Código</th><th>Descripción</th><th>Serie</th><th class="num">Cantidad</th><th class="num">P. unit.</th><th>Tipo</th><th>Fuente</th><th class="num">P. total</th></tr>

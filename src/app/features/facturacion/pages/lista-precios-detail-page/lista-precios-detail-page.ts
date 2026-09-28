@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import * as XLSX from 'xlsx';
 import {
@@ -15,11 +16,14 @@ import { ListaPreciosService } from '../../services/pedido.service';
 import { DetailHeaderService } from '../../../../layout/detail-header.service';
 
 const TODOS = 'Todos';
+/** Ítems por página: el catálogo de un cliente puede pasar de mil filas. */
+const ITEMS_POR_PAGINA = 25;
 
 /** Fase 2 — detalle de una Lista de Precios: solo lectura (RN: la edición se retiró de la UI, ver listas-precios.controller.ts en el backend). */
 @Component({
   selector: 'app-lista-precios-detail-page',
   imports: [
+    DecimalPipe,
     DynadrillScreenHeaderComponent,
     DynadrillTagComponent,
     DynadrillButtonComponent,
@@ -51,6 +55,33 @@ export class ListaPreciosDetailPage {
   protected onTipoChip(selected: string[]): void {
     const v = selected[0];
     this.tipoFiltro.set(v === 'Servicio' || v === 'Material' ? v : null);
+    this.pagina.set(1);
+  }
+
+  protected onBusqueda(valor: string): void {
+    this.busqueda.set(valor);
+    this.pagina.set(1);
+  }
+
+  // ── Paginación ──
+  private readonly pagina = signal(1);
+  protected readonly totalPaginas = computed(() => Math.max(1, Math.ceil(this.items().length / ITEMS_POR_PAGINA)));
+  protected readonly paginaActual = computed(() => Math.min(this.pagina(), this.totalPaginas()));
+  protected readonly itemsPagina = computed(() => {
+    const desde = (this.paginaActual() - 1) * ITEMS_POR_PAGINA;
+    return this.items().slice(desde, desde + ITEMS_POR_PAGINA);
+  });
+  /** "Mostrando 1–25 de 1355 ítems" (Figma: pie de tabla). */
+  protected readonly rangoTexto = computed(() => {
+    const total = this.items().length;
+    if (!total) return '';
+    const desde = (this.paginaActual() - 1) * ITEMS_POR_PAGINA + 1;
+    const hasta = Math.min(desde + ITEMS_POR_PAGINA - 1, total);
+    return `Mostrando ${desde}–${hasta} de ${total} ítems`;
+  });
+
+  protected irAPagina(delta: number): void {
+    this.pagina.set(Math.min(Math.max(1, this.paginaActual() + delta), this.totalPaginas()));
   }
 
   private readonly todosLosItems = computed(() => this.lista()?.items ?? []);

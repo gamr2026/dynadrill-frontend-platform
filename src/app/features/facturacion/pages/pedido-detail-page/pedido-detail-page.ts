@@ -49,12 +49,36 @@ import { NuevoPedidoDialog } from '../../components/nuevo-pedido-dialog';
 import { RechazarPedidoDialog, RechazarPedidoDialogData } from '../../components/rechazar-pedido-dialog';
 import { AnularPedidoDialog, AnularPedidoDialogData } from '../../components/anular-pedido-dialog';
 import { SolicitarDespachoDialog, SolicitarDespachoDialogData } from '../../components/solicitar-despacho-dialog';
+import { TimelineTramo } from '../../../../shared/models/timeline.model';
 import { SolicitudDespachoBodega } from '../../models/solicitud-despacho-bodega.model';
 
 interface Dato {
   label: string;
   value: string;
 }
+
+/** Un paso de la línea de tiempo (Figma "Data/TimelineStep"): hecho, actual o pendiente. */
+interface PasoTimeline {
+  label: string;
+  state: 'done' | 'current' | 'pending';
+  /** Fecha del paso (ISO) — ausente en los pendientes. */
+  fecha?: string;
+  actor?: string;
+  motivo?: string;
+  tramo?: TimelineTramo;
+}
+
+/** Camino feliz del pedido — lo que falta por recorrer se muestra como "Pendiente" en el timeline. */
+const FLUJO_PEDIDO: readonly EstadoPedido[] = [
+  'abierto',
+  'en_operacion',
+  'documentos_completos',
+  'en_revision_prefacturacion',
+  'prefactura_generada',
+  'enviado_para_firmas',
+  'ticket_firmado',
+  'aot_generada',
+];
 
 /**
  * Fase 0.3 / Fase 3 — Detalle de Pedido. Datos de cabecera (solo lectura) +
@@ -244,6 +268,25 @@ export class PedidoDetailPage {
 
   /** Misma función que `estadoLabelDe`, para usar directo en el template con un `fase: string` (viene de `TimelineTramo`, no tipado a `EstadoPedido`). */
   protected readonly estadoLabelDeFn = (fase: string): string => this.estadoLabelDe(fase as EstadoPedido);
+
+  /** Pasos hechos (tramos del backend, o `historialEstados` como respaldo) + los que faltan del flujo como pendientes. */
+  protected readonly pasosTimeline = computed<PasoTimeline[]>(() => {
+    const p = this.pedido();
+    if (!p) return [];
+    const tramos = p.timelineResumen?.tramos;
+    const hechos: PasoTimeline[] = tramos?.length
+      ? tramos.map((t) => ({ label: this.estadoLabelDeFn(t.fase), state: 'done', fecha: t.inicio, actor: t.actorNombre, motivo: t.motivo, tramo: t }))
+      : p.historialEstados.map((h) => ({ label: this.estadoLabelDe(h.estado), state: 'done', fecha: h.fecha, actor: h.usuario, motivo: h.motivo }));
+    if (hechos.length) hechos[hechos.length - 1].state = 'current';
+
+    const vistos = new Set<string>(tramos?.length ? tramos.map((t) => t.fase) : p.historialEstados.map((h) => h.estado));
+    const ultimoEnFlujo = FLUJO_PEDIDO.reduce((max, e, i) => (vistos.has(e) ? i : max), -1);
+    const cerrado = p.estado === 'anulado' || ESTADOS_FUERA_DE_ALCANCE.includes(p.estado);
+    const pendientes: PasoTimeline[] = cerrado
+      ? []
+      : FLUJO_PEDIDO.filter((e, i) => i > ultimoEnFlujo && !vistos.has(e)).map((e) => ({ label: ESTADO_PEDIDO_LABELS[e], state: 'pending' }));
+    return [...hechos, ...pendientes];
+  });
 
   /** `null` = sin selección manual → se muestra el detalle del tramo actual (el último). Clic en un ítem del historial lo selecciona. */
   private readonly manualHistorialIndex = signal<number | null>(null);

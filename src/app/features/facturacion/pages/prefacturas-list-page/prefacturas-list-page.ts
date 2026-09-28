@@ -7,6 +7,8 @@ import {
   DynadrillButtonComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
+  DynadrillDialogService,
+  DynadrillIconComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
@@ -14,6 +16,7 @@ import {
 import { Pedido } from '../../models/pedido.model';
 import { Prefactura } from '../../models/prefactura.model';
 import { PedidoService, PrefacturaService } from '../../services/pedido.service';
+import { ESTADO_PREFACTURA_LABELS, PrefacturasFiltros, PrefacturasFiltrosDialog } from '../../components/prefacturas-filtros-dialog';
 import { KpiStat, KpiStatTone } from '../../../../shared/components/kpi-stat/kpi-stat';
 
 const ESTADO_TONO: Record<Prefactura['estado'], 'neutral' | 'warning' | 'success' | 'error'> = {
@@ -43,6 +46,7 @@ const ESTADO_LABEL: Record<Prefactura['estado'], string> = {
     DynadrillDataTableComponent,
     DynadrillButtonComponent,
     DynadrillSpinnerComponent,
+    DynadrillIconComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './prefacturas-list-page.html',
@@ -53,6 +57,7 @@ export class PrefacturasListPage {
   private readonly pedidoService = inject(PedidoService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly router = inject(Router);
+  private readonly dialog = inject(DynadrillDialogService);
 
   protected readonly isMobile = toSignal(
     inject(BreakpointObserver)
@@ -65,6 +70,36 @@ export class PrefacturasListPage {
   protected readonly prefacturas = signal<Prefactura[]>([]);
   private readonly pedidos = signal<Pedido[]>([]);
   protected readonly busqueda = signal('');
+  protected readonly filtroEstado = signal<Prefactura['estado'] | null>(null);
+
+  protected readonly hayFiltros = computed(() => !!this.filtroEstado());
+
+  /** Chips de filtros activos (móvil) — tocar uno lo quita. */
+  protected readonly filtrosActivos = computed(() => {
+    const estado = this.filtroEstado();
+    return estado ? [{ key: 'estado' as const, label: `Estado: ${ESTADO_PREFACTURA_LABELS[estado]}` }] : [];
+  });
+
+  protected quitarFiltro(): void {
+    this.filtroEstado.set(null);
+  }
+
+  protected limpiarFiltros(): void {
+    this.filtroEstado.set(null);
+  }
+
+  protected abrirFiltros(): void {
+    const ref = this.dialog.open<PrefacturasFiltrosDialog, PrefacturasFiltros>({
+      title: 'Filtros',
+      content: PrefacturasFiltrosDialog,
+      data: { estado: this.filtroEstado() },
+      size: 'small',
+      footer: false,
+    });
+    ref.afterClose.subscribe((f: PrefacturasFiltros | undefined) => {
+      if (f) this.filtroEstado.set(f.estado);
+    });
+  }
 
   protected readonly columns: DynadrillDataTableColumn[] = [
     { key: 'code', header: 'Prefactura', sortable: true },
@@ -83,7 +118,7 @@ export class PrefacturasListPage {
   private readonly prefacturasFiltradas = computed(() => {
     const q = this.busqueda().trim().toLowerCase();
     return this.prefacturas()
-      .filter(pf => !q || [pf.code, this.pedidoDe(pf.pedidoId)?.cliente ?? '', this.pedidoDe(pf.pedidoId)?.code ?? ''].some(v => v.toLowerCase().includes(q)))
+      .filter(pf => (!this.filtroEstado() || pf.estado === this.filtroEstado()) && (!q || [pf.code, this.pedidoDe(pf.pedidoId)?.cliente ?? '', this.pedidoDe(pf.pedidoId)?.code ?? ''].some(v => v.toLowerCase().includes(q))))
       .sort((a, b) => b.code.localeCompare(a.code, undefined, { numeric: true }));
   });
 

@@ -1,0 +1,32 @@
+.filtros {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg, 16px);
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm, 8px);
+  }
+
+  &__label {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text, #2c2b35);
+  }
+
+  &__footer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-md, 12px);
+    padding-top: var(--space-sm, 8px);
+
+    ::ng-deep .ant-btn {
+      width: 100%;
+      min-height: 48px;
+      border-radius: var(--radius-md, 12px);
+      font-weight: 600;
+    }
+  }
+}

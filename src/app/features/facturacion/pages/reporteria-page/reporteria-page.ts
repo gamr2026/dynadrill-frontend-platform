@@ -1,11 +1,15 @@
+import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, map } from 'rxjs';
 import {
   DynadrillButtonComponent,
   DynadrillChartComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
+  DynadrillDialogService,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
@@ -18,6 +22,7 @@ import { Prefactura } from '../../models/prefactura.model';
 import { GuiaRemision } from '../../models/guia-remision.model';
 import { Aot } from '../../models/aot.model';
 import { AotService, GuiaRemisionService, PedidoService, PrefacturaService } from '../../services/pedido.service';
+import { ReporteriaFiltros, ReporteriaFiltrosDialog } from '../../components/reporteria-filtros-dialog';
 import { KpiStat, KpiStatTone } from '../../../../shared/components/kpi-stat/kpi-stat';
 
 function descargarCsv(nombre: string, headers: string[], filas: (string | number)[][]): void {
@@ -56,6 +61,7 @@ function uniqueFilters(rows: Record<string, unknown>[], key: string): { text: st
 @Component({
   selector: 'app-reporteria-page',
   imports: [
+    DecimalPipe,
     DynadrillScreenHeaderComponent,
     KpiStat,
     DynadrillDataTableComponent,
@@ -76,14 +82,21 @@ export class ReporteriaPage {
   private readonly notify = inject(DynadrillNotificationService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly dialog = inject(DynadrillDialogService);
+
+  protected readonly isMobile = toSignal(
+    inject(BreakpointObserver)
+      .observe('(max-width: 840px)')
+      .pipe(map(state => state.matches)),
+    { initialValue: false },
+  );
 
   protected readonly loading = signal(true);
   protected readonly pedidos = signal<Pedido[]>([]);
   protected readonly prefacturas = signal<Prefactura[]>([]);
   protected readonly aots = signal<Aot[]>([]);
   protected readonly guias = signal<GuiaRemision[]>([]);
-  /** Pestaña "Secuencial TK" (índice 6) — mismo índice que en `tabs` abajo. */
-  private static readonly TAB_SECUENCIAL_TK = 6;
+  /** Pestaña activa, en el orden en que se muestran (`tabs`); Secuencial TK es la primera. */
   protected readonly activeTab = signal(0);
   /**
    * `?estado=<EstadoPedido>` en la URL — acceso directo desde la card de
@@ -97,7 +110,7 @@ export class ReporteriaPage {
     return e ? ESTADO_PEDIDO_LABELS[e] : null;
   });
 
-  protected readonly tabs: DynadrillTab[] = [
+  private readonly tabsBase: DynadrillTab[] = [
     { label: 'Por mes' },
     { label: 'Por pozo y tipo de servicio' },
     { label: 'Estado por cliente' },
@@ -106,6 +119,13 @@ export class ReporteriaPage {
     { label: 'Servicio vs. Venta' },
     { label: 'Secuencial TK' },
   ];
+  /**
+   * Orden de presentación (Figma): Secuencial TK primero. Cada valor es el
+   * índice "lógico" de `tabsBase` — el que usan los `@case` del template y
+   * `exportar()` — para no renumerar todo el contenido.
+   */
+  protected readonly tabOrder = [6, 0, 1, 2, 3, 4, 5];
+  protected readonly tabs: DynadrillTab[] = this.tabOrder.map(i => this.tabsBase[i]);
 
   private pedidoDe(id: number): Pedido | undefined {
     return this.pedidos().find(p => p.id === id);
@@ -129,6 +149,16 @@ export class ReporteriaPage {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([mes, v], i) => ({ id: mes, mes, revenue: '$' + v.revenue.toFixed(2), jobs: v.jobs, _r: v.revenue, _j: v.jobs, _i: i }));
   });
+  /** Meses del más reciente al más antiguo (lista móvil de Figma); el gráfico sigue en orden cronológico. */
+  protected readonly porMesDesc = computed(() => [...this.porMesRows()].reverse());
+
+  /** "2026-09" → "Septiembre 2026". */
+  protected mesLabel(mes: string): string {
+    const [y, m] = mes.split('-').map(Number);
+    const texto = new Date(y, m - 1, 1).toLocaleDateString('es-EC', { month: 'long', year: 'numeric' }).replace(' de ', ' ');
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+  }
+
   protected readonly porMesColumns: DynadrillDataTableColumn[] = [
     { key: 'mes', header: 'Mes', sortable: true },
     { key: 'revenue', header: 'Revenue real' },
@@ -371,6 +401,7 @@ export class ReporteriaPage {
         cliente: p.cliente,
         mes: p.fechaInicioServicio ? p.fechaInicioServicio.slice(0, 7) : '—',
         linea: tiposServicioLabel(p.tipoServicio),
+        campo: p.campo,
         pozo: p.pozo,
         bloque: p.bloque,
         rig: p.taladroRig,
@@ -433,6 +464,54 @@ export class ReporteriaPage {
     return f ? rows.filter(r => r.estadoRaw === f) : rows;
   });
 
+  // ── Secuencial TK en móvil: tarjetas con búsqueda, filtro por estado y paginación ──
+  private static readonly TARJETAS_POR_PAGINA = 10;
+  protected readonly tkBusqueda = signal('');
+  private readonly tkPagina = signal(1);
+
+  protected readonly tkCards = computed(() => {
+    const q = this.tkBusqueda().trim().toLowerCase();
+    const rows = this.tkRowsFiltradas();
+    if (!q) return rows;
+    return rows.filter(r => [r.code, r.ot, r.cliente, r.campo, r.pozo, r.analista, r.vendedor].some(v => String(v).toLowerCase().includes(q)));
+  });
+  protected readonly tkTotalPaginas = computed(() => Math.max(1, Math.ceil(this.tkCards().length / ReporteriaPage.TARJETAS_POR_PAGINA)));
+  protected readonly tkPaginaActual = computed(() => Math.min(this.tkPagina(), this.tkTotalPaginas()));
+  protected readonly tkCardsPagina = computed(() => {
+    const desde = (this.tkPaginaActual() - 1) * ReporteriaPage.TARJETAS_POR_PAGINA;
+    return this.tkCards().slice(desde, desde + ReporteriaPage.TARJETAS_POR_PAGINA);
+  });
+  protected readonly tkRangoTexto = computed(() => {
+    const total = this.tkCards().length;
+    if (!total) return '';
+    const desde = (this.tkPaginaActual() - 1) * ReporteriaPage.TARJETAS_POR_PAGINA + 1;
+    return `Mostrando ${desde}–${Math.min(desde + ReporteriaPage.TARJETAS_POR_PAGINA - 1, total)} de ${total} tickets`;
+  });
+
+  protected onTkBusqueda(valor: string): void {
+    this.tkBusqueda.set(valor);
+    this.tkPagina.set(1);
+  }
+
+  protected irAPaginaTk(delta: number): void {
+    this.tkPagina.set(Math.min(Math.max(1, this.tkPaginaActual() + delta), this.tkTotalPaginas()));
+  }
+
+  protected abrirFiltros(): void {
+    const ref = this.dialog.open<ReporteriaFiltrosDialog, ReporteriaFiltros>({
+      title: 'Filtros',
+      content: ReporteriaFiltrosDialog,
+      data: { estado: this.estadoFiltro() },
+      size: 'small',
+      footer: false,
+    });
+    ref.afterClose.subscribe((f: ReporteriaFiltros | undefined) => {
+      if (!f) return;
+      this.estadoFiltro.set(f.estado);
+      this.tkPagina.set(1);
+    });
+  }
+
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   protected readonly kpis = computed<{ value: number | string; label: string; caption: string; tone: KpiStatTone }[]>(() => {
@@ -461,7 +540,7 @@ export class ReporteriaPage {
     const estado = this.route.snapshot.queryParamMap.get('estado') as EstadoPedido | null;
     if (estado) {
       this.estadoFiltro.set(estado);
-      this.activeTab.set(ReporteriaPage.TAB_SECUENCIAL_TK);
+      this.activeTab.set(0);
     }
     this.reload();
   }
@@ -496,7 +575,7 @@ export class ReporteriaPage {
 
   protected exportar(): void {
     const hoy = new Date().toISOString().slice(0, 10);
-    switch (this.activeTab()) {
+    switch (this.tabOrder[this.activeTab()]) {
       case 0:
         return descargarCsv(`ventas-por-mes-${hoy}.csv`, ['Mes', 'Revenue', 'Jobs'], this.porMesRows().map(r => [r.mes, r._r, r._j]));
       case 1:

@@ -15,8 +15,17 @@
     gap: var(--space-lg, 16px);
   }
 
+  // Buscador + botón "Filtros" (móvil) en la misma fila.
+  &__filters {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md, 12px);
+  }
+
   &__search {
     display: flex;
+    flex: 1 1 0;
+    min-width: 0;
     align-items: center;
     gap: var(--space-sm, 8px);
     height: 48px;
@@ -44,6 +53,102 @@
         color: var(--text-muted, #5c5870);
       }
     }
+  }
+
+  &__filter-btn {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-sm, 8px);
+    height: 48px;
+    padding: 0 var(--space-lg, 16px);
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-md, 12px);
+    background: var(--surface, #fff);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--dynadrill-purple, #662e9b);
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--dynadrill-purple, #662e9b);
+      outline-offset: 2px;
+    }
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm, 8px);
+  }
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs, 4px);
+    min-height: 32px;
+    padding: 0 var(--space-md, 12px);
+    border: 0;
+    border-radius: var(--radius-sm, 8px);
+    background: var(--dynadrill-purple-tint-strong, #e7deef);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--dynadrill-purple, #662e9b);
+    cursor: pointer;
+  }
+
+  &__clear {
+    min-height: 32px;
+    padding: 0 var(--space-md, 12px);
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--dynadrill-purple, #662e9b);
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  // ── Sin resultados ──
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm, 8px);
+    padding: 48px var(--space-lg, 16px);
+    text-align: center;
+  }
+
+  &__empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--dynadrill-purple-tint-strong, #e7deef);
+    color: var(--dynadrill-purple, #662e9b);
+  }
+
+  &__empty-title {
+    margin: var(--space-sm, 8px) 0 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text, #2c2b35);
+  }
+
+  &__empty-text {
+    margin: 0;
+    max-width: 280px;
+    font-size: 14px;
+    color: var(--text-muted, #5c5870);
   }
 
   &__count {

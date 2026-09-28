@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
-export type KpiStatTone = 'neutral' | 'brand' | 'success' | 'error' | 'info';
+export type KpiStatTone = 'neutral' | 'brand' | 'success' | 'error' | 'info' | 'warning';
 
 /**
  * Card de indicador (Figma Card/KPI): número grande, título y leyenda. Se

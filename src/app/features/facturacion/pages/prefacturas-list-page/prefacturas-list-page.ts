@@ -116,9 +116,9 @@ export class PrefacturasListPage {
         value: pf.filter(p => p.estado === 'enviada_para_firmas' || p.estado === 'generada').length,
         label: 'Esperando firma',
         caption: 'Enviadas al cliente',
-        tone: 'brand',
+        tone: 'warning',
       },
-      { value: '$' + pf.reduce((s, p) => s + p.netoCobrar, 0).toFixed(2), label: 'Total neto', caption: 'Acumulado', tone: 'info' },
+      { value: '$' + pf.reduce((s, p) => s + p.netoCobrar, 0).toFixed(2), label: 'Total neto', caption: 'Neto a cobrar', tone: 'brand' },
     ];
   });
 

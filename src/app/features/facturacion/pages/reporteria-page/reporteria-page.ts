@@ -448,9 +448,9 @@ export class ReporteriaPage {
         value: '$' + this.pedidos().filter(p => !this.prefacturas().some(x => x.pedidoId === p.id && x.estado === 'firmada')).reduce((s, p) => s + valorEstimadoPedido(p), 0).toFixed(2),
         label: 'Accrual (por facturar)',
         caption: 'Valor estimado pendiente',
-        tone: 'info',
+        tone: 'warning',
       },
-      { value: pendientesFirma, label: 'Tickets pendientes de firma', caption: 'Esperando al cliente', tone: pendientesFirma > 0 ? 'error' : 'neutral' },
+      { value: pendientesFirma, label: 'Tickets pendientes de firma', caption: 'Esperando al cliente', tone: pendientesFirma > 0 ? 'warning' : 'neutral' },
     ];
   });
 

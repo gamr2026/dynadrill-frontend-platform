@@ -40,6 +40,12 @@
   background: var(--info-bg, #e3f2ff);
 }
 
+:host(.kpi-stat--warning) {
+  --kpi-color: var(--warning-text, #ad6800);
+  border-color: var(--warning-bg, #fff7e0);
+  background: var(--warning-bg, #fff7e0);
+}
+
 p {
   margin: 0;
 }

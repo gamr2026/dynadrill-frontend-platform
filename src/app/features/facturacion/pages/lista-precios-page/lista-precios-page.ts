@@ -47,7 +47,7 @@ export class ListaPreciosPage {
       { value: ls.length, label: 'Listas', caption: 'Registradas', tone: 'neutral' },
       { value: ls.filter(l => l.activa).length, label: 'Activas', caption: 'Vigentes', tone: 'success' },
       { value: new Set(ls.map(l => l.cliente)).size, label: 'Clientes', caption: 'Con tarifario', tone: 'brand' },
-      { value: ls.reduce((s, l) => s + l.items.length, 0), label: 'Ítems totales', caption: 'En todas las listas', tone: 'info' },
+      { value: ls.reduce((s, l) => s + l.items.length, 0), label: 'Ítems totales', caption: 'Servicios + materiales', tone: 'info' },
     ];
   });
 

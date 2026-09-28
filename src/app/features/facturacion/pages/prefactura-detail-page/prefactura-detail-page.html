@@ -6,21 +6,23 @@
       [subtitle]="(pedido()?.cliente ?? '') + ' — Pedido ' + (pedido()?.code ?? pf.pedidoId)"
     />
 
+    <div class="pf-detail__toolbar">
+      <dynadrill-button variant="secondary" (clicked)="irAlPedido()">Ir al pedido</dynadrill-button>
+      <dynadrill-button variant="secondary" (clicked)="verPdf()">Ver / Imprimir PDF</dynadrill-button>
+      @if (pf.estado === 'firmada') {
+        <dynadrill-button variant="secondary" (clicked)="exportarAs2()">Exportar a AS2</dynadrill-button>
+      }
+    </div>
+
     <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
+     <div class="pf-detail__grid">
       @if (pf.advertencia) {
         <dynadrill-banner variant="critical" [message]="pf.advertencia" />
       }
       <section class="fact-card">
         <header class="pf-detail__head">
           <h2>Ítems</h2>
-          <div class="pf-detail__head-actions">
-            <dynadrill-tag [label]="pf.estado.replace('_', ' ')" variant="warning" />
-            <dynadrill-button variant="secondary" size="small" (clicked)="irAlPedido()">Ir al pedido</dynadrill-button>
-            <dynadrill-button variant="secondary" size="small" (clicked)="verPdf()">Ver / Imprimir PDF</dynadrill-button>
-            @if (pf.estado === 'firmada') {
-              <dynadrill-button variant="secondary" size="small" (clicked)="exportarAs2()">Exportar a AS2</dynadrill-button>
-            }
-          </div>
+          <dynadrill-tag [label]="pf.estado.replace('_', ' ')" variant="warning" />
         </header>
 
         <div class="table-scroll">
@@ -60,7 +62,7 @@
         </dl>
       </section>
 
-      <section class="fact-card">
+      <section class="fact-card pf-detail__aside-item">
         <header class="pf-detail__head"><h2>Liquidación</h2></header>
         <div class="pf-detail__liquidacion">
           <dl class="pf-detail__totals">
@@ -71,7 +73,10 @@
             <div class="pf-detail__totals-neg"><dt>Retención IR (1%)</dt><dd>−${{ pf.retencionIR | number: '1.2-2' }}</dd></div>
             <div class="pf-detail__totals-neg"><dt>Retención IVA (30%)</dt><dd>−${{ pf.retencionIVA | number: '1.2-2' }}</dd></div>
           </dl>
-          <dynadrill-kpi-card [value]="netoFmt()" label="Neto a cobrar" tone="brand" />
+          <div>
+            <dynadrill-kpi-card [value]="netoFmt()" label="Neto a cobrar" tone="brand" />
+            <dynadrill-text variant="caption" class="pf-detail__neto-caption">Subtotal + IVA − retenciones</dynadrill-text>
+          </div>
         </div>
         <dynadrill-text variant="caption">Generada el {{ pf.fechaGeneracion | date: 'dd/MM/yyyy HH:mm' }}</dynadrill-text>
       </section>
@@ -159,7 +164,7 @@
 
       <!-- ── Guía de remisión (FACT-002/004) — requisito previo, ya generada antes de esta prefactura ── -->
       @if (guiaRemision(); as g) {
-        <section class="fact-card">
+        <section class="fact-card pf-detail__aside-item">
           <header class="pf-detail__head">
             <h2>Guía de remisión</h2>
             <dynadrill-button variant="secondary" size="small" (clicked)="verGuiaRemisionPdf()">Ver / Imprimir PDF</dynadrill-button>
@@ -173,6 +178,7 @@
           <dynadrill-banner variant="warning" message="Esta prefactura tiene ítems Material sin guía de remisión asociada — revisa el Pedido." />
         </section>
       }
+     </div>
     </dynadrill-spinner>
   } @else if (!loading()) {
     <dynadrill-banner variant="critical" message="No se encontró la prefactura." />

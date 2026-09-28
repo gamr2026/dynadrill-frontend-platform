@@ -15,12 +15,59 @@
     gap: 8px;
   }
 
+  &__toolbar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  // Escritorio (Figma "D · Prefacturas · Detalle"): 2 columnas — Liquidación
+  // y Guía de remisión forman la barra lateral (.pf-detail__aside-item), el
+  // resto fluye en la columna principal. Mismo truco que pedido-detail-page:
+  // todo hijo va explícito a columna 1 por defecto, solo aside-item la pisa.
+  &__grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    @media (min-width: 1100px) {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      align-items: start;
+      gap: 16px;
+
+      > * {
+        grid-column: 1;
+      }
+    }
+  }
+
+  &__aside-item {
+    @media (min-width: 1100px) {
+      grid-column: 2;
+    }
+  }
+
+  // Apilado siempre (no lado a lado): esta card vive en la barra lateral
+  // angosta de escritorio (ver __aside-item) y en móvil ocupa el ancho
+  // completo — en ninguno de los dos casos entra bien una fila horizontal.
   &__liquidacion {
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 20px 40px;
+    flex-direction: column;
+    gap: 16px;
+
+    // dynadrill-kpi-card no es block por defecto (custom element) — sin esto
+    // no estira al ancho del contenedor (align-items:stretch del flex column
+    // solo actúa sobre hijos block).
+    dynadrill-kpi-card {
+      display: block;
+    }
+  }
+
+  &__neto-caption {
+    display: block;
+    margin-top: 6px;
+    text-align: center;
   }
 
   &__totals {
@@ -28,9 +75,6 @@
     display: flex;
     flex-direction: column;
     gap: 7px;
-    min-width: 280px;
-    flex: 1 1 320px;
-    max-width: 460px;
 
     div {
       display: flex;

@@ -712,11 +712,15 @@
 
       <ul class="review-rows ticket-detail__only-mobile">
         @for (row of personnelRows(); track row.id) {
-          <li class="review-row">
-            <span class="review-row__eyebrow">{{ row.name }}</span>
-            <strong class="review-row__title">{{ row.unitCode }}</strong>
-            <span class="review-row__meta">{{ row.role }}</span>
-            <ng-container [ngTemplateOutlet]="gerenciamientoLlegadaActionsTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+          <li class="personnel-row">
+            <strong class="personnel-row__name">{{ row.name }}</strong>
+            <div class="personnel-row__facts">
+              <span class="personnel-row__unit">{{ row.unitCode }}</span>
+              <span class="personnel-row__role">{{ row.role }}</span>
+            </div>
+            <div class="personnel-row__actions">
+              <ng-container [ngTemplateOutlet]="gerenciamientoLlegadaActionsTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+            </div>
           </li>
         }
       </ul>
@@ -800,11 +804,15 @@
 
       <ul class="review-rows ticket-detail__only-mobile">
         @for (row of personnelRows(); track row.id) {
-          <li class="review-row">
-            <span class="review-row__eyebrow">{{ row.name }}</span>
-            <strong class="review-row__title">{{ row.unitCode }}</strong>
-            <span class="review-row__meta">{{ row.role }}</span>
-            <ng-container [ngTemplateOutlet]="inspectionSalidaReviewTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+          <li class="personnel-row">
+            <strong class="personnel-row__name">{{ row.name }}</strong>
+            <div class="personnel-row__facts">
+              <span class="personnel-row__unit">{{ row.unitCode }}</span>
+              <span class="personnel-row__role">{{ row.role }}</span>
+            </div>
+            <div class="personnel-row__actions">
+              <ng-container [ngTemplateOutlet]="inspectionSalidaReviewTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+            </div>
           </li>
         }
       </ul>
@@ -1097,11 +1105,15 @@
 
       <ul class="review-rows ticket-detail__only-mobile">
         @for (row of personnelRows(); track row.id) {
-          <li class="review-row">
-            <span class="review-row__eyebrow">{{ row.name }}</span>
-            <strong class="review-row__title">{{ row.unitCode }}</strong>
-            <span class="review-row__meta">{{ row.role }}</span>
-            <ng-container [ngTemplateOutlet]="inspectionActionsTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+          <li class="personnel-row">
+            <strong class="personnel-row__name">{{ row.name }}</strong>
+            <div class="personnel-row__facts">
+              <span class="personnel-row__unit">{{ row.unitCode }}</span>
+              <span class="personnel-row__role">{{ row.role }}</span>
+            </div>
+            <div class="personnel-row__actions">
+              <ng-container [ngTemplateOutlet]="inspectionActionsTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+            </div>
           </li>
         }
       </ul>
@@ -1273,11 +1285,15 @@
 
       <ul class="review-rows ticket-detail__only-mobile">
         @for (row of personnelRows(); track row.id) {
-          <li class="review-row">
-            <span class="review-row__eyebrow">{{ row.name }}</span>
-            <strong class="review-row__title">{{ row.unitCode }}</strong>
-            <span class="review-row__meta">{{ row.role }}</span>
-            <ng-container [ngTemplateOutlet]="inspectionActionsLlegadaTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+          <li class="personnel-row">
+            <strong class="personnel-row__name">{{ row.name }}</strong>
+            <div class="personnel-row__facts">
+              <span class="personnel-row__unit">{{ row.unitCode }}</span>
+              <span class="personnel-row__role">{{ row.role }}</span>
+            </div>
+            <div class="personnel-row__actions">
+              <ng-container [ngTemplateOutlet]="inspectionActionsLlegadaTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+            </div>
           </li>
         }
       </ul>

@@ -1211,3 +1211,80 @@
 details.dyn-accordion {
   margin-top: 1.5rem;
 }
+
+// ── Personal asignado en móvil: nombre + (unidad · cargo) a la izquierda, acciones a la derecha ──
+.personnel-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border, #e5e4ea);
+
+  &__name {
+    grid-column: 1;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--text, #2c2b35);
+    overflow-wrap: anywhere;
+  }
+
+  &__facts {
+    grid-column: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__unit {
+    padding: 2px 10px;
+    border-radius: var(--radius-full, 9999px);
+    background: var(--dynadrill-purple-tint-strong, #e7deef);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--dynadrill-purple, #662e9b);
+  }
+
+  &__role {
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--text-muted, #5c5870);
+  }
+
+  // Las acciones (íconos) van a la derecha, centradas con el bloque de texto.
+  &__actions {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    justify-self: end;
+  }
+
+  // Si son botones con texto (gerenciamiento, autorizar…), ocupan todo el ancho debajo.
+  &__actions:has(dynadrill-button) {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    justify-self: stretch;
+    margin-top: 4px;
+  }
+
+  .dyn-actions-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    dynadrill-button {
+      flex: 1 1 auto;
+
+      ::ng-deep .ant-btn {
+        width: 100%;
+        min-height: 48px;
+        height: auto;
+        border-radius: var(--radius-md, 12px);
+        font-weight: 600;
+        white-space: normal;
+      }
+    }
+  }
+}

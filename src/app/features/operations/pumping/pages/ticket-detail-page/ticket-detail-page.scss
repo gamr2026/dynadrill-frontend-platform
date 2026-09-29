@@ -114,6 +114,25 @@
       ::ng-deep .ant-btn {
         width: 100%;
         height: 48px;
+        border-radius: var(--radius-md, 12px);
+        font-weight: 600;
+      }
+    }
+
+    // Figma: la acción principal de cada etapa va en morado, a ancho completo y sin "Volver"
+    // (la flecha "atrás" ya está en la barra superior).
+    &--single > dynadrill-button:first-child {
+      display: none;
+    }
+
+    > dynadrill-button[variant='success'] ::ng-deep .ant-btn:not([disabled]) {
+      border-color: var(--dynadrill-purple, #662e9b);
+      background: var(--dynadrill-purple, #662e9b);
+      color: var(--dynadrill-white, #fff);
+
+      &:hover {
+        border-color: var(--dynadrill-purple-hover, #55267f);
+        background: var(--dynadrill-purple-hover, #55267f);
       }
     }
   }
@@ -690,4 +709,117 @@
     opacity: 0.6;
     cursor: not-allowed;
   }
+}
+
+// ── Etapa "Ejecución Operativa" (Figma "M · Ticket Pumping · 5") ──
+.daily-reports {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.daily-report {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border, #e5e4ea);
+
+  &__date {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 0.08em;
+    color: var(--dynadrill-purple, #662e9b);
+  }
+
+  &__name {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--text, #2c2b35);
+  }
+
+  &__meta {
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--text-muted, #5c5870);
+  }
+}
+
+.ticket-detail__chemical-name {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--text, #2c2b35);
+}
+
+.ticket-detail__chemical-close-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border, #e5e4ea);
+}
+
+// Botón tonal ("Llenar reporte diario") y de contorno ("Registrar consumo") de 48px, ancho completo.
+.ticket-detail__tonal-btn,
+.ticket-detail__outline-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 24px;
+  border-radius: var(--radius-md, 12px);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dynadrill-purple, #662e9b);
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--dynadrill-purple, #662e9b);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.ticket-detail__tonal-btn {
+  border: 0;
+  background: var(--dynadrill-purple-tint-strong, #e7deef);
+}
+
+.ticket-detail__outline-btn {
+  border: 1px solid var(--border, #e5e4ea);
+  background: var(--surface, #fff);
+
+  &:hover:not(:disabled) {
+    background: var(--dynadrill-purple-tint, #f6f3f9);
+  }
+}
+
+// ── Títulos de tarjeta y checklists (Figma: 16px medium; casillas con más aire) ──
+.ticket-detail__section > dynadrill-text[variant='h2'] ::ng-deep :is(h2, span, p, div) {
+  font-family: var(--font-body, 'Roboto', sans-serif);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text, #2c2b35);
+}
+
+.ticket-detail__section dynadrill-checkbox {
+  display: block;
+  padding: 6px 0;
 }

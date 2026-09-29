@@ -532,7 +532,7 @@
       </section>
     }
 
-    <footer class="ticket-detail__actions">
+    <footer class="ticket-detail__actions ticket-detail__actions--single">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
       <dynadrill-button variant="success" [disabled]="!allSalidaApproved() || !allTravelManagementsCompleted() || !coberturaOk() || !ptwFirmadoOk() || submitting()" (clicked)="approveAllSalidaReports()">Aprobar reportes de salida</dynadrill-button>
     </footer>
@@ -543,13 +543,13 @@
   <!-- (el cierre de químicos también es tarea de campo del operador)    -->
   <!-- ══════════════════════════════════════════════════════════════════ -->
   @if (currentStep() === 'ejecucion_operativa') {
-    <section class="ticket-detail__section">
+    <section class="ticket-detail__section ticket-detail__only-desktop">
       <dynadrill-text variant="h1">Ejecución operativa</dynadrill-text>
       <dynadrill-text variant="caption">Documento: DYN-SGI-RE-047 — Reporte diario de actividades de operaciones</dynadrill-text>
       <dynadrill-text variant="body">Registre los reportes diarios de actividades de operaciones durante la ejecución del servicio.</dynadrill-text>
     </section>
 
-    <section class="ticket-detail__section">
+    <section class="ticket-detail__section ticket-detail__only-desktop">
       <dynadrill-text variant="h2">Información del ticket</dynadrill-text>
       <dynadrill-context-card
         variant="card"
@@ -579,23 +579,45 @@
         }
       </ng-template>
 
-      <dynadrill-data-table
-        [columns]="dailyReportDayColumns"
-        [rows]="dailyReportDayRows()"
-        [loading]="false"
-        actionsHeader="Acciones"
-        [actionsTemplate]="dailyReportActionsTpl"
-      />
+      <ul class="daily-reports ticket-detail__only-mobile">
+        @for (row of dailyReportDayRows(); track row.id) {
+          <li class="daily-report">
+            <span class="daily-report__date">{{ row.fecha }}</span>
+            <strong class="daily-report__name">Reporte diario</strong>
+            <span class="daily-report__meta">{{ isDailyReportCompleted(row) ? 'Completado' : 'Pendiente' }}</span>
+            <dynadrill-tag [label]="row.statusBadge.text" [variant]="row.statusBadge.tone" />
+          </li>
+        }
+        @if (!allDailyReportsCompleted()) {
+          <li>
+            <button type="button" class="ticket-detail__tonal-btn" (click)="openDailyActivityReportForDay(dailyReportDayRows()[0])">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>
+              Llenar reporte diario
+            </button>
+          </li>
+        }
+      </ul>
+
+      <div class="ticket-detail__only-desktop">
+        <dynadrill-data-table
+          [columns]="dailyReportDayColumns"
+          [rows]="dailyReportDayRows()"
+          [loading]="false"
+          actionsHeader="Acciones"
+          [actionsTemplate]="dailyReportActionsTpl"
+        />
+      </div>
     </section>
 
     @if (ticket()?.chemicals?.length) {
       <section class="ticket-detail__section">
-        <dynadrill-text variant="h2">Cierre de químicos</dynadrill-text>
-        <dynadrill-text variant="caption">Registre la cantidad realmente usada de cada químico — el sobrante se devuelve a bodega automáticamente (Inventario).</dynadrill-text>
+        <h2 class="ticket-detail__card-title">Cierre de químicos</h2>
+        <dynadrill-text variant="caption" class="ticket-detail__only-desktop">Registre la cantidad realmente usada de cada químico — el sobrante se devuelve a bodega automáticamente (Inventario).</dynadrill-text>
 
         @for (chemical of ticket()!.chemicals; track chemical.id) {
           <div class="ticket-detail__chemical-close-row">
-            <dynadrill-text variant="body"><strong>{{ chemical.name }}</strong> — asignado: {{ chemical.quantityAssigned }} {{ chemical.unit }}</dynadrill-text>
+            <strong class="ticket-detail__chemical-name">{{ chemical.name }}</strong>
+            <span class="ticket-detail__hint">Asignado {{ chemical.quantityAssigned }} {{ chemical.unit }}</span>
 
             @if (chemical.consumptionRegistered) {
               <dynadrill-text variant="caption">
@@ -603,7 +625,7 @@
               </dynadrill-text>
             } @else {
               <dynadrill-input
-                label="Cantidad usada"
+                [label]="'Cantidad usada (' + chemical.unit + ') *'"
                 type="number"
                 placeholder="0"
                 [value]="chemicalConsumptionInput(chemical.id)"
@@ -612,14 +634,10 @@
               @if (chemicalConsumptionPreviewSobrante(chemical); as sobrante) {
                 <dynadrill-text variant="caption">Sobrante a devolver a bodega: {{ sobrante }} {{ chemical.unit }}</dynadrill-text>
               }
-              <dynadrill-button
-                variant="primary"
-                size="small"
-                [disabled]="!chemicalConsumptionValid(chemical)"
-                (click)="registerChemicalConsumption(chemical)"
-              >
+              <button type="button" class="ticket-detail__outline-btn" [disabled]="!chemicalConsumptionValid(chemical)" (click)="registerChemicalConsumption(chemical)">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5" /></svg>
                 Registrar consumo
-              </dynadrill-button>
+              </button>
             }
           </div>
         }
@@ -632,7 +650,7 @@
       }
     }
 
-    <footer class="ticket-detail__actions">
+    <footer class="ticket-detail__actions ticket-detail__actions--single">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
       <dynadrill-button variant="success" [disabled]="!allDailyReportsCompleted() || !allChemicalsClosed() || submitting()" (clicked)="advanceFromEjecucionOperativa()">Continuar a Gerenciamiento de llegada</dynadrill-button>
     </footer>
@@ -690,7 +708,7 @@
       </section>
     }
 
-    <footer class="ticket-detail__actions">
+    <footer class="ticket-detail__actions ticket-detail__actions--single">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
       <dynadrill-button variant="success" [disabled]="!allReturnTravelManagementsCompleted() || submitting()" (clicked)="advanceFromGerenciamientoLlegada()">Continuar a inspección y reporte de llegada</dynadrill-button>
     </footer>
@@ -765,7 +783,7 @@
       </section>
     }
 
-    <footer class="ticket-detail__actions">
+    <footer class="ticket-detail__actions ticket-detail__actions--single">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
       <dynadrill-button variant="success" [disabled]="!allLlegadaApproved() || submitting()" (clicked)="approveAllLlegadaReports()">Aprobar reportes de llegada</dynadrill-button>
     </footer>
@@ -822,7 +840,7 @@
       />
     }
 
-    <footer class="ticket-detail__actions">
+    <footer class="ticket-detail__actions ticket-detail__actions--single">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
       <dynadrill-button variant="success" [disabled]="!allNovedadesResolved() || submitting()" (clicked)="approveMaintenanceStep()">
         Continuar a ejecución de llegada
@@ -851,15 +869,21 @@
         }
         @for (caso of cq.casos; track caso.id) {
           <div class="ticket-detail__quimico-sin-match">
-            <dynadrill-text variant="body">
-              <strong>{{ caso.equipoNombre }}</strong> —
-              @switch (caso.estado) {
-                @case ('aprobado') { Aprobado por {{ caso.revisadoPor }} }
-                @case ('cargado') { Cargado, esperando revisión de QHSE }
-                @case ('rechazado') { Rechazado — {{ caso.motivoRechazo }} }
-                @default { Pendiente de cargar }
-              }
-            </dynadrill-text>
+            <div class="qhse-doc__text">
+              <strong class="qhse-doc__name">{{ caso.equipoNombre }}</strong>
+              <span class="qhse-doc__meta">
+                @switch (caso.estado) {
+                  @case ('aprobado') { Aprobado por {{ caso.revisadoPor }} }
+                  @case ('cargado') { Cargado, esperando revisión de QHSE }
+                  @case ('rechazado') { Rechazado — {{ caso.motivoRechazo }} }
+                  @default { Pendiente de cargar }
+                }
+              </span>
+              <dynadrill-tag
+                [label]="caso.estado === 'aprobado' ? 'Aprobado' : caso.estado === 'cargado' ? 'Cargado' : caso.estado === 'rechazado' ? 'Rechazado' : 'Pendiente de cargar'"
+                [variant]="caso.estado === 'aprobado' ? 'success' : caso.estado === 'cargado' ? 'info' : caso.estado === 'rechazado' ? 'error' : 'neutral'"
+              />
+            </div>
             @if (caso.estado !== 'aprobado') {
               <dynadrill-upload-zone state="idle" fileName="" (fileSelected)="onChecklistArchivoSeleccionado(caso, $event)" />
             }
@@ -936,7 +960,7 @@
         @if (t.companyManAprobo) {
           <dynadrill-tag [label]="'Company Man aprobó — confirmado por ' + t.companyManAprobadoPor" variant="success" />
         } @else {
-          <dynadrill-button variant="secondary" size="small" (click)="confirmarCompanyManAprobo()">Confirmar aprobación del Company Man</dynadrill-button>
+          <button type="button" class="ticket-detail__tonal-btn" (click)="confirmarCompanyManAprobo()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5" /></svg>Confirmar aprobación del Company Man</button>
         }
       </section>
     }
@@ -955,18 +979,24 @@
       }
       @for (p of epiPorOperador(); track p.operador.id) {
         <div class="ticket-detail__quimico-sin-match">
-          <dynadrill-text variant="body">
-            <strong>{{ p.operador.name }}</strong> —
-            @switch (p.entrega?.estado) {
-              @case ('despachado') { Despachado }
-              @case ('aprobado') { Aprobado, esperando despacho de QHSE }
-              @case ('rechazado') { Rechazado — {{ p.entrega?.motivoRechazo }} }
-              @case ('solicitado') { Solicitado, esperando revisión de QHSE }
-              @default { Sin solicitar }
-            }
-          </dynadrill-text>
+          <div class="qhse-doc__text">
+            <strong class="qhse-doc__name">{{ p.operador.name }}</strong>
+            <span class="qhse-doc__meta">
+              @switch (p.entrega?.estado) {
+                @case ('despachado') { Despachado }
+                @case ('aprobado') { Aprobado, esperando despacho de QHSE }
+                @case ('rechazado') { Rechazado — {{ p.entrega?.motivoRechazo }} }
+                @case ('solicitado') { Solicitado, esperando revisión de QHSE }
+                @default { Sin solicitar }
+              }
+            </span>
+            <dynadrill-tag
+              [label]="p.entrega?.estado === 'despachado' ? 'Despachado' : p.entrega?.estado === 'aprobado' ? 'Aprobado' : p.entrega?.estado === 'rechazado' ? 'Rechazado' : p.entrega?.estado === 'solicitado' ? 'Solicitado' : 'Sin solicitar'"
+              [variant]="p.entrega?.estado === 'despachado' ? 'success' : p.entrega?.estado === 'aprobado' ? 'info' : p.entrega?.estado === 'rechazado' ? 'error' : p.entrega?.estado === 'solicitado' ? 'warning' : 'neutral'"
+            />
+          </div>
           @if (!p.entrega || p.entrega.estado === 'rechazado') {
-            <dynadrill-button variant="secondary" size="small" (click)="solicitarEpi(p.operador)">Solicitar EPI</dynadrill-button>
+            <button type="button" class="ticket-detail__outline-btn" (click)="solicitarEpi(p.operador)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>Solicitar EPI</button>
           }
         </div>
       }
@@ -1103,7 +1133,7 @@
       </div>
     </section>
 
-    <footer class="ticket-detail__actions">
+    <footer class="ticket-detail__actions ticket-detail__actions--single">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
       <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || submitting() || checklistQhseBloquea() || checklistIngresoBloquea() || epiBloquea()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
     </footer>
@@ -1343,7 +1373,7 @@
       </section>
     </div>
 
-    <footer class="ticket-detail__actions">
+    <footer class="ticket-detail__actions ticket-detail__actions--single">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
       <dynadrill-button
         variant="primary"
@@ -1387,7 +1417,18 @@
       </section>
     }
 
-    <section class="ticket-detail__section">
+    <section class="ticket-detail__section ticket-detail__only-mobile">
+      <h2 class="ticket-detail__card-title">Decisión del supervisor</h2>
+      <dynadrill-textarea
+        label="Motivo (si rechaza)"
+        placeholder="Indique qué debe corregirse"
+        [value]="ticketRejectionReason()"
+        (valueChange)="ticketRejectionReason.set($event)"
+        [rows]="4"
+      />
+    </section>
+
+    <section class="ticket-detail__section ticket-detail__only-desktop">
       <dynadrill-text variant="h2">Decisión del supervisor</dynadrill-text>
       <dynadrill-approval-actions
         [decision]="decision()"
@@ -1408,7 +1449,9 @@
     </section>
 
     <footer class="ticket-detail__actions">
-      <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
+      <dynadrill-button class="ticket-detail__only-desktop" variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
+      <dynadrill-button class="ticket-detail__only-mobile" variant="error" [disabled]="submitting() || !ticketRejectionReason().trim()" (clicked)="confirmarRechazoTicket()">Rechazar</dynadrill-button>
+      <dynadrill-button class="ticket-detail__only-mobile" variant="primary" [disabled]="submitting()" (clicked)="onDecisionChange('approved')">Aprobar</dynadrill-button>
     </footer>
   }
 }

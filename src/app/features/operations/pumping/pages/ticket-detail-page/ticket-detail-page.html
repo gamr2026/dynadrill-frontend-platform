@@ -885,7 +885,7 @@
           <dynadrill-text variant="caption">QHSE todavía no abrió el checklist de las unidades asignadas.</dynadrill-text>
         }
         @for (caso of cq.casos; track caso.id) {
-          <div class="ticket-detail__quimico-sin-match">
+          <div class="ticket-detail__row-card">
             <div class="qhse-doc__text">
               <strong class="qhse-doc__name">{{ caso.equipoNombre }}</strong>
               <span class="qhse-doc__meta">
@@ -932,29 +932,39 @@
       <section class="ticket-detail__section">
         <dynadrill-text variant="h2">Verificaciones de seguridad</dynadrill-text>
 
-        <dynadrill-text variant="subtitle">Monitoreo de gases</dynadrill-text>
-        @for (gas of checklistIngresoGasKeys; track gas) {
-          <div class="ticket-detail__quimico-sin-match">
-            <dynadrill-text variant="body">
-              <strong>{{ checklistIngresoGasLimites[gas].label }}</strong> —
+        <h3 class="ticket-detail__subtitle">Monitoreo de gases</h3>
+        <ul class="gas-grid">
+          @for (gas of checklistIngresoGasKeys; track gas) {
+            <li
+              class="gas-card"
+              [class.gas-card--seguro]="checklistIngresoUltimaLecturaPorGas()[gas]?.seguro === true"
+              [class.gas-card--fuera]="checklistIngresoUltimaLecturaPorGas()[gas]?.seguro === false"
+            >
+              <div class="gas-card__head">
+                <strong class="gas-card__name">{{ checklistIngresoGasLimites[gas].label }}</strong>
+                @if (checklistIngresoUltimaLecturaPorGas()[gas]; as r) {
+                  <dynadrill-tag [label]="r.seguro ? 'Seguro' : 'Fuera de rango'" [variant]="r.seguro ? 'success' : 'error'" />
+                } @else {
+                  <dynadrill-tag label="Sin lectura" variant="neutral" />
+                }
+              </div>
               @if (checklistIngresoUltimaLecturaPorGas()[gas]; as r) {
-                {{ r.lectura }} {{ checklistIngresoGasLimites[gas].unidad }}
-                <dynadrill-tag [label]="r.seguro ? 'Seguro' : 'Fuera de rango'" [variant]="r.seguro ? 'success' : 'error'" />
-              } @else {
-                Sin lectura
+                <span class="gas-card__reading">Última lectura: {{ r.lectura }} {{ checklistIngresoGasLimites[gas].unidad }}</span>
               }
-            </dynadrill-text>
-            <dynadrill-input
-              [label]="'Lectura (' + checklistIngresoGasLimites[gas].unidad + ')'"
-              type="number"
-              [value]="checklistIngresoGasDraft()[gas]"
-              (valueChange)="onChecklistIngresoGasDraftChange(gas, $event)"
-            />
-            <dynadrill-button variant="secondary" size="small" (click)="registrarLecturaChecklistIngreso(gas)">Registrar</dynadrill-button>
-          </div>
-        }
+              <div class="gas-card__form">
+                <dynadrill-input
+                  [label]="'Lectura (' + checklistIngresoGasLimites[gas].unidad + ')'"
+                  type="number"
+                  [value]="checklistIngresoGasDraft()[gas]"
+                  (valueChange)="onChecklistIngresoGasDraftChange(gas, $event)"
+                />
+                <button type="button" class="gas-card__btn" (click)="registrarLecturaChecklistIngreso(gas)">Registrar</button>
+              </div>
+            </li>
+          }
+        </ul>
 
-        <dynadrill-text variant="subtitle">Verificación LOTO (Lock-out/Tag-out)</dynadrill-text>
+        <h3 class="ticket-detail__subtitle">Verificación LOTO (Lock-out/Tag-out)</h3>
         @for (item of ci.lotoChecklist; track $index) {
           <dynadrill-checkbox [label]="item.label" [checked]="item.checked" (checkedChange)="onChecklistIngresoLotoToggle($index)" />
         }
@@ -995,7 +1005,7 @@
         </div>
       }
       @for (p of epiPorOperador(); track p.operador.id) {
-        <div class="ticket-detail__quimico-sin-match">
+        <div class="ticket-detail__row-card">
           <div class="qhse-doc__text">
             <strong class="qhse-doc__name">{{ p.operador.name }}</strong>
             <span class="qhse-doc__meta">

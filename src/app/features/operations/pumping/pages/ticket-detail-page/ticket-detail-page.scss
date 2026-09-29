@@ -891,3 +891,110 @@
     }
   }
 }
+
+// ── Monitoreo de gases y filas de checklist (antes usaban la caja ámbar de advertencia) ──
+.ticket-detail__subtitle {
+  margin: 8px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--text, #2c2b35);
+}
+
+// Fila neutra dentro de una tarjeta (checklist QHSE por equipo, EPI por operador).
+.ticket-detail__row-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface-muted, #faf9fc);
+}
+
+.gas-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  @media (min-width: 841px) {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+.gas-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 12px 12px 16px;
+  border: 1px solid var(--border, #e5e4ea);
+  border-left: 4px solid var(--border, #e5e4ea);
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface, #fff);
+
+  &--seguro {
+    border-left-color: var(--success-text, #237804);
+  }
+
+  &--fuera {
+    border-left-color: var(--error-text, #cf1322);
+  }
+
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  &__name {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--text, #2c2b35);
+  }
+
+  &__reading {
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--text-muted, #5c5870);
+  }
+
+  // Campo de lectura y botón "Registrar" en la misma fila, alineados por abajo.
+  &__form {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+
+    dynadrill-input {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+  }
+
+  &__btn {
+    flex: none;
+    min-height: 48px;
+    padding: 0 20px;
+    border: 1px solid var(--dynadrill-purple-tint-strong, #e7deef);
+    border-radius: var(--radius-md, 12px);
+    background: var(--surface, #fff);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--dynadrill-purple, #662e9b);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--dynadrill-purple-tint, #f6f3f9);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--dynadrill-purple, #662e9b);
+      outline-offset: 2px;
+    }
+  }
+}

@@ -2156,13 +2156,18 @@ export class TicketDetailPage {
   });
 
   // Datos de salida en solo lectura para la vista de llegada
-  protected readonly arrivalGeneralInfoItems = computed<DynadrillContextCardItem[]>(() => [
-    { label: 'Pozo', value: this.reportWellName() || '—' },
-    { label: 'Base', value: this.reportBaseName() || '—' },
-    { label: 'Bloque', value: this.reportBlockName() || '—' },
-    { label: 'Cabezal', value: this.reportHeaderCode() || '—' },
-    { label: 'Cliente', value: this.reportClientName() || '—' },
-    { label: 'Unidad', value: this.reportUnitCode() || '—' },
+  /** Información general del reporte en la llegada (datos de la salida, solo lectura) con la tarjeta de grupos. */
+  protected readonly arrivalGeneralInfoGroups = computed<DynadrillContextCardItem[][]>(() => [
+    [{ label: 'Cliente', value: this.reportClientName() || '—', icon: 'users' }],
+    [
+      { label: 'Pozo', value: this.reportWellName() || '—', icon: 'location' },
+      { label: 'Base', value: this.reportBaseName() || '—', icon: 'location' },
+    ],
+    [
+      { label: 'Bloque', value: this.reportBlockName() || '—', icon: 'modules' },
+      { label: 'Cabezal', value: this.reportHeaderCode() || '—', icon: 'tool' },
+    ],
+    [{ label: 'Unidad', value: this.reportUnitCode() || '—', icon: 'tool', badgeVariant: 'brand' }],
   ]);
 
   protected readonly arrivalFuelReadonlyItems = computed<DynadrillContextCardItem[]>(() => [
@@ -2197,17 +2202,41 @@ export class TicketDetailPage {
     }));
   });
 
-  protected readonly reviewContextItems = computed<DynadrillContextCardItem[]>(() => {
+  /** Resumen del servicio (revisión final) con la tarjeta de grupos. */
+  protected readonly reviewContextGroups = computed<DynadrillContextCardItem[][]>(() => {
     const t = this.ticket();
     if (!t) return [];
     return [
-      { label: 'Ticket', value: t.code },
-      { label: 'Cliente', value: t.clientName },
-      { label: 'Pozo', value: t.wellName },
-      { label: 'Tipo de servicio', value: PUMPING_SERVICE_TYPE_LABELS[t.serviceType] },
-      { label: 'Supervisor', value: t.assignedSupervisor || '—' },
-      { label: 'Unidad', value: t.unitCode || '—' },
-      { label: 'Reporte de unidad', value: t.unitReport ? 'Completado' : 'Pendiente' },
+      [{ label: 'Cliente', value: t.clientName, icon: 'users' }],
+      [
+        { label: 'Pozo', value: t.wellName, icon: 'location' },
+        { label: 'Tipo de servicio', value: PUMPING_SERVICE_TYPE_LABELS[t.serviceType], icon: 'tool', badgeVariant: 'brand' },
+      ],
+      [
+        { label: 'Supervisor', value: t.assignedSupervisor || '—', icon: 'users' },
+        { label: 'Unidad', value: t.unitCode || '—', icon: 'tool' },
+      ],
+      [{ label: 'Reporte de unidad', value: t.unitReport ? 'Completado' : 'Pendiente', icon: 'file-text' }],
+    ];
+  });
+
+  /** Reporte de unidad de la revisión final con la tarjeta de grupos. */
+  protected readonly unitReportGroups = computed<DynadrillContextCardItem[][]>(() => {
+    const report = this.ticket()?.unitReport;
+    if (!report) return [];
+    return [
+      [
+        { label: 'Unidad', value: report.unitCode || '—', icon: 'tool', badgeVariant: 'brand' },
+        { label: 'Unidad operativa', value: report.unitReady === true ? 'Sí' : report.unitReady === false ? 'No' : 'Sin definir', icon: 'file-text' },
+      ],
+      [
+        { label: 'Origen', value: report.origin || '—', icon: 'location' },
+        { label: 'Destino', value: report.destination || '—', icon: 'location' },
+      ],
+      [
+        { label: 'Operador salida', value: report.departureOperatorName || '—', icon: 'users' },
+        { label: 'Operador llegada', value: report.arrivalOperatorName || '—', icon: 'users' },
+      ],
     ];
   });
 

@@ -121,18 +121,27 @@ export class ReviewArrivalReportDialog {
   });
 
   // ── General info ──
-  protected readonly generalInfoItems = computed<DynadrillContextCardItem[]>(() => {
+  /** Misma tarjeta que en los primeros pasos del ticket (variant="card"): datos agrupados con ícono. */
+  protected readonly generalInfoGroups = computed<DynadrillContextCardItem[][]>(() => {
     const r = this.report;
     return [
-      { label: 'Código reporte', value: r.reportCode },
-      { label: 'Unidad', value: r.unitCode },
-      { label: 'Pozo', value: r.wellName },
-      { label: 'Base', value: r.baseName },
-      { label: 'Bloque', value: r.blockName },
-      { label: 'Cabezal', value: r.headerCode },
-      { label: 'Cliente', value: r.clientName },
-      { label: 'Origen', value: r.origin },
-      { label: 'Destino', value: r.destination },
+      [{ label: 'Cliente', value: r.clientName || '—', icon: 'users' }],
+      [
+        { label: 'Pozo', value: r.wellName || '—', icon: 'location' },
+        { label: 'Base', value: r.baseName || '—', icon: 'location' },
+      ],
+      [
+        { label: 'Bloque', value: r.blockName || '—', icon: 'modules' },
+        { label: 'Cabezal', value: r.headerCode || '—', icon: 'tool' },
+      ],
+      [
+        { label: 'Unidad', value: r.unitCode || '—', icon: 'tool', badgeVariant: 'brand' },
+        { label: 'Código reporte', value: r.reportCode || '—', icon: 'file-text' },
+      ],
+      [
+        { label: 'Origen', value: r.origin || '—', icon: 'location' },
+        { label: 'Destino', value: r.destination || '—', icon: 'location' },
+      ],
     ];
   });
 

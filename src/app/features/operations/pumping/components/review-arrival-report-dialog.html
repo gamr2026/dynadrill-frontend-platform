@@ -70,7 +70,13 @@
     <!-- Información general -->
     <section class="review-report__section">
       <dynadrill-text variant="h2">Información general</dynadrill-text>
-      <dynadrill-context-card [items]="generalInfoItems()" />
+      <dynadrill-context-card
+        variant="card"
+        icon="file-text"
+        [title]="report.reportCode"
+        [subtitle]="'Reporte de Unidad — ' + (isSalidaReview ? 'Salida' : 'Llegada')"
+        [groups]="generalInfoGroups()"
+      />
     </section>
 
     <!-- Fechas y combustible -->

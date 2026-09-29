@@ -141,7 +141,7 @@ export class NavigationService {
         return [INICIO, operaciones(FCR)];
       // Acotado a Pumping y su bandeja de Aprobaciones (nunca FCR). También autoriza Gerenciamiento de Viaje de riesgo BAJO (DYN-SGI-RE-049).
       case 'Supervisor Pumping':
-        return [INICIO, operaciones(PUMPING, APROBACIONES), mantenimiento(GERENCIAMIENTO_VIAJE)];
+        return [INICIO, operaciones(PUMPING, APROBACIONES, GERENCIAMIENTO_VIAJE)];
       case 'Jefe de Mantenimiento':
         return [INICIO, mantenimiento(BANDEJA_MANTENIMIENTO, INDICADORES_MANTENIMIENTO)];
       case 'Bodeguero':
@@ -161,7 +161,7 @@ export class NavigationService {
         return [INICIO, facturacion(...FACTURACION_CHILDREN)];
       // A nivel de backend "Jefe de Base" sigue con acceso total (ver ADMIN_ROLE_CODES) — a pedido del cliente, en la UI solo ve Pumping.
       case 'Jefe de Base':
-        return [INICIO, operaciones(PUMPING), mantenimiento(GERENCIAMIENTO_VIAJE)];
+        return [INICIO, operaciones(PUMPING, GERENCIAMIENTO_VIAJE)];
       // Único caso con acceso completo — el único que ve Usuarios.
       case 'Superadmin':
         return [

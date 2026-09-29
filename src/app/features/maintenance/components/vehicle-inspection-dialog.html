@@ -1,6 +1,16 @@
 <div class="vehicle-inspection-dialog">
   <dynadrill-stepper [steps]="steps" [currentIndex]="currentStep()" />
 
+  <!-- Móvil: "Paso 1 de 4 · Datos" con barra de progreso, en vez del stepper vertical -->
+  <div class="vehicle-inspection-dialog__progress" role="progressbar" [attr.aria-valuenow]="currentStep() + 1" aria-valuemin="1" [attr.aria-valuemax]="steps.length">
+    <span class="vehicle-inspection-dialog__progress-text">Paso {{ currentStep() + 1 }} de {{ steps.length }} · <strong>{{ steps[currentStep()] }}</strong></span>
+    <div class="vehicle-inspection-dialog__progress-bar">
+      @for (paso of steps; track paso; let i = $index) {
+        <span [class.is-done]="i <= currentStep()"></span>
+      }
+    </div>
+  </div>
+
   <div class="vehicle-inspection-dialog__body">
     @if (currentStep() === 0) {
       <div class="vehicle-inspection-dialog__grid">
@@ -15,7 +25,7 @@
         Descripción del vehículo
         @if (vehiculoDataLocked()) { — tomada del registro de la unidad (se edita en Inventario) }
       </dynadrill-text>
-      <div class="vehicle-inspection-dialog__grid">
+      <div class="vehicle-inspection-dialog__grid vehicle-inspection-dialog__grid--compact">
         <dynadrill-input label="Marca" [value]="marca()" [disabled]="vehiculoDataLocked()" (valueChange)="marca.set($event)" />
         <dynadrill-input label="Tipo" [value]="tipo()" [disabled]="vehiculoDataLocked()" (valueChange)="tipo.set($event)" />
         <dynadrill-input label="Modelo" [value]="modelo()" [disabled]="vehiculoDataLocked()" (valueChange)="modelo.set($event)" />
@@ -27,7 +37,7 @@
         Documentos del vehículo
         @if (vehiculoDataLocked()) { — tomados del registro de la unidad (se editan en Inventario) }
       </dynadrill-text>
-      <div class="vehicle-inspection-dialog__grid">
+      <div class="vehicle-inspection-dialog__grid vehicle-inspection-dialog__grid--compact">
         <dynadrill-datetime-picker mode="date" label="Fecha de matrícula" [value]="fechaMatricula()!" [disabled]="vehiculoDataLocked()" (valueChange)="fechaMatricula.set($event)" />
         <dynadrill-datetime-picker mode="date" label="Caducidad de matrícula" [value]="caducidadMatricula()!" [disabled]="vehiculoDataLocked()" (valueChange)="caducidadMatricula.set($event)" />
         <dynadrill-datetime-picker mode="date" label="Caducidad póliza de seguro" [value]="caducidadPoliza()!" [disabled]="vehiculoDataLocked()" (valueChange)="caducidadPoliza.set($event)" />
@@ -35,7 +45,7 @@
       </div>
 
       <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">Kilometraje</dynadrill-text>
-      <div class="vehicle-inspection-dialog__grid">
+      <div class="vehicle-inspection-dialog__grid vehicle-inspection-dialog__grid--compact">
         <dynadrill-input label="Inicial" type="number" [value]="kmInicial()" (valueChange)="kmInicial.set($event)" />
         @if (esLlegada) {
           <dynadrill-input label="Final" type="number" [value]="kmFinal()" (valueChange)="kmFinal.set($event)" />
@@ -130,7 +140,7 @@
   }
 
   <div class="vehicle-inspection-dialog__actions">
-    <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+    <dynadrill-button class="vehicle-inspection-dialog__cancel" variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
     <div class="vehicle-inspection-dialog__actions-right">
       @if (currentStep() > 0) {
         <dynadrill-button variant="secondary" (clicked)="back()">Atrás</dynadrill-button>

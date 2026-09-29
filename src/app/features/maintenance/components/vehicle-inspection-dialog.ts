@@ -81,6 +81,8 @@ function isoOrUndefined(d: Date | null): string | undefined {
  */
 @Component({
   selector: 'app-vehicle-inspection-dialog',
+  /** Pantalla completa en móvil (formulario largo por pasos) — ver styles.scss. */
+  host: { class: 'app-dialog-fullscreen-mobile' },
   imports: [
     CommonModule,
     DynadrillTextComponent,

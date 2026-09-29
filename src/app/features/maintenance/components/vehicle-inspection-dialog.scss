@@ -219,3 +219,131 @@
     }
   }
 }
+
+// ── Móvil (pantalla completa): progreso compacto, datos en 2 columnas, barra fija y checklists con casillas grandes ──
+.vehicle-inspection-dialog__progress {
+  display: none;
+}
+
+@media (max-width: 840px) {
+  .vehicle-inspection-dialog {
+    gap: 16px;
+
+    // El stepper vertical de la librería ocupaba media pantalla: se reemplaza por el progreso compacto.
+    dynadrill-stepper {
+      display: none;
+    }
+
+    &__body {
+      min-height: 0;
+    }
+
+    &__progress {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    &__progress-text {
+      font-size: 14px;
+      color: var(--text-muted, #5c5870);
+
+      strong {
+        color: var(--text, #2c2b35);
+        font-weight: 600;
+      }
+    }
+
+    &__progress-bar {
+      display: flex;
+      gap: 6px;
+
+      span {
+        flex: 1;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--border, #e5e4ea);
+
+        &.is-done {
+          background: var(--dynadrill-purple, #662e9b);
+        }
+      }
+    }
+
+    // Datos de solo lectura, fechas y kilometraje: dos por fila en lugar de una pila de campos.
+    &__grid--compact {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    &__section-label {
+      padding-top: 12px;
+      border-top: 1px solid var(--border, #e5e4ea);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    // Barra fija inferior: Atrás / Siguiente (la X del encabezado ya cancela).
+    &__actions {
+      position: sticky;
+      bottom: 0;
+      z-index: 5;
+      margin: 0 -16px -16px;
+      padding: 12px 16px;
+      background: var(--surface, #fff);
+    }
+
+    &__cancel {
+      display: none;
+    }
+
+    &__actions-right {
+      flex: 1;
+
+      dynadrill-button {
+        flex: 1;
+      }
+    }
+
+    &__actions dynadrill-button ::ng-deep .ant-btn {
+      width: 100%;
+      height: 48px;
+      border-radius: var(--radius-md, 12px);
+      font-weight: 600;
+    }
+  }
+
+  // Checklists (Vehículo / Equipo): una columna, casillas de 44px y botones de marcado a ancho completo.
+  .vehicle-checklist {
+    &__grid {
+      max-height: none;
+    }
+
+    &__item {
+      padding: 10px 0;
+    }
+
+    &__label {
+      font-size: 14px;
+    }
+
+    &__toggle {
+      width: 44px;
+      height: 44px;
+    }
+
+    &__na {
+      height: 44px;
+      padding: 0 12px;
+    }
+
+    &__toolbar dynadrill-button {
+      display: block;
+
+      ::ng-deep .ant-btn {
+        width: 100%;
+        min-height: 44px;
+      }
+    }
+  }
+}

@@ -22,6 +22,7 @@ import {
   GerenciamientoViaje,
   GerenciamientoViajeTipo,
   TicketContexto,
+  TicketConductor,
   GERENCIAMIENTO_VIAJE_TIPO_LABELS,
   TravelRiskOption,
   TravelRiskQuestion,
@@ -36,7 +37,7 @@ import { toLocalDateString } from '../../../shared/utils';
 export interface GerenciamientoViajeDialogData {
   tipo: GerenciamientoViajeTipo;
   /** Desde la tabla de Pumping el ticket ya viene resuelto: el conductor no teclea el código. */
-  ticket?: TicketContexto;
+  ticket?: TicketContexto | TicketConductor;
 }
 
 /** Ponderación que bloquea el viaje — ver createTravelRiskQuestions() en gerenciamiento-viaje.model.ts */
@@ -120,7 +121,22 @@ export class GerenciamientoViajeDialog {
       this.lineaServicio.set(t.serviceType);
       this.assignedSupervisorNombre.set(t.assignedSupervisor);
       this.ticketEncontrado.set(true);
+      if ('vehiculo' in t) {
+        // Datos de la unidad inspeccionada: el conductor ya no los teclea (los puede corregir).
+        this.placas.set(t.vehiculo.placa);
+        this.vehicleType.set(this.tipoDeVehiculo(t.vehiculo.tipo));
+        this.motivoViaje.set(`Traslado de la unidad ${t.vehiculo.unidadCode || t.unitCode} — ${t.code}`);
+        if (t.conductor) this.conductorNames.set(t.conductor);
+      }
     }
+  }
+
+  /** "Camioneta" → Liviano; "Camión"/"Cabezal" → Pesado; si no se reconoce, se deja para que el conductor elija. */
+  private tipoDeVehiculo(tipo: string): VehicleType | null {
+    const t = tipo.toLowerCase();
+    if (/camioneta|liviano|auto|jeep/.test(t)) return 'Liviano';
+    if (/cami[oó]n|cabezal|pesado|tanquero|tr[aá]iler/.test(t)) return 'Pesado';
+    return null;
   }
 
   protected onVehicleTypeChange(value: unknown): void {

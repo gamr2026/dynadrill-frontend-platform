@@ -98,6 +98,9 @@ export interface TicketConductor extends TicketContexto {
   clientName: string;
   wellName: string;
   unitCode: string;
+  /** Conductor (como figura en la inspección) y vehículo inspeccionado — se precargan en el wizard. */
+  conductor: string;
+  vehiculo: { unidadCode: string; placa: string; tipo: string; marca: string; modelo: string };
   gerenciamientos: { id: number; code: string; tipo: GerenciamientoViajeTipo; estado: GerenciamientoViajeEstado }[];
   /** Estado del GV vigente por tipo (null = todavía no lo ha creado; los rechazados no cuentan, hay que rehacerlos). */
   tareas: Record<GerenciamientoViajeTipo, GerenciamientoViajeEstado | null>;

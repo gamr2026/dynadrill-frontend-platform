@@ -1,10 +1,30 @@
-<section class="travel-dialog__header">
+<!-- Móvil: una sola tarjeta de cabecera (el título ya está en la barra del diálogo) -->
+<dynadrill-context-card
+  class="travel-dialog__only-mobile"
+  variant="card"
+  icon="file-text"
+  title="DYN-SGI-RE-049"
+  subtitle="Evaluación de riesgos de viajes y Plan de gestión de viajes"
+  [groups]="headerGroups()"
+/>
+
+<section class="travel-dialog__header travel-dialog__only-desktop">
   <dynadrill-text variant="h1">Gerenciamiento de Viaje</dynadrill-text>
   <dynadrill-text variant="caption">Documento: DYN-SGI-RE-049 — Evaluación de riesgos de viajes y Plan de gestión de viajes</dynadrill-text>
   <dynadrill-context-card [items]="headerItems()" />
 </section>
 
-<dynadrill-stepper [steps]="steps" [currentIndex]="currentStep()" />
+<dynadrill-stepper class="travel-dialog__only-desktop" [steps]="steps" [currentIndex]="currentStep()" />
+
+<!-- Móvil: "Paso 1 de 4 · General" con barra de progreso, en vez del stepper vertical -->
+<div class="travel-dialog__progress travel-dialog__only-mobile" role="progressbar" [attr.aria-valuenow]="currentStep() + 1" aria-valuemin="1" [attr.aria-valuemax]="steps.length">
+  <span class="travel-dialog__progress-text">Paso {{ currentStep() + 1 }} de {{ steps.length }} · <strong>{{ steps[currentStep()] }}</strong></span>
+  <div class="travel-dialog__progress-bar">
+    @for (paso of steps; track paso; let i = $index) {
+      <span [class.is-done]="i <= currentStep()"></span>
+    }
+  </div>
+</div>
 
 <div class="travel-dialog__body">
   @if (currentStep() === 0) {

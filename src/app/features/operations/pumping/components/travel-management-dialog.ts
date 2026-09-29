@@ -147,6 +147,15 @@ export class TravelManagementDialog {
     { label: 'Unidad', value: this.data.unitCode },
   ]);
 
+  /** Cabecera para móvil con la context-card nueva (variant="card"): ticket, unidad y operador agrupados. */
+  protected readonly headerGroups = computed<DynadrillContextCardItem[][]>(() => [
+    [
+      { label: 'Ticket', value: this.ticketNo() || '—', icon: 'file-text' },
+      { label: 'Unidad', value: this.data.unitCode || '—', icon: 'tool', badgeVariant: 'brand' },
+    ],
+    [{ label: 'Operador', value: this.data.operatorName || '—', icon: 'users' }],
+  ]);
+
   // ── Risk assessment questions ──
   protected readonly riskQuestions = signal<TravelRiskQuestion[]>(createTravelRiskQuestions());
 

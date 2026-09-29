@@ -1,9 +1,29 @@
-<section class="gv-dialog__header">
+<!-- Móvil: una sola tarjeta de cabecera (el título ya está en la barra del diálogo) -->
+<dynadrill-context-card
+  class="gv-dialog__only-mobile"
+  variant="card"
+  icon="file-text"
+  title="DYN-SGI-RE-049"
+  subtitle="Evaluación de riesgos de viajes y Plan de gestión de viajes"
+  [groups]="headerGroups()"
+/>
+
+<section class="gv-dialog__header gv-dialog__only-desktop">
   <dynadrill-text variant="caption">Documento: DYN-SGI-RE-049 — Evaluación de riesgos de viajes y Plan de gestión de viajes</dynadrill-text>
   <dynadrill-context-card [items]="headerItems()" />
 </section>
 
-<dynadrill-stepper [steps]="steps" [currentIndex]="currentStep()" />
+<dynadrill-stepper class="gv-dialog__only-desktop" [steps]="steps" [currentIndex]="currentStep()" />
+
+<!-- Móvil: "Paso 1 de 4 · General" con barra de progreso, en vez del stepper vertical -->
+<div class="gv-dialog__progress gv-dialog__only-mobile" role="progressbar" [attr.aria-valuenow]="currentStep() + 1" aria-valuemin="1" [attr.aria-valuemax]="steps.length">
+  <span class="gv-dialog__progress-text">Paso {{ currentStep() + 1 }} de {{ steps.length }} · <strong>{{ steps[currentStep()] }}</strong></span>
+  <div class="gv-dialog__progress-bar">
+    @for (paso of steps; track paso; let i = $index) {
+      <span [class.is-done]="i <= currentStep()"></span>
+    }
+  </div>
+</div>
 
 <div class="gv-dialog__body">
   @if (currentStep() === 0) {
@@ -12,7 +32,7 @@
       <dynadrill-text variant="h2">Información general</dynadrill-text>
       <div class="gv-dialog__form-grid">
         <dynadrill-datetime-picker mode="date" label="Fecha" [value]="$any(fecha())" (valueChange)="fecha.set($event)" />
-        <dynadrill-input label="Motivo del viaje" [value]="motivoViaje()" (valueChange)="motivoViaje.set($event)" />
+        <dynadrill-input class="gv-dialog__full" label="Motivo del viaje" [value]="motivoViaje()" (valueChange)="motivoViaje.set($event)" />
         <dynadrill-select label="Tipo de vehículo" placeholder="Seleccionar tipo" [options]="vehicleTypeOptions" [value]="vehicleType()" (valueChange)="onVehicleTypeChange($event)" />
         <dynadrill-input label="Placas" [value]="placas()" (valueChange)="placas.set($event)" />
       </div>
@@ -145,7 +165,7 @@
     <section class="gv-dialog__section gv-dialog__section--tight">
       <dynadrill-text variant="h2">Ruta y comunicación</dynadrill-text>
       <div class="gv-dialog__form-grid">
-        <dynadrill-input label="Locación" placeholder="Ej. Base Coco" [value]="routeLocation()" (valueChange)="routeLocation.set($event)" />
+        <dynadrill-input class="gv-dialog__full" label="Locación" placeholder="Ej. Base Coco" [value]="routeLocation()" (valueChange)="routeLocation.set($event)" />
         <div class="gv-dialog__time-field">
           <label class="gv-dialog__time-label">Hora arribo</label>
           <input type="time" class="gv-dialog__time-input" [value]="routeArrivalTime()" (input)="routeArrivalTime.set($any($event.target).value)" />
@@ -154,10 +174,10 @@
           <label class="gv-dialog__time-label">Hora salida</label>
           <input type="time" class="gv-dialog__time-input" [value]="routeDepartureTime()" (input)="routeDepartureTime.set($any($event.target).value)" />
         </div>
-        <dynadrill-input label="Datos pernoctación" placeholder="Domicilio, teléfono, etc." [value]="routeOvernightDetails()" (valueChange)="routeOvernightDetails.set($event)" />
-        <dynadrill-input label="Frecuencia del contacto" placeholder="Ej. Cada 2 horas" [value]="commFrequency()" (valueChange)="commFrequency.set($event)" />
-        <dynadrill-input label="Persona de contacto" placeholder="Nombre del contacto en base" [value]="commContactPerson()" (valueChange)="commContactPerson.set($event)" />
-        <dynadrill-input label="Detalles del contacto" placeholder="Ej. Teléfono, radio" [value]="commContactDetails()" (valueChange)="commContactDetails.set($event)" />
+        <dynadrill-input class="gv-dialog__full" label="Datos pernoctación" placeholder="Domicilio, teléfono, etc." [value]="routeOvernightDetails()" (valueChange)="routeOvernightDetails.set($event)" />
+        <dynadrill-input class="gv-dialog__full" label="Frecuencia del contacto" placeholder="Ej. Cada 2 horas" [value]="commFrequency()" (valueChange)="commFrequency.set($event)" />
+        <dynadrill-input class="gv-dialog__full" label="Persona de contacto" placeholder="Nombre del contacto en base" [value]="commContactPerson()" (valueChange)="commContactPerson.set($event)" />
+        <dynadrill-input class="gv-dialog__full" label="Detalles del contacto" placeholder="Ej. Teléfono, radio" [value]="commContactDetails()" (valueChange)="commContactDetails.set($event)" />
       </div>
     </section>
   }

@@ -75,6 +75,7 @@ const VEHICLE_TYPE_OPTIONS: DynadrillSelectOption[] = [
     DynadrillIconComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'app-dialog-fullscreen-mobile' },
   templateUrl: './gerenciamiento-viaje-dialog.html',
   styleUrl: './gerenciamiento-viaje-dialog.scss',
 })
@@ -149,6 +150,14 @@ export class GerenciamientoViajeDialog {
       },
     });
   }
+
+  /** Cabecera móvil con la context-card nueva (variant="card"): ticket y tipo de viaje agrupados. */
+  protected readonly headerGroups = computed<DynadrillContextCardItem[][]>(() => [
+    [
+      { label: 'Ticket', value: this.ticketCode() || '—', icon: 'file-text' },
+      { label: 'Tipo de viaje', value: this.tipoLabel, icon: 'tool', badgeVariant: 'brand' },
+    ],
+  ]);
 
   protected readonly headerItems = computed<DynadrillContextCardItem[]>(() => [
     { label: 'Documento', value: 'DYN-SGI-RE-049' },

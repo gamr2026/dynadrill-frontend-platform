@@ -12,6 +12,8 @@ export interface MovimientoDialogData {
 
 @Component({
   selector: 'app-movimiento-dialog',
+  /** Bottom sheet en móvil (Overlay/BottomSheet en Figma) — ver styles.scss. */
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [DynadrillInputComponent, DynadrillTextareaComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './movimiento-dialog.html',

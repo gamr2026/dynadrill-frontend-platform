@@ -45,6 +45,7 @@ const SPECIALTY_OPTIONS: DynadrillSelectOption[] = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './user-form-dialog.html',
   styleUrl: './user-form-dialog.scss',
+  host: { class: 'app-dialog-fullscreen-mobile' },
 })
 export class UserFormDialog {
   private readonly fb = inject(FormBuilder);

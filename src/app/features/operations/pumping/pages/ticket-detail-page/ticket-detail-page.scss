@@ -10,13 +10,6 @@
 // ── Pedido vinculado (paso 1) y acordeón de checklists (step de llegada) ──
 // `.dyn-pedido-card*`, `.dyn-accordion*` — global, ver src/styles.scss.
 
-// ── Stepper custom con leyenda ──
-//
-// Mismo tratamiento que el tracker de fases de FCR (fcr-detail__tracker):
-// mobile first, con hasta 11 pasos el tronco completo no entra en una fila
-// sin achicar el texto a ilegible — scroll horizontal con snap por paso, el
-// paso activo se centra solo al cargar (ver afterRenderEffect en el .ts).
-
 .ticket-detail__toolbar {
   display: flex;
   justify-content: flex-end;
@@ -24,106 +17,23 @@
   margin-top: 0.75rem;
 }
 
-.ticket-detail__stepper {
-  display: flex;
-  align-items: flex-start;
-  margin: 1.5rem 0 0.5rem;
-  padding: 0.25rem 0.125rem 0.5rem;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x proximity;
-
-  @media (max-width: 480px) {
-    padding-right: 45%;
-  }
-}
-
-// <button> ahora, no <div> — clickeable para ver el detalle de ese paso.
-.ticket-detail__step {
-  border: none;
-  background: none;
-  padding: 0;
-  font: inherit;
-  cursor: pointer;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex-shrink: 0;
-  width: 5.5rem;
-  scroll-snap-align: center;
-
-  @media (max-width: 480px) { width: 4.25rem; }
-}
-
-.ticket-detail__step-circle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 1px solid var(--color-border, #d9d9d9);
-  background: #fff;
-  color: rgba(0,0,0,0.45);
-  font-size: 12px;
-  font-family: var(--font-body, sans-serif);
-  transition: all 0.2s;
-
-  .ticket-detail__step--active & {
-    background: var(--dynadrill-purple, #662e9b);
-    border-color: var(--dynadrill-purple, #662e9b);
-    color: #fff;
-  }
-
-  .ticket-detail__step--completed & {
-    border-color: var(--dynadrill-purple, #662e9b);
-    background: #fff;
-    color: var(--dynadrill-purple, #662e9b);
-  }
-}
-
-.ticket-detail__step-check {
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.ticket-detail__step-label {
-  margin-top: 0.375rem;
-  font-size: 0.6875rem;
-  text-align: center;
-  color: rgba(0,0,0,0.55);
-  line-height: 1.2;
-
-  .ticket-detail__step--active & {
-    color: var(--dynadrill-purple, #662e9b);
-    font-weight: 600;
-  }
-
-  @media (max-width: 480px) {
-    font-size: 0.625rem;
-  }
-}
-
-.ticket-detail__step-line {
-  flex: 1;
-  height: 1px;
-  min-width: 12px;
-  margin-top: 12px;
-  background: var(--color-border, #d9d9d9);
-  transition: background 0.2s;
-
-  &--completed {
-    background: var(--dynadrill-purple, #662e9b);
-  }
-
-  @media (max-width: 480px) {
-    min-width: 8px;
-  }
-}
-
 .ticket-detail__section {
-  margin-top: 2rem;
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: 0.75rem;
+  background: var(--surface, #fff);
+
+  // Una sección dentro de otra no repite la tarjeta.
+  & & {
+    margin-top: 1rem;
+    padding: 0;
+    border: none;
+  }
+
+  .dyn-detail-layout__main > &:first-child {
+    margin-top: 0;
+  }
 
   dynadrill-text {
     margin-bottom: 0.75rem;
@@ -168,6 +78,45 @@
   margin-top: 2rem;
   padding-top: 1.5rem;
   border-top: 1px solid var(--border-color, #e0e0e0);
+}
+
+// Móvil: sin el padding propio (el shell ya da 16px) y con las acciones del
+// paso fijas abajo, a ancho completo (M · Ticket Pumping en Figma).
+@media (max-width: 840px) {
+  :host {
+    padding: 0;
+  }
+
+  .ticket-detail__toolbar {
+    justify-content: stretch;
+
+    > dynadrill-button {
+      flex: 1;
+    }
+  }
+
+  .ticket-detail__section {
+    padding: 1rem;
+  }
+
+  .ticket-detail__actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    gap: 0.5rem;
+    margin: 1.5rem -16px -16px;
+    padding: 12px 16px;
+    background: var(--surface, #fff);
+
+    > dynadrill-button {
+      flex: 1;
+
+      ::ng-deep .ant-btn {
+        width: 100%;
+        height: 48px;
+      }
+    }
+  }
 }
 
 .ticket-detail__hubodometro {

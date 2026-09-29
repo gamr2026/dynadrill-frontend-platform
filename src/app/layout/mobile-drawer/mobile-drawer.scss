@@ -1,0 +1,163 @@
+// Solo existe en móvil — en desktop el sidebar permanente cumple esta función.
+:host {
+  display: none;
+
+  @media (max-width: 840px) {
+    display: contents;
+  }
+}
+
+.mobile-drawer__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(19, 21, 41, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.mobile-drawer__panel {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 320px;
+  max-width: 85vw;
+  padding: 24px 16px 24px;
+  border-radius: 0 var(--radius-lg, 16px) var(--radius-lg, 16px) 0;
+  background: var(--dynadrill-navy, #131529);
+  color: var(--dynadrill-white, #fff);
+  overflow-y: auto;
+  transform: translateX(-100%);
+  transition: transform 0.2s ease;
+  box-shadow: var(--shadow-overlay, 0 12px 32px rgba(19, 21, 41, 0.2));
+}
+
+:host(.mobile-drawer--open) {
+  .mobile-drawer__backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .mobile-drawer__panel {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-drawer__backdrop,
+  .mobile-drawer__panel {
+    transition: none;
+  }
+}
+
+.mobile-drawer__profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px 16px;
+}
+
+.mobile-drawer__identity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mobile-drawer__name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.mobile-drawer__role {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.mobile-drawer__nav {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mobile-drawer__item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: var(--radius-full, 9999px);
+  color: var(--dynadrill-white, #fff);
+  font-size: 15px;
+  text-decoration: none;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--dynadrill-white, #fff);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--dynadrill-white, #fff);
+    outline-offset: 2px;
+  }
+
+  &--active {
+    background: var(--dynadrill-purple, #662e9b);
+    font-weight: 700;
+
+    &:hover {
+      background: var(--dynadrill-purple, #662e9b);
+    }
+  }
+}
+
+.mobile-drawer__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+}
+
+.mobile-drawer__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  border: none;
+  border-radius: var(--radius-sm, 8px);
+  color: var(--dynadrill-white, #fff);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--dynadrill-white, #fff);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: progress;
+    opacity: 0.8;
+  }
+
+  &--danger {
+    // Rojo oscuro (ant red-7), no --error: con texto blanco --error (#ff4d4f) no llega a 4.5:1 (WCAG AA).
+    background: #cf1322;
+  }
+
+  &--primary {
+    background: var(--dynadrill-purple, #662e9b);
+  }
+
+  ::ng-deep .dynadrill-spinner--standalone {
+    padding: 0;
+  }
+}

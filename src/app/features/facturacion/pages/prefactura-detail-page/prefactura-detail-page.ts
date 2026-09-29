@@ -25,7 +25,7 @@ import { RespuestaClienteDialog, RespuestaClienteDialogData } from '../../compon
 import { GuiaRemisionPdfDialog, GuiaRemisionPdfDialogData } from '../../components/guia-remision-pdf-dialog';
 import { AotGenerarDialog, AotGenerarDialogData } from '../../components/aot-generar-dialog';
 import { EditarRepresentantesDialog, EditarRepresentantesDialogData } from '../../components/editar-representantes-dialog';
-import { DetailHeaderService } from '../../../../layout/detail-header.service';
+import { useDetailChrome } from '../../../../layout/page-chrome.service';
 
 interface Dato {
   label: string;
@@ -77,7 +77,6 @@ export class PrefacturaDetailPage {
   private readonly aotService = inject(AotService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
-  private readonly detailHeader = inject(DetailHeaderService);
 
   private readonly prefacturaId = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -187,19 +186,19 @@ export class PrefacturaDetailPage {
 
     // Barra "Detail" del header (Figma Nav/TopAppBar, solo móvil) — el título
     // pasa a la barra y las acciones de página quedan también en el "⋮".
-    effect(() => {
-      const pf = this.prefactura();
-      if (!pf) return;
-      this.detailHeader.set({
-        title: pf.code,
-        menuItems: [
+    useDetailChrome(
+      () => this.prefactura()?.code ?? 'Prefactura',
+      '/dashboard/facturacion/prefacturas',
+      () => {
+        const pf = this.prefactura();
+        if (!pf) return [];
+        return [
           { label: 'Ir al pedido', action: () => this.irAlPedido() },
           { label: 'Ver / Imprimir PDF', action: () => this.verPdf() },
           ...(pf.estado === 'firmada' ? [{ label: 'Exportar a AS2', action: () => this.exportarAs2() }] : []),
-        ],
-      });
-    });
-    inject(DestroyRef).onDestroy(() => this.detailHeader.clear());
+        ];
+      },
+    );
   }
 
   private reload(): void {

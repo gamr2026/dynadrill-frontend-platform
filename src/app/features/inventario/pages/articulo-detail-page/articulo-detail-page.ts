@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   DynadrillButtonComponent,
@@ -7,7 +8,9 @@ import {
   DynadrillDataTableComponent,
   DynadrillDialogService,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
+  DynadrillIconButtonComponent,
+  DynadrillIconComponent,
+  DynadrillTagComponent,
   DynadrillTagVariant,
   type DynadrillContextCardItem,
 } from '@digitec-it-projects/dynadrill-ui';
@@ -19,6 +22,9 @@ import { ArticuloParte } from '../../models/articulo-parte.model';
 import { ArticuloFormDialog, ArticuloFormDialogData } from '../../components/articulo-form-dialog';
 import { MovimientoDialog, MovimientoDialogData } from '../../components/movimiento-dialog';
 import { ArticuloParteFormDialog, ArticuloParteFormDialogData } from '../../components/articulo-parte-form-dialog';
+import { injectNarrowViewport } from '../../../../core/utils/narrow-viewport.util';
+import { useDetailChrome } from '../../../../layout/page-chrome.service';
+import { PageHeader } from '../../../../shared/components/page-header/page-header';
 
 const TIPO_TONE: Record<MovimientoInventario['tipo'], DynadrillTagVariant> = {
   entrada: 'success',
@@ -36,7 +42,11 @@ const CATEGORIAS_CON_PARTES = new Set(['HERRAMIENTAS', 'FISHING & TOOLS']);
 @Component({
   selector: 'app-articulo-detail-page',
   imports: [
-    DynadrillScreenHeaderComponent,
+    NgTemplateOutlet,
+    PageHeader,
+    DynadrillIconButtonComponent,
+    DynadrillIconComponent,
+    DynadrillTagComponent,
     DynadrillButtonComponent,
     DynadrillContextCardComponent,
     DynadrillDataTableComponent,
@@ -55,6 +65,9 @@ export class ArticuloDetailPage {
   private readonly notify = inject(DynadrillNotificationService);
 
   private readonly articuloId = Number(this.route.snapshot.paramMap.get('id'));
+
+  /** Móvil: kardex y partes como listas en vez de tablas (M · Artículos · Detalle en Figma). */
+  protected readonly isMobile = injectNarrowViewport();
 
   protected readonly loading = signal(true);
   protected readonly articulo = signal<Articulo | null>(null);
@@ -124,6 +137,8 @@ export class ArticuloDetailPage {
   protected readonly partesRowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   constructor() {
+    // Móvil: barra "← código" (Nav/TopAppBar Type=Detail) en vez de hamburguesa + logo.
+    useDetailChrome(() => this.articulo()?.codigo ?? 'Artículo', '/dashboard/inventario/articulos');
     if (Number.isNaN(this.articuloId)) {
       this.notify.error('Error', 'El artículo solicitado no es válido.');
       this.router.navigate(['/dashboard/inventario/articulos']);

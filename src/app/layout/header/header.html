@@ -1,19 +1,21 @@
-<header class="app-header" [class.app-header--detail]="detail.config()">
-  @if (detail.config(); as d) {
-    <!-- Barra "Detail" (Figma Nav/TopAppBar): solo móvil, ver header.scss — reemplaza la barra "Home" de abajo. -->
-    <button type="button" class="app-header__back" aria-label="Volver" (click)="goBack()">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-      </svg>
-    </button>
-    <h1 class="app-header__detail-title">{{ d.title }}</h1>
+<header class="app-header" [class.app-header--detail]="detail()">
+  @if (detail(); as d) {
+    @if (d.backLink) {
+      <a class="app-header__back" [routerLink]="d.backLink" aria-label="Volver">
+        <dynadrill-icon name="arrow-left" [size]="24" />
+      </a>
+    } @else {
+      <button type="button" class="app-header__back" aria-label="Volver" (click)="goBack()">
+        <dynadrill-icon name="arrow-left" [size]="24" />
+      </button>
+    }
+    <span class="app-header__detail-title">{{ d.title }}</span>
     @if (d.menuItems?.length) {
       <button type="button" class="app-header__detail-menu" nz-dropdown [nzDropdownMenu]="detailMenu" nzTrigger="click" nzPlacement="bottomRight" aria-label="Más acciones">
         <dynadrill-icon name="more" [size]="20" />
       </button>
       <nz-dropdown-menu #detailMenu="nzDropdownMenu">
-        <ul nz-menu class="app-header__detail-menu-list">
+        <ul nz-menu>
           @for (item of d.menuItems; track item.label) {
             <li nz-menu-item [nzDanger]="!!item.danger" (click)="item.action()">{{ item.label }}</li>
           }
@@ -21,27 +23,33 @@
       </nz-dropdown-menu>
     }
   }
-
-  <button type="button" class="app-header__menu-toggle" aria-label="Abrir/cerrar menú" (click)="sidebarState.toggle()">
+  <button
+    type="button"
+    class="app-header__menu-toggle"
+    aria-label="Abrir menú de módulos"
+    aria-controls="mobile-drawer"
+    [attr.aria-expanded]="sidebarState.open()"
+    (click)="sidebarState.toggle()"
+  >
     <span></span>
     <span></span>
     <span></span>
   </button>
   <img class="app-header__logo" src="/brand/dynadrill-logo.svg" alt="Dynadrill" />
   <div class="app-header__spacer"></div>
-  <dynadrill-button class="app-header__reportar-btn" variant="error" size="small" (clicked)="openReportar()">
+  <dynadrill-button class="app-header__reportar-btn" variant="error" size="small" (clicked)="actions.openReportar()">
     <dynadrill-icon name="alert" [size]="14" />
     Reportar
   </dynadrill-button>
   <dynadrill-notification-bell class="app-header__bell" [items]="notificationItems()" (itemClick)="onNotificationClick($event)" />
-  <dynadrill-button class="app-header__logout-btn" variant="secondary" size="small" [disabled]="loggingOut()" (clicked)="logout()">
+  <dynadrill-button class="app-header__logout-btn" variant="secondary" size="small" [disabled]="actions.loggingOut()" (clicked)="actions.logout()">
     <span class="app-header__logout">
-      @if (loggingOut()) {
+      @if (actions.loggingOut()) {
         <dynadrill-spinner size="sm" />
       } @else {
         <dynadrill-icon name="logout" [size]="14" />
       }
-      {{ loggingOut() ? 'Cerrando sesión…' : 'Cerrar sesión' }}
+      {{ actions.loggingOut() ? 'Cerrando sesión…' : 'Cerrar sesión' }}
     </span>
   </dynadrill-button>
 </header>

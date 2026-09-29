@@ -5,19 +5,23 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Header } from '../header/header';
 import { Sidebar } from '../sidebar/sidebar';
 import { Footer } from '../footer/footer';
-import { BottomNav } from '../bottom-nav/bottom-nav';
 import { SidebarStateService } from '../sidebar-state.service';
+import { MobileDrawer } from '../mobile-drawer/mobile-drawer';
+import { BottomNav } from '../bottom-nav/bottom-nav';
+import { PageChromeService } from '../page-chrome.service';
 import { QhseAvisosFeederService } from '../../core/services/qhse-avisos-feeder.service';
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, Header, Sidebar, Footer, BottomNav],
+  imports: [RouterOutlet, Header, Sidebar, Footer, MobileDrawer, BottomNav],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
 })
 export class Shell {
-  protected readonly sidebarState = inject(SidebarStateService);
+  private readonly sidebarState = inject(SidebarStateService);
+  /** Las pantallas de detalle ocultan la navegación inferior en móvil (ver PageChromeService). */
+  protected readonly detail = inject(PageChromeService).detail;
 
   /**
    * Indicador global de navegación — sin esto, cambiar a una ruta lazy
@@ -41,8 +45,8 @@ export class Shell {
       else if (e instanceof NavigationEnd || e instanceof NavigationCancel || e instanceof NavigationError) this.navigating.set(false);
     });
 
-    // dynadrill-menu no expone un evento de click en sus links — cerrar por
-    // NavigationEnd cubre igual los clicks y el botón atrás/adelante del navegador.
+    // Cerrar el drawer móvil por NavigationEnd cubre igual los clicks y el
+    // botón atrás/adelante del navegador.
     router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd),
       takeUntilDestroyed(),

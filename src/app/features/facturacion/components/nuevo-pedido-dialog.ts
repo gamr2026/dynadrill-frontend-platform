@@ -157,7 +157,7 @@ export interface NuevoPedidoDialogData {
   templateUrl: './nuevo-pedido-dialog.html',
   styleUrl: './nuevo-pedido-dialog.scss',
   // Marca para styles.scss: en móvil el diálogo se abre a pantalla completa (Figma "Nuevo pedido").
-  host: { 'data-full-screen': '' },
+  host: { class: 'app-dialog-fullscreen-mobile' },
 })
 export class NuevoPedidoDialog {
   private readonly pedidoService = inject(PedidoService);

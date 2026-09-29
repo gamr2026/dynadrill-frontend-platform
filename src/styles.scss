@@ -316,24 +316,144 @@ body {
   background: transparent;
 }
 
-// Diálogos marcados con [data-bottom-sheet] (Reportar, filtros de Pedidos…) como bottom sheet en móvil (Figma):
-// anclado abajo, ancho completo, esquinas superiores redondeadas. :has() acota el
-// cambio a esos diálogos — el resto de modales conserva su posición centrada.
+/**
+ * Diálogos en móvil (Figma: Overlay/BottomSheet y formularios a pantalla
+ * completa). `DynadrillDialogService` siempre usa el mismo wrapClassName
+ * (`dynadrill-dialog`), así que cada contenido elige su presentación con una
+ * clase en su host y acá se estiliza el overlay con `:has()` — global porque
+ * el overlay vive fuera del árbol de plantilla del componente. Un diálogo
+ * sin ninguna de las dos clases se sigue viendo como modal centrado.
+ */
 @media (max-width: 840px) {
-  .ant-modal:has([data-bottom-sheet]) {
-    position: fixed;
-    top: auto;
-    bottom: 0;
-    left: 0;
-    width: 100% !important;
-    max-width: 100vw;
-    margin: 0;
-    padding: 0;
+  .dynadrill-dialog:has(.app-dialog-fullscreen-mobile) {
+    .ant-modal {
+      top: 0;
+      width: 100vw !important;
+      max-width: 100vw;
+      margin: 0;
+      padding: 0;
+    }
 
     .ant-modal-content {
-      border-radius: 16px 16px 0 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+      border-radius: 0;
+    }
+
+    // Nav/TopAppBar Type=Detail: cerrar a la izquierda del título, sobre fondo claro.
+    .ant-modal-header {
+      padding: 20px 16px 20px 64px;
+      border-radius: 0;
+      background: var(--surface, #fff);
+      border-bottom: 1px solid var(--border, #e5e4ea);
+
+      .ant-modal-title {
+        color: var(--dynadrill-navy, #131529);
+      }
+    }
+
+    .ant-modal-close {
+      left: 8px;
+      right: auto;
+      color: var(--dynadrill-navy, #131529);
+    }
+
+    .ant-modal-body {
+      flex: 1;
+      padding: 16px;
+      background: var(--surface-muted, #faf9fc);
+    }
+  }
+
+  .dynadrill-dialog:has(.app-dialog-sheet-mobile) {
+    display: flex;
+    align-items: flex-end;
+
+    .ant-modal {
+      top: 0;
+      width: 100vw !important;
+      max-width: 100vw;
+      margin: 0;
+      padding: 0;
+    }
+
+    .ant-modal-content {
+      max-height: 90dvh;
+      overflow-y: auto;
+      border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
       padding-bottom: env(safe-area-inset-bottom, 0);
     }
+
+    // Encabezado navy de marca (el de todos los diálogos, ver _tokens.less de
+    // dynadrill-ui) — solo cambian las esquinas y el asa de arrastre.
+    .ant-modal-header {
+      position: relative;
+      padding: 28px 56px 16px 16px;
+      border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
+
+      // Asa de arrastre del sheet (solo visual).
+      &::before {
+        content: '';
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        width: 32px;
+        height: 4px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.4);
+        transform: translateX(-50%);
+      }
+    }
+
+    .ant-modal-close {
+      top: 18px;
+    }
+  }
+}
+
+/**
+ * Layout de pantallas de detalle: contenido a la izquierda y un panel
+ * lateral a la derecha — "Avance del ticket" en Pumping/FCR, "Datos del
+ * artículo" en Inventario (D · Ticket Pumping / D · Artículos · Detalle en
+ * Figma). En pantallas angostas, una sola columna con el panel arriba.
+ * Global porque lo comparten varias páginas, dos de ellas cerca del budget
+ * de `anyComponentStyle` (mismo motivo que `.dyn-pedido-card`).
+ */
+.dyn-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.dyn-detail-layout__main {
+  grid-row: 1;
+  grid-column: 1;
+  min-width: 0;
+}
+
+.dyn-detail-layout__aside {
+  grid-row: 1;
+  grid-column: 2;
+  position: sticky;
+  top: 0;
+}
+
+@media (max-width: 1100px) {
+  .dyn-detail-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .dyn-detail-layout__aside {
+    position: static;
+    grid-column: 1;
+  }
+
+  .dyn-detail-layout__main {
+    grid-row: 2;
   }
 }
 
@@ -363,59 +483,8 @@ body {
   }
 }
 
-// Diálogos con [data-full-screen] (Nuevo pedido…) ocupan toda la pantalla en móvil:
-// barra superior blanca con la X a la izquierda y cuerpo con scroll propio (Figma).
-@media (max-width: 840px) {
-  .ant-modal:has([data-full-screen]) {
-    position: fixed;
-    inset: 0;
-    top: 0;
-    width: 100% !important;
-    max-width: 100vw;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-
-    .ant-modal-content {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      border-radius: 0;
-    }
-
-    .ant-modal-header {
-      display: flex;
-      align-items: center;
-      min-height: 64px;
-      padding: 0 16px 0 64px;
-      border-bottom: 1px solid var(--border, #e5e4ea);
-      background: var(--surface, #fff);
-    }
-
-    .ant-modal-title {
-      font-size: 18px;
-      font-weight: 500;
-      color: var(--text, #2c2b35);
-    }
-
-    .ant-modal-close {
-      top: 8px;
-      right: auto;
-      left: 8px;
-      color: var(--text, #2c2b35);
-    }
-
-    .ant-modal-body {
-      flex: 1 1 auto;
-      overflow-y: auto;
-      padding: 0;
-      background: var(--surface-muted, #faf9fc);
-    }
-  }
-}
-
 // Páginas de detalle con barra "Detail" en el header móvil (ver
-// layout/detail-header.service.ts): el título ya vive en esa barra, así que
+// layout/page-chrome.service.ts): el título ya vive en esa barra, así que
 // el <dynadrill-screen-header> con esta clase esconde su título bajo 840px
 // (mantiene eyebrow + subtitle). En escritorio no cambia nada.
 @media (max-width: 840px) {

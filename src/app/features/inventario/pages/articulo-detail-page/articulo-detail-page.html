@@ -1,51 +1,99 @@
 @if (loading()) {
   <p class="articulo-detail-page__loading">Cargando artículo…</p>
 } @else if (articulo(); as a) {
-  <dynadrill-screen-header [eyebrow]="a.codigo" [title]="a.nombre" [subtitle]="a.categoria + ' — ' + a.subcategoria" [roleTag]="a.activo ? 'Activo' : 'Inactivo'" />
-
-  <dynadrill-button variant="secondary" size="small" (clicked)="back()">← Volver a Artículos</dynadrill-button>
-
-  <dynadrill-context-card [items]="contextItems()" layout="vertical" />
-
-  <section class="articulo-detail-page__actions">
-    <dynadrill-button (clicked)="registrarMovimiento()">+ Registrar movimiento</dynadrill-button>
-    <dynadrill-button variant="secondary" (clicked)="editar()">Editar</dynadrill-button>
-  </section>
-
-  <section class="articulo-detail-page__kardex">
-    <h3 class="articulo-detail-page__kardex-title">Kardex de movimientos</h3>
-    @if (kardexRows().length > 0) {
-      <dynadrill-data-table [columns]="kardexColumns" [rows]="kardexRows()" [rowKey]="kardexRowKeyFn" [pageSize]="10" />
-    } @else {
-      <p class="articulo-detail-page__empty">Sin movimientos registrados todavía.</p>
+  <app-page-header [eyebrow]="a.codigo" [title]="a.nombre" [subtitle]="a.categoria + ' — ' + a.subcategoria">
+    @if (!isMobile()) {
+      <dynadrill-button actions variant="secondary" (clicked)="back()">
+        <dynadrill-icon name="arrow-left" [size]="16" />
+        Volver a Artículos
+      </dynadrill-button>
     }
-  </section>
+    <dynadrill-button actions variant="secondary" (clicked)="editar()">
+      <dynadrill-icon name="edit" [size]="16" />
+      Editar
+    </dynadrill-button>
+    <dynadrill-button actions (clicked)="registrarMovimiento()">
+      <dynadrill-icon name="add" [size]="16" />
+      Registrar movimiento
+    </dynadrill-button>
+  </app-page-header>
 
-  @if (esHerramienta()) {
-    <section class="articulo-detail-page__partes">
-      <div class="articulo-detail-page__partes-header">
-        <h3 class="articulo-detail-page__partes-title">Partes</h3>
-        <dynadrill-button size="small" (clicked)="nuevaParte()">+ Agregar parte</dynadrill-button>
-      </div>
+  <div class="dyn-detail-layout">
+    <aside class="dyn-detail-layout__aside articulo-detail-page__aside">
+      <dynadrill-tag [label]="a.activo ? 'Activo' : 'Inactivo'" [variant]="a.activo ? 'success' : 'neutral'" />
+      <section class="articulo-detail-page__card" aria-labelledby="articulo-datos">
+        <h2 class="articulo-detail-page__card-title" id="articulo-datos">Datos del artículo</h2>
+        <dynadrill-context-card [items]="contextItems()" layout="vertical" />
+      </section>
+    </aside>
 
-      <ng-template #partesActionsTpl let-row>
-        <div class="dyn-actions-row">
-          <dynadrill-button variant="secondary" size="small" (clicked)="editarParte(row)">Editar</dynadrill-button>
-          <dynadrill-button variant="secondary" size="small" (clicked)="eliminarParte(row)">Eliminar</dynadrill-button>
-        </div>
-      </ng-template>
+    <div class="dyn-detail-layout__main articulo-detail-page__main">
+      <section class="articulo-detail-page__card" aria-labelledby="articulo-kardex">
+        <h2 class="articulo-detail-page__card-title" id="articulo-kardex">Kardex de movimientos</h2>
+        @if (kardexRows().length === 0) {
+          <p class="articulo-detail-page__empty">Sin movimientos registrados todavía.</p>
+        } @else if (isMobile()) {
+          <ul class="articulo-detail-page__list">
+            @for (m of kardexRows(); track m.id) {
+              <li class="articulo-detail-page__list-item">
+                <div class="articulo-detail-page__list-body">
+                  <span class="articulo-detail-page__accent">{{ m.fecha }}</span>
+                  <strong>{{ m.motivo }}</strong>
+                  <span class="articulo-detail-page__meta">{{ m.responsable }} · Saldo {{ m.saldoResultante }}</span>
+                  <dynadrill-tag [label]="m.tipoBadge.text" [variant]="m.tipoBadge.tone" />
+                </div>
+                <span class="articulo-detail-page__qty">{{ m.cantidad }}</span>
+              </li>
+            }
+          </ul>
+        } @else {
+          <dynadrill-data-table [columns]="kardexColumns" [rows]="kardexRows()" [rowKey]="kardexRowKeyFn" [pageSize]="10" />
+        }
+      </section>
 
-      @if (partesRows().length > 0) {
-        <dynadrill-data-table
-          [columns]="partesColumns"
-          [rows]="partesRows()"
-          [rowKey]="partesRowKeyFn"
-          [pageSize]="10"
-          [actionsTemplate]="partesActionsTpl"
-        />
-      } @else if (!loadingPartes()) {
-        <p class="articulo-detail-page__empty">Sin partes registradas todavía.</p>
+      @if (esHerramienta()) {
+        <section class="articulo-detail-page__card" aria-labelledby="articulo-partes">
+          <h2 class="articulo-detail-page__card-title" id="articulo-partes">Partes</h2>
+          <dynadrill-button class="articulo-detail-page__add" variant="secondary" (clicked)="nuevaParte()">
+            <dynadrill-icon name="add" [size]="16" />
+            Agregar parte
+          </dynadrill-button>
+
+          <ng-template #partesActionsTpl let-row>
+            <div class="dyn-actions-row">
+              <dynadrill-icon-button icon="edit" [tooltip]="'Editar ' + row.descripcion" (clicked)="editarParte(row)" />
+              <dynadrill-icon-button icon="delete" [tooltip]="'Eliminar ' + row.descripcion" (clicked)="eliminarParte(row)" />
+            </div>
+          </ng-template>
+
+          @if (partesRows().length === 0) {
+            @if (!loadingPartes()) {
+              <p class="articulo-detail-page__empty">Sin partes registradas todavía.</p>
+            }
+          } @else if (isMobile()) {
+            <ul class="articulo-detail-page__list">
+              @for (p of partesRows(); track p.id) {
+                <li class="articulo-detail-page__list-item">
+                  <div class="articulo-detail-page__list-body">
+                    <span class="articulo-detail-page__accent">{{ p.item }}</span>
+                    <strong>{{ p.descripcion }}</strong>
+                    <span class="articulo-detail-page__meta">{{ p.codigo }} · Cantidad esperada {{ p.cantidadEsperada }}</span>
+                  </div>
+                  <ng-container [ngTemplateOutlet]="partesActionsTpl" [ngTemplateOutletContext]="{ $implicit: p }" />
+                </li>
+              }
+            </ul>
+          } @else {
+            <dynadrill-data-table
+              [columns]="partesColumns"
+              [rows]="partesRows()"
+              [rowKey]="partesRowKeyFn"
+              [pageSize]="10"
+              [actionsTemplate]="partesActionsTpl"
+            />
+          }
+        </section>
       }
-    </section>
-  }
+    </div>
+  </div>
 }

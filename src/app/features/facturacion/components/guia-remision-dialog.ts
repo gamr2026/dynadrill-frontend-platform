@@ -35,7 +35,7 @@ interface ItemDraft {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './guia-remision-dialog.html',
   styleUrl: './guia-remision-dialog.scss',
-  host: { 'data-bottom-sheet': '' },
+  host: { class: 'app-dialog-sheet-mobile' },
 })
 export class GuiaRemisionDialog {
   private readonly guiaService = inject(GuiaRemisionService);

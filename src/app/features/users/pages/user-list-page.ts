@@ -4,19 +4,42 @@ import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
+  DynadrillEmptyStateComponent,
+  DynadrillIconButtonComponent,
   DynadrillIconComponent,
   DynadrillNotificationService,
-  DynadrillSpinnerComponent,
-  DynadrillTextComponent,
+  DynadrillSkeletonComponent,
 } from '@digitec-it-projects/dynadrill-ui';
 import { forkJoin } from 'rxjs';
+import { injectNarrowViewport } from '../../../core/utils/narrow-viewport.util';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
+import { SearchField } from '../../../shared/components/search-field/search-field';
+import { EntityCard } from '../../../shared/components/entity-card/entity-card';
+import { ListPager } from '../../../shared/components/list-pager/list-pager';
+import type { RecordAction } from '../../../shared/components/record-card/record-card';
+import { createPagination } from '../../../shared/utils/pagination.util';
 import { UserFormDialog, UserFormDialogData } from '../components/user-form-dialog';
+import { UserRow, matchesUserQuery, toUserRows } from '../models/user-row.model';
 import { Role, User } from '../models/user.model';
 import { RolesService, UsersService } from '../services/users.service';
 
+/** Mismo tamaño de página en la tabla (escritorio) y en las tarjetas (móvil). */
+const PAGE_SIZE = 10;
+
 @Component({
   selector: 'app-user-list-page',
-  imports: [DynadrillTextComponent, DynadrillButtonComponent, DynadrillDataTableComponent, DynadrillIconComponent, DynadrillSpinnerComponent],
+  imports: [
+    PageHeader,
+    SearchField,
+    EntityCard,
+    ListPager,
+    DynadrillButtonComponent,
+    DynadrillDataTableComponent,
+    DynadrillEmptyStateComponent,
+    DynadrillIconButtonComponent,
+    DynadrillIconComponent,
+    DynadrillSkeletonComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './user-list-page.html',
   styleUrl: './user-list-page.scss',
@@ -27,44 +50,62 @@ export class UserListPage {
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
 
+  protected readonly isMobile = injectNarrowViewport();
+  protected readonly pageSize = PAGE_SIZE;
+
   protected readonly loading = signal(true);
-  protected readonly users = signal<User[]>([]);
-  protected readonly roles = signal<Role[]>([]);
+  private readonly users = signal<User[]>([]);
+  private readonly roles = signal<Role[]>([]);
+  protected readonly query = signal('');
 
   protected readonly columns: DynadrillDataTableColumn[] = [
-    { key: 'name', header: 'Nombre', sortable: true, searchable: true },
-    { key: 'username', header: 'Usuario', sortable: true, searchable: true },
-    { key: 'email', header: 'Correo', searchable: true },
-    { key: 'cargo', header: 'Cargo', searchable: true },
-    { key: 'departamento', header: 'Departamento', searchable: true },
-    { key: 'cedula', header: 'Cédula' },
-    { key: 'phone', header: 'Teléfono' },
-    { key: 'role', header: 'Rol', type: 'badge' },
+    { key: 'name', header: 'Nombre', sortable: true },
+    { key: 'username', header: 'Usuario', sortable: true },
+    { key: 'email', header: 'Correo' },
+    { key: 'cargo', header: 'Cargo' },
+    { key: 'roleBadge', header: 'Rol', type: 'badge' },
     { key: 'statusBadge', header: 'Estado', type: 'badge' },
   ];
 
-  protected readonly rows = computed(() => {
-    const roleById = new Map(this.roles().map(r => [r.id, r.name]));
-    return this.users().map(user => ({
-      id: user.id,
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      cargo: user.cargo ?? '—',
-      departamento: user.departamento ?? '—',
-      cedula: user.cedula ?? '—',
-      phone: user.phone,
-      role: { text: roleById.get(user.roleId) ?? '—', tone: 'brand' as const },
-      statusBadge: user.status
-        ? { text: 'Activo', tone: 'success' as const }
-        : { text: 'Inactivo', tone: 'neutral' as const },
-    }));
-  });
+  protected readonly rows = computed(() =>
+    toUserRows(this.users(), this.roles()).filter(row => matchesUserQuery(row, this.query())),
+  );
+
+  protected readonly tableRows = computed(() =>
+    this.rows().map(row => ({
+      ...row,
+      roleBadge: { text: row.role, tone: 'brand' as const },
+      statusBadge: row.active ? { text: 'Activo', tone: 'success' as const } : { text: 'Inactivo', tone: 'neutral' as const },
+    })),
+  );
+
+  /** Tarjetas en móvil (M · Usuarios · Lista en Figma). */
+  protected readonly cards = computed(() =>
+    this.rows().map(row => ({
+      id: row.id,
+      title: row.name,
+      lines: [`${row.username} · ${row.email}`, `${row.cargo} · ${row.departamento}`],
+      tags: [
+        { text: row.role, tone: 'brand' as const },
+        row.active ? { text: 'Activo', tone: 'success' as const } : { text: 'Inactivo', tone: 'neutral' as const },
+      ],
+      actions: [
+        { icon: 'edit', label: `Editar a ${row.name}`, run: () => this.editUser(row) },
+        { icon: 'delete', label: `Eliminar a ${row.name}`, run: () => this.deleteUser(row) },
+      ] as RecordAction[],
+    })),
+  );
+  protected readonly pagination = createPagination(this.cards, PAGE_SIZE);
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   constructor() {
     this.reload();
+  }
+
+  protected onQueryChange(query: string): void {
+    this.query.set(query);
+    this.pagination.reset();
   }
 
   private reload(): void {
@@ -86,8 +127,8 @@ export class UserListPage {
     this.openUserFormDialog();
   }
 
-  editRow(row: Record<string, unknown>): void {
-    this.openUserFormDialog(row['id'] as number);
+  editUser(user: Pick<UserRow, 'id'>): void {
+    this.openUserFormDialog(user.id);
   }
 
   private openUserFormDialog(userId?: number): void {
@@ -102,16 +143,16 @@ export class UserListPage {
     });
   }
 
-  async deleteRow(row: Record<string, unknown>): Promise<void> {
+  async deleteUser(user: Pick<UserRow, 'id' | 'name'>): Promise<void> {
     const confirmed = await this.dialog.confirm({
-      title: `¿Eliminar a ${row['name']}?`,
+      title: `¿Eliminar a ${user.name}?`,
       content: 'Esta acción no se puede deshacer.',
       okText: 'Eliminar',
       danger: true,
     });
     if (!confirmed) return;
 
-    this.usersService.delete(row['id'] as number).subscribe({
+    this.usersService.delete(user.id).subscribe({
       next: () => {
         this.notify.success('Eliminado', 'Usuario eliminado.');
         this.reload();

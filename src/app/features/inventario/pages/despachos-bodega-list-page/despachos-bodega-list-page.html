@@ -1,31 +1,63 @@
-<dynadrill-screen-header
+<app-page-header
   eyebrow="Inventario"
   title="Despachos a Facturación"
   subtitle="Solicitudes de despacho de materiales/herramientas que pide Facturación (correlación con Orden Salida Material de AS2)"
 />
 
-<div class="despachos-bodega-page__toolbar">
-  <dynadrill-select
-    class="despachos-bodega-page__filter"
-    placeholder="Estado"
-    [options]="estadoOptions"
-    [value]="filtroEstado() ?? ''"
-    (valueChange)="filtroEstado.set($any($event) || null)"
-  />
-</div>
-
 <dynadrill-kpi-row [items]="kpis()" />
 
-<ng-template #actionsTpl let-row>
-  <dynadrill-icon-button icon="eye" tooltip="Ver / gestionar" (clicked)="gestionar(row)" />
-</ng-template>
+@if (isMobile()) {
+  <div class="despachos-bodega-page__filters">
+    <span class="despachos-bodega-page__filter-label" id="despachos-estado">Estado</span>
+    <dynadrill-chip-group
+      aria-labelledby="despachos-estado"
+      [options]="estadoChips"
+      mode="single"
+      [selected]="[estadoChipActivo()]"
+      (selectedChange)="onEstadoChip($event)"
+    />
+  </div>
 
-<dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando despachos…">
-  <dynadrill-data-table
-    [columns]="columns"
-    [rows]="rows()"
-    [rowKey]="rowKeyFn"
-    [pageSize]="12"
-    [actionsTemplate]="actionsTpl"
-  />
-</dynadrill-spinner>
+  <ul class="despachos-bodega-page__cards" [attr.aria-busy]="loading()">
+    @for (card of cards(); track card.id) {
+      <li>
+        <app-record-card
+          [eyebrow]="card.eyebrow"
+          [title]="card.title"
+          [subtitle]="card.subtitle"
+          [status]="card.status"
+          [fields]="card.fields"
+          [actions]="card.actions"
+        />
+      </li>
+    } @empty {
+      @if (!loading()) {
+        <li class="despachos-bodega-page__empty">No hay solicitudes con este estado.</li>
+      }
+    }
+  </ul>
+} @else {
+  <div class="despachos-bodega-page__toolbar">
+    <dynadrill-select
+      class="despachos-bodega-page__filter"
+      placeholder="Estado"
+      [options]="estadoOptions"
+      [value]="filtroEstado() ?? ''"
+      (valueChange)="filtroEstado.set($any($event) || null)"
+    />
+  </div>
+
+  <ng-template #actionsTpl let-row>
+    <dynadrill-icon-button icon="eye" tooltip="Ver / gestionar" (clicked)="gestionar(row)" />
+  </ng-template>
+
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando despachos…">
+    <dynadrill-data-table
+      [columns]="columns"
+      [rows]="rows()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="12"
+      [actionsTemplate]="actionsTpl"
+    />
+  </dynadrill-spinner>
+}

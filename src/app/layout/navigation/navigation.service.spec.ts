@@ -1,0 +1,86 @@
+import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
+import { NavigationEnd, Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { AuthService, type AuthenticatedUser } from '../../core/services/auth.service';
+import { NavigationService } from './navigation.service';
+import { allLinks } from './nav.model';
+
+describe('NavigationService', () => {
+  const user = signal<AuthenticatedUser | null>(null);
+  const events = new Subject<NavigationEnd>();
+
+  function setup(roleName: string | null, url = '/dashboard'): NavigationService {
+    user.set(roleName ? { id: 1, name: 'Ana Torres', email: 'a@dynadrill.com', roleId: 1, roleName } : null);
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: { currentUser: user.asReadonly() } },
+        { provide: Router, useValue: { events, url } },
+      ],
+    });
+    return TestBed.inject(NavigationService);
+  }
+
+  function navigate(url: string): void {
+    events.next(new NavigationEnd(1, url, url));
+  }
+
+  const keys = (service: NavigationService) => service.modules().map(m => m.key);
+  const links = (service: NavigationService, key: string) => allLinks(service.modules().find(m => m.key === key)!);
+
+  it('Superadmin ve todos los módulos, en el orden de Figma', () => {
+    const service = setup('Superadmin');
+    expect(keys(service)).toEqual(['inicio', 'operaciones', 'mantenimiento', 'qhse', 'inventario', 'facturacion', 'usuarios']);
+    expect(links(service, 'facturacion')).toContain('/dashboard/facturacion/catalogos');
+  });
+
+  it('Supervisor Pumping ve Pumping + Aprobaciones y Gerenciamiento de Viaje, nunca FCR', () => {
+    const service = setup('Supervisor Pumping');
+    expect(keys(service)).toEqual(['inicio', 'operaciones', 'mantenimiento']);
+    expect(links(service, 'operaciones')).toEqual(['/modulos/operativo/pumping', '/modulos/operativo/pumping/aprobaciones']);
+    expect(links(service, 'mantenimiento')).toEqual(['/dashboard/mantenimiento/gerenciamiento-viaje']);
+  });
+
+  it('Jefe de Base solo ve Pumping en Operaciones (sin Usuarios en la UI)', () => {
+    const service = setup('Jefe de Base');
+    expect(keys(service)).toEqual(['inicio', 'operaciones', 'mantenimiento']);
+    expect(links(service, 'operaciones')).toEqual(['/modulos/operativo/pumping']);
+  });
+
+  it('Facturación no ve Catálogos', () => {
+    const service = setup('Facturación');
+    expect(links(service, 'facturacion')).not.toContain('/dashboard/facturacion/catalogos');
+  });
+
+  it('un rol desconocido (o sin sesión) solo ve Inicio', () => {
+    expect(keys(setup('Rol inventado'))).toEqual(['inicio']);
+    TestBed.resetTestingModule();
+    expect(keys(setup(null))).toEqual(['inicio']);
+  });
+
+  it('resuelve el módulo activo por el link más largo que contiene la URL', () => {
+    const service = setup('Superadmin', '/modulos/operativo/pumping/42');
+    expect(service.activeModule().key).toBe('operaciones');
+
+    navigate('/dashboard/usuarios');
+    expect(service.activeModule().key).toBe('usuarios');
+
+    navigate('/dashboard/qhse/iperc');
+    expect(service.activeModule().key).toBe('qhse');
+
+    navigate('/dashboard?tab=1');
+    expect(service.activeModule().key).toBe('inicio');
+  });
+
+  it('una ruta de un módulo que el rol no tiene cae en Inicio, no en un módulo ajeno', () => {
+    const service = setup('Supervisor Pumping', '/dashboard/qhse/iperc');
+    expect(service.activeModule().key).toBe('inicio');
+  });
+
+  it('marca activo solo el destino más específico dentro del módulo', () => {
+    const service = setup('Supervisor Pumping', '/modulos/operativo/pumping/aprobaciones');
+    const [pumping, aprobaciones] = service.modules().find(m => m.key === 'operaciones')!.children!;
+    expect(service.isActive(aprobaciones)).toBe(true);
+    expect(service.isActive(pumping)).toBe(false);
+  });
+});

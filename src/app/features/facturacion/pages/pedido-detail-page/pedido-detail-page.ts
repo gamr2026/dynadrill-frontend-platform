@@ -13,7 +13,7 @@ import {
   DynadrillTagComponent,
   DynadrillTextComponent,
 } from '@digitec-it-projects/dynadrill-ui';
-import { DetailHeaderService } from '../../../../layout/detail-header.service';
+import { useDetailChrome } from '../../../../layout/page-chrome.service';
 import {
   ReporteHerramientasPdfDialog,
   ReporteHerramientasPdfDialogData,
@@ -114,7 +114,6 @@ export class PedidoDetailPage {
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
-  private readonly detailHeader = inject(DetailHeaderService);
 
   private readonly pedidoId = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -310,19 +309,17 @@ export class PedidoDetailPage {
     // Barra "Detail" del header (Figma Nav/TopAppBar, solo móvil) — se
     // recalcula cada vez que cambian el pedido o los permisos de rechazar/
     // anular, para que el menú "⋮" siempre refleje lo mismo que el toolbar.
-    effect(() => {
-      const p = this.pedido();
-      if (!p) return;
-      this.detailHeader.set({
-        title: 'Pedido ' + p.code,
-        menuItems: [
-          { label: 'Editar pedido', action: () => this.editarPedido() },
-          ...(this.puedeRechazar() ? [{ label: 'Rechazar pedido', action: () => this.rechazarPedido() }] : []),
-          ...(this.puedeAnular() ? [{ label: 'Anular pedido', action: () => this.anularPedido(), danger: true }] : []),
-        ],
-      });
-    });
-    inject(DestroyRef).onDestroy(() => this.detailHeader.clear());
+    useDetailChrome(
+      () => 'Pedido ' + (this.pedido()?.code ?? ''),
+      '/dashboard/facturacion/pedidos',
+      () => this.pedido()
+        ? [
+            { label: 'Editar pedido', action: () => this.editarPedido() },
+            ...(this.puedeRechazar() ? [{ label: 'Rechazar pedido', action: () => this.rechazarPedido() }] : []),
+            ...(this.puedeAnular() ? [{ label: 'Anular pedido', action: () => this.anularPedido(), danger: true }] : []),
+          ]
+        : [],
+    );
   }
 
   private reload(): void {

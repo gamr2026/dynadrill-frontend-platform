@@ -22,39 +22,17 @@
   />
 }
 
-<div class="ticket-detail__stepper" #trackerScroll>
-  @for (step of stepLabels; track $index; let last = $last) {
-    <button
-      type="button"
-      class="ticket-detail__step"
-      [class.ticket-detail__step--active]="$index === currentStepIndex()"
-      [class.ticket-detail__step--completed]="$index < currentStepIndex()"
-      [class.ticket-detail__step--selected]="$index === selectedStepIndex()"
-      [disabled]="$index > currentStepIndex()"
-      (click)="seleccionarPaso($index)"
-      [appTimelinePopoverTrigger]="ticket()?.timelineResumen?.tramos?.[$index]"
-      [faseIndice]="$index + 1"
-      [faseLabel]="step"
-      [esFaseActual]="$index === currentStepIndex()"
-      [responsableRolActual]="ticket()?.timelineResumen?.responsableRolActual ?? null"
-    >
-      <div class="ticket-detail__step-circle">
-        @if ($index < currentStepIndex()) {
-          <span class="ticket-detail__step-check">✓</span>
-        } @else {
-          <span>{{ $index + 1 }}</span>
-        }
-      </div>
-      <span class="ticket-detail__step-label">{{ step }}</span>
-    </button>
-    @if (!last) {
-      <div
-        class="ticket-detail__step-line"
-        [class.ticket-detail__step-line--completed]="$index < currentStepIndex()"
-      ></div>
-    }
-  }
-</div>
+<div class="dyn-detail-layout">
+<app-ticket-progress
+  class="dyn-detail-layout__aside"
+  [labels]="stepLabels"
+  [currentIndex]="currentStepIndex()"
+  [selectedIndex]="selectedStepIndex()"
+  [tramos]="ticket()?.timelineResumen?.tramos"
+  [responsableRolActual]="ticket()?.timelineResumen?.responsableRolActual ?? null"
+  (select)="seleccionarPaso($event)"
+/>
+<div class="dyn-detail-layout__main">
 
 <app-ticket-qhse-banner [vinculo]="ipercVinculo()" [canView]="puedeVerMatrizIperc()" />
 
@@ -1349,3 +1327,5 @@
     </footer>
   }
 }
+</div>
+</div>

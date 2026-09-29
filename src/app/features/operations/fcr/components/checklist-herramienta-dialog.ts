@@ -106,6 +106,8 @@ function normalizeResultado(raw: string): FcrToolInspectionParteResultado | null
  */
 @Component({
   selector: 'app-checklist-herramienta-dialog',
+  /** Pantalla completa en móvil (formulario largo) — ver styles.scss. */
+  host: { class: 'app-dialog-fullscreen-mobile' },
   imports: [
     DatePipe,
     DynadrillTextComponent,

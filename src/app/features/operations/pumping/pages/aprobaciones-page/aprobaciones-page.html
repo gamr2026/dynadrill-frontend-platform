@@ -1,4 +1,4 @@
-<dynadrill-screen-header
+<app-page-header
   eyebrow="PUM-05"
   title="Aprobaciones"
   subtitle="Solicitudes de cambio de ítems propuestas por tus operadores"
@@ -14,7 +14,26 @@
   <dynadrill-button variant="secondary" size="small" (clicked)="revisar(row)">Ver detalle</dynadrill-button>
 </ng-template>
 
-@if (activeTabIndex() === 0) {
+@if (isMobile()) {
+  <ul class="aprobaciones-cards" [attr.aria-busy]="loading()">
+    @for (card of cards(); track card.id) {
+      <li>
+        <app-record-card
+          [eyebrow]="card.eyebrow"
+          [title]="card.title"
+          [subtitle]="card.subtitle"
+          [status]="card.status"
+          [fields]="card.fields"
+          [actions]="card.actions"
+        />
+      </li>
+    } @empty {
+      @if (!loading()) {
+        <li class="aprobaciones-cards__empty">No hay solicitudes en esta pestaña.</li>
+      }
+    }
+  </ul>
+} @else if (activeTabIndex() === 0) {
   <dynadrill-data-table
     [columns]="pendientesColumns"
     [rows]="pendientesRows()"

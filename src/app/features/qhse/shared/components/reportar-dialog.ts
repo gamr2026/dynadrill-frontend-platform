@@ -16,11 +16,12 @@ import { DerrameAlertDialog } from '../../derrames/components/derrame-alert-dial
  */
 @Component({
   selector: 'app-reportar-dialog',
+  /** Bottom sheet en móvil (M · Reportar en Figma) — ver styles.scss. */
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [DynadrillButtonComponent, DynadrillTextComponent, DynadrillIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './reportar-dialog.html',
   styleUrl: './reportar-dialog.scss',
-  host: { 'data-bottom-sheet': '' },
 })
 export class ReportarDialog {
   private readonly dialogService = inject(DynadrillDialogService);

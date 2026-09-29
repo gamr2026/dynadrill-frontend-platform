@@ -1,4 +1,4 @@
-<dynadrill-screen-header
+<app-page-header
   eyebrow="OPERATIVO · FCR"
   title="Tickets"
   subtitle="Gestión integral de servicios FCR (Field Completion & Retrieval)"
@@ -28,14 +28,35 @@
   </dynadrill-button>
 </ng-template>
 
-<div class="table-scroll">
-  <dynadrill-data-table
-    [columns]="columns"
-    [rows]="rows()"
-    [loading]="loading()"
-    [rowKey]="rowKeyFn"
-    [pageSize]="10"
-    actionsHeader="Acciones"
-    [actionsTemplate]="actionsTpl"
-  />
-</div>
+@if (isMobile()) {
+  <ul class="fcr-cards" [attr.aria-busy]="loading()">
+    @for (row of rows(); track row.id) {
+      <li>
+        <app-record-card
+          [eyebrow]="row.code"
+          [title]="row.wellName"
+          [subtitle]="row.clientName + ' • ' + row.tipoOtBadge.text"
+          [status]="row.statusBadge"
+          [fields]="[{ label: 'Cliente', value: row.clientName }, { label: 'Tipo', value: row.tipoOtBadge.text }, { label: 'Fase', value: row.phase }]"
+          [actions]="row.actions"
+        />
+      </li>
+    } @empty {
+      @if (!loading()) {
+        <li class="fcr-cards__empty">No hay tickets con este filtro.</li>
+      }
+    }
+  </ul>
+} @else {
+  <div class="table-scroll">
+    <dynadrill-data-table
+      [columns]="columns"
+      [rows]="rows()"
+      [loading]="loading()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="10"
+      actionsHeader="Acciones"
+      [actionsTemplate]="actionsTpl"
+    />
+  </div>
+}

@@ -42,49 +42,11 @@
     }
   }
 
-  // Barra "Detail" (Figma Nav/TopAppBar Type=Detail) — solo existe/se ve en
-  // móvil cuando hay una página de detalle activa (ver &--detail abajo);
-  // en desktop y en el resto de páginas queda siempre oculta.
+  // Barra de detalle ("← título") — solo móvil, ver @media abajo.
   &__back,
   &__detail-title,
   &__detail-menu {
     display: none;
-  }
-
-  &__back {
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border: none;
-    background: transparent;
-    color: var(--dynadrill-navy, #131529);
-    cursor: pointer;
-  }
-
-  &__detail-title {
-    flex: 1 1 auto;
-    min-width: 0;
-    margin: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--text, #2c2b35);
-  }
-
-  &__detail-menu {
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border: none;
-    background: transparent;
-    color: var(--dynadrill-navy, #131529);
-    cursor: pointer;
   }
 
   &__logout {
@@ -127,32 +89,76 @@
     &__reportar-btn {
       display: none;
     }
-  }
 
-  // Modo detalle (móvil): reemplaza logo+hamburguesa+campana por volver+título+⋮.
-  // Selectores descendientes explícitos (no &__x) — &__x en un modificador
-  // compone `.app-header--detail__x`, no `.app-header--detail .app-header__x`.
-  &--detail {
-    @media (max-width: 840px) {
-      justify-content: flex-start;
+    // Nav/TopAppBar Type=Detail: el título de la pantalla reemplaza a la
+    // hamburguesa, el logo y la campana.
+    &--detail {
+      gap: 8px;
+      padding: 0 8px;
 
       .app-header__menu-toggle,
       .app-header__logo,
+      .app-header__spacer,
       .app-header__bell {
         display: none;
       }
 
-      .app-header__back,
+      .app-header__back {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-full, 9999px);
+        color: var(--dynadrill-navy, #131529);
+
+        &:hover {
+          background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
+        }
+
+        &:focus-visible {
+          outline: 2px solid var(--dynadrill-purple, #662e9b);
+          outline-offset: -2px;
+        }
+      }
+
       .app-header__detail-menu {
-        display: flex;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        padding: 0;
+        border: 0;
+        border-radius: var(--radius-full, 9999px);
+        background: transparent;
+        color: var(--dynadrill-navy, #131529);
+        cursor: pointer;
+
+        &:hover {
+          background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
+        }
+
+        &:focus-visible {
+          outline: 2px solid var(--dynadrill-purple, #662e9b);
+          outline-offset: -2px;
+        }
       }
 
       .app-header__detail-title {
         display: block;
-      }
-
-      .app-header__spacer {
-        display: none;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        color: var(--dynadrill-navy, #131529);
+        font-size: 18px;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
   }

@@ -1,14 +1,11 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
-  afterRenderEffect,
   computed,
   effect,
   inject,
   signal,
   untracked,
-  viewChild,
 } from '@angular/core';
 import { DatePipe, formatDate } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -91,9 +88,10 @@ import { PedidoService } from '../../../../facturacion/services/pedido.service';
 import { itemsEstimadosDe, TIPO_SERVICIO_LABELS, type ItemEstimado, type Pedido, type PedidoDocumentoAdjunto } from '../../../../facturacion/models/pedido.model';
 import { VerPedidoDialog, VerPedidoDialogData } from '../../../../facturacion/components/ver-pedido-dialog';
 import { TicketQhseBanner } from '../../../shared/ticket-qhse-banner/ticket-qhse-banner';
+import { TicketProgress } from '../../../shared/ticket-progress/ticket-progress';
+import { useDetailChrome } from '../../../../../layout/page-chrome.service';
 import {
   OperativoDocsBridgeService,
-  TimelinePopoverTriggerDirective,
   UbicacionSelectorComponent,
   type UbicacionSeleccion,
 } from '../../../../../shared/index';
@@ -220,7 +218,7 @@ function toFuelReading(raw: string): number | null {
     DynadrillCheckboxComponent,
     UbicacionSelectorComponent,
     TicketQhseBanner,
-    TimelinePopoverTriggerDirective,
+    TicketProgress,
   ],
   templateUrl: './ticket-detail-page.html',
   styleUrl: './ticket-detail-page.scss',
@@ -428,12 +426,6 @@ export class TicketDetailPage {
   // ── Stepper ──
 
   protected readonly stepLabels = Object.values(PUMPING_STEP_LABELS);
-
-  // El stepper hace scroll horizontal en mobile (ver .scss) — sin esto, en
-  // pasos avanzados (hasta 11) el paso activo queda fuera de vista y el
-  // usuario tiene que descubrir por su cuenta que hay que deslizar para
-  // encontrarlo. Mismo patrón que el tracker de fases de FCR.
-  private readonly trackerScrollEl = viewChild<ElementRef<HTMLElement>>('trackerScroll');
 
   protected readonly currentStepIndex = computed(() => {
     const t = this.ticket();
@@ -2102,6 +2094,8 @@ export class TicketDetailPage {
   // ══════════════════════════════════════════════
 
   constructor() {
+    // Móvil: barra "← PUM-XXXX" (Nav/TopAppBar Type=Detail) en vez de hamburguesa + logo.
+    useDetailChrome(() => this.ticket()?.code ?? 'Ticket', '/modulos/operativo/pumping');
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.viewMode.set(this.route.snapshot.queryParamMap.get('mode') ?? '');
     this.pumpingService.getTicket(id).subscribe({
@@ -2152,13 +2146,6 @@ export class TicketDetailPage {
     this.vehicleInspectionsService.list().subscribe(list => {
       this.realInspections.set(list);
       this.syncMockInspections();
-    });
-
-    afterRenderEffect(() => {
-      this.currentStepIndex();
-      const container = this.trackerScrollEl()?.nativeElement;
-      const active = container?.querySelector<HTMLElement>('.ticket-detail__step--active');
-      active?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     });
 
     // Si el ticket avanza de paso, la selección manual vieja del detalle ya no aplica.

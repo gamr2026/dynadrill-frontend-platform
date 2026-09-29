@@ -17,6 +17,8 @@ export interface GestionarDespachoDialogData {
  */
 @Component({
   selector: 'app-gestionar-despacho-dialog',
+  /** Pantalla completa en móvil (formulario largo) — ver styles.scss. */
+  host: { class: 'app-dialog-fullscreen-mobile' },
   imports: [DynadrillTextComponent, DynadrillInputComponent, DynadrillTextareaComponent, DynadrillButtonComponent, SlicePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './gestionar-despacho-dialog.html',

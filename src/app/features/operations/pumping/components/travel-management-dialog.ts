@@ -60,6 +60,8 @@ const STEPS = ['General', 'Evaluación', 'Plan & Ruta', 'Aprobación'];
 
 @Component({
   selector: 'app-travel-management-dialog',
+  /** Pantalla completa en móvil (formulario largo) — ver styles.scss. */
+  host: { class: 'app-dialog-fullscreen-mobile' },
   imports: [
     DynadrillTextComponent,
     DynadrillContextCardComponent,

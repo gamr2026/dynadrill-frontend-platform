@@ -1,28 +1,63 @@
 <div class="user-list-page">
-  <div class="user-list-page__header">
-    <dynadrill-text variant="h1">Usuarios</dynadrill-text>
-    <div class="user-list-page__actions">
-      <dynadrill-button (clicked)="createUser()">
-        <dynadrill-icon name="add" [size]="14" />
-        Nuevo usuario
-      </dynadrill-button>
-    </div>
-  </div>
+  <app-page-header
+    eyebrow="Administración"
+    title="Usuarios"
+    subtitle="Gestión de cuentas y datos del empleado — Superadmin y Jefe de Base"
+  >
+    <dynadrill-button actions (clicked)="createUser()">
+      <dynadrill-icon name="add" [size]="16" />
+      Nuevo usuario
+    </dynadrill-button>
+  </app-page-header>
 
-  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando usuarios…">
+  <app-search-field
+    label="Buscar usuarios"
+    placeholder="Buscar por nombre, usuario o correo…"
+    [value]="query()"
+    (valueChange)="onQueryChange($event)"
+  />
+
+  @if (isMobile()) {
+    @if (loading()) {
+      <div class="user-list-page__cards" role="status" aria-label="Cargando usuarios…">
+        @for (placeholder of [1, 2, 3, 4]; track placeholder) {
+          <dynadrill-skeleton variant="block" height="112px" />
+        }
+      </div>
+    } @else if (rows().length === 0) {
+      <dynadrill-empty-state
+        title="Sin resultados"
+        [description]="query() ? 'Ningún usuario coincide con la búsqueda.' : 'Todavía no hay usuarios registrados.'"
+      />
+    } @else {
+      <div class="user-list-page__summary">
+        <span class="user-list-page__count">{{ rows().length }} usuarios</span>
+        <span>Página {{ pagination.page() }} de {{ pagination.totalPages() }}</span>
+      </div>
+
+      <ul class="user-list-page__cards">
+        @for (card of pagination.pageItems(); track card.id) {
+          <li><app-entity-card [title]="card.title" [lines]="card.lines" [tags]="card.tags" [actions]="card.actions" /></li>
+        }
+      </ul>
+
+      <app-list-pager [pagination]="pagination" label="Paginación de usuarios" />
+    }
+  } @else {
     <dynadrill-data-table
       [columns]="columns"
-      [rows]="rows()"
+      [rows]="tableRows()"
+      [loading]="loading()"
       [rowKey]="rowKeyFn"
-      [pageSize]="10"
+      [pageSize]="pageSize"
       [actionsTemplate]="actions"
     />
-  </dynadrill-spinner>
+  }
 
   <ng-template #actions let-row>
     <div class="dyn-actions-row">
-      <dynadrill-button variant="secondary" size="small" (clicked)="editRow(row)">Editar</dynadrill-button>
-      <dynadrill-button variant="error" size="small" (clicked)="deleteRow(row)">Eliminar</dynadrill-button>
+      <dynadrill-icon-button icon="edit" [tooltip]="'Editar a ' + row.name" (clicked)="editUser(row)" />
+      <dynadrill-icon-button icon="delete" [tooltip]="'Eliminar a ' + row.name" (clicked)="deleteUser(row)" />
     </div>
   </ng-template>
 </div>

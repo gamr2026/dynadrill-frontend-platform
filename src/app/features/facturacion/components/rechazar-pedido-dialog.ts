@@ -16,7 +16,7 @@ export interface RechazarPedidoDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './rechazar-pedido-dialog.html',
   styleUrl: './rechazar-pedido-dialog.scss',
-  host: { 'data-bottom-sheet': '' },
+  host: { class: 'app-dialog-sheet-mobile' },
 })
 export class RechazarPedidoDialog {
   private readonly pedidoService = inject(PedidoService);

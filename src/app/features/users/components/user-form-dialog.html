@@ -1,191 +1,197 @@
 @if (!loading()) {
   <form class="user-form-dialog" [formGroup]="form" (ngSubmit)="submit()">
-    <div class="user-form-dialog__row">
-      <dynadrill-input
-        label="Nombre completo"
-        placeholder="Ana Torres"
-        [value]="form.controls.name.value"
-        (valueChange)="updateField('name', $event)"
-      />
-      @if (form.controls.name.invalid && form.controls.name.touched) {
-        <dynadrill-text variant="caption" class="user-form-dialog__error">El nombre es obligatorio.</dynadrill-text>
-      }
-    </div>
+    <section class="user-form-dialog__section" aria-labelledby="user-form-acceso">
+      <dynadrill-text variant="h2" id="user-form-acceso" class="user-form-dialog__section-title user-form-dialog__section-title--mobile">Acceso al sistema</dynadrill-text>
 
-    <div class="user-form-dialog__row">
-      <dynadrill-input
-        label="Usuario"
-        placeholder="atorres"
-        [value]="form.controls.username.value"
-        (valueChange)="updateField('username', $event)"
-      />
-      @if (form.controls.username.invalid && form.controls.username.touched) {
-        <dynadrill-text variant="caption" class="user-form-dialog__error">El usuario es obligatorio.</dynadrill-text>
-      }
-    </div>
-
-    <div class="user-form-dialog__row">
-      <dynadrill-input
-        label="Correo"
-        placeholder="nombre@dynadrill.com"
-        [value]="form.controls.email.value"
-        (valueChange)="updateField('email', $event)"
-      />
-      @if (form.controls.email.invalid && form.controls.email.touched) {
-        <dynadrill-text variant="caption" class="user-form-dialog__error">Ingresa un correo válido.</dynadrill-text>
-      }
-    </div>
-
-    <div class="user-form-dialog__row">
-      <dynadrill-input
-        [label]="isEditMode ? 'Nueva contraseña (opcional)' : 'Contraseña'"
-        type="password"
-        placeholder="••••••••"
-        [value]="form.controls.password.value"
-        (valueChange)="updateField('password', $event)"
-      />
-      @if (form.controls.password.invalid && form.controls.password.touched) {
-        <dynadrill-text variant="caption" class="user-form-dialog__error">Mínimo 8 caracteres.</dynadrill-text>
-      }
-    </div>
-
-    <div class="user-form-dialog__row-pair">
       <div class="user-form-dialog__row">
         <dynadrill-input
-          label="Cédula"
-          placeholder="0601234567"
-          [value]="form.controls.cedula.value"
-          (valueChange)="updateField('cedula', $event)"
+          label="Nombre completo"
+          placeholder="Ana Torres"
+          [value]="form.controls.name.value"
+          (valueChange)="updateField('name', $event)"
         />
-      </div>
-      <div class="user-form-dialog__row">
-        <dynadrill-input
-          label="Teléfono"
-          placeholder="0991234567"
-          [value]="form.controls.phone.value"
-          (valueChange)="updateField('phone', $event)"
-        />
-      </div>
-    </div>
-
-    <div class="user-form-dialog__row">
-      <dynadrill-select
-        label="Rol"
-        placeholder="Selecciona un rol"
-        [options]="roleOptions()"
-        [value]="form.controls.roleId.value"
-        (valueChange)="updateRole($event)"
-      />
-      @if (form.controls.roleId.invalid && form.controls.roleId.touched) {
-        <dynadrill-text variant="caption" class="user-form-dialog__error">Selecciona un rol.</dynadrill-text>
-      }
-    </div>
-
-    @if (isOperatorRole()) {
-      <div class="user-form-dialog__row">
-        <dynadrill-select
-          label="Especialidad"
-          placeholder="Selecciona una especialidad"
-          [options]="specialtyOptions"
-          [value]="form.controls.specialty.value"
-          (valueChange)="updateSpecialty($event)"
-        />
-        @if (form.controls.specialty.invalid && form.controls.specialty.touched) {
-          <dynadrill-text variant="caption" class="user-form-dialog__error">Selecciona una especialidad.</dynadrill-text>
+        @if (form.controls.name.invalid && form.controls.name.touched) {
+          <dynadrill-text variant="caption" class="user-form-dialog__error">El nombre es obligatorio.</dynadrill-text>
         }
       </div>
-    }
 
-    <dynadrill-checkbox
-      label="Usuario activo (acceso al sistema)"
-      [checked]="form.controls.status.value"
-      (checkedChange)="updateStatus($event)"
-    />
-
-    <dynadrill-text variant="h2" class="user-form-dialog__section-title">Datos del empleado</dynadrill-text>
-
-    <div class="user-form-dialog__row-pair">
       <div class="user-form-dialog__row">
         <dynadrill-input
-          label="Cargo"
-          placeholder="Mecánico Senior"
-          [value]="form.controls.cargo.value"
-          (valueChange)="updateField('cargo', $event)"
+          label="Usuario"
+          placeholder="atorres"
+          [value]="form.controls.username.value"
+          (valueChange)="updateField('username', $event)"
         />
+        @if (form.controls.username.invalid && form.controls.username.touched) {
+          <dynadrill-text variant="caption" class="user-form-dialog__error">El usuario es obligatorio.</dynadrill-text>
+        }
       </div>
-      <div class="user-form-dialog__row">
-        <dynadrill-input
-          label="Departamento"
-          placeholder="Operaciones"
-          [value]="form.controls.departamento.value"
-          (valueChange)="updateField('departamento', $event)"
-        />
-      </div>
-    </div>
 
-    <div class="user-form-dialog__row-pair">
       <div class="user-form-dialog__row">
         <dynadrill-input
-          label="Tipo de contrato"
-          placeholder="Contrato productivo continuo"
-          [value]="form.controls.tipoContrato.value"
-          (valueChange)="updateField('tipoContrato', $event)"
+          label="Correo"
+          placeholder="nombre@dynadrill.com"
+          [value]="form.controls.email.value"
+          (valueChange)="updateField('email', $event)"
         />
+        @if (form.controls.email.invalid && form.controls.email.touched) {
+          <dynadrill-text variant="caption" class="user-form-dialog__error">Ingresa un correo válido.</dynadrill-text>
+        }
       </div>
-      <div class="user-form-dialog__row">
-        <dynadrill-input
-          label="Sucursal"
-          placeholder="Coca"
-          [value]="form.controls.sucursal.value"
-          (valueChange)="updateField('sucursal', $event)"
-        />
-      </div>
-    </div>
 
-    <div class="user-form-dialog__row-pair">
       <div class="user-form-dialog__row">
         <dynadrill-input
-          label="Categoría"
-          placeholder="Categoria Empleado Asistencial"
-          [value]="form.controls.categoria.value"
-          (valueChange)="updateField('categoria', $event)"
+          [label]="isEditMode ? 'Nueva contraseña (opcional)' : 'Contraseña'"
+          type="password"
+          placeholder="••••••••"
+          [value]="form.controls.password.value"
+          (valueChange)="updateField('password', $event)"
         />
+        @if (form.controls.password.invalid && form.controls.password.touched) {
+          <dynadrill-text variant="caption" class="user-form-dialog__error">Mínimo 8 caracteres.</dynadrill-text>
+        }
       </div>
-      <div class="user-form-dialog__row">
-        <dynadrill-input
-          label="Centro de costo"
-          placeholder="Sistemas Químicos"
-          [value]="form.controls.centroCosto.value"
-          (valueChange)="updateField('centroCosto', $event)"
-        />
-      </div>
-    </div>
 
-    <div class="user-form-dialog__row-pair">
-      <div class="user-form-dialog__row">
-        <dynadrill-datetime-picker
-          label="Fecha de ingreso"
-          placeholder="Selecciona la fecha"
-          [value]="$any(fechaIngreso())"
-          (valueChange)="fechaIngreso.set($event)"
-        />
+      <div class="user-form-dialog__row-pair">
+        <div class="user-form-dialog__row">
+          <dynadrill-input
+            label="Cédula"
+            placeholder="0601234567"
+            [value]="form.controls.cedula.value"
+            (valueChange)="updateField('cedula', $event)"
+          />
+        </div>
+        <div class="user-form-dialog__row">
+          <dynadrill-input
+            label="Teléfono"
+            placeholder="0991234567"
+            [value]="form.controls.phone.value"
+            (valueChange)="updateField('phone', $event)"
+          />
+        </div>
       </div>
-      <div class="user-form-dialog__row">
-        <dynadrill-input
-          label="Cargas activas"
-          type="number"
-          placeholder="0"
-          [value]="form.controls.cargasActivas.value ?? ''"
-          (valueChange)="updateCargasActivas($event)"
-        />
-      </div>
-    </div>
 
-    <dynadrill-checkbox
-      label="Empleado activo (situación laboral)"
-      [checked]="form.controls.empleadoActivo.value"
-      (checkedChange)="updateEmpleadoActivo($event)"
-    />
+      <div class="user-form-dialog__row">
+        <dynadrill-select
+          label="Rol"
+          placeholder="Selecciona un rol"
+          [options]="roleOptions()"
+          [value]="form.controls.roleId.value"
+          (valueChange)="updateRole($event)"
+        />
+        @if (form.controls.roleId.invalid && form.controls.roleId.touched) {
+          <dynadrill-text variant="caption" class="user-form-dialog__error">Selecciona un rol.</dynadrill-text>
+        }
+      </div>
+
+      @if (isOperatorRole()) {
+        <div class="user-form-dialog__row">
+          <dynadrill-select
+            label="Especialidad"
+            placeholder="Selecciona una especialidad"
+            [options]="specialtyOptions"
+            [value]="form.controls.specialty.value"
+            (valueChange)="updateSpecialty($event)"
+          />
+          @if (form.controls.specialty.invalid && form.controls.specialty.touched) {
+            <dynadrill-text variant="caption" class="user-form-dialog__error">Selecciona una especialidad.</dynadrill-text>
+          }
+        </div>
+      }
+
+      <dynadrill-checkbox
+        label="Usuario activo (acceso al sistema)"
+        [checked]="form.controls.status.value"
+        (checkedChange)="updateStatus($event)"
+      />
+    </section>
+
+    <section class="user-form-dialog__section" aria-labelledby="user-form-empleado">
+      <dynadrill-text variant="h2" id="user-form-empleado" class="user-form-dialog__section-title">Datos del empleado</dynadrill-text>
+
+      <div class="user-form-dialog__row-pair">
+        <div class="user-form-dialog__row">
+          <dynadrill-input
+            label="Cargo"
+            placeholder="Mecánico Senior"
+            [value]="form.controls.cargo.value"
+            (valueChange)="updateField('cargo', $event)"
+          />
+        </div>
+        <div class="user-form-dialog__row">
+          <dynadrill-input
+            label="Departamento"
+            placeholder="Operaciones"
+            [value]="form.controls.departamento.value"
+            (valueChange)="updateField('departamento', $event)"
+          />
+        </div>
+      </div>
+
+      <div class="user-form-dialog__row-pair">
+        <div class="user-form-dialog__row">
+          <dynadrill-input
+            label="Tipo de contrato"
+            placeholder="Contrato productivo continuo"
+            [value]="form.controls.tipoContrato.value"
+            (valueChange)="updateField('tipoContrato', $event)"
+          />
+        </div>
+        <div class="user-form-dialog__row">
+          <dynadrill-input
+            label="Sucursal"
+            placeholder="Coca"
+            [value]="form.controls.sucursal.value"
+            (valueChange)="updateField('sucursal', $event)"
+          />
+        </div>
+      </div>
+
+      <div class="user-form-dialog__row-pair">
+        <div class="user-form-dialog__row">
+          <dynadrill-input
+            label="Categoría"
+            placeholder="Categoria Empleado Asistencial"
+            [value]="form.controls.categoria.value"
+            (valueChange)="updateField('categoria', $event)"
+          />
+        </div>
+        <div class="user-form-dialog__row">
+          <dynadrill-input
+            label="Centro de costo"
+            placeholder="Sistemas Químicos"
+            [value]="form.controls.centroCosto.value"
+            (valueChange)="updateField('centroCosto', $event)"
+          />
+        </div>
+      </div>
+
+      <div class="user-form-dialog__row-pair">
+        <div class="user-form-dialog__row">
+          <dynadrill-datetime-picker
+            label="Fecha de ingreso"
+            placeholder="Selecciona la fecha"
+            [value]="$any(fechaIngreso())"
+            (valueChange)="fechaIngreso.set($event)"
+          />
+        </div>
+        <div class="user-form-dialog__row">
+          <dynadrill-input
+            label="Cargas activas"
+            type="number"
+            placeholder="0"
+            [value]="form.controls.cargasActivas.value ?? ''"
+            (valueChange)="updateCargasActivas($event)"
+          />
+        </div>
+      </div>
+
+      <dynadrill-checkbox
+        label="Empleado activo (situación laboral)"
+        [checked]="form.controls.empleadoActivo.value"
+        (checkedChange)="updateEmpleadoActivo($event)"
+      />
+    </section>
 
     <div class="user-form-dialog__actions">
       <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>

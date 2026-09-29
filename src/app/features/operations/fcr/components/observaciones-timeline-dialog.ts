@@ -21,6 +21,8 @@ export interface ObservacionesTimelineDialogResult {
  */
 @Component({
   selector: 'app-observaciones-timeline-dialog',
+  /** Bottom sheet en móvil (Overlay/BottomSheet en Figma) — ver styles.scss. */
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [DynadrillTextComponent, DynadrillTextareaComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './observaciones-timeline-dialog.html',

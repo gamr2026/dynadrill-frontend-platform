@@ -41,7 +41,7 @@ const TODOS = 'Todos';
     </div>
   `,
   styleUrl: './prefacturas-filtros-dialog.scss',
-  host: { 'data-bottom-sheet': '' },
+  host: { class: 'app-dialog-sheet-mobile' },
 })
 export class PrefacturasFiltrosDialog {
   private readonly modalRef = inject(NzModalRef<PrefacturasFiltrosDialog, PrefacturasFiltros>);

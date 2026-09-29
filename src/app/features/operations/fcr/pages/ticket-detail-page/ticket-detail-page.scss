@@ -43,123 +43,6 @@
   }
 }
 
-// ── Tracker de fases, con etiqueta siempre visible (no solo tooltip) ──
-//
-// Mobile first: en un viewport angosto el tronco completo (hasta 12 fases)
-// no entra en una sola fila sin achicar el texto a ilegible, así que el
-// tracker hace scroll horizontal con snap por fase — la fase activa se
-// centra automáticamente al cargar (ver afterRenderEffect en el .ts).
-
-.fcr-detail__tracker {
-  display: flex;
-  align-items: flex-start;
-  margin: 1.5rem 0;
-  padding: 0.25rem 0.125rem 0.5rem;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x proximity;
-
-  @media (max-width: 480px) {
-    padding-right: 45%;
-  }
-}
-
-.fcr-detail__phase {
-  // Reset de <button> — antes era un <div>; ahora es clickeable para ver el
-  // detalle de esa fase (tramo del timeline), sin tocar el resto del look.
-  border: none;
-  background: none;
-  padding: 0;
-  font: inherit;
-  cursor: pointer;
-
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex-shrink: 0;
-  width: 5.5rem;
-  scroll-snap-align: center;
-
-  &:disabled {
-    cursor: default;
-  }
-
-  &--selected .fcr-detail__phase-dot {
-    box-shadow: 0 0 0 3px var(--dynadrill-purple-tint-strong, rgba(102, 46, 155, 0.16));
-  }
-
-  @media (max-width: 480px) {
-    width: 4.25rem;
-  }
-}
-
-.fcr-detail__phase-dot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 1px solid var(--color-border, #d9d9d9);
-  background: #fff;
-  color: rgba(0, 0, 0, 0.45);
-  font-size: 12px;
-  font-family: var(--font-body, sans-serif);
-  transition: all 0.2s;
-
-  .fcr-detail__phase--active & {
-    background: var(--dynadrill-purple, #662e9b);
-    border-color: var(--dynadrill-purple, #662e9b);
-    color: #fff;
-  }
-
-  .fcr-detail__phase--completed & {
-    border-color: var(--dynadrill-purple, #662e9b);
-    background: #fff;
-    color: var(--dynadrill-purple, #662e9b);
-  }
-}
-
-.fcr-detail__phase-label {
-  margin-top: 0.375rem;
-  font-size: 0.6875rem;
-  text-align: center;
-  color: rgba(0, 0, 0, 0.55);
-  line-height: 1.2;
-
-  .fcr-detail__phase--active & {
-    color: var(--dynadrill-purple, #662e9b);
-    font-weight: 600;
-  }
-
-  @media (max-width: 480px) {
-    font-size: 0.625rem;
-  }
-}
-
-.fcr-detail__phase-line {
-  flex: 1;
-  height: 1px;
-  min-width: 12px;
-  margin-top: 12px;
-  background: var(--color-border, #d9d9d9);
-  transition: background 0.2s;
-
-  &--completed {
-    background: var(--dynadrill-purple, #662e9b);
-  }
-
-  @media (max-width: 480px) {
-    min-width: 8px;
-  }
-}
-
-// ── Secciones de fase ──
-
-// Misma tarjeta que .dyn-pedido-card (src/styles.scss) — todas las fases
-// del detalle de ticket comparten el mismo lenguaje visual (borde, sombra,
-// header con ícono + línea morada) en vez de texto plano suelto.
 .fcr-detail__section {
   margin-top: 1.5rem;
   display: flex;
@@ -503,5 +386,34 @@
 
   &:hover {
     background: none;
+  }
+}
+
+// Móvil (M · FCR en Figma): el "← Volver" vive en la barra superior y las
+// acciones de cada fase van a ancho completo.
+@media (max-width: 840px) {
+  :host {
+    padding: 0;
+  }
+
+  .fcr-detail__back {
+    display: none;
+  }
+
+  .fcr-detail__section {
+    padding: 1rem;
+  }
+
+  .fcr-detail__actions {
+    flex-wrap: wrap;
+
+    > dynadrill-button {
+      flex: 1 1 100%;
+
+      ::ng-deep .ant-btn {
+        width: 100%;
+        height: 48px;
+      }
+    }
   }
 }

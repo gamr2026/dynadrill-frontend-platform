@@ -29,7 +29,7 @@ export interface ReporteriaFiltros {
     </div>
   `,
   styleUrl: './reporteria-filtros-dialog.scss',
-  host: { 'data-bottom-sheet': '' },
+  host: { class: 'app-dialog-sheet-mobile' },
 })
 export class ReporteriaFiltrosDialog {
   private readonly modalRef = inject(NzModalRef<ReporteriaFiltrosDialog, ReporteriaFiltros>);

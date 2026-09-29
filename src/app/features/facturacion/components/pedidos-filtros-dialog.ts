@@ -29,7 +29,7 @@ const ORIGEN_LABELS = { as2: 'AS2', portal: 'Portal' } as const;
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pedidos-filtros-dialog.html',
   styleUrl: './pedidos-filtros-dialog.scss',
-  host: { 'data-bottom-sheet': '' },
+  host: { class: 'app-dialog-sheet-mobile' },
 })
 export class PedidosFiltrosDialog {
   private readonly modalRef = inject(NzModalRef<PedidosFiltrosDialog, PedidosFiltros>);

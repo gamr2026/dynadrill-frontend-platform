@@ -16,7 +16,7 @@ export interface AnularPedidoDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './anular-pedido-dialog.html',
   styleUrl: './anular-pedido-dialog.scss',
-  host: { 'data-bottom-sheet': '' },
+  host: { class: 'app-dialog-sheet-mobile' },
 })
 export class AnularPedidoDialog {
   private readonly pedidoService = inject(PedidoService);

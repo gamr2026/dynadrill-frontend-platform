@@ -5,11 +5,13 @@ import {
   DynadrillDataTableComponent,
   DynadrillDialogService,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
   DynadrillTabsComponent,
   type DynadrillTab,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../../../core/services/auth.service';
+import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
+import { PageHeader } from '../../../../../shared/components/page-header/page-header';
+import { RecordCard, type RecordCardData } from '../../../../../shared/components/record-card/record-card';
 import { SolicitudCambioItemsService } from '../../services/solicitud-cambio-items.service';
 import { ESTADO_SOLICITUD_LABELS, SolicitudCambioItems } from '../../models/solicitud-cambio-items.model';
 import {
@@ -27,7 +29,7 @@ import {
 @Component({
   selector: 'app-aprobaciones-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DynadrillScreenHeaderComponent, DynadrillTabsComponent, DynadrillDataTableComponent, DynadrillButtonComponent],
+  imports: [PageHeader, RecordCard, DynadrillTabsComponent, DynadrillDataTableComponent, DynadrillButtonComponent],
   templateUrl: './aprobaciones-page.html',
   styleUrl: './aprobaciones-page.scss',
 })
@@ -36,6 +38,9 @@ export class AprobacionesPage {
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
+
+  /** Móvil: tarjetas (M · Pumping · Aprobaciones en Figma) en vez de la tabla. */
+  protected readonly isMobile = injectNarrowViewport();
 
   protected readonly loading = signal(true);
   protected readonly solicitudes = signal<SolicitudCambioItems[]>([]);
@@ -107,6 +112,34 @@ export class AprobacionesPage {
       revisadoPor: s.revisadoPor ?? '—',
       fechaRevisionTexto: s.fechaRevision ? this.formatearFecha(s.fechaRevision) : '—',
     })),
+  );
+
+  protected readonly cards = computed<(RecordCardData & { id: number })[]>(() =>
+    this.activeTabIndex() === 0
+      ? this.pendientes().map(s => ({
+          id: s.id,
+          eyebrow: `${s.ticketCode} · ${s.pedidoCode}`,
+          title: s.cliente,
+          subtitle: `Solicitado por ${s.solicitadoPor} · ${this.formatearFecha(s.fechaSolicitud)}`,
+          status: { text: ESTADO_SOLICITUD_LABELS[s.estado], tone: 'warning' },
+          fields: [
+            { label: 'Motivo', value: s.motivo },
+            { label: 'Estado', value: 'Por revisar' },
+          ],
+          actions: [{ icon: 'eye', label: 'Revisar', run: () => this.revisar({ id: s.id }) }],
+        }))
+      : this.resueltas().map(s => ({
+          id: s.id,
+          eyebrow: `${s.ticketCode} · ${s.pedidoCode}`,
+          title: s.cliente,
+          subtitle: `Solicitado por ${s.solicitadoPor}`,
+          status: { text: ESTADO_SOLICITUD_LABELS[s.estado], tone: s.estado === 'aprobada' ? 'success' : 'error' },
+          fields: [
+            { label: 'Revisado por', value: s.revisadoPor ?? '—' },
+            { label: 'Fecha de revisión', value: s.fechaRevision ? this.formatearFecha(s.fechaRevision) : '—' },
+          ],
+          actions: [{ icon: 'eye', label: 'Ver detalle', run: () => this.revisar({ id: s.id }) }],
+        })),
   );
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);

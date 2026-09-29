@@ -26,6 +26,8 @@ const REASON_OPTIONS: DynadrillSelectOption[] = Object.entries(MISSING_TOOL_REAS
 
 @Component({
   selector: 'app-herramienta-faltante-dialog',
+  /** Bottom sheet en móvil (Overlay/BottomSheet en Figma) — ver styles.scss. */
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [DynadrillTextComponent, DynadrillSelectComponent, DynadrillTextareaComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './herramienta-faltante-dialog.html',

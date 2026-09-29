@@ -1,32 +1,78 @@
-<dynadrill-screen-header
+<app-page-header
   eyebrow="Inventario"
   title="Artículos"
   subtitle="Herramientas, químicos e insumos — catálogo y kardex de stock"
-/>
-
-<div class="articulo-list-page__toolbar">
-  <dynadrill-select
-    class="articulo-list-page__filter"
-    placeholder="Categoría"
-    [options]="categoriaOptions()"
-    [value]="filtroCategoria()"
-    (valueChange)="filtroCategoria.set($any($event))"
-  />
-  <dynadrill-button (clicked)="nuevoArticulo()">+ Nuevo artículo</dynadrill-button>
-</div>
+>
+  <dynadrill-button actions (clicked)="nuevoArticulo()">
+    <dynadrill-icon name="add" [size]="16" />
+    Nuevo artículo
+  </dynadrill-button>
+</app-page-header>
 
 <dynadrill-kpi-row [items]="kpis()" />
 
-<ng-template #actionsTpl let-row>
-  <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(row)">Ver detalle</dynadrill-button>
-</ng-template>
+@if (isMobile()) {
+  <div class="articulo-list-page__filters">
+    <span class="articulo-list-page__filter-label" id="articulos-categoria">Categoría</span>
+    <dynadrill-chip-group
+      aria-labelledby="articulos-categoria"
+      [options]="categoriaChips()"
+      mode="single"
+      [selected]="[filtroCategoria() ?? 'Todas']"
+      (selectedChange)="onCategoriaChip($event)"
+    />
+  </div>
 
-<dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando artículos…">
-  <dynadrill-data-table
-    [columns]="columns"
-    [rows]="rows()"
-    [rowKey]="rowKeyFn"
-    [pageSize]="10"
-    [actionsTemplate]="actionsTpl"
-  />
-</dynadrill-spinner>
+  <app-search-field label="Buscar artículos" placeholder="Buscar código o nombre…" [value]="query()" (valueChange)="onQueryChange($event)" />
+
+  <div class="articulo-list-page__summary">
+    <span class="articulo-list-page__count">{{ cards().length }} artículos</span>
+    <span>Página {{ pagination.page() }} de {{ pagination.totalPages() }}</span>
+  </div>
+
+  <ul class="articulo-list-page__cards" [attr.aria-busy]="loading()">
+    @for (card of pagination.pageItems(); track card.id) {
+      <li>
+        <app-record-card
+          [eyebrow]="card.eyebrow"
+          [title]="card.title"
+          [subtitle]="card.subtitle"
+          [status]="card.status"
+          [fields]="card.fields"
+          [actions]="card.actions"
+        />
+      </li>
+    } @empty {
+      @if (!loading()) {
+        <li class="articulo-list-page__empty">Ningún artículo coincide con el filtro.</li>
+      }
+    }
+  </ul>
+
+  <app-list-pager [pagination]="pagination" label="Paginación de artículos" />
+} @else {
+  <div class="articulo-list-page__toolbar">
+    <dynadrill-select
+      class="articulo-list-page__filter"
+      label="Categoría"
+      placeholder="Todas"
+      [options]="categoriaOptions()"
+      [value]="filtroCategoria()"
+      (valueChange)="filtroCategoria.set($any($event))"
+    />
+  </div>
+
+  <ng-template #actionsTpl let-row>
+    <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(row)">Ver detalle</dynadrill-button>
+  </ng-template>
+
+  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando artículos…">
+    <dynadrill-data-table
+      [columns]="columns"
+      [rows]="rows()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="10"
+      [actionsTemplate]="actionsTpl"
+    />
+  </dynadrill-spinner>
+}

@@ -19,6 +19,8 @@ export interface SolicitarCorreccionDialogResult {
 
 @Component({
   selector: 'app-solicitar-correccion-dialog',
+  /** Bottom sheet en móvil (Overlay/BottomSheet en Figma) — ver styles.scss. */
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [DynadrillTextComponent, DynadrillTagComponent, DynadrillTextareaComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './solicitar-correccion-dialog.html',

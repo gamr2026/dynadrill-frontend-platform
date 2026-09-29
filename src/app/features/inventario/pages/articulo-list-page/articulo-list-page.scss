@@ -14,3 +14,43 @@
 .articulo-list-page__filter {
   width: 220px;
 }
+
+.articulo-list-page__filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.articulo-list-page__filter-label {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.articulo-list-page__summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  color: var(--text-muted, #5c5870);
+  font-size: 12px;
+}
+
+.articulo-list-page__count {
+  color: var(--text, #2c2b35);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.articulo-list-page__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.articulo-list-page__empty {
+  padding: 24px 0;
+  color: var(--text-muted, #5c5870);
+  text-align: center;
+}

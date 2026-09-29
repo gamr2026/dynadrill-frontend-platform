@@ -63,6 +63,8 @@ export interface SolicitarCambioItemsDialogResult {
  */
 @Component({
   selector: 'app-solicitar-cambio-items-dialog',
+  /** Pantalla completa en móvil (formulario largo) — ver styles.scss. */
+  host: { class: 'app-dialog-fullscreen-mobile' },
   imports: [
     DecimalPipe,
     DynadrillTextComponent,

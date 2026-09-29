@@ -26,7 +26,7 @@ export interface EnviarClienteDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './enviar-cliente-dialog.html',
   styleUrl: './enviar-cliente-dialog.scss',
-  host: { 'data-bottom-sheet': '' },
+  host: { class: 'app-dialog-sheet-mobile' },
 })
 export class EnviarClienteDialog {
   private readonly prefacturaService = inject(PrefacturaService);

@@ -1,67 +1,67 @@
-// Figma Nav/BottomNav: 80px, ítems de 76×64, píldora Material 3 en el activo.
+:host {
+  display: block;
+}
+
 .bottom-nav {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 100%;
-  padding: 0 var(--space-sm, 8px);
-  background: var(--surface, #fff);
+  height: 80px;
+  padding-bottom: env(safe-area-inset-bottom, 0);
   border-top: var(--border-width, 1px) solid var(--border, #e5e4ea);
+  background: var(--surface, #fff);
+}
 
-  &__item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-xs, 4px);
-    flex: 1 1 0;
-    min-width: 0;
-    max-width: 96px;
-    height: 64px;
-    padding: 0;
-    border: 0;
-    background: none;
-    font: inherit;
-    color: var(--text-muted, #5c5870);
-    text-decoration: none;
-    cursor: pointer;
+.bottom-nav__item {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted, #5c5870);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
 
-    &:focus-visible {
-      outline: 2px solid var(--dynadrill-purple, #662e9b);
-      outline-offset: -2px;
-      border-radius: var(--radius-md, 12px);
-    }
-
-    &--active {
-      color: var(--dynadrill-purple, #662e9b);
-
-      .bottom-nav__indicator {
-        background: var(--dynadrill-purple-tint-strong, #e7deef);
-      }
-
-      .bottom-nav__label {
-        font-weight: 700;
-      }
-    }
+  &:hover {
+    color: var(--text, #2c2b35);
   }
 
-  &__indicator {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 56px;
-    height: 30px;
-    border-radius: var(--radius-full, 9999px);
-    transition: background var(--duration-fast, 0.15s);
+  &:focus-visible {
+    outline: 2px solid var(--dynadrill-purple, #662e9b);
+    outline-offset: -4px;
+    border-radius: var(--radius-sm, 8px);
+  }
 
-    @media (prefers-reduced-motion: reduce) {
-      transition: none;
+  &--active {
+    color: var(--dynadrill-purple, #662e9b);
+
+    .bottom-nav__indicator {
+      background: var(--dynadrill-purple-tint-strong, rgba(102, 46, 155, 0.16));
+    }
+
+    .bottom-nav__label {
+      font-weight: 700;
     }
   }
+}
 
-  &__label {
-    font-size: 11px;
-    font-weight: 500;
-    line-height: 1.2;
-  }
+.bottom-nav__indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 32px;
+  border-radius: var(--radius-full, 9999px);
+}
+
+.bottom-nav__label {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

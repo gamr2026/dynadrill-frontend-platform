@@ -17,6 +17,8 @@ export interface ArticuloFormDialogData {
 
 @Component({
   selector: 'app-articulo-form-dialog',
+  /** Pantalla completa en móvil (formulario largo) — ver styles.scss. */
+  host: { class: 'app-dialog-fullscreen-mobile' },
   imports: [DynadrillInputComponent, DynadrillTextareaComponent, DynadrillCheckboxComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './articulo-form-dialog.html',

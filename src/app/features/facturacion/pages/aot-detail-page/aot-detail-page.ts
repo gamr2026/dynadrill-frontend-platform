@@ -13,7 +13,7 @@ import { Aot } from '../../models/aot.model';
 import { AotService } from '../../services/pedido.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AotPdfDialog, AotPdfDialogData } from '../../components/aot-pdf-dialog';
-import { DetailHeaderService } from '../../../../layout/detail-header.service';
+import { useDetailChrome } from '../../../../layout/page-chrome.service';
 
 /** Fase 6 — detalle de la AOT (documento oficial final). */
 @Component({
@@ -37,7 +37,6 @@ export class AotDetailPage {
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
-  private readonly detailHeader = inject(DetailHeaderService);
 
   private readonly aotId = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -50,19 +49,19 @@ export class AotDetailPage {
     this.reload();
 
     // Barra "Detail" del header (Figma Nav/TopAppBar, solo móvil).
-    effect(() => {
-      const aot = this.aot();
-      if (!aot) return;
-      this.detailHeader.set({
-        title: aot.numeroOpr,
-        menuItems: [
+    useDetailChrome(
+      () => this.aot()?.numeroOpr ?? 'OT',
+      undefined,
+      () => {
+        const aot = this.aot();
+        if (!aot) return [];
+        return [
           { label: 'Ir al pedido', action: () => this.irAlPedido() },
           { label: 'Ver / Imprimir PDF', action: () => this.verPdf() },
           ...(aot.estado !== 'firmada' ? [{ label: 'Marcar como firmada', action: () => this.marcarFirmada() }] : []),
-        ],
-      });
-    });
-    inject(DestroyRef).onDestroy(() => this.detailHeader.clear());
+        ];
+      },
+    );
   }
 
   private reload(): void {

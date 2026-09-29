@@ -10,6 +10,8 @@ export interface VehiculoPatrimonioDialogData {
 
 @Component({
   selector: 'app-vehiculo-patrimonio-dialog',
+  /** Pantalla completa en móvil (formulario largo) — ver styles.scss. */
+  host: { class: 'app-dialog-fullscreen-mobile' },
   imports: [DynadrillInputComponent, DynadrillDatetimePickerComponent, DynadrillTextareaComponent, DynadrillCheckboxComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './vehiculo-patrimonio-dialog.html',

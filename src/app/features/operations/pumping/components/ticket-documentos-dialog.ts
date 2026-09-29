@@ -22,6 +22,8 @@ export interface TicketDocumentosDialogData {
  */
 @Component({
   selector: 'app-ticket-documentos-dialog',
+  /** Bottom sheet en móvil (Overlay/BottomSheet en Figma) — ver styles.scss. */
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [DynadrillTextComponent, DynadrillButtonComponent, DynadrillIconButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './ticket-documentos-dialog.html',

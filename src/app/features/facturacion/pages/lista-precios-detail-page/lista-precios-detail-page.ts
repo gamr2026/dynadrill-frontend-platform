@@ -13,7 +13,7 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { ListaPrecios } from '../../models/lista-precios.model';
 import { ListaPreciosService } from '../../services/pedido.service';
-import { DetailHeaderService } from '../../../../layout/detail-header.service';
+import { useDetailChrome } from '../../../../layout/page-chrome.service';
 
 const TODOS = 'Todos';
 /** Ítems por página: el catálogo de un cliente puede pasar de mil filas. */
@@ -39,7 +39,6 @@ export class ListaPreciosDetailPage {
   private readonly route = inject(ActivatedRoute);
   private readonly listaService = inject(ListaPreciosService);
   private readonly notify = inject(DynadrillNotificationService);
-  private readonly detailHeader = inject(DetailHeaderService);
 
   private readonly listaId = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -109,16 +108,11 @@ export class ListaPreciosDetailPage {
     this.reload();
 
     // Barra "Detail" del header (Figma Nav/TopAppBar, solo móvil).
-    effect(() => {
-      const l = this.lista();
-      if (!l) return;
-      this.detailHeader.set({
-        title: l.cliente,
-        backLink: '/dashboard/facturacion/lista-precios',
-        menuItems: l.items.length ? [{ label: 'Descargar Excel', action: () => this.descargarExcel() }] : [],
-      });
-    });
-    inject(DestroyRef).onDestroy(() => this.detailHeader.clear());
+    useDetailChrome(
+      () => this.lista()?.cliente ?? 'Lista de precios',
+      '/dashboard/facturacion/lista-precios',
+      () => this.lista()?.items.length ? [{ label: 'Descargar Excel', action: () => this.descargarExcel() }] : [],
+    );
   }
 
   private reload(): void {

@@ -600,7 +600,7 @@
       <ul class="daily-reports ticket-detail__only-mobile">
         @for (row of dailyReportDayRows(); track row.id) {
           <li class="daily-report">
-            <span class="daily-report__date">{{ row.fecha }}</span>
+            <span class="daily-report__date">{{ row.fechaLabel }}</span>
             <strong class="daily-report__name">Reporte diario</strong>
             <span class="daily-report__meta">{{ isDailyReportCompleted(row) ? 'Completado' : 'Pendiente' }}</span>
             <dynadrill-tag [label]="row.statusBadge.text" [variant]="row.statusBadge.tone" />

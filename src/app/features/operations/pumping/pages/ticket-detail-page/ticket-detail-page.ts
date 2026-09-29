@@ -1448,7 +1448,7 @@ export class TicketDetailPage {
 
   protected readonly dailyReportDayColumns: DynadrillDataTableColumn[] = [
     { key: 'dia', header: 'Día' },
-    { key: 'fecha', header: 'Fecha' },
+    { key: 'fechaLabel', header: 'Fecha' },
     { key: 'statusBadge', header: 'Estado', type: 'badge' },
   ];
 
@@ -1467,6 +1467,7 @@ export class TicketDetailPage {
       id: 1,
       dia: 'Día 1',
       fecha: dateStr,
+      fechaLabel: formatDate(parseLocalDateString(dateStr), "d 'de' MMMM y", 'es'),
       statusBadge: reports.has(dateStr)
         ? { text: 'Completado', tone: 'success' as const }
         : { text: 'Pendiente', tone: 'warning' as const },

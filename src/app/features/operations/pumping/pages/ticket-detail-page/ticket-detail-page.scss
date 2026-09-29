@@ -498,13 +498,14 @@
 }
 
 // Bloques distintos según el ancho: en escritorio siguen las tarjetas de siempre.
-.ticket-detail__only-mobile {
+// Selector doblado: si no, una clase con `display: flex` declarada después (ej. `.daily-reports`) los pisa y se ven ambos a la vez.
+.ticket-detail__only-mobile.ticket-detail__only-mobile {
   @media (min-width: 841px) {
     display: none;
   }
 }
 
-.ticket-detail__only-desktop {
+.ticket-detail__only-desktop.ticket-detail__only-desktop {
   @media (max-width: 840px) {
     display: none;
   }

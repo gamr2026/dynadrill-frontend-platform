@@ -957,6 +957,7 @@
                 placeholder="0"
                 [value]="checklistIngresoGasDraft()[gas]"
                 (valueChange)="onChecklistIngresoGasDraftChange(gas, $event)"
+                (keydown)="bloquearTeclaGas($event)"
                 (keydown.enter)="onGasEnter($event, i)"
               />
               <span class="gas-card__range">Rango seguro: {{ rangoSeguroGas(gas) }}</span>

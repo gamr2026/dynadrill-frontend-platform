@@ -789,7 +789,14 @@ export class TicketDetailPage {
   }
 
   protected onChecklistIngresoGasDraftChange(gas: ChecklistIngresoGas, value: string): void {
-    this.checklistIngresoGasDraft.update(d => ({ ...d, [gas]: value }));
+    // Una lectura de gas no puede ser negativa: un valor negativo (pegado o con las flechas del campo) se corrige a 0.
+    const limpio = value !== '' && Number(value) < 0 ? '0' : value;
+    this.checklistIngresoGasDraft.update(d => ({ ...d, [gas]: limpio }));
+  }
+
+  /** Impide teclear "-", "+" y "e" (notación científica) en los campos de lectura de gases. */
+  protected bloquearTeclaGas(event: KeyboardEvent): void {
+    if (event.key === '-' || event.key === '+' || event.key === 'e' || event.key === 'E') event.preventDefault();
   }
 
   /** Rango seguro legible para mostrar bajo cada campo: "hasta 10 ppm" o "19.5 – 23.5 %". */
@@ -799,7 +806,7 @@ export class TicketDetailPage {
   }
 
   private lecturaGasValida(raw: string): boolean {
-    return raw.trim() !== '' && !Number.isNaN(Number(raw));
+    return raw.trim() !== '' && !Number.isNaN(Number(raw)) && Number(raw) >= 0;
   }
 
   /** Gases con un valor válido escrito y todavía sin registrar. */
@@ -882,7 +889,7 @@ export class TicketDetailPage {
     const raw = this.checklistIngresoGasDraft()[gas];
     if (!t || raw === '') return;
     const lectura = Number(raw);
-    if (Number.isNaN(lectura)) return;
+    if (Number.isNaN(lectura) || lectura < 0) return;
     this.pumpingService.actualizarChecklistIngreso(t.id, { nuevaLectura: { gas, lectura } }).subscribe({
       next: actualizado => {
         this.checklistIngreso.set(actualizado);

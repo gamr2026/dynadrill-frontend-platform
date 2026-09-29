@@ -1,4 +1,37 @@
 <div class="ticket-documentos">
+  <!-- Móvil (Figma "M · Pumping · Documentos del ticket"): una sola lista con tipo, nombre, meta y acción -->
+  <div class="ticket-documentos__only-mobile">
+    <ul class="docs-list">
+      @for (d of data.reporteJobDocs; track d.id) {
+        <li class="docs-item">
+          <div class="docs-item__text">
+            <span class="docs-item__eyebrow">Reporte Job</span>
+            <strong class="docs-item__title">Reporte diario {{ d.fecha }}</strong>
+            <span class="docs-item__meta">Firmado por {{ d.firmadoPor || '—' }}</span>
+          </div>
+          <button type="button" class="docs-item__btn" [attr.aria-label]="'Ver Reporte Job ' + d.fecha" title="Ver" (click)="verReporteJob(d)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></svg></button>
+        </li>
+      }
+      @for (d of documentosSubidos(); track d.id) {
+        <li class="docs-item">
+          <div class="docs-item__text">
+            <span class="docs-item__eyebrow">Documento</span>
+            <strong class="docs-item__title">{{ d.nombreOriginal }}</strong>
+            <span class="docs-item__meta">Subido {{ d.uploadedAt | date: 'dd/MM/yyyy' }}@if (d.uploadedBy) { · {{ d.uploadedBy }} }</span>
+          </div>
+          <button type="button" class="docs-item__btn" [attr.aria-label]="'Descargar ' + d.nombreOriginal" title="Descargar" (click)="descargarDocumento(d)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
+        </li>
+      }
+      @if (!data.reporteJobDocs.length && !documentosSubidos().length && !loadingDocumentos()) {
+        <li class="docs-item__empty">Todavía no hay documentos para este ticket.</li>
+      }
+    </ul>
+    @if (data.reporteJobDocs.length) {
+      <button type="button" class="docs-excel" (click)="descargarExcelReporteDiario()">Descargar Excel del reporte diario</button>
+    }
+  </div>
+
+  <div class="ticket-documentos__only-desktop">
   <dynadrill-text variant="caption">Documentos generados para el ticket {{ data.ticketCode }}.</dynadrill-text>
 
   <div class="ticket-documentos__section-head">
@@ -41,6 +74,8 @@
   <dynadrill-text variant="caption">
     Inspecciones de vehículo (salida/llegada): próximamente acá — hoy no quedan vinculadas a un ticket puntual.
   </dynadrill-text>
+
+  </div>
 </div>
 
 <footer class="ticket-documentos__actions">

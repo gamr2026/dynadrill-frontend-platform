@@ -30,3 +30,130 @@
   padding-top: 16px;
   border-top: 1px solid #ecebf1;
 }
+
+// ── Móvil (Figma "M · Pumping · Documentos del ticket"): lista unificada en bottom sheet ──
+.ticket-documentos__only-mobile {
+  @media (min-width: 841px) {
+    display: none;
+  }
+}
+
+.ticket-documentos__only-desktop {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  @media (max-width: 840px) {
+    display: none;
+  }
+}
+
+.docs-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.docs-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border, #e5e4ea);
+
+  &__text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dynadrill-purple, #662e9b);
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--text, #2c2b35);
+    overflow-wrap: anywhere;
+  }
+
+  &__meta {
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__btn {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-md, 12px);
+    background: var(--surface, #fff);
+    color: var(--text, #2c2b35);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--dynadrill-purple-tint, #f6f3f9);
+      color: var(--dynadrill-purple, #662e9b);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--dynadrill-purple, #662e9b);
+      outline-offset: 2px;
+    }
+  }
+
+  &__empty {
+    padding: 24px 0;
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-muted, #5c5870);
+  }
+}
+
+.docs-excel {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 4px;
+  padding: 12px 24px;
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface, #fff);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dynadrill-purple, #662e9b);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--dynadrill-purple-tint, #f6f3f9);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--dynadrill-purple, #662e9b);
+    outline-offset: 2px;
+  }
+}
+
+// En móvil el botón "Cerrar" sobra: el sheet ya tiene la X en su encabezado.
+@media (max-width: 840px) {
+  .ticket-documentos__actions {
+    display: none;
+  }
+}

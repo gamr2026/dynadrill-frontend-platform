@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import * as XLSX from 'xlsx';
@@ -24,7 +25,7 @@ export interface TicketDocumentosDialogData {
   selector: 'app-ticket-documentos-dialog',
   /** Bottom sheet en móvil (Overlay/BottomSheet en Figma) — ver styles.scss. */
   host: { class: 'app-dialog-sheet-mobile' },
-  imports: [DynadrillTextComponent, DynadrillButtonComponent, DynadrillIconButtonComponent],
+  imports: [DatePipe, DynadrillTextComponent, DynadrillButtonComponent, DynadrillIconButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './ticket-documentos-dialog.html',
   styleUrl: './ticket-documentos-dialog.scss',

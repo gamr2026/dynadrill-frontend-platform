@@ -1,4 +1,64 @@
 <section class="revisar-solicitud">
+  <!-- Móvil (Figma "M · Pumping · Revisar solicitud de cambio de ítems") -->
+  <div class="revisar-solicitud__only-mobile">
+    <dl class="revisar-solicitud__defs">
+      <div><dt>Ticket</dt><dd>{{ solicitud.ticketCode }}</dd></div>
+      <div><dt>Pedido</dt><dd>{{ solicitud.pedidoCode }}</dd></div>
+      <div><dt>Cliente</dt><dd>{{ solicitud.cliente }}</dd></div>
+      <div><dt>Solicitado por</dt><dd>{{ solicitud.solicitadoPor }} · {{ solicitud.fechaSolicitud | date: 'dd/MM/yyyy' }}</dd></div>
+    </dl>
+
+    <p class="revisar-solicitud__motivo"><strong>Motivo:</strong> {{ solicitud.motivo }}</p>
+
+    <section class="revisar-card">
+      <h2 class="revisar-card__title">ÍTEMS ORIGINALES (pedido de Ventas)</h2>
+      <ul class="revisar-card__list">
+        @for (it of solicitud.itemsOriginales; track $index) {
+          <li class="revisar-line">
+            <div class="revisar-line__top">
+              <span class="revisar-line__code">{{ it.codigo }}</span>
+              <span class="revisar-line__total">$ {{ it.cantidad * it.valorUnitario | number: '1.2-2' }}</span>
+            </div>
+            <strong class="revisar-line__name">{{ it.descripcion }}</strong>
+            <span class="revisar-line__meta">Cant. {{ it.cantidad }} · $ {{ it.valorUnitario | number: '1.2-2' }}</span>
+          </li>
+        } @empty {
+          <li class="revisar-line__meta">Sin ítems previos.</li>
+        }
+      </ul>
+      <p class="revisar-card__total">Total: $ {{ totalOriginal() | number: '1.2-2' }}</p>
+    </section>
+
+    <section class="revisar-card revisar-card--propuesto">
+      <h2 class="revisar-card__title">ÍTEMS PROPUESTOS</h2>
+      <ul class="revisar-card__list">
+        @for (it of solicitud.itemsPropuestos; track $index) {
+          <li class="revisar-line">
+            <div class="revisar-line__top">
+              <span class="revisar-line__code">{{ it.codigo }}</span>
+              <span class="revisar-line__total">$ {{ it.cantidad * it.valorUnitario | number: '1.2-2' }}</span>
+            </div>
+            <strong class="revisar-line__name">{{ it.descripcion }}</strong>
+            <span class="revisar-line__meta">Cant. {{ it.cantidad }} · $ {{ it.valorUnitario | number: '1.2-2' }}</span>
+            @if (esModificado(it)) {
+              <dynadrill-tag label="Modificado" variant="brand" />
+            }
+          </li>
+        }
+      </ul>
+      <p class="revisar-card__total">Total: $ {{ totalPropuesto() | number: '1.2-2' }}</p>
+    </section>
+
+    @if (soloLectura) {
+      <dynadrill-tag [label]="solicitud.estado === 'aprobada' ? 'Aprobada' : 'Rechazada'" [variant]="solicitud.estado === 'aprobada' ? 'success' : 'error'" />
+      <p class="revisar-solicitud__hint">
+        Revisado por {{ solicitud.revisadoPor }} el {{ solicitud.fechaRevision | date: 'dd/MM/yyyy HH:mm' }}
+        @if (solicitud.motivoRechazo) { — {{ solicitud.motivoRechazo }} }
+      </p>
+    }
+  </div>
+
+  <div class="revisar-solicitud__only-desktop">
   <dynadrill-text variant="h1">Solicitud de cambio de ítems</dynadrill-text>
   <dynadrill-text variant="caption">
     Ticket {{ solicitud.ticketCode }} — Pedido {{ solicitud.pedidoCode }} ({{ solicitud.cliente }}). Solicitado por
@@ -53,9 +113,10 @@
       (valueChange)="motivoRechazo.set($event)"
     />
   }
+</div>
 </section>
 
-<footer class="revisar-solicitud__actions">
+<footer class="revisar-solicitud__actions revisar-solicitud__only-desktop">
   <dynadrill-button variant="secondary" (clicked)="cancelar()">Cerrar</dynadrill-button>
   @if (!soloLectura) {
     @if (mostrarMotivoRechazo()) {
@@ -66,3 +127,28 @@
     }
   }
 </footer>
+
+<!-- Móvil: barra fija Rechazar / Aprobar; al rechazar, panel inferior con el motivo (Figma "Rechazar solicitud") -->
+@if (!soloLectura) {
+  @if (mostrarMotivoRechazo()) {
+    <div class="revisar-solicitud__sheet revisar-solicitud__only-mobile" role="dialog" aria-label="Rechazar solicitud">
+      <h3 class="revisar-solicitud__sheet-title">Rechazar solicitud</h3>
+      <dynadrill-textarea
+        label="Motivo del rechazo (opcional)"
+        placeholder="Por qué se rechaza esta solicitud…"
+        [rows]="4"
+        [value]="motivoRechazo()"
+        (valueChange)="motivoRechazo.set($event)"
+      />
+      <div class="revisar-solicitud__bar">
+        <dynadrill-button variant="secondary" (clicked)="cancelarRechazo()">Cancelar</dynadrill-button>
+        <dynadrill-button variant="error" (clicked)="confirmarRechazo()">Confirmar rechazo</dynadrill-button>
+      </div>
+    </div>
+  } @else {
+    <div class="revisar-solicitud__bar revisar-solicitud__bar--sticky revisar-solicitud__only-mobile">
+      <dynadrill-button variant="error" (clicked)="pedirMotivoRechazo()">Rechazar</dynadrill-button>
+      <dynadrill-button variant="primary" (clicked)="aprobar()">Aprobar</dynadrill-button>
+    </div>
+  }
+}

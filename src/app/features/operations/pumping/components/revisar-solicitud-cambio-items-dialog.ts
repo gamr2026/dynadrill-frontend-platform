@@ -49,6 +49,16 @@ export class RevisarSolicitudCambioItemsDialog {
     Math.round(this.solicitud.itemsPropuestos.reduce((s, l) => s + l.cantidad * l.valorUnitario, 0) * 100) / 100,
   );
 
+  /** Un ítem propuesto está "Modificado" si no existía en el pedido original o cambió su cantidad o valor unitario. */
+  protected esModificado(item: { codigo: string; cantidad: number; valorUnitario: number }): boolean {
+    const original = this.solicitud.itemsOriginales.find(o => o.codigo === item.codigo);
+    return !original || original.cantidad !== item.cantidad || original.valorUnitario !== item.valorUnitario;
+  }
+
+  protected cancelarRechazo(): void {
+    this.mostrarMotivoRechazo.set(false);
+  }
+
   protected aprobar(): void {
     this.modalRef.close({ decision: 'aprobada' });
   }

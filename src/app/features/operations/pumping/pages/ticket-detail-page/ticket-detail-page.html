@@ -710,13 +710,26 @@
         </div>
       </ng-template>
 
-      <dynadrill-data-table
-        [columns]="personnelColumns"
-        [rows]="personnelRows()"
-        [loading]="false"
-        actionsHeader="Acciones"
-        [actionsTemplate]="gerenciamientoLlegadaActionsTpl"
-      />
+      <ul class="review-rows ticket-detail__only-mobile">
+        @for (row of personnelRows(); track row.id) {
+          <li class="review-row">
+            <span class="review-row__eyebrow">{{ row.name }}</span>
+            <strong class="review-row__title">{{ row.unitCode }}</strong>
+            <span class="review-row__meta">{{ row.role }}</span>
+            <ng-container [ngTemplateOutlet]="gerenciamientoLlegadaActionsTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+          </li>
+        }
+      </ul>
+
+      <div class="ticket-detail__only-desktop">
+        <dynadrill-data-table
+          [columns]="personnelColumns"
+          [rows]="personnelRows()"
+          [loading]="false"
+          actionsHeader="Acciones"
+          [actionsTemplate]="gerenciamientoLlegadaActionsTpl"
+        />
+      </div>
     </section>
 
     @if (!allReturnTravelManagementsCompleted()) {
@@ -735,7 +748,7 @@
   <!-- Supervisor: Revisar reportes de llegada (sin inspección)         -->
   <!-- ══════════════════════════════════════════════════════════════════ -->
   @if (currentStep() === 'revision_reportes_llegada') {
-    <section class="ticket-detail__section">
+    <section class="ticket-detail__section ticket-detail__heading">
       <dynadrill-text variant="h1">Reporte de Unidad — Llegada</dynadrill-text>
       <dynadrill-text variant="caption">Documento: DYN-MNT-RE-012</dynadrill-text>
       <dynadrill-text variant="body">Revise y apruebe el reporte de unidad de cada operador.</dynadrill-text>
@@ -785,13 +798,26 @@
         </div>
       </ng-template>
 
-      <dynadrill-data-table
-        [columns]="personnelColumns"
-        [rows]="personnelRows()"
-        [loading]="false"
-        actionsHeader="Acciones"
-        [actionsTemplate]="inspectionSalidaReviewTpl"
-      />
+      <ul class="review-rows ticket-detail__only-mobile">
+        @for (row of personnelRows(); track row.id) {
+          <li class="review-row">
+            <span class="review-row__eyebrow">{{ row.name }}</span>
+            <strong class="review-row__title">{{ row.unitCode }}</strong>
+            <span class="review-row__meta">{{ row.role }}</span>
+            <ng-container [ngTemplateOutlet]="inspectionSalidaReviewTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+          </li>
+        }
+      </ul>
+
+      <div class="ticket-detail__only-desktop">
+        <dynadrill-data-table
+          [columns]="personnelColumns"
+          [rows]="personnelRows()"
+          [loading]="false"
+          actionsHeader="Acciones"
+          [actionsTemplate]="inspectionSalidaReviewTpl"
+        />
+      </div>
     </section>
 
     @if (!allLlegadaApproved()) {
@@ -1069,16 +1095,29 @@
         </div>
       </ng-template>
 
-      <dynadrill-data-table
-        [columns]="personnelColumns"
-        [rows]="personnelRows()"
-        [loading]="false"
-        actionsHeader="Acciones"
-        [actionsTemplate]="inspectionActionsTpl"
-      />
+      <ul class="review-rows ticket-detail__only-mobile">
+        @for (row of personnelRows(); track row.id) {
+          <li class="review-row">
+            <span class="review-row__eyebrow">{{ row.name }}</span>
+            <strong class="review-row__title">{{ row.unitCode }}</strong>
+            <span class="review-row__meta">{{ row.role }}</span>
+            <ng-container [ngTemplateOutlet]="inspectionActionsTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+          </li>
+        }
+      </ul>
+
+      <div class="ticket-detail__only-desktop">
+        <dynadrill-data-table
+          [columns]="personnelColumns"
+          [rows]="personnelRows()"
+          [loading]="false"
+          actionsHeader="Acciones"
+          [actionsTemplate]="inspectionActionsTpl"
+        />
+      </div>
     </section>
 
-    <section class="ticket-detail__section">
+    <section class="ticket-detail__section ticket-detail__heading">
       <dynadrill-text variant="h1">Reporte de Unidad — Salida</dynadrill-text>
       <dynadrill-text variant="caption">Documento: DYN-MNT-RE-012</dynadrill-text>
     </section>
@@ -1116,7 +1155,15 @@
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Neumáticos</dynadrill-text>
       <dynadrill-text variant="caption">Presión de aire (PSI) por llanta — máximo 4 (delantera/trasera x izq/der).</dynadrill-text>
-      <div class="ticket-detail__editable-table">
+      <div class="tires-grid ticket-detail__only-mobile">
+        @for (tire of tires(); track tire.position; let i = $index) {
+          <div class="tire-card">
+            <span class="tire-card__label">{{ tire.position }}</span>
+            <dynadrill-input type="number" [value]="tire.salida" placeholder="PSI" (valueChange)="updateTire(i, 'salida', $event)" />
+          </div>
+        }
+      </div>
+      <div class="ticket-detail__editable-table ticket-detail__only-desktop">
         <div class="ticket-detail__editable-table-header">
           <span></span>
           @for (tire of tires(); track tire.position) {
@@ -1224,16 +1271,29 @@
         </div>
       </ng-template>
 
-      <dynadrill-data-table
-        [columns]="personnelColumns"
-        [rows]="personnelRows()"
-        [loading]="false"
-        actionsHeader="Acciones"
-        [actionsTemplate]="inspectionActionsLlegadaTpl"
-      />
+      <ul class="review-rows ticket-detail__only-mobile">
+        @for (row of personnelRows(); track row.id) {
+          <li class="review-row">
+            <span class="review-row__eyebrow">{{ row.name }}</span>
+            <strong class="review-row__title">{{ row.unitCode }}</strong>
+            <span class="review-row__meta">{{ row.role }}</span>
+            <ng-container [ngTemplateOutlet]="inspectionActionsLlegadaTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+          </li>
+        }
+      </ul>
+
+      <div class="ticket-detail__only-desktop">
+        <dynadrill-data-table
+          [columns]="personnelColumns"
+          [rows]="personnelRows()"
+          [loading]="false"
+          actionsHeader="Acciones"
+          [actionsTemplate]="inspectionActionsLlegadaTpl"
+        />
+      </div>
     </section>
 
-    <section class="ticket-detail__section">
+    <section class="ticket-detail__section ticket-detail__heading">
       <dynadrill-text variant="h1">Reporte de Unidad — Llegada</dynadrill-text>
       <dynadrill-text variant="caption">Documento: DYN-MNT-RE-012</dynadrill-text>
     </section>
@@ -1258,7 +1318,16 @@
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Neumáticos</dynadrill-text>
       <dynadrill-text variant="caption">Presión de aire (PSI) por llanta — máximo 4 (delantera/trasera x izq/der).</dynadrill-text>
-      <div class="ticket-detail__editable-table">
+      <div class="tires-grid ticket-detail__only-mobile">
+        @for (tire of tires(); track tire.position; let i = $index) {
+          <div class="tire-card">
+            <span class="tire-card__label">{{ tire.position }}</span>
+            <span class="tire-card__hint">Salida: {{ tire.salida || '—' }} PSI</span>
+            <dynadrill-input type="number" [value]="tire.llegada" placeholder="PSI llegada" (valueChange)="updateTire(i, 'llegada', $event)" />
+          </div>
+        }
+      </div>
+      <div class="ticket-detail__editable-table ticket-detail__only-desktop">
         <div class="ticket-detail__editable-table-header">
           <span></span>
           @for (tire of tires(); track tire.position) {

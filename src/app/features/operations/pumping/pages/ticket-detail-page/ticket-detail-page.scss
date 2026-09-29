@@ -1083,3 +1083,111 @@
 .ticket-detail__section > .blocked {
   margin: 12px 0 0;
 }
+
+// ── Reporte de unidad en móvil: encabezado sin tarjeta, neumáticos en 2×2 e hubodómetro por bloques ──
+.tire-card__label,
+.tire-card__hint {
+  display: block;
+}
+
+.tires-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tire-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+
+  &__label {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--text, #2c2b35);
+  }
+
+  &__hint {
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--text-muted, #5c5870);
+  }
+}
+
+@media (max-width: 840px) {
+  // El título del reporte deja de ir en una tarjeta propia: queda como encabezado de la sección.
+  .ticket-detail__heading {
+    margin-top: 1.5rem;
+    padding: 0 4px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+
+    ::ng-deep :is(h1, h1 *) {
+      font-family: var(--font-body, 'Roboto', sans-serif);
+      font-size: 18px;
+      font-weight: 500;
+      line-height: 1.3;
+      letter-spacing: 0;
+      text-transform: none;
+      color: var(--text, #2c2b35);
+    }
+  }
+
+  // Campos numéricos cómodos de tocar y sin zoom automático en iOS (16px).
+  .tire-card dynadrill-input ::ng-deep input,
+  .ticket-detail__hubodometro-axle-row dynadrill-input ::ng-deep input {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  // Hubodómetro: cada eje en su bloque — nombre arriba, Origen y Destino lado a lado.
+  .ticket-detail__hubodometro-compact {
+    gap: 12px;
+  }
+
+  .ticket-detail__hubodometro-axle-row {
+    flex-wrap: wrap;
+    padding: 12px;
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-md, 12px);
+    background: var(--surface-muted, #faf9fc);
+
+    dynadrill-input,
+    .ticket-detail__editable-table-readonly {
+      flex: 1 1 calc(50% - 16px);
+    }
+  }
+
+  .ticket-detail__hubodometro-axle-label {
+    flex: 1 1 auto;
+    width: auto;
+    font-size: 14px;
+  }
+
+  .ticket-detail__hubodometro-route {
+    display: none;
+  }
+
+  .ticket-detail__hubodometro-remove {
+    order: -1;
+    width: 48px;
+    height: 48px;
+    margin-left: auto;
+    font-size: 16px;
+  }
+
+  .ticket-detail__hubodometro-actions dynadrill-button {
+    display: block;
+
+    ::ng-deep .ant-btn {
+      width: 100%;
+      height: 48px;
+      border-radius: var(--radius-md, 12px);
+      font-weight: 600;
+    }
+  }
+}

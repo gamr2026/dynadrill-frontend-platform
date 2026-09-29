@@ -9,8 +9,8 @@ import { ShellActionsService } from '../shell-actions.service';
 import { SidebarStateService } from '../sidebar-state.service';
 
 /**
- * Drawer de módulos en móvil (Nav/Drawer en Figma): cambia de módulo; la
- * navegación dentro del módulo la hace la barra inferior contextual.
+ * Drawer de módulos en móvil (Nav/Drawer en Figma): cambia de módulo y lista los destinos del
+ * módulo activo (incluidos los de un grupo); la barra inferior contextual da el acceso rápido.
  */
 @Component({
   selector: 'app-mobile-drawer',

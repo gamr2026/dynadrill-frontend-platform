@@ -23,6 +23,31 @@
         <app-nav-icon [name]="item.module.icon" />
         {{ item.module.label }}
       </a>
+
+      <!-- Destinos del módulo activo, incluidos los de un grupo (ej. QHSE › Planificación › Documentos por pedido):
+           la barra inferior solo lleva al primer elemento de cada grupo. -->
+      @if (active && item.module.children?.length) {
+        <ul class="mobile-drawer__sub" [attr.aria-label]="'Destinos de ' + item.module.label">
+          @for (entry of item.module.children; track entry.label) {
+            @if (entry.children?.length) {
+              <li class="mobile-drawer__group">
+                <span class="mobile-drawer__group-label">{{ entry.label }}</span>
+                <ul class="mobile-drawer__sub-list">
+                  @for (sub of entry.children; track sub.label) {
+                    <li>
+                      <a class="mobile-drawer__sublink" [class.mobile-drawer__sublink--active]="nav.isActive(sub)" [attr.aria-current]="nav.isActive(sub) ? 'page' : null" [routerLink]="sub.link" (click)="state.close()">{{ sub.label }}</a>
+                    </li>
+                  }
+                </ul>
+              </li>
+            } @else {
+              <li>
+                <a class="mobile-drawer__sublink" [class.mobile-drawer__sublink--active]="nav.isActive(entry)" [attr.aria-current]="nav.isActive(entry) ? 'page' : null" [routerLink]="entry.link" (click)="state.close()">{{ entry.label }}</a>
+              </li>
+            }
+          }
+        </ul>
+      }
     }
   </nav>
 

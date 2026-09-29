@@ -60,6 +60,8 @@ export const PUMPING_STEP_LABELS: Record<PumpingStep, string> = {
 /**
  * Mapeo de cada paso del ticket al rol responsable y su roleId.
  * Usado para cambiar automáticamente de rol en la demo al avanzar el paso.
+ * Los pasos del Supervisor son de "Supervisor Pumping" (id 17), nunca del "Supervisor" genérico: ese es de FCR
+ * y su menú muestra FCR en vez de Pumping/Aprobaciones.
  */
 export const PUMPING_STEP_ROLE: Record<PumpingStep, { roleName: string; roleId: number }> = {
   revision_inicial: { roleName: 'Jefe de Base', roleId: 4 },
@@ -68,28 +70,23 @@ export const PUMPING_STEP_ROLE: Record<PumpingStep, { roleName: string; roleId: 
   // PLAN-QHSE-PUMPING-NOTIFICACIONES, Fase 1, D1. Solo Pumping (D2).
   asignacion: { roleName: 'Jefe de Base', roleId: 4 },
   traslado_salida: { roleName: 'Operador', roleId: 2 },
-  revision_reportes_salida: { roleName: 'Supervisor', roleId: 1 },
+  revision_reportes_salida: { roleName: 'Supervisor Pumping', roleId: 17 },
   // El Reporte Diario de Actividades (DYN-SGI-RE-047) lo llena el Operador,
   // no el Supervisor — confirmado en el vault (conceptos/Reporte-Job.md) y
   // en la documentación de Facturación (FACT-002, PASOS DEL PROCESO).
   ejecucion_operativa: { roleName: 'Operador', roleId: 2 },
-  control_retorno: { roleName: 'Supervisor', roleId: 1 },
+  control_retorno: { roleName: 'Supervisor Pumping', roleId: 17 },
   traslado_llegada: { roleName: 'Operador', roleId: 2 },
-  mantenimiento: { roleName: 'Supervisor', roleId: 1 },
-  revision_reportes_llegada: { roleName: 'Supervisor', roleId: 1 },
-  revision_final: { roleName: 'Supervisor', roleId: 1 },
-  cierre: { roleName: 'Supervisor', roleId: 1 },
+  mantenimiento: { roleName: 'Supervisor Pumping', roleId: 17 },
+  revision_reportes_llegada: { roleName: 'Supervisor Pumping', roleId: 17 },
+  revision_final: { roleName: 'Supervisor Pumping', roleId: 17 },
+  cierre: { roleName: 'Supervisor Pumping', roleId: 17 },
 };
 
-/**
- * "Supervisor Pumping" cumple las mismas acciones que "Supervisor" pero
- * acotado a Pumping (ver sidebar.ts) — cualquier chequeo de "es el rol
- * responsable de este paso" debe aceptar ambos nombres de rol.
- */
+/** Compara el rol esperado del paso (ver PUMPING_STEP_ROLE) con el de la sesión — el "Supervisor" genérico ya no cuenta: es de FCR. */
 export function esRolResponsablePumping(expectedRoleName: string | undefined, currentRoleName: string): boolean {
   if (!expectedRoleName) return false;
-  if (expectedRoleName === currentRoleName) return true;
-  return expectedRoleName === 'Supervisor' && currentRoleName === 'Supervisor Pumping';
+  return expectedRoleName === currentRoleName;
 }
 
 // ── Entidades del dominio ──

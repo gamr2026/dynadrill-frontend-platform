@@ -3,60 +3,125 @@
   title="Tickets"
   subtitle="Gestión integral de servicios FCR (Field Completion & Retrieval)"
   [roleTag]="roleName()"
-/>
+>
+  <dynadrill-chip-group
+    actions
+    class="fcr-list__vista"
+    aria-label="Vista"
+    [options]="vistas"
+    mode="single"
+    [selected]="[vista()]"
+    (selectedChange)="onVistaChange($event)"
+  />
+</app-page-header>
 
-@if (loading()) {
-  <div class="fcr-list__kpi-skeleton">
-    @for (i of [0, 1, 2, 3, 4]; track i) {
-      <dynadrill-skeleton variant="block" width="160px" height="72px" />
+<div class="fcr-list__toolbar">
+  <dynadrill-input
+    class="fcr-list__search"
+    label="Buscar"
+    placeholder="Código, pozo o cliente"
+    [value]="filters().texto"
+    (valueChange)="setTexto($event)"
+  />
+  <dynadrill-button variant="secondary" (clicked)="openFilters()">
+    Filtros{{ activeChips().length ? ' · ' + activeChips().length : '' }}
+  </dynadrill-button>
+  @if (vista() === 'Tablero' && hasMyPhases()) {
+    <dynadrill-chip-group
+      aria-label="Etapas visibles"
+      [options]="etapaOptions()"
+      mode="single"
+      [selected]="etapaSelected()"
+      (selectedChange)="onEtapaChange($event)"
+    />
+  }
+</div>
+
+@if (hasActiveFilters()) {
+  <div class="fcr-list__active" role="status">
+    <strong>{{ filteredTickets().length }} de {{ tickets().length }} tickets</strong>
+    @for (chip of activeChips(); track chip.id) {
+      <button type="button" class="fcr-list__chip" [attr.aria-label]="'Quitar filtro ' + chip.label" (click)="clearChip(chip)">
+        {{ chip.label }} <span aria-hidden="true">×</span>
+      </button>
     }
+    <button type="button" class="fcr-list__clear" (click)="clearAll()">Limpiar filtros</button>
   </div>
-} @else {
-  <dynadrill-kpi-row [items]="kpis()" />
 }
 
-<dynadrill-chip-group
-  [options]="quickFilters"
-  mode="single"
-  [selected]="[activeFilter()]"
-  (selectedChange)="onFilterChange($event)"
-/>
-
-<ng-template #actionsTpl let-row>
-  <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(row)">
-    Ver ticket
-  </dynadrill-button>
-</ng-template>
-
-@if (isMobile()) {
-  <ul class="fcr-cards" [attr.aria-busy]="loading()">
-    @for (row of rows(); track row.id) {
-      <li>
-        <app-record-card
-          [eyebrow]="row.code"
-          [title]="row.wellName"
-          [subtitle]="row.clientName + ' • ' + row.tipoOtBadge.text"
-          [status]="row.statusBadge"
-          [fields]="[{ label: 'Cliente', value: row.clientName }, { label: 'Tipo', value: row.tipoOtBadge.text }, { label: 'Fase', value: row.phase }]"
-          [actions]="row.actions"
-        />
-      </li>
-    } @empty {
-      @if (!loading()) {
-        <li class="fcr-cards__empty">No hay tickets con este filtro.</li>
+@if (vista() === 'Tablero') {
+  @if (loading()) {
+    <div class="fcr-list__board-skeleton">
+      @for (i of [0, 1, 2, 3]; track i) {
+        <dynadrill-skeleton variant="block" width="256px" height="320px" />
       }
-    }
-  </ul>
-} @else {
-  <div class="table-scroll">
-    <dynadrill-data-table
-      [columns]="columns"
-      [rows]="rows()"
-      [loading]="loading()"
-      [rowKey]="rowKeyFn"
-      [pageSize]="10"
-      actionsHeader="Acciones"
-      [actionsTemplate]="actionsTpl"
+    </div>
+  } @else {
+    <app-fcr-kanban-board
+      [tickets]="filteredTickets()"
+      [roleName]="roleName()"
+      [soloMisEtapas]="soloMisEtapas()"
+      [mobile]="isMobile()"
+      (summary)="openSummary($event)"
+      (history)="openHistory($event)"
+      (open)="viewDetail({ id: $event.id })"
     />
-  </div>
+  }
+} @else {
+  @if (loading()) {
+    <div class="fcr-list__kpi-skeleton">
+      @for (i of [0, 1, 2, 3, 4]; track i) {
+        <dynadrill-skeleton variant="block" width="160px" height="72px" />
+      }
+    </div>
+  } @else {
+    <dynadrill-kpi-row [items]="kpis()" />
+  }
+
+  <dynadrill-chip-group
+    class="fcr-list__quick"
+    [options]="quickFilters"
+    mode="single"
+    [selected]="[activeFilter()]"
+    (selectedChange)="onFilterChange($event)"
+  />
+
+  <ng-template #actionsTpl let-row>
+    <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(row)">
+      Ver ticket
+    </dynadrill-button>
+  </ng-template>
+
+  @if (isMobile()) {
+    <ul class="fcr-cards" [attr.aria-busy]="loading()">
+      @for (row of rows(); track row.id) {
+        <li>
+          <app-record-card
+            [eyebrow]="row.code"
+            [title]="row.wellName"
+            [subtitle]="row.clientName + ' • ' + row.tipoOtBadge.text"
+            [status]="row.statusBadge"
+            [fields]="[{ label: 'Cliente', value: row.clientName }, { label: 'Tipo', value: row.tipoOtBadge.text }, { label: 'Fase', value: row.phase }]"
+            [actions]="row.actions"
+          />
+        </li>
+      } @empty {
+        @if (!loading()) {
+          <li class="fcr-cards__empty">No hay tickets con este filtro.</li>
+        }
+      }
+    </ul>
+  } @else {
+    <div class="table-scroll">
+      <dynadrill-data-table
+        [columns]="columns"
+        [rows]="rows()"
+        [loading]="loading()"
+        [rowKey]="rowKeyFn"
+        [pageSize]="10"
+        actionsHeader="Acciones"
+        [actionsTemplate]="actionsTpl"
+      />
+    </div>
+  }
 }

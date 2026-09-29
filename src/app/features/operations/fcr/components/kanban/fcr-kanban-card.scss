@@ -1,0 +1,83 @@
+:host {
+  display: block;
+}
+
+.card {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: 12px;
+
+  // Franja lateral con el color de la etapa.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: var(--fcr-stage-accent);
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 12px 12px 16px;
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-bottom: 8px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--border, #e5e4ea);
+  }
+
+  &__code {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--dynadrill-purple, #662e9b);
+  }
+
+  &__well {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text, #2c2b35);
+  }
+
+  &__client {
+    margin: 0;
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted, #5c5870);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px 4px 12px;
+    background: var(--surface-muted, #f7f6fa);
+    border-top: 1px solid var(--border, #e5e4ea);
+  }
+
+  &__secondary {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__sep {
+    width: 1px;
+    height: 16px;
+    background: var(--border, #e5e4ea);
+  }
+}

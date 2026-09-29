@@ -52,6 +52,7 @@ import {
   type FcrToolDailyStatus,
   type FcrToolStatus,
 } from '../../models/fcr.model';
+import { fcrPhaseKeys, fcrResponsibleRole } from '../../models/fcr-flow';
 import { FcrService, type CampoDocumentoFcr } from '../../services/fcr.service';
 import { PedidoService } from '../../../../facturacion/services/pedido.service';
 import { itemsEstimadosDe, TIPO_OT_LABELS, TIPO_SERVICIO_LABELS, type Pedido } from '../../../../facturacion/models/pedido.model';
@@ -165,41 +166,6 @@ function resolveSupervisorName(t: FcrTicket): string {
   return t.phaseHistory.find(p => p.approvedByRole === 'Supervisor')?.approvedBy ?? '';
 }
 
-/** Entrada VENTA — sin cambios respecto al flujo original. */
-const PHASE_KEYS_VENTA: FcrPhase[] = [
-  'revision_inicial',
-  'preparacion_herramientas',
-  'asignacion',
-  'reunion_operativa',
-  'ejecucion_operativa',
-  'revision_reportes',
-  'control_retorno',
-  'cierre',
-];
-
-/**
- * Entrada SERVICIOS — paridad con VENTA: arranca en 'revision_inicial' (mismo
- * paso, mismo rol responsable) antes de 'preparacion_herramientas'
- * (Supervisor pide herramientas a Bodega), luego 'tipo_operador' asigna al
- * operador mecánico que repara e inspecciona por herramienta, y
- * 'aprobacion_supervisor_operaciones' confluye directo en
- * 'asignacion' (operador de campo) — ya no se vuelve a pasar por
- * 'preparacion_herramientas', eso ocurre una sola vez.
- */
-const PHASE_KEYS_SERVICIO: FcrPhase[] = [
-  'revision_inicial',
-  'preparacion_herramientas',
-  'tipo_operador',
-  'inspeccion',
-  'aprobacion_supervisor_operaciones',
-  'asignacion',
-  'reunion_operativa',
-  'ejecucion_operativa',
-  'revision_reportes',
-  'control_retorno',
-  'cierre',
-];
-
 @Component({
   selector: 'app-fcr-ticket-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -254,9 +220,7 @@ export class FcrTicketDetailPage {
 
   // ── Tracker de fases (la secuencia depende de tipoOt — dos entradas, un tronco común) ──
 
-  protected readonly phaseKeys = computed<FcrPhase[]>(() =>
-    this.ticket()?.tipoOt === 'servicio' ? PHASE_KEYS_SERVICIO : PHASE_KEYS_VENTA,
-  );
+  protected readonly phaseKeys = computed(() => fcrPhaseKeys(this.ticket()?.tipoOt));
   protected readonly phaseLabels = computed(() => this.phaseKeys().map(p => FCR_PHASE_LABELS[p]));
 
   protected readonly currentPhaseIndex = computed(() => {
@@ -312,37 +276,10 @@ export class FcrTicketDetailPage {
 
   protected readonly currentPhase = computed<FcrPhase>(() => this.ticket()?.currentPhase ?? 'revision_inicial');
 
-  /**
-   * En la mayoría de fases hay un solo actor durante toda la fase, pero
-   * Preparación de Herramientas alterna entre Bodega y Supervisor paso a
-   * paso (FCR-002), con un envío formal en cada sentido — si se deja fijo
-   * en "Supervisor" (como en FCR_PHASE_ROLE), el banner miente en varios
-   * de esos sub-pasos. Orden de prioridad: primero lo que bloquea el envío
-   * a Bodega, luego la preparación en Bodega, luego el envío de vuelta al
-   * Supervisor, luego la recepción.
-   */
+  /** Misma regla que la lista y el tablero (sub-pasos de Revisión inicial y Preparación de Herramientas incluidos). */
   protected readonly responsibleRole = computed(() => {
     const t = this.ticket();
-    if (t?.currentPhase === 'revision_inicial' && t.observations.length > 0) {
-      // El último autor dice de quién es el turno: si Supervisor pidió la
-      // corrección, le toca a Ingeniería de Ventas FCR aplicarla; si ya
-      // reenvió, vuelve a ser turno del Supervisor.
-      const last = t.observations[t.observations.length - 1];
-      return last.role === 'Supervisor' ? 'Ingeniería de Ventas FCR' : 'Supervisor';
-    }
-    if (t?.currentPhase === 'preparacion_herramientas') {
-      const hasUnsentSelected = t.tools.some(tool => tool.status === 'seleccionada' && !tool.sentToBodega);
-      if (hasUnsentSelected) return 'Supervisor';
-      const hasSentSelected = t.tools.some(tool => tool.status === 'seleccionada' && tool.sentToBodega);
-      if (hasSentSelected) return 'Bodeguero';
-      const hasUnsentPrepared = t.tools.some(tool => tool.status === 'en_preparacion' && !tool.sentToSupervisor);
-      if (hasUnsentPrepared) return 'Bodeguero';
-      const hasUnreceived = t.tools.some(
-        tool => tool.status === 'en_preparacion' && tool.sentToSupervisor && !tool.recepcion?.marcado,
-      );
-      if (hasUnreceived) return 'Supervisor';
-    }
-    return FCR_PHASE_ROLE[this.currentPhase()].roleName;
+    return t ? fcrResponsibleRole(t) : FCR_PHASE_ROLE[this.currentPhase()].roleName;
   });
   protected readonly isMyTurn = computed(() => this.responsibleRole() === this.roleName());
 

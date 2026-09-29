@@ -17,6 +17,7 @@ import { Pedido } from '../../models/pedido.model';
 import { Prefactura } from '../../models/prefactura.model';
 import { PedidoService, PrefacturaService } from '../../services/pedido.service';
 import { ESTADO_PREFACTURA_LABELS, PrefacturasFiltros, PrefacturasFiltrosDialog } from '../../components/prefacturas-filtros-dialog';
+import { SearchField } from '../../../../shared/components/search-field/search-field';
 import { KpiStat, KpiStatTone } from '../../../../shared/components/kpi-stat/kpi-stat';
 
 const ESTADO_TONO: Record<Prefactura['estado'], 'neutral' | 'warning' | 'success' | 'error'> = {
@@ -41,6 +42,7 @@ const ESTADO_LABEL: Record<Prefactura['estado'], string> = {
 @Component({
   selector: 'app-prefacturas-list-page',
   imports: [
+    SearchField,
     DynadrillScreenHeaderComponent,
     KpiStat,
     DynadrillDataTableComponent,

@@ -30,6 +30,7 @@ import { DocumentoOperativo, TIPO_DOCUMENTO_OPERATIVO_LABELS } from '../../model
 import { DocumentoOperativoService, PedidoService } from '../../services/pedido.service';
 import { NuevoPedidoDialog } from '../../components/nuevo-pedido-dialog';
 import { PedidosFiltros, PedidosFiltrosDialog } from '../../components/pedidos-filtros-dialog';
+import { SearchField } from '../../../../shared/components/search-field/search-field';
 import { KpiStat, KpiStatTone } from '../../../../shared/components/kpi-stat/kpi-stat';
 import { AppNotificationItem, NotificationsService } from '../../../../core/services/notifications.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -47,6 +48,7 @@ function diasDesde(desde?: string): number {
 @Component({
   selector: 'app-pedidos-list-page',
   imports: [
+    SearchField,
     DynadrillScreenHeaderComponent,
     KpiStat,
     DynadrillIconComponent,

@@ -15,6 +15,8 @@ import {
   DynadrillTabsComponent,
   type DynadrillTab,
 } from '@digitec-it-projects/dynadrill-ui';
+import { EntityCard } from '../../../../shared/components/entity-card/entity-card';
+import type { RecordAction, RecordStatus } from '../../../../shared/components/record-card/record-card';
 import { CatalogosService } from '../../../../shared/services/catalogos.service';
 import { ClienteCatalogo, PersonaContacto, TIPO_PERSONA_LABELS } from '../../../../shared/models/catalogos.model';
 import { PersonaFormDialog, PersonaFormDialogData } from '../../components/persona-form-dialog';
@@ -33,6 +35,7 @@ import { ClienteFormDialog, ClienteFormDialogData } from '../../components/clien
     DynadrillButtonComponent,
     DynadrillChipGroupComponent,
     DynadrillDataTableComponent,
+    EntityCard,
     DynadrillIconButtonComponent,
     DynadrillSpinnerComponent,
     DynadrillTabsComponent,
@@ -96,20 +99,35 @@ export class CatalogosVentasPage {
     this.tipoFiltro.set(selected[0] ?? CatalogosVentasPage.TODOS);
   }
 
+  /** Tarjetas móviles: mismas acciones que la tabla de escritorio (editar / eliminar). */
   protected readonly personasCards = computed(() =>
     this.personas()
-      .map(p => ({ id: p.id, nombre: p.nombre, tipo: TIPO_PERSONA_LABELS[p.tipo], activo: p.activo }))
-      .filter(p => this.tipoFiltro() === CatalogosVentasPage.TODOS || p.tipo === this.tipoFiltro()),
+      .filter(p => this.tipoFiltro() === CatalogosVentasPage.TODOS || TIPO_PERSONA_LABELS[p.tipo] === this.tipoFiltro())
+      .map(p => ({
+        id: p.id,
+        title: p.nombre,
+        lines: [] as string[],
+        tags: [
+          { text: TIPO_PERSONA_LABELS[p.tipo], tone: 'brand' },
+          p.activo ? { text: 'Activo', tone: 'success' } : { text: 'Inactivo', tone: 'neutral' },
+        ] as RecordStatus[],
+        actions: [
+          { icon: 'edit', label: `Editar a ${p.nombre}`, run: () => this.editarPersona({ id: p.id }) },
+          { icon: 'delete', label: `Eliminar a ${p.nombre}`, run: () => this.eliminarPersona({ id: p.id, nombre: p.nombre }) },
+        ] as RecordAction[],
+      })),
   );
 
   protected readonly clientesCards = computed(() =>
     this.clientes().map(c => ({
       id: c.id,
-      nombreComercial: c.nombreComercial,
-      nombreFiscal: c.nombreFiscal ?? '',
-      tipo: c.tipoIdentificacion.toUpperCase(),
-      identificacion: c.identificacion,
-      activo: c.activo,
+      title: c.nombreComercial,
+      lines: [c.nombreFiscal, `${c.tipoIdentificacion.toUpperCase()} · ${c.identificacion}`].filter((l): l is string => !!l),
+      tags: [c.activo ? { text: 'Activo', tone: 'success' } : { text: 'Inactivo', tone: 'neutral' }] as RecordStatus[],
+      actions: [
+        { icon: 'edit', label: `Editar a ${c.nombreComercial}`, run: () => this.editarCliente({ id: c.id }) },
+        { icon: 'delete', label: `Eliminar a ${c.nombreComercial}`, run: () => this.eliminarCliente({ id: c.id, nombreComercial: c.nombreComercial }) },
+      ] as RecordAction[],
     })),
   );
 

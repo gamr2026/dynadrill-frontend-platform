@@ -67,40 +67,18 @@
     margin-top: 16px;
   }
 
+  // Buscador compartido (app-search-field) junto a los botones de exportar y filtros.
   &__search {
-    display: flex;
     flex: 1 1 0;
-    align-items: center;
-    gap: var(--space-sm, 8px);
     min-width: 0;
-    height: 48px;
-    padding: 0 var(--space-md, 12px);
-    border: 1px solid var(--border, #e5e4ea);
-    border-radius: var(--radius-md, 12px);
-    background: var(--surface, #fff);
-    color: var(--text-muted, #5c5870);
-
-    &:focus-within {
-      border-color: var(--dynadrill-purple, #662e9b);
-    }
-
-    input {
-      flex: 1 1 0;
-      min-width: 0;
-      border: 0;
-      outline: 0;
-      background: none;
-      font: inherit;
-      font-size: 14px;
-      color: var(--text, #2c2b35);
-
-      &::placeholder {
-        color: var(--text-muted, #5c5870);
-      }
-    }
   }
 
-  // Botón de ícono 48×48 (exportar, filtros, paginación).
+  &__pager {
+    display: block;
+    margin-top: 16px;
+  }
+
+  // Botón de ícono 48×48 (exportar y filtros).
   &__tool-btn {
     display: inline-flex;
     flex: none;
@@ -138,29 +116,6 @@
     margin: 16px 0 0;
     padding: 0;
     list-style: none;
-  }
-
-  &__pager {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-md, 12px);
-    margin-top: 16px;
-  }
-
-  &__pager-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    margin: 0;
-    font-size: 11px;
-    line-height: 1.35;
-    color: var(--text-muted, #5c5870);
-  }
-
-  &__pager-actions {
-    display: flex;
-    gap: var(--space-sm, 8px);
   }
 
   &__foot {

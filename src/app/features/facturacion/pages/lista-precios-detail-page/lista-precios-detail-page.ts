@@ -13,6 +13,9 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { ListaPrecios } from '../../models/lista-precios.model';
 import { ListaPreciosService } from '../../services/pedido.service';
+import { ListPager } from '../../../../shared/components/list-pager/list-pager';
+import { SearchField } from '../../../../shared/components/search-field/search-field';
+import { createPagination } from '../../../../shared/utils/pagination.util';
 import { useDetailChrome } from '../../../../layout/page-chrome.service';
 
 const TODOS = 'Todos';
@@ -24,6 +27,8 @@ const ITEMS_POR_PAGINA = 25;
   selector: 'app-lista-precios-detail-page',
   imports: [
     DecimalPipe,
+    ListPager,
+    SearchField,
     DynadrillScreenHeaderComponent,
     DynadrillTagComponent,
     DynadrillButtonComponent,
@@ -54,33 +59,12 @@ export class ListaPreciosDetailPage {
   protected onTipoChip(selected: string[]): void {
     const v = selected[0];
     this.tipoFiltro.set(v === 'Servicio' || v === 'Material' ? v : null);
-    this.pagina.set(1);
+    this.pagination.reset();
   }
 
   protected onBusqueda(valor: string): void {
     this.busqueda.set(valor);
-    this.pagina.set(1);
-  }
-
-  // ── Paginación ──
-  private readonly pagina = signal(1);
-  protected readonly totalPaginas = computed(() => Math.max(1, Math.ceil(this.items().length / ITEMS_POR_PAGINA)));
-  protected readonly paginaActual = computed(() => Math.min(this.pagina(), this.totalPaginas()));
-  protected readonly itemsPagina = computed(() => {
-    const desde = (this.paginaActual() - 1) * ITEMS_POR_PAGINA;
-    return this.items().slice(desde, desde + ITEMS_POR_PAGINA);
-  });
-  /** "Mostrando 1–25 de 1355 ítems" (Figma: pie de tabla). */
-  protected readonly rangoTexto = computed(() => {
-    const total = this.items().length;
-    if (!total) return '';
-    const desde = (this.paginaActual() - 1) * ITEMS_POR_PAGINA + 1;
-    const hasta = Math.min(desde + ITEMS_POR_PAGINA - 1, total);
-    return `Mostrando ${desde}–${hasta} de ${total} ítems`;
-  });
-
-  protected irAPagina(delta: number): void {
-    this.pagina.set(Math.min(Math.max(1, this.paginaActual() + delta), this.totalPaginas()));
+    this.pagination.reset();
   }
 
   private readonly todosLosItems = computed(() => this.lista()?.items ?? []);
@@ -92,6 +76,8 @@ export class ListaPreciosDetailPage {
       i => (!tipo || i.tipo === tipo) && (!q || i.codigo.toLowerCase().includes(q) || i.descripcion.toLowerCase().includes(q)),
     );
   });
+  protected readonly pagination = createPagination(this.items, ITEMS_POR_PAGINA);
+
   /**
    * Totales por tipo — de la lista COMPLETA, no de lo filtrado por búsqueda/chip
    * (Figma: el contador "N items" del encabezado sí sigue al filtro, los

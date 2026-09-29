@@ -66,41 +66,14 @@
     gap: var(--space-md, 12px);
   }
 
-  &__select {
-    flex: 0 0 200px;
+  // Buscador compartido (app-search-field): ocupa el ancho libre de la fila.
+  &__search {
+    flex: 1 1 0;
+    min-width: 0;
   }
 
-  &__search {
-    display: flex;
-    flex: 1 1 0;
-    align-items: center;
-    gap: var(--space-sm, 8px);
-    min-width: 0;
-    height: 48px;
-    padding: 0 var(--space-md, 12px);
-    border: 1px solid var(--border, #e5e4ea);
-    border-radius: var(--radius-md, 12px);
-    background: var(--surface, #fff);
-    color: var(--text-muted, #5c5870);
-
-    &:focus-within {
-      border-color: var(--dynadrill-purple, #662e9b);
-    }
-
-    input {
-      flex: 1 1 0;
-      min-width: 0;
-      border: 0;
-      outline: 0;
-      background: none;
-      font: inherit;
-      font-size: 14px;
-      color: var(--text, #2c2b35);
-
-      &::placeholder {
-        color: var(--text-muted, #5c5870);
-      }
-    }
+  &__select {
+    flex: 0 0 200px;
   }
 
   &__filter-btn {

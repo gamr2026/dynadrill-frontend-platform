@@ -25,24 +25,18 @@
           </div>
         </header>
 
-        <label class="lp-detail__search">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="7" />
-            <path d="m20 20-3.5-3.5" />
-          </svg>
-          <input
-            type="search"
-            placeholder="Buscar código o descripción…"
-            aria-label="Buscar código o descripción"
-            [value]="busqueda()"
-            (input)="onBusqueda($any($event.target).value)"
-          />
-        </label>
+        <app-search-field
+          class="lp-detail__search"
+          label="Buscar código o descripción"
+          placeholder="Buscar código o descripción…"
+          [value]="busqueda()"
+          (valueChange)="onBusqueda($event)"
+        />
         <dynadrill-chip-group mode="single" [options]="tipoChips" [selected]="tipoSeleccionado()" (selectedChange)="onTipoChip($event)" />
 
         <!-- Móvil (Figma "M · Listas de precios · Detalle"): cada ítem como fila de lista; la tabla queda para escritorio. -->
         <ul class="lp-detail__items">
-          @for (it of itemsPagina(); track $index) {
+          @for (it of pagination.pageItems(); track $index) {
             <li class="lp-detail__item">
               <div class="lp-detail__item-top">
                 <span class="lp-detail__item-code">{{ it.codigo }}</span>
@@ -62,7 +56,7 @@
               <tr><th>Código</th><th>Descripción</th><th>Unidad</th><th class="num">Precio</th><th>Tipo</th></tr>
             </thead>
             <tbody>
-              @for (it of itemsPagina(); track $index) {
+              @for (it of pagination.pageItems(); track $index) {
                 <tr>
                   <td>{{ it.codigo }}</td>
                   <td>{{ it.descripcion }}</td>
@@ -88,22 +82,7 @@
           </table>
         </div>
 
-        @if (items().length > 0) {
-          <nav class="lp-detail__pager" aria-label="Paginación de ítems">
-            <p class="lp-detail__pager-info" aria-live="polite">
-              {{ rangoTexto() }}
-              <span class="lp-detail__pager-page">Página {{ paginaActual() }} de {{ totalPaginas() }}</span>
-            </p>
-            <div class="lp-detail__pager-actions">
-              <button type="button" class="lp-detail__pager-btn" aria-label="Página anterior" [disabled]="paginaActual() === 1" (click)="irAPagina(-1)">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 18-6-6 6-6" /></svg>
-              </button>
-              <button type="button" class="lp-detail__pager-btn" aria-label="Página siguiente" [disabled]="paginaActual() === totalPaginas()" (click)="irAPagina(1)">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6" /></svg>
-              </button>
-            </div>
-          </nav>
-        }
+        <app-list-pager [pagination]="pagination" summaryLabel="ítems" label="Paginación de ítems" />
 
         @if (l.items.length) {
           <p class="lp-detail__totals lp-detail__mobile-only">

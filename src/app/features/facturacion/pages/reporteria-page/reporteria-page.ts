@@ -23,6 +23,9 @@ import { GuiaRemision } from '../../models/guia-remision.model';
 import { Aot } from '../../models/aot.model';
 import { AotService, GuiaRemisionService, PedidoService, PrefacturaService } from '../../services/pedido.service';
 import { ReporteriaFiltros, ReporteriaFiltrosDialog } from '../../components/reporteria-filtros-dialog';
+import { ListPager } from '../../../../shared/components/list-pager/list-pager';
+import { SearchField } from '../../../../shared/components/search-field/search-field';
+import { createPagination } from '../../../../shared/utils/pagination.util';
 import { KpiStat, KpiStatTone } from '../../../../shared/components/kpi-stat/kpi-stat';
 
 function descargarCsv(nombre: string, headers: string[], filas: (string | number)[][]): void {
@@ -62,6 +65,8 @@ function uniqueFilters(rows: Record<string, unknown>[], key: string): { text: st
   selector: 'app-reporteria-page',
   imports: [
     DecimalPipe,
+    ListPager,
+    SearchField,
     DynadrillScreenHeaderComponent,
     KpiStat,
     DynadrillDataTableComponent,
@@ -467,7 +472,6 @@ export class ReporteriaPage {
   // ── Secuencial TK en móvil: tarjetas con búsqueda, filtro por estado y paginación ──
   private static readonly TARJETAS_POR_PAGINA = 10;
   protected readonly tkBusqueda = signal('');
-  private readonly tkPagina = signal(1);
 
   protected readonly tkCards = computed(() => {
     const q = this.tkBusqueda().trim().toLowerCase();
@@ -475,26 +479,11 @@ export class ReporteriaPage {
     if (!q) return rows;
     return rows.filter(r => [r.code, r.ot, r.cliente, r.campo, r.pozo, r.analista, r.vendedor].some(v => String(v).toLowerCase().includes(q)));
   });
-  protected readonly tkTotalPaginas = computed(() => Math.max(1, Math.ceil(this.tkCards().length / ReporteriaPage.TARJETAS_POR_PAGINA)));
-  protected readonly tkPaginaActual = computed(() => Math.min(this.tkPagina(), this.tkTotalPaginas()));
-  protected readonly tkCardsPagina = computed(() => {
-    const desde = (this.tkPaginaActual() - 1) * ReporteriaPage.TARJETAS_POR_PAGINA;
-    return this.tkCards().slice(desde, desde + ReporteriaPage.TARJETAS_POR_PAGINA);
-  });
-  protected readonly tkRangoTexto = computed(() => {
-    const total = this.tkCards().length;
-    if (!total) return '';
-    const desde = (this.tkPaginaActual() - 1) * ReporteriaPage.TARJETAS_POR_PAGINA + 1;
-    return `Mostrando ${desde}–${Math.min(desde + ReporteriaPage.TARJETAS_POR_PAGINA - 1, total)} de ${total} tickets`;
-  });
+  protected readonly tkPagination = createPagination(this.tkCards, ReporteriaPage.TARJETAS_POR_PAGINA);
 
   protected onTkBusqueda(valor: string): void {
     this.tkBusqueda.set(valor);
-    this.tkPagina.set(1);
-  }
-
-  protected irAPaginaTk(delta: number): void {
-    this.tkPagina.set(Math.min(Math.max(1, this.tkPaginaActual() + delta), this.tkTotalPaginas()));
+    this.tkPagination.reset();
   }
 
   protected abrirFiltros(): void {
@@ -508,7 +497,7 @@ export class ReporteriaPage {
     ref.afterClose.subscribe((f: ReporteriaFiltros | undefined) => {
       if (!f) return;
       this.estadoFiltro.set(f.estado);
-      this.tkPagina.set(1);
+      this.tkPagination.reset();
     });
   }
 

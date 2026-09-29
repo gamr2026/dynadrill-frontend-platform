@@ -1149,9 +1149,12 @@
     gap: 12px;
   }
 
-  // Fila 1: nombre del eje a la izquierda y ✕ a la derecha. Fila 2: Origen y Destino con el mismo ancho.
+  // Cuadrícula de 2 columnas iguales: fila 1 = nombre del eje (izq.) y ✕ (der.); fila 2 = Origen y Destino,
+  // cada uno en su columna, así ambos miden exactamente lo mismo.
   .ticket-detail__hubodometro-axle-row {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
     gap: 8px;
     padding: 12px;
     border: 1px solid var(--border, #e5e4ea);
@@ -1160,17 +1163,22 @@
 
     dynadrill-input,
     .ticket-detail__editable-table-readonly {
-      order: 1;
-      flex: 1 1 calc(50% - 4px);
+      display: block;
+      grid-row: 2;
+      width: 100%;
       min-width: 0;
+      margin: 0;
+    }
+
+    dynadrill-input ::ng-deep :is(.ant-input, .ant-input-number, input) {
+      width: 100%;
     }
   }
 
   .ticket-detail__hubodometro-axle-label {
-    order: 0;
-    flex: 1 1 0;
+    grid-column: 1;
+    grid-row: 1;
     width: auto;
-    min-width: 0;
     font-size: 14px;
   }
 
@@ -1179,8 +1187,9 @@
   }
 
   .ticket-detail__hubodometro-remove {
-    order: 0;
-    flex: none;
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
     width: 44px;
     height: 44px;
     font-size: 16px;

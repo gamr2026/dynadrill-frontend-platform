@@ -661,6 +661,7 @@ export class TicketDetailPage {
       next: () => {
         this.documentosQhseSubmitting.set(false);
         this.artArchivo.set(null);
+        this.subidaArtAbierta.set(false);
         this.notify.success('ART guardado', 'El ART quedó registrado para este pedido.');
         this.loadDocumentosQhse(t.id);
       },
@@ -684,6 +685,7 @@ export class TicketDetailPage {
       next: () => {
         this.documentosQhseSubmitting.set(false);
         this.ptArchivo.set(null);
+        this.subidaPtAbierta.set(false);
         this.notify.success('PT guardado', 'El Permiso de Trabajo de hoy quedó registrado.');
         this.loadDocumentosQhse(t.id);
       },

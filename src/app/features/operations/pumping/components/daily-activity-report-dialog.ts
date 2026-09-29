@@ -337,6 +337,14 @@ export class DailyActivityReportDialog {
    * autocompletado de un campo (Nº); ahora parsea de verdad el .xlsx real
    * (DYN-SGI-RE-047) y vuelca cada valor en su campo del formulario.
    */
+  /** Botón "Subir documento firmado" (móvil): abre el selector de archivos y reutiliza el flujo de la zona de carga. */
+  protected onFirmadoInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const archivo = input.files?.[0];
+    if (archivo) this.onFileSelected(archivo as unknown as NzUploadFile);
+    input.value = '';
+  }
+
   protected onFileSelected(file: NzUploadFile): void {
     const archivo = (file.originFileObj as File | undefined) ?? (file as unknown as File);
     if (!archivo || typeof archivo.size !== 'number') {

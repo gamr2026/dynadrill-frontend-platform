@@ -272,5 +272,7 @@ export interface DocumentosQhseTicket {
   artVenceEnDias: number | null;
   ptHoy: boolean;
   ptwAbierto: { id: number; code: string } | null;
+  /** PTW que QHSE cerró hoy: el PT ya cargado contra él sigue contando aunque no haya uno abierto. */
+  ptwCerradoHoy: { id: number; code: string } | null;
   ptDeHoy: boolean;
 }

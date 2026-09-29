@@ -111,18 +111,20 @@
         <div class="qhse-doc__text">
           <strong class="qhse-doc__name">PT del día</strong>
           <span class="qhse-doc__meta">
-            @if (!dq.ptwAbierto) {
+            @if (!dq.ptwAbierto && !dq.ptwCerradoHoy) {
               QHSE aún no abrió el PTW del día
             } @else if (dq.ptDeHoy) {
-              PTW {{ dq.ptwAbierto.code }}
+              PTW {{ (dq.ptwAbierto ?? dq.ptwCerradoHoy)!.code }}{{ dq.ptwAbierto ? '' : ' (cerrado)' }}
+            } @else if (!dq.ptwAbierto) {
+              PTW {{ dq.ptwCerradoHoy!.code }} cerrado sin PT cargado
             } @else {
               PTW {{ dq.ptwAbierto.code }} abierto — falta subir el PT de hoy
             }
           </span>
           <dynadrill-tag [label]="dq.ptDeHoy ? 'Cargado' : 'Pendiente'" [variant]="dq.ptDeHoy ? 'success' : 'warning'" />
         </div>
-        @if (dq.ptwAbierto && dq.ptDeHoy) {
-          <button type="button" class="qhse-doc__btn" aria-label="Descargar PT del día" title="Descargar" (click)="descargarDocumentoQhse('qhse_pt', dq.ptwAbierto.code)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
+        @if ((dq.ptwAbierto ?? dq.ptwCerradoHoy) && dq.ptDeHoy) {
+          <button type="button" class="qhse-doc__btn" aria-label="Descargar PT del día" title="Descargar" (click)="descargarDocumentoQhse('qhse_pt', (dq.ptwAbierto ?? dq.ptwCerradoHoy)!.code)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
         }
         @if (dq.ptwAbierto && !dq.ptDeHoy && (isAssignedSupervisor() || isJefeBase())) {
           <button type="button" class="qhse-doc__btn" aria-label="Subir PT del día" title="Subir PT" [attr.aria-expanded]="subidaPtAbierta()" (click)="subidaPtAbierta.set(!subidaPtAbierta())"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m17 8-5-5-5 5" /><path d="M12 3v12" /></svg></button>

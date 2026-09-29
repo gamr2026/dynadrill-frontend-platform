@@ -118,12 +118,12 @@
       <dynadrill-context-card
         variant="card"
         icon="file-text"
-        [title]="ticket()!.code"
+        [title]="(ticket()?.code ?? '')"
         subtitle="Ticket de Servicio Operativo"
         [tags]="contextCardTags()"
         [groups]="contextCardGroups()"
         footerNote="Historial de fases con actor y fecha registrado"
-        [footerId]="ticket()!.code"
+        [footerId]="(ticket()?.code ?? '')"
         [footerStatus]="contextCardFooterStatus()"
       />
     </section>
@@ -231,12 +231,12 @@
       <dynadrill-context-card
         variant="card"
         icon="file-text"
-        [title]="ticket()!.code"
+        [title]="(ticket()?.code ?? '')"
         subtitle="Ticket de Servicio Operativo"
         [tags]="contextCardTags()"
         [groups]="contextCardGroups()"
         footerNote="Historial de fases con actor y fecha registrado"
-        [footerId]="ticket()!.code"
+        [footerId]="(ticket()?.code ?? '')"
         [footerStatus]="contextCardFooterStatus()"
       />
     </section>
@@ -469,12 +469,12 @@
       <dynadrill-context-card
         variant="card"
         icon="file-text"
-        [title]="ticket()!.code"
+        [title]="(ticket()?.code ?? '')"
         subtitle="Ticket de Servicio Operativo"
         [tags]="contextCardTags()"
         [groups]="contextCardGroups()"
         footerNote="Historial de fases con actor y fecha registrado"
-        [footerId]="ticket()!.code"
+        [footerId]="(ticket()?.code ?? '')"
         [footerStatus]="contextCardFooterStatus()"
       />
     </section>

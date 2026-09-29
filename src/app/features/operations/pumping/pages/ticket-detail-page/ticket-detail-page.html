@@ -873,9 +873,17 @@
          de alguna unidad asignada, no se puede enviar el reporte de salida. -->
     @if (checklistQhse(); as cq) {
       @if (checklistQhseBloquea()) {
-        <div class="ticket-detail__quimico-sin-match">
-          <dynadrill-text variant="body"><strong>⚠ Traslado de salida bloqueado por QHSE.</strong></dynadrill-text>
-          <dynadrill-text variant="caption">Falta la aprobación del checklist QHSE de: {{ cq.gate.faltantes.join(', ') }}.</dynadrill-text>
+        <div class="blocked" role="alert">
+          <svg class="blocked__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+          <div class="blocked__body">
+            <strong class="blocked__title">Traslado de salida bloqueado por QHSE</strong>
+            <p class="blocked__text">Falta la aprobación del checklist QHSE de:</p>
+            <ul class="blocked__chips">
+              @for (unidad of cq.gate.faltantes; track unidad) {
+                <li>{{ unidad }}</li>
+              }
+            </ul>
+          </div>
         </div>
       }
 
@@ -914,9 +922,12 @@
          QHSE), ahora lo llena Operativo. Se suma al gate de arriba. -->
     @if (checklistIngreso(); as ci) {
       @if (checklistIngresoBloquea()) {
-        <div class="ticket-detail__quimico-sin-match">
-          <dynadrill-text variant="body"><strong>⚠ Traslado de salida bloqueado.</strong></dynadrill-text>
-          <dynadrill-text variant="caption">Falta completar el checklist de Ingreso a locación y Verificaciones de seguridad.</dynadrill-text>
+        <div class="blocked" role="alert">
+          <svg class="blocked__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+          <div class="blocked__body">
+            <strong class="blocked__title">Traslado de salida bloqueado</strong>
+            <p class="blocked__text">Falta completar el checklist de Ingreso a locación y Verificaciones de seguridad.</p>
+          </div>
         </div>
       }
 
@@ -1009,9 +1020,12 @@
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Entrega de EPI</dynadrill-text>
       @if (epiBloquea()) {
-        <div class="ticket-detail__quimico-sin-match">
-          <dynadrill-text variant="body"><strong>⚠ Traslado de salida bloqueado.</strong></dynadrill-text>
-          <dynadrill-text variant="caption">Falta despachar la entrega de EPI de uno o más operadores asignados.</dynadrill-text>
+        <div class="blocked" role="alert">
+          <svg class="blocked__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+          <div class="blocked__body">
+            <strong class="blocked__title">Traslado de salida bloqueado</strong>
+            <p class="blocked__text">Falta despachar la entrega de EPI de uno o más operadores asignados.</p>
+          </div>
         </div>
       }
       @for (p of epiPorOperador(); track p.operador.id) {

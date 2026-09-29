@@ -530,3 +530,30 @@ body {
     border-bottom: 1px solid var(--border, #e5e4ea);
   }
 }
+
+/**
+ * dynadrill-context-card (variant="card") en móvil: la librería pone cada grupo como una columna y, por
+ * debajo de 560px, una sola columna — todo quedaba apilado. Aquí los datos fluyen en una cuadrícula de
+ * 2 columnas (los pares Marca/Modelo, Origen/Destino quedan lado a lado) y un dato solo o largo ocupa la
+ * fila completa. En escritorio no cambia. La clase se repite para ganar en especificidad a la librería.
+ */
+@media (max-width: 900px) {
+  .dynadrill-context-card.dynadrill-context-card--card .dynadrill-context-card__groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 16px;
+    padding: 16px;
+  }
+
+  .dynadrill-context-card.dynadrill-context-card--card .dynadrill-context-card__group {
+    display: contents;
+  }
+
+  // Un grupo con un solo dato (Cliente, Inspeccionado por…) ocupa las dos columnas.
+  .dynadrill-context-card.dynadrill-context-card--card .dynadrill-context-card__group:has(> :only-child) > .dynadrill-context-card__field {
+    grid-column: 1 / -1;
+  }
+
+  .dynadrill-context-card.dynadrill-context-card--card .dynadrill-context-card__head {
+    padding: 16px;
+  }
+}

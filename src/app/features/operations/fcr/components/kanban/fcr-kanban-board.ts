@@ -1,8 +1,28 @@
-import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { DynadrillIconButtonComponent, DynadrillTagComponent } from '@digitec-it-projects/dynadrill-ui';
 import { FCR_PHASE_LABELS, type FcrPhase, type FcrTicket } from '../../models/fcr.model';
-import { FCR_BOARD_PHASES, FCR_SERVICE_ONLY_PHASES, fcrRolePhases, fcrTicketRelation } from '../../models/fcr-flow';
+import {
+  FCR_BOARD_PAGE_SIZE,
+  FCR_BOARD_PHASES,
+  FCR_SERVICE_ONLY_PHASES,
+  fcrBoardPhases,
+  fcrRolePhases,
+  fcrTicketRelation,
+} from '../../models/fcr-flow';
 import { FCR_STAGE_COLORS } from '../../models/fcr-stage-colors';
 import { FcrKanbanCard } from './fcr-kanban-card';
 
@@ -16,6 +36,10 @@ const SHORT_LABELS: Partial<Record<FcrPhase, string>> = {
 };
 
 const SWIPE_MIN_PX = 60;
+/** Ancho de una columna + separación (ver `.column` y `.board` en el scss). */
+const COLUMN_STEP_PX = 256 + 12;
+/** Tolerancia para considerar que el scroll llegó al borde (subpíxeles). */
+const EDGE_TOLERANCE_PX = 2;
 
 interface BoardItem {
   ticket: FcrTicket;
@@ -31,6 +55,8 @@ interface BoardColumn {
   mine: boolean;
   serviceOnly: boolean;
   items: BoardItem[];
+  /** Tickets de la página actual (`items` conserva el total para el conteo del encabezado). */
+  pageItems: BoardItem[];
 }
 
 interface UpcomingGroup {
@@ -60,6 +86,8 @@ export class FcrKanbanBoard {
   /** Muestra solo las etapas del rol, con el resumen de lo que "llega pronto". */
   readonly soloMisEtapas = input(false);
   readonly mobile = input(false);
+  /** Página del tablero (1-based) — la controla la página, junto a los filtros. */
+  readonly page = input(1);
 
   readonly summary = output<FcrTicket>();
   readonly history = output<FcrTicket>();
@@ -67,11 +95,10 @@ export class FcrKanbanBoard {
 
   private readonly myPhases = computed(() => fcrRolePhases(this.roleName()));
 
-  protected readonly columns = computed<BoardColumn[]>(() => {
+  private readonly allColumns = computed<Omit<BoardColumn, 'pageItems'>[]>(() => {
     const mine = this.myPhases();
     const role = this.roleName();
-    const phases = this.soloMisEtapas() ? FCR_BOARD_PHASES.filter(p => mine.has(p)) : FCR_BOARD_PHASES;
-    return phases.map(phase => ({
+    return fcrBoardPhases(role, this.soloMisEtapas()).map(phase => ({
       phase,
       label: FCR_PHASE_LABELS[phase],
       shortLabel: SHORT_LABELS[phase] ?? FCR_PHASE_LABELS[phase],
@@ -84,7 +111,10 @@ export class FcrKanbanBoard {
     }));
   });
 
-  protected readonly myColumns = computed(() => this.columns().filter(c => c.mine));
+  protected readonly columns = computed<BoardColumn[]>(() => {
+    const start = (this.page() - 1) * FCR_BOARD_PAGE_SIZE;
+    return this.allColumns().map(c => ({ ...c, pageItems: c.items.slice(start, start + FCR_BOARD_PAGE_SIZE) }));
+  });
 
   /** Tickets en etapas anteriores que todavía van a pasar por una etapa del rol — para planificar. */
   protected readonly upcoming = computed<UpcomingGroup[]>(() => {
@@ -139,11 +169,36 @@ export class FcrKanbanBoard {
     if (Math.abs(dx) >= SWIPE_MIN_PX) this.step(dx < 0 ? 1 : -1);
   }
 
-  // ── Escritorio: "Ir a" una etapa del rol ──
+  // ── Escritorio: flechas a los costados (solo si hay columnas ocultas en ese sentido) ──
 
-  protected scrollToPhase(phase: FcrPhase): void {
-    this.host.nativeElement
-      .querySelector(`[data-phase="${phase}"]`)
-      ?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+  private readonly boardRef = viewChild<ElementRef<HTMLElement>>('board');
+  protected readonly canScrollLeft = signal(false);
+  protected readonly canScrollRight = signal(false);
+
+  constructor() {
+    // Las columnas cambian con los filtros / "Mis etapas": recalcular después de que se pinten.
+    effect(() => {
+      this.columns();
+      this.boardRef();
+      requestAnimationFrame(() => this.updateScrollState());
+    });
+    const resize = new ResizeObserver(() => this.updateScrollState());
+    afterNextRender(() => resize.observe(this.host.nativeElement));
+    inject(DestroyRef).onDestroy(() => resize.disconnect());
+  }
+
+  protected updateScrollState(): void {
+    const el = this.boardRef()?.nativeElement;
+    if (!el) {
+      this.canScrollLeft.set(false);
+      this.canScrollRight.set(false);
+      return;
+    }
+    this.canScrollLeft.set(el.scrollLeft > EDGE_TOLERANCE_PX);
+    this.canScrollRight.set(el.scrollLeft + el.clientWidth < el.scrollWidth - EDGE_TOLERANCE_PX);
+  }
+
+  protected scrollColumns(direction: 1 | -1): void {
+    this.boardRef()?.nativeElement.scrollBy({ left: direction * COLUMN_STEP_PX, behavior: 'smooth' });
   }
 }

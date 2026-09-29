@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -8,13 +8,21 @@ import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDrawerService,
+  DynadrillIconButtonComponent,
   DynadrillInputComponent,
   DynadrillKpiRowComponent,
   DynadrillSkeletonComponent,
   type DynadrillKpiRowItem,
 } from '@digitec-it-projects/dynadrill-ui';
 import { FcrTicket, FCR_PHASE_LABELS, type FcrPhase, type TipoOt } from '../../models/fcr.model';
-import { FCR_BOARD_PHASES, fcrResponsibleRole, fcrRolePhases } from '../../models/fcr-flow';
+import {
+  FCR_BOARD_PAGE_SIZE,
+  FCR_BOARD_PHASES,
+  fcrBoardPhases,
+  fcrLongestColumn,
+  fcrResponsibleRole,
+  fcrRolePhases,
+} from '../../models/fcr-flow';
 import {
   FCR_EMPTY_FILTERS,
   applyFcrFilters,
@@ -36,6 +44,8 @@ import { MACRO_ESTADO_TONE } from '../../../../../shared/index';
 import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
 import { PageHeader } from '../../../../../shared/components/page-header/page-header';
 import { RecordAction, RecordCard } from '../../../../../shared/components/record-card/record-card';
+import { ListPager } from '../../../../../shared/components/list-pager/list-pager';
+import { createPagination } from '../../../../../shared/utils/pagination.util';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
 
@@ -61,8 +71,7 @@ const TIPO_OT_BADGES: Record<TipoOt, { text: string; tone: BadgeTone }> = {
 const QUICK_FILTERS = ['Todos', 'Pendiente de mí', 'En Bodega', 'En campo', 'Cerrados'] as const;
 type QuickFilter = (typeof QUICK_FILTERS)[number];
 
-const VISTAS = ['Tablero', 'Tabla'] as const;
-type Vista = (typeof VISTAS)[number];
+type Vista = 'Tablero' | 'Tabla';
 
 const DRAWER_WIDTH_PX = 460;
 
@@ -72,11 +81,13 @@ const DRAWER_WIDTH_PX = 460;
   imports: [
     PageHeader,
     RecordCard,
+    ListPager,
     FcrKanbanBoard,
     DynadrillKpiRowComponent,
     DynadrillChipGroupComponent,
     DynadrillDataTableComponent,
     DynadrillButtonComponent,
+    DynadrillIconButtonComponent,
     DynadrillInputComponent,
     DynadrillSkeletonComponent,
   ],
@@ -100,12 +111,15 @@ export class FcrTicketListPage {
 
   // ── Vista, búsqueda y filtros (compartidos por tabla y tablero) ──
 
-  protected readonly vistas = [...VISTAS];
   protected readonly vista = signal<Vista>('Tablero');
 
   protected readonly filters = signal<FcrTicketFilters>(FCR_EMPTY_FILTERS);
   protected readonly filteredTickets = computed(() => applyFcrFilters(this.tickets(), this.filters(), this.roleName()));
   protected readonly activeChips = computed(() => fcrActiveFilterChips(this.filters()));
+  protected readonly filtersTooltip = computed(() => {
+    const n = this.activeChips().length;
+    return n === 0 ? 'Filtros' : `Filtros (${n} ${n === 1 ? 'activo' : 'activos'})`;
+  });
   protected readonly hasActiveFilters = computed(() => this.activeChips().length > 0 || !!this.filters().texto.trim());
 
   /** "Mis etapas" del tablero — columnas solo de las etapas del rol + resumen de lo que llega. */
@@ -118,6 +132,16 @@ export class FcrTicketListPage {
   });
   protected readonly etapaSelected = computed(() => [this.etapaOptions()[this.soloMisEtapas() ? 1 : 0]]);
   protected readonly hasMyPhases = computed(() => FCR_BOARD_PHASES.some(p => this.myPhases().has(p)));
+
+  /**
+   * Paginación del tablero (4 tickets por columna y página, todas las columnas
+   * juntas) — vive acá para mostrarse en la barra de filtros. Se pagina un
+   * índice del largo de la columna más larga: esa etapa marca el total de páginas.
+   */
+  private readonly longestColumn = computed(() =>
+    Array.from({ length: fcrLongestColumn(this.filteredTickets(), fcrBoardPhases(this.roleName(), this.soloMisEtapas())) }),
+  );
+  protected readonly boardPagination = createPagination(this.longestColumn, FCR_BOARD_PAGE_SIZE);
 
   // ── Tabla (vista original) ──
 
@@ -165,6 +189,12 @@ export class FcrTicketListPage {
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   constructor() {
+    // Filtros, búsqueda o "Mis etapas" nuevos: el tablero vuelve a la primera página.
+    effect(() => {
+      this.filters();
+      this.soloMisEtapas();
+      untracked(() => this.boardPagination.reset());
+    });
     this.reload();
     this.router.events.pipe(
       filter(e => e instanceof NavigationEnd),
@@ -202,11 +232,6 @@ export class FcrTicketListPage {
   protected onFilterChange(selected: string[]): void {
     const value = selected[0] as QuickFilter | undefined;
     if (value) this.activeFilter.set(value);
-  }
-
-  protected onVistaChange(selected: string[]): void {
-    const value = selected[0] as Vista | undefined;
-    if (value) this.vista.set(value);
   }
 
   protected onEtapaChange(selected: string[]): void {

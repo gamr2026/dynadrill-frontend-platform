@@ -4,15 +4,10 @@
   subtitle="Gestión integral de servicios FCR (Field Completion & Retrieval)"
   [roleTag]="roleName()"
 >
-  <dynadrill-chip-group
-    actions
-    class="fcr-list__vista"
-    aria-label="Vista"
-    [options]="vistas"
-    mode="single"
-    [selected]="[vista()]"
-    (selectedChange)="onVistaChange($event)"
-  />
+  <div actions class="fcr-list__vista" role="group" aria-label="Vista">
+    <dynadrill-icon-button icon="project" tooltip="Vista tablero" [active]="vista() === 'Tablero'" (clicked)="vista.set('Tablero')" />
+    <dynadrill-icon-button icon="table" tooltip="Vista tabla" [active]="vista() === 'Tabla'" (clicked)="vista.set('Tabla')" />
+  </div>
 </app-page-header>
 
 <div class="fcr-list__toolbar">
@@ -23,9 +18,12 @@
     [value]="filters().texto"
     (valueChange)="setTexto($event)"
   />
-  <dynadrill-button variant="secondary" (clicked)="openFilters()">
-    Filtros{{ activeChips().length ? ' · ' + activeChips().length : '' }}
-  </dynadrill-button>
+  <span class="fcr-list__filters">
+    <dynadrill-icon-button icon="filter" [tooltip]="filtersTooltip()" [active]="activeChips().length > 0" (clicked)="openFilters()" />
+    @if (activeChips().length > 0) {
+      <span class="fcr-list__badge" aria-hidden="true">{{ activeChips().length }}</span>
+    }
+  </span>
   @if (vista() === 'Tablero' && hasMyPhases()) {
     <dynadrill-chip-group
       aria-label="Etapas visibles"
@@ -34,6 +32,9 @@
       [selected]="etapaSelected()"
       (selectedChange)="onEtapaChange($event)"
     />
+  }
+  @if (vista() === 'Tablero' && !loading()) {
+    <app-list-pager class="fcr-list__pager" [pagination]="boardPagination" [numbered]="true" label="Páginas del tablero" />
   }
 </div>
 
@@ -45,7 +46,7 @@
         {{ chip.label }} <span aria-hidden="true">×</span>
       </button>
     }
-    <button type="button" class="fcr-list__clear" (click)="clearAll()">Limpiar filtros</button>
+    <dynadrill-icon-button icon="clear" tooltip="Limpiar filtros" (clicked)="clearAll()" />
   </div>
 }
 
@@ -62,6 +63,7 @@
       [roleName]="roleName()"
       [soloMisEtapas]="soloMisEtapas()"
       [mobile]="isMobile()"
+      [page]="boardPagination.page()"
       (summary)="openSummary($event)"
       (history)="openHistory($event)"
       (open)="viewDetail({ id: $event.id })"

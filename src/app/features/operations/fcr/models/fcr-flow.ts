@@ -118,3 +118,18 @@ export function fcrTicketRelation(t: FcrTicket, roleName: string): FcrTicketRela
   const upcoming = keys.slice(keys.indexOf(t.currentPhase) + 1);
   return upcoming.some(phase => mine.has(phase)) ? 'proxima' : 'seguimiento';
 }
+
+/** Tickets por columna y por página del tablero — todas las columnas avanzan juntas. */
+export const FCR_BOARD_PAGE_SIZE = 4;
+
+/** Etapas visibles en el tablero: todas, o solo las del rol ("Mis etapas"). */
+export function fcrBoardPhases(roleName: string, soloMisEtapas: boolean): readonly FcrPhase[] {
+  if (!soloMisEtapas) return FCR_BOARD_PHASES;
+  const mine = fcrRolePhases(roleName);
+  return FCR_BOARD_PHASES.filter(phase => mine.has(phase));
+}
+
+/** Tickets de la etapa con más tickets — marca el total de páginas del tablero. */
+export function fcrLongestColumn(tickets: readonly FcrTicket[], phases: readonly FcrPhase[]): number {
+  return Math.max(0, ...phases.map(phase => tickets.filter(t => t.currentPhase === phase).length));
+}

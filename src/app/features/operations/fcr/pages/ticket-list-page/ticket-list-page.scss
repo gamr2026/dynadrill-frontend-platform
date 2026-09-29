@@ -11,6 +11,14 @@
   margin: 1rem 0;
 }
 
+.fcr-list__pager {
+  // A la derecha de la barra, alineado con los controles (no con la etiqueta "Buscar").
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  margin-left: auto;
+}
+
 .fcr-list__search {
   flex: 0 1 320px;
   min-width: 200px;
@@ -41,17 +49,32 @@
   &:focus-visible { outline: 2px solid var(--dynadrill-purple, #662e9b); outline-offset: 2px; }
 }
 
-.fcr-list__clear {
-  padding: 4px 0;
-  font: inherit;
-  font-weight: 600;
-  color: var(--dynadrill-purple, #662e9b);
-  cursor: pointer;
-  background: none;
-  border: 0;
+.fcr-list__vista {
+  display: flex;
+  gap: 4px;
+}
 
-  &:hover { text-decoration: underline; }
-  &:focus-visible { outline: 2px solid var(--dynadrill-purple, #662e9b); outline-offset: 2px; }
+// Botón de filtros con contador de criterios activos.
+.fcr-list__filters {
+  position: relative;
+  display: inline-flex;
+}
+
+.fcr-list__badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--dynadrill-white, #fff);
+  text-align: center;
+  pointer-events: none;
+  background: var(--dynadrill-purple, #662e9b);
+  border-radius: 999px;
 }
 
 .fcr-list__quick {

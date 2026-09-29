@@ -1,6 +1,6 @@
 <ng-template #cardList let-col>
   <div class="column__list">
-    @for (item of col.items; track item.ticket.id) {
+    @for (item of col.pageItems; track item.ticket.id) {
       <app-fcr-kanban-card
         [ticket]="item.ticket"
         [turno]="item.turno"
@@ -32,37 +32,48 @@
 </ng-template>
 
 @if (!mobile()) {
-  @if (!soloMisEtapas() && myColumns().length > 0) {
-    <nav class="goto" aria-label="Ir a mis etapas">
-      <span>Ir a:</span>
-      @for (col of myColumns(); track col.phase) {
-        <button type="button" class="goto__link" (click)="scrollToPhase(col.phase)">{{ col.label }}</button>
-      }
-    </nav>
-  }
-
-  <div class="board" [class.board--compact]="soloMisEtapas()">
-    @if (soloMisEtapas()) {
-      <ng-container [ngTemplateOutlet]="upcomingCard" />
+  <div class="board-wrap">
+    @if (canScrollLeft()) {
+      <dynadrill-icon-button
+        class="board-wrap__arrow board-wrap__arrow--left"
+        icon="chevron-left"
+        iconSource="dynadrill"
+        tooltip="Columnas anteriores"
+        (clicked)="scrollColumns(-1)"
+      />
     }
-    @for (col of columns(); track col.phase) {
-      <section
-        class="column"
-        [class.column--mine]="col.mine"
-        [attr.data-phase]="col.phase"
-        [attr.aria-label]="col.label + ', ' + col.items.length + ' tickets'"
-      >
-        <header class="column__head" [style.background]="col.accent" [style.color]="col.onAccent">
-          <h3>{{ col.label }}</h3>
-          <span class="column__count">{{ col.items.length }}</span>
-        </header>
-        @if (col.mine) {
-          <dynadrill-tag label="Tu etapa" variant="brand" />
-        } @else if (col.serviceOnly) {
-          <span class="column__meta">Solo Servicio</span>
-        }
-        <ng-container [ngTemplateOutlet]="cardList" [ngTemplateOutletContext]="{ $implicit: col }" />
-      </section>
+    <div #board class="board" [class.board--compact]="soloMisEtapas()" (scroll)="updateScrollState()">
+      @if (soloMisEtapas()) {
+        <ng-container [ngTemplateOutlet]="upcomingCard" />
+      }
+      @for (col of columns(); track col.phase) {
+        <section
+          class="column"
+          [class.column--mine]="col.mine"
+          [attr.data-phase]="col.phase"
+          [attr.aria-label]="col.label + ', ' + col.items.length + ' tickets'"
+        >
+          <header class="column__head" [style.background]="col.accent" [style.color]="col.onAccent">
+            <h3>{{ col.label }}</h3>
+            <span class="column__count">{{ col.items.length }}</span>
+          </header>
+          @if (col.mine) {
+            <dynadrill-tag label="Tu etapa" variant="brand" />
+          } @else if (col.serviceOnly) {
+            <span class="column__meta">Solo Servicio</span>
+          }
+          <ng-container [ngTemplateOutlet]="cardList" [ngTemplateOutletContext]="{ $implicit: col }" />
+        </section>
+      }
+    </div>
+    @if (canScrollRight()) {
+      <dynadrill-icon-button
+        class="board-wrap__arrow board-wrap__arrow--right"
+        icon="chevron-right"
+        iconSource="dynadrill"
+        tooltip="Columnas siguientes"
+        (clicked)="scrollColumns(1)"
+      />
     }
   </div>
 } @else {

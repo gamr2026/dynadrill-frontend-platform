@@ -5,26 +5,20 @@
 
 // ── Escritorio ──
 
-.goto {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 12px;
-  margin-bottom: 12px;
-  font-size: 12px;
-  color: var(--text-muted, #5c5870);
+.board-wrap {
+  position: relative;
 
-  &__link {
-    padding: 4px 0;
-    font: inherit;
-    font-weight: 600;
-    color: var(--dynadrill-purple, #662e9b);
-    cursor: pointer;
-    background: none;
-    border: 0;
+  &__arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    background: var(--surface, #fff);
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(19, 21, 41, 0.18);
+    transform: translateY(-50%);
 
-    &:hover { text-decoration: underline; }
-    &:focus-visible { outline: 2px solid var(--dynadrill-purple, #662e9b); outline-offset: 2px; }
+    &--left { left: -8px; }
+    &--right { right: -8px; }
   }
 }
 
@@ -44,8 +38,9 @@
   flex: 0 0 256px;
   flex-direction: column;
   gap: 10px;
-  max-height: calc(100vh - 280px);
-  min-height: 160px;
+  // Alto fijo casi a toda la ventana: el tablero se ve completo y cada columna scrollea su lista.
+  height: calc(100vh - 220px);
+  min-height: 420px;
   padding: 10px;
   background: color-mix(in srgb, var(--border, #e5e4ea) 45%, var(--surface, #fff));
   border: 2px solid transparent;
@@ -89,6 +84,7 @@
 
   &__list {
     display: flex;
+    flex: 1;
     flex-direction: column;
     gap: 8px;
     min-height: 0;
@@ -195,7 +191,8 @@
 }
 
 .column--mobile {
-  max-height: none;
+  height: auto;
+  min-height: 0;
 
   .column__head--nav {
     padding: 4px;

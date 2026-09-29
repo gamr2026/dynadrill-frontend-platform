@@ -15,7 +15,13 @@
 
     <section class="review-report__section">
       <dynadrill-text variant="h2">Datos del vehículo</dynadrill-text>
-      <dynadrill-context-card [items]="inspectionInfoItems()" />
+      <dynadrill-context-card
+        variant="card"
+        icon="tool"
+        [title]="inspection.placa || 'Vehículo'"
+        [subtitle]="(inspection.marca || '') + ' ' + (inspection.modelo || '')"
+        [groups]="inspectionInfoGroups()"
+      />
     </section>
 
     <section class="review-report__section">
@@ -30,7 +36,13 @@
 
     <section class="review-report__section">
       <dynadrill-text variant="h2">Documentos del conductor</dynadrill-text>
-      <dynadrill-context-card [items]="inspectionConductorItems()" />
+      <dynadrill-context-card
+        variant="card"
+        icon="users"
+        [title]="inspection.inspeccionadoPor || 'Conductor'"
+        subtitle="Documentos del conductor"
+        [groups]="inspectionConductorGroups()"
+      />
     </section>
 
     <!-- Rechazo inspección -->
@@ -82,7 +94,13 @@
     <!-- Fechas y combustible -->
     <section class="review-report__section">
       <dynadrill-text variant="h2">Fecha y combustible</dynadrill-text>
-      <dynadrill-context-card [items]="datesFuelItems()" />
+      <dynadrill-context-card
+        variant="card"
+        icon="calendar"
+        [title]="report.reportCode"
+        [subtitle]="isSalidaReview ? 'Salida' : 'Salida y llegada'"
+        [groups]="datesFuelGroups()"
+      />
     </section>
 
     <section class="review-report__section">
@@ -123,20 +141,38 @@
       <!-- Novedades -->
       <section class="review-report__section">
         <dynadrill-text variant="h2">Novedades — Describa en forma clara los problemas acontecidos</dynadrill-text>
-        <dynadrill-context-card [items]="noveltiesItems()" />
+        <dynadrill-context-card
+          variant="card"
+          icon="file-text"
+          title="Novedades"
+          [subtitle]="report.reportCode"
+          [groups]="noveltiesGroups()"
+        />
       </section>
 
       <!-- Operatividad -->
       <section class="review-report__section">
         <dynadrill-text variant="h2">¿La unidad está lista y operativa para la siguiente operación?</dynadrill-text>
-        <dynadrill-context-card [items]="operabilityItems()" />
+        <dynadrill-context-card
+          variant="card"
+          icon="tool"
+          [title]="report.unitCode || 'Unidad'"
+          subtitle="Estado de la unidad"
+          [groups]="operabilityGroups()"
+        />
       </section>
     }
 
     <!-- Firmas -->
     <section class="review-report__section">
       <dynadrill-text variant="h2">Firmas</dynadrill-text>
-      <dynadrill-context-card [items]="signatureItems()" />
+      <dynadrill-context-card
+        variant="card"
+        icon="users"
+        title="Firmas"
+        [subtitle]="report.reportCode"
+        [groups]="signatureGroups()"
+      />
     </section>
 
     <!-- Rechazo: justificación -->

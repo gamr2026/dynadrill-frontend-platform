@@ -1,3 +1,4 @@
+import { formatDate } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import {
@@ -66,23 +67,6 @@ export class ReviewArrivalReportDialog {
   protected readonly rejectionReason = signal('');
 
   // ── Vehicle inspection (DYN-SGI-RE-068) ──
-  protected readonly inspectionInfoItems = computed<DynadrillContextCardItem[]>(() => {
-    const i = this.inspection;
-    if (!i) return [];
-    return [
-      { label: 'Fecha', value: i.fecha },
-      { label: 'Punto de partida', value: i.puntoPartida },
-      { label: 'Destino', value: i.destino },
-      { label: 'Inspeccionado por', value: i.inspeccionadoPor },
-      { label: 'Marca', value: i.marca },
-      { label: 'Tipo', value: i.tipo },
-      { label: 'Modelo', value: i.modelo },
-      { label: 'Placa', value: i.placa },
-      { label: 'Km inicial', value: String(i.kmInicial) },
-      { label: 'Km final', value: String(i.kmFinal) },
-    ];
-  });
-
   protected readonly inspectionVehiculoColumns: DynadrillDataTableColumn[] = [
     { key: 'label', header: 'Ítem' },
     { key: 'estado', header: 'Estado' },
@@ -106,18 +90,126 @@ export class ReviewArrivalReportDialog {
     }));
   });
 
-  protected readonly inspectionConductorItems = computed<DynadrillContextCardItem[]>(() => {
+  // ── Tarjetas con la context-card nueva (variant="card"): datos agrupados con ícono ──
+
+  /** "29/09/2026 19:54" — el valor llega como ISO ("2026-09-29T19:54:28.628Z"); si no se puede leer, se muestra tal cual. */
+  private fechaLegible(valor: string | undefined | null): string {
+    if (!valor) return '—';
+    try {
+      return formatDate(valor, 'dd/MM/yyyy HH:mm', 'es');
+    } catch {
+      return valor;
+    }
+  }
+
+  private siNo(valor: boolean | null | undefined): string {
+    return valor === true ? 'Sí' : valor === false ? 'No' : 'Sin definir';
+  }
+
+  /** Punto de color según Sí/No: verde si cumple, rojo si no. */
+  private punto(valor: boolean | null | undefined): 'success' | 'error' | undefined {
+    return valor === true ? 'success' : valor === false ? 'error' : undefined;
+  }
+
+  protected readonly inspectionInfoGroups = computed<DynadrillContextCardItem[][]>(() => {
     const i = this.inspection;
     if (!i) return [];
     return [
-      { label: 'Licencia vigente', value: i.licenciaVigente ? 'Sí' : 'No' },
-      { label: 'Manejo defensivo vigente', value: i.manejoDefensivoVigente ? 'Sí' : 'No' },
-      { label: 'Examen médico vigente', value: i.examenMedicoVigente ? 'Sí' : 'No' },
-      { label: 'Examen psicosensométrico', value: i.examenPsicosensometrico ? 'Sí' : 'No' },
-      { label: 'Documentos de clientes', value: i.documentosClientes ? 'Sí' : 'No' },
-      { label: 'Vacunas/certificado', value: i.vacunasCertificado ? 'Sí' : 'No' },
-      { label: 'Reúne condiciones para trabajar', value: i.reuneCondicionesParaTrabajar ? 'Sí' : 'No' },
+      [{ label: 'Inspeccionado por', value: i.inspeccionadoPor || '—', icon: 'users' }],
+      [
+        { label: 'Marca', value: i.marca || '—', icon: 'tool' },
+        { label: 'Modelo', value: i.modelo || '—', icon: 'tool' },
+      ],
+      [
+        { label: 'Tipo', value: i.tipo || '—', icon: 'modules' },
+        { label: 'Placa', value: i.placa || '—', icon: 'file-text', badgeVariant: 'brand' },
+      ],
+      [
+        { label: 'Punto de partida', value: i.puntoPartida || '—', icon: 'location' },
+        { label: 'Destino', value: i.destino || '—', icon: 'location' },
+      ],
+      [
+        { label: 'Km inicial', value: String(i.kmInicial ?? '—'), icon: 'modules' },
+        { label: 'Km final', value: String(i.kmFinal ?? '—'), icon: 'modules' },
+      ],
+      [{ label: 'Fecha de la inspección', value: this.fechaLegible(i.fecha), icon: 'calendar' }],
     ];
+  });
+
+  protected readonly inspectionConductorGroups = computed<DynadrillContextCardItem[][]>(() => {
+    const i = this.inspection;
+    if (!i) return [];
+    const item = (label: string, valor: boolean | null | undefined): DynadrillContextCardItem => ({
+      label,
+      value: this.siNo(valor),
+      icon: 'file-text',
+      dotVariant: this.punto(valor),
+    });
+    return [
+      [item('Licencia vigente', i.licenciaVigente), item('Manejo defensivo vigente', i.manejoDefensivoVigente)],
+      [item('Examen médico vigente', i.examenMedicoVigente), item('Examen psicosensométrico', i.examenPsicosensometrico)],
+      [item('Documentos de clientes', i.documentosClientes), item('Vacunas/certificado', i.vacunasCertificado)],
+      [item('Reúne condiciones para trabajar', i.reuneCondicionesParaTrabajar)],
+    ];
+  });
+
+  protected readonly datesFuelGroups = computed<DynadrillContextCardItem[][]>(() => {
+    const r = this.report;
+    const combustible = (v: number | null | undefined): string => (v != null ? `${v} gal` : '—');
+    const grupos: DynadrillContextCardItem[][] = [
+      [
+        { label: 'Fecha de salida', value: this.fechaLegible(r.departureDate), icon: 'calendar' },
+        { label: 'Combustible salida', value: combustible(r.fuelDeparture), icon: 'tool' },
+      ],
+    ];
+    if (!this.isSalidaReview) {
+      grupos.push([
+        { label: 'Fecha de llegada', value: this.fechaLegible(r.arrivalDate), icon: 'calendar' },
+        { label: 'Combustible llegada', value: combustible(r.fuelArrival), icon: 'tool' },
+      ]);
+    }
+    return grupos;
+  });
+
+  protected readonly noveltiesGroups = computed<DynadrillContextCardItem[][]>(() => {
+    const n = this.report.novelties;
+    const grupos: DynadrillContextCardItem[][] = [];
+    if (n.mecanica) grupos.push([{ label: 'Mecánica', value: n.mecanica, icon: 'tool' }]);
+    if (n.instrumentacion) grupos.push([{ label: 'Instrumentación', value: n.instrumentacion, icon: 'tool' }]);
+    if (n.operaciones) grupos.push([{ label: 'Operaciones', value: n.operaciones, icon: 'tool' }]);
+    if (grupos.length === 0) grupos.push([{ label: 'Novedades', value: 'Sin novedades reportadas', icon: 'file-text', dotVariant: 'success' }]);
+    return grupos;
+  });
+
+  protected readonly operabilityGroups = computed<DynadrillContextCardItem[][]>(() => {
+    const r = this.report;
+    const grupos: DynadrillContextCardItem[][] = [
+      [
+        { label: 'Unidad operativa', value: this.siNo(r.unitReady), icon: 'tool', dotVariant: this.punto(r.unitReady) },
+        { label: 'Interrumpió operación', value: this.siNo(r.operationInterrupted), icon: 'alert', dotVariant: r.operationInterrupted === true ? 'error' : this.punto(r.operationInterrupted === false ? true : undefined) },
+      ],
+    ];
+    if (r.operationInterrupted && r.interruptionDetail) {
+      grupos.push([{ label: 'Detalle de la interrupción', value: r.interruptionDetail, icon: 'file-text' }]);
+    }
+    return grupos;
+  });
+
+  protected readonly signatureGroups = computed<DynadrillContextCardItem[][]>(() => {
+    const r = this.report;
+    const grupos: DynadrillContextCardItem[][] = [
+      [
+        { label: 'Operador salida', value: r.departureOperatorName || '—', icon: 'users' },
+        { label: 'Fecha firma salida', value: this.fechaLegible(r.departureApprovalDate), icon: 'calendar' },
+      ],
+    ];
+    if (!this.isSalidaReview) {
+      grupos.push([
+        { label: 'Operador llegada', value: r.arrivalOperatorName || '—', icon: 'users' },
+        { label: 'Fecha firma llegada', value: this.fechaLegible(r.arrivalApprovalDate), icon: 'calendar' },
+      ]);
+    }
+    return grupos;
   });
 
   // ── General info ──
@@ -146,22 +238,6 @@ export class ReviewArrivalReportDialog {
   });
 
   // ── Dates and fuel ──
-  protected readonly datesFuelItems = computed<DynadrillContextCardItem[]>(() => {
-    const r = this.report;
-    if (this.isSalidaReview) {
-      return [
-        { label: 'Fecha de salida', value: r.departureDate || '—' },
-        { label: 'Combustible salida', value: r.fuelDeparture != null ? String(r.fuelDeparture) : '—' },
-      ];
-    }
-    return [
-      { label: 'Fecha de salida', value: r.departureDate || '—' },
-      { label: 'Combustible salida', value: r.fuelDeparture != null ? String(r.fuelDeparture) : '—' },
-      { label: 'Fecha de llegada', value: r.arrivalDate || '—' },
-      { label: 'Combustible llegada', value: r.fuelArrival != null ? String(r.fuelArrival) : '—' },
-    ];
-  });
-
   // ── Tires (PSI por llanta — máximo 4) ──
   protected readonly tireColumns: DynadrillDataTableColumn[] = [
     { key: 'rowLabel', header: '' },
@@ -200,46 +276,8 @@ export class ReviewArrivalReportDialog {
   ]);
 
   // ── Novelties ──
-  protected readonly noveltiesItems = computed<DynadrillContextCardItem[]>(() => {
-    const n = this.report.novelties;
-    const items: DynadrillContextCardItem[] = [];
-    if (n.mecanica) items.push({ label: 'Mecánica', value: n.mecanica });
-    if (n.instrumentacion) items.push({ label: 'Instrumentación', value: n.instrumentacion });
-    if (n.operaciones) items.push({ label: 'Operaciones', value: n.operaciones });
-    if (items.length === 0) items.push({ label: 'Novedades', value: 'Sin novedades reportadas' });
-    return items;
-  });
-
   // ── Operability ──
-  protected readonly operabilityItems = computed<DynadrillContextCardItem[]>(() => {
-    const r = this.report;
-    const items: DynadrillContextCardItem[] = [
-      { label: 'Unidad operativa', value: r.unitReady === true ? 'Sí' : r.unitReady === false ? 'No' : 'Sin definir' },
-      { label: 'Interrumpió operación', value: r.operationInterrupted === true ? 'Sí' : r.operationInterrupted === false ? 'No' : 'Sin definir' },
-    ];
-    if (r.operationInterrupted && r.interruptionDetail) {
-      items.push({ label: 'Detalle interrupción', value: r.interruptionDetail });
-    }
-    return items;
-  });
-
   // ── Signatures ──
-  protected readonly signatureItems = computed<DynadrillContextCardItem[]>(() => {
-    const r = this.report;
-    if (this.isSalidaReview) {
-      return [
-        { label: 'Operador salida', value: r.departureOperatorName || '—' },
-        { label: 'Fecha firma salida', value: r.departureApprovalDate || '—' },
-      ];
-    }
-    return [
-      { label: 'Operador salida', value: r.departureOperatorName || '—' },
-      { label: 'Fecha firma salida', value: r.departureApprovalDate || '—' },
-      { label: 'Operador llegada', value: r.arrivalOperatorName || '—' },
-      { label: 'Fecha firma llegada', value: r.arrivalApprovalDate || '—' },
-    ];
-  });
-
   // ── Actions ──
 
   /** Aprueba la inspección y avanza al paso 2 (reporte de unidad) */

@@ -445,7 +445,7 @@
   <!-- Supervisor: Revisar reportes de salida                           -->
   <!-- ══════════════════════════════════════════════════════════════════ -->
   @if (currentStep() === 'revision_reportes_salida') {
-    <section class="ticket-detail__section">
+    <section class="ticket-detail__section ticket-detail__only-desktop">
       <dynadrill-text variant="h1">Reporte de Unidad — Salida</dynadrill-text>
       <dynadrill-text variant="caption">Documento: DYN-MNT-RE-012</dynadrill-text>
       <dynadrill-text variant="body">Revise y apruebe la inspección y reporte de unidad de cada operador.</dynadrill-text>
@@ -495,13 +495,30 @@
         </div>
       </ng-template>
 
-      <dynadrill-data-table
-        [columns]="reviewSalidaColumns"
-        [rows]="reviewSalidaRows()"
-        [loading]="false"
-        actionsHeader="Acciones"
-        [actionsTemplate]="reviewSalidaActionsTpl"
-      />
+      <ul class="review-rows ticket-detail__only-mobile">
+        @for (row of reviewSalidaRows(); track row.id) {
+          <li class="review-row">
+            <span class="review-row__eyebrow">{{ row.name }}</span>
+            <strong class="review-row__title">{{ row.unitCode }}</strong>
+            <span class="review-row__meta">{{ row.role }}</span>
+            <div class="review-row__chips">
+              <dynadrill-tag [label]="'Inspección: ' + row.inspectionStatus.text" [variant]="row.inspectionStatus.tone" />
+              <dynadrill-tag [label]="'Reporte: ' + row.reportStatus.text" [variant]="row.reportStatus.tone" />
+            </div>
+            <ng-container [ngTemplateOutlet]="reviewSalidaActionsTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+          </li>
+        }
+      </ul>
+
+      <div class="ticket-detail__only-desktop">
+        <dynadrill-data-table
+          [columns]="reviewSalidaColumns"
+          [rows]="reviewSalidaRows()"
+          [loading]="false"
+          actionsHeader="Acciones"
+          [actionsTemplate]="reviewSalidaActionsTpl"
+        />
+      </div>
     </section>
 
     @if (!allSalidaApproved()) {

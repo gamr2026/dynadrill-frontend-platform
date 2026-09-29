@@ -7,7 +7,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { DatePipe, DecimalPipe, formatDate } from '@angular/common';
+import { DatePipe, DecimalPipe, NgTemplateOutlet, formatDate } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import type { NzUploadFile } from 'ng-zorro-antd/upload';
 import { AuthService } from '../../../../../core/services/auth.service';
@@ -199,6 +199,7 @@ function toFuelReading(raw: string): number | null {
   imports: [
     DatePipe,
     DecimalPipe,
+    NgTemplateOutlet,
     DynadrillScreenHeaderComponent,
     DynadrillBannerComponent,
     DynadrillContextCardComponent,

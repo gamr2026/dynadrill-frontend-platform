@@ -823,3 +823,71 @@
   display: block;
   padding: 6px 0;
 }
+
+// ── Etapa "Revisión de Reportes de Salida" (Figma "M · Ticket Pumping · 4"): filas por operador ──
+.review-rows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border, #e5e4ea);
+
+  &__eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dynadrill-purple, #662e9b);
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--text, #2c2b35);
+  }
+
+  &__meta {
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 4px 0;
+  }
+
+  // Las acciones reutilizan la plantilla de la tabla: se apilan y ocupan el ancho.
+  .dyn-actions-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+
+    dynadrill-button {
+      flex: 1 1 auto;
+
+      ::ng-deep .ant-btn {
+        width: 100%;
+        min-height: 48px;
+        height: auto;
+        border-radius: var(--radius-md, 12px);
+        font-weight: 600;
+        white-space: normal;
+      }
+    }
+  }
+}

@@ -32,6 +32,7 @@ import { SuborderDetailDialog, SuborderDetailDialogData } from '../../../../main
 import { DocumentoOperativoService } from '../../../../facturacion/services/pedido.service';
 import { TicketDocumentosDialog, TicketDocumentosDialogData } from '../../components/ticket-documentos-dialog';
 import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
+import { ConductorTareas } from '../../components/conductor-tareas';
 import { PageHeader } from '../../../../../shared/components/page-header/page-header';
 import { KpiStat, KpiStatTone } from '../../../../../shared/components/kpi-stat/kpi-stat';
 import { RecordAction, RecordCard } from '../../../../../shared/components/record-card/record-card';
@@ -66,6 +67,7 @@ const STEP_FILTERS = Object.entries(PUMPING_STEP_LABELS).map(
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     NgTemplateOutlet,
+    ConductorTareas,
     PageHeader,
     RecordCard,
     KpiStat,
@@ -95,6 +97,8 @@ export class TicketListPage {
   /** Jefe de Base y Superadmin ven cualquier ticket sin importar el paso — mismo criterio "admin ve todo" del resto de la app. */
   protected readonly esAdmin = computed(() => this.roleName() === 'Jefe de Base' || this.roleName() === 'Superadmin');
   protected readonly isSupervisor = computed(() => this.roleName() === 'Supervisor' || this.roleName() === 'Supervisor Pumping');
+  /** El Conductor no ve pedidos: su vista son sus tareas de Gerenciamiento de Viaje (ver ConductorTareas). */
+  protected readonly isConductor = computed(() => this.roleName() === 'Conductor');
   protected readonly isOperador = computed(() => this.roleName() === 'Operador');
 
   /** Móvil: tarjetas (M · Pumping · Pedidos en Figma) en vez de la tabla. */
@@ -293,6 +297,7 @@ export class TicketListPage {
   }
 
   private reload(): void {
+    if (this.isConductor()) return;
     this.loading.set(true);
     this.pumpingService.listTickets().subscribe({
       next: tickets => {

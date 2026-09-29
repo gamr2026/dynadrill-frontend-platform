@@ -2,13 +2,15 @@ import { Routes } from '@angular/router';
 import { roleGuard } from '../../../core/guards/role.guard';
 
 const PUMPING_ROLES = ['Jefe de Base', 'Supervisor', 'Supervisor Pumping', 'Operador'];
+// El Conductor entra solo a la lista (ve sus tareas), no al detalle del ticket.
+const PUMPING_LIST_ROLES = [...PUMPING_ROLES, 'Conductor'];
 
 export const pumpingRoutes: Routes = [
   {
     path: '',
     loadComponent: () => import('./pages/ticket-list-page/ticket-list-page').then(m => m.TicketListPage),
     canActivate: [roleGuard],
-    data: { allowedRoles: PUMPING_ROLES },
+    data: { allowedRoles: PUMPING_LIST_ROLES },
   },
   {
     path: 'aprobaciones',

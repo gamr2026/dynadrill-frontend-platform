@@ -91,6 +91,18 @@ export interface TicketContexto {
   assignedSupervisor: string;
 }
 
+/** Ticket Pumping donde el usuario es el Conductor (el elegido en la inspección de salida) — fila de "sus tareas" en la tabla de Pumping. */
+export interface TicketConductor extends TicketContexto {
+  currentStep: string;
+  status: string;
+  clientName: string;
+  wellName: string;
+  unitCode: string;
+  gerenciamientos: { id: number; code: string; tipo: GerenciamientoViajeTipo; estado: GerenciamientoViajeEstado }[];
+  /** Estado del GV vigente por tipo (null = todavía no lo ha creado; los rechazados no cuentan, hay que rehacerlos). */
+  tareas: Record<GerenciamientoViajeTipo, GerenciamientoViajeEstado | null>;
+}
+
 export type GerenciamientoViajeEstado = 'pendiente' | 'aprobado' | 'rechazado';
 
 export const GERENCIAMIENTO_VIAJE_ESTADO_LABELS: Record<GerenciamientoViajeEstado, string> = {

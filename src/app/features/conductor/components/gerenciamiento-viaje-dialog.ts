@@ -21,6 +21,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import {
   GerenciamientoViaje,
   GerenciamientoViajeTipo,
+  TicketContexto,
   GERENCIAMIENTO_VIAJE_TIPO_LABELS,
   TravelRiskOption,
   TravelRiskQuestion,
@@ -34,6 +35,8 @@ import { toLocalDateString } from '../../../shared/utils';
 
 export interface GerenciamientoViajeDialogData {
   tipo: GerenciamientoViajeTipo;
+  /** Desde la tabla de Pumping el ticket ya viene resuelto: el conductor no teclea el código. */
+  ticket?: TicketContexto;
 }
 
 /** Ponderación que bloquea el viaje — ver createTravelRiskQuestions() en gerenciamiento-viaje.model.ts */
@@ -102,6 +105,22 @@ export class GerenciamientoViajeDialog {
   protected readonly vehicleType = signal<VehicleType | null>(null);
   protected readonly placas = signal('');
   protected readonly vehicleTypeOptions = VEHICLE_TYPE_OPTIONS;
+
+  /** Ticket fijado desde la tabla de Pumping — oculta el buscador. */
+  protected readonly ticketFijo = !!this.data.ticket;
+
+  constructor() {
+    const t = this.data.ticket;
+    if (t) {
+      this.ticketCode.set(t.code);
+      this.ticketId.set(t.id);
+      this.origen.set(t.origen);
+      this.destino.set(t.destino);
+      this.lineaServicio.set(t.serviceType);
+      this.assignedSupervisorNombre.set(t.assignedSupervisor);
+      this.ticketEncontrado.set(true);
+    }
+  }
 
   protected onVehicleTypeChange(value: unknown): void {
     this.vehicleType.set(value as VehicleType);

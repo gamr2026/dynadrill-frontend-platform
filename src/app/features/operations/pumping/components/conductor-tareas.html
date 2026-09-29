@@ -1,0 +1,53 @@
+<app-page-header
+  eyebrow="PUM-01"
+  title="Mis tareas de Pumping"
+  subtitle="Gerenciamientos de Viaje que te tocan en tus tickets"
+  [roleTag]="roleName()"
+/>
+
+<div class="kpi-stat-row" role="list">
+  @for (kpi of kpis(); track kpi.label) {
+    <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
+  }
+</div>
+
+<ng-template #actionsTpl let-row>
+  <div class="dyn-actions-row">
+    @if (row['estado'] === 'por_completar') {
+      <dynadrill-icon-button icon="edit" tooltip="Completar Gerenciamiento de Viaje" (clicked)="completarFila(row)" />
+    }
+  </div>
+</ng-template>
+
+@if (isMobile()) {
+  <ul class="tareas-cards" [attr.aria-busy]="loading()">
+    @for (row of rows(); track row.id) {
+      <li>
+        <app-record-card
+          [eyebrow]="row.code"
+          [title]="'Gerenciamiento de Viaje — ' + row.tipoLabel"
+          [subtitle]="row.wellName + ' • ' + row.clientName"
+          [status]="row.estadoBadge"
+          [fields]="[{ label: 'Paso del ticket', value: row.paso }]"
+          [actions]="row.actions"
+        />
+      </li>
+    } @empty {
+      @if (!loading()) {
+        <li class="tareas-cards__empty">No tienes tareas pendientes.</li>
+      }
+    }
+  </ul>
+} @else {
+  <div class="dyn-table-card">
+    <dynadrill-data-table
+      [columns]="columns"
+      [rows]="rows()"
+      [loading]="loading()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="10"
+      actionsHeader="Acciones"
+      [actionsTemplate]="actionsTpl"
+    />
+  </div>
+}

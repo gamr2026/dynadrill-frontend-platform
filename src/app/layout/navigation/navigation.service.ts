@@ -18,7 +18,6 @@ const MANTENIMIENTO_OPERATIVO: NavEntry = { label: 'Mantenimiento', icon: 'tool'
 /** Solo Jefe de Base/Superadmin/Supervisor Pumping autorizan (ver ModuleRoles.gerenciamientoViajeApprove en el backend) — Jefe de Mantenimiento no entra. */
 const GERENCIAMIENTO_VIAJE: NavEntry = { label: 'Gerenciamiento de Viaje', icon: 'route', link: '/dashboard/mantenimiento/gerenciamiento-viaje' };
 /** Portal del Conductor — solo su propio Gerenciamiento de Viaje. */
-const MIS_VIAJES: NavEntry = { label: 'Mis viajes', icon: 'route', link: '/dashboard/mantenimiento/mis-viajes' };
 
 const INVENTARIO_CHILDREN: NavEntry[] = [
   { label: 'Artículos', icon: 'box', link: '/dashboard/inventario/articulos' },
@@ -175,7 +174,7 @@ export class NavigationService {
           usuarios(),
         ];
       case 'Conductor':
-        return [INICIO, mantenimiento(MIS_VIAJES)];
+        return [INICIO, operaciones(PUMPING)];
       default:
         return [INICIO];
     }

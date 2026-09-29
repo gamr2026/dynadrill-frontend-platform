@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { CreateGerenciamientoViajeInput, GerenciamientoViaje, TicketContexto } from '../models/gerenciamiento-viaje.model';
+import { CreateGerenciamientoViajeInput, GerenciamientoViaje, TicketConductor, TicketContexto } from '../models/gerenciamiento-viaje.model';
 import { environment } from '@env';
 
 @Injectable({ providedIn: 'root' })
@@ -13,6 +13,11 @@ export class GerenciamientoViajeService {
   /** Autocompletar origen/destino/línea de servicio/supervisor asignado a partir del código del ticket — el conductor no debe volver a tipearlos. */
   contextoDeTicket(code: string): Observable<TicketContexto> {
     return this.http.get<TicketContexto>(`${this.ticketsUrl}/contexto/${encodeURIComponent(code)}`);
+  }
+
+  /** Tickets donde soy el conductor + el estado de mis GV (salida/retorno) — alimenta la tabla de Pumping del Conductor. */
+  ticketsMios(): Observable<TicketConductor[]> {
+    return this.http.get<TicketConductor[]>(`${this.ticketsUrl}/conductor/mios`);
   }
 
   /** Bandeja del Jefe de Base — todos los registros. */

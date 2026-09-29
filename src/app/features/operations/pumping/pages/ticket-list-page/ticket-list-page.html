@@ -1,126 +1,130 @@
-<app-page-header
-  eyebrow="PUM-01"
-  title="Pedidos Pumping"
-  subtitle="Dashboard de propuestas y pedidos activos"
-  [roleTag]="roleName()"
-/>
+@if (isConductor()) {
+  <app-conductor-tareas />
+} @else {
+  <app-page-header
+    eyebrow="PUM-01"
+    title="Pedidos Pumping"
+    subtitle="Dashboard de propuestas y pedidos activos"
+    [roleTag]="roleName()"
+  />
 
-<div class="kpi-stat-row" role="list">
-  @for (kpi of kpis(); track kpi.label) {
-    <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
-  }
-</div>
-
-<dynadrill-tabs
-  [tabs]="tabs()"
-  [activeIndex]="activeTabIndex()"
-  (activeIndexChange)="onTabChange($event)"
-/>
-
-<!-- Acciones de la fila: la lista ya viene filtrada por rol y paso (ver inProcessActions) -->
-<ng-template #actionsTpl let-row>
-  <div class="dyn-actions-row">
-    @for (action of row['actions']; track action.label) {
-      <dynadrill-icon-button [icon]="action.icon" [tooltip]="action.label" (clicked)="action.run()" />
+  <div class="kpi-stat-row" role="list">
+    @for (kpi of kpis(); track kpi.label) {
+      <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
     }
   </div>
-</ng-template>
 
-<!-- Template de fila expandida: detalle de sub-órdenes de mantenimiento -->
-<ng-template #maintenanceExpandTpl let-row>
-  @if (row['isMaintenanceStep']) {
-    @if (row['hasMaintenanceOrders']) {
-      <div class="maintenance-detail">
-        <h4 class="maintenance-detail__title">Detalle de Mantenimientos</h4>
-        <div class="table-scroll dyn-table-card">
-          <table class="maintenance-detail__table">
-            <thead>
-              <tr>
-                <th>Código</th>
-                <th>Tipo de Mantenimiento</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (sub of row['maintenanceSubOrders']; track sub.code) {
+  <dynadrill-tabs
+    [tabs]="tabs()"
+    [activeIndex]="activeTabIndex()"
+    (activeIndexChange)="onTabChange($event)"
+  />
+
+  <!-- Acciones de la fila: la lista ya viene filtrada por rol y paso (ver inProcessActions) -->
+  <ng-template #actionsTpl let-row>
+    <div class="dyn-actions-row">
+      @for (action of row['actions']; track action.label) {
+        <dynadrill-icon-button [icon]="action.icon" [tooltip]="action.label" (clicked)="action.run()" />
+      }
+    </div>
+  </ng-template>
+
+  <!-- Template de fila expandida: detalle de sub-órdenes de mantenimiento -->
+  <ng-template #maintenanceExpandTpl let-row>
+    @if (row['isMaintenanceStep']) {
+      @if (row['hasMaintenanceOrders']) {
+        <div class="maintenance-detail">
+          <h4 class="maintenance-detail__title">Detalle de Mantenimientos</h4>
+          <div class="table-scroll dyn-table-card">
+            <table class="maintenance-detail__table">
+              <thead>
                 <tr>
-                  <td>{{ sub.code }}</td>
-                  <td>{{ sub.type }}</td>
-                  <td>
-                    <dynadrill-tag [label]="sub.status" [variant]="sub.statusTone" />
-                  </td>
-                  <td>
-                    <div class="dyn-actions-row">
-                      <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="verDetalleMaintenance(sub.id)" />
-                      @if (sub.canReview) {
-                        <dynadrill-button variant="primary" size="small" (click)="reviewMaintenance(sub.id)">
-                          Revisar Mantenimiento
-                        </dynadrill-button>
-                      }
-                    </div>
-                  </td>
+                  <th>Código</th>
+                  <th>Tipo de Mantenimiento</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
                 </tr>
-              }
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                @for (sub of row['maintenanceSubOrders']; track sub.code) {
+                  <tr>
+                    <td>{{ sub.code }}</td>
+                    <td>{{ sub.type }}</td>
+                    <td>
+                      <dynadrill-tag [label]="sub.status" [variant]="sub.statusTone" />
+                    </td>
+                    <td>
+                      <div class="dyn-actions-row">
+                        <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="verDetalleMaintenance(sub.id)" />
+                        @if (sub.canReview) {
+                          <dynadrill-button variant="primary" size="small" (click)="reviewMaintenance(sub.id)">
+                            Revisar Mantenimiento
+                          </dynadrill-button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
-    } @else {
-      <div class="maintenance-detail maintenance-detail--empty">
-        <p>Sin mantenimientos asociados a este ticket.</p>
-      </div>
-    }
-  }
-</ng-template>
-
-@if (isMobile()) {
-  <ul class="ticket-cards" [attr.aria-busy]="loading()">
-    @for (row of isInProcessTab() ? inProcessRows() : approvedRows(); track row.id) {
-      <li>
-        <app-record-card
-          [eyebrow]="row.code"
-          [title]="row.wellName"
-          [subtitle]="row.clientName + ' • ' + row.serviceTypeLabel"
-          [status]="row.statusBadge"
-          [fields]="[{ label: 'Cliente', value: row.clientName }, { label: 'Tipo', value: row.serviceTypeLabel }]"
-          [actions]="row.actions"
-        >
-          @if (isSupervisor() && row.step === 'mantenimiento') {
-            <ng-container [ngTemplateOutlet]="maintenanceExpandTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
-          }
-        </app-record-card>
-      </li>
-    } @empty {
-      @if (!loading()) {
-        <li class="ticket-cards__empty">No hay pedidos en esta pestaña.</li>
+      } @else {
+        <div class="maintenance-detail maintenance-detail--empty">
+          <p>Sin mantenimientos asociados a este ticket.</p>
+        </div>
       }
     }
-  </ul>
-} @else if (isInProcessTab()) {
-  <div class="table-scroll dyn-table-card">
-    <dynadrill-data-table
-      [columns]="inProcessColumns()"
-      [rows]="inProcessRows()"
-      [loading]="loading()"
-      [rowKey]="rowKeyFn"
-      [pageSize]="10"
-      actionsHeader="Acciones"
-      [actionsTemplate]="actionsTpl"
-      [expandable]="isSupervisor() && hasExpandableRows()"
-      [expandedRowTemplate]="maintenanceExpandTpl"
-    />
-  </div>
-} @else {
-  <div class="table-scroll">
-    <dynadrill-data-table
-      [columns]="approvedColumns"
-      [rows]="approvedRows()"
-      [loading]="loading()"
-      [rowKey]="rowKeyFn"
-      [pageSize]="10"
-      actionsHeader="Documentos"
-      [actionsTemplate]="actionsTpl"
-    />
-  </div>
+  </ng-template>
+
+  @if (isMobile()) {
+    <ul class="ticket-cards" [attr.aria-busy]="loading()">
+      @for (row of isInProcessTab() ? inProcessRows() : approvedRows(); track row.id) {
+        <li>
+          <app-record-card
+            [eyebrow]="row.code"
+            [title]="row.wellName"
+            [subtitle]="row.clientName + ' • ' + row.serviceTypeLabel"
+            [status]="row.statusBadge"
+            [fields]="[{ label: 'Cliente', value: row.clientName }, { label: 'Tipo', value: row.serviceTypeLabel }]"
+            [actions]="row.actions"
+          >
+            @if (isSupervisor() && row.step === 'mantenimiento') {
+              <ng-container [ngTemplateOutlet]="maintenanceExpandTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+            }
+          </app-record-card>
+        </li>
+      } @empty {
+        @if (!loading()) {
+          <li class="ticket-cards__empty">No hay pedidos en esta pestaña.</li>
+        }
+      }
+    </ul>
+  } @else if (isInProcessTab()) {
+    <div class="table-scroll dyn-table-card">
+      <dynadrill-data-table
+        [columns]="inProcessColumns()"
+        [rows]="inProcessRows()"
+        [loading]="loading()"
+        [rowKey]="rowKeyFn"
+        [pageSize]="10"
+        actionsHeader="Acciones"
+        [actionsTemplate]="actionsTpl"
+        [expandable]="isSupervisor() && hasExpandableRows()"
+        [expandedRowTemplate]="maintenanceExpandTpl"
+      />
+    </div>
+  } @else {
+    <div class="table-scroll">
+      <dynadrill-data-table
+        [columns]="approvedColumns"
+        [rows]="approvedRows()"
+        [loading]="loading()"
+        [rowKey]="rowKeyFn"
+        [pageSize]="10"
+        actionsHeader="Documentos"
+        [actionsTemplate]="actionsTpl"
+      />
+    </div>
+  }
 }

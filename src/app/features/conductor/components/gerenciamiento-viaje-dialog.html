@@ -17,14 +17,19 @@
         <dynadrill-input label="Placas" [value]="placas()" (valueChange)="placas.set($event)" />
       </div>
 
+      @if (!ticketFijo) {
       <div class="gv-dialog__ticket-row">
         <dynadrill-input label="Código del ticket Pumping" placeholder="Ej. PUMP-2026-00458" [value]="ticketCode()" (valueChange)="ticketCode.set($event)" />
         <dynadrill-button variant="secondary" size="small" [disabled]="!ticketCode().trim() || buscandoTicket()" (clicked)="buscarTicket()">
           {{ buscandoTicket() ? 'Buscando…' : 'Buscar ticket' }}
         </dynadrill-button>
       </div>
+      }
 
       @if (ticketEncontrado()) {
+        @if (ticketFijo) {
+          <dynadrill-text variant="body">Ticket: <strong>{{ ticketCode() }}</strong></dynadrill-text>
+        }
         <div class="gv-dialog__form-grid">
           <dynadrill-text variant="body">Línea de servicio: <strong>{{ lineaServicio() }}</strong></dynadrill-text>
           <dynadrill-text variant="body">Origen: <strong>{{ origen() }}</strong></dynadrill-text>

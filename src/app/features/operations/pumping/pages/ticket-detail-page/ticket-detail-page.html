@@ -934,7 +934,7 @@
 
         <h3 class="ticket-detail__subtitle">Monitoreo de gases</h3>
         <ul class="gas-grid">
-          @for (gas of checklistIngresoGasKeys; track gas) {
+          @for (gas of checklistIngresoGasKeys; track gas; let i = $index) {
             <li
               class="gas-card"
               [class.gas-card--seguro]="checklistIngresoUltimaLecturaPorGas()[gas]?.seguro === true"
@@ -951,18 +951,27 @@
               @if (checklistIngresoUltimaLecturaPorGas()[gas]; as r) {
                 <span class="gas-card__reading">Última lectura: {{ r.lectura }} {{ checklistIngresoGasLimites[gas].unidad }}</span>
               }
-              <div class="gas-card__form">
-                <dynadrill-input
-                  [label]="'Lectura (' + checklistIngresoGasLimites[gas].unidad + ')'"
-                  type="number"
-                  [value]="checklistIngresoGasDraft()[gas]"
-                  (valueChange)="onChecklistIngresoGasDraftChange(gas, $event)"
-                />
-                <button type="button" class="gas-card__btn" (click)="registrarLecturaChecklistIngreso(gas)">Registrar</button>
-              </div>
+              <dynadrill-input
+                [label]="'Lectura (' + checklistIngresoGasLimites[gas].unidad + ')'"
+                type="number"
+                placeholder="0"
+                [value]="checklistIngresoGasDraft()[gas]"
+                (valueChange)="onChecklistIngresoGasDraftChange(gas, $event)"
+                (keydown.enter)="onGasEnter($event, i)"
+              />
+              <span class="gas-card__range">Rango seguro: {{ rangoSeguroGas(gas) }}</span>
+              @if (gasBorradorEstado()[gas]; as estado) {
+                <span class="gas-card__preview" [class.gas-card__preview--fuera]="estado === 'fuera'" role="status">
+                  {{ estado === 'seguro' ? '✓ Dentro del rango seguro' : '⚠ Fuera del rango seguro — se registrará igual' }}
+                </span>
+              }
             </li>
           }
         </ul>
+
+        <button type="button" class="gas-submit" [disabled]="gasRegistrando() || gasLecturasPendientes().length === 0" (click)="registrarLecturasChecklistIngreso()">
+          {{ gasRegistrando() ? 'Registrando…' : gasLecturasPendientes().length > 0 ? 'Registrar lecturas (' + gasLecturasPendientes().length + ')' : 'Registrar lecturas' }}
+        </button>
 
         <h3 class="ticket-detail__subtitle">Verificación LOTO (Lock-out/Tag-out)</h3>
         @for (item of ci.lotoChecklist; track $index) {

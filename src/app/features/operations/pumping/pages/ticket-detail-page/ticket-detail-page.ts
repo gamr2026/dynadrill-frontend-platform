@@ -792,6 +792,91 @@ export class TicketDetailPage {
     this.checklistIngresoGasDraft.update(d => ({ ...d, [gas]: value }));
   }
 
+  /** Rango seguro legible para mostrar bajo cada campo: "hasta 10 ppm" o "19.5 – 23.5 %". */
+  protected rangoSeguroGas(gas: ChecklistIngresoGas): string {
+    const l = CHECKLIST_INGRESO_GAS_LIMITES[gas];
+    return l.min !== undefined ? `${l.min} – ${l.max} ${l.unidad}` : `hasta ${l.max} ${l.unidad}`;
+  }
+
+  private lecturaGasValida(raw: string): boolean {
+    return raw.trim() !== '' && !Number.isNaN(Number(raw));
+  }
+
+  /** Gases con un valor válido escrito y todavía sin registrar. */
+  protected readonly gasLecturasPendientes = computed(() =>
+    this.checklistIngresoGasKeys.filter(g => this.lecturaGasValida(this.checklistIngresoGasDraft()[g])),
+  );
+
+  /** Vista previa mientras se escribe: ¿el valor queda dentro o fuera del rango seguro? (lo confirma el servidor al registrar). */
+  protected readonly gasBorradorEstado = computed<Partial<Record<ChecklistIngresoGas, 'seguro' | 'fuera'>>>(() => {
+    const out: Partial<Record<ChecklistIngresoGas, 'seguro' | 'fuera'>> = {};
+    for (const gas of this.gasLecturasPendientes()) {
+      const v = Number(this.checklistIngresoGasDraft()[gas]);
+      const l = CHECKLIST_INGRESO_GAS_LIMITES[gas];
+      out[gas] = v <= l.max && (l.min === undefined || v >= l.min) ? 'seguro' : 'fuera';
+    }
+    return out;
+  });
+
+  protected readonly gasRegistrando = signal(false);
+
+  /** Enter en un campo de gas: pasa al siguiente; en el último registra todas las lecturas. */
+  protected onGasEnter(event: Event, index: number): void {
+    const inputs = (event.currentTarget as HTMLElement).closest('.gas-grid')?.querySelectorAll<HTMLInputElement>('input');
+    const siguiente = inputs?.[index + 1];
+    if (siguiente) siguiente.focus();
+    else this.registrarLecturasChecklistIngreso();
+  }
+
+  /** Registra de una vez todas las lecturas escritas (una llamada por gas, en orden) y avisa el resultado. */
+  protected registrarLecturasChecklistIngreso(): void {
+    const t = this.ticket();
+    const pendientes = this.gasLecturasPendientes();
+    if (!t || this.gasRegistrando()) return;
+    if (pendientes.length === 0) {
+      this.notify.info('Sin lecturas', 'Escribe al menos una lectura antes de registrar.');
+      return;
+    }
+    this.gasRegistrando.set(true);
+    const registrados: ChecklistIngresoGas[] = [];
+    const fallidos: ChecklistIngresoGas[] = [];
+
+    const terminar = (): void => {
+      this.gasRegistrando.set(false);
+      const ultimas = this.checklistIngresoUltimaLecturaPorGas();
+      const fuera = registrados.filter(g => ultimas[g]?.seguro === false).map(g => CHECKLIST_INGRESO_GAS_LIMITES[g].label);
+      if (fallidos.length > 0) {
+        this.notify.error(
+          'No se registraron todas',
+          `Falló: ${fallidos.map(g => CHECKLIST_INGRESO_GAS_LIMITES[g].label).join(', ')}. Revisa la conexión y vuelve a intentar; lo escrito se conserva.`,
+        );
+      }
+      if (fuera.length > 0) {
+        this.notify.warning('Lectura fuera de rango', `${fuera.join(', ')}. No es seguro continuar hasta corregirlo.`);
+      } else if (registrados.length > 0 && fallidos.length === 0) {
+        this.notify.success('Lecturas registradas', `${registrados.length} lectura(s) dentro del rango seguro.`);
+      }
+    };
+
+    const siguiente = (i: number): void => {
+      if (i >= pendientes.length) return terminar();
+      const gas = pendientes[i];
+      this.pumpingService.actualizarChecklistIngreso(t.id, { nuevaLectura: { gas, lectura: Number(this.checklistIngresoGasDraft()[gas]) } }).subscribe({
+        next: actualizado => {
+          this.checklistIngreso.set(actualizado);
+          this.checklistIngresoGasDraft.update(d => ({ ...d, [gas]: '' }));
+          registrados.push(gas);
+          siguiente(i + 1);
+        },
+        error: () => {
+          fallidos.push(gas);
+          siguiente(i + 1);
+        },
+      });
+    };
+    siguiente(0);
+  }
+
   protected registrarLecturaChecklistIngreso(gas: ChecklistIngresoGas): void {
     const t = this.ticket();
     const raw = this.checklistIngresoGasDraft()[gas];

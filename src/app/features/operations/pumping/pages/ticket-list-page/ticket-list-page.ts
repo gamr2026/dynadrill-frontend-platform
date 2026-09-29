@@ -9,11 +9,9 @@ import {
   DynadrillDataTableComponent,
   DynadrillDialogService,
   DynadrillIconButtonComponent,
-  DynadrillKpiRowComponent,
   DynadrillNotificationService,
   DynadrillTabsComponent,
   DynadrillTagComponent,
-  type DynadrillKpiRowItem,
   type DynadrillTab,
 } from '@digitec-it-projects/dynadrill-ui';
 import {
@@ -35,6 +33,7 @@ import { DocumentoOperativoService } from '../../../../facturacion/services/pedi
 import { TicketDocumentosDialog, TicketDocumentosDialogData } from '../../components/ticket-documentos-dialog';
 import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
 import { PageHeader } from '../../../../../shared/components/page-header/page-header';
+import { KpiStat, KpiStatTone } from '../../../../../shared/components/kpi-stat/kpi-stat';
 import { RecordAction, RecordCard } from '../../../../../shared/components/record-card/record-card';
 
 type BadgeTone = 'success' | 'warning' | 'error' | 'neutral' | 'brand' | 'info';
@@ -69,7 +68,7 @@ const STEP_FILTERS = Object.entries(PUMPING_STEP_LABELS).map(
     NgTemplateOutlet,
     PageHeader,
     RecordCard,
-    DynadrillKpiRowComponent,
+    KpiStat,
     DynadrillDataTableComponent,
     DynadrillTabsComponent,
     DynadrillButtonComponent,
@@ -107,10 +106,12 @@ export class TicketListPage {
 
   // ── Pestañas ──
 
-  protected readonly tabs = computed<DynadrillTab[]>(() => [
-    { label: 'Pedidos en Proceso', badge: this.inProcessTickets().length },
-    { label: 'Pedidos Aprobados', badge: this.approvedTickets().length },
-  ]);
+  /** Figma: el conteo va entre paréntesis en la etiqueta ("Pedidos en Proceso (6)"); en móvil, etiquetas cortas. */
+  protected readonly tabs = computed<DynadrillTab[]>(() =>
+    this.isMobile()
+      ? [{ label: `En Proceso (${this.inProcessTickets().length})` }, { label: `Aprobados (${this.approvedTickets().length})` }]
+      : [{ label: `Pedidos en Proceso (${this.inProcessTickets().length})` }, { label: `Pedidos Aprobados (${this.approvedTickets().length})` }],
+  );
   protected readonly activeTabIndex = signal(0);
   protected readonly isInProcessTab = computed(() => this.activeTabIndex() === 0);
 
@@ -126,15 +127,15 @@ export class TicketListPage {
 
   // ── KPIs ──
 
-  protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
+  protected readonly kpis = computed<{ label: string; value: number; tone: KpiStatTone }[]>(() => {
     const all = this.tickets();
     const inProcess = this.inProcessTickets();
     return [
-      { label: 'Total pedidos', value: all.length },
-      { label: 'Revisión inicial', value: inProcess.filter(t => t.currentStep === 'revision_inicial').length },
-      { label: 'Traslado de salida', value: inProcess.filter(t => t.currentStep === 'traslado_salida').length },
-      { label: 'Revisión final', value: inProcess.filter(t => t.currentStep === 'revision_final').length },
-      { label: 'Aprobados', value: this.approvedTickets().length },
+      { label: 'Total pedidos', value: all.length, tone: 'neutral' },
+      { label: 'Revisión inicial', value: inProcess.filter(t => t.currentStep === 'revision_inicial').length, tone: 'warning' },
+      { label: 'Traslado de salida', value: inProcess.filter(t => t.currentStep === 'traslado_salida').length, tone: 'brand' },
+      { label: 'Revisión final', value: inProcess.filter(t => t.currentStep === 'revision_final').length, tone: 'warning' },
+      { label: 'Aprobados', value: this.approvedTickets().length, tone: 'success' },
     ];
   });
 

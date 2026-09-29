@@ -492,3 +492,41 @@ body {
     display: none;
   }
 }
+
+/**
+ * Tabla de listado dentro de una tarjeta con borde redondeado y encabezado claro
+ * (Figma "D · Pumping · Pedidos" / "D · Pumping · Aprobaciones"), en vez del
+ * encabezado navy que trae dynadrill-data-table. Uso: envolver la tabla en
+ * `<div class="dyn-table-card">`.
+ */
+.dyn-table-card {
+  overflow: hidden;
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: var(--radius-lg, 16px);
+  background: var(--surface, #fff);
+  box-shadow: 0 1px 2px rgba(19, 21, 41, 0.05);
+
+  // `dynadrill-data-table` en los selectores: sube la especificidad por encima de las
+  // reglas de la librería (que pintan el encabezado navy con !important).
+  .dynadrill-data-table.dynadrill-data-table .ant-table-thead > tr > th {
+    border-bottom: 1px solid var(--border, #e5e4ea);
+    background: var(--surface, #fff) !important;
+    color: var(--text-muted, #5c5870) !important;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .dynadrill-data-table.dynadrill-data-table .ant-table-thead > tr > th::before {
+    display: none;
+  }
+
+  .dynadrill-data-table.dynadrill-data-table .ant-table-thead .ant-table-column-sorter,
+  .dynadrill-data-table.dynadrill-data-table .ant-table-thead .ant-table-filter-trigger,
+  .dynadrill-data-table.dynadrill-data-table .ant-table-thead .anticon {
+    color: var(--text-muted, #5c5870) !important;
+  }
+
+  .dynadrill-data-table.dynadrill-data-table .ant-table-tbody > tr > td {
+    border-bottom: 1px solid var(--border, #e5e4ea);
+  }
+}

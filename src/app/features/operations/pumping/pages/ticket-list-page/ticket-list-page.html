@@ -5,7 +5,11 @@
   [roleTag]="roleName()"
 />
 
-<dynadrill-kpi-row [items]="kpis()" />
+<div class="kpi-stat-row" role="list">
+  @for (kpi of kpis(); track kpi.label) {
+    <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
+  }
+</div>
 
 <dynadrill-tabs
   [tabs]="tabs()"
@@ -28,7 +32,7 @@
     @if (row['hasMaintenanceOrders']) {
       <div class="maintenance-detail">
         <h4 class="maintenance-detail__title">Detalle de Mantenimientos</h4>
-        <div class="table-scroll">
+        <div class="table-scroll dyn-table-card">
           <table class="maintenance-detail__table">
             <thead>
               <tr>
@@ -94,7 +98,7 @@
     }
   </ul>
 } @else if (isInProcessTab()) {
-  <div class="table-scroll">
+  <div class="table-scroll dyn-table-card">
     <dynadrill-data-table
       [columns]="inProcessColumns()"
       [rows]="inProcessRows()"

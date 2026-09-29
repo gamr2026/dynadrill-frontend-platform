@@ -53,8 +53,8 @@ export class AprobacionesPage {
   );
 
   protected readonly tabs = computed<DynadrillTab[]>(() => [
-    { label: 'Pendientes', badge: this.pendientes().length },
-    { label: 'Resueltas', badge: this.resueltas().length },
+    { label: `Pendientes (${this.pendientes().length})` },
+    { label: `Resueltas (${this.resueltas().length})` },
   ]);
   protected readonly activeTabIndex = signal(0);
 

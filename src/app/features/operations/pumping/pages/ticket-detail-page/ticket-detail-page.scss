@@ -902,10 +902,12 @@
 }
 
 // Fila neutra dentro de una tarjeta (checklist QHSE por equipo, EPI por operador).
+// El margen superior separa la primera fila del título y cada fila de la anterior.
 .ticket-detail__row-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin-top: 12px;
   padding: 12px;
   border: 1px solid var(--border, #e5e4ea);
   border-radius: var(--radius-md, 12px);
@@ -1075,4 +1077,9 @@
       color: var(--warning-text, #ad6800);
     }
   }
+}
+
+// Un aviso de bloqueo dentro de una tarjeta (p. ej. "Entrega de EPI") queda separado del título y de las filas.
+.ticket-detail__section > .blocked {
+  margin: 12px 0 0;
 }

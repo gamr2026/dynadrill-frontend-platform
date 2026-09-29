@@ -176,7 +176,7 @@ export class AprobacionesPage {
     if (!solicitud) return;
 
     const ref = this.dialog.open<RevisarSolicitudCambioItemsDialog, RevisarSolicitudDialogData>({
-      title: 'Revisar solicitud',
+      title: 'Solicitud de cambio de ítems',
       content: RevisarSolicitudCambioItemsDialog,
       data: { solicitud },
       footer: false,

@@ -1,0 +1,68 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  &__body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  &__footer {
+    position: sticky;
+    bottom: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 16px 0 4px;
+    background: var(--surface, #fff);
+    border-top: 1px solid var(--border, #e5e4ea);
+
+    ::ng-deep .ant-btn { width: 100%; }
+  }
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 16px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border, #e5e4ea);
+
+  legend {
+    float: left; // mantiene la legend dentro del flujo del fieldset
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text, #2c2b35);
+  }
+
+  &__hint {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__shortcuts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__range {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+}

@@ -1,18 +1,98 @@
 :host {
   display: block;
   padding: 1.5rem;
-
-  dynadrill-chip-group {
-    display: block;
-    margin: 1rem 0 1.5rem;
-  }
 }
 
-.fcr-list__kpi-skeleton {
+.fcr-list__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin: 1rem 0;
+}
+
+.fcr-list__pager {
+  // A la derecha de la barra, alineado con los controles (no con la etiqueta "Buscar").
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  margin-left: auto;
+}
+
+.fcr-list__search {
+  flex: 0 1 320px;
+  min-width: 200px;
+}
+
+.fcr-list__active {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+
+.fcr-list__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--dynadrill-purple, #662e9b);
+  cursor: pointer;
+  background: var(--dynadrill-purple-tint-strong, rgba(102, 46, 155, 0.16));
+  border: 0;
+  border-radius: 8px;
+
+  &:focus-visible { outline: 2px solid var(--dynadrill-purple, #662e9b); outline-offset: 2px; }
+}
+
+.fcr-list__vista {
+  display: flex;
+  gap: 4px;
+}
+
+// Botón de filtros con contador de criterios activos.
+.fcr-list__filters {
+  position: relative;
+  display: inline-flex;
+}
+
+.fcr-list__badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--dynadrill-white, #fff);
+  text-align: center;
+  pointer-events: none;
+  background: var(--dynadrill-purple, #662e9b);
+  border-radius: 999px;
+}
+
+.fcr-list__quick {
+  display: block;
+  margin: 1rem 0 1.5rem;
+}
+
+.fcr-list__kpi-skeleton,
+.fcr-list__board-skeleton {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 4px;
+}
+
+.fcr-list__board-skeleton {
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 
 // Mismo patrón que maintenance-list-page: overflow-x contenido en el
@@ -41,5 +121,9 @@
 @media (max-width: 840px) {
   :host {
     padding: 0;
+  }
+
+  .fcr-list__search {
+    flex: 1 1 100%;
   }
 }

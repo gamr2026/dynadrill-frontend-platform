@@ -1288,3 +1288,11 @@ details.dyn-accordion {
     }
   }
 }
+
+// Chips de estado (p. ej. Inspección / Reporte) en su propia fila, a todo el ancho de la fila.
+.personnel-row__chips {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

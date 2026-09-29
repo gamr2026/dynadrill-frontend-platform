@@ -497,15 +497,19 @@
 
       <ul class="review-rows ticket-detail__only-mobile">
         @for (row of reviewSalidaRows(); track row.id) {
-          <li class="review-row">
-            <span class="review-row__eyebrow">{{ row.name }}</span>
-            <strong class="review-row__title">{{ row.unitCode }}</strong>
-            <span class="review-row__meta">{{ row.role }}</span>
-            <div class="review-row__chips">
+          <li class="personnel-row">
+            <strong class="personnel-row__name">{{ row.name }}</strong>
+            <div class="personnel-row__facts">
+              <span class="personnel-row__unit">{{ row.unitCode }}</span>
+              <span class="personnel-row__role">{{ row.role }}</span>
+            </div>
+            <div class="personnel-row__chips">
               <dynadrill-tag [label]="'Inspección: ' + row.inspectionStatus.text" [variant]="row.inspectionStatus.tone" />
               <dynadrill-tag [label]="'Reporte: ' + row.reportStatus.text" [variant]="row.reportStatus.tone" />
             </div>
-            <ng-container [ngTemplateOutlet]="reviewSalidaActionsTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+            <div class="personnel-row__actions">
+              <ng-container [ngTemplateOutlet]="reviewSalidaActionsTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+            </div>
           </li>
         }
       </ul>

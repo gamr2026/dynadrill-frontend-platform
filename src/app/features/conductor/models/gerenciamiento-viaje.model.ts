@@ -1,14 +1,24 @@
 /**
  * Gerenciamiento de Viaje (DYN-SGI-RE-049) solicitado directamente por el
- * Conductor — antes solo lo abría el Supervisor desde dentro de un ticket
- * Pumping (ver `TravelManagement` en pumping.model.ts, del que este modelo
- * se duplica a propósito: mismo cuestionario de riesgo, distinto dominio,
- * sin cruzar Operaciones y Mantenimiento por un import). BAJO se
- * autoaprueba; MEDIO/ALTO queda pendiente del Jefe de Base.
+ * Conductor — antes lo llenaba el Supervisor desde dentro de un ticket
+ * Pumping (ese flujo embebido se retiró: ver `ticket-detail-page.ts`, ahora
+ * solo muestra un panel de solo lectura). Mismo cuestionario de riesgo y
+ * mismos campos del formato original (duplicados a propósito, distinto
+ * dominio, sin cruzar Operaciones y Mantenimiento por un import). El
+ * conductor genera uno de tipo 'salida' y otro de tipo 'retorno' por viaje;
+ * BAJO lo autoriza el Supervisor (de Pumping); MEDIO/ALTO el Jefe de Base o
+ * el Gerente HSE.
  */
 export type TravelRiskLevel = 'ALTO' | 'MEDIO' | 'BAJO';
 
 export type VehicleType = 'Liviano' | 'Pesado';
+
+export type GerenciamientoViajeTipo = 'salida' | 'retorno';
+
+export const GERENCIAMIENTO_VIAJE_TIPO_LABELS: Record<GerenciamientoViajeTipo, string> = {
+  salida: 'Salida',
+  retorno: 'Retorno',
+};
 
 export interface TravelRiskOption {
   label: string;
@@ -50,12 +60,35 @@ export function calculateTravelRiskLevel(totalPoints: number): TravelRiskLevel {
 export function getTravelRiskDescription(level: TravelRiskLevel): string {
   switch (level) {
     case 'ALTO':
-      return 'Requiere la autorización del Jefe de Base y, además, el visto bueno del Director General (Quito), fuera del alcance del sistema.';
+      return 'Requiere la autorización del Jefe de Base o el Gerente HSE, y además el visto bueno del Director General (Quito), fuera del alcance del sistema.';
     case 'MEDIO':
-      return 'Requiere la autorización del Jefe de Base antes de viajar.';
+      return 'Requiere la autorización del Jefe de Base o el Gerente HSE antes de viajar.';
     case 'BAJO':
       return 'Viaje de rutina con bajo riesgo — requiere la autorización del Supervisor de Pumping antes de viajar.';
   }
+}
+
+export interface TravelRouteInfo {
+  location: string;
+  arrivalTime: string;
+  departureTime: string;
+  overnightDetails: string;
+}
+
+export interface TravelCommunicationDetail {
+  frequency: string;
+  contactPerson: string;
+  contactDetails: string;
+}
+
+/** Respuesta de `GET /operations/pumping/tickets/contexto/:code` — autocompleta el paso 1 sin darle al conductor acceso al resto del ticket. */
+export interface TicketContexto {
+  id: number;
+  code: string;
+  origen: string;
+  destino: string;
+  serviceType: string;
+  assignedSupervisor: string;
 }
 
 export type GerenciamientoViajeEstado = 'pendiente' | 'aprobado' | 'rechazado';
@@ -71,21 +104,41 @@ export interface GerenciamientoViaje {
   code: string;
   estado: GerenciamientoViajeEstado;
   riskLevel: TravelRiskLevel;
+  tipo: GerenciamientoViajeTipo;
+  ticketId?: number;
   solicitanteUserId: number;
 
+  // Paso 1 — Información general
   fecha: string;
   motivoViaje: string;
+  lineaServicio?: string;
   origen: string;
   destino: string;
+  assignedSupervisorNombre?: string;
+  ticketCode?: string;
   vehicleType: VehicleType;
   placas: string;
-  ticketCode?: string;
+
+  // Paso 2 — Evaluación de riesgo
+  riskQuestions: TravelRiskQuestion[];
+  totalPoints: number;
+
+  // Paso 3 — Plan y ruta
   passengers?: string;
+  canCombineTrips: boolean | null;
+  routeInfo: TravelRouteInfo[];
+  communication: TravelCommunicationDetail[];
   departureTime?: string;
   arrivalTime?: string;
   overnightData?: string;
-  riskQuestions: TravelRiskQuestion[];
-  totalPoints: number;
+
+  // Paso 4 — Aprobación (llenado por el conductor al enviar; la autorización real de sistema es `estado`/`aprobadoPor`/`aprobadoAt` más abajo)
+  conductorNames: string;
+  approverName?: string;
+  conductorSignature: string;
+  approverSignature?: string;
+  phoneApprovalBy?: string;
+  phoneApprovalTime?: string;
 
   aprobadoPor?: string;
   aprobadoAt?: string;
@@ -98,5 +151,10 @@ export interface GerenciamientoViaje {
 
 export interface CreateGerenciamientoViajeInput {
   riskLevel: TravelRiskLevel;
-  payload: Omit<GerenciamientoViaje, 'id' | 'code' | 'estado' | 'riskLevel' | 'solicitanteUserId' | 'createdAt' | 'aprobadoPor' | 'aprobadoAt' | 'motivoRechazo' | 'rechazadoPor' | 'rechazadoAt'>;
+  tipo: GerenciamientoViajeTipo;
+  ticketId?: number;
+  payload: Omit<
+    GerenciamientoViaje,
+    'id' | 'code' | 'estado' | 'riskLevel' | 'tipo' | 'ticketId' | 'solicitanteUserId' | 'createdAt' | 'aprobadoPor' | 'aprobadoAt' | 'motivoRechazo' | 'rechazadoPor' | 'rechazadoAt'
+  >;
 }

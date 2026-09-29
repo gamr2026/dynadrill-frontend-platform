@@ -153,8 +153,11 @@ export class NavigationService {
       // QHSE firma "Liberado por QHSE" en el checklist de inspección por herramienta de FCR — sin FCR no encontraría el ticket.
       case 'Técnico HSE':
       case 'Coordinador HSE':
-      case 'Gerente HSE':
         return [INICIO, operaciones(FCR), qhse()];
+      // Gerente HSE: lo mismo que Técnico/Coordinador HSE, más la bandeja de Gerenciamiento de Viaje
+      // (autoriza los de riesgo MEDIO/ALTO junto con el Jefe de Base).
+      case 'Gerente HSE':
+        return [INICIO, operaciones(FCR), qhse(), mantenimiento(GERENCIAMIENTO_VIAJE)];
       case 'Facturación':
         return [INICIO, facturacion(...FACTURACION_CHILDREN)];
       // A nivel de backend "Jefe de Base" sigue con acceso total (ver ADMIN_ROLE_CODES) — a pedido del cliente, en la UI solo ve Pumping.

@@ -1,7 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { NZ_MODAL_DATA } from 'ng-zorro-antd/modal';
 import { DynadrillContextCardComponent, DynadrillTagComponent, type DynadrillContextCardItem, type DynadrillTagVariant } from '@digitec-it-projects/dynadrill-ui';
-import { GERENCIAMIENTO_VIAJE_ESTADO_LABELS, GerenciamientoViaje, GerenciamientoViajeEstado } from '../models/gerenciamiento-viaje.model';
+import {
+  GERENCIAMIENTO_VIAJE_ESTADO_LABELS,
+  GERENCIAMIENTO_VIAJE_TIPO_LABELS,
+  GerenciamientoViaje,
+  GerenciamientoViajeEstado,
+} from '../models/gerenciamiento-viaje.model';
 
 export interface GerenciamientoViajeDetailDialogData {
   gv: GerenciamientoViaje;
@@ -32,16 +37,20 @@ export class GerenciamientoViajeDetailDialog {
 
   protected readonly gv = this.data.gv;
   protected readonly estadoLabels = GERENCIAMIENTO_VIAJE_ESTADO_LABELS;
+  protected readonly tipoLabels = GERENCIAMIENTO_VIAJE_TIPO_LABELS;
   protected readonly estadoTone = ESTADO_TONE[this.gv.estado];
   protected readonly riesgoTone = RIESGO_TONE[this.gv.riskLevel];
 
   protected readonly generalItems = computed<DynadrillContextCardItem[]>(() => {
     const g = this.gv;
     return [
+      { label: 'Tipo', value: this.tipoLabels[g.tipo] },
       { label: 'Fecha', value: g.fecha },
       { label: 'Motivo del viaje', value: g.motivoViaje },
+      { label: 'Línea de servicio', value: g.lineaServicio || '—' },
       { label: 'Origen', value: g.origen },
       { label: 'Destino', value: g.destino },
+      { label: 'Supervisor asignado', value: g.assignedSupervisorNombre || '—' },
       { label: 'Ticket relacionado', value: g.ticketCode || '—' },
       { label: 'Vehículo', value: `${g.vehicleType} — ${g.placas}` },
     ];
@@ -49,11 +58,18 @@ export class GerenciamientoViajeDetailDialog {
 
   protected readonly logisticaItems = computed<DynadrillContextCardItem[]>(() => {
     const g = this.gv;
+    const ruta = g.routeInfo?.[0];
+    const comunicacion = g.communication?.[0];
     return [
       { label: 'Pasajeros', value: g.passengers || '—' },
+      { label: '¿Combina viajes?', value: g.canCombineTrips === true ? 'Sí' : g.canCombineTrips === false ? 'No' : '—' },
+      { label: 'Locación de ruta', value: ruta?.location || '—' },
       { label: 'Hora de salida', value: g.departureTime || '—' },
       { label: 'Hora de llegada', value: g.arrivalTime || '—' },
       { label: 'Pernoctación', value: g.overnightData || '—' },
+      { label: 'Frecuencia de contacto', value: comunicacion?.frequency || '—' },
+      { label: 'Persona de contacto', value: comunicacion?.contactPerson || '—' },
+      { label: 'Detalles de contacto', value: comunicacion?.contactDetails || '—' },
     ];
   });
 
@@ -71,7 +87,7 @@ export class GerenciamientoViajeDetailDialog {
         { label: 'Motivo', value: g.motivoRechazo || '—' },
       ];
     }
-    const revisor = g.riskLevel === 'BAJO' ? 'del Supervisor de Pumping' : 'del Jefe de Base';
+    const revisor = g.riskLevel === 'BAJO' ? 'del Supervisor de Pumping' : 'del Jefe de Base o Gerente HSE';
     return [{ label: 'Estado', value: `Pendiente de autorización ${revisor}` }];
   });
 }

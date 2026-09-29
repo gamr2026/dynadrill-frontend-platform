@@ -7,6 +7,8 @@
 .mis-viajes-page__toolbar {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .table-scroll {

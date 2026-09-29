@@ -11,9 +11,15 @@ import {
   type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
-import { GERENCIAMIENTO_VIAJE_ESTADO_LABELS, GerenciamientoViaje, GerenciamientoViajeEstado } from '../../models/gerenciamiento-viaje.model';
+import {
+  GERENCIAMIENTO_VIAJE_ESTADO_LABELS,
+  GERENCIAMIENTO_VIAJE_TIPO_LABELS,
+  GerenciamientoViaje,
+  GerenciamientoViajeEstado,
+  GerenciamientoViajeTipo,
+} from '../../models/gerenciamiento-viaje.model';
 import { GerenciamientoViajeService } from '../../services/gerenciamiento-viaje.service';
-import { GerenciamientoViajeDialog } from '../../components/gerenciamiento-viaje-dialog';
+import { GerenciamientoViajeDialog, GerenciamientoViajeDialogData } from '../../components/gerenciamiento-viaje-dialog';
 import { GerenciamientoViajeDetailDialog, GerenciamientoViajeDetailDialogData } from '../../components/gerenciamiento-viaje-detail-dialog';
 
 const ESTADO_TONE: Record<GerenciamientoViajeEstado, DynadrillTagVariant> = {
@@ -38,6 +44,7 @@ export class MisViajesPage {
   protected readonly loading = signal(true);
   protected readonly viajes = signal<GerenciamientoViaje[]>([]);
   protected readonly estadoLabels = GERENCIAMIENTO_VIAJE_ESTADO_LABELS;
+  protected readonly tipoLabels = GERENCIAMIENTO_VIAJE_TIPO_LABELS;
 
   protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
     const all = this.viajes();
@@ -51,6 +58,7 @@ export class MisViajesPage {
 
   protected readonly columns: DynadrillDataTableColumn[] = [
     { key: 'code', header: 'Código', sortable: true, searchable: true },
+    { key: 'tipo', header: 'Tipo' },
     { key: 'fecha', header: 'Fecha', sortable: true },
     { key: 'destino', header: 'Destino', searchable: true },
     { key: 'riskLevel', header: 'Riesgo' },
@@ -66,6 +74,7 @@ export class MisViajesPage {
     this.viajes().map(g => ({
       id: g.id,
       code: g.code,
+      tipo: this.tipoLabels[g.tipo],
       fecha: g.fecha,
       destino: g.destino,
       riskLevel: g.riskLevel,
@@ -94,10 +103,11 @@ export class MisViajesPage {
     });
   }
 
-  protected solicitar(): void {
-    const ref = this.dialogService.open<GerenciamientoViajeDialog>({
-      title: 'Solicitar Gerenciamiento de Viaje',
+  protected solicitar(tipo: GerenciamientoViajeTipo): void {
+    const ref = this.dialogService.open<GerenciamientoViajeDialog, GerenciamientoViajeDialogData>({
+      title: `Solicitar Gerenciamiento de Viaje — ${this.tipoLabels[tipo]}`,
       content: GerenciamientoViajeDialog,
+      data: { tipo },
       footer: false,
       width: '900px',
     });

@@ -90,10 +90,12 @@
         @if (dq.artVigente === true) {
           <button type="button" class="qhse-doc__btn" aria-label="Descargar ART" title="Descargar" (click)="descargarDocumentoQhse('qhse_art', dq.artFechaEmision!)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
         }
-        <button type="button" class="qhse-doc__btn" aria-label="Subir ART" title="Subir ART" [attr.aria-expanded]="subidaArtAbierta()" (click)="subidaArtAbierta.set(!subidaArtAbierta())"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m17 8-5-5-5 5" /><path d="M12 3v12" /></svg></button>
+        @if (isAssignedSupervisor() || isJefeBase()) {
+          <button type="button" class="qhse-doc__btn" aria-label="Subir ART" title="Subir ART" [attr.aria-expanded]="subidaArtAbierta()" (click)="subidaArtAbierta.set(!subidaArtAbierta())"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m17 8-5-5-5 5" /><path d="M12 3v12" /></svg></button>
+        }
       </li>
 
-      @if (subidaArtAbierta()) {
+      @if (subidaArtAbierta() && (isAssignedSupervisor() || isJefeBase())) {
         <li class="qhse-doc-upload">
           <dynadrill-datetime-picker mode="date" label="Fecha de emisión del ART" [value]="artFechaEmision()!" (valueChange)="artFechaEmision.set($event)" />
           <dynadrill-upload-zone
@@ -122,12 +124,12 @@
         @if (dq.ptwAbierto && dq.ptDeHoy) {
           <button type="button" class="qhse-doc__btn" aria-label="Descargar PT del día" title="Descargar" (click)="descargarDocumentoQhse('qhse_pt', dq.ptwAbierto.code)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
         }
-        @if (dq.ptwAbierto && !dq.ptDeHoy) {
+        @if (dq.ptwAbierto && !dq.ptDeHoy && (isAssignedSupervisor() || isJefeBase())) {
           <button type="button" class="qhse-doc__btn" aria-label="Subir PT del día" title="Subir PT" [attr.aria-expanded]="subidaPtAbierta()" (click)="subidaPtAbierta.set(!subidaPtAbierta())"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m17 8-5-5-5 5" /><path d="M12 3v12" /></svg></button>
         }
       </li>
 
-      @if (subidaPtAbierta() && dq.ptwAbierto && !dq.ptDeHoy) {
+      @if (subidaPtAbierta() && dq.ptwAbierto && !dq.ptDeHoy && (isAssignedSupervisor() || isJefeBase())) {
         <li class="qhse-doc-upload">
           <dynadrill-upload-zone
             [state]="ptArchivo() ? 'uploaded' : 'idle'"
@@ -454,7 +456,7 @@
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
 
-      <!-- Orden pedido por el cliente: primero se revisa/aprueba la inspección + reporte de unidad; recién con el reporte aprobado se habilita crear el Gerenciamiento de Viaje (DYN-SGI-RE-049). -->
+      <!-- El Gerenciamiento de Viaje ya no se crea desde acá (lo solicita el Conductor) — solo se revisa/aprueba la inspección + reporte de unidad. -->
       <ng-template #reviewSalidaActionsTpl let-row>
         <div class="dyn-actions-row">
           @if (!hasCompletedInspection(row)) {
@@ -470,26 +472,9 @@
             </dynadrill-button>
           } @else if (!isOperatorSalidaApproved(row)) {
             <dynadrill-icon-button icon="audit" tooltip="Revisar y aprobar" [disabled]="!hasCompletedInspection(row)" (clicked)="approveSalidaOperator(row)" />
-          } @else if (hasTravelManagement(row)) {
-            <dynadrill-button variant="success" size="small" [disabled]="true">
-              Aprobado
-            </dynadrill-button>
-            <dynadrill-button variant="success" size="small" [disabled]="true">
-              Gerenciamiento completado
-            </dynadrill-button>
-          } @else if (isTravelPendingApproval(row)) {
-            <dynadrill-button variant="warning" size="small" [disabled]="true">
-              Gerenciamiento enviado — esperando al Jefe de Base
-            </dynadrill-button>
-            <dynadrill-button variant="primary" size="small" (click)="autorizarGerenciamiento(row)">
-              Autorizar como Jefe de Base
-            </dynadrill-button>
           } @else {
             <dynadrill-button variant="success" size="small" [disabled]="true">
               Aprobado
-            </dynadrill-button>
-            <dynadrill-button variant="primary" size="small" (click)="openTravelManagement(row)">
-              Crear Gerenciamiento de Viaje
             </dynadrill-button>
           }
         </div>
@@ -525,13 +510,23 @@
       </div>
     </section>
 
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Gerenciamiento de Viaje — Salida</dynadrill-text>
+      <dynadrill-text variant="caption">Documento: DYN-SGI-RE-049 — lo solicita el Conductor desde su propio portal.</dynadrill-text>
+      @if (gvSalida(); as gv) {
+        <dynadrill-text variant="body">{{ gv.code }} — <strong>{{ gv.estado }}</strong> (riesgo {{ gv.riskLevel }})</dynadrill-text>
+      } @else {
+        <dynadrill-text variant="body">El conductor todavía no ha solicitado el Gerenciamiento de Viaje de salida.</dynadrill-text>
+      }
+    </section>
+
     @if (!allSalidaApproved()) {
       <section class="ticket-detail__section">
         <dynadrill-text variant="caption">Debe aprobar todos los reportes de salida antes de continuar.</dynadrill-text>
       </section>
-    } @else if (!allTravelManagementsCompleted()) {
+    } @else if (!gvSalidaAprobado()) {
       <section class="ticket-detail__section">
-        <dynadrill-text variant="caption">Debe completar el Gerenciamiento de Viaje (DYN-SGI-RE-049) de cada operador aprobado antes de continuar.</dynadrill-text>
+        <dynadrill-text variant="caption">El Gerenciamiento de Viaje (DYN-SGI-RE-049) de salida todavía no está aprobado.</dynadrill-text>
       </section>
     } @else if (!coberturaOk()) {
       <section class="ticket-detail__section">
@@ -555,7 +550,7 @@
 
     <footer class="ticket-detail__actions ticket-detail__actions--single">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="success" [disabled]="!allSalidaApproved() || !allTravelManagementsCompleted() || !coberturaOk() || !ptwFirmadoOk() || submitting()" (clicked)="approveAllSalidaReports()">Aprobar reportes de salida</dynadrill-button>
+      <dynadrill-button variant="success" [disabled]="!allSalidaApproved() || !gvSalidaAprobado() || !coberturaOk() || !ptwFirmadoOk() || submitting()" (clicked)="approveAllSalidaReports()">Aprobar reportes de salida</dynadrill-button>
     </footer>
   }
 
@@ -678,77 +673,31 @@
   }
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
-  <!-- Supervisor: Gerenciamiento de Viaje de llegada — DYN-SGI-RE-049   -->
-  <!-- Orden pedido por el cliente: el Gerenciamiento de llegada se crea -->
-  <!-- ANTES de que el operador pueda crear la inspección y el reporte  -->
-  <!-- de unidad de llegada.                                             -->
+  <!-- Gerenciamiento de Viaje de retorno — DYN-SGI-RE-049 (solo lectura) -->
+  <!-- Lo solicita el Conductor desde su propio portal, ANTES de que el   -->
+  <!-- operador pueda crear la inspección y el reporte de unidad de       -->
+  <!-- llegada — el backend bloquea el avance si no está aprobado.        -->
   <!-- ══════════════════════════════════════════════════════════════════ -->
   @if (currentStep() === 'control_retorno') {
     <section class="ticket-detail__section">
       <dynadrill-text variant="h1">Gerenciamiento de llegada</dynadrill-text>
-      <dynadrill-text variant="caption">Documento: DYN-SGI-RE-049 — Gerenciamiento de Viaje</dynadrill-text>
-      <dynadrill-text variant="body">Cree el Gerenciamiento de Viaje de retorno de cada operador antes de habilitar la inspección y el reporte de unidad de llegada.</dynadrill-text>
+      <dynadrill-text variant="caption">Documento: DYN-SGI-RE-049 — lo solicita el Conductor desde su propio portal.</dynadrill-text>
+      @if (gvRetorno(); as gv) {
+        <dynadrill-text variant="body">{{ gv.code }} — <strong>{{ gv.estado }}</strong> (riesgo {{ gv.riskLevel }})</dynadrill-text>
+      } @else {
+        <dynadrill-text variant="body">El conductor todavía no ha solicitado el Gerenciamiento de Viaje de retorno.</dynadrill-text>
+      }
     </section>
 
-    <section class="ticket-detail__section">
-      <dynadrill-text variant="h2">Personal asignado</dynadrill-text>
-
-      <ng-template #gerenciamientoLlegadaActionsTpl let-row>
-        <div class="dyn-actions-row">
-          @if (hasReturnTravelManagement(row)) {
-            <dynadrill-button variant="success" size="small" [disabled]="true">
-              Gerenciamiento completado
-            </dynadrill-button>
-          } @else if (isReturnTravelPendingApproval(row)) {
-            <dynadrill-button variant="warning" size="small" [disabled]="true">
-              Gerenciamiento de retorno enviado — esperando al Jefe de Base
-            </dynadrill-button>
-            <dynadrill-button variant="primary" size="small" (click)="autorizarGerenciamiento(row, true)">
-              Autorizar como Jefe de Base
-            </dynadrill-button>
-          } @else {
-            <dynadrill-button variant="primary" size="small" (click)="openReturnTravelManagement(row)">
-              Crear Gerenciamiento de Viaje
-            </dynadrill-button>
-          }
-        </div>
-      </ng-template>
-
-      <ul class="review-rows ticket-detail__only-mobile">
-        @for (row of personnelRows(); track row.id) {
-          <li class="personnel-row">
-            <strong class="personnel-row__name">{{ row.name }}</strong>
-            <div class="personnel-row__facts">
-              <span class="personnel-row__unit">{{ row.unitCode }}</span>
-              <span class="personnel-row__role">{{ row.role }}</span>
-            </div>
-            <div class="personnel-row__actions">
-              <ng-container [ngTemplateOutlet]="gerenciamientoLlegadaActionsTpl" [ngTemplateOutletContext]="{ $implicit: row }" />
-            </div>
-          </li>
-        }
-      </ul>
-
-      <div class="ticket-detail__only-desktop">
-        <dynadrill-data-table
-          [columns]="personnelColumns"
-          [rows]="personnelRows()"
-          [loading]="false"
-          actionsHeader="Acciones"
-          [actionsTemplate]="gerenciamientoLlegadaActionsTpl"
-        />
-      </div>
-    </section>
-
-    @if (!allReturnTravelManagementsCompleted()) {
+    @if (!gvRetornoAprobado()) {
       <section class="ticket-detail__section">
-        <dynadrill-text variant="caption">Debe completar el Gerenciamiento de Viaje de cada operador antes de continuar.</dynadrill-text>
+        <dynadrill-text variant="caption">El Gerenciamiento de Viaje de retorno todavía no está aprobado.</dynadrill-text>
       </section>
     }
 
     <footer class="ticket-detail__actions ticket-detail__actions--single">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="success" [disabled]="!allReturnTravelManagementsCompleted() || submitting()" (clicked)="advanceFromGerenciamientoLlegada()">Continuar a inspección y reporte de llegada</dynadrill-button>
+      <dynadrill-button variant="success" [disabled]="!gvRetornoAprobado() || submitting()" (clicked)="advanceFromGerenciamientoLlegada()">Continuar a inspección y reporte de llegada</dynadrill-button>
     </footer>
   }
 

@@ -60,7 +60,6 @@ import {
   type PumpingOperator,
   type HubodometroEntry,
   type TireEntry,
-  type TravelManagement,
   type DailyActivityReport,
 } from '../../models/pumping.model';
 import {
@@ -99,7 +98,6 @@ import { CreateUnitReportInput, unitReportHasNovedades, type UnitReport } from '
 import { UnitReportsService } from '../../../../maintenance/services/unit-reports.service';
 import { UnidadesService } from '../../../../maintenance/services/unidades.service';
 import type { Unidad } from '../../../../maintenance/models/unidad.model';
-import { RolesService } from '../../../../users/services/users.service';
 import {
   VehicleInspection,
   VEHICLE_CHECKLIST_VEHICULO,
@@ -109,7 +107,6 @@ import {
 import { VehicleInspectionDialog, VehicleInspectionDialogData } from '../../../../maintenance/components/vehicle-inspection-dialog';
 import { VehicleInspectionsService } from '../../../../maintenance/services/vehicle-inspections.service';
 import { ReviewArrivalReportDialog, ReviewArrivalReportDialogData, ReviewArrivalReportDialogResult } from '../../components/review-arrival-report-dialog';
-import { TravelManagementDialog, TravelManagementDialogData, TravelManagementDialogResult } from '../../components/travel-management-dialog';
 import { DailyActivityReportDialog, DailyActivityReportDialogData, DailyActivityReportDialogResult } from '../../components/daily-activity-report-dialog';
 import { MaintenanceOrdersService } from '../../../../maintenance/services/maintenance-orders.service';
 import { MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../../../../maintenance/models/maintenance-order.model';
@@ -343,9 +340,6 @@ export class TicketDetailPage {
   private unidadPorCodigo(code: string): Unidad | undefined {
     return this.unidades().find(u => u.code === code);
   }
-  private readonly rolesService = inject(RolesService);
-  /** Nombre del Jefe de Base — va en "Gerente/Supervisor" y "Gerente que autoriza" del Gerenciamiento de Viaje. */
-  protected readonly jefeBaseNombre = signal('');
   /** Nombres de conductores con permisos — para asignar el conductor en las inspecciones de ejemplo. */
   private readonly conductoresPermisos = signal<string[]>([]);
   private conductorParaOperador(operatorId: number): string {
@@ -369,14 +363,6 @@ export class TicketDetailPage {
       .filter(i => i.unidadCode === unitCode && i.ticketId === ticketId)
       .sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
   }
-  /** Conductor elegido en la inspección de la unidad del operador (no el operador). */
-  private conductorDeOperador(operatorId: number, retorno = false): string {
-    const llegada = this.completedLlegadaInspections().get(operatorId) as VehicleInspection | undefined;
-    const salida = this.completedInspections().get(operatorId) as VehicleInspection | undefined;
-    const insp = retorno ? (llegada ?? salida) : salida;
-    return insp?.inspeccionadoPor ?? '';
-  }
-
   /** Quién hizo la inspección de vehículo de esa unidad en este tramo (salida o llegada) — para el Reporte de Unidad. */
   private inspectorDeUnidad(mapa: Map<number, unknown>, unitCode: string): string {
     for (const insp of mapa.values()) {
@@ -1193,7 +1179,6 @@ export class TicketDetailPage {
   protected readonly approvedSalidaOperators = signal<Set<number>>(new Set());
   protected readonly rejectedSalidaOperators = signal<Set<number>>(new Set());
   protected readonly salidaRejectionReasons = signal<Map<number, string>>(new Map());
-  protected readonly travelManagements = signal<Map<number, TravelManagement>>(new Map());
 
   protected isOperatorSalidaApproved(row: Record<string, unknown>): boolean {
     return this.approvedSalidaOperators().has(row['id'] as number);
@@ -1269,179 +1254,21 @@ export class TicketDetailPage {
     });
   }
 
-  // ── Travel Management (DYN-SGI-RE-049) ──
-
-  /** Operadores cuyo gerenciamiento espera la autorización del Jefe de Base. */
-  protected readonly travelPendingApproval = signal<Set<number>>(new Set());
-  /** Gerenciamientos retenidos hasta que el Jefe de Base los autorice. */
-  protected readonly travelPendingManagements = signal<Map<number, TravelManagement>>(new Map());
-  protected readonly returnTravelPendingManagements = signal<Map<number, TravelManagement>>(new Map());
-
-  /**
-   * "Sigo sin ver que la info del gerenciamiento de ida se recupere en el de
-   * retorno" — el motivo real era que `travelManagements`/`returnTravelManagements`
-   * vivían solo en memoria del componente, nunca se guardaban en el ticket:
-   * cualquier recarga de página los vaciaba antes de llegar al paso de
-   * retorno. Se persisten acá (PUT genérico del ticket) cada vez que cambian.
-   */
-  private guardarGerenciamientosEnTicket(): void {
-    const t = this.ticket();
-    if (!t) return;
-    this.pumpingService
-      .updateTicket(t.id, {
-        travelManagements: Object.fromEntries(this.travelManagements()),
-        returnTravelManagements: Object.fromEntries(this.returnTravelManagements()),
-      })
-      .subscribe({ error: () => this.notify.error('Error', 'No se pudo guardar el gerenciamiento de viaje.') });
-  }
-
-  /**
-   * Todo Gerenciamiento de Viaje (DYN-SGI-RE-049) lo autoriza el Jefe de Base.
-   * En la demo un mismo usuario recorre todos los roles: el diálogo de
-   * confirmación es la firma del Jefe de Base. No se cambia el rol de la
-   * sesión — la autorización es solo del lado del cliente y el Supervisor
-   * tiene que poder seguir el flujo (avanzar de paso) apenas queda autorizada.
-   */
-  protected async autorizarGerenciamiento(row: Record<string, unknown>, retorno = false): Promise<void> {
-    const id = row['id'] as number;
-    const pendientes = retorno ? this.returnTravelPendingManagements() : this.travelPendingManagements();
-    const tm = pendientes.get(id);
-    if (!tm) return;
-    const jefeBase = this.jefeBaseNombre() || 'Jefe de Base';
-    const ok = await this.dialog.confirm({
-      title: `Autorización de ${jefeBase}`,
-      content: `Como Jefe de Base (${jefeBase}), ¿autorizas el gerenciamiento de viaje${retorno ? ' de retorno' : ''} de ${row['name']} (riesgo ${tm.riskLevel})?${tm.riskLevel === 'ALTO' ? ' El riesgo ALTO requiere además el visto bueno del Director General, fuera del alcance del app.' : ''}`,
-      okText: 'Autorizar como Jefe de Base',
-    });
-    if (!ok) return;
-
-    const aprobador = jefeBase;
-    const autorizado: TravelManagement = { ...tm, approverName: aprobador, approverSignature: aprobador };
-    const pendMap = retorno ? this.returnTravelPendingManagements : this.travelPendingManagements;
-    const doneMap = retorno ? this.returnTravelManagements : this.travelManagements;
-    pendMap.update(m => {
-      const u = new Map(m);
-      u.delete(id);
-      return u;
-    });
-    doneMap.update(m => {
-      const u = new Map(m);
-      u.set(id, autorizado);
-      return u;
-    });
-    this.travelPendingApproval.update(set => {
-      const u = new Set(set);
-      u.delete(id);
-      return u;
-    });
-    this.returnTravelPendingApproval.update(set => {
-      const u = new Set(set);
-      u.delete(id);
-      return u;
-    });
-    this.guardarGerenciamientosEnTicket();
-    this.notify.success('Gerenciamiento autorizado', `El Jefe de Base autorizó el gerenciamiento de viaje${retorno ? ' de retorno' : ''} de ${row['name']}.`);
-  }
-
-  protected hasTravelManagement(row: Record<string, unknown>): boolean {
-    return this.travelManagements().has(row['id'] as number);
-  }
-
-  protected isTravelPendingApproval(row: Record<string, unknown>): boolean {
-    return this.travelPendingApproval().has(row['id'] as number);
-  }
-
-  /**
-   * Orden final confirmado con el cliente: el Supervisor primero revisa y
-   * aprueba la inspección + reporte de unidad de cada operador; recién una
-   * vez aprobado crea el Gerenciamiento de Viaje de salida (ver
-   * reviewSalidaActionsTpl) — por eso solo cuenta el Gerenciamiento de los
-   * operadores ya aprobados, no de todos los del ticket.
-   */
-  protected readonly allTravelManagementsCompleted = computed(() => {
-    const rows = this.reviewSalidaRows();
-    const approved = this.approvedSalidaOperators();
-    const travels = this.travelManagements();
-    if (rows.length === 0) return false;
-    return rows.every(r => approved.has(r.id) && travels.has(r.id));
-  });
-
-  /**
-   * Abre el dialog de Gerenciamiento de Viaje (DYN-SGI-RE-049) — último
-   * paso por operador, solo disponible una vez aprobado su reporte de
-   * unidad (ver reviewSalidaActionsTpl).
-   * Según los puntos:
-   * - BAJO: el supervisor directo aprueba (se completa inmediatamente)
-   * - MEDIO/ALTO: requiere aprobación del Jefe de Base (queda pendiente)
-   */
-  protected openTravelManagement(row: Record<string, unknown>): void {
-    const t = this.ticket();
-    if (!t) return;
-    const operatorId = row['id'] as number;
-
-    const travelRef = this.dialog.open<TravelManagementDialog, TravelManagementDialogData>({
-      title: 'Gerenciamiento de Viaje — DYN-SGI-RE-049',
-      content: TravelManagementDialog,
-      data: {
-        operatorName: row['name'] as string,
-        unitCode: row['unitCode'] as string,
-        ticketCode: t.code,
-        origen: t.unitReport?.origin ?? '',
-        destino: t.unitReport?.destination ?? '',
-        lineaServicio: PUMPING_SERVICE_TYPE_LABELS[t.serviceType],
-        supervisor: t.assignedSupervisor ?? '',
-        jefeBase: this.jefeBaseNombre(),
-        conductor: this.conductorDeOperador(operatorId),
-        conductores: row['name'] as string,
-        placas: '',
-      },
-      size: 'large',
-      footer: false,
-    });
-
-    travelRef.afterClose.subscribe((travelResult: TravelManagementDialogResult | undefined) => {
-      if (!travelResult?.completed || !travelResult.travelManagement) return;
-
-      const tm = travelResult.travelManagement;
-
-      // BAJO: el supervisor directo lo cierra, sin pasar por el Jefe de
-      // Base (antes quedaba pendiente igual sin importar el riesgo — el
-      // comentario ya decía esto pero el código no lo aplicaba).
-      if (tm.riskLevel === 'BAJO') {
-        this.travelManagements.update(map => {
-          const updated = new Map(map);
-          updated.set(operatorId, tm);
-          return updated;
-        });
-        this.guardarGerenciamientosEnTicket();
-        this.notify.success('Gerenciamiento de viaje guardado', `Riesgo BAJO — cerrado directamente por el Supervisor.`);
-        return;
-      }
-
-      // MEDIO/ALTO: queda pendiente hasta que el Jefe de Base lo autorice
-      // desde la tabla de personal ("Autorizar gerenciamiento").
-      this.travelPendingManagements.update(map => {
-        const updated = new Map(map);
-        updated.set(operatorId, tm);
-        return updated;
-      });
-      this.travelPendingApproval.update(set => {
-        const updated = new Set(set);
-        updated.add(operatorId);
-        return updated;
-      });
-      this.notify.info(
-        'Enviado al Jefe de Base',
-        `Gerenciamiento de viaje de ${row['name']} (riesgo ${tm.riskLevel}) — pendiente de autorización del Jefe de Base.`,
-      );
-    });
-  }
-
   protected readonly allSalidaApproved = computed(() => {
     const rows = this.reviewSalidaRows();
     const approved = this.approvedSalidaOperators();
     return rows.length > 0 && rows.every(r => approved.has(r.id));
   });
+
+  // ── Gerenciamiento de Viaje (DYN-SGI-RE-049) — panel de solo lectura ──
+  // Lo solicita el Conductor desde su propio portal (features/conductor);
+  // acá solo se consulta el estado. El candado real (bloquear `advance` sin
+  // GV aprobado) lo aplica el backend — ver PumpingDomainService.advance.
+  protected readonly gerenciamientosViajeTicket = signal<{ id: number; code: string; estado: string; riskLevel: string; tipo: string }[]>([]);
+  protected readonly gvSalida = computed(() => this.gerenciamientosViajeTicket().find(g => g.tipo === 'salida'));
+  protected readonly gvRetorno = computed(() => this.gerenciamientosViajeTicket().find(g => g.tipo === 'retorno'));
+  protected readonly gvSalidaAprobado = computed(() => this.gvSalida()?.estado === 'aprobado');
+  protected readonly gvRetornoAprobado = computed(() => this.gvRetorno()?.estado === 'aprobado');
 
   // ══════════════════════════════════════════════
   // Supervisor: Revisar reportes de llegada (sin inspección)
@@ -1548,97 +1375,6 @@ export class TicketDetailPage {
     return rows.length > 0 && rows.every(r => approved.has(r.id));
   });
 
-  // ── Gerenciamiento de Viaje de Retorno (DYN-SGI-RE-049) ──
-
-  protected readonly returnTravelManagements = signal<Map<number, TravelManagement>>(new Map());
-  protected readonly returnTravelPendingApproval = signal<Set<number>>(new Set());
-
-  protected hasReturnTravelManagement(row: Record<string, unknown>): boolean {
-    return this.returnTravelManagements().has(row['id'] as number);
-  }
-
-  protected isReturnTravelPendingApproval(row: Record<string, unknown>): boolean {
-    return this.returnTravelPendingApproval().has(row['id'] as number);
-  }
-
-  /**
-   * Orden final confirmado con el cliente: para la llegada el Gerenciamiento
-   * de Viaje va PRIMERO — antes de que el operador pueda siquiera crear la
-   * inspección y el reporte de unidad de llegada (paso `control_retorno`,
-   * ver advanceFromGerenciamientoLlegada). Por eso se basa en personnelRows
-   * (la asignación del ticket) y no en reviewLlegadaRows, que depende de un
-   * reporte que en este punto todavía no existe.
-   */
-  protected readonly allReturnTravelManagementsCompleted = computed(() => {
-    const rows = this.personnelRows();
-    const travels = this.returnTravelManagements();
-    if (rows.length === 0) return false;
-    return rows.every(r => travels.has(r.id));
-  });
-
-  protected openReturnTravelManagement(row: Record<string, unknown>): void {
-    const t = this.ticket();
-    if (!t) return;
-    const operatorId = row['id'] as number;
-    /** El gerenciamiento de ida de este mismo operador — motivo/plan y ruta se precargan desde ahí, editables. */
-    const gerenciamientoIda = this.travelManagements().get(operatorId);
-
-    const travelRef = this.dialog.open<TravelManagementDialog, TravelManagementDialogData>({
-      title: 'Gerenciamiento de Viaje de Retorno — DYN-SGI-RE-049',
-      content: TravelManagementDialog,
-      data: {
-        operatorName: row['name'] as string,
-        unitCode: row['unitCode'] as string,
-        ticketCode: t.code,
-        origen: t.unitReport?.destination ?? '',
-        destino: t.unitReport?.origin ?? '',
-        lineaServicio: PUMPING_SERVICE_TYPE_LABELS[t.serviceType],
-        supervisor: t.assignedSupervisor ?? '',
-        jefeBase: this.jefeBaseNombre(),
-        conductor: this.conductorDeOperador(operatorId, true),
-        conductores: row['name'] as string,
-        placas: '',
-        previousTravelManagement: gerenciamientoIda,
-      },
-      size: 'large',
-      footer: false,
-    });
-
-    travelRef.afterClose.subscribe((travelResult: TravelManagementDialogResult | undefined) => {
-      if (!travelResult?.completed || !travelResult.travelManagement) return;
-
-      const tm = travelResult.travelManagement;
-
-      // Mismo criterio que el gerenciamiento de ida: BAJO lo cierra el
-      // supervisor directo, sin pasar por el Jefe de Base.
-      if (tm.riskLevel === 'BAJO') {
-        this.returnTravelManagements.update(map => {
-          const updated = new Map(map);
-          updated.set(operatorId, tm);
-          return updated;
-        });
-        this.guardarGerenciamientosEnTicket();
-        this.notify.success('Gerenciamiento de retorno guardado', `Riesgo BAJO — cerrado directamente por el Supervisor.`);
-        return;
-      }
-
-      this.returnTravelPendingManagements.update(map => {
-        const updated = new Map(map);
-        updated.set(operatorId, tm);
-        return updated;
-      });
-      this.returnTravelPendingApproval.update(set => {
-        const updated = new Set(set);
-        updated.add(operatorId);
-        return updated;
-      });
-      this.notify.info(
-        'Enviado al Jefe de Base',
-        `Gerenciamiento de retorno de ${row['name']} (riesgo ${tm.riskLevel}) — pendiente de autorización del Jefe de Base.`,
-      );
-    });
-  }
-
   protected approveAllSalidaReports(): void {
     const t = this.ticket();
     if (!t) return;
@@ -1675,9 +1411,9 @@ export class TicketDetailPage {
         this.notify.success('Aprobado', `Reportes de salida aprobados. Ahora actúa como ${nextRole.roleName}.`);
         this.router.navigate(['..'], { relativeTo: this.route });
       },
-      error: () => {
+      error: err => {
         this.submitting.set(false);
-        this.notify.error('Error', 'No se pudo avanzar el ticket.');
+        this.notify.error('Error', err?.error?.message ?? 'No se pudo avanzar el ticket.');
       },
     });
   }
@@ -1918,11 +1654,11 @@ export class TicketDetailPage {
   }
 
   /**
-   * Orden final confirmado con el cliente: el Gerenciamiento de Viaje de
-   * llegada lo crea el Supervisor ANTES de que el operador pueda crear la
-   * inspección y el reporte de unidad de llegada — ver
-   * allReturnTravelManagementsCompleted/openReturnTravelManagement más
-   * arriba, gated en el paso `control_retorno`.
+   * El Gerenciamiento de Viaje de retorno lo solicita el Conductor desde su
+   * propio portal (no el Supervisor) — el backend bloquea este avance
+   * (`PumpingDomainService.advance`) si no hay un GV de tipo 'retorno'
+   * aprobado para este ticket; ver `gvRetornoAprobado` para el panel de
+   * solo lectura mostrado en el paso `control_retorno`.
    */
   protected advanceFromGerenciamientoLlegada(): void {
     const t = this.ticket();
@@ -1939,9 +1675,9 @@ export class TicketDetailPage {
         this.notify.success('Avanzado', `El ticket avanza a En ejecución (Llegada). Ahora actúa como ${nextRole.roleName}.`);
         this.router.navigate(['..'], { relativeTo: this.route });
       },
-      error: () => {
+      error: err => {
         this.submitting.set(false);
-        this.notify.error('Error', 'No se pudo avanzar el ticket.');
+        this.notify.error('Error', err?.error?.message ?? 'No se pudo avanzar el ticket.');
       },
     });
   }
@@ -1958,6 +1694,12 @@ export class TicketDetailPage {
 
   protected readonly isOperador = computed(() => this.roleName() === 'Operador');
   protected readonly isSupervisor = computed(() => this.roleName() === 'Supervisor' || this.roleName() === 'Supervisor Pumping');
+  protected readonly isJefeBase = computed(() => this.roleName() === 'Jefe de Base');
+  /** ART/PT los sube el Supervisor ASIGNADO a este ticket (Jefe de Base queda de respaldo/override) — antes cualquier Supervisor con acceso al módulo podía subirlos, sin importar si era el asignado. */
+  protected readonly isAssignedSupervisor = computed(() => {
+    const nombre = this.auth.currentUser()?.name;
+    return !!nombre && nombre === this.ticket()?.assignedSupervisor;
+  });
 
   protected readonly personnelRows = computed(() => {
     const t = this.ticket();
@@ -2267,6 +2009,7 @@ export class TicketDetailPage {
         this.loadChecklistQhse(ticket.id);
         this.loadChecklistIngreso(ticket.id);
         this.loadEpiEntregas(ticket.id);
+        this.pumpingService.gerenciamientosViaje(ticket.id).subscribe(gvs => this.gerenciamientosViajeTicket.set(gvs));
         if (ticket.pedidoId) {
           this.pedidoService.get(ticket.pedidoId).subscribe({
             next: p => {
@@ -2289,7 +2032,6 @@ export class TicketDetailPage {
       this.unidades.set(us);
       this.syncMockInspections();
     });
-    this.rolesService.usuariosPorRol('jefe_base').subscribe(us => this.jefeBaseNombre.set(us[0]?.name ?? ''));
     this.vehicleInspectionsService.listConductoresPermisos().subscribe(cs => {
       this.conductoresPermisos.set(cs.map(c => c.nombre));
       this.syncMockInspections();
@@ -3119,16 +2861,6 @@ export class TicketDetailPage {
     this.reportWellName.set(ticket.wellName);
     this.reportClientName.set(ticket.clientName);
     this.reportUnitCode.set(ticket.unitCode || '');
-
-    // Gerenciamientos de viaje ya completados — restaurados del ticket (no
-    // solo de la memoria del componente) para que sobrevivan a un recargo
-    // de página y para que el de retorno pueda heredar del de ida.
-    if (ticket.travelManagements) {
-      this.travelManagements.set(new Map(Object.entries(ticket.travelManagements).map(([k, v]) => [Number(k), v])));
-    }
-    if (ticket.returnTravelManagements) {
-      this.returnTravelManagements.set(new Map(Object.entries(ticket.returnTravelManagements).map(([k, v]) => [Number(k), v])));
-    }
 
     // Desde `traslado_llegada` en adelante (llegada, mantenimiento, revisar
     // reportes de llegada, revisión, cierre) la inspección de salida ya

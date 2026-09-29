@@ -129,6 +129,14 @@ export class SolicitarCambioItemsDialog {
     XLSX.writeFile(libro, `Pedido ${this.data.pedidoCode} - items.xlsx`);
   }
 
+  /** Botón "Cargar plantilla" (móvil): abre el selector de archivos y reutiliza el flujo de la zona de carga. */
+  protected onPlantillaInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const archivo = input.files?.[0];
+    if (archivo) this.onCargarPlantilla(archivo as unknown as NzUploadFile);
+    input.value = '';
+  }
+
   /** Reemplaza TODAS las líneas actuales por las del archivo — mismo criterio que `onCargarPlantilla` de `nuevo-pedido-dialog.ts`. */
   protected onCargarPlantilla(file: NzUploadFile): void {
     const archivo = (file.originFileObj as File | undefined) ?? (file as unknown as File);

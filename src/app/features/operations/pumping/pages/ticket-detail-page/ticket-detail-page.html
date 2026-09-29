@@ -42,66 +42,102 @@
 <!-- ═══════════════════════════════════════════ -->
 @if (!loading() && mostrarDocumentosQhse() && documentosQhse(); as dq) {
   <section class="ticket-detail__section">
-    <dynadrill-text variant="h2">Documentos QHSE</dynadrill-text>
+    <h2 class="ticket-detail__card-title">Documentos QHSE</h2>
 
-    <dynadrill-text variant="body">
-      Formato de Recepción:
-      @if (dq.formatoRecepcion) {
-        <strong>Cargado</strong> — <a (click)="descargarDocumentoQhse('qhse_formato_recepcion', 'vigente')">descargar</a>
-      } @else {
-        <strong>Pendiente</strong> — QHSE todavía no lo sube.
-      }
-    </dynadrill-text>
-
-    <dynadrill-text variant="body">
-      SFI (Formato de Seguridad de Ingreso):
-      @if (dq.sfi) {
-        <strong>Cargado</strong> — <a (click)="descargarDocumentoQhse('qhse_sfi', 'vigente')">descargar</a>
-      } @else {
-        <strong>Pendiente</strong> — QHSE todavía no lo sube.
-      }
-    </dynadrill-text>
-
-    <dynadrill-text variant="body">
-      ART:
-      @if (dq.artVigente === true) {
-        <strong>Vigente</strong> hasta {{ dq.artVigenciaHasta | date: 'dd/MM/yyyy' }}
-        @if (dq.artVenceEnDias !== null && dq.artVenceEnDias <= 3) {
-          — ⚠ vence en {{ dq.artVenceEnDias }} día(s)
+    <ul class="qhse-docs">
+      <li class="qhse-doc">
+        <div class="qhse-doc__text">
+          <strong class="qhse-doc__name">Formato de Recepción</strong>
+          <span class="qhse-doc__meta">{{ dq.formatoRecepcion ? 'Cargado por QHSE' : 'Pendiente de QHSE' }}</span>
+          <dynadrill-tag [label]="dq.formatoRecepcion ? 'Cargado' : 'Pendiente'" [variant]="dq.formatoRecepcion ? 'success' : 'warning'" />
+        </div>
+        @if (dq.formatoRecepcion) {
+          <button type="button" class="qhse-doc__btn" aria-label="Descargar Formato de Recepción" title="Descargar" (click)="descargarDocumentoQhse('qhse_formato_recepcion', 'vigente')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
         }
-        — <a (click)="descargarDocumentoQhse('qhse_art', dq.artFechaEmision!)">descargar</a>
-      } @else if (dq.artVigente === false) {
-        <strong>Vencido</strong> desde {{ dq.artVigenciaHasta | date: 'dd/MM/yyyy' }} — hay que subir uno nuevo (D4: vigencia de 15 días).
-      } @else {
-        <strong>Sin ART cargado.</strong>
-      }
-    </dynadrill-text>
-    <dynadrill-datetime-picker mode="date" label="Fecha de emisión del ART" [value]="artFechaEmision()!" (valueChange)="artFechaEmision.set($event)" />
-    <dynadrill-upload-zone
-      [state]="artArchivo() ? 'uploaded' : 'idle'"
-      [fileName]="artArchivo()?.name ?? ''"
-      (fileSelected)="onArtArchivoSeleccionado($event)"
-    />
-    <dynadrill-button variant="secondary" size="small" [disabled]="!artArchivo() || documentosQhseSubmitting()" (clicked)="subirArtQhse()">Subir ART</dynadrill-button>
+      </li>
 
-    <dynadrill-text variant="body">
-      PT (Permiso de Trabajo) de hoy:
-      @if (!dq.ptwAbierto) {
-        <strong>QHSE aún no abrió el PTW del día.</strong>
-      } @else if (dq.ptDeHoy) {
-        <strong>Cargado</strong> — <a (click)="descargarDocumentoQhse('qhse_pt', dq.ptwAbierto.code)">descargar</a>
-      } @else {
-        <strong>Pendiente</strong> — PTW {{ dq.ptwAbierto.code }} abierto, falta subir el PT de hoy.
+      <li class="qhse-doc">
+        <div class="qhse-doc__text">
+          <strong class="qhse-doc__name">SFI</strong>
+          <span class="qhse-doc__meta">{{ dq.sfi ? 'Cargado por QHSE' : 'Pendiente de QHSE' }}</span>
+          <dynadrill-tag [label]="dq.sfi ? 'Cargado' : 'Pendiente'" [variant]="dq.sfi ? 'success' : 'warning'" />
+        </div>
+        @if (dq.sfi) {
+          <button type="button" class="qhse-doc__btn" aria-label="Descargar SFI" title="Descargar" (click)="descargarDocumentoQhse('qhse_sfi', 'vigente')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
+        }
+      </li>
+
+      <li class="qhse-doc">
+        <div class="qhse-doc__text">
+          <strong class="qhse-doc__name">ART</strong>
+          <span class="qhse-doc__meta">
+            @if (dq.artVigente === true) {
+              Vigente hasta {{ dq.artVigenciaHasta | date: 'dd/MM/yyyy' }}
+              @if (dq.artVenceEnDias !== null && dq.artVenceEnDias <= 3) {
+                · vence en {{ dq.artVenceEnDias }} día(s)
+              }
+            } @else if (dq.artVigente === false) {
+              Vencido desde {{ dq.artVigenciaHasta | date: 'dd/MM/yyyy' }} — sube uno nuevo (vigencia de 15 días)
+            } @else {
+              Sin ART cargado
+            }
+          </span>
+          <dynadrill-tag
+            [label]="dq.artVigente === true ? 'Cargado' : dq.artVigente === false ? 'Vencido' : 'Pendiente'"
+            [variant]="dq.artVigente === true ? 'success' : dq.artVigente === false ? 'error' : 'warning'"
+          />
+        </div>
+        @if (dq.artVigente === true) {
+          <button type="button" class="qhse-doc__btn" aria-label="Descargar ART" title="Descargar" (click)="descargarDocumentoQhse('qhse_art', dq.artFechaEmision!)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
+        }
+        <button type="button" class="qhse-doc__btn" aria-label="Subir ART" title="Subir ART" [attr.aria-expanded]="subidaArtAbierta()" (click)="subidaArtAbierta.set(!subidaArtAbierta())"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m17 8-5-5-5 5" /><path d="M12 3v12" /></svg></button>
+      </li>
+
+      @if (subidaArtAbierta()) {
+        <li class="qhse-doc-upload">
+          <dynadrill-datetime-picker mode="date" label="Fecha de emisión del ART" [value]="artFechaEmision()!" (valueChange)="artFechaEmision.set($event)" />
+          <dynadrill-upload-zone
+            [state]="artArchivo() ? 'uploaded' : 'idle'"
+            [fileName]="artArchivo()?.name ?? ''"
+            (fileSelected)="onArtArchivoSeleccionado($event)"
+          />
+          <dynadrill-button variant="secondary" size="small" [disabled]="!artArchivo() || documentosQhseSubmitting()" (clicked)="subirArtQhse()">Subir ART</dynadrill-button>
+        </li>
       }
-    </dynadrill-text>
-    @if (dq.ptwAbierto && !dq.ptDeHoy) {
-      <dynadrill-upload-zone
-        [state]="ptArchivo() ? 'uploaded' : 'idle'"
-        [fileName]="ptArchivo()?.name ?? ''"
-        (fileSelected)="onPtArchivoSeleccionado($event)"
-      />
-      <dynadrill-button variant="secondary" size="small" [disabled]="!ptArchivo() || documentosQhseSubmitting()" (clicked)="subirPtQhse()">Subir PT de hoy</dynadrill-button>
-    }
+
+      <li class="qhse-doc">
+        <div class="qhse-doc__text">
+          <strong class="qhse-doc__name">PT del día</strong>
+          <span class="qhse-doc__meta">
+            @if (!dq.ptwAbierto) {
+              QHSE aún no abrió el PTW del día
+            } @else if (dq.ptDeHoy) {
+              PTW {{ dq.ptwAbierto.code }}
+            } @else {
+              PTW {{ dq.ptwAbierto.code }} abierto — falta subir el PT de hoy
+            }
+          </span>
+          <dynadrill-tag [label]="dq.ptDeHoy ? 'Cargado' : 'Pendiente'" [variant]="dq.ptDeHoy ? 'success' : 'warning'" />
+        </div>
+        @if (dq.ptwAbierto && dq.ptDeHoy) {
+          <button type="button" class="qhse-doc__btn" aria-label="Descargar PT del día" title="Descargar" (click)="descargarDocumentoQhse('qhse_pt', dq.ptwAbierto.code)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
+        }
+        @if (dq.ptwAbierto && !dq.ptDeHoy) {
+          <button type="button" class="qhse-doc__btn" aria-label="Subir PT del día" title="Subir PT" [attr.aria-expanded]="subidaPtAbierta()" (click)="subidaPtAbierta.set(!subidaPtAbierta())"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m17 8-5-5-5 5" /><path d="M12 3v12" /></svg></button>
+        }
+      </li>
+
+      @if (subidaPtAbierta() && dq.ptwAbierto && !dq.ptDeHoy) {
+        <li class="qhse-doc-upload">
+          <dynadrill-upload-zone
+            [state]="ptArchivo() ? 'uploaded' : 'idle'"
+            [fileName]="ptArchivo()?.name ?? ''"
+            (fileSelected)="onPtArchivoSeleccionado($event)"
+          />
+          <dynadrill-button variant="secondary" size="small" [disabled]="!ptArchivo() || documentosQhseSubmitting()" (clicked)="subirPtQhse()">Subir PT de hoy</dynadrill-button>
+        </li>
+      }
+    </ul>
   </section>
 }
 
@@ -113,7 +149,16 @@
   <!-- PASO 1: Revisión de propuesta              -->
   <!-- ═══════════════════════════════════════════ -->
   @if (currentStep() === 'revision_inicial') {
-    <section class="ticket-detail__section">
+    <section class="ticket-detail__section ticket-detail__only-mobile">
+      <h2 class="ticket-detail__card-title">Información de la propuesta</h2>
+      <dl class="ticket-detail__defs">
+        <div><dt>Cliente</dt><dd>{{ ticket()?.clientName }}</dd></div>
+        <div><dt>Tipo</dt><dd>{{ tipoServicioLabel() }}</dd></div>
+        <div><dt>Pozo</dt><dd>{{ ticket()?.wellName }}</dd></div>
+        <div><dt>Fecha</dt><dd>{{ ticket()?.estimatedDate || '—' }}</dd></div>
+      </dl>
+    </section>
+    <section class="ticket-detail__section ticket-detail__only-desktop">
       <dynadrill-text variant="h2">Información de la propuesta</dynadrill-text>
       <dynadrill-context-card
         variant="card"
@@ -129,7 +174,24 @@
     </section>
 
     @if (pedido(); as p) {
-      <section class="ticket-detail__section">
+      <section class="ticket-detail__section ticket-detail__only-mobile">
+        <h2 class="ticket-detail__card-title">Pedido {{ p.code }}</h2>
+        <ul class="pedido-lines">
+          @for (item of pedidoItems(); track item.codigo) {
+            <li class="pedido-line">
+              <div class="pedido-line__top">
+                <span class="pedido-line__code">{{ item.codigo }}</span>
+                <span class="pedido-line__total">$ {{ item.cantidad * item.valorUnitario | number: '1.2-2' }}</span>
+              </div>
+              <p class="pedido-line__name">{{ item.descripcion }}</p>
+              <p class="pedido-line__meta">Cant. {{ item.cantidad }}{{ item.unidad ? ' ' + item.unidad : '' }}</p>
+            </li>
+          } @empty {
+            <li class="pedido-line__meta">Sin ítems estimados registrados.</li>
+          }
+        </ul>
+      </section>
+      <section class="ticket-detail__section ticket-detail__only-desktop">
         <div class="dyn-pedido-card">
           <div class="dyn-pedido-card__header">
             <div class="dyn-pedido-card__title">
@@ -205,9 +267,8 @@
       </section>
     }
 
-    <section class="ticket-detail__section">
-      <dynadrill-text variant="h2">Asignar supervisor</dynadrill-text>
-      <dynadrill-select label="Supervisor responsable" placeholder="Seleccionar supervisor" [options]="supervisorOptions" [value]="selectedSupervisor()" (valueChange)="onSupervisorChange($event)" />
+    <section class="ticket-detail__field">
+      <dynadrill-select label="Asignar supervisor *" placeholder="Seleccionar supervisor" [options]="supervisorOptions" [value]="selectedSupervisor()" (valueChange)="onSupervisorChange($event)" />
       @if (!coberturaOk()) {
         <dynadrill-text variant="caption">
           No se puede asignar ni notificar al Supervisor: HSE tiene pendiente aprobar
@@ -226,7 +287,7 @@
   <!-- PASO 2: Asignación                          -->
   <!-- ═══════════════════════════════════════════ -->
   @if (currentStep() === 'asignacion') {
-    <section class="ticket-detail__section">
+    <section class="ticket-detail__section ticket-detail__only-desktop">
       <dynadrill-text variant="h2">Información del ticket</dynadrill-text>
       <dynadrill-context-card
         variant="card"
@@ -265,21 +326,23 @@
     } @else {
       <!-- Vista asignar: formulario de asignación -->
       <section class="ticket-detail__section">
-        <dynadrill-text variant="h2">Asignar operadores</dynadrill-text>
-        <dynadrill-select label="Operadores" placeholder="Seleccionar operadores" [options]="operatorOptions" [value]="selectedOperators()" [multiple]="true" (valueChange)="onOperatorAdded($event)" />
+        <h2 class="ticket-detail__card-title">Asignar operadores</h2>
+        <div class="ticket-detail__form">
+          <dynadrill-select label="Operadores *" placeholder="Seleccionar operadores" [options]="operatorOptions" [value]="selectedOperators()" [multiple]="true" (valueChange)="onOperatorAdded($event)" />
+
+          @for (assignment of operatorAssignments(); track assignment.operatorId; let i = $index) {
+            <div class="ticket-detail__field-readonly">
+              <span class="ticket-detail__field-label">Operador {{ i + 1 }} *</span>
+              <span class="ticket-detail__field-value">{{ getOperatorName(assignment.operatorId) }}</span>
+            </div>
+            <dynadrill-select [label]="'Unidad del operador ' + (i + 1) + ' *'" placeholder="Seleccionar unidad" [options]="unitOptions" [value]="getOperatorUnit(assignment.operatorId)" (valueChange)="onOperatorUnitChange(assignment.operatorId, $event)" />
+          }
+        </div>
       </section>
 
-      <!-- Asignar unidad a cada operador -->
-      @for (assignment of operatorAssignments(); track assignment.operatorId) {
-        <section class="ticket-detail__section">
-          <dynadrill-text variant="body">Unidad para: <strong>{{ getOperatorName(assignment.operatorId) }}</strong></dynadrill-text>
-          <dynadrill-select label="Unidad" placeholder="Seleccionar unidad" [options]="unitOptions" [value]="getOperatorUnit(assignment.operatorId)" (valueChange)="onOperatorUnitChange(assignment.operatorId, $event)" />
-        </section>
-      }
-
       <section class="ticket-detail__section">
-        <dynadrill-text variant="h2">Químicos del pedido</dynadrill-text>
-        <dynadrill-text variant="caption">
+        <h2 class="ticket-detail__card-title">Químicos del pedido</h2>
+        <dynadrill-text variant="caption" class="ticket-detail__only-desktop">
           Definidos por Ventas al crear el pedido — se precargan solos contra el catálogo real de Inventario. Ajustá la
           cantidad a retirar si hace falta.
         </dynadrill-text>
@@ -288,13 +351,16 @@
         }
         @for (r of chemicalsPedidoResueltos(); track r.item.codigo) {
           @if (r.articulo; as articulo) {
-            <dynadrill-input
-              [label]="'Cantidad a retirar — ' + articulo.nombre + ' (' + articulo.unidadStock + ', stock: ' + articulo.stockActual + ')'"
-              type="number"
-              placeholder="0"
-              [value]="chemicalQuantity(articulo.id)"
-              (valueChange)="onChemicalQuantityChange(articulo.id, $event)"
-            />
+            <div class="ticket-detail__form">
+              <dynadrill-input
+                [label]="articulo.nombre + ' (' + articulo.unidadStock + ') *'"
+                type="number"
+                placeholder="0"
+                [value]="chemicalQuantity(articulo.id)"
+                (valueChange)="onChemicalQuantityChange(articulo.id, $event)"
+              />
+              <span class="ticket-detail__hint">Stock disponible: {{ articulo.stockActual }} {{ articulo.unidadStock }}</span>
+            </div>
           } @else {
             <div class="ticket-detail__quimico-sin-match">
               <dynadrill-text variant="caption">
@@ -310,7 +376,7 @@
 
       @if (selectedChemicals().length > 0) {
         @if (documentosReferenciaPedido().length > 0) {
-          <section class="ticket-detail__section">
+          <section class="ticket-detail__section ticket-detail__only-desktop">
             <dynadrill-text variant="h2">Documentos de referencia del pedido</dynadrill-text>
             <dynadrill-text variant="caption">Adjuntados por Ventas al crear el pedido.</dynadrill-text>
             <ul class="ticket-detail__documentos-referencia">
@@ -324,22 +390,41 @@
           </section>
         }
         <section class="ticket-detail__section">
-          <dynadrill-text variant="h2">Documento de mezcla de químicos</dynadrill-text>
-          <dynadrill-text variant="caption">
-            @if (documentosReferenciaPedido().length > 0) {
-              Se precargó con el primer documento de referencia del pedido — cámbielo si no corresponde.
-            } @else {
-              Adjunte el documento con el detalle de la mezcla preparada.
+          <h2 class="ticket-detail__card-title">Documento de mezcla de químicos</h2>
+
+          <!-- Móvil (Figma): botón que abre el selector de archivos -->
+          <div class="ticket-detail__only-mobile">
+            <input #mezclaFile type="file" hidden (change)="onMixtureFileInput($event)" />
+            <button type="button" class="ticket-detail__upload-btn" [disabled]="chemicalMixtureUploading()" (click)="mezclaFile.click()">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m17 8-5-5-5 5" /><path d="M12 3v12" /></svg>
+              {{ chemicalMixtureDocument() ? 'Cambiar documento de mezcla' : 'Subir documento de mezcla' }}
+            </button>
+            @if (chemicalMixtureDocument(); as doc) {
+              <p class="ticket-detail__hint">Cargado: {{ doc.name }}</p>
             }
-          </dynadrill-text>
-          <dynadrill-upload-zone
-            [state]="chemicalMixtureDocument() ? 'uploaded' : 'idle'"
-            [fileName]="chemicalMixtureDocument()?.name ?? ''"
-            (fileSelected)="onChemicalMixtureDocumentSelected($event)"
-          />
-          @if (chemicalMixtureDocumentoOrigen(); as doc) {
-            <dynadrill-icon-button icon="eye" tooltip="Ver documento" (clicked)="previsualizarDocumentoReferenciaPedido(doc)" />
-          }
+            @if (documentosReferenciaPedido().length > 0) {
+              <p class="ticket-detail__hint">Documentos de referencia del pedido: {{ documentosReferenciaNombres() }}</p>
+            }
+          </div>
+
+          <!-- Escritorio: zona de carga de siempre -->
+          <div class="ticket-detail__only-desktop">
+            <dynadrill-text variant="caption">
+              @if (documentosReferenciaPedido().length > 0) {
+                Se precargó con el primer documento de referencia del pedido — cámbielo si no corresponde.
+              } @else {
+                Adjunte el documento con el detalle de la mezcla preparada.
+              }
+            </dynadrill-text>
+            <dynadrill-upload-zone
+              [state]="chemicalMixtureDocument() ? 'uploaded' : 'idle'"
+              [fileName]="chemicalMixtureDocument()?.name ?? ''"
+              (fileSelected)="onChemicalMixtureDocumentSelected($event)"
+            />
+            @if (chemicalMixtureDocumentoOrigen(); as doc) {
+              <dynadrill-icon-button icon="eye" tooltip="Ver documento" (clicked)="previsualizarDocumentoReferenciaPedido(doc)" />
+            }
+          </div>
         </section>
 
         @if (chemicalStockError(); as error) {

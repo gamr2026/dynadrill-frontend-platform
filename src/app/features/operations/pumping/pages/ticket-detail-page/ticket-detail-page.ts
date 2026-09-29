@@ -7,7 +7,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { DatePipe, formatDate } from '@angular/common';
+import { DatePipe, DecimalPipe, formatDate } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import type { NzUploadFile } from 'ng-zorro-antd/upload';
 import { AuthService } from '../../../../../core/services/auth.service';
@@ -198,6 +198,7 @@ function toFuelReading(raw: string): number | null {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DatePipe,
+    DecimalPipe,
     DynadrillScreenHeaderComponent,
     DynadrillBannerComponent,
     DynadrillContextCardComponent,
@@ -615,8 +616,21 @@ export class TicketDetailPage {
   protected readonly ptArchivo = signal<File | null>(null);
   protected readonly documentosQhseSubmitting = signal(false);
 
-  /** El bloque "Documentos QHSE" recién aplica desde `asignacion` en adelante — antes ni existe el Supervisor asignado. */
-  protected readonly mostrarDocumentosQhse = computed(() => this.currentStep() !== 'revision_inicial');
+  /**
+   * Figma ("M · Ticket Pumping · 1 Revisión Inicial"): el bloque "Documentos QHSE" también se muestra en
+   * la revisión inicial, para que el Supervisor vea qué falta antes de asignar y continuar.
+   */
+  protected readonly mostrarDocumentosQhse = computed(() => true);
+
+  /** Al tocar el ícono de subir de ART / PT se despliega el formulario de carga (fecha + archivo). */
+  protected readonly subidaArtAbierta = signal(false);
+  protected readonly subidaPtAbierta = signal(false);
+
+  /** Tipo de servicio del ticket, para la tarjeta "Información de la propuesta" (móvil). */
+  protected readonly tipoServicioLabel = computed(() => {
+    const t = this.ticket();
+    return t ? PUMPING_SERVICE_TYPE_LABELS[t.serviceType] : '';
+  });
 
   private loadDocumentosQhse(ticketId: number): void {
     this.pumpingService.documentosQhse(ticketId).subscribe({
@@ -1014,6 +1028,19 @@ export class TicketDetailPage {
       .filter((id): id is number => id !== null);
     this.selectedUnits.set([...new Set(allUnits)]);
   }
+
+  /** Botón "Subir documento de mezcla" (móvil): abre el selector de archivos y reutiliza el mismo flujo que la zona de carga. */
+  protected onMixtureFileInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const archivo = input.files?.[0];
+    if (archivo) this.onChemicalMixtureDocumentSelected(archivo as unknown as NzUploadFile);
+    input.value = '';
+  }
+
+  /** "Programa de estimulación.pdf, Otro.pdf" — nombres de los documentos de referencia del pedido. */
+  protected readonly documentosReferenciaNombres = computed(() =>
+    this.documentosReferenciaPedido().map(d => d.nombreOriginal).join(', '),
+  );
 
   protected getOperatorName(operatorId: number): string {
     return this.operatorOptions.find(o => o.value === operatorId)?.label ?? '';

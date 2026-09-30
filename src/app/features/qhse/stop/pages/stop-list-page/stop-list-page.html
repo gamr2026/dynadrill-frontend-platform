@@ -1,12 +1,14 @@
 <div class="stop-list-page">
-  <dynadrill-screen-header title="Tarjetas STOP" subtitle="HSE-SEGUIMIENTO-002 — observaciones de campo" />
-
-  <div class="stop-list-page__toolbar">
-    <dynadrill-button (clicked)="nuevaTarjeta()">+ Nueva tarjeta STOP</dynadrill-button>
-  </div>
+  <app-page-header eyebrow="QHSE" title="Tarjetas STOP" subtitle="HSE-SEGUIMIENTO-002 — observaciones de campo">
+    <div actions><dynadrill-button (clicked)="nuevaTarjeta()">+ Nueva tarjeta STOP</dynadrill-button></div>
+  </app-page-header>
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
-    <dynadrill-kpi-row [items]="kpis()" />
+    <div class="kpi-stat-row" role="list">
+      @for (kpi of kpis(); track kpi.label) {
+        <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
+      }
+    </div>
 
     <div class="stop-list-page__card">
       <dynadrill-text variant="h2">Tendencia por subcategoría (Pareto de ítems inseguros)</dynadrill-text>
@@ -17,24 +19,28 @@
       }
     </div>
 
-    <div class="stop-list-page__grid">
-      @for (c of viewCards(); track c.id) {
-        <dynadrill-card [accent]="c.accent">
-          <span card-title>{{ c.code }}</span>
-          <dynadrill-tag card-extra [label]="c.resumenLabel" [variant]="c.accent" />
+    @if (isMobile()) {
+      <app-qhse-registros-movil [items]="itemsMovil()" [loading]="loading()" vacio="Todavía no hay tarjetas STOP registradas." />
+    } @else {
+      <div class="stop-list-page__grid">
+        @for (c of viewCards(); track c.id) {
+          <dynadrill-card [accent]="c.accent">
+            <span card-title>{{ c.code }}</span>
+            <dynadrill-tag card-extra [label]="c.resumenLabel" [variant]="c.accent" />
 
-          <dl class="stop-list-page__meta">
-            <div><dt><dynadrill-icon name="location" [size]="14" />Locación</dt><dd>{{ c.locacion }}</dd></div>
-            <div><dt><dynadrill-icon name="users" [size]="14" />Observador</dt><dd>{{ c.observadorNombre }}</dd></div>
-            <div><dt><dynadrill-icon name="calendar" [size]="14" />Fecha</dt><dd>{{ c.fecha }}</dd></div>
-          </dl>
-          <dynadrill-tag [label]="c.estadoLabel" [variant]="c.estado === 'cerrado' ? 'neutral' : c.estado === 'abierto' ? 'warning' : 'success'" />
+            <dl class="stop-list-page__meta">
+              <div><dt><dynadrill-icon name="location" [size]="14" />Locación</dt><dd>{{ c.locacion }}</dd></div>
+              <div><dt><dynadrill-icon name="users" [size]="14" />Observador</dt><dd>{{ c.observadorNombre }}</dd></div>
+              <div><dt><dynadrill-icon name="calendar" [size]="14" />Fecha</dt><dd>{{ c.fecha }}</dd></div>
+            </dl>
+            <dynadrill-tag [label]="c.estadoLabel" [variant]="c.estado === 'cerrado' ? 'neutral' : c.estado === 'abierto' ? 'warning' : 'success'" />
 
-          <dynadrill-button variant="secondary" size="small" (clicked)="verDetalle(c.id)">Ver detalle</dynadrill-button>
-        </dynadrill-card>
-      } @empty {
-        <dynadrill-banner variant="info" message="Todavía no hay tarjetas STOP registradas. Se crean desde el botón 'Reportar' del encabezado." />
-      }
-    </div>
+            <dynadrill-button variant="secondary" size="small" (clicked)="verDetalle(c.id)">Ver detalle</dynadrill-button>
+          </dynadrill-card>
+        } @empty {
+          <dynadrill-banner variant="info" message="Todavía no hay tarjetas STOP registradas. Se crean desde el botón 'Reportar' del encabezado." />
+        }
+      </div>
+    }
   </dynadrill-spinner>
 </div>

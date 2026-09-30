@@ -7,15 +7,16 @@ import {
   DynadrillChartSeries,
   DynadrillDialogService,
   DynadrillIconComponent,
-  DynadrillKpiRowComponent,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
   DynadrillTagComponent,
   DynadrillTextComponent,
-  type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
+import { PageHeader } from '../../../../../shared/components/page-header/page-header';
+import { KpiStat, type KpiStatTone } from '../../../../../shared/components/kpi-stat/kpi-stat';
+import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
+import { QhseRegistrosMovil, type RegistroMovil } from '../../../shared/components/qhse-registros-movil';
 import { StopCard, STOP_ESTADO_LABELS, stopCardInseguros, stopCardTieneInseguroEn } from '../../models/stop-card.model';
 import { StopCardService } from '../../services/stop-card.service';
 import { StopCardDialog } from '../../components/stop-card-dialog';
@@ -29,8 +30,9 @@ function formatDate(iso: string): string {
 @Component({
   selector: 'app-stop-list-page',
   imports: [
-    DynadrillScreenHeaderComponent,
-    DynadrillKpiRowComponent,
+    PageHeader,
+    KpiStat,
+    QhseRegistrosMovil,
     DynadrillButtonComponent,
     DynadrillCardComponent,
     DynadrillTagComponent,
@@ -49,10 +51,11 @@ export class StopListPage {
   private readonly dialogService = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
 
+  protected readonly isMobile = injectNarrowViewport();
   protected readonly loading = signal(true);
   protected readonly cards = signal<StopCard[]>([]);
 
-  protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
+  protected readonly kpis = computed<{ label: string; value: number; tone: KpiStatTone }[]>(() => {
     const all = this.cards();
     const mesActual = new Date().getMonth();
     const esteMes = all.filter(c => new Date(c.createdAt).getMonth() === mesActual).length;
@@ -96,6 +99,19 @@ export class StopListPage {
         estadoLabel: this.estadoLabels[c.estado],
       };
     }),
+  );
+
+  /** Tarjetas de la lista en móvil (Figma "M · Tarjetas STOP"). */
+  protected readonly itemsMovil = computed<RegistroMovil[]>(() =>
+    this.viewCards().map(c => ({
+      id: c.id,
+      eyebrow: c.code,
+      title: c.locacion,
+      subtitle: `${c.observadorNombre} · ${c.fecha}`,
+      status: { text: c.estadoLabel, tone: c.estado === 'cerrado' ? ('neutral' as const) : c.estado === 'abierto' ? ('warning' as const) : ('success' as const) },
+      fields: [{ label: 'Resumen', value: c.resumenLabel, tone: c.accent === 'success' ? ('success' as const) : c.accent === 'error' ? ('error' as const) : ('warning' as const) }],
+      actions: [{ icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.verDetalle(c.id) }],
+    })),
   );
 
   constructor() {

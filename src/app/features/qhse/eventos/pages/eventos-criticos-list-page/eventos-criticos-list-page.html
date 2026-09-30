@@ -1,9 +1,8 @@
-<dynadrill-screen-header
-  eyebrow="QHSE"
-  title="Incidentes y Emergencias"
-  subtitle="SWA · Derrames · Emergencias · Investigaciones — bandeja unificada"
-  roleTag="HSE"
-/>
+<app-page-header eyebrow="QHSE" title="Incidentes y Emergencias" subtitle="SWA · Derrames · Emergencias · Investigaciones — bandeja unificada">
+  @if (activeTipo() === 'investigaciones') {
+    <div actions><dynadrill-button (clicked)="nuevaInvestigacion()">+ Nueva investigación</dynadrill-button></div>
+  }
+</app-page-header>
 
 <dynadrill-tabs [tabs]="tabs" [activeIndex]="activeIndex()" (activeIndexChange)="selectTab($event)" />
 
@@ -14,7 +13,12 @@
 
 @switch (activeTipo()) {
   @case ('swa') {
-    <dynadrill-kpi-row [items]="swaKpis()" />
+    <div class="kpi-stat-row" role="list">
+      @for (kpi of swaKpis(); track kpi.label) {
+        <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="$any(kpi.tone)" />
+      }
+    </div>
+    @if (!isMobile()) {
     <div class="eventos-criticos-list-page__grid">
       @for (c of swaVisible(); track c.id) {
         <dynadrill-card [accent]="c.accent">
@@ -43,13 +47,21 @@
         }
       }
     </div>
+    } @else {
+      <app-qhse-registros-movil [items]="itemsMovil()" vacio="No hay eventos con ese filtro." />
+    }
     @if (!mostrandoTodo()) {
       <dynadrill-button variant="secondary" (click)="mostrarMas()">Mostrar más</dynadrill-button>
     }
   }
 
   @case ('derrames') {
-    <dynadrill-kpi-row [items]="derrameKpis()" />
+    <div class="kpi-stat-row" role="list">
+      @for (kpi of derrameKpis(); track kpi.label) {
+        <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="$any(kpi.tone)" />
+      }
+    </div>
+    @if (!isMobile()) {
     <div class="eventos-criticos-list-page__grid">
       @for (c of derrameVisible(); track c.id) {
         <dynadrill-card [accent]="c.accent">
@@ -83,13 +95,21 @@
         }
       }
     </div>
+    } @else {
+      <app-qhse-registros-movil [items]="itemsMovil()" vacio="No hay eventos con ese filtro." />
+    }
     @if (!mostrandoTodo()) {
       <dynadrill-button variant="secondary" (click)="mostrarMas()">Mostrar más</dynadrill-button>
     }
   }
 
   @case ('emergencias') {
-    <dynadrill-kpi-row [items]="emergenciaKpis()" />
+    <div class="kpi-stat-row" role="list">
+      @for (kpi of emergenciaKpis(); track kpi.label) {
+        <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="$any(kpi.tone)" />
+      }
+    </div>
+    @if (!isMobile()) {
     <div class="eventos-criticos-list-page__grid">
       @for (e of emergenciaVisible(); track e.id) {
         <dynadrill-card [accent]="e.accent">
@@ -124,16 +144,21 @@
         }
       }
     </div>
+    } @else {
+      <app-qhse-registros-movil [items]="itemsMovil()" vacio="No hay eventos con ese filtro." />
+    }
     @if (!mostrandoTodo()) {
       <dynadrill-button variant="secondary" (click)="mostrarMas()">Mostrar más</dynadrill-button>
     }
   }
 
   @case ('investigaciones') {
-    <div class="eventos-criticos-list-page__toolbar">
-      <dynadrill-button (clicked)="nuevaInvestigacion()">+ Nueva investigación</dynadrill-button>
+    <div class="kpi-stat-row" role="list">
+      @for (kpi of investigacionKpis(); track kpi.label) {
+        <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="$any(kpi.tone)" />
+      }
     </div>
-    <dynadrill-kpi-row [items]="investigacionKpis()" />
+    @if (!isMobile()) {
     <div class="eventos-criticos-list-page__grid">
       @for (i of investigacionVisible(); track i.id) {
         <dynadrill-card [accent]="i.accent">
@@ -162,6 +187,9 @@
         }
       }
     </div>
+    } @else {
+      <app-qhse-registros-movil [items]="itemsMovil()" vacio="No hay eventos con ese filtro." />
+    }
     @if (!mostrandoTodo()) {
       <dynadrill-button variant="secondary" (click)="mostrarMas()">Mostrar más</dynadrill-button>
     }

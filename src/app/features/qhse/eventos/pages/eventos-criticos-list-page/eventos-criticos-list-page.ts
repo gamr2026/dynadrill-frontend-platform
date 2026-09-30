@@ -9,9 +9,7 @@ import {
   DynadrillDialogService,
   DynadrillIconComponent,
   DynadrillInputComponent,
-  DynadrillKpiRowComponent,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
   DynadrillSelectComponent,
   DynadrillTabsComponent,
   DynadrillTagComponent,
@@ -21,6 +19,10 @@ import {
   type DynadrillTab,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
+import { PageHeader } from '../../../../../shared/components/page-header/page-header';
+import { KpiStat } from '../../../../../shared/components/kpi-stat/kpi-stat';
+import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
+import { QhseRegistrosMovil, type RegistroMovil } from '../../../shared/components/qhse-registros-movil';
 import { SWA_ESTADO_LABELS, SwaEvento } from '../../../swa/models/swa.model';
 import { SwaService } from '../../../swa/services/swa.service';
 import { DERRAME_ESTADO_LABELS, DERRAME_VOLUMEN_LABELS, DerrameEvento } from '../../../derrames/models/derrame.model';
@@ -114,9 +116,9 @@ function filtrar<T extends { code: string; ubicacion: string; estadoLabel: strin
 @Component({
   selector: 'app-eventos-criticos-list-page',
   imports: [
-    DynadrillScreenHeaderComponent,
+    PageHeader,
     DynadrillTabsComponent,
-    DynadrillKpiRowComponent,
+    KpiStat,
     DynadrillCardComponent,
     DynadrillTagComponent,
     DynadrillTimerComponent,
@@ -124,8 +126,7 @@ function filtrar<T extends { code: string; ubicacion: string; estadoLabel: strin
     DynadrillButtonComponent,
     DynadrillBannerComponent,
     DynadrillInputComponent,
-    DynadrillSelectComponent,
-  ],
+    DynadrillSelectComponent, QhseRegistrosMovil],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './eventos-criticos-list-page.html',
   styleUrl: './eventos-criticos-list-page.scss',
@@ -156,6 +157,8 @@ export class EventosCriticosListPage {
   private readonly investigaciones = signal<Investigacion[]>([]);
 
   // ── SWA ──
+  protected readonly isMobile = injectNarrowViewport();
+
   protected readonly swaKpis = computed<DynadrillKpiRowItem[]>(() => {
     const all = this.swaEventos();
     return [
@@ -298,6 +301,62 @@ export class EventosCriticosListPage {
   });
 
   // ── Tarjetas filtradas + paginadas por pestaña ──
+  /** Tarjetas de la lista en móvil (Figma "M · Incidentes y Emergencias"): la pestaña activa como registros. */
+  protected readonly itemsMovil = computed<RegistroMovil[]>(() => {
+    const tono = (t: string) => (t === 'error' ? ('error' as const) : t === 'warning' ? ('warning' as const) : ('success' as const));
+    switch (this.activeTipo()) {
+      case 'swa':
+        return this.swaVisible().map(c => ({
+          id: c.id,
+          eyebrow: c.code,
+          title: c.tipoPeligro,
+          subtitle: `${c.ubicacion} · Activado por ${c.activadoPorNombre} · ${c.activadoAt}`,
+          status: { text: c.estadoLabel, tone: c.accent },
+          fields: c.heroeSeguridad ? [{ label: 'Reconocimiento', value: 'Héroe de Seguridad', tone: 'success' as const }] : [],
+          actions: [{ icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(c.id) }],
+        }));
+      case 'derrames':
+        return this.derrameVisible().map(c => ({
+          id: c.id,
+          eyebrow: c.code,
+          title: c.descripcion,
+          subtitle: `${c.ubicacion} · ${c.activadoAt}`,
+          status: { text: c.estadoLabel, tone: c.accent },
+          fields: [
+            { label: 'Volumen', value: c.volumenLabel, tone: c.esMayor ? ('error' as const) : undefined },
+            ...(c.notificadoMae ? [{ label: 'MAE', value: 'Notificado', tone: 'success' as const }] : []),
+          ],
+          actions: [{ icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(c.id) }],
+        }));
+      case 'emergencias':
+        return this.emergenciaVisible().map(e => ({
+          id: e.id,
+          eyebrow: e.code,
+          title: e.tipo,
+          subtitle: `${e.ubicacion} · ${e.activadoAt}`,
+          status: { text: e.estadoLabel, tone: e.accent },
+          fields: [
+            { label: 'Nivel', value: e.nivelLabel },
+            ...(e.flashLabel ? [{ label: 'Reporte Flash', value: e.flashLabel, tone: tono(e.flashLabel.includes('vencido') ? 'error' : 'success') }] : []),
+          ],
+          actions: [{ icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(e.id) }],
+        }));
+      case 'investigaciones':
+        return this.investigacionVisible().map(i => ({
+          id: i.id,
+          eyebrow: i.code,
+          title: i.resultadoLabel,
+          subtitle: `${i.ubicacion} · ${i.fechaIncidente}`,
+          status: { text: i.estadoLabel, tone: 'neutral' as const },
+          fields: [
+            { label: 'Plazo', value: i.plazoLabel, tone: tono(i.accent) },
+            ...(i.accionesPendientes > 0 ? [{ label: 'Acciones pendientes', value: String(i.accionesPendientes) }] : []),
+          ],
+          actions: [{ icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(i.id) }],
+        }));
+    }
+  });
+
   protected readonly swaVisible = computed(() => filtrar(this.swaCards(), this.searchText(), this.estadoFiltro()).slice(0, this.visibleCount()));
   protected readonly swaFilteredTotal = computed(() => filtrar(this.swaCards(), this.searchText(), this.estadoFiltro()).length);
 

@@ -36,7 +36,8 @@ const QHSE_CHILDREN: NavEntry[] = [
   { label: 'Indicadores', icon: 'chart', link: '/dashboard/qhse/dashboard' },
   {
     label: 'Planificación',
-    icon: 'list',
+    icon: 'clipboard',
+    link: '/dashboard/qhse/planificacion',
     children: [
       { label: 'IPERC', link: '/dashboard/qhse/iperc' },
       { label: 'PTW / Recibimiento', link: '/dashboard/qhse/ptw' },
@@ -47,7 +48,8 @@ const QHSE_CHILDREN: NavEntry[] = [
   },
   {
     label: 'Registros',
-    icon: 'file-text',
+    icon: 'list',
+    link: '/dashboard/qhse/registros',
     children: [
       { label: 'Inspecciones', link: '/dashboard/qhse/inspecciones' },
       { label: 'Desechos', link: '/dashboard/qhse/desechos' },
@@ -64,6 +66,7 @@ const QHSE_CHILDREN: NavEntry[] = [
      */
     label: 'Eventos',
     icon: 'alert',
+    link: '/dashboard/qhse/eventos-criticos',
     children: [
       { label: 'STOP', link: '/dashboard/qhse/stop' },
       { label: 'Incidentes y Emergencias', link: '/dashboard/qhse/eventos' },

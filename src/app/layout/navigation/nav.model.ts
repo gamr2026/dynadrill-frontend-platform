@@ -14,7 +14,8 @@ export type NavIcon =
   | 'route'
   | 'chart'
   | 'truck'
-  | 'send';
+  | 'send'
+  | 'clipboard';
 
 /** Destino dentro de un módulo. Sin `link` = grupo que solo agrupa `children` (ej. QHSE › Planificación). */
 export interface NavEntry {

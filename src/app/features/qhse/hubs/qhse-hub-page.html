@@ -1,0 +1,18 @@
+<app-page-header eyebrow="QHSE" [title]="hub().titulo" [subtitle]="hub().subtitulo" />
+
+@if (hub().conReportar) {
+  <button type="button" class="hub__reportar" (click)="reportar()">
+    <app-qhse-icon name="alert" [size]="20" />
+    Reportar
+  </button>
+}
+
+<nav class="hub__accesos" [attr.aria-label]="hub().titulo">
+  @for (a of hub().accesos; track a.link) {
+    <a class="hub__acceso" [routerLink]="a.link">
+      <span class="hub__icono"><app-qhse-icon [name]="a.icono" /></span>
+      <span class="hub__titulo">{{ a.titulo }}</span>
+      <span class="hub__desc">{{ a.descripcion }}</span>
+    </a>
+  }
+</nav>

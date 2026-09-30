@@ -20,11 +20,20 @@ const MENU_ICON: Record<NavIcon, DynadrillIconName> = {
   chart: 'file-text',
   truck: 'box',
   send: 'file-text',
+  clipboard: 'file-text',
 };
 
 /** Sub-ítems sin ícono — igual que Nav/SidebarSubItem en Figma. */
 function toMenuItem(entry: NavEntry): DynadrillMenuItem {
-  return { label: entry.label, link: entry.link, children: entry.children?.map(toMenuItem) };
+  return { label: entry.label, link: entry.link };
+}
+
+/**
+ * En escritorio los grupos (ej. QHSE › Planificación) no se dibujan: Figma lista todos los destinos en una sola
+ * lista plana bajo el módulo. Los grupos existen para el móvil (barra inferior y drawer), donde cada uno es un hub.
+ */
+function aplanar(entries: NavEntry[]): NavEntry[] {
+  return entries.flatMap(e => (e.children?.length ? aplanar(e.children) : [e]));
 }
 
 /** Sidebar permanente de escritorio — en móvil lo reemplazan el drawer y la navegación inferior. */
@@ -47,7 +56,7 @@ export class Sidebar {
       label: module.label,
       icon: MENU_ICON[module.icon],
       link: module.link,
-      children: module.children?.map(toMenuItem),
+      children: module.children ? aplanar(module.children).map(toMenuItem) : undefined,
     })),
   );
 }

@@ -26,6 +26,25 @@ const PTW_ROLES = [...HSE_STAFF_ROLES];
 
 export const qhseRoutes: Routes = [
   { path: '', redirectTo: 'iperc', pathMatch: 'full' },
+  // Hubs móviles (Figma "M · QHSE · … (hub)"): los destinos de la barra inferior.
+  {
+    path: 'planificacion',
+    loadComponent: () => import('./hubs/qhse-hub-page').then(m => m.QhseHubPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES, hub: 'planificacion' },
+  },
+  {
+    path: 'registros',
+    loadComponent: () => import('./hubs/qhse-hub-page').then(m => m.QhseHubPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES, hub: 'registros' },
+  },
+  {
+    path: 'eventos-criticos',
+    loadComponent: () => import('./hubs/qhse-hub-page').then(m => m.QhseHubPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: HSE_STAFF_ROLES, hub: 'eventos' },
+  },
   {
     path: 'iperc',
     loadComponent: () => import('./iperc/pages/iperc-list-page/iperc-list-page').then(m => m.IpercListPage),

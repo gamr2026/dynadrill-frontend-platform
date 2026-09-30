@@ -10,10 +10,10 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
         <td class="doc-encabezado__logo"><img src="/brand/dynadrill-logo.svg" alt="Dynadrill" /></td>
         <td class="doc-encabezado__titulo">{{ titulo() }}</td>
         <td class="doc-encabezado__meta">
-          <div>{{ codigo() }}</div>
-          <div>Versión: {{ version() }}</div>
+          <div>{{ etiquetaCodigo() }}{{ codigo() }}</div>
+          <div>{{ etiquetaVersion() }}: {{ version() }}</div>
           @if (elaboracion()) {
-            <div>ELABORACIÓN: {{ elaboracion() }}</div>
+            <div>{{ etiquetaFecha() }}: {{ elaboracion() }}</div>
           }
           @if (revision()) {
             <div>REVISIÓN: {{ revision() }}</div>
@@ -65,4 +65,8 @@ export class DocumentoEncabezado {
   readonly version = input.required<string>();
   readonly elaboracion = input<string>('');
   readonly revision = input<string>('');
+  /** Algunos formatos dicen "Código: …", "Revisión: …" y "Fecha emisión: …" en vez de "Versión" / "ELABORACIÓN". */
+  readonly etiquetaCodigo = input<string>('');
+  readonly etiquetaVersion = input<string>('Versión');
+  readonly etiquetaFecha = input<string>('ELABORACIÓN');
 }

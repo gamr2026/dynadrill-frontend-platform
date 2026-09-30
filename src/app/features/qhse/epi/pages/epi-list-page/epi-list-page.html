@@ -20,6 +20,7 @@
   <ng-template #actionsTpl let-row>
     <div class="epi-list-page__row-actions">
       <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="verDetalle(row.entrega)" />
+      <dynadrill-icon-button icon="file-pdf" tooltip="Ver PDF" tooltipPlacement="top" (clicked)="verPdf(row.entrega)" />
 
       @if (row.entrega.estado === 'solicitado') {
         <dynadrill-icon-button icon="check" tooltip="Aprobar" tooltipPlacement="top" [disabled]="submittingId() === row.id" (clicked)="aprobar(row.id)" />

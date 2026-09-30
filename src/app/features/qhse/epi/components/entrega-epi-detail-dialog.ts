@@ -26,6 +26,9 @@ export interface EntregaEpiDetailDialogData {
  * Humano recibió el registro firmado para el file del trabajador (nota del
  * formato físico). No bloquea ni participa del flujo de aprobación/despacho.
  */
+import { DocumentoPdfService } from '../../../../shared/documentos';
+import { EntregaEpiHoja } from '../../../../shared/documentos/formatos/entrega-epi-hoja';
+
 @Component({
   selector: 'app-entrega-epi-detail-dialog',
   imports: [DatePipe, DynadrillContextCardComponent, DynadrillDataTableComponent, DynadrillTagComponent, DynadrillButtonComponent, DynadrillTextComponent],
@@ -39,6 +42,7 @@ export class EntregaEpiDetailDialog {
   private readonly epiService = inject(EntregaEpiService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
+  private readonly documentoPdf = inject(DocumentoPdfService);
 
   protected readonly entrega = signal(this.data.entrega);
   protected readonly estadoLabels = EPI_ESTADO_LABELS;
@@ -94,5 +98,17 @@ export class EntregaEpiDetailDialog {
 
   protected cerrar(): void {
     this.modalRef.close(this.entrega());
+  }
+
+  /** Formato DYN-SGI-RE-032 con quien recibe (trabajador) y quien entrega (QHSE / Talento Humano); se firma sobre el PDF. */
+  protected verPdf(): void {
+    const entrega = this.entrega();
+    this.documentoPdf.abrir({
+      titulo: `Entrega de EPI — ${entrega.code}`,
+      component: EntregaEpiHoja,
+      inputs: { entrega },
+      orientacion: 'landscape',
+      nombreArchivo: `Entrega de EPI ${entrega.code}`,
+    });
   }
 }

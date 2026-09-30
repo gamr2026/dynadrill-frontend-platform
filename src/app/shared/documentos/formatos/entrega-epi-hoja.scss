@@ -1,0 +1,98 @@
+.epi {
+  font-size: 9px;
+
+  table {
+    margin-top: -1px;
+  }
+
+  &__declaracion {
+    margin-top: -1px;
+    padding: 4px 6px;
+    border: 1px solid #000;
+    background: #e6e0ec;
+    font-size: 9px;
+  }
+
+  &__datos td {
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+
+  &__lugar {
+    width: 22%;
+  }
+
+  &__nombre {
+    width: 34%;
+  }
+
+  &__firma-datos {
+    width: 26%;
+  }
+
+  &__tabla {
+    th {
+      font-size: 8px;
+      vertical-align: middle;
+    }
+
+    td {
+      height: 26px;
+      font-size: 9px;
+    }
+  }
+
+  &__c-item {
+    width: 4%;
+  }
+
+  &__c-elem {
+    width: 20%;
+  }
+
+  &__c-cant,
+  &__c-talla {
+    width: 7%;
+  }
+
+  &__c-cod {
+    width: 12%;
+  }
+
+  &__c-si {
+    width: 4%;
+  }
+
+  &__c-fecha {
+    width: 15%;
+  }
+
+  &__c-obs {
+    width: 17%;
+  }
+
+  &__firma {
+    font-size: 8px !important;
+  }
+
+  &__quien {
+    font-weight: 700;
+  }
+
+  &__nota {
+    margin-top: -1px;
+    padding: 3px 6px;
+    border: 1px solid #000;
+    font-size: 9px;
+  }
+
+  &__th td {
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+
+  &__th-firma td {
+    height: 42px;
+    vertical-align: bottom;
+  }
+}

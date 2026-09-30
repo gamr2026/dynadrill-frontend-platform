@@ -35,6 +35,9 @@ const CAPACITACION_PENDIENTE: { text: string; tone: DynadrillTagVariant } = { te
 type FiltroEstado = EpiEstado | 'todos';
 
 /** DYN-SGI-RE-032 — bandeja de entregas de EPI (Fase 5: solicitar → aprobar/rechazar → despachar). */
+import { DocumentoPdfService } from '../../../../../shared/documentos';
+import { EntregaEpiHoja } from '../../../../../shared/documentos/formatos/entrega-epi-hoja';
+
 @Component({
   selector: 'app-epi-list-page',
   imports: [
@@ -146,6 +149,18 @@ export class EpiListPage {
     const ref = this.dialogService.open<EntregaEpiDialog>({ title: 'Nueva entrega de EPI', content: EntregaEpiDialog, footer: false, width: '680px' });
     ref.afterClose.subscribe(result => {
       if (result) this.reload();
+    });
+  }
+
+  private readonly documentoPdf = inject(DocumentoPdfService);
+
+  protected verPdf(entrega: EntregaEpi): void {
+    this.documentoPdf.abrir({
+      titulo: `Entrega de EPI — ${entrega.code}`,
+      component: EntregaEpiHoja,
+      inputs: { entrega },
+      orientacion: 'landscape',
+      nombreArchivo: `Entrega de EPI ${entrega.code}`,
     });
   }
 

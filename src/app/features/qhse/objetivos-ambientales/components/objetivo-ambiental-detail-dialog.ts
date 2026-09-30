@@ -17,6 +17,7 @@ const TONE: Record<EstadoObjetivoAmbiental, DynadrillTagVariant> = {
 /** Detalle de solo lectura de un Objetivo Ambiental — mismo patrón que AspectoAmbientalDetailDialog. */
 @Component({
   selector: 'app-objetivo-ambiental-detail-dialog',
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [DynadrillContextCardComponent, DynadrillTagComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './objetivo-ambiental-detail-dialog.html',

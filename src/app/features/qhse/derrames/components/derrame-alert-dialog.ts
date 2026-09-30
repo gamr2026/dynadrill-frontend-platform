@@ -31,6 +31,7 @@ const UBICACION_OPTIONS: DynadrillSelectOption[] = (Object.entries(DERRAME_UBICA
 /** "Personal que Detecta Derrame activa el botón de alerta" (HSE-AMBIENTAL-002) — abre desde "Reportar", sin roleGuard de QHSE. */
 @Component({
   selector: 'app-derrame-alert-dialog',
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [DynadrillBannerComponent, DynadrillSelectComponent, DynadrillInputComponent, DynadrillTextareaComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './derrame-alert-dialog.html',

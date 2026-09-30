@@ -38,6 +38,7 @@ const ITEM_DRAFT_VACIO: ItemDraft = { elemento: '', cantidad: '1', talla: '', co
  */
 @Component({
   selector: 'app-entrega-epi-dialog',
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [DynadrillTextComponent, DynadrillInputComponent, DynadrillCheckboxComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './entrega-epi-dialog.html',

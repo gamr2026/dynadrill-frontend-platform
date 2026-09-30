@@ -15,22 +15,26 @@
   }
 </div>
 
-<ng-template #actionsTpl let-row>
-  <div class="iperc-list-page__row-actions">
-    <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
-    <dynadrill-icon-button icon="edit" tooltip="Editar matriz" tooltipPlacement="top" (clicked)="editarMatriz(row)" />
-    <dynadrill-icon-button icon="insert-row-below" tooltip="Ver matriz" tooltipPlacement="top" (clicked)="imprimirMatriz(row)" />
-  </div>
-</ng-template>
+@if (isMobile()) {
+  <app-qhse-registros-movil [items]="itemsMovil()" [loading]="loading()" vacio="No hay actividades en la matriz." />
+} @else {
+  <ng-template #actionsTpl let-row>
+    <div class="iperc-list-page__row-actions">
+      <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
+      <dynadrill-icon-button icon="edit" tooltip="Editar matriz" tooltipPlacement="top" (clicked)="editarMatriz(row)" />
+      <dynadrill-icon-button icon="insert-row-below" tooltip="Ver matriz" tooltipPlacement="top" (clicked)="imprimirMatriz(row)" />
+    </div>
+  </ng-template>
 
-<div class="table-scroll dyn-table-card">
-  <dynadrill-data-table
-    [columns]="columns()"
-    [rows]="rows()"
-    [loading]="loading()"
-    [rowKey]="rowKeyFn"
-    [pageSize]="10"
-    actionsHeader="Acciones"
-    [actionsTemplate]="actionsTpl"
-  />
-</div>
+  <div class="table-scroll dyn-table-card">
+    <dynadrill-data-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [loading]="loading()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="10"
+      actionsHeader="Acciones"
+      [actionsTemplate]="actionsTpl"
+    />
+  </div>
+}

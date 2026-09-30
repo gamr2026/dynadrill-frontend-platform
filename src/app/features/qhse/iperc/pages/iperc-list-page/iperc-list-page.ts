@@ -14,6 +14,8 @@ import { IpercMatrixDialog } from '../../components/iperc-matrix-dialog';
 import { IpercMatrixPdfDialog, IpercMatrixPdfDialogData } from '../../components/iperc-matrix-pdf-dialog';
 import { PageHeader } from '../../../../../shared/components/page-header/page-header';
 import { KpiStat, type KpiStatTone } from '../../../../../shared/components/kpi-stat/kpi-stat';
+import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
+import { QhseRegistrosMovil, type RegistroMovil } from '../../../shared/components/qhse-registros-movil';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { AppNotificationItem, NotificationsService } from '../../../../../core/services/notifications.service';
 
@@ -50,7 +52,7 @@ const STATUS_INDEX: Record<IpercStatus, number> = {
 @Component({
   selector: 'app-iperc-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PageHeader, KpiStat, DynadrillDataTableComponent, DynadrillIconButtonComponent, DynadrillButtonComponent],
+  imports: [PageHeader, KpiStat, QhseRegistrosMovil, DynadrillDataTableComponent, DynadrillIconButtonComponent, DynadrillButtonComponent],
   templateUrl: './iperc-list-page.html',
   styleUrl: './iperc-list-page.scss',
 })
@@ -63,6 +65,7 @@ export class IpercListPage {
   private readonly notifications = inject(NotificationsService);
   private readonly notify = inject(DynadrillNotificationService);
 
+  protected readonly isMobile = injectNarrowViewport();
   protected readonly loading = signal(true);
   protected readonly matrices = signal<IpercMatrix[]>([]);
 
@@ -107,6 +110,29 @@ export class IpercListPage {
       estadoBadge: STATUS_BADGES[m.status],
       fase: `${STATUS_INDEX[m.status] + 1} / ${FASE_STEPS}`,
       riesgoBadge: this.highestResidualBadge(m),
+    })),
+  );
+
+  /** Tarjetas de la lista en móvil (Figma "M · IPERC Matriz Maestra"): fase n/4, riesgo residual, ver detalle y editar. */
+  protected readonly itemsMovil = computed<RegistroMovil[]>(() =>
+    this.rows().map(r => ({
+      id: r.id,
+      eyebrow: r.code,
+      title: r.actividad,
+      subtitle: r.ubicacion,
+      status: r.estadoBadge,
+      fields: [
+        { label: 'Fase', value: r.fase },
+        {
+          label: 'Riesgo residual',
+          value: r.riesgoBadge.text,
+          tone: r.riesgoBadge.tone === 'error' ? ('error' as const) : r.riesgoBadge.tone === 'warning' ? ('warning' as const) : r.riesgoBadge.tone === 'success' ? ('success' as const) : undefined,
+        },
+      ],
+      actions: [
+        { icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(r) },
+        { icon: 'edit', label: 'Editar matriz', run: () => this.editarMatriz(r) },
+      ],
     })),
   );
 

@@ -31,6 +31,7 @@ import { EntregaEpiHoja } from '../../../../shared/documentos/formatos/entrega-e
 
 @Component({
   selector: 'app-entrega-epi-detail-dialog',
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [DatePipe, DynadrillContextCardComponent, DynadrillDataTableComponent, DynadrillTagComponent, DynadrillButtonComponent, DynadrillTextComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './entrega-epi-detail-dialog.html',

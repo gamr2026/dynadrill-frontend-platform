@@ -31,6 +31,7 @@ const CONTENEDOR_OPTIONS: DynadrillSelectOption[] = (Object.entries(CONTENEDOR_C
 /** "Personal Operativo: Genera y clasifica desechos en campo" (HSE-AMBIENTAL-001) — abre desde "Reportar", sin roleGuard de QHSE. */
 @Component({
   selector: 'app-desecho-dialog',
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [
     DynadrillTextComponent,
     DynadrillChipGroupComponent,

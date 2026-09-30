@@ -16,6 +16,7 @@ export interface MotivoDialogData {
  */
 @Component({
   selector: 'app-motivo-dialog',
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [DynadrillTextareaComponent, DynadrillButtonComponent, DynadrillTextComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './motivo-dialog.html',

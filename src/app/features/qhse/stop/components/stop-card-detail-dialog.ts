@@ -37,6 +37,7 @@ import { TarjetaStopHoja } from '../../../../shared/documentos/formatos/tarjeta-
 
 @Component({
   selector: 'app-stop-card-detail-dialog',
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [
     DatePipe,
     DynadrillContextCardComponent,

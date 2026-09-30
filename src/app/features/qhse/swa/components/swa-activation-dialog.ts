@@ -22,6 +22,7 @@ import { parseServicio, useServiciosOperativosOptions } from '../../shared/utils
  */
 @Component({
   selector: 'app-swa-activation-dialog',
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [
     DynadrillBannerComponent,
     DynadrillInputComponent,

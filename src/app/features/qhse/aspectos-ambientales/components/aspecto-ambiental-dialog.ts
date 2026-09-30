@@ -23,6 +23,7 @@ const CLASIFICACION_OPTIONS: DynadrillSelectOption[] = [
 /** QHSE evalúa y actualiza esta matriz — no es un registro que abra el personal operativo (a diferencia de STOP/Desechos). */
 @Component({
   selector: 'app-aspecto-ambiental-dialog',
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [
     DynadrillTextComponent,
     DynadrillInputComponent,

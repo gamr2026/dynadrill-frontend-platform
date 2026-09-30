@@ -15,6 +15,7 @@ import { toLocalDateString } from '../../../../shared/utils';
 /** QHSE evalúa y actualiza estos objetivos (revisión anual) — no es un registro que abra el personal operativo. */
 @Component({
   selector: 'app-objetivo-ambiental-dialog',
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [DynadrillTextComponent, DynadrillInputComponent, DynadrillTextareaComponent, DynadrillDatetimePickerComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './objetivo-ambiental-dialog.html',

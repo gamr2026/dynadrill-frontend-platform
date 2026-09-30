@@ -23,6 +23,7 @@ import { InvestigacionService } from '../services/investigacion.service';
  */
 @Component({
   selector: 'app-investigacion-dialog',
+  host: { class: 'app-dialog-fullscreen-mobile' },
   imports: [DynadrillSelectComponent, DynadrillTextareaComponent, DynadrillInputComponent, DynadrillDatetimePickerComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './investigacion-dialog.html',

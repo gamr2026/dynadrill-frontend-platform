@@ -16,6 +16,7 @@ const TONE: Record<AspectoAmbiental['clasificacion'], DynadrillTagVariant> = {
 /** Detalle de solo lectura de un Aspecto Ambiental — mismo patrón que StopCardDetailDialog/EntregaEpiDetailDialog. */
 @Component({
   selector: 'app-aspecto-ambiental-detail-dialog',
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [DynadrillContextCardComponent, DynadrillTagComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './aspecto-ambiental-detail-dialog.html',

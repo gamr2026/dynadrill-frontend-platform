@@ -34,6 +34,7 @@ const TIPO_OPTIONS: DynadrillSelectOption[] = (Object.entries(TIPO_EQUIPO_LABELS
  */
 @Component({
   selector: 'app-inspeccion-equipo-dialog',
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [
     DynadrillSelectComponent,
     DynadrillInputComponent,

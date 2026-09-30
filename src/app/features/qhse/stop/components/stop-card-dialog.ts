@@ -39,6 +39,7 @@ interface StopGrupo {
  */
 @Component({
   selector: 'app-stop-card-dialog',
+  host: { class: 'app-dialog-fullscreen-mobile' },
   imports: [DynadrillTextComponent, DynadrillInputComponent, DynadrillTextareaComponent, DynadrillDatetimePickerComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './stop-card-dialog.html',

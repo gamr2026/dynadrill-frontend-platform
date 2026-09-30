@@ -34,6 +34,7 @@ export interface EmergenciaAlertDialogData {
  */
 @Component({
   selector: 'app-emergencia-alert-dialog',
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [DynadrillBannerComponent, DynadrillInputComponent, DynadrillTextareaComponent, DynadrillSelectComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './emergencia-alert-dialog.html',

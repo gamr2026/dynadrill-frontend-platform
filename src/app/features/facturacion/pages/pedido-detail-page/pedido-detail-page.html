@@ -93,7 +93,7 @@
                 <tr>
                   <td>Reporte de Unidad</td>
                   <td>Pumping</td>
-                  <td>{{ ru.departureDate }}</td>
+                  <td>{{ fechaCorta(ru.departureDate) }}</td>
                   <td>{{ ru.departureOperatorName || '—' }}</td>
                   <td><dynadrill-tag [label]="ru.arrivalOperatorName ? 'Salida y llegada' : 'Solo salida'" [variant]="ru.arrivalOperatorName ? 'success' : 'warning'" /></td>
                   <td><button type="button" class="pedido-detail__icon-btn" aria-label="Ver PDF" title="Ver PDF" (click)="verReporteUnidad()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg></button></td>
@@ -103,7 +103,7 @@
                 <tr>
                   <td>Reporte Job</td>
                   <td>{{ d.origen === 'fcr' ? 'FCR' : 'Pumping' }}</td>
-                  <td>{{ d.fecha }}</td>
+                  <td>{{ fechaCorta(d.fecha) }}</td>
                   <td>{{ d.firmadoPor || '—' }}</td>
                   <td><dynadrill-tag label="Recibido" variant="success" /></td>
                   <td><button type="button" class="pedido-detail__icon-btn" aria-label="Ver PDF" title="Ver PDF" (click)="verReporteJob(d)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></svg></button></td>
@@ -123,7 +123,7 @@
                 <tr>
                   <td>Documento de monitoreo</td>
                   <td>Pumping</td>
-                  <td>{{ d.fecha }}</td>
+                  <td>{{ fechaCorta(d.fecha) }}</td>
                   <td>—</td>
                   <td><dynadrill-tag [label]="d.firmado ? 'Firmado' : 'Falta firmar'" [variant]="d.firmado ? 'success' : 'warning'" /></td>
                   <td class="pedido-detail__doc-actions">

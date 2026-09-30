@@ -49,6 +49,7 @@ import { AnularPedidoDialog, AnularPedidoDialogData } from '../../components/anu
 import { SolicitarDespachoDialog, SolicitarDespachoDialogData } from '../../components/solicitar-despacho-dialog';
 import { TimelineTramo } from '../../../../shared/models/timeline.model';
 import { DocumentoPdfService } from '../../../../shared/documentos';
+import { fechaDoc } from '../../../../shared/documentos/documento-format.util';
 import { ReporteUnidadHoja } from '../../../../shared/documentos/formatos/reporte-unidad-hoja';
 import { PrefacturaHoja } from '../../../../shared/documentos/formatos/prefactura-hoja';
 import { ReporteJobHoja, type ReporteJobExtras } from '../../../../shared/documentos/formatos/reporte-job-hoja';
@@ -132,6 +133,9 @@ export class PedidoDetailPage {
   protected readonly simulando = signal(false);
   protected readonly generando = signal(false);
   protected readonly generandoGuia = signal(false);
+
+  /** dd/MM/yyyy para cualquier fecha de la tabla (llegan como "2026-09-30" o ISO con hora). */
+  protected readonly fechaCorta = fechaDoc;
 
   /** "FCR" o "Pumping" según la línea del pedido — títulos y botones de esta pantalla. */
   protected readonly lineaLabel = computed(() => (this.pedido()?.lineaServicio === 'pumping' ? 'Pumping' : 'FCR'));

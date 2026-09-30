@@ -1696,8 +1696,14 @@ export class TicketDetailPage {
   protected readonly isOperador = computed(() => this.roleName() === 'Operador');
   protected readonly isSupervisor = computed(() => this.roleName() === 'Supervisor' || this.roleName() === 'Supervisor Pumping');
   protected readonly isJefeBase = computed(() => this.roleName() === 'Jefe de Base');
-  /** ART/PT los sube el Supervisor ASIGNADO a este ticket (Jefe de Base queda de respaldo/override) — antes cualquier Supervisor con acceso al módulo podía subirlos, sin importar si era el asignado. */
+  /**
+   * ART/PT los sube el Supervisor ASIGNADO a este ticket (Jefe de Base queda de respaldo/override) — antes cualquier
+   * Supervisor con acceso al módulo podía subirlos, sin importar si era el asignado. El rol "Supervisor Pumping" es la
+   * cuenta exclusiva de Pumping (los pasos del supervisor cambian a ella automáticamente) y los tickets pueden traer
+   * asignado a otro supervisor por nombre, así que ese rol también puede subirlos.
+   */
   protected readonly isAssignedSupervisor = computed(() => {
+    if (this.roleName() === 'Supervisor Pumping') return true;
     const nombre = this.auth.currentUser()?.name;
     return !!nombre && nombre === this.ticket()?.assignedSupervisor;
   });

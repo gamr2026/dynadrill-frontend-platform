@@ -1,0 +1,75 @@
+.es {
+  font-size: 10px;
+
+  table {
+    margin-top: -1px;
+  }
+
+  &__datos {
+    width: 80% !important;
+    margin-top: 10px;
+
+    td {
+      padding: 3px 4px;
+      font-size: 9px;
+    }
+  }
+
+  &__instr {
+    margin: 12px 0;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  &__morado th {
+    background: #b1a0c7;
+    font-size: 8.5px;
+    vertical-align: middle;
+  }
+
+  &__c-n {
+    width: 7%;
+  }
+
+  &__c-tema {
+    width: 33%;
+  }
+
+  &__c-esc {
+    width: 10%;
+  }
+
+  &__c-com {
+    width: 17%;
+  }
+
+  &__fila td {
+    height: 46px;
+    vertical-align: middle;
+    font-size: 10.5px;
+  }
+
+  &__firmas {
+    td {
+      width: 50%;
+      padding: 6px;
+      font-size: 10px;
+    }
+  }
+
+  &__f-nombre td {
+    height: 46px;
+  }
+
+  &__f-firma td {
+    height: 60px;
+  }
+
+  &__gracias {
+    margin: 14px 0 0;
+    font-weight: 700;
+    text-align: center;
+    font-size: 10.5px;
+  }
+}

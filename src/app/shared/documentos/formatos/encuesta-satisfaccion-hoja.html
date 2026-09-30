@@ -1,0 +1,64 @@
+<div class="doc-hoja es">
+  <app-doc-encabezado
+    titulo="ENCUESTA DE SATISFACCIÓN DEL CLIENTE"
+    codigo=""
+    version="0"
+    etiquetaVersion="Revisión"
+    elaboracion="30-06-2026"
+    etiquetaFecha="Fecha de Aprobación"
+  />
+
+  <table class="es__datos">
+    <tr><td><strong>NÚMERO DE OTQ O CONTRATO:</strong> {{ datos().numeroOtq }}</td></tr>
+    <tr><td><strong>NOMBRE DEL CLIENTE:</strong> {{ datos().cliente }}</td></tr>
+    <tr><td><strong>FECHA:</strong> {{ datos().fecha }}</td></tr>
+    <tr><td><strong>POZO #:</strong> {{ datos().pozo }}</td></tr>
+    <tr><td><strong>BLOQUE #:</strong> {{ datos().bloque }}</td></tr>
+  </table>
+
+  <p class="es__instr">
+    Por favor, evalúe los siguientes temas referentes a su percepción de satisfacción sobre el servicio que
+    <strong>DYNADRILL</strong> le ha brindado. Esto permitirá mejorar nuestro servicio para su beneficio. (Coloque una
+    <strong>X</strong> ).<br />
+    En caso de que alguna de sus respuestas sea insatisfactorio favor exponer sus motivos en el campo comentarios.
+  </p>
+
+  <table class="es__tabla">
+    <colgroup>
+      <col class="es__c-n" /><col class="es__c-tema" />
+      @for (e of escala; track e) { <col class="es__c-esc" /> }
+      <col class="es__c-com" />
+    </colgroup>
+    <thead>
+      <tr class="es__morado">
+        <th colspan="2"></th>
+        @for (e of escala; track e) { <th class="doc-centro">{{ e }}</th> }
+        <th class="doc-centro">COMENTARIOS</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (t of temas; track t; let i = $index) {
+        <tr class="es__fila">
+          <td class="doc-centro"><strong>{{ i + 1 }}</strong></td>
+          <td>{{ t }}</td>
+          @for (e of escala; track e) { <td></td> }
+          <td></td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <table class="es__firmas">
+    <tr class="es__morado"><th class="doc-centro">CLIENTE</th><th class="doc-centro">DYNADRILL ECUADOR C.A.</th></tr>
+    <tr class="es__f-nombre">
+      <td><strong>NOMBRE:</strong></td>
+      <td><strong>NOMBRE:</strong></td>
+    </tr>
+    <tr class="es__f-firma">
+      <td><strong>FIRMA:</strong></td>
+      <td><strong>FIRMA:</strong></td>
+    </tr>
+  </table>
+
+  <p class="es__gracias">¡ DYNADRILL AGRADECE SU VALIOSA COLABORACIÓN !</p>
+</div>

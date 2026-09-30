@@ -165,6 +165,7 @@ function resolveSupervisorName(t: FcrTicket): string {
 }
 
 import { DocumentoPdfService } from '../../../../../shared/documentos';
+import { EncuestaSatisfaccionHoja } from '../../../../../shared/documentos/formatos/encuesta-satisfaccion-hoja';
 import { ReporteHerramientasHoja } from '../../../../../shared/documentos/formatos/reporte-herramientas-hoja';
 
 @Component({
@@ -963,6 +964,26 @@ export class FcrTicketDetailPage {
       },
       footer: false,
       width: '820px',
+    });
+  }
+
+  /** Encuesta de satisfacción con los datos del servicio; calificaciones, nombres y firmas van en blanco (la llena el cliente). */
+  protected descargarEncuesta(): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.documentoPdf.abrir({
+      titulo: `Encuesta de satisfacción — ${t.code}`,
+      component: EncuestaSatisfaccionHoja,
+      inputs: {
+        datos: {
+          numeroOtq: t.pedidoCode ?? t.code,
+          cliente: t.clientName,
+          fecha: new Date().toLocaleDateString('es-EC'),
+          pozo: t.wellName,
+          bloque: '',
+        },
+      },
+      nombreArchivo: `Encuesta de satisfacción ${t.code}`,
     });
   }
 

@@ -17,7 +17,6 @@ export * from './models/catalogos.model';
 export * from './models/timeline.model';
 
 // Componentes de composición (documentos operativos)
-export { ReporteJobPdfDialog, type ReporteJobPdfDialogData } from './components/reporte-job-pdf-dialog/reporte-job-pdf-dialog';
 export {
   ReporteCierrePdfDialog,
   type ReporteCierrePdfDialogData,

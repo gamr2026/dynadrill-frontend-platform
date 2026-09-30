@@ -15,8 +15,6 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { useDetailChrome } from '../../../../layout/page-chrome.service';
 import {
-  ReporteJobPdfDialog,
-  ReporteJobPdfDialogData,
   TimelinePopoverTriggerDirective,
 } from '../../../../shared/index';
 import {
@@ -50,6 +48,7 @@ import { TimelineTramo } from '../../../../shared/models/timeline.model';
 import { DocumentoPdfService } from '../../../../shared/documentos';
 import { ReporteUnidadHoja } from '../../../../shared/documentos/formatos/reporte-unidad-hoja';
 import { PrefacturaHoja } from '../../../../shared/documentos/formatos/prefactura-hoja';
+import { ReporteJobHoja, type ReporteJobExtras } from '../../../../shared/documentos/formatos/reporte-job-hoja';
 import { ReporteHerramientasHoja } from '../../../../shared/documentos/formatos/reporte-herramientas-hoja';
 import { SolicitudDespachoBodega } from '../../models/solicitud-despacho-bodega.model';
 
@@ -426,14 +425,25 @@ export class PedidoDetailPage {
     });
   }
 
+  /** Datos del pedido que el formato DYN-SGI-RE-047 pide y no viajan en la cabecera del documento operativo. */
+  private extrasReporteJob(): ReporteJobExtras {
+    const p = this.pedido();
+    if (!p) return {};
+    return {
+      campoBloque: `${p.campo} / ${p.bloque}`,
+      taladro: p.taladroRig,
+      ordenContrato: p.numeroContrato,
+      representanteCliente: p.representanteCampo,
+    };
+  }
+
   protected verReporteJob(doc: DocumentoOperativo): void {
     if (!doc.header || !doc.actividades) return;
-    this.dialog.open<ReporteJobPdfDialog, ReporteJobPdfDialogData>({
-      title: `Reporte Job — ${doc.fecha ?? ''}`,
-      content: ReporteJobPdfDialog,
-      data: { header: doc.header, log: doc.actividades },
-      footer: false,
-      width: '820px',
+    this.documentoPdf.abrir({
+      titulo: `Reporte Job — ${doc.fecha ?? ''}`,
+      component: ReporteJobHoja,
+      inputs: { header: doc.header, log: doc.actividades, extras: this.extrasReporteJob() },
+      nombreArchivo: `Reporte diario de actividades ${doc.header.code} ${doc.fecha ?? ''}`.trim(),
     });
   }
 
@@ -457,12 +467,11 @@ export class PedidoDetailPage {
     const docs = this.reporteJobDocs();
     if (!docs.length || !docs[0].header) return;
     const log = docs.flatMap(d => d.actividades ?? []);
-    this.dialog.open<ReporteJobPdfDialog, ReporteJobPdfDialogData>({
-      title: 'Reporte Job (consolidado)',
-      content: ReporteJobPdfDialog,
-      data: { header: docs[0].header, log },
-      footer: false,
-      width: '820px',
+    this.documentoPdf.abrir({
+      titulo: 'Reporte Job (consolidado)',
+      component: ReporteJobHoja,
+      inputs: { header: docs[0].header, log, extras: this.extrasReporteJob() },
+      nombreArchivo: `Reporte diario de actividades ${docs[0].header.code}`,
     });
   }
 

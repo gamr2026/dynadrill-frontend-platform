@@ -4,7 +4,7 @@ import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import * as XLSX from 'xlsx';
 import { DynadrillButtonComponent, DynadrillDialogService, DynadrillIconButtonComponent, DynadrillNotificationService, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
 import { DocumentoOperativo } from '../../../facturacion/models/documento-operativo.model';
-import { ReporteJobPdfDialog, ReporteJobPdfDialogData } from '../../../../shared/index';
+import { ReporteJobHoja } from '../../../../shared/documentos/formatos/reporte-job-hoja';
 import { PumpingDocumento, PumpingService } from '../services/pumping.service';
 import type { PumpingUnitReport } from '../models/pumping.model';
 import { DocumentoPdfService } from '../../../../shared/documentos';
@@ -69,12 +69,11 @@ export class TicketDocumentosDialog {
 
   protected verReporteJob(doc: DocumentoOperativo): void {
     if (!doc.header || !doc.actividades) return;
-    this.dialog.open<ReporteJobPdfDialog, ReporteJobPdfDialogData>({
-      title: `Reporte Job — ${doc.fecha ?? ''}`,
-      content: ReporteJobPdfDialog,
-      data: { header: doc.header, log: doc.actividades },
-      footer: false,
-      width: '820px',
+    this.documentoPdf.abrir({
+      titulo: `Reporte Job — ${doc.fecha ?? ''}`,
+      component: ReporteJobHoja,
+      inputs: { header: doc.header, log: doc.actividades },
+      nombreArchivo: `Reporte diario de actividades ${this.data.ticketCode} ${doc.fecha ?? ''}`.trim(),
     });
   }
 

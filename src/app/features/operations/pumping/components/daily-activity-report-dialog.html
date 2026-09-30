@@ -131,23 +131,15 @@
   }
 </section>
 
-<!-- ═══ Firmas ═══ -->
+<!-- ═══ Responsables (datos del reporte; la sección de firma solo existe en el PDF) ═══ -->
 <section class="daily-report__section">
-  <dynadrill-text variant="h2">Firmas</dynadrill-text>
+  <dynadrill-text variant="h2">Responsables del reporte</dynadrill-text>
   <div class="daily-report__signatures">
     <div class="daily-report__signature-col">
       <dynadrill-input label="Nombre (Supervisor Dynadrill)" [value]="nombreSupervisor()" (valueChange)="nombreSupervisor.set($event)" />
-      <div class="daily-report__signature-line">
-        <dynadrill-text variant="caption">Firma:</dynadrill-text>
-        <div class="daily-report__line"></div>
-      </div>
     </div>
     <div class="daily-report__signature-col">
       <dynadrill-input label="Nombre (Representante Cliente)" [value]="representanteCliente()" [disabled]="true" />
-      <div class="daily-report__signature-line">
-        <dynadrill-text variant="caption">Firma:</dynadrill-text>
-        <div class="daily-report__line"></div>
-      </div>
     </div>
   </div>
 </section>

@@ -1,0 +1,98 @@
+.rj {
+  font-size: 9px;
+
+  &__datos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin-top: -1px;
+    padding: 4px 6px;
+    border: 1px solid #000;
+    font-size: 9.5px;
+    line-height: 1.9;
+  }
+
+  &__col--der {
+    text-align: right;
+  }
+
+  &__tabla {
+    margin-top: -1px;
+
+    th {
+      padding: 2px 4px;
+      font-size: 9px;
+      text-align: center;
+    }
+
+    td {
+      height: 16px;
+      padding: 1px 4px;
+      font-size: 9px;
+      border-top-color: #000;
+    }
+  }
+
+  &__c-h {
+    width: 7%;
+  }
+
+  &__det {
+    font-size: 10px !important;
+    vertical-align: middle !important;
+  }
+
+  &__dia td {
+    background: #bdd7ee;
+    border-top: 1px solid #000;
+  }
+
+  &__tiempos {
+    margin-top: -1px;
+
+    td {
+      padding: 2px 4px;
+      font-size: 9px;
+    }
+  }
+
+  &__obs {
+    margin-top: -1px;
+    padding: 2px 6px;
+    border: 1px solid #000;
+    font-size: 9px;
+  }
+
+  &__obs-espacio {
+    height: 44px;
+  }
+
+  &__firmas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin-top: -1px;
+    border: 1px solid #000;
+  }
+
+  &__firma {
+    padding: 4px 8px;
+
+    &:first-child {
+      border-right: 1px solid #000;
+    }
+  }
+
+  &__f-fila {
+    min-height: 26px;
+    padding-top: 4px;
+    border-bottom: 1px solid #000;
+    font-size: 9.5px;
+
+    &--firma {
+      min-height: 56px;
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+}

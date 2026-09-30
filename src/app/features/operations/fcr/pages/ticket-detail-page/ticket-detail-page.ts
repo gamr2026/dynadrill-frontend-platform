@@ -99,8 +99,6 @@ import {
   ReporteCierrePdfDialogData,
   type ReporteCierrePdfActivitySummaryRow,
   type ReporteCierrePdfDocumentRow,
-  ReporteJobPdfDialog,
-  ReporteJobPdfDialogData,
   OperativoDocsBridgeService,
   descargarCsv,
   parseCsvFile,
@@ -166,6 +164,7 @@ function resolveSupervisorName(t: FcrTicket): string {
 
 import { DocumentoPdfService } from '../../../../../shared/documentos';
 import { EncuestaSatisfaccionHoja } from '../../../../../shared/documentos/formatos/encuesta-satisfaccion-hoja';
+import { ReporteJobHoja } from '../../../../../shared/documentos/formatos/reporte-job-hoja';
 import { ReporteHerramientasHoja } from '../../../../../shared/documentos/formatos/reporte-herramientas-hoja';
 
 @Component({
@@ -955,15 +954,14 @@ export class FcrTicketDetailPage {
   protected openReporteJob(): void {
     const t = this.ticket();
     if (!t) return;
-    this.dialog.open<ReporteJobPdfDialog, ReporteJobPdfDialogData>({
-      title: 'Reporte de Trabajo — Vista de impresión',
-      content: ReporteJobPdfDialog,
-      data: {
+    this.documentoPdf.abrir({
+      titulo: 'Reporte de Trabajo — Vista de impresión',
+      component: ReporteJobHoja,
+      inputs: {
         header: { code: t.code, cliente: t.clientName, pozo: t.wellName, supervisor: resolveSupervisorName(t), operador: t.assignedOperator },
         log: t.activityLog,
       },
-      footer: false,
-      width: '820px',
+      nombreArchivo: `Reporte diario de actividades ${t.code}`,
     });
   }
 

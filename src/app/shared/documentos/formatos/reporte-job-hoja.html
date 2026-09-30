@@ -1,0 +1,74 @@
+<div class="doc-hoja rj">
+  <app-doc-encabezado titulo="Reporte diario de actividades de operaciones" codigo="DYN-SGI-RE-047" version="11" />
+
+  <div class="rj__datos">
+    <div class="rj__col">
+      <div><strong>Fecha:</strong> {{ fechaReporte() }}</div>
+      <div><strong>Cliente:</strong> {{ header().cliente }}</div>
+      <div><strong>Pozo:</strong> {{ header().pozo }}</div>
+      <div><strong>Campo/Bloque:</strong> {{ extras().campoBloque }}</div>
+      <div><strong>Taladro:</strong> {{ extras().taladro }}</div>
+    </div>
+    <div class="rj__col rj__col--der">
+      <div><strong>N°</strong> {{ header().code }}</div>
+      <div><strong>Orden/Contrato N°:</strong> {{ extras().ordenContrato }}</div>
+      <div><strong>Representante del Cliente:</strong> {{ extras().representanteCliente }}</div>
+      <div><strong>Cargo:</strong> {{ extras().cargoRepresentante }}</div>
+    </div>
+  </div>
+
+  <table class="rj__tabla">
+    <colgroup><col class="rj__c-h" /><col class="rj__c-h" /><col class="rj__c-h" /><col /></colgroup>
+    <thead>
+      <tr><th colspan="3">DURACION</th><th rowspan="2" class="rj__det">DETALLE DE ACTIVIDADES</th></tr>
+      <tr><th>Inicio</th><th>Fin</th><th>Horas</th></tr>
+    </thead>
+    <tbody>
+      @for (f of filas(); track $index) {
+        @switch (f.tipo) {
+          @case ('dia') {
+            <tr class="rj__dia"><td colspan="3"></td><td><strong>{{ f.dia }}</strong></td></tr>
+          }
+          @case ('act') {
+            <tr>
+              <td class="doc-centro">{{ f.e.startTime }}</td>
+              <td class="doc-centro">{{ f.e.endTime }}</td>
+              <td class="doc-centro">{{ f.e.durationHours | number: '1.1-2' }}</td>
+              <td>{{ f.e.detail }}</td>
+            </tr>
+          }
+          @default {
+            <tr><td></td><td></td><td></td><td></td></tr>
+          }
+        }
+      }
+    </tbody>
+  </table>
+
+  <table class="rj__tiempos">
+    <tr>
+      <td><strong>Tiempo productivo:</strong></td><td></td>
+      <td><strong>Tiempo No productivo:</strong></td><td></td>
+      <td><strong>Tiempo Total:</strong> {{ totalHoras() | number: '1.1-2' }}</td>
+    </tr>
+  </table>
+
+  <div class="rj__obs">
+    <strong>Observaciones:</strong> {{ extras().observaciones }}
+    <div class="rj__obs-espacio"></div>
+  </div>
+
+  <!-- Firmas: nombre impreso; firma y C.I. en blanco (solo en el PDF) -->
+  <div class="rj__firmas">
+    <div class="rj__firma">
+      <div class="rj__f-fila"><strong>Nombre:</strong> {{ header().supervisor }}</div>
+      <div class="rj__f-fila rj__f-fila--firma"><strong>Firma:</strong></div>
+      <div class="rj__f-fila"><strong>C.I.:</strong></div>
+    </div>
+    <div class="rj__firma">
+      <div class="rj__f-fila"><strong>Nombre:</strong> {{ extras().representanteCliente }}</div>
+      <div class="rj__f-fila rj__f-fila--firma"><strong>Firma:</strong></div>
+      <div class="rj__f-fila"><strong>C.I.:</strong></div>
+    </div>
+  </div>
+</div>

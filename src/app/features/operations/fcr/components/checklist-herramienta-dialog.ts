@@ -464,15 +464,15 @@ export class ChecklistHerramientaDialog {
     if (rol === 'reparadoPor') {
       const faltantes = this.camposFaltantes();
       if (faltantes.length > 0) {
-        this.notify.error('Faltan datos por completar', `Antes de firmar "Reparado por": ${faltantes.join(', ')}.`);
+        this.notify.error('Faltan datos por completar', `Antes de confirmar "Reparado por": ${faltantes.join(', ')}.`);
         return;
       }
     }
     const nombre = this.auth.currentUser()?.name ?? this.roleName();
     const contenido =
       rol === 'reparadoPor'
-        ? `Vas a firmar "Reparado por" como ${nombre}. Esto certifica los datos y las partes tal como quedaron — a partir de acá se bloquean para edición, solo faltarán las firmas restantes.`
-        : `Vas a firmar "${this.firmaLabels[rol]}" como ${nombre}. No se puede deshacer.`;
+        ? `Vas a confirmar "Reparado por" como ${nombre}. Esto certifica los datos y las partes tal como quedaron — a partir de acá se bloquean para edición, solo faltarán las confirmaciones restantes.`
+        : `Vas a confirmar "${this.firmaLabels[rol]}" como ${nombre}. No se puede deshacer.`;
     const ok = await this.dialog.confirm({ title: 'Confirmar firma', content: contenido, okText: 'Firmar', cancelText: 'Cancelar' });
     if (!ok) return;
     void this.firmar(rol);

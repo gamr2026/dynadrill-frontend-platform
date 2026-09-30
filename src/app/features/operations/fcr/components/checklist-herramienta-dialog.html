@@ -8,7 +8,7 @@
     @if (yaEnviado()) {
       <dynadrill-banner variant="info" message="Este checklist ya fue enviado — queda de solo lectura." />
     } @else if (formularioBloqueado()) {
-      <dynadrill-banner variant="info" message="'Reparado por' ya firmó — los datos y las partes quedan bloqueados. Solo faltan las firmas restantes." />
+      <dynadrill-banner variant="info" message="'Reparado por' ya confirmó — los datos y las partes quedan bloqueados. Solo faltan las confirmaciones restantes." />
     }
 
     @if (reparada()) {
@@ -160,7 +160,7 @@
     </fieldset>
 
     <fieldset class="checklist-dialog__section" [disabled]="yaEnviado()">
-      <legend><dynadrill-text variant="h2">Firmas</dynadrill-text></legend>
+      <legend><dynadrill-text variant="h2">Confirmaciones de los responsables</dynadrill-text></legend>
 
       @for (rol of firmaRoles; track rol) {
         <div class="checklist-dialog__firma" [title]="motivoDeshabilitado(rol)">
@@ -171,7 +171,7 @@
             (checkedChange)="onFirmaChange(rol, $event)"
           />
           @if (firmas()[rol]?.firmado) {
-            <dynadrill-text variant="caption">Firmado por {{ firmas()[rol]?.nombre }}</dynadrill-text>
+            <dynadrill-text variant="caption">Confirmado por {{ firmas()[rol]?.nombre }}</dynadrill-text>
           } @else if (motivoDeshabilitado(rol)) {
             <dynadrill-text variant="caption">{{ motivoDeshabilitado(rol) }}</dynadrill-text>
           } @else {
@@ -180,7 +180,7 @@
         </div>
       }
 
-      <dynadrill-banner variant="info" message="Cada firma se registra apenas la tildas — quien la deja debe tener el rol correspondiente y las anteriores ya firmadas. Al enviar, el checklist queda de solo lectura." />
+      <dynadrill-banner variant="info" message="Cada confirmación se registra apenas la tildas — quien la deja debe tener el rol correspondiente y las anteriores ya confirmadas. Al enviar, el checklist queda de solo lectura." />
     </fieldset>
   }
 </section>

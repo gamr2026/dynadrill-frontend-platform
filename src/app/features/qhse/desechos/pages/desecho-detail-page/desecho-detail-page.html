@@ -58,25 +58,25 @@
         <div class="desecho-detail-page__firma">
           <span>Despachado por</span>
           @if (d.manifiesto!.firmaDespachadoPor; as f) {
-            <dynadrill-tag label="Firmado por {{ f.nombre }}" variant="success" />
+            <dynadrill-tag label="Confirmado por {{ f.nombre }}" variant="success" />
           } @else {
-            <dynadrill-button variant="secondary" size="small" (clicked)="firmar('firmaDespachadoPor')">Firmar</dynadrill-button>
+            <dynadrill-button variant="secondary" size="small" (clicked)="firmar('firmaDespachadoPor')">Confirmar despacho</dynadrill-button>
           }
         </div>
         <div class="desecho-detail-page__firma">
           <span>Transportado por</span>
           @if (d.manifiesto!.firmaTransportadoPor; as f) {
-            <dynadrill-tag label="Firmado por {{ f.nombre }}" variant="success" />
+            <dynadrill-tag label="Confirmado por {{ f.nombre }}" variant="success" />
           } @else {
-            <dynadrill-button variant="secondary" size="small" (clicked)="firmar('firmaTransportadoPor')">Firmar</dynadrill-button>
+            <dynadrill-button variant="secondary" size="small" (clicked)="firmar('firmaTransportadoPor')">Confirmar transporte</dynadrill-button>
           }
         </div>
         <div class="desecho-detail-page__firma">
           <span>Recibido por</span>
           @if (d.manifiesto!.firmaRecibidoPor; as f) {
-            <dynadrill-tag label="Firmado por {{ f.nombre }}" variant="success" />
+            <dynadrill-tag label="Confirmado por {{ f.nombre }}" variant="success" />
           } @else {
-            <dynadrill-button variant="secondary" size="small" (clicked)="firmar('firmaRecibidoPor')">Firmar</dynadrill-button>
+            <dynadrill-button variant="secondary" size="small" (clicked)="firmar('firmaRecibidoPor')">Confirmar recepción</dynadrill-button>
           }
         </div>
       </div>

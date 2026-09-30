@@ -39,7 +39,6 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { Router } from '@angular/router';
 import { GuiaRemisionDialog, GuiaRemisionDialogData } from '../../components/guia-remision-dialog';
 import { GuiaRemisionPdfDialog, GuiaRemisionPdfDialogData } from '../../components/guia-remision-pdf-dialog';
-import { PrefacturaPdfDialog, PrefacturaPdfDialogData } from '../../components/prefactura-pdf-dialog';
 import { FCR_PHASE_LABELS, FcrTicket } from '../../../operations/fcr/models/fcr.model';
 import { FcrService } from '../../../operations/fcr/services/fcr.service';
 import { PumpingService } from '../../../operations/pumping/services/pumping.service';
@@ -50,6 +49,7 @@ import { SolicitarDespachoDialog, SolicitarDespachoDialogData } from '../../comp
 import { TimelineTramo } from '../../../../shared/models/timeline.model';
 import { DocumentoPdfService } from '../../../../shared/documentos';
 import { ReporteUnidadHoja } from '../../../../shared/documentos/formatos/reporte-unidad-hoja';
+import { PrefacturaHoja } from '../../../../shared/documentos/formatos/prefactura-hoja';
 import { ReporteHerramientasHoja } from '../../../../shared/documentos/formatos/reporte-herramientas-hoja';
 import { SolicitudDespachoBodega } from '../../models/solicitud-despacho-bodega.model';
 
@@ -470,12 +470,11 @@ export class PedidoDetailPage {
     const pf = this.prefactura();
     const p = this.pedido();
     if (!pf || !p) return;
-    this.dialog.open<PrefacturaPdfDialog, PrefacturaPdfDialogData>({
-      title: 'Prefactura — Vista de impresión',
-      content: PrefacturaPdfDialog,
-      data: { prefactura: pf, pedido: p },
-      footer: false,
-      width: '900px',
+    this.documentoPdf.abrir({
+      titulo: 'Prefactura — Vista de impresión',
+      component: PrefacturaHoja,
+      inputs: { prefactura: pf, pedido: p },
+      nombreArchivo: `Prefactura ${pf.code}`,
     });
   }
 

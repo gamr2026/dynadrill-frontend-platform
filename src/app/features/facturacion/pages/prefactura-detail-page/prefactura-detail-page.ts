@@ -19,7 +19,8 @@ import { GuiaRemision } from '../../models/guia-remision.model';
 import { AvanceDocumental } from '../../models/documento-operativo.model';
 import { Aot } from '../../models/aot.model';
 import { AotService, DocumentoOperativoService, GuiaRemisionService, PedidoService, PrefacturaService } from '../../services/pedido.service';
-import { PrefacturaPdfDialog, PrefacturaPdfDialogData } from '../../components/prefactura-pdf-dialog';
+import { DocumentoPdfService } from '../../../../shared/documentos';
+import { PrefacturaHoja } from '../../../../shared/documentos/formatos/prefactura-hoja';
 import { EnviarClienteDialog, EnviarClienteDialogData } from '../../components/enviar-cliente-dialog';
 import { RespuestaClienteDialog, RespuestaClienteDialogData } from '../../components/respuesta-cliente-dialog';
 import { GuiaRemisionPdfDialog, GuiaRemisionPdfDialogData } from '../../components/guia-remision-pdf-dialog';
@@ -76,6 +77,7 @@ export class PrefacturaDetailPage {
   private readonly guiaService = inject(GuiaRemisionService);
   private readonly aotService = inject(AotService);
   private readonly dialog = inject(DynadrillDialogService);
+  private readonly documentoPdf = inject(DocumentoPdfService);
   private readonly notify = inject(DynadrillNotificationService);
 
   private readonly prefacturaId = Number(this.route.snapshot.paramMap.get('id'));
@@ -300,12 +302,11 @@ export class PrefacturaDetailPage {
     const pf = this.prefactura();
     const p = this.pedido();
     if (!pf || !p) return;
-    this.dialog.open<PrefacturaPdfDialog, PrefacturaPdfDialogData>({
-      title: 'Prefactura — Vista de impresión',
-      content: PrefacturaPdfDialog,
-      data: { prefactura: pf, pedido: p },
-      footer: false,
-      width: '900px',
+    this.documentoPdf.abrir({
+      titulo: 'Prefactura — Vista de impresión',
+      component: PrefacturaHoja,
+      inputs: { prefactura: pf, pedido: p },
+      nombreArchivo: `Prefactura ${pf.code}`,
     });
   }
 

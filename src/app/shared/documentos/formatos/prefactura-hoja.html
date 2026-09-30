@@ -1,0 +1,82 @@
+<div class="doc-hoja pf">
+  <app-doc-encabezado titulo="Prefactura" codigo="DYN-AFN-RE-11" version="09" />
+
+  <!-- Datos de la empresa -->
+  <div class="pf__empresa">
+    <div>Vía Coca Lago Km 2, &nbsp;Orellana - Ecuador</div>
+    <div>(593-2 2263-300 &nbsp;&nbsp;&nbsp; dynadrillecuador&#64;dynadrill.com.ec &nbsp;&nbsp;&nbsp; www.dynadrill.com.ec</div>
+  </div>
+
+  <table class="pf__fecha">
+    <tr>
+      <td><strong>FECHA:</strong> {{ fecha(prefactura().fechaGeneracion) }}</td>
+      <td class="pf__ticket">{{ pedido().code }}</td>
+    </tr>
+  </table>
+
+  <div class="pf__datos">
+    <div class="pf__datos-izq">
+      <div><strong>CLIENTE:</strong> {{ pedido().cliente }}</div>
+      <div><strong>SOLICITADO POR:</strong> {{ pedido().representanteCampo }}</div>
+      <div class="pf__medio">Verbal ( {{ esVerbal() ? 'x' : '' }} ) &nbsp;&nbsp;&nbsp;&nbsp; Escrita vía email( {{ esVerbal() ? '' : 'x' }} )</div>
+      <div><strong>NUMERO DE CONTRATO:</strong> {{ pedido().numeroContrato }}</div>
+      <div class="pf__trabajo"><span><strong>INICIO TRABAJO:</strong> {{ pedido().fechaInicioServicio }}</span><span><strong>TRABAJO TERMINADO:</strong> {{ pedido().fechaFinServicio }}</span></div>
+      <div><strong>CAMPO / BLOQUE:</strong> {{ pedido().campo }} / BLOQUE {{ pedido().bloque }}</div>
+      <div><strong>POZO:</strong> {{ pedido().pozo }}</div>
+      <div><strong>TALADRO:</strong> {{ pedido().taladroRig }}</div>
+      <div class="pf__obs"><strong>OBSERVACIONES:</strong> {{ observaciones() }}</div>
+    </div>
+    <div class="pf__condiciones"><strong>Condiciones de servicio:</strong> {{ condiciones }}</div>
+  </div>
+
+  <table class="pf__tabla">
+    <colgroup>
+      <col class="pf__c-item" /><col class="pf__c-cod" /><col class="pf__c-cant" /><col class="pf__c-uni" />
+      <col class="pf__c-desc" /><col class="pf__c-precio" /><col class="pf__c-precio" />
+    </colgroup>
+    <thead>
+      <tr class="pf__azul">
+        <th>ITEM</th><th>CÓDIGO</th><th>CANTIDAD</th><th>UNIDAD</th><th>DESCRIPCIÓN</th><th>PRECIO UNITARIO</th><th>PRECIO TOTAL</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (it of filas(); track $index) {
+        <tr>
+          <td class="doc-centro">{{ it ? $index + 1 : '' }}</td>
+          <td>{{ it?.codigo }}</td>
+          <td class="doc-centro">{{ it?.cantidad }}</td>
+          <td class="doc-centro">{{ it?.unidad }}</td>
+          <td>{{ it?.descripcion }}@if (it?.serie) { — {{ it?.serie }} }</td>
+          <td class="pf__num">{{ it ? (it.precioUnitario | number: '1.2-2') : '' }}</td>
+          <td class="pf__num">{{ it ? (it.precioTotal | number: '1.2-2') : '0.00' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <table class="pf__totales">
+    <tr>
+      <td rowspan="2" class="pf__iva">Los precios no incluyen IVA</td>
+      <td class="pf__t-etq">SUBTOTAL</td><td class="pf__t-val">$ {{ prefactura().subtotal | number: '1.2-2' }}</td>
+    </tr>
+    <tr>
+      <td class="pf__t-etq">TOTAL</td><td class="pf__t-val">$ {{ prefactura().subtotal | number: '1.2-2' }}</td>
+    </tr>
+  </table>
+
+  <!-- Firmas: solo en el PDF -->
+  <div class="pf__firmas">
+    <div class="pf__firma">
+      <div class="pf__firma-linea"></div>
+      <div>Gerente General/ Representante Dynadrill Ecuador C.A.:</div>
+      <div>Nombre :</div>
+      <div>C.I.:</div>
+    </div>
+    <div class="pf__firma">
+      <div class="pf__firma-linea"></div>
+      <div>Aprobado Cliente</div>
+      <div>Nombre : {{ prefactura().firmaCliente?.nombre }}</div>
+      <div>C.I.:</div>
+    </div>
+  </div>
+</div>

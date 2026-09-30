@@ -1,0 +1,154 @@
+.pf {
+  font-size: 9px;
+
+  &__empresa {
+    margin-top: -1px;
+    padding: 10px 18px;
+    border: 1px solid #000;
+    color: #5b2d8e;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.7;
+  }
+
+  &__fecha {
+    margin-top: -1px;
+
+    td {
+      padding: 3px 4px;
+      font-size: 9.5px;
+    }
+  }
+
+  &__ticket {
+    width: 30%;
+    color: #e53935;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  &__datos {
+    display: grid;
+    grid-template-columns: 1.7fr 1fr;
+    margin-top: -1px;
+    border: 1px solid #000;
+  }
+
+  &__datos-izq {
+    padding: 2px 4px;
+    font-size: 8.5px;
+    line-height: 1.5;
+  }
+
+  &__medio {
+    padding-left: 4px;
+  }
+
+  &__trabajo {
+    display: flex;
+    gap: 40px;
+  }
+
+  &__obs {
+    margin-top: 6px;
+    padding-top: 4px;
+    border-top: 1px solid #000;
+    min-height: 34px;
+  }
+
+  &__condiciones {
+    padding: 4px 6px;
+    border-left: 1px solid #000;
+    font-size: 7.5px;
+    line-height: 1.4;
+    text-align: justify;
+    align-self: center;
+  }
+
+  &__tabla {
+    margin-top: -1px;
+
+    th,
+    td {
+      padding: 1px 3px;
+      font-size: 8.5px;
+    }
+
+    td {
+      height: 14px;
+    }
+  }
+
+  &__azul th {
+    background: #a6b3c8;
+    text-align: center;
+    font-weight: 700;
+  }
+
+  &__c-item {
+    width: 6%;
+  }
+
+  &__c-cod {
+    width: 13%;
+  }
+
+  &__c-cant {
+    width: 11%;
+  }
+
+  &__c-uni {
+    width: 8%;
+  }
+
+  &__c-precio {
+    width: 15%;
+  }
+
+  &__num {
+    text-align: right !important;
+  }
+
+  &__totales {
+    margin-top: -1px;
+
+    td {
+      height: 16px;
+      font-size: 8.5px;
+    }
+  }
+
+  &__iva {
+    font-weight: 700;
+    text-align: center;
+    vertical-align: middle !important;
+  }
+
+  &__t-etq {
+    width: 15%;
+    font-weight: 700;
+  }
+
+  &__t-val {
+    width: 15%;
+    font-weight: 700;
+    text-align: right !important;
+  }
+
+  &__firmas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    margin-top: 70px;
+    padding: 0 24px;
+    font-size: 8px;
+    line-height: 1.6;
+  }
+
+  &__firma-linea {
+    height: 1px;
+    margin-bottom: 4px;
+    background: #000;
+  }
+}

@@ -6,16 +6,14 @@ import {
   DynadrillDataTableComponent,
   DynadrillDialogService,
   DynadrillIconButtonComponent,
-  DynadrillKpiRowComponent,
   DynadrillNotificationService,
-  DynadrillPhaseTrackComponent,
-  DynadrillScreenHeaderComponent,
-  type DynadrillKpiRowItem,
 } from '@digitec-it-projects/dynadrill-ui';
 import { calcularNR, interpretarNR, IPERC_STATUS_LABELS, IpercMatrix, IpercStatus, NivelRiesgo } from '../../models/iperc.model';
 import { IpercService } from '../../services/iperc.service';
 import { IpercMatrixDialog } from '../../components/iperc-matrix-dialog';
 import { IpercMatrixPdfDialog, IpercMatrixPdfDialogData } from '../../components/iperc-matrix-pdf-dialog';
+import { PageHeader } from '../../../../../shared/components/page-header/page-header';
+import { KpiStat, type KpiStatTone } from '../../../../../shared/components/kpi-stat/kpi-stat';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { AppNotificationItem, NotificationsService } from '../../../../../core/services/notifications.service';
 
@@ -41,7 +39,6 @@ const STATUS_FILTERS = Object.entries(IPERC_STATUS_LABELS).map(([value, text]) =
 
 /** HSE-PLAN-001: Preparación → Identificación/Evaluación → Controles/Reevaluación → Documentación y aprobación. */
 const FASE_STEPS = 4;
-const FASE_LABELS = ['Preparación', 'Identificación/Evaluación', 'Controles/Reevaluación', 'Documentación y aprobación'];
 const STATUS_INDEX: Record<IpercStatus, number> = {
   borrador: 0,
   en_evaluacion: 1,
@@ -53,14 +50,7 @@ const STATUS_INDEX: Record<IpercStatus, number> = {
 @Component({
   selector: 'app-iperc-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    DynadrillScreenHeaderComponent,
-    DynadrillKpiRowComponent,
-    DynadrillDataTableComponent,
-    DynadrillIconButtonComponent,
-    DynadrillButtonComponent,
-    DynadrillPhaseTrackComponent,
-  ],
+  imports: [PageHeader, KpiStat, DynadrillDataTableComponent, DynadrillIconButtonComponent, DynadrillButtonComponent],
   templateUrl: './iperc-list-page.html',
   styleUrl: './iperc-list-page.scss',
 })
@@ -76,13 +66,14 @@ export class IpercListPage {
   protected readonly loading = signal(true);
   protected readonly matrices = signal<IpercMatrix[]>([]);
 
-  protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
+  /** Tarjetas de color (Figma): total en neutro, en evaluación en azul, en revisión en ámbar y aprobadas en verde. */
+  protected readonly kpis = computed<{ label: string; value: number; tone: KpiStatTone }[]>(() => {
     const all = this.matrices();
     return [
-      { label: 'Actividades evaluadas', value: all.length },
-      { label: 'En evaluación', value: all.filter(m => m.status === 'en_evaluacion').length },
-      { label: 'En revisión', value: all.filter(m => m.status === 'en_revision').length },
-      { label: 'Aprobadas', value: all.filter(m => m.status === 'aprobada').length },
+      { label: 'Actividades evaluadas', value: all.length, tone: 'neutral' },
+      { label: 'En evaluación', value: all.filter(m => m.status === 'en_evaluacion').length, tone: 'info' },
+      { label: 'En revisión', value: all.filter(m => m.status === 'en_revision').length, tone: 'warning' },
+      { label: 'Aprobadas', value: all.filter(m => m.status === 'aprobada').length, tone: 'success' },
     ];
   });
 
@@ -101,12 +92,9 @@ export class IpercListPage {
     { key: 'actividad', header: 'Actividad', searchable: true },
     { key: 'ubicacion', header: 'Ubicación', searchable: true },
     { key: 'estadoBadge', header: 'Estado', type: 'badge', filters: STATUS_FILTERS },
-    { key: 'faseIndex', header: 'Fase' },
-    { key: 'riesgoBadge', header: 'Riesgo residual más alto', type: 'badge' },
+    { key: 'fase', header: 'Fase' },
+    { key: 'riesgoBadge', header: 'Riesgo residual', type: 'badge' },
   ]);
-
-  protected readonly faseSteps = FASE_STEPS;
-  protected readonly faseLabels = FASE_LABELS;
 
   protected readonly rows = computed(() =>
     this.matrices().map(m => ({
@@ -117,7 +105,7 @@ export class IpercListPage {
       actividad: m.origenOperativo ? `${m.actividad} · solicitada desde ${m.origenOperativo.ticketCode}` : m.actividad,
       ubicacion: m.ubicacion,
       estadoBadge: STATUS_BADGES[m.status],
-      faseIndex: STATUS_INDEX[m.status],
+      fase: `${STATUS_INDEX[m.status] + 1} / ${FASE_STEPS}`,
       riesgoBadge: this.highestResidualBadge(m),
     })),
   );

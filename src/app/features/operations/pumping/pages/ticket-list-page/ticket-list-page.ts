@@ -208,7 +208,7 @@ export class TicketListPage {
           },
           step: t.currentStep,
           serviceTypeLabel: PUMPING_SERVICE_TYPE_LABELS[t.serviceType],
-          actions: this.inProcessActions(t.id, t.currentStep),
+          actions: this.inProcessActions(t.id, t.currentStep, !!t.unitReport && !!t.pedidoId, t.pedidoId),
           isMaintenanceStep: isMaintenanceRelevant,
           hasMaintenanceOrders: isMaintenanceRelevant && orders.length > 0,
           maintenanceSubOrders: isMaintenanceRelevant
@@ -275,7 +275,7 @@ export class TicketListPage {
         this.dialog.open<TicketDocumentosDialog, TicketDocumentosDialogData>({
           title: `Documentos — ${ticketCode}`,
           content: TicketDocumentosDialog,
-          data: { ticketId, ticketCode, reporteJobDocs },
+          data: { ticketId, ticketCode, reporteJobDocs, unitReport: this.tickets().find(t => t.id === ticketId)?.unitReport ?? null },
           footer: false,
           width: '640px',
         });
@@ -404,7 +404,17 @@ export class TicketListPage {
    * Acciones por fila según rol y paso — una sola lista para la tabla de
    * escritorio y la tarjeta móvil. Solo si el rol puede ver ese paso.
    */
-  private inProcessActions(id: number, step: PumpingStep): RecordAction[] {
+  private inProcessActions(id: number, step: PumpingStep, conDocumentos = false, pedidoId?: number): RecordAction[] {
+    const acciones = this.accionesDePaso(id, step);
+    // Con el Reporte de Unidad ya hecho (salida aprobada en adelante) el PDF se puede bajar desde "Documentos", sin esperar al cierre.
+    if (conDocumentos) {
+      const code = this.tickets().find(t => t.id === id)?.code ?? '';
+      acciones.push({ icon: 'file-pdf', label: 'Ver documentos', run: () => this.verDocumentos({ id, code, pedidoId }) });
+    }
+    return acciones;
+  }
+
+  private accionesDePaso(id: number, step: PumpingStep): RecordAction[] {
     const row = { id, step };
     if (!this.canViewDetail(row)) return [];
     if (this.isSupervisor() && step === 'asignacion') {

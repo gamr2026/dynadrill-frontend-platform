@@ -1874,30 +1874,6 @@ export class TicketDetailPage {
   protected readonly departureApprovalDate = signal('');
   protected readonly arrivalApprovalDate = signal('');
 
-  protected readonly departureSignatureName = computed(() => {
-    const t = this.ticket();
-    if (t?.operators?.length) return t.operators[0].name;
-    return this.departureOperatorName() || '—';
-  });
-
-  protected readonly departureSignatureDate = computed(() => {
-    if (this.departureApprovalDate()) return this.departureApprovalDate();
-    if (this.reportDepartureDate()) return toIsoDateString(this.reportDepartureDate());
-    return toIsoDateString(new Date());
-  });
-
-  protected readonly arrivalSignatureName = computed(() => {
-    const t = this.ticket();
-    if (t?.operators?.length) return t.operators[t.operators.length > 1 ? 1 : 0].name;
-    return this.arrivalOperatorName() || '—';
-  });
-
-  protected readonly arrivalSignatureDate = computed(() => {
-    if (this.arrivalApprovalDate()) return this.arrivalApprovalDate();
-    if (this.reportArrivalDate()) return toIsoDateString(this.reportArrivalDate());
-    return toIsoDateString(new Date());
-  });
-
   // Datos de salida en solo lectura para la vista de llegada
   /** Información general del reporte en la llegada (datos de la salida, solo lectura) con la tarjeta de grupos. */
   protected readonly arrivalGeneralInfoGroups = computed<DynadrillContextCardItem[][]>(() => [

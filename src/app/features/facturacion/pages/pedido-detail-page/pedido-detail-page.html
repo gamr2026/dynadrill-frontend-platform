@@ -145,6 +145,16 @@
               <tr><th>Documento</th><th>Origen</th><th>Fecha</th><th>Firmado por</th><th>Estado</th><th aria-label="Acciones"></th></tr>
             </thead>
             <tbody>
+              @if (reporteUnidad(); as ru) {
+                <tr>
+                  <td>Reporte de Unidad</td>
+                  <td>Pumping</td>
+                  <td>{{ ru.departureDate }}</td>
+                  <td>{{ ru.departureOperatorName || '—' }}</td>
+                  <td><dynadrill-tag [label]="ru.arrivalOperatorName ? 'Salida y llegada' : 'Solo salida'" [variant]="ru.arrivalOperatorName ? 'success' : 'warning'" /></td>
+                  <td><button type="button" class="pedido-detail__icon-btn" aria-label="Ver PDF" title="Ver PDF" (click)="verReporteUnidad()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg></button></td>
+                </tr>
+              }
               @for (d of reporteJobDocs(); track d.id) {
                 <tr>
                   <td>Reporte Job</td>
@@ -231,7 +241,7 @@
                   <td><dynadrill-button size="small" [disabled]="generandoGuia()" (clicked)="abrirGuiaRemision()">Generar guía</dynadrill-button></td>
                 </tr>
               }
-              @if (!reporteJobDocs().length && !reporteHtasDocs().length && !documentosMonitoreo().length && !documentosMezcla().length) {
+              @if (!reporteUnidad() && !reporteJobDocs().length && !reporteHtasDocs().length && !documentosMonitoreo().length && !documentosMezcla().length) {
                 <tr><td colspan="6">Todavía no se ha recibido documentación operativa para este pedido.</td></tr>
               }
             </tbody>

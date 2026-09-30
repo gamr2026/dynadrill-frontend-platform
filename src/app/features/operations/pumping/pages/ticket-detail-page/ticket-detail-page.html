@@ -1188,16 +1188,6 @@
       />
     </details>
 
-    <!-- Firma Salida -->
-    <section class="ticket-detail__section ticket-detail__signature">
-      <dynadrill-text variant="h2">Firma — Salida</dynadrill-text>
-      <div class="ticket-detail__signature-block">
-        <div class="ticket-detail__signature-line"></div>
-        <dynadrill-text variant="body">{{ departureSignatureName() }}</dynadrill-text>
-        <dynadrill-text variant="caption">{{ departureSignatureDate() }}</dynadrill-text>
-      </div>
-    </section>
-
     <footer class="ticket-detail__actions ticket-detail__actions--single">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
       <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || submitting() || checklistQhseBloquea() || checklistIngresoBloquea() || epiBloquea()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
@@ -1448,27 +1438,6 @@
         <dynadrill-textarea label="¿Cuál?" placeholder="Describa qué problema interrumpió la operación..." [value]="interruptionDetail()" (valueChange)="interruptionDetail.set($event)" />
       }
     </section>
-
-    <!-- Firmas Salida + Llegada — una junto a la otra, no una sobre otra -->
-    <div class="ticket-detail__signatures-row">
-      <section class="ticket-detail__section ticket-detail__signature">
-        <dynadrill-text variant="h2">Firma — Salida</dynadrill-text>
-        <div class="ticket-detail__signature-block">
-          <div class="ticket-detail__signature-line"></div>
-          <dynadrill-text variant="body">{{ departureSignatureName() }}</dynadrill-text>
-          <dynadrill-text variant="caption">{{ departureSignatureDate() }}</dynadrill-text>
-        </div>
-      </section>
-
-      <section class="ticket-detail__section ticket-detail__signature">
-        <dynadrill-text variant="h2">Firma — Llegada</dynadrill-text>
-        <div class="ticket-detail__signature-block">
-          <div class="ticket-detail__signature-line"></div>
-          <dynadrill-text variant="body">{{ arrivalSignatureName() }}</dynadrill-text>
-          <dynadrill-text variant="caption">{{ arrivalSignatureDate() }}</dynadrill-text>
-        </div>
-      </section>
-    </div>
 
     <footer class="ticket-detail__actions ticket-detail__actions--single">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>

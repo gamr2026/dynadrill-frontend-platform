@@ -50,6 +50,8 @@ import { RechazarPedidoDialog, RechazarPedidoDialogData } from '../../components
 import { AnularPedidoDialog, AnularPedidoDialogData } from '../../components/anular-pedido-dialog';
 import { SolicitarDespachoDialog, SolicitarDespachoDialogData } from '../../components/solicitar-despacho-dialog';
 import { TimelineTramo } from '../../../../shared/models/timeline.model';
+import { DocumentoPdfService } from '../../../../shared/documentos';
+import { ReporteUnidadHoja } from '../../../../shared/documentos/formatos/reporte-unidad-hoja';
 import { SolicitudDespachoBodega } from '../../models/solicitud-despacho-bodega.model';
 
 interface Dato {
@@ -111,6 +113,7 @@ export class PedidoDetailPage {
   private readonly guiaService = inject(GuiaRemisionService);
   private readonly fcrService = inject(FcrService);
   private readonly pumpingService = inject(PumpingService);
+  private readonly documentoPdf = inject(DocumentoPdfService);
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
@@ -190,6 +193,7 @@ export class PedidoDetailPage {
       .filter(d => d.tipo === 'reporte_job')
       .sort((a, b) => (a.fecha ?? '').localeCompare(b.fecha ?? '')),
   );
+  protected readonly reporteUnidad = computed(() => this.avance()?.reporteUnidad ?? null);
   protected readonly reporteHtasDocs = computed(() => this.documentos().filter(d => d.tipo === 'reporte_herramientas'));
   protected readonly documentosMonitoreo = computed(() => this.avance()?.documentosReales?.filter(d => d.tipo === 'monitoreo') ?? []);
   protected readonly documentosMezcla = computed(() => this.avance()?.documentosReales?.filter(d => d.tipo === 'mezcla') ?? []);
@@ -408,6 +412,18 @@ export class PedidoDetailPage {
     });
     ref.afterClose.subscribe(actualizado => {
       if (actualizado) this.reload();
+    });
+  }
+
+  /** Reporte de Unidad del ticket de Pumping (formato DYN-MNT-RE-012) con lo registrado hasta ahora: salida y, si ya se hizo, llegada. */
+  protected verReporteUnidad(): void {
+    const reporte = this.reporteUnidad();
+    if (!reporte) return;
+    this.documentoPdf.abrir({
+      titulo: `Reporte de Unidad — ${reporte.reportCode}`,
+      component: ReporteUnidadHoja,
+      inputs: { reporte, ticketCode: this.avance()?.ticketPumpingCode ?? '' },
+      nombreArchivo: `Reporte de Unidad ${reporte.reportCode}`,
     });
   }
 

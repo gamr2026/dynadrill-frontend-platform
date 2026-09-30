@@ -60,6 +60,7 @@
 
     <footer class="review-report__actions">
       <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+      <dynadrill-button variant="secondary" (clicked)="verPdf()">Ver PDF del reporte</dynadrill-button>
 
       @if (showRejectForm()) {
         <dynadrill-button variant="error" [disabled]="rejectionReason().trim().length === 0" (clicked)="confirmReject()">Confirmar rechazo</dynadrill-button>
@@ -163,13 +164,13 @@
       </section>
     }
 
-    <!-- Firmas -->
+    <!-- Operadores del reporte (datos; la sección de firma solo existe en el PDF) -->
     <section class="review-report__section">
-      <dynadrill-text variant="h2">Firmas</dynadrill-text>
+      <dynadrill-text variant="h2">Operadores del reporte</dynadrill-text>
       <dynadrill-context-card
         variant="card"
         icon="users"
-        title="Firmas"
+        title="Operadores"
         [subtitle]="report.reportCode"
         [groups]="signatureGroups()"
       />

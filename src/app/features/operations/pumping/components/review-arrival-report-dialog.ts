@@ -14,6 +14,8 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import type { PumpingUnitReport } from '../models/pumping.model';
 import type { VehicleInspection } from '../../../maintenance/models/vehicle-inspection.model';
+import { DocumentoPdfService } from '../../../../shared/documentos';
+import { ReporteUnidadHoja } from '../../../../shared/documentos/formatos/reporte-unidad-hoja';
 
 export interface ReviewArrivalReportDialogData {
   operatorName: string;
@@ -48,6 +50,7 @@ export interface ReviewArrivalReportDialogResult {
 export class ReviewArrivalReportDialog {
   private readonly modalRef = inject(NzModalRef<ReviewArrivalReportDialog, ReviewArrivalReportDialogResult | undefined>);
   private readonly data = inject<ReviewArrivalReportDialogData>(NZ_MODAL_DATA);
+  private readonly documentoPdf = inject(DocumentoPdfService);
 
   protected readonly operatorName = this.data.operatorName;
   protected readonly unitCode = this.data.unitCode;
@@ -200,13 +203,13 @@ export class ReviewArrivalReportDialog {
     const grupos: DynadrillContextCardItem[][] = [
       [
         { label: 'Operador salida', value: r.departureOperatorName || '—', icon: 'users' },
-        { label: 'Fecha firma salida', value: this.fechaLegible(r.departureApprovalDate), icon: 'calendar' },
+        { label: 'Fecha del reporte de salida', value: this.fechaLegible(r.departureApprovalDate), icon: 'calendar' },
       ],
     ];
     if (!this.isSalidaReview) {
       grupos.push([
         { label: 'Operador llegada', value: r.arrivalOperatorName || '—', icon: 'users' },
-        { label: 'Fecha firma llegada', value: this.fechaLegible(r.arrivalApprovalDate), icon: 'calendar' },
+        { label: 'Fecha del reporte de llegada', value: this.fechaLegible(r.arrivalApprovalDate), icon: 'calendar' },
       ]);
     }
     return grupos;
@@ -301,5 +304,15 @@ export class ReviewArrivalReportDialog {
 
   protected cancel(): void {
     this.modalRef.close(undefined);
+  }
+
+  /** PDF del Reporte de Unidad (formato DYN-MNT-RE-012) con lo registrado hasta este momento. */
+  protected verPdf(): void {
+    this.documentoPdf.abrir({
+      titulo: `Reporte de Unidad — ${this.report.reportCode}`,
+      component: ReporteUnidadHoja,
+      inputs: { reporte: this.report },
+      nombreArchivo: `Reporte de Unidad ${this.report.reportCode}`,
+    });
   }
 }

@@ -1,0 +1,140 @@
+<div class="doc-hoja ru">
+  <app-doc-encabezado titulo="Reporte de Unidad" codigo="DYN-MNT-RE-012" version="05" elaboracion="15/08/2024" />
+
+  <!-- Datos del trabajo -->
+  <table class="ru__datos">
+    <tr>
+      <td colspan="3"><span class="ru__etq">Pozo</span> {{ reporte().wellName }}</td>
+      <td colspan="3"><span class="ru__etq">Bloque</span> {{ reporte().blockName }}</td>
+      <td colspan="3"><span class="ru__etq">Cliente:</span> {{ reporte().clientName }}</td>
+      <td colspan="3" class="ru__nro">
+        <span class="ru__etq">Reporte No.</span>
+        <div class="ru__nro-valor">{{ reporte().reportCode }}</div>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="4"><span class="ru__etq">Base</span> {{ reporte().baseName }}</td>
+      <td colspan="4"><span class="ru__etq">Cabezal</span> {{ reporte().headerCode }}</td>
+      <td colspan="4">
+        <span class="ru__etq">Unidad Número:</span> {{ reporte().unitCode }}
+        <div class="ru__nota">(Sólo una unidad por reporte)</div>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="4" class="ru__fecha"><span class="ru__etq">Fecha Salida:</span> {{ fecha(reporte().departureDate) }}</td>
+      <td colspan="4" class="ru__fecha"><span class="ru__etq">Llegada:</span> {{ fecha(reporte().arrivalDate) }}</td>
+      <td colspan="2"><span class="ru__etq">Combustible:</span></td>
+      <td colspan="1"><span class="ru__etq">Salida</span> {{ reporte().fuelDeparture ?? '' }}</td>
+      <td colspan="1"><span class="ru__etq">Llegada</span> {{ reporte().fuelArrival ?? '' }}</td>
+    </tr>
+  </table>
+
+  <!-- Neumáticos (A–D) y hubodómetro -->
+  <table class="ru__neumaticos">
+    <tr>
+      <td class="ru__vacio"></td>
+      @for (l of llantas(); track l.letra) {
+        <th class="ru__llanta">{{ l.letra }}<span class="ru__llanta-pos">{{ l.posicion }}</span></th>
+      }
+      <td class="ru__vacio ru__sin-borde"></td>
+      <th class="ru__hub-titulo">Hubodómetro</th>
+      <td class="ru__sin-borde"></td>
+      <td class="ru__sin-borde"></td>
+    </tr>
+    <tr>
+      <th class="doc-banda ru__lado">Salida</th>
+      @for (l of llantas(); track l.letra) {
+        <td class="doc-centro">{{ l.salida }}</td>
+      }
+      <td class="ru__sin-borde"></td>
+      <td class="doc-centro">{{ hubodometro().salida }}</td>
+      <th class="doc-banda ru__od">Origen</th>
+      <td>{{ reporte().origin }}</td>
+    </tr>
+    <tr>
+      <th class="doc-banda ru__lado">Llegada</th>
+      @for (l of llantas(); track l.letra) {
+        <td class="doc-centro">{{ l.llegada }}</td>
+      }
+      <td class="ru__sin-borde"></td>
+      <td class="doc-centro">{{ hubodometro().llegada }}</td>
+      <th class="doc-banda ru__od">Destino</th>
+      <td>{{ reporte().destination }}</td>
+    </tr>
+  </table>
+
+  <!-- Inspección -->
+  <div class="doc-banda ru__banda-insp">INSPECCIÓN: indique con "X" los ítem Defectuosos y con "√" Los Ítems OK</div>
+  <div class="ru__insp">
+    <div class="ru__col">
+      <div class="doc-gris ru__col-titulo">SALIDA</div>
+      @for (item of reporte().chassisInspection; track item.id) {
+        <div class="ru__item"><span class="ru__caja">{{ estado(item, 'salida') }}</span>{{ item.label }}</div>
+      }
+    </div>
+    <div class="ru__col">
+      <div class="doc-gris ru__col-titulo">LLEGADA</div>
+      <div class="doc-banda ru__sub">Chasis</div>
+      @for (item of reporte().motorInspection; track item.id) {
+        <div class="ru__item"><span class="ru__caja">{{ estado(item, 'llegada') }}</span>{{ item.label }}</div>
+      }
+    </div>
+    <div class="ru__col">
+      <div class="doc-gris ru__col-titulo ru__col-titulo--vacio">&nbsp;</div>
+      <div class="doc-banda ru__sub">Plataforma</div>
+      @for (item of reporte().arrivalEquipmentInspection; track item.id) {
+        <div class="ru__item"><span class="ru__caja">{{ estado(item, 'llegada') }}</span>{{ item.label }}</div>
+      }
+      <div class="doc-banda ru__sub">Instrumentación</div>
+      @for (item of reporte().instrumentationInspection; track item.id) {
+        <div class="ru__item"><span class="ru__caja">{{ estado(item, 'llegada') }}</span>{{ item.label }}</div>
+      }
+    </div>
+  </div>
+
+  <!-- Problemas por área -->
+  <div class="ru__problemas">
+    <div class="ru__area">
+      <div><strong>MECÁNICA:</strong> Describa en forma clara los problemas acontecidos</div>
+      @for (linea of novedades().mecanica; track $index) {
+        <div class="ru__linea"><span class="ru__n">{{ $index + 1 }}</span>{{ linea }}</div>
+      }
+    </div>
+    <div class="ru__area">
+      <div><strong>INSTRUMENTACIÓN:</strong> Describa en forma clara los problemas acontecidos</div>
+      @for (linea of novedades().instrumentacion; track $index) {
+        <div class="ru__linea"><span class="ru__n">{{ $index + 1 }}</span>{{ linea }}</div>
+      }
+    </div>
+    <div class="ru__area">
+      <div><strong>OPERACIONES:</strong> Describa en forma clara los problemas acontecidos</div>
+      @for (linea of novedades().operaciones; track $index) {
+        <div class="ru__linea"><span class="ru__n">{{ $index + 1 }}</span>{{ linea }}</div>
+      }
+    </div>
+  </div>
+
+  <!-- Interrupción y operatividad -->
+  <table class="ru__cierre">
+    <tr>
+      <td class="ru__cierre-texto">
+        Alguno de los problemas de arriba interrumpió/atrasó la operación ?
+        <div><strong>Cuál ?</strong> {{ reporte().interruptionDetail }}</div>
+      </td>
+      <td class="ru__si-no">
+        <span class="ru__caja ru__caja--grande">{{ reporte().operationInterrupted === true ? 'X' : '' }}</span> SI
+        <span class="ru__caja ru__caja--grande">{{ reporte().operationInterrupted === false ? 'X' : '' }}</span> NO
+      </td>
+    </tr>
+    <tr>
+      <td class="ru__cierre-texto ru__rojo"><strong>LA UNIDAD ESTÁ LISTA Y OPERATIVA PARA LA SIGUIENTE OPERACIÓN:</strong></td>
+      <td class="ru__si-no">
+        <span class="ru__caja ru__caja--grande">{{ reporte().unitReady === true ? 'X' : '' }}</span> SI
+        <span class="ru__caja ru__caja--grande">{{ reporte().unitReady === false ? 'X' : '' }}</span> NO
+      </td>
+    </tr>
+  </table>
+
+  <!-- Firmas: solo existen en el PDF -->
+  <app-doc-firmas [firmantes]="firmantes()" [banda]="true" />
+</div>

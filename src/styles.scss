@@ -42,8 +42,18 @@ body {
   }
 
   .reporte-pdf,
-  .reporte-pdf * {
+  .reporte-pdf *,
+  .doc-hoja,
+  .doc-hoja * {
     visibility: visible;
+  }
+
+  // Vista previa de los formatos (DocumentoPdfDialog): sin tope de alto ni scroll, o se recorta el documento.
+  .doc-pdf-scroll {
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: none !important;
   }
 
   .cdk-overlay-container,
@@ -67,7 +77,8 @@ body {
     margin: 0 !important;
   }
 
-  .reporte-pdf {
+  .reporte-pdf,
+  .doc-hoja {
     position: relative;
     width: 100%;
   }
@@ -78,6 +89,90 @@ body {
   .cdk-overlay-backdrop,
   .no-print {
     display: none !important;
+  }
+}
+
+/**
+ * Base visual de los formatos digitalizados (`.doc-hoja`, ver shared/documentos): tablas de borde fino sobre fondo
+ * blanco, tipografía chica, igual que las hojas de Excel originales. Global y sin encapsular porque el diálogo se
+ * monta en el overlay de ng-zorro (ver nota de `@media print` arriba). Cada formato agrega solo lo suyo.
+ */
+.doc-hoja {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 12px;
+  background: #fff;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10px;
+  line-height: 1.3;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+
+  * {
+    box-sizing: border-box;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  td,
+  th {
+    padding: 2px 4px;
+    border: 1px solid #000;
+    vertical-align: top;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+
+  tr {
+    break-inside: avoid;
+  }
+
+  // Sin bordes: para maquetar dentro de una celda sin dibujar líneas.
+  .doc-sin-borde td,
+  .doc-sin-borde th {
+    border: none;
+  }
+
+  .doc-banda {
+    background: #800000;
+    color: #fff;
+    font-weight: 700;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .doc-gris {
+    background: #bfbfbf;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .doc-centro {
+    text-align: center;
+  }
+
+  .doc-negrita {
+    font-weight: 700;
+  }
+
+  // Casillero de marcar (☐ / ☒) del formato físico.
+  .doc-check {
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    margin-right: 4px;
+    border: 1px solid #000;
+    vertical-align: middle;
+    text-align: center;
+    font-size: 11px;
+    line-height: 11px;
   }
 }
 

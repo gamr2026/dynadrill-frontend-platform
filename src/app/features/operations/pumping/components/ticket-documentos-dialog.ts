@@ -6,12 +6,17 @@ import { DynadrillButtonComponent, DynadrillDialogService, DynadrillIconButtonCo
 import { DocumentoOperativo } from '../../../facturacion/models/documento-operativo.model';
 import { ReporteJobPdfDialog, ReporteJobPdfDialogData } from '../../../../shared/index';
 import { PumpingDocumento, PumpingService } from '../services/pumping.service';
+import type { PumpingUnitReport } from '../models/pumping.model';
+import { DocumentoPdfService } from '../../../../shared/documentos';
+import { ReporteUnidadHoja } from '../../../../shared/documentos/formatos/reporte-unidad-hoja';
 
 export interface TicketDocumentosDialogData {
   ticketId: number;
   ticketCode: string;
   /** Ya filtrados a este ticket (tipo 'reporte_job') — ver ticket-list-page.ts. */
   reporteJobDocs: DocumentoOperativo[];
+  /** Reporte de Unidad del ticket (salida y, si ya se hizo, llegada) — se baja como PDF con el formato DYN-MNT-RE-012. */
+  unitReport?: PumpingUnitReport | null;
 }
 
 /**
@@ -32,6 +37,7 @@ export interface TicketDocumentosDialogData {
 })
 export class TicketDocumentosDialog {
   private readonly dialog = inject(DynadrillDialogService);
+  private readonly documentoPdf = inject(DocumentoPdfService);
   private readonly pumpingService = inject(PumpingService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<TicketDocumentosDialog>);
@@ -47,6 +53,17 @@ export class TicketDocumentosDialog {
         this.loadingDocumentos.set(false);
       },
       error: () => this.loadingDocumentos.set(false),
+    });
+  }
+
+  protected verReporteUnidad(): void {
+    const reporte = this.data.unitReport;
+    if (!reporte) return;
+    this.documentoPdf.abrir({
+      titulo: `Reporte de Unidad — ${reporte.reportCode}`,
+      component: ReporteUnidadHoja,
+      inputs: { reporte, ticketCode: this.data.ticketCode },
+      nombreArchivo: `Reporte de Unidad ${reporte.reportCode}`,
     });
   }
 

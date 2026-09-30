@@ -1,3 +1,4 @@
+import type { PumpingUnitReport } from '../../operations/pumping/models/pumping.model';
 /**
  * Fase 0 / Fase 3 — Documentos operativos que llenan los operadores en
  * **FCR** y **Pumping** y que Facturación **recibe** vinculados al Pedido.
@@ -83,6 +84,9 @@ export interface AvanceDocumental {
   documentosReales?: DocumentoRealPedido[];
   /** `true` cuando TODOS los `documentosReales` ya tienen su versión firmada subida — condición para habilitar "Enviar al cliente" (ver `puedeEnviar` en prefactura-detail-page.ts). */
   documentosFirmadosCompletos?: boolean;
+  /** Reporte de Unidad del ticket de Pumping (salida y, si ya se hizo, llegada) — se baja como PDF (formato DYN-MNT-RE-012). Null si aún no hay reporte de salida. */
+  reporteUnidad?: PumpingUnitReport | null;
+  ticketPumpingCode?: string | null;
   completo: boolean;
 }
 

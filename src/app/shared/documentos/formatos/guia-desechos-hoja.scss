@@ -1,0 +1,106 @@
+.gd {
+  font-size: 9px;
+
+  table {
+    margin-top: -1px;
+  }
+
+  &__solicitud td {
+    padding: 8px 6px;
+    font-size: 9.5px;
+  }
+
+  &__izq {
+    width: 75%;
+  }
+
+  &__origen-transp {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    margin-top: -1px;
+    border: 1px solid #000;
+  }
+
+  &__origen {
+    padding: 4px 8px;
+    border-right: 1px solid #000;
+    font-size: 9.5px;
+
+    div {
+      margin-bottom: 6px;
+    }
+  }
+
+  &__tit {
+    font-weight: 700;
+  }
+
+  &__transp {
+    padding: 4px 8px;
+  }
+
+  &__transp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 14px;
+    margin-top: 6px;
+    font-size: 9.5px;
+  }
+
+  &__items {
+    th {
+      font-size: 8px;
+      vertical-align: middle;
+    }
+
+    td {
+      height: 22px;
+      font-size: 9px;
+    }
+  }
+
+  &__c-item {
+    width: 4%;
+  }
+
+  &__c-desc {
+    width: 40%;
+  }
+
+  &__c-lote,
+  &__c-cod,
+  &__c-cant {
+    width: 13%;
+  }
+
+  &__c-bultos {
+    width: 17%;
+  }
+
+  &__total {
+    font-weight: 700;
+    text-align: center;
+  }
+
+  &__firmas {
+    margin-top: 6px;
+
+    th {
+      font-size: 9px;
+    }
+
+    td {
+      height: 20px;
+    }
+  }
+
+  &__f-etq {
+    width: 13%;
+    border-left: none !important;
+    border-top-color: transparent !important;
+  }
+
+  &__f-firma td {
+    height: 46px;
+  }
+}

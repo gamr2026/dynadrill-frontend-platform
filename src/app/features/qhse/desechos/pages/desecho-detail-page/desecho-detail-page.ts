@@ -27,6 +27,9 @@ import { DesechoService } from '../../services/desecho.service';
 type FirmaCampo = 'firmaDespachadoPor' | 'firmaTransportadoPor' | 'firmaRecibidoPor';
 
 /** HSE-AMBIENTAL-001 — manifiesto único (3 firmas) y certificado de disposición final. */
+import { DocumentoPdfService } from '../../../../../shared/documentos';
+import { GuiaDesechosHoja } from '../../../../../shared/documentos/formatos/guia-desechos-hoja';
+
 @Component({
   selector: 'app-desecho-detail-page',
   imports: [
@@ -46,6 +49,7 @@ export class DesechoDetailPage {
   private readonly desechoService = inject(DesechoService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
+  private readonly documentoPdf = inject(DocumentoPdfService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -147,5 +151,17 @@ export class DesechoDetailPage {
 
   protected back(): void {
     this.router.navigate(['/dashboard/qhse/desechos']);
+  }
+
+  /** Formato DYN-SGI-RE-063: la sección de firmas (despacha / transporta / recibe) sale en blanco para llenarse a mano. */
+  protected verPdf(): void {
+    const desecho = this.desecho();
+    if (!desecho) return;
+    this.documentoPdf.abrir({
+      titulo: `Guía de remisión de desechos — ${desecho.code}`,
+      component: GuiaDesechosHoja,
+      inputs: { desecho },
+      nombreArchivo: `Guía de remisión de desechos ${desecho.code}`,
+    });
   }
 }

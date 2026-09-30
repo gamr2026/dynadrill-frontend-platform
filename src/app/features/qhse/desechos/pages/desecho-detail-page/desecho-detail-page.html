@@ -4,6 +4,7 @@
   <dynadrill-screen-header [eyebrow]="d.code" [title]="d.descripcion" [roleTag]="estadoLabels[d.estado]" />
 
   <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a Gestión de Desechos</dynadrill-button>
+  <dynadrill-button variant="secondary" size="small" (click)="verPdf()">Ver PDF de la guía</dynadrill-button>
 
   <dynadrill-context-card [items]="contextItems()" layout="vertical" />
 

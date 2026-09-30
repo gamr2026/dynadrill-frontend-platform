@@ -1,0 +1,164 @@
+<div class="doc-hoja ii">
+  <!-- ═══ Página 1 ═══ -->
+  <section class="ii__pagina">
+    <app-doc-encabezado titulo="Reporte de Investigación de incidentes y/o accidentes de trabajo" codigo="DYN-SGI-RE-034" version="09" />
+
+    <table class="ii__tabla">
+      <tr><th colspan="3" class="doc-gris">Investigación</th></tr>
+      <tr><td colspan="3" class="doc-gris ii__fino"></td></tr>
+      <tr><td class="ii__etq ii__etq--corta">Fecha de Reporte:</td><td colspan="2">{{ fecha(investigacion().createdAt) }}</td></tr>
+      <tr>
+        <td class="ii__etq">Tipo de Incidente:</td>
+        <td>Fatal: <span class="ii__blank">{{ investigacion().resultado === 'fatal' ? 'X' : '' }}</span> &nbsp;&nbsp; Grave: <span class="ii__blank">{{ investigacion().resultado === 'grave' ? 'X' : '' }}</span></td>
+        <td>Otro: {{ otroTipo() }}</td>
+      </tr>
+      <tr><td class="ii__etq">Agente de la lesión:</td><td colspan="2"></td></tr>
+      <tr><td class="ii__etq">Tipo de lesión:</td><td colspan="2">{{ investigacion().detalle.tipoLesionSufrida }}</td></tr>
+      <tr><td class="ii__etq">Pérdidas materiales o económicas generadas:</td><td colspan="2">{{ perdidas() }}</td></tr>
+      <tr><td class="ii__etq">Daño al medio ambiente:</td><td colspan="2">{{ investigacion().detalle.danosMedioAmbiente }}</td></tr>
+    </table>
+
+    <table class="ii__tabla ii__campos">
+      <tr><th colspan="2" class="doc-gris">Datos del trabajador involucrado</th></tr>
+      @for (c of trabajador(); track c[0]) { <tr><td class="ii__etq">{{ c[0] }}</td><td>{{ c[1] }}</td></tr> }
+    </table>
+
+    <table class="ii__tabla ii__campos ii__campos--angosta">
+      <tr><th colspan="2" class="doc-gris">Información sobre el incidente o accidente</th></tr>
+      @for (c of incidente1(); track c[0]) { <tr><td class="ii__etq">{{ c[0] }}</td><td>{{ c[1] }}</td></tr> }
+    </table>
+    <div class="ii__pie">Una vez impreso el documento será considerado como COPIA NO CONTROLADA<br />Página 1 de 6</div>
+  </section>
+
+  <!-- ═══ Página 2 ═══ -->
+  <section class="ii__pagina">
+    <app-doc-encabezado titulo="Reporte de Investigación de incidentes y/o accidentes de trabajo" codigo="DYN-SGI-RE-034" version="09" />
+    <table class="ii__tabla ii__campos">
+      @for (c of incidente2(); track c[0]) { <tr><td class="ii__etq">{{ c[0] }}</td><td>{{ c[1] }}</td></tr> }
+    </table>
+    <table class="ii__tabla">
+      <tr><th class="ii__centro">Descripción detallada del lugar del suceso:</th></tr>
+      <tr><td class="ii__texto">{{ investigacion().ubicacion }}</td></tr>
+      <tr><th class="ii__centro">¿Cómo ocurrió suceso?</th></tr>
+      <tr><td class="ii__texto ii__texto--alto">{{ investigacion().descripcionEvento }}</td></tr>
+      <tr><th class="ii__centro">Datos complementarios:</th></tr>
+      <tr><td class="ii__texto ii__texto--alto">{{ investigacion().evidenciasRecopiladas }}</td></tr>
+    </table>
+    <div class="ii__pie">Una vez impreso el documento será considerado como COPIA NO CONTROLADA<br />Página 2 de 6</div>
+  </section>
+
+  <!-- ═══ Página 3: testigos (firmas) ═══ -->
+  <section class="ii__pagina">
+    <app-doc-encabezado titulo="Reporte de Investigación de incidentes y/o accidentes de trabajo" codigo="DYN-SGI-RE-034" version="09" />
+    <div class="ii__titulo">PERSONAS QUE PRESENCIARON EL INCIDENTE / ACCIDENTE</div>
+    @for (t of testigos(); track t.id; let i = $index) {
+      <div class="ii__testigo">Testigo {{ i + 1 }}:</div>
+      <table class="ii__tabla">
+        <tr><th>Nombres y apellidos</th><th>C.C.</th><th>Firmas</th></tr>
+        <tr class="ii__fila-alta"><td>{{ t.nombresApellidos }}</td><td>{{ t.cedula }}</td><td></td></tr>
+        <tr><td colspan="3" class="ii__texto">Versión {{ i + 1 }}: {{ t.version }}</td></tr>
+      </table>
+    }
+    <div class="ii__pie">Una vez impreso el documento será considerado como COPIA NO CONTROLADA<br />Página 3 de 6</div>
+  </section>
+
+  <!-- ═══ Página 4: técnica ═══ -->
+  <section class="ii__pagina">
+    <app-doc-encabezado titulo="Reporte de Investigación de incidentes y/o accidentes de trabajo" codigo="DYN-SGI-RE-034" version="09" />
+    <div class="ii__titulo">TÉCNICA USADA PARA LA INVESTIGACIÓN (ANÁLISIS DE CAUSA)</div>
+    <div class="ii__nota">Se recomienda aplicar árbol de causas.</div>
+    <div class="ii__caja">
+      @for (l of tecnica(); track $index) { <div>{{ l }}</div> }
+    </div>
+    <div class="ii__pie">Una vez impreso el documento será considerado como COPIA NO CONTROLADA<br />Página 4 de 6</div>
+  </section>
+
+  <!-- ═══ Página 5: entorno y causas ═══ -->
+  <section class="ii__pagina">
+    <app-doc-encabezado titulo="Reporte de Investigación de incidentes y/o accidentes de trabajo" codigo="DYN-SGI-RE-034" version="09" />
+    <div class="ii__titulo ii__titulo--izq">ENTORNO DE TRABAJO</div>
+    <div class="ii__nota">Factores de riesgo presentes en la estación de trabajo:</div>
+    <table class="ii__tabla">
+      <tr><th>Tipo</th><th>Fuente</th><th>Existe control (describir)</th><th class="ii__c-contribuyo">Contribuyó al suceso</th></tr>
+      @for (e of entorno(); track e.id) {
+        <tr class="ii__fila-alta"><td>{{ e.tipo }}</td><td>{{ e.fuente }}</td><td>{{ e.existeControl }}</td><td>{{ e.contribuyoAlSuceso }}</td></tr>
+      }
+    </table>
+
+    <div class="ii__titulo">CAUSAS INMEDIATAS, CAUSAS BASICAS, CAUSAS FUENTE DE GESTION QUE DIERON ORIGEN AL ACCIDENTE</div>
+    <table class="ii__tabla">
+      <tr><th colspan="2" class="ii__centro">CAUSAS INMEDIATAS</th></tr>
+      <tr><th>ACTOS INSEGUROS</th><th>CONDICIONES INSEGURAS</th></tr>
+      <tr><td class="ii__texto ii__texto--causa">{{ investigacion().causas.actosInseguros }}</td><td class="ii__texto ii__texto--causa">{{ investigacion().causas.condicionesInseguras }}</td></tr>
+      <tr><th colspan="2" class="ii__centro">CAUSAS BASICAS</th></tr>
+      <tr><th>FACTORES PERSONALES</th><th>FACTORES DE TRABAJO</th></tr>
+      <tr><td class="ii__texto ii__texto--causa">{{ investigacion().causas.factoresPersonales }}</td><td class="ii__texto ii__texto--causa">{{ investigacion().causas.factoresTrabajo }}</td></tr>
+      <tr><th colspan="2" class="ii__centro">CAUSAS FUENTE O DE GESTION</th></tr>
+      <tr><td colspan="2" class="ii__texto ii__texto--causa">{{ investigacion().causas.causasFuenteGestion }}</td></tr>
+    </table>
+    <div class="ii__pie">Una vez impreso el documento será considerado como COPIA NO CONTROLADA<br />Página 5 de 6</div>
+  </section>
+
+  <!-- ═══ Página 6: medidas, verificación, conclusión y equipo ═══ -->
+  <section class="ii__pagina ii__pagina--ultima">
+    <app-doc-encabezado titulo="Reporte de Investigación de incidentes y/o accidentes de trabajo" codigo="DYN-SGI-RE-034" version="09" />
+    <div class="ii__titulo">MEDIDAS DE INTERVENCIÓN (CORRECTIVAS Y PREVENTIVAS) NECESARIAS</div>
+    <table class="ii__tabla ii__medidas">
+      <tr>
+        <th rowspan="2">Recomendación</th><th colspan="4">Control aplicado a:</th><th rowspan="2">Responsable</th><th rowspan="2">Fecha para su implementación</th>
+      </tr>
+      <tr><th>P/D</th><th>F</th><th>M</th><th>T</th></tr>
+      @for (a of accionesFilas(); track $index) {
+        <tr class="ii__fila-media">
+          <td>{{ a?.descripcion }}</td>
+          <td class="doc-centro">{{ marcaControl(a?.controlAplicadoA?.planeacionDiseno) }}</td>
+          <td class="doc-centro">{{ marcaControl(a?.controlAplicadoA?.fuente) }}</td>
+          <td class="doc-centro">{{ marcaControl(a?.controlAplicadoA?.medio) }}</td>
+          <td class="doc-centro">{{ marcaControl(a?.controlAplicadoA?.trabajador) }}</td>
+          <td>{{ a?.responsable }}</td>
+          <td class="doc-centro">{{ fecha(a?.plazo) }}</td>
+        </tr>
+      }
+    </table>
+    <div class="ii__leyenda">P/D: PLANEACION Y/O DISEÑO. &nbsp;&nbsp; F: FUENTE. &nbsp;&nbsp; M: MEDIO. &nbsp;&nbsp; T: TRABAJADOR.</div>
+
+    <div class="ii__titulo">VERIFICACIÓN DE LA EFICACIA DE LAS MEDIDAS DE INTERVENCIÓN (CORRECTIVAS Y PREVENTIVAS) IMPLEMENTADAS. <em>Se realizará luego de tres meses de haber implementado las medidas de intervención.</em></div>
+    <table class="ii__tabla ii__medidas">
+      <tr><th rowspan="2">MEDIDA DE INTERVENCIÓN</th><th colspan="2">FUE EFICAZ</th><th rowspan="2">Fecha de verificación</th><th rowspan="2">Verificado por</th><th rowspan="2">Firma</th></tr>
+      <tr><th>SI</th><th>NO</th></tr>
+      @for (a of verificacionFilas(); track $index) {
+        <tr class="ii__fila-media">
+          <td>{{ a?.descripcion }}</td>
+          <td class="doc-centro">{{ a?.fueEficaz === true ? 'X' : '' }}</td>
+          <td class="doc-centro">{{ a?.fueEficaz === false ? 'X' : '' }}</td>
+          <td class="doc-centro">{{ fecha(a?.fechaVerificacion) }}</td>
+          <td>{{ a?.verificadoPor }}</td>
+          <td></td>
+        </tr>
+      }
+    </table>
+
+    <table class="ii__tabla ii__recom">
+      <tr><th><strong>RECOMENDACIONES</strong> (Aplica cuando la no fue efectiva la medida de intervención aplicada)</th></tr>
+      <tr><td class="ii__texto ii__texto--causa">{{ investigacion().leccionesAprendidas }}</td></tr>
+    </table>
+
+    <table class="ii__tabla ii__conclusion">
+      <tr><th colspan="3" class="doc-gris">Conclusión del evento</th></tr>
+      <tr><td class="ii__c-etq">INCIDENTE:</td><td class="ii__c-x">{{ investigacion().conclusion === 'incidente' ? 'X' : '' }}</td><td>Finaliza investigación. Hacer seguimiento de planes de acción.</td></tr>
+      <tr><td class="ii__c-etq">ACCIDENTE:</td><td class="ii__c-x">{{ investigacion().conclusion === 'accidente' ? 'X' : '' }}</td><td>Continuar con el reporte al IESS.</td></tr>
+    </table>
+
+    <div class="ii__titulo">EQUIPO INVESTIGADOR</div>
+    <div class="ii__equipo">
+      @for (n of equipo(); track $index) {
+        <div class="ii__miembro">
+          <div class="ii__miembro-firma"><span>Firma:</span></div>
+          <div class="ii__miembro-fila"><span>Nombre:</span> {{ n }}</div>
+          <div class="ii__miembro-fila"><span>Cargo:</span></div>
+        </div>
+      }
+    </div>
+    <div class="ii__pie">Una vez impreso el documento será considerado como COPIA NO CONTROLADA<br />Página 6 de 6</div>
+  </section>
+</div>

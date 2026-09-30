@@ -52,6 +52,9 @@ import { IpercService } from '../../../iperc/services/iperc.service';
  * verificación de eficacia, notificación legal, conclusión
  * (incidente/accidente) y retroalimentación a IPERC.
  */
+import { DocumentoPdfService } from '../../../../../shared/documentos';
+import { InvestigacionIncidenteHoja } from '../../../../../shared/documentos/formatos/investigacion-incidente-hoja';
+
 @Component({
   selector: 'app-investigacion-detail-page',
   imports: [
@@ -75,6 +78,7 @@ export class InvestigacionDetailPage {
   private readonly ipercService = inject(IpercService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
+  private readonly documentoPdf = inject(DocumentoPdfService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -423,6 +427,18 @@ export class InvestigacionDetailPage {
       informeAprobadoAt: new Date().toISOString(),
     });
     this.notify.success('Investigación cerrada', 'Se registró el cierre y, si aplica, la lección aprendida quedó vinculada a la matriz IPERC.');
+  }
+
+  /** Formato DYN-SGI-RE-034 (6 páginas); testigos, verificación y equipo investigador se firman sobre el PDF. */
+  protected verPdf(): void {
+    const investigacion = this.investigacion();
+    if (!investigacion) return;
+    this.documentoPdf.abrir({
+      titulo: `Investigación de incidente — ${investigacion.code}`,
+      component: InvestigacionIncidenteHoja,
+      inputs: { investigacion },
+      nombreArchivo: `Reporte de investigación ${investigacion.code}`,
+    });
   }
 
   protected back(): void {

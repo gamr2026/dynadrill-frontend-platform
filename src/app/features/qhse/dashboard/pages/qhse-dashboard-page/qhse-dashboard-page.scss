@@ -1,351 +1,379 @@
+// Dashboard Integrado de QHSE (Figma "D · QHSE · Dashboard Integrado" y "M · … (Seguridad)").
 :host {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
+  padding: 1.5rem;
+
+  @media (max-width: 840px) {
+    gap: 16px;
+    padding: 1rem;
+  }
 }
 
-.qhse-dashboard-page {
-  &__loading {
-    padding: 24px;
-    color: var(--text-muted, #5c5870);
+.qd-cargando {
+  color: var(--text-muted, #5c5870);
+}
+
+// ── Banner del semáforo ──
+.qd-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-left: 4px solid var(--warning-text, #ad6800);
+  border-radius: var(--radius-md, 12px);
+  background: var(--warning-bg, #fef5e3);
+  color: var(--text, #2c2b35);
+  font-size: 14px;
+  line-height: 1.45;
+
+  app-qhse-icon {
+    margin-top: 1px;
+    color: var(--warning-text, #ad6800);
   }
 
-  // Tarjeta de resumen: estado del semáforo + explicación + alertas legales,
-  // con el fondo teñido del color del semáforo como banner — antes era un
-  // tag suelto, un párrafo aparte y un banner con lista, sin relación
-  // visual entre sí a pesar de ser la misma idea ("así estamos y por qué").
-  &__resumen {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 20px;
-    border-radius: var(--radius-lg, 16px);
+  &--success {
+    border-left-color: var(--success-text, #237804);
+    background: var(--success-bg, #eaf8e4);
 
-    &--verde { background: var(--success-bg, rgba(82, 196, 26, 0.12)); }
-    &--amarillo { background: var(--warning-bg, rgba(250, 173, 20, 0.12)); }
-    &--rojo { background: var(--error-bg, rgba(255, 77, 79, 0.12)); }
-  }
-
-  &__resumen-head {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-
-    strong {
-      font-size: 15px;
-    }
-
-    .qhse-dashboard-page__resumen--verde & strong { color: var(--success, #52c41a); }
-    .qhse-dashboard-page__resumen--amarillo & strong { color: var(--warning, #faad14); }
-    .qhse-dashboard-page__resumen--rojo & strong { color: var(--error, #ff4d4f); }
-  }
-
-  &__resumen-dot {
-    flex: none;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-
-    .qhse-dashboard-page__resumen--verde & { background: var(--success, #52c41a); }
-    .qhse-dashboard-page__resumen--amarillo & { background: var(--warning, #faad14); }
-    .qhse-dashboard-page__resumen--rojo & { background: var(--error, #ff4d4f); }
-  }
-
-  // Única línea de motivo: por qué está en este color — el KPI count si es
-  // la causa, o el detalle legal si es esa la causa. Nunca ambas a la vez,
-  // para no repetir "está en rojo por..." con dos razones sin jerarquía.
-  &__resumen-motivo {
-    margin: 0;
-    font-size: 13px;
-    color: var(--text, #2c2b35);
-  }
-
-  &__resumen-legal {
-    ul {
-      margin: 6px 0 0;
-      padding-left: 20px;
-      font-size: 13px;
-      color: var(--text, #2c2b35);
+    app-qhse-icon {
+      color: var(--success-text, #237804);
     }
   }
 
-  &__section {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+  &--error {
+    border-left-color: var(--error-text, #cf1322);
+    background: var(--error-bg, #ffeaea);
 
-    h3 {
-      margin: 0;
-      font-size: 15px;
+    app-qhse-icon {
+      color: var(--error-text, #cf1322);
     }
   }
+}
 
-  &__operativo {
-    display: flex;
-    flex-direction: column;
+.qd-banner__texto {
+  flex: 1;
+  min-width: 0;
+
+  ul {
+    margin: 4px 0 0;
+    padding-left: 18px;
   }
+}
 
-  &__operativo-title {
-    margin: 0 0 16px;
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text, #2c2b35);
+// ── Estado operativo ──
+.qd-operativo__titulo {
+  display: none;
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.qd-operativo__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   }
+}
 
-  // Cada columna es un dynadrill-section (ya trae su propia card: borde,
-  // fondo, radius, header con ícono + "Ver todo") — acá solo se define la
-  // grilla que las reparte, no su apariencia. Mobile-first: 1 columna por
-  // defecto, 2 desde md (840px) donde ya entra cómodo el layout de 2 cards.
-  // 3 paneles ahora (Checklist de equipos, Entrega de EPI, PTW) — auto-fit en
-  // vez de un fijo repeat(2, ...) para que acomode 1/2/3 columnas según el
-  // ancho disponible, sin dejar un panel huérfano en su propia fila.
-  &__operativo-cols {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 24px;
-    align-items: start;
+.qd-op {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: 16px;
+  background: var(--surface, #fff);
+  box-shadow: 0 1px 1px rgba(19, 21, 41, 0.05);
+}
 
-    @media (min-width: 840px) {
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    }
+.qd-op__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
 
-    // El track puede achicarse por el minmax(0, 1fr), pero el ítem en sí
-    // (dynadrill-section) igual se desborda a la derecha si su contenido
-    // no encoge — min-width:auto por defecto en un hijo de grid. Sin esto
-    // la columna derecha rompe el padding del contenedor.
-    > * {
-      min-width: 0;
-    }
-  }
+.qd-op__titulo {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.3;
+}
 
-  &__estado-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
+.qd-op__ver {
+  color: var(--dynadrill-purple, #662e9b);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
 
-  &__operativo-empty {
-    margin: 0;
-    font-size: 12.5px;
-    color: var(--text-muted, #5c5870);
-  }
-
-  &__atencion-list {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  // Fila de lista, no card — ya está dentro de la card que pone
-  // dynadrill-section, así que solo un tinte de fondo la separa, sin
-  // borde ni sombra propia (evita el anidado card-dentro-de-card).
-  &__atencion-btn {
-    all: unset;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    width: 100%;
-    padding: 12px;
-    background: var(--surface-muted, #faf9fc);
-    border-radius: var(--radius-sm, 8px);
-    cursor: pointer;
-
-    &:hover {
-      background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--dynadrill-purple, #662e9b);
-      outline-offset: 2px;
-    }
-  }
-
-  &__atencion-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    width: 100%;
-
-    strong {
-      min-width: 0;
-      overflow-wrap: break-word;
-      font-size: 13px;
-      color: var(--text, #2c2b35);
-    }
-
-    dynadrill-tag {
-      flex: none;
-    }
-  }
-
-  &__atencion-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    color: var(--text-muted, #5c5870);
-
-    dynadrill-icon {
-      flex: none;
-      color: var(--text-muted, #5c5870);
-    }
-
-    // flex:1 + min-width:0 — sin esto, un ítem flex de texto no encoge por
-    // debajo de su ancho intrínseco (default min-width:auto) y un
-    // titulo/fase largo empuja la fila fuera del contenedor en vez de
-    // hacer wrap.
-    span {
-      flex: 1;
-      min-width: 0;
-      font-size: 12.5px;
-      line-height: 1.4;
-      text-align: left;
-      overflow-wrap: break-word;
-    }
-  }
-
-  &__tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  &__tab {
-    padding: 8px 16px;
-    border: none;
-    background: none;
-    border-radius: var(--radius-full, 9999px);
-    font-family: var(--font-body, 'Lato', sans-serif);
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text-muted, #5c5870);
-    cursor: pointer;
-
-    &:hover {
-      color: var(--dynadrill-navy, #131529);
-    }
-
-    &--active {
-      background: var(--dynadrill-purple-tint-strong, rgba(102, 46, 155, 0.16));
-      color: var(--dynadrill-purple, #662e9b);
-
-      &:hover {
-        color: var(--dynadrill-purple, #662e9b);
-      }
-    }
-  }
-
-  // Mobile-first: 1 columna por defecto, 2 desde md (840px) — mismo criterio
-  // que operativo-cols.
-  &__grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-
-    @media (min-width: 840px) {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    > * {
-      min-width: 0;
-    }
-  }
-
-  &__card {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 20px;
-    background: var(--surface, #ffffff);
-    border: 1px solid var(--border, #e5e4ea);
-    border-radius: var(--radius-md, 12px);
-
-    header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 8px;
-
-      strong {
-        font-size: 13px;
-      }
-    }
-  }
-
-  &__card-title {
-    font-family: var(--font-subheading, 'Oswald', sans-serif);
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text, #2c2b35);
-  }
-
-  &__card-motivo {
-    margin: 0;
-    font-size: 12px;
-    line-height: 1.5;
-    color: var(--text-muted, #5c5870);
-  }
-
-  &__unidad {
-    font-size: 12px;
-    font-weight: 400;
-    color: var(--text-muted, #5c5870);
-  }
-
-  &__progress-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-
-    dynadrill-tag {
-      flex: none;
-    }
-  }
-
-  &__progress-bar {
-    flex: 1;
-    min-width: 0;
-  }
-
-  &__meta-box {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding-top: 12px;
-  }
-
-  &__meta-box-title {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text, #2c2b35);
-  }
-
-  &__meta-form {
-    display: flex;
-    align-items: flex-end;
-    gap: 8px;
-
-    > *:first-child { flex: 1; }
-  }
-
-  &__meta-cancel {
-    align-self: flex-start;
-    padding: 0;
-    border: none;
-    background: none;
-    font-size: 12px;
-    color: var(--text-muted, #5c5870);
+  &:hover {
     text-decoration: underline;
-    cursor: pointer;
+  }
+}
 
-    &:hover {
-      color: var(--dynadrill-navy, #131529);
-    }
+.qd-op__linea {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-muted, #5c5870);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--dynadrill-purple, #662e9b);
+  }
+}
+
+.qd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.qd-vacio {
+  margin: 0;
+  color: var(--text-muted, #5c5870);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+// Móvil: una sola tarjeta "Estado operativo" con los tres bloques separados por una línea.
+@media (max-width: 840px) {
+  .qd-operativo {
+    padding: 16px;
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: 16px;
+    background: var(--surface, #fff);
+    box-shadow: 0 1px 1px rgba(19, 21, 41, 0.05);
   }
 
+  .qd-operativo__titulo {
+    display: block;
+  }
+
+  .qd-operativo__grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .qd-op {
+    padding: 12px 0;
+    border: none;
+    border-top: 1px solid var(--border, #e5e4ea);
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    gap: 8px;
+  }
+
+  // El título del bloque pasa a "overline": mayúsculas moradas chicas.
+  .qd-op__titulo {
+    color: var(--dynadrill-purple, #662e9b);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+}
+
+// ── Pestañas (Nav/Tab) ──
+.qd-tabs {
+  display: flex;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border, #e5e4ea);
+  -webkit-overflow-scrolling: touch;
+}
+
+.qd-tab {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px 0;
+  border: none;
+  background: none;
+  color: var(--text-muted, #5c5870);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &--activa {
+    color: var(--dynadrill-purple, #662e9b);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--dynadrill-purple, #662e9b);
+    outline-offset: -2px;
+  }
+}
+
+.qd-tab__indicador {
+  width: 100%;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+}
+
+.qd-tab--activa .qd-tab__indicador {
+  background: var(--dynadrill-purple, #662e9b);
+}
+
+// ── Indicadores ──
+.qd-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+}
+
+.qd-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: 16px;
+  background: var(--surface, #fff);
+  box-shadow: 0 1px 1px rgba(19, 21, 41, 0.05);
+}
+
+.qd-kpi__titulo {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.qd-kpi__valor {
+  margin: 0;
+  color: var(--text, #2c2b35);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.qd-kpi__motivo {
+  margin: 0;
+  color: var(--text-muted, #5c5870);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+// Feedback/ProgressBar: "Meta: N" · "valor / meta" y barra morada de 8 px.
+.qd-progreso {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qd-progreso__fila {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.qd-progreso__valor {
+  color: var(--text-muted, #5c5870);
+}
+
+.qd-progreso__pista {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--surface-subtle, #f3f2f7);
+}
+
+.qd-progreso__barra {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--dynadrill-purple, #662e9b);
+}
+
+// Input/TextField: etiqueta encima, campo de 48 px.
+.qd-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.qd-campo__etq {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.qd-campo__input {
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface, #fff);
+  color: var(--text, #2c2b35);
+  font: inherit;
+  font-size: 14px;
+
+  &::placeholder {
+    color: var(--text-muted, #5c5870);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--dynadrill-purple, #662e9b);
+    outline-offset: 1px;
+  }
+}
+
+// Button secundario de ancho completo.
+.qd-btn {
+  min-height: 48px;
+  padding: 12px 24px;
+  border: 1px solid var(--dynadrill-purple-tint-strong, #e7deef);
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface, #fff);
+  color: var(--dynadrill-purple, #662e9b);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--dynadrill-purple-tint, #f5f0fa);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--dynadrill-purple, #662e9b);
+    outline-offset: 2px;
+  }
+}
+
+.qd-cancelar {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-muted, #5c5870);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
 }

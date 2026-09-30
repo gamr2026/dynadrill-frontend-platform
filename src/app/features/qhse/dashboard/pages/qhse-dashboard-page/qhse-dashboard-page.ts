@@ -1,20 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
-import {
-  DynadrillButtonComponent,
-  DynadrillIconComponent,
-  DynadrillInputComponent,
-  DynadrillNotificationService,
-  DynadrillProgressComponent,
-  type DynadrillProgressStatus,
-  DynadrillScreenHeaderComponent,
-  DynadrillSectionComponent,
-  DynadrillStatisticComponent,
-  type DynadrillStatisticTone,
-  DynadrillTagComponent,
-  type DynadrillTagVariant,
-} from '@digitec-it-projects/dynadrill-ui';
+import { DynadrillNotificationService, type DynadrillTagVariant } from '@digitec-it-projects/dynadrill-ui';
 import {
   DASHBOARD_KPI_DEFS,
   DashboardKpiCategoria,
@@ -42,6 +29,9 @@ import { StopCardService } from '../../../stop/services/stop-card.service';
 import { SwaService } from '../../../swa/services/swa.service';
 import { InvestigacionService } from '../../../investigaciones/services/investigacion.service';
 import { sugiereNotificacionLegal } from '../../../investigaciones/models/investigacion.model';
+import { PageHeader } from '../../../../../shared/components/page-header/page-header';
+import { QhseChip } from '../../../shared/components/qhse-chip';
+import { QhseIcon } from '../../../shared/components/qhse-icon';
 import { UsersService } from '../../../../users/services/users.service';
 import { User } from '../../../../users/models/user.model';
 
@@ -105,16 +95,7 @@ interface AtencionItem {
 /** HSE-MASTER-001 — Dashboard Integrado del Sistema: cierra el ciclo PDCA agregando los 16 indicadores estratégicos de las 4 fases ya construidas, con semáforo de cumplimiento configurable por metas. */
 @Component({
   selector: 'app-qhse-dashboard-page',
-  imports: [
-    DynadrillScreenHeaderComponent,
-    DynadrillTagComponent,
-    DynadrillStatisticComponent,
-    DynadrillProgressComponent,
-    DynadrillInputComponent,
-    DynadrillButtonComponent,
-    DynadrillIconComponent,
-    DynadrillSectionComponent,
-  ],
+  imports: [RouterLink, PageHeader, QhseChip, QhseIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './qhse-dashboard-page.html',
   styleUrl: './qhse-dashboard-page.scss',
@@ -249,12 +230,6 @@ export class QhseDashboardPage {
     return kpiFueraDeMeta(valor, meta, def.direccion) ? { texto: 'Fuera de meta', tone: 'error' } : { texto: 'En meta', tone: 'success' };
   }
 
-  /** dynadrill-statistic solo entiende default/success/warning/error — colapsa 'info'/'neutral' del semáforo de estadoKpi() a 'default'. */
-  protected statTone(def: DashboardKpiDef): DynadrillStatisticTone {
-    const tone = this.estadoKpi(def).tone;
-    return tone === 'success' || tone === 'error' ? tone : 'default';
-  }
-
   /**
    * % de la meta alcanzado — no el valor crudo, sino "qué tan cerca está el
    * valor actual de cumplir el objetivo que el equipo definió". null si
@@ -276,9 +251,9 @@ export class QhseDashboardPage {
     return Math.max(0, (meta / valor) * 100);
   }
 
-  protected metaProgressStatus(def: DashboardKpiDef): DynadrillProgressStatus {
-    const tone = this.estadoKpi(def).tone;
-    return tone === 'success' ? 'success' : tone === 'error' ? 'exception' : 'normal';
+  /** Ancho de la barra de meta (0–100): el progreso puede pasar de 100 cuando se supera la meta. */
+  protected porcentajeBarra(def: DashboardKpiDef): number {
+    return Math.min(100, this.metaProgressPercent(def) ?? 0);
   }
 
   protected readonly indicadoresFueraDeMeta = computed(() => {

@@ -1,208 +1,164 @@
 @if (loading()) {
-  <p class="qhse-dashboard-page__loading">Cargando dashboard…</p>
+  <p class="qd-cargando">Cargando dashboard…</p>
 } @else {
-  <dynadrill-screen-header
+  <app-page-header
     eyebrow="QHSE"
     title="Dashboard Integrado del Sistema"
     subtitle="HSE-MASTER-001 — indicadores estratégicos y semáforo de cumplimiento"
-    roleTag="HSE"
   />
 
-  <section class="qhse-dashboard-page__resumen qhse-dashboard-page__resumen--{{ semaforo() }}">
-    <div class="qhse-dashboard-page__resumen-head">
-      <span class="qhse-dashboard-page__resumen-dot"></span>
-      <strong>{{ semaforoLabel[semaforo()] }}</strong>
-    </div>
-
-    @if (incumplimientoLegal()) {
-      <div class="qhse-dashboard-page__resumen-legal">
-        <p class="qhse-dashboard-page__resumen-motivo">⚠ Incumplimiento legal detectado:</p>
+  <!-- Semáforo de cumplimiento: ícono + texto + borde lateral (no depende solo del color) -->
+  <div class="qd-banner" [class]="'qd-banner qd-banner--' + semaforoTone[semaforo()]" role="status">
+    <app-qhse-icon name="alert" [size]="20" />
+    <div class="qd-banner__texto">
+      @if (incumplimientoLegal()) {
+        <strong>{{ semaforoLabel[semaforo()] }}. Incumplimiento legal detectado:</strong>
         <ul>
           @for (d of incumplimientoDetalle(); track d) {
             <li>{{ d }}</li>
           }
         </ul>
-      </div>
-    } @else {
-      <p class="qhse-dashboard-page__resumen-motivo">
-        {{ indicadoresFueraDeMeta() }} indicador(es) fuera de meta de los que tienen meta definida.
-      </p>
-    }
-  </section>
+      } @else {
+        {{ semaforoLabel[semaforo()] }}. {{ indicadoresFueraDeMeta() }} indicador(es) fuera de meta de los que tienen meta definida.
+      }
+    </div>
+  </div>
 
-  <section class="qhse-dashboard-page__operativo">
-    <h2 class="qhse-dashboard-page__operativo-title">Estado operativo</h2>
+  <!-- Estado operativo: tres tarjetas en escritorio; en móvil una sola tarjeta con tres bloques -->
+  <section class="qd-operativo" aria-labelledby="qd-operativo-titulo">
+    <h2 id="qd-operativo-titulo" class="qd-operativo__titulo">Estado operativo</h2>
 
-    <div class="qhse-dashboard-page__operativo-cols">
-      <dynadrill-section title="Checklist de equipos" icon="modules" viewAllLink="/dashboard/qhse/checklist-equipos">
-        <div class="qhse-dashboard-page__estado-chips">
+    <div class="qd-operativo__grid">
+      <article class="qd-op">
+        <header class="qd-op__head">
+          <h3 class="qd-op__titulo">Checklist de equipos</h3>
+          <a class="qd-op__ver" routerLink="/dashboard/qhse/checklist-equipos">Ver todo</a>
+        </header>
+        <div class="qd-chips">
           @for (e of checklistEquiposPorEstado(); track e.estado) {
             @if (e.count > 0) {
-              <dynadrill-tag [label]="e.count + ' ' + e.label" [variant]="e.tone" />
+              <app-qhse-chip [label]="e.count + ' ' + e.label" [tone]="e.tone" />
             }
           }
           @if (checklistEquiposTotal() === 0) {
-            <span class="qhse-dashboard-page__operativo-empty">Sin checklists registrados todavía.</span>
+            <span class="qd-vacio">Sin checklists registrados todavía.</span>
           }
         </div>
-
-        @if (checklistEquiposAtencion().length > 0) {
-          <ul class="qhse-dashboard-page__atencion-list">
-            @for (item of checklistEquiposAtencion(); track item.id) {
-              <li>
-                <button type="button" class="qhse-dashboard-page__atencion-btn" (click)="verChecklistEquipos()">
-                  <div class="qhse-dashboard-page__atencion-head">
-                    <strong>{{ item.code }}</strong>
-                    <dynadrill-tag [label]="item.estado" [variant]="item.tone" />
-                  </div>
-                  <div class="qhse-dashboard-page__atencion-row">
-                    <dynadrill-icon name="file-text" [size]="14" />
-                    <span>{{ item.titulo }}</span>
-                  </div>
-                </button>
-              </li>
-            }
-          </ul>
-        } @else {
-          <p class="qhse-dashboard-page__operativo-empty">Nada pendiente de revisión.</p>
+        @if (checklistEquiposAtencion()[0]; as a) {
+          <button type="button" class="qd-op__linea" (click)="verChecklistEquipos()">{{ a.code }} · {{ a.titulo }}</button>
+        } @else if (checklistEquiposTotal() > 0) {
+          <p class="qd-vacio">Nada pendiente de revisión.</p>
         }
-      </dynadrill-section>
+      </article>
 
-      <dynadrill-section title="Entrega de EPI" icon="box" viewAllLink="/dashboard/qhse/epi">
-        <div class="qhse-dashboard-page__estado-chips">
+      <article class="qd-op">
+        <header class="qd-op__head">
+          <h3 class="qd-op__titulo">Entrega de EPI</h3>
+          <a class="qd-op__ver" routerLink="/dashboard/qhse/epi">Ver todo</a>
+        </header>
+        <div class="qd-chips">
           @for (e of entregasEpiPorEstado(); track e.estado) {
             @if (e.count > 0) {
-              <dynadrill-tag [label]="e.count + ' ' + e.label" [variant]="e.tone" />
+              <app-qhse-chip [label]="e.count + ' ' + e.label" [tone]="e.tone" />
             }
           }
           @if (entregasEpiTotal() === 0) {
-            <span class="qhse-dashboard-page__operativo-empty">Sin entregas de EPI registradas todavía.</span>
+            <span class="qd-vacio">Sin entregas de EPI registradas todavía.</span>
           }
         </div>
-
-        @if (entregasEpiAtencion().length > 0) {
-          <ul class="qhse-dashboard-page__atencion-list">
-            @for (item of entregasEpiAtencion(); track item.id) {
-              <li>
-                <button type="button" class="qhse-dashboard-page__atencion-btn" (click)="verEpi()">
-                  <div class="qhse-dashboard-page__atencion-head">
-                    <strong>{{ item.code }}</strong>
-                    <dynadrill-tag [label]="item.estado" [variant]="item.tone" />
-                  </div>
-                  <div class="qhse-dashboard-page__atencion-row">
-                    <dynadrill-icon name="file-text" [size]="14" />
-                    <span>{{ item.titulo }}</span>
-                  </div>
-                </button>
-              </li>
-            }
-          </ul>
-        } @else {
-          <p class="qhse-dashboard-page__operativo-empty">Nada pendiente de revisión.</p>
+        @if (entregasEpiAtencion()[0]; as a) {
+          <button type="button" class="qd-op__linea" (click)="verEpi()">{{ a.code }} · {{ a.titulo }}</button>
+        } @else if (entregasEpiTotal() > 0) {
+          <p class="qd-vacio">Nada pendiente de revisión.</p>
         }
-      </dynadrill-section>
+      </article>
 
-      <dynadrill-section title="PTW / Recibimientos de Sitio" icon="lock" viewAllLink="/dashboard/qhse/ptw">
-        <div class="qhse-dashboard-page__estado-chips">
+      <article class="qd-op">
+        <header class="qd-op__head">
+          <h3 class="qd-op__titulo">PTW / Recibimientos de Sitio</h3>
+          <a class="qd-op__ver" routerLink="/dashboard/qhse/ptw">Ver todo</a>
+        </header>
+        <div class="qd-chips">
           @for (f of ptwPorFase(); track f.fase) {
             @if (f.count > 0) {
-              <dynadrill-tag [label]="f.count + ' ' + f.label" [variant]="f.tone" />
+              <app-qhse-chip [label]="f.count + ' ' + f.label" [tone]="f.tone" />
             }
           }
           @if (ptwAbiertosTotal() === 0) {
-            <span class="qhse-dashboard-page__operativo-empty">Ningún PTW abierto ahora mismo.</span>
+            <span class="qd-vacio">Ningún PTW abierto ahora mismo.</span>
           }
         </div>
-
-        @if (ptwAtencion().length > 0) {
-          <ul class="qhse-dashboard-page__atencion-list">
-            @for (item of ptwAtencion(); track item.id) {
-              <li>
-                <button type="button" class="qhse-dashboard-page__atencion-btn" (click)="verPtw(item.id)">
-                  <div class="qhse-dashboard-page__atencion-head">
-                    <strong>{{ item.code }}</strong>
-                    <dynadrill-tag [label]="item.estado" [variant]="item.tone" />
-                  </div>
-                  <div class="qhse-dashboard-page__atencion-row">
-                    <dynadrill-icon name="file-text" [size]="14" />
-                    <span>{{ item.titulo }}</span>
-                  </div>
-                  @if (item.detalle) {
-                    <div class="qhse-dashboard-page__atencion-row">
-                      <dynadrill-icon name="clock" [size]="14" />
-                      <span>{{ item.detalle }}</span>
-                    </div>
-                  }
-                </button>
-              </li>
-            }
-          </ul>
-        } @else {
-          <p class="qhse-dashboard-page__operativo-empty">
-            Ningún PTW abierto lleva {{ ptwDiasSinActividadAlerta }} días o más sin actividad.
-          </p>
+        @if (ptwAtencion()[0]; as a) {
+          <button type="button" class="qd-op__linea" (click)="verPtw(a.id)">
+            {{ a.code }}@if (a.detalle) { · {{ a.detalle }} } · {{ a.estado }}
+          </button>
+        } @else if (ptwAbiertosTotal() > 0) {
+          <p class="qd-vacio">Ningún PTW abierto lleva {{ ptwDiasSinActividadAlerta }} días o más sin actividad.</p>
         }
-      </dynadrill-section>
+      </article>
     </div>
   </section>
 
-  <div class="qhse-dashboard-page__tabs" role="tablist">
+  <!-- Pestañas por categoría (Nav/Tab): texto + indicador morado de 3 px -->
+  <div class="qd-tabs" role="tablist">
     @for (categoria of categorias; track categoria; let i = $index) {
       <button
         type="button"
         role="tab"
-        class="qhse-dashboard-page__tab"
-        [class.qhse-dashboard-page__tab--active]="categoriaIndex() === i"
+        class="qd-tab"
+        [class.qd-tab--activa]="categoriaIndex() === i"
         [attr.aria-selected]="categoriaIndex() === i"
         (click)="categoriaIndex.set(i)"
-      >{{ categoria }}</button>
+      >
+        {{ categoria }}
+        <span class="qd-tab__indicador"></span>
+      </button>
     }
   </div>
 
-  <div class="qhse-dashboard-page__grid">
+  <div class="qd-grid">
     @for (def of defsPorCategoria(categorias[categoriaIndex()]); track def.id) {
-        <article class="qhse-dashboard-page__card">
-          @if (def.disponible) {
-            <dynadrill-statistic
-              [title]="def.label"
-              [value]="valores()[def.id] ?? '—'"
-              [suffix]="def.unidad"
-              [tone]="statTone(def)"
-            />
-            <div class="qhse-dashboard-page__progress-row">
-              <dynadrill-progress
-                class="qhse-dashboard-page__progress-bar"
-                [value]="metaProgressPercent(def) ?? 0"
-                [max]="100"
-                [showInfo]="true"
-                [statusOverride]="metas()[def.id] != null ? metaProgressStatus(def) : 'normal'"
-              />
-              <dynadrill-tag [label]="estadoKpi(def).texto" [variant]="estadoKpi(def).tone" />
-            </div>
+      <article class="qd-kpi">
+        <h3 class="qd-kpi__titulo">{{ def.label }}</h3>
 
-            <div class="qhse-dashboard-page__meta-box">
-              <span class="qhse-dashboard-page__meta-box-title">
-                {{ metas()[def.id] != null ? 'Actualizar meta' : 'Establecer meta' }}
-              </span>
-              <div class="qhse-dashboard-page__meta-form">
-                <dynadrill-input
-                  type="number"
-                  placeholder="Definida por tu equipo HSE"
-                  [value]="metaEdit(def.id)"
-                  (valueChange)="setMetaEdit(def.id, $event)"
-                />
-                <dynadrill-button size="small" (clicked)="guardarMeta(def.id)">Guardar meta</dynadrill-button>
+        @if (def.disponible) {
+          <p class="qd-kpi__valor">{{ valores()[def.id] ?? '—' }}@if (def.unidad) { {{ def.unidad }} }</p>
+
+          @if (metas()[def.id] != null) {
+            <div class="qd-progreso">
+              <div class="qd-progreso__fila">
+                <span>Meta: {{ metas()[def.id] }}</span>
+                <span class="qd-progreso__valor">{{ valores()[def.id] ?? '—' }} / {{ metas()[def.id] }}</span>
               </div>
-              @if (metaEditDirty(def.id)) {
-                <button type="button" class="qhse-dashboard-page__meta-cancel" (click)="cancelarMetaEdit(def.id)">Cancelar</button>
-              }
+              <div class="qd-progreso__pista">
+                <div class="qd-progreso__barra" [style.width.%]="porcentajeBarra(def)"></div>
+              </div>
             </div>
-          } @else {
-            <span class="qhse-dashboard-page__card-title">{{ def.label }}</span>
-            <dynadrill-tag label="No disponible" variant="neutral" />
-            <p class="qhse-dashboard-page__card-motivo">{{ def.motivoNoDisponible }}</p>
           }
-        </article>
-      }
-    </div>
+
+          <div class="qd-chips">
+            <app-qhse-chip [label]="estadoKpi(def).texto" [tone]="estadoKpi(def).tone" />
+          </div>
+
+          <label class="qd-campo">
+            <span class="qd-campo__etq">{{ metas()[def.id] != null ? 'Actualizar meta' : 'Establecer meta' }}</span>
+            <input
+              class="qd-campo__input"
+              type="number"
+              placeholder="Definida por tu equipo HSE"
+              [value]="metaEdit(def.id)"
+              (input)="setMetaEdit(def.id, $any($event.target).value)"
+            />
+          </label>
+          <button type="button" class="qd-btn" (click)="guardarMeta(def.id)">Guardar meta</button>
+          @if (metaEditDirty(def.id)) {
+            <button type="button" class="qd-cancelar" (click)="cancelarMetaEdit(def.id)">Cancelar</button>
+          }
+        } @else {
+          <div class="qd-chips"><app-qhse-chip label="Sin datos" tone="neutral" /></div>
+          <p class="qd-kpi__motivo">{{ def.motivoNoDisponible }}</p>
+        }
+      </article>
+    }
+  </div>
 }

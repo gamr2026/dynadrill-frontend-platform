@@ -5,10 +5,10 @@ import {
   DynadrillCardComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
   DynadrillTagComponent,
 } from '@digitec-it-projects/dynadrill-ui';
+import { PageHeader } from '../../../../../shared/components/page-header/page-header';
 import { DocumentoLegal, LEGAL_TIPO_LABELS, LegalTipo } from '../../models/documento-legal.model';
 import { DocumentoLegalService } from '../../services/documento-legal.service';
 
@@ -22,7 +22,7 @@ const TIPOS: LegalTipo[] = ['ambiente', 'sst'];
  */
 @Component({
   selector: 'app-legal-page',
-  imports: [DatePipe, DynadrillScreenHeaderComponent, DynadrillCardComponent, DynadrillTagComponent, DynadrillButtonComponent, DynadrillInputComponent, DynadrillSpinnerComponent],
+  imports: [DatePipe, PageHeader, DynadrillCardComponent, DynadrillTagComponent, DynadrillButtonComponent, DynadrillInputComponent, DynadrillSpinnerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './legal-page.html',
   styleUrl: './legal-page.scss',

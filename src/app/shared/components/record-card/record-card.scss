@@ -81,3 +81,15 @@
     height: 48px;
   }
 }
+
+.record-card__valor--success {
+  color: var(--success-text, #237804);
+}
+
+.record-card__valor--warning {
+  color: var(--warning-text, #ad6800);
+}
+
+.record-card__valor--error {
+  color: var(--error-text, #cf1322);
+}

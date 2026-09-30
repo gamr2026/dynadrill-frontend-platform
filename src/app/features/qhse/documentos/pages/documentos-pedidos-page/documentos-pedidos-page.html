@@ -1,47 +1,50 @@
-<dynadrill-screen-header
+<app-page-header
   eyebrow="QHSE"
   title="Documentos por pedido"
   subtitle="Formato de Recepción, SFI y Carnet de Vacunas (QHSE) — ART y PT los sube el Supervisor desde su ticket de Pumping"
-  roleTag="HSE"
 />
 
-<ng-template #actionsTpl let-row>
-  <div class="documentos-pedidos-page__row-actions">
-    @if (row.estado.formatoRecepcion) {
-      <dynadrill-icon-button icon="download" tooltip="Descargar Formato de Recepción" tooltipPlacement="top" (clicked)="descargar(row.pedidoId, 'qhse_formato_recepcion')" />
-    } @else {
-      <dynadrill-icon-button icon="upload" tooltip="Subir Formato de Recepción" tooltipPlacement="top" [disabled]="subiendoTipo(row.pedidoId, 'qhse_formato_recepcion')" (clicked)="formatoInput.click()" />
-    }
-    <input #formatoInput type="file" hidden (change)="subir(row.pedidoId, 'qhse_formato_recepcion', formatoInput)" />
+@if (isMobile()) {
+  <app-qhse-registros-movil [items]="itemsMovil()" [loading]="loading()" vacio="No hay pedidos." />
+} @else {
+  <ng-template #actionsTpl let-row>
+    <div class="documentos-pedidos-page__row-actions">
+      @if (row.estado.formatoRecepcion) {
+        <dynadrill-icon-button icon="download" tooltip="Descargar Formato de Recepción" tooltipPlacement="top" (clicked)="descargar(row.pedidoId, 'qhse_formato_recepcion')" />
+      } @else {
+        <dynadrill-icon-button icon="upload" tooltip="Subir Formato de Recepción" tooltipPlacement="top" [disabled]="subiendoTipo(row.pedidoId, 'qhse_formato_recepcion')" (clicked)="formatoInput.click()" />
+      }
+      <input #formatoInput type="file" hidden (change)="subir(row.pedidoId, 'qhse_formato_recepcion', formatoInput)" />
 
-    @if (row.estado.carnetVacunas) {
-      <dynadrill-icon-button icon="download" tooltip="Descargar Carnet de Vacunas" tooltipPlacement="top" (clicked)="descargar(row.pedidoId, 'qhse_carnet_vacunas')" />
-    } @else {
-      <dynadrill-icon-button icon="upload" tooltip="Subir Carnet de Vacunas" tooltipPlacement="top" [disabled]="subiendoTipo(row.pedidoId, 'qhse_carnet_vacunas')" (clicked)="carnetInput.click()" />
-    }
-    <input #carnetInput type="file" hidden (change)="subir(row.pedidoId, 'qhse_carnet_vacunas', carnetInput)" />
+      @if (row.estado.carnetVacunas) {
+        <dynadrill-icon-button icon="download" tooltip="Descargar Carnet de Vacunas" tooltipPlacement="top" (clicked)="descargar(row.pedidoId, 'qhse_carnet_vacunas')" />
+      } @else {
+        <dynadrill-icon-button icon="upload" tooltip="Subir Carnet de Vacunas" tooltipPlacement="top" [disabled]="subiendoTipo(row.pedidoId, 'qhse_carnet_vacunas')" (clicked)="carnetInput.click()" />
+      }
+      <input #carnetInput type="file" hidden (change)="subir(row.pedidoId, 'qhse_carnet_vacunas', carnetInput)" />
 
-    @if (row.estado.sfi) {
-      <dynadrill-icon-button icon="download" tooltip="Descargar SFI" tooltipPlacement="top" (clicked)="descargar(row.pedidoId, 'qhse_sfi')" />
-    } @else {
-      <dynadrill-icon-button icon="upload" tooltip="Subir SFI" tooltipPlacement="top" [disabled]="subiendoTipo(row.pedidoId, 'qhse_sfi')" (clicked)="sfiInput.click()" />
-    }
-    <input #sfiInput type="file" hidden (change)="subir(row.pedidoId, 'qhse_sfi', sfiInput)" />
+      @if (row.estado.sfi) {
+        <dynadrill-icon-button icon="download" tooltip="Descargar SFI" tooltipPlacement="top" (clicked)="descargar(row.pedidoId, 'qhse_sfi')" />
+      } @else {
+        <dynadrill-icon-button icon="upload" tooltip="Subir SFI" tooltipPlacement="top" [disabled]="subiendoTipo(row.pedidoId, 'qhse_sfi')" (clicked)="sfiInput.click()" />
+      }
+      <input #sfiInput type="file" hidden (change)="subir(row.pedidoId, 'qhse_sfi', sfiInput)" />
 
-    @if (row.estado.checklistIngreso?.completo) {
-      <dynadrill-icon-button icon="download" tooltip="Descargar certificado de Ingreso y Verificaciones" tooltipPlacement="top" (clicked)="descargarCertificadoChecklistIngreso(row)" />
-    }
+      @if (row.estado.checklistIngreso?.completo) {
+        <dynadrill-icon-button icon="download" tooltip="Descargar certificado de Ingreso y Verificaciones" tooltipPlacement="top" (clicked)="descargarCertificadoChecklistIngreso(row)" />
+      }
+    </div>
+  </ng-template>
+
+  <div class="table-scroll dyn-table-card">
+    <dynadrill-data-table
+      [columns]="columns"
+      [rows]="rows()"
+      [loading]="loading()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="10"
+      actionsHeader="Acciones"
+      [actionsTemplate]="actionsTpl"
+    />
   </div>
-</ng-template>
-
-<div class="table-scroll">
-  <dynadrill-data-table
-    [columns]="columns"
-    [rows]="rows()"
-    [loading]="loading()"
-    [rowKey]="rowKeyFn"
-    [pageSize]="10"
-    actionsHeader="Acciones"
-    [actionsTemplate]="actionsTpl"
-  />
-</div>
+}

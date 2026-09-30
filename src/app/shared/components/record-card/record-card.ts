@@ -21,6 +21,8 @@ export interface RecordAction {
 export interface RecordField {
   label: string;
   value: string;
+  /** Colorea el valor (ej. "Pendiente" ámbar, "Vencido" rojo, "Cargado" verde). */
+  tone?: 'success' | 'warning' | 'error';
 }
 
 export interface RecordStatus {

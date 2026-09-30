@@ -4,8 +4,10 @@ import {
   DynadrillDataTableComponent,
   DynadrillIconButtonComponent,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
 } from '@digitec-it-projects/dynadrill-ui';
+import { PageHeader } from '../../../../../shared/components/page-header/page-header';
+import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
+import { QhseRegistrosMovil, type RegistroMovil } from '../../../shared/components/qhse-registros-movil';
 import { QhseDocumentosService } from '../../services/qhse-documentos.service';
 import {
   PedidoConEstadoDocumental,
@@ -37,7 +39,7 @@ const APROBADO: Badge = { text: 'Aprobado', tone: 'success' };
 @Component({
   selector: 'app-documentos-pedidos-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DynadrillScreenHeaderComponent, DynadrillDataTableComponent, DynadrillIconButtonComponent],
+  imports: [PageHeader, QhseRegistrosMovil, DynadrillDataTableComponent, DynadrillIconButtonComponent],
   templateUrl: './documentos-pedidos-page.html',
   styleUrl: './documentos-pedidos-page.scss',
 })
@@ -45,6 +47,7 @@ export class DocumentosPedidosPage {
   private readonly service = inject(QhseDocumentosService);
   private readonly notify = inject(DynadrillNotificationService);
 
+  protected readonly isMobile = injectNarrowViewport();
   protected readonly loading = signal(true);
   protected readonly pedidos = signal<PedidoConEstadoDocumental[]>([]);
   protected readonly subiendo = signal<string | null>(null);
@@ -78,6 +81,49 @@ export class DocumentosPedidosPage {
       estado: p.estado,
     })),
   );
+
+  /** Tarjetas de la lista en móvil (Figma "M · Documentos por pedido"): estado de los tres documentos que sube QHSE + subir/descargar. */
+  protected readonly itemsMovil = computed<RegistroMovil[]>(() =>
+    this.rows().map(r => {
+      const tono = (b: Badge): 'success' | 'warning' | 'error' | undefined =>
+        b.tone === 'success' ? 'success' : b.tone === 'warning' ? 'warning' : b.tone === 'error' ? 'error' : undefined;
+      const accionDoc = (nombre: string, cargado: boolean, tipo: typeof QHSE_TIPO_FORMATO_RECEPCION | typeof QHSE_TIPO_SFI | typeof QHSE_TIPO_CARNET_VACUNAS) =>
+        cargado
+          ? { icon: 'download', label: `Descargar ${nombre}`, run: () => this.descargar(r.pedidoId, tipo) }
+          : { icon: 'upload', label: `Subir ${nombre}`, run: () => this.elegirYSubir(r.pedidoId, tipo) };
+      return {
+        id: r.pedidoId,
+        eyebrow: r.code,
+        title: r.cliente,
+        subtitle: r.campo,
+        status: { text: `Company Man: ${r.companyManBadge.text}`, tone: r.companyManBadge.tone },
+        fields: [
+          { label: 'Formato Recepción', value: r.formatoRecepcionBadge.text, tone: tono(r.formatoRecepcionBadge) },
+          { label: 'Carnet', value: r.carnetVacunasBadge.text, tone: tono(r.carnetVacunasBadge) },
+          { label: 'ART', value: r.artBadge.text, tone: tono(r.artBadge) },
+          { label: 'PT (hoy)', value: r.ptBadge.text, tone: tono(r.ptBadge) },
+          { label: 'SFI', value: r.sfiBadge.text, tone: tono(r.sfiBadge) },
+          { label: 'Ingreso + Verif.', value: r.checklistIngresoBadge.text, tone: tono(r.checklistIngresoBadge) },
+        ],
+        actions: [
+          { ...accionDoc('Formato de Recepción', r.estado.formatoRecepcion, QHSE_TIPO_FORMATO_RECEPCION), primary: true },
+          accionDoc('Carnet de Vacunas', r.estado.carnetVacunas, QHSE_TIPO_CARNET_VACUNAS),
+          accionDoc('SFI', r.estado.sfi, QHSE_TIPO_SFI),
+        ],
+      } satisfies RegistroMovil;
+    }),
+  );
+
+  /** En móvil no hay `<input type=file>` por fila: se crea uno al vuelo y se reutiliza `subir`. */
+  protected elegirYSubir(
+    pedidoId: number,
+    tipo: typeof QHSE_TIPO_FORMATO_RECEPCION | typeof QHSE_TIPO_SFI | typeof QHSE_TIPO_CARNET_VACUNAS,
+  ): void {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.addEventListener('change', () => this.subir(pedidoId, tipo, input));
+    input.click();
+  }
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['pedidoId']);
 

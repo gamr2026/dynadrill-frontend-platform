@@ -1,3 +1,9 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 // Sin flex-wrap: con wrap, esta fila de hasta 4 íconos (Formato de
 // Recepción, Carnet de Vacunas, SFI, certificado de Ingreso) se apilaba en
 // columna apenas la celda quedaba angosta. Sin wrap, la tabla scrollea

@@ -4,8 +4,10 @@
   <dynadrill-screen-header [eyebrow]="m.code" [title]="m.actividad" [subtitle]="m.ubicacion" [roleTag]="statusLabel()" />
 
   <div class="iperc-detail-page__toolbar">
-    <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a IPERC</dynadrill-button>
-    <dynadrill-button variant="secondary" size="small" [disabled]="descargandoSeguimiento()" (click)="descargarSeguimiento()">
+    @if (!isMobile()) {
+      <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a IPERC</dynadrill-button>
+    }
+    <dynadrill-button variant="secondary" [size]="isMobile() ? 'medium' : 'small'" [disabled]="descargandoSeguimiento()" (click)="descargarSeguimiento()">
       {{ descargandoSeguimiento() ? 'Generando…' : '⬇ Descargar seguimiento' }}
     </dynadrill-button>
   </div>
@@ -26,28 +28,39 @@
   }
 
   <section class="iperc-detail-page__stepper-card">
+    <h3 class="iperc-detail-page__card-title">Fases de la matriz</h3>
     <dynadrill-stepper [steps]="faseSteps" [currentIndex]="faseIndex()" />
   </section>
 
-  <div class="iperc-detail-page__overview">
-    <dynadrill-context-card [items]="contextItems()" layout="vertical" />
+  @if (isMobile()) {
+    <section class="iperc-detail-page__resumen">
+      <h3 class="iperc-detail-page__card-title">Resumen</h3>
+      <dynadrill-context-card [items]="contextItems()" layout="vertical" />
+      <p class="iperc-detail-page__resumen-equipo">
+        Equipo evaluador: {{ m.equipoEvaluador.length > 0 ? m.equipoEvaluador.join(', ') : 'Sin definir' }}
+      </p>
+    </section>
+  } @else {
+    <div class="iperc-detail-page__overview">
+      <dynadrill-context-card [items]="contextItems()" layout="vertical" />
 
-    <div class="iperc-detail-page__equipo">
-      <span class="iperc-detail-page__equipo-label">Equipo evaluador</span>
-      @if (m.equipoEvaluador.length > 0) {
-        <div class="iperc-detail-page__equipo-avatars">
-          @for (nombre of m.equipoEvaluador; track nombre) {
-            <div class="iperc-detail-page__equipo-member">
-              <dynadrill-avatar [name]="nombre" size="sm" />
-              <span>{{ nombre }}</span>
-            </div>
-          }
-        </div>
-      } @else {
-        <span class="iperc-detail-page__equipo-empty">Sin definir</span>
-      }
+      <div class="iperc-detail-page__equipo">
+        <span class="iperc-detail-page__equipo-label">Equipo evaluador</span>
+        @if (m.equipoEvaluador.length > 0) {
+          <div class="iperc-detail-page__equipo-avatars">
+            @for (nombre of m.equipoEvaluador; track nombre) {
+              <div class="iperc-detail-page__equipo-member">
+                <dynadrill-avatar [name]="nombre" size="sm" />
+                <span>{{ nombre }}</span>
+              </div>
+            }
+          </div>
+        } @else {
+          <span class="iperc-detail-page__equipo-empty">Sin definir</span>
+        }
+      </div>
     </div>
-  </div>
+  }
 
   <div class="iperc-detail-page__tasks">
     @for (task of m.tasks; track task.id) {

@@ -211,3 +211,74 @@
     flex-wrap: wrap;
   }
 }
+
+.iperc-detail-page__card-title {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--dynadrill-navy, #131529);
+}
+
+.iperc-detail-page__resumen {
+  padding: 16px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: var(--radius-lg, 16px);
+
+  // la tarjeta de contexto ya trae su propio marco: acá solo se usa su cuadrícula
+  ::ng-deep .dynadrill-context-card {
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+}
+
+.iperc-detail-page__resumen-equipo {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--text, #2c2b35);
+}
+
+@media (max-width: 840px) {
+  :host {
+    padding: 16px 16px 96px;
+  }
+
+  .iperc-detail-page__stepper-card {
+    padding: 16px;
+    border-radius: var(--radius-lg, 16px);
+  }
+
+  .iperc-detail-page__toolbar > dynadrill-button {
+    flex: 1 1 100%;
+  }
+
+  .iperc-detail-page__toolbar ::ng-deep .ant-btn {
+    width: 100%;
+    height: 48px;
+    background: var(--surface, #fff);
+  }
+
+  // Acción principal fija al borde inferior (Figma: "Enviar a revisión").
+  .iperc-detail-page__actions {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 20;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin: 0;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0));
+    background: var(--surface-muted, #faf9fc);
+    border-top: 1px solid var(--border, #e5e4ea);
+
+    &:empty {
+      display: none;
+    }
+
+    ::ng-deep .ant-btn {
+      width: 100%;
+      height: 48px;
+    }
+  }
+}

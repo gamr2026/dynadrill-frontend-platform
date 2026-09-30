@@ -23,6 +23,8 @@ import {
   type DynadrillContextCardItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
+import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
+import { useDetailChrome } from '../../../../../layout/page-chrome.service';
 import { AuthService } from '../../../../../core/services/auth.service';
 import {
   calcularNR,
@@ -95,6 +97,7 @@ export class IpercDetailPage {
 
   private readonly matrixId = Number(this.route.snapshot.paramMap.get('id'));
 
+  protected readonly isMobile = injectNarrowViewport();
   protected readonly loading = signal(true);
   protected readonly matrix = signal<IpercMatrix | null>(null);
 
@@ -206,6 +209,9 @@ export class IpercDetailPage {
   protected readonly descargandoSeguimiento = signal(false);
 
   constructor() {
+    // Barra "Detail" del header (Figma Nav/TopAppBar, solo móvil): ← IPERC-014.
+    useDetailChrome(() => this.matrix()?.code ?? 'IPERC', '/dashboard/qhse/iperc');
+
     this.reload();
   }
 

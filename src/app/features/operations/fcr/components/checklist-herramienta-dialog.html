@@ -187,6 +187,9 @@
 
 <footer class="checklist-dialog__footer-actions">
   <dynadrill-button variant="secondary" (clicked)="cancelar()">Cerrar</dynadrill-button>
+  @if (!loading()) {
+    <dynadrill-button variant="secondary" (clicked)="verPdf()">Ver PDF</dynadrill-button>
+  }
   @if (!loading() && !yaEnviado() && tieneRolParaFirmar('liberadoQhse')) {
     <dynadrill-button variant="primary" [disabled]="!canEnviar() || saving()" (clicked)="enviarChecklist()">Enviar checklist</dynadrill-button>
   }

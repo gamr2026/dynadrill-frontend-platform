@@ -1,0 +1,109 @@
+.ch {
+  font-size: 9px;
+
+  &__datos {
+    margin-top: -1px;
+    padding: 4px 6px;
+    border: 1px solid #000;
+  }
+
+  &__fila {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 14px;
+    padding: 3px 0;
+    font-size: 9.5px;
+
+    &--3 {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  &__tabla {
+    margin-top: -1px;
+
+    th,
+    td {
+      padding: 1px 3px;
+      font-size: 8.5px;
+    }
+  }
+
+  &__morado th {
+    background: #7030a0;
+    color: #fff;
+    text-align: center;
+    font-size: 8.5px;
+  }
+
+  &__c-item {
+    width: 5%;
+  }
+
+  &__c-cant {
+    width: 9%;
+  }
+
+  &__c-cod {
+    width: 15%;
+  }
+
+  &__c-desc {
+    width: 31%;
+  }
+
+  &__c-res {
+    width: 7%;
+  }
+
+  &__c-cam {
+    width: 9%;
+  }
+
+  &__c-acc {
+    width: 9%;
+  }
+
+  &__c-nota {
+    width: 15%;
+  }
+
+  &__nota {
+    margin-top: -1px;
+    padding: 3px 6px;
+    min-height: 26px;
+    border: 1px solid #000;
+    font-size: 9px;
+  }
+
+  &__firmas {
+    margin-top: -1px;
+    padding: 6px;
+    border: 1px solid #000;
+  }
+
+  &__firma-fila {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr;
+    gap: 12px;
+    align-items: end;
+    min-height: 38px;
+    font-size: 9.5px;
+  }
+
+  &__f-firma,
+  &__f-nombre,
+  &__f-fecha {
+    padding-bottom: 2px;
+    border-bottom: 1px solid #000;
+  }
+
+  &__pie {
+    margin-top: -1px;
+    padding: 3px 6px;
+    border: 1px solid #000;
+    color: #7f7f7f;
+    font-size: 9px;
+    font-weight: 700;
+  }
+}

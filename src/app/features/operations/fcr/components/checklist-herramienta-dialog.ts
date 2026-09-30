@@ -104,6 +104,9 @@ function normalizeResultado(raw: string): FcrToolInspectionParteResultado | null
  * cabecera/partes y llama a `enviar()`, que el backend rechaza si falta
  * alguna de las 3 firmas ya persistidas.
  */
+import { DocumentoPdfService } from '../../../../shared/documentos';
+import { ChecklistHerramientaHoja } from '../../../../shared/documentos/formatos/checklist-herramienta-hoja';
+
 @Component({
   selector: 'app-checklist-herramienta-dialog',
   /** Pantalla completa en móvil (formulario largo) — ver styles.scss. */
@@ -132,6 +135,7 @@ export class ChecklistHerramientaDialog {
   private readonly auth = inject(AuthService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly dialog = inject(DynadrillDialogService);
+  private readonly documentoPdf = inject(DocumentoPdfService);
 
   protected readonly inspeccionadoPorOptions = INSPECCIONADO_POR_OPTIONS;
   protected readonly firmaLabels = FCR_TOOL_INSPECTION_FIRMA_LABELS;
@@ -527,5 +531,35 @@ export class ChecklistHerramientaDialog {
 
   protected cancelar(): void {
     this.modalRef.close(undefined);
+  }
+
+  /** Formato "Registro de inspección y reparación de herramientas" con lo que hay en pantalla; las firmas se ponen sobre el PDF. */
+  protected verPdf(): void {
+    const iso = (d: Date | null): string | null => (d ? d.toISOString() : null);
+    const inspeccion: FcrToolInspection = {
+      id: this.inspectionId() ?? 0,
+      ticketId: this.data.ticketId,
+      toolId: this.data.toolId,
+      articuloId: this.data.articuloId,
+      cliente: this.cliente(),
+      pozo: this.pozo(),
+      fechaInspeccion: iso(this.fechaInspeccion()),
+      fechaReparacion: iso(this.fechaReparacion()),
+      fechaEnvio: iso(this.fechaEnvio()),
+      descripcionHerramienta: this.descripcionHerramienta(),
+      numeroSerie: this.numeroSerie(),
+      inspeccionadoPor: this.inspeccionadoPor(),
+      reparadoPor: this.reparadoPor(),
+      estado: this.estado() as FcrToolInspection['estado'],
+      observaciones: this.observaciones(),
+      firmas: this.firmas(),
+      partes: this.partes(),
+    };
+    this.documentoPdf.abrir({
+      titulo: `Inspección y reparación — ${this.descripcionHerramienta() || this.data.toolName}`,
+      component: ChecklistHerramientaHoja,
+      inputs: { inspeccion },
+      nombreArchivo: `Inspección y reparación ${this.descripcionHerramienta() || this.data.toolName}`,
+    });
   }
 }

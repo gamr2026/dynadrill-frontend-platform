@@ -101,9 +101,12 @@
       'header'
       'content'
       'bottom-nav';
-    grid-template-columns: 1fr;
-    grid-template-rows: 64px 1fr auto;
+    grid-template-columns: minmax(0, 1fr);
+    // minmax(0, 1fr): el contenido nunca estira la fila y empuja la barra inferior fuera de pantalla.
+    grid-template-rows: 64px minmax(0, 1fr) auto;
+    height: 100vh;
     height: 100dvh;
+    overflow: hidden;
 
     &__sidebar,
     &__footer {
@@ -115,7 +118,9 @@
     }
 
     &__content {
+      min-height: 0;
       padding: 16px;
+      overscroll-behavior: contain;
     }
 
     // Una pantalla de detalle deja el borde inferior a sus propias acciones.

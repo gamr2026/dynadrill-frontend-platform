@@ -3,6 +3,11 @@
   flex-direction: column;
   gap: 16px;
   padding: 1.5rem;
+
+  // En móvil el shell ya pone su propio margen (16px): sin esto la lista quedaba con el doble de aire.
+  @media (max-width: 840px) {
+    padding: 0;
+  }
 }
 
 .table-scroll {

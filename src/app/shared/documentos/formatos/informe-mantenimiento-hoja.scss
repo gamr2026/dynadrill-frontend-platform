@@ -1,0 +1,117 @@
+$azul: #2e6bb5;
+
+.im {
+  font-size: 9px;
+
+  table {
+    margin-top: -1px;
+  }
+
+  &__azul th,
+  &__azul td {
+    background: $azul;
+    color: #fff;
+    font-weight: 700;
+    text-align: center;
+    font-size: 9px;
+  }
+
+  &__valor {
+    height: 18px;
+    text-align: center;
+  }
+
+  // En la fila de títulos azules, el tipo "Preventivo" va con el fondo normal como en el Excel.
+  &__tipo--plano,
+  &__x--plano {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  &__tipo {
+    width: 14%;
+    text-align: center;
+    font-size: 9.5px;
+  }
+
+  &__x {
+    width: 9%;
+    text-align: center;
+    font-weight: 700;
+  }
+
+  &__hor {
+    font-size: 8.5px;
+    font-weight: 700;
+  }
+
+  &__lado {
+    width: 14%;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 8.5px;
+  }
+
+  &__lado-h {
+    background: #fff !important;
+  }
+
+  &__linea {
+    min-height: 18px;
+    border-bottom: 1px dotted #000;
+    font-size: 9px;
+  }
+
+  &__linea-td {
+    height: 18px;
+    border-bottom: 1px dotted #000;
+    font-size: 9px;
+  }
+
+  &__estado {
+    width: 14%;
+    text-align: center;
+  }
+
+  &__c-parte {
+    width: 22%;
+  }
+
+  &__c-cant {
+    width: 12%;
+  }
+
+  &__obs-tit {
+    font-size: 11px !important;
+    font-weight: 400 !important;
+  }
+
+  &__n {
+    width: 14%;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  &__obs-fila {
+    height: 26px;
+    border-bottom: 1px dotted #000;
+  }
+
+  &__firmas td {
+    width: 50%;
+    padding: 4px 10px;
+    font-size: 9px;
+  }
+
+  &__firma-espacio td {
+    height: 56px;
+    border-bottom-color: transparent;
+  }
+
+  &__aclara {
+    margin-top: 2px;
+    font-size: 8px;
+    font-weight: 700;
+    font-style: italic;
+  }
+}

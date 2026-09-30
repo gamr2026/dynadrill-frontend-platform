@@ -1,0 +1,69 @@
+<div class="doc-hoja im">
+  <app-doc-encabezado titulo="Informe de mantenimiento" codigo="DYN-MNT-RE-008" version="01" />
+
+  <table class="im__cab">
+    <tr class="im__azul">
+      <th>UNIDAD N°</th><th>FECHA</th><th>REFERENCIA</th><th colspan="2">TIPO DE MANTENIMIENTO</th>
+    </tr>
+    <tr>
+      <td class="im__valor">{{ vista().unidad }}</td>
+      <td class="im__valor">{{ vista().fecha }}</td>
+      <td class="im__valor">{{ vista().referencia }}</td>
+      <td class="im__tipo">PREDICTIVO</td><td class="im__x"></td>
+    </tr>
+    <tr class="im__azul">
+      <th colspan="2">HORÓMETROS / KMs</th>
+      <th>CONDICION</th>
+      <td class="im__tipo im__tipo--plano">PREVENTIVO</td><td class="im__x im__x--plano">{{ vista().clase === 'Preventivo' ? 'X' : '' }}</td>
+    </tr>
+    <tr>
+      <td colspan="2" class="im__hor">A: {{ vista().horometro }} &nbsp;&nbsp; B: &nbsp;&nbsp; C: &nbsp;&nbsp; D: {{ vista().km }}</td>
+      <td class="doc-centro">{{ condicion() }}</td>
+      <td class="im__tipo">CORRECTIVO</td><td class="im__x">{{ vista().clase === 'Correctivo' ? 'X' : '' }}</td>
+    </tr>
+  </table>
+
+  <table class="im__bloque">
+    <tr>
+      <th class="im__lado">ACTIVIDADES:</th>
+      <td>
+        @for (l of actividades(); track $index) { <div class="im__linea">{{ l }}</div> }
+      </td>
+    </tr>
+  </table>
+
+  <table class="im__trabajos">
+    <tr class="im__azul"><th class="im__lado-h"></th><th>DETALLE DE TRABAJOS REALIZADOS</th><th class="im__estado">ESTADO</th></tr>
+    @for (t of trabajos(); track $index) {
+      <tr>
+        @if ($index === 0) { <th class="im__lado" [attr.rowspan]="trabajos().length">TRABAJO REALIZADOS</th> }
+        <td class="im__linea-td">{{ t.texto }}</td>
+        <td class="im__linea-td im__estado">{{ t.estado }}</td>
+      </tr>
+    }
+  </table>
+
+  <table class="im__repuestos">
+    <tr class="im__azul"><th colspan="3">REPUESTOS UTILIZADOS / SERVICIOS DE TERCEROS</th></tr>
+    <tr class="im__azul"><th class="im__c-parte">NÚMERO DE PARTE</th><th class="im__c-cant">CANT.</th><th>DESCRIPCIÓN</th></tr>
+    @for (r of repuestos(); track $index) {
+      <tr><td class="im__linea-td">{{ r?.numeroParte }}</td><td class="im__linea-td doc-centro">{{ r?.cantidad }}</td><td class="im__linea-td">{{ r?.descripcion }}</td></tr>
+    }
+  </table>
+
+  <table class="im__obs">
+    <tr class="im__azul"><th colspan="2" class="im__obs-tit">OBSERVACIONES – INDICACIONES - CONCLUSIONES</th></tr>
+    @for (l of observaciones(); track $index) {
+      <tr><th class="im__n">{{ $index + 1 }}</th><td class="im__obs-fila">{{ l }}</td></tr>
+    }
+  </table>
+
+  <!-- Firmas: solo en el PDF -->
+  <table class="im__firmas">
+    <tr class="im__firma-espacio"><td></td><td></td></tr>
+    <tr>
+      <td><strong>REPORTADO POR:</strong> {{ vista().reportadoPor }}<div class="im__aclara">(Firma y aclaración)</div></td>
+      <td class="doc-centro"><strong><em>JEFE DE MANTENIMIENTO</em></strong> {{ vista().jefe }}<div class="im__aclara">(Firma y aclaración)</div></td>
+    </tr>
+  </table>
+</div>

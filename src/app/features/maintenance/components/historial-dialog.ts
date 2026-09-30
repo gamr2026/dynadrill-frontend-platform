@@ -11,7 +11,8 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { RegistroMantenimiento } from '../models/historial-mantenimiento.model';
 import { HistorialMantenimientoService } from '../services/historial-mantenimiento.service';
-import { MaintenanceReportDialog, MaintenanceReportDialogData } from './maintenance-report-dialog';
+import { DocumentoPdfService } from '../../../shared/documentos';
+import { InformeMantenimientoHoja } from '../../../shared/documentos/formatos/informe-mantenimiento-hoja';
 
 export interface HistorialDialogData {
   unidadId: number;
@@ -50,13 +51,14 @@ export class HistorialDialog {
   }
 
   /** Solo los registros preventivos abren el informe desde acá — los correctivos ya lo tienen desde la bandeja (orden cerrada). */
+  private readonly documentoPdf = inject(DocumentoPdfService);
+
   printInforme(registro: RegistroMantenimiento): void {
-    this.dialogService.open<MaintenanceReportDialog, MaintenanceReportDialogData>({
-      title: `Informe DYN-MNT-RE-008 — ${registro.unidadCode}`,
-      content: MaintenanceReportDialog,
-      data: { clase: 'Preventivo', registro, unidadNombre: this.data.unidadNombre },
-      footer: false,
-      width: '780px',
+    this.documentoPdf.abrir({
+      titulo: `Informe DYN-MNT-RE-008 — ${registro.unidadCode}`,
+      component: InformeMantenimientoHoja,
+      inputs: { datos: { clase: 'Preventivo', registro, unidadNombre: this.data.unidadNombre } },
+      nombreArchivo: `Informe de mantenimiento ${registro.unidadCode} ${registro.fecha}`,
     });
   }
 }

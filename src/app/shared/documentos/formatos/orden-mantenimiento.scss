@@ -1,0 +1,207 @@
+$guinda: #a50021;
+
+// Estilos compartidos por las dos Órdenes de mantenimiento (general y operativo).
+.om {
+  font-size: 9px;
+
+  table {
+    margin-top: -1px;
+  }
+
+  &__rojo th,
+  &__rojo,
+  &__titulo-fila th {
+    background: $guinda;
+    color: #fff;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  &__titulo-fila th {
+    background: #fff;
+    color: #000;
+    text-decoration: underline;
+    font-size: 10px;
+  }
+
+  &__banda {
+    margin-top: -1px;
+    padding: 2px 4px;
+    border: 1px solid #000;
+    font-size: 11px;
+    text-transform: uppercase;
+  }
+
+  &__gris {
+    height: 6px;
+    margin-top: -1px;
+    border: 1px solid #000;
+    background: #bfbfbf;
+  }
+
+  &__valor {
+    height: 18px;
+    text-align: center;
+  }
+
+  &__hor {
+    height: 18px;
+    font-size: 9px;
+  }
+
+  &__tipo {
+    font-size: 9px;
+  }
+
+  &__x {
+    float: right;
+    min-width: 34px;
+    border-left: 1px solid #000;
+    text-align: center;
+    font-weight: 700;
+  }
+
+  // ── Problemas (general) ──
+  &__problema {
+    margin-top: -1px;
+  }
+
+  &__prob-fila {
+    display: grid;
+    grid-template-columns: 1fr 26%;
+    margin-top: -1px;
+    border: 1px solid #000;
+  }
+
+  &__prob-izq {
+    border-right: 1px solid #000;
+  }
+
+  &__prob-falla {
+    display: grid;
+    grid-template-columns: 76px 1fr;
+
+    + .om__prob-falla {
+      border-top: 1px solid #000;
+    }
+  }
+
+  &__prob-etq {
+    padding: 4px 4px;
+    border-right: 1px solid #000;
+    font-size: 10px;
+    font-weight: 700;
+
+    &--chica {
+      font-size: 8px;
+      font-weight: 400;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  &__linea {
+    min-height: 15px;
+    padding: 0 4px;
+    border-bottom: 1px solid #000;
+    font-size: 9px;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &--alta {
+      min-height: 22px;
+      border-bottom: 1px solid #000 !important;
+    }
+  }
+
+  &__esquema {
+    padding: 2px 6px;
+    font-size: 10px;
+    text-align: center;
+  }
+
+  &__repuestos {
+    td {
+      height: 20px;
+      border-top-style: dashed;
+      border-bottom-style: dashed;
+    }
+
+    th {
+      font-size: 8.5px;
+    }
+  }
+
+  &__c-parte {
+    width: 24%;
+  }
+
+  &__c-cant {
+    width: 7%;
+  }
+
+  // ── Operativo ──
+  &__falla-fila {
+    display: grid;
+    grid-template-columns: 58% 1fr;
+    margin-top: -1px;
+    border: 1px solid #000;
+  }
+
+  &__esquema--chico {
+    text-align: left;
+    font-size: 8px;
+  }
+
+  &__realizado {
+    margin-top: -1px;
+    border: 1px solid #000;
+  }
+
+  &__horas {
+    .om__h-etq {
+      width: 24%;
+      font-size: 8px;
+      text-align: center;
+    }
+  }
+
+  &__repuestos--op td {
+    border-style: solid;
+  }
+
+  &__adicionales {
+    margin-top: -1px;
+    border: 1px solid #000;
+  }
+
+  // ── Firmas ──
+  &__firmas {
+    margin-top: 10px;
+
+    th,
+    td {
+      padding: 2px 6px;
+      font-size: 9px;
+    }
+
+    th {
+      text-align: center;
+    }
+  }
+
+  &__f-etq {
+    width: 10%;
+    border-top-color: transparent !important;
+    border-left-color: transparent !important;
+    border-bottom-color: transparent !important;
+  }
+
+  &__f-firma td {
+    height: 42px;
+  }
+}

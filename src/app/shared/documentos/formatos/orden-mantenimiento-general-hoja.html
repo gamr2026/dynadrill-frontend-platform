@@ -1,0 +1,74 @@
+<div class="doc-hoja om">
+  <app-doc-encabezado titulo="ORDEN DE TRABAJO — MANTENIMIENTO GENERAL" />
+
+  <table class="om__datos">
+    <tr class="om__rojo"><th>UNIDAD N°</th><th>BASE</th><th>FECHA</th><th>ORDEN DE TRABAJO #</th></tr>
+    <tr>
+      <td class="om__valor">{{ order().unidad }}</td>
+      <td class="om__valor">{{ unitReport().base }}</td>
+      <td class="om__valor">{{ fecha(order().createdAt) }}</td>
+      <td class="om__valor">{{ order().code }}</td>
+    </tr>
+  </table>
+  <table class="om__datos">
+    <tr class="om__titulo-fila">
+      <th colspan="2">HORÓMETROS</th><th>KILOMETRAJE</th><th>MANTENIMIENTO</th>
+    </tr>
+    <tr>
+      <td class="om__hor">A: {{ horometro() }}</td><td class="om__hor">B:</td>
+      <td rowspan="2" class="om__valor">{{ km() }}</td>
+      <td class="om__tipo">MECANICO <span class="om__x">{{ tiene('Mecánico') ? 'X' : '' }}</span></td>
+    </tr>
+    <tr>
+      <td class="om__hor">C:</td><td class="om__hor">D:</td>
+      <td class="om__tipo">INSTRUMENTACION <span class="om__x">{{ tiene('Instrumental') ? 'X' : '' }}</span></td>
+    </tr>
+  </table>
+
+  <div class="om__gris"></div>
+  <div class="om__rojo om__banda">DESCRIPCIÓN DE LA FALLA</div>
+
+  @for (p of problemas(); track p.numero) {
+    <div class="om__problema">
+      <div class="om__prob-fila">
+        <div class="om__prob-izq">
+          <div class="om__prob-falla">
+            <div class="om__prob-etq">PROBLEMA {{ p.numero }}:</div>
+            <div class="om__prob-lineas">
+              @for (l of p.falla; track $index) { <div class="om__linea">{{ l }}</div> }
+            </div>
+          </div>
+          <div class="om__prob-falla om__prob-trabajo">
+            <div class="om__prob-etq om__prob-etq--chica">TRABAJO REALIZADO</div>
+            <div class="om__prob-lineas">
+              @for (l of p.trabajo; track $index) { <div class="om__linea">{{ l }}</div> }
+            </div>
+          </div>
+        </div>
+        <div class="om__esquema">ESQUEMA:</div>
+      </div>
+
+      <div class="om__rojo om__banda">REPUESTOS UTILIZADOS / SERVICIOS DE TERCEROS</div>
+      <table class="om__repuestos">
+        <tr class="om__rojo"><th class="om__c-parte">NUMERO DE PARTE</th><th class="om__c-cant">CANT</th><th>DESCRIPCION</th></tr>
+        @for (r of p.repuestos; track $index) {
+          <tr><td>{{ r?.numeroParte }}</td><td class="doc-centro">{{ r?.cantidad }}</td><td>{{ r?.descripcion }}</td></tr>
+        }
+      </table>
+      @if (!$last) { <div class="om__gris"></div> }
+    </div>
+  }
+
+  <div class="om__rojo om__banda">TRABAJOS ADICIONALES POR ATENDER</div>
+  <div class="om__adicionales">
+    @for (l of adicionales(); track $index) { <div class="om__linea">{{ l }}</div> }
+  </div>
+
+  <!-- Firmas: solo en el PDF -->
+  <table class="om__firmas">
+    <tr><td class="om__f-etq"></td><th>Operador /es</th><th>Supervisor</th><th>Jefe de Operaciones</th></tr>
+    <tr><td class="om__f-etq"><strong>Fecha:</strong></td><td></td><td></td><td></td></tr>
+    <tr><td class="om__f-etq"><strong>Nombre:</strong></td><td>{{ operadores() }}</td><td>{{ unitReport().supervisorSalida }}</td><td></td></tr>
+    <tr class="om__f-firma"><td class="om__f-etq"><strong>Firma:</strong></td><td></td><td></td><td></td></tr>
+  </table>
+</div>

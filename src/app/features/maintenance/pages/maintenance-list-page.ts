@@ -30,7 +30,10 @@ import { UnitReportsService } from '../services/unit-reports.service';
 import { UnidadesService } from '../services/unidades.service';
 import { OrderDetailPanel, OrderDetailPanelData } from '../components/order-detail-panel';
 import { OrderClassificationDialog, OrderClassificationDialogData } from '../components/order-classification-dialog';
-import { MaintenanceReportDialog, MaintenanceReportDialogData } from '../components/maintenance-report-dialog';
+import { DocumentoPdfService } from '../../../shared/documentos';
+import { InformeMantenimientoHoja } from '../../../shared/documentos/formatos/informe-mantenimiento-hoja';
+import { OrdenMantenimientoGeneralHoja } from '../../../shared/documentos/formatos/orden-mantenimiento-general-hoja';
+import { OrdenMantenimientoOperativoHoja } from '../../../shared/documentos/formatos/orden-mantenimiento-operativo-hoja';
 import { RegisterPMDialog, RegisterPMDialogData } from '../components/register-pm-dialog';
 import { HistorialDialog, HistorialDialogData } from '../components/historial-dialog';
 import { VehicleInspectionsTable } from '../components/vehicle-inspections-table';
@@ -458,16 +461,48 @@ export class MaintenanceListPage {
     ref.afterClose.subscribe(() => this.reload());
   }
 
+  private readonly documentoPdf = inject(DocumentoPdfService);
+
   openReport(row: Record<string, unknown>): void {
     const order = this.orders().find(o => o.id === row['orderId']);
     if (!order) return;
     const unitReport = this.unitReports().find(r => r.id === order.unitReportId)!;
-    this.dialogService.open<MaintenanceReportDialog, MaintenanceReportDialogData>({
-      title: `Informe DYN-MNT-RE-008 — ${order.code}`,
-      content: MaintenanceReportDialog,
-      data: { clase: 'Correctivo', order, unitReport },
-      footer: false,
-      width: '780px',
+    this.documentoPdf.abrir({
+      titulo: `Informe DYN-MNT-RE-008 — ${order.code}`,
+      component: InformeMantenimientoHoja,
+      inputs: { datos: { clase: 'Correctivo', order, unitReport } },
+      nombreArchivo: `Informe de mantenimiento ${order.code}`,
     });
+  }
+
+  /** Orden de trabajo — Mantenimiento general (sub-órdenes Mecánico / Instrumental). */
+  openOrdenGeneral(row: Record<string, unknown>): void {
+    const order = this.orders().find(o => o.id === row['orderId']);
+    if (!order) return;
+    const unitReport = this.unitReports().find(r => r.id === order.unitReportId)!;
+    this.documentoPdf.abrir({
+      titulo: `Orden de trabajo — ${order.code}`,
+      component: OrdenMantenimientoGeneralHoja,
+      inputs: { order, unitReport },
+      nombreArchivo: `Orden de trabajo ${order.code}`,
+    });
+  }
+
+  /** Orden de mantenimiento operativo (sub-órdenes de tipo Operativo). */
+  openOrdenOperativa(row: Record<string, unknown>): void {
+    const order = this.orders().find(o => o.id === row['orderId']);
+    if (!order) return;
+    const unitReport = this.unitReports().find(r => r.id === order.unitReportId)!;
+    this.documentoPdf.abrir({
+      titulo: `Orden de mantenimiento operativo — ${order.code}`,
+      component: OrdenMantenimientoOperativoHoja,
+      inputs: { order, unitReport },
+      nombreArchivo: `Orden de mantenimiento operativo ${order.code}`,
+    });
+  }
+
+  tieneSubOrden(row: Record<string, unknown>, operativa: boolean): boolean {
+    const order = this.orders().find(o => o.id === row['orderId']);
+    return !!order?.subOrders.some(s => (s.type === 'Operativo') === operativa);
   }
 }

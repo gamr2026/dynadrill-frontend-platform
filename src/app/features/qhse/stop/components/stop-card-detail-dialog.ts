@@ -32,6 +32,9 @@ const DESTINO_OPCIONES: DynadrillSelectOption[] = [
  * acciones a solo QHSE (class-level `@Roles`) — esta pantalla ya solo la ve
  * staff HSE, así que no hace falta repetir el chequeo acá.
  */
+import { DocumentoPdfService } from '../../../../shared/documentos';
+import { TarjetaStopHoja } from '../../../../shared/documentos/formatos/tarjeta-stop-hoja';
+
 @Component({
   selector: 'app-stop-card-detail-dialog',
   imports: [
@@ -52,6 +55,7 @@ export class StopCardDetailDialog {
   private readonly modalRef = inject(NzModalRef<StopCardDetailDialog, StopCard | undefined>);
   private readonly stopService = inject(StopCardService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly documentoPdf = inject(DocumentoPdfService);
 
   protected readonly card = signal(this.data.card);
   protected readonly estadoLabels = STOP_ESTADO_LABELS;
@@ -116,6 +120,17 @@ export class StopCardDetailDialog {
         this.submitting.set(false);
         this.notify.error('Error', 'No se pudo cerrar la tarjeta STOP.');
       },
+    });
+  }
+
+  /** Formato DYN-SGI-RE-008 (2 páginas, sin sección de firmas). */
+  protected verPdf(): void {
+    const tarjeta = this.card();
+    this.documentoPdf.abrir({
+      titulo: `Tarjeta de observación — ${tarjeta.code}`,
+      component: TarjetaStopHoja,
+      inputs: { tarjeta },
+      nombreArchivo: `Tarjeta de observación ${tarjeta.code}`,
     });
   }
 }

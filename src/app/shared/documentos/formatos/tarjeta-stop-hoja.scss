@@ -1,0 +1,127 @@
+.stop {
+  font-size: 9.5px;
+
+  // Cada página del formato se imprime en su hoja.
+  &__pagina {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 4px 0 10px;
+    break-after: page;
+
+    &--2 {
+      break-after: auto;
+      margin-top: 18px;
+    }
+  }
+
+  &__cab {
+    td {
+      padding: 4px 6px;
+      vertical-align: middle;
+      font-size: 9px;
+    }
+  }
+
+  &__cab-logo {
+    width: 24%;
+    text-align: center;
+
+    img {
+      max-width: 90px;
+      max-height: 34px;
+    }
+  }
+
+  &__cab-cod {
+    width: 26%;
+  }
+
+  &__titulo {
+    margin-top: 8px;
+    padding: 10px;
+    border: 1px solid #000;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.5;
+
+    &--ciclo {
+      text-align: center;
+    }
+  }
+
+  &__codigo-tarjeta {
+    font-size: 10px;
+    font-weight: 400;
+  }
+
+  &__ciclo {
+    font-size: 9px;
+    font-weight: 400;
+    text-transform: uppercase;
+  }
+
+  &__bloque {
+    margin-top: -1px;
+    padding: 1px 4px;
+    border: 1px solid #000;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+
+    &--reporta {
+      margin-top: 6px;
+      font-size: 10px;
+      letter-spacing: 0;
+    }
+  }
+
+  &__sub {
+    margin-top: -1px;
+
+    td,
+    th {
+      padding: 1px 4px;
+      font-size: 9.5px;
+    }
+  }
+
+  &__sub-cab th {
+    background: #0b2a5b;
+    color: #fff;
+    text-align: center;
+    font-size: 9px;
+    font-weight: 700;
+  }
+
+  &__col {
+    width: 9%;
+  }
+
+  &__libre {
+    margin-top: -1px;
+    padding: 2px 4px 4px;
+    border: 1px solid #000;
+  }
+
+  &__linea {
+    min-height: 15px;
+    border-bottom: 1px solid #000;
+    font-size: 9px;
+  }
+
+  &__reporta {
+    padding: 2px 4px;
+    border: 1px solid #000;
+    border-top: none;
+    font-size: 11px;
+
+    div {
+      padding: 2px 0;
+    }
+  }
+
+  &__pie {
+    margin-top: 8px;
+    font-size: 7px;
+    text-align: center;
+  }
+}

@@ -1,0 +1,86 @@
+<div class="doc-hoja stop">
+  <!-- Página 1: ACCIONES -->
+  <section class="stop__pagina">
+    <table class="stop__cab">
+      <tr>
+        <td class="stop__cab-logo"><img src="/brand/dynadrill-logo.svg" alt="Dynadrill" /></td>
+        <td class="doc-centro">Tarjeta de observación Dynadrill Ecuador C.A.</td>
+        <td class="doc-centro stop__cab-cod">DYN-SGI-RE-008<br />Versión: 01</td>
+      </tr>
+    </table>
+    <div class="stop__titulo">
+      <div>Tarjeta de observación</div>
+      <div>Dynadrill Ecuador C.A.</div>
+      <div class="stop__codigo-tarjeta">{{ tarjeta().code }}</div>
+    </div>
+
+    <div class="doc-gris stop__bloque">ACCIONES</div>
+    @for (sub of acciones(); track sub.titulo) {
+      <table class="stop__sub">
+        <tr class="stop__sub-cab">
+          <th>{{ sub.titulo.toUpperCase() }}</th><th class="stop__col">Seg</th><th class="stop__col">Ins</th>
+        </tr>
+        @for (it of sub.items; track $index) {
+          <tr>
+            <td>{{ it.label }}</td>
+            <td class="doc-centro">{{ it.estado === 'seguro' ? 'X' : '' }}</td>
+            <td class="doc-centro">{{ it.estado === 'inseguro' ? 'X' : '' }}</td>
+          </tr>
+        }
+      </table>
+    }
+
+    <div class="stop__libre"><strong>Qué observa:</strong>
+      @for (l of renglones(tarjeta().queObservaAcciones, 4); track $index) { <div class="stop__linea">{{ l }}</div> }
+    </div>
+    <div class="stop__libre"><strong>Acciones:</strong>
+      @for (l of renglones(tarjeta().accionesAcciones, 4); track $index) { <div class="stop__linea">{{ l }}</div> }
+    </div>
+    <div class="stop__pie">Una vez impreso el documento será considerado como COPIA NO CONTROLADA.<br />Página 1 de 2</div>
+  </section>
+
+  <!-- Página 2: CONDICIONES -->
+  <section class="stop__pagina stop__pagina--2">
+    <table class="stop__cab">
+      <tr>
+        <td class="stop__cab-logo"><img src="/brand/dynadrill-logo.svg" alt="Dynadrill" /></td>
+        <td class="doc-centro">Tarjeta de observación Dynadrill Ecuador C.A.</td>
+        <td class="doc-centro stop__cab-cod">DYN-SGI-RE-008<br />Versión: 01</td>
+      </tr>
+    </table>
+    <div class="stop__titulo stop__titulo--ciclo">Ciclo de la observación<div class="stop__ciclo">identifique · registre · actúe · piense · observe · pare</div></div>
+
+    <div class="doc-gris stop__bloque">CONDICIONES</div>
+    @for (sub of condiciones(); track sub.titulo) {
+      <table class="stop__sub">
+        <tr class="stop__sub-cab">
+          <th>{{ sub.titulo.toUpperCase() }}</th><th class="stop__col">Seg</th><th class="stop__col">Ins</th>
+        </tr>
+        @for (it of sub.items; track $index) {
+          <tr>
+            <td>{{ it.label }}</td>
+            <td class="doc-centro">{{ it.estado === 'seguro' ? 'X' : '' }}</td>
+            <td class="doc-centro">{{ it.estado === 'inseguro' ? 'X' : '' }}</td>
+          </tr>
+        }
+      </table>
+    }
+
+    <div class="stop__libre"><strong>Qué observa:</strong>
+      @for (l of renglones(tarjeta().queObservaCondiciones, 4); track $index) { <div class="stop__linea">{{ l }}</div> }
+    </div>
+    <div class="stop__libre"><strong>Acciones:</strong>
+      @for (l of renglones(tarjeta().accionesCondiciones, 4); track $index) { <div class="stop__linea">{{ l }}</div> }
+    </div>
+
+    <div class="doc-gris stop__bloque stop__bloque--reporta">Quién Reporta</div>
+    <div class="stop__reporta">
+      <div><strong>Nombre:</strong> {{ tarjeta().observadorNombre }}</div>
+      <div><strong>Fecha:</strong> {{ fecha(tarjeta().fecha) }}</div>
+      <div><strong>Locación:</strong> {{ tarjeta().locacion }}</div>
+      <div><strong>Operadora:</strong> {{ tarjeta().operadora }}</div>
+      <div><strong>Contacto:</strong> {{ tarjeta().contacto }}</div>
+    </div>
+    <div class="stop__pie">Una vez impreso el documento será considerado como COPIA NO CONTROLADA.<br />Página 2 de 2</div>
+  </section>
+</div>

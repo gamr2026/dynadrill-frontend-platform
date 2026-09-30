@@ -33,6 +33,8 @@ import { UnitReportDialog, UnitReportDialogData } from './unit-report-dialog';
 import { AuthService } from '../../../core/services/auth.service';
 import { RolesService } from '../../users/services/users.service';
 import { parseLocalDateString } from '../../../shared/utils';
+import { DocumentoPdfService } from '../../../shared/documentos';
+import { InspeccionVehiculoHoja } from '../../../shared/documentos/formatos/inspeccion-vehiculo-hoja';
 
 /** Código de rol (roles.code) — estable, ver backend role-code.ts. */
 const SUPERVISOR_ROLE_CODE = 'supervisor';
@@ -109,6 +111,9 @@ export class VehicleInspectionDialog {
   // id <= 0 = registro de ejemplo no persistido (ver createMockCompletedInspection en pumping): se prellenar pero se guarda como alta nueva, nunca PUT.
   private readonly existingId = (this.data?.existing?.id ?? 0) > 0 ? this.data!.existing!.id : null;
   protected readonly isEditMode = this.existingId !== null;
+  private readonly documentoPdf = inject(DocumentoPdfService);
+  /** Inspección ya registrada (modo ver/editar) — habilita el PDF del formato DYN-SGI-RE-068. */
+  protected readonly existente = this.data?.existing ?? null;
   protected readonly readonly = this.data?.readonly ?? false;
   protected readonly unidadLocked = this.data?.lockUnidad ?? false;
   /** Kilometraje final (odómetro de regreso) solo tiene sentido en la inspección de llegada. */
@@ -505,5 +510,17 @@ export class VehicleInspectionDialog {
     });
 
     await new Promise<void>(resolve => ref.afterClose.subscribe(() => resolve()));
+  }
+
+  /** PDF del formato con los nombres del conductor/inspector y del supervisor; la firma se pone sobre el archivo. */
+  protected verPdf(): void {
+    const insp = this.existente;
+    if (!insp) return;
+    this.documentoPdf.abrir({
+      titulo: `Inspección de vehículos — ${insp.unidadCode}`,
+      component: InspeccionVehiculoHoja,
+      inputs: { inspeccion: insp },
+      nombreArchivo: `Inspección de vehículos ${insp.unidadCode} ${insp.fecha?.slice(0, 10) ?? ''}`.trim(),
+    });
   }
 }

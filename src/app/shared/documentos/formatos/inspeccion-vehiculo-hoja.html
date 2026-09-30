@@ -1,0 +1,120 @@
+<div class="doc-hoja iv">
+  <app-doc-encabezado titulo="Inspección de vehículos" codigo="DYN-SGI-RE-068" version="09" />
+
+  <!-- Datos generales -->
+  <table class="iv__datos">
+    <tr>
+      <td class="iv__mitad"><strong>Punto partida:</strong> {{ inspeccion().puntoPartida }}</td>
+      <td class="iv__mitad"><strong>Inspeccionado por:</strong> {{ inspeccion().inspeccionadoPor }}</td>
+    </tr>
+    <tr>
+      <td><strong>Destino:</strong> {{ inspeccion().destino }}</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>
+        <div class="iv__tit">Descripción del vehículo</div>
+        <div><span class="iv__etq">Marca:</span> {{ inspeccion().marca }}</div>
+        <div><span class="iv__etq">Tipo:</span> {{ inspeccion().tipo }}</div>
+        <div><span class="iv__etq">Modelo:</span> {{ inspeccion().modelo }}</div>
+        <div><span class="iv__etq">Año fabricación:</span> {{ inspeccion().anioFabricacion }}</div>
+      </td>
+      <td>
+        <div class="iv__tit">Documentos del vehículo</div>
+        <div><span class="iv__etq">Fecha de matrícula:</span> {{ fecha(inspeccion().fechaMatricula) }}</div>
+        <div><span class="iv__etq">Caducidad de matrícula:</span> {{ fecha(inspeccion().caducidadMatricula) }}</div>
+        <div><span class="iv__etq">Caducidad póliza de seguro:</span> {{ fecha(inspeccion().caducidadPoliza) }}</div>
+        <div><span class="iv__etq">Vigencia otro documento:</span> {{ fecha(inspeccion().vigenciaOtroDocumento) }}</div>
+      </td>
+    </tr>
+  </table>
+  <table class="iv__km">
+    <tr>
+      <td class="iv__placa"><strong>Placa No.</strong><div class="iv__placa-valor">{{ inspeccion().placa }}</div></td>
+      <td class="iv__kilometraje">
+        <div class="doc-centro"><strong>Kilometraje</strong></div>
+        <div class="iv__km-par"><span><strong>Inicial:</strong> {{ inspeccion().kmInicial }}</span><span><strong>Final:</strong> {{ inspeccion().kmFinal }}</span></div>
+      </td>
+      <td class="iv__proximo"><strong>Próximo Mantenimiento:</strong> {{ fecha(inspeccion().proximoMantenimiento) }}</td>
+    </tr>
+  </table>
+
+  <div class="doc-banda iv__leyenda">
+    <span>SI CUMPLE: COLOQUE √ ó C.</span><span>NO CUMPLE: COLOQUE X ó NC.</span><span>NO APLICA: COLOQUE NA</span>
+  </div>
+  <div class="doc-gris iv__items-tit">ITEM´s</div>
+
+  <!-- 32 ítems en dos columnas -->
+  <div class="iv__cols">
+    <div class="iv__col">
+      @for (it of izquierda; track it.n) {
+        <div class="iv__fila">
+          <span class="iv__n">{{ it.n }}</span>
+          <span class="iv__txt"><strong>{{ it.titulo }}</strong> <em>{{ it.detalle }}</em></span>
+          <span class="iv__caja">{{ marca(it.clave) }}</span>
+        </div>
+      }
+    </div>
+    <div class="iv__col">
+      @for (it of derecha; track it.n) {
+        <div class="iv__fila">
+          <span class="iv__n">{{ it.n }}</span>
+          <span class="iv__txt"><strong>{{ it.titulo }}</strong> <em>{{ it.detalle }}</em></span>
+          <span class="iv__caja">{{ marca(it.clave) }}</span>
+        </div>
+        @for (sub of it.subs ?? []; track $index) {
+          <div class="iv__fila iv__fila--sub">
+            <span class="iv__n"></span>
+            <span class="iv__txt iv__txt--sub"><em>{{ sub }}</em></span>
+            <span class="iv__caja"></span>
+          </div>
+        }
+      }
+      <div class="iv__fila">
+        <span class="iv__n">32</span>
+        <span class="iv__txt"><strong>DOCUMENTOS DEL CONDUCTOR</strong></span>
+        <span class="iv__caja iv__caja--ancha"></span>
+      </div>
+      <div class="iv__fila iv__fila--sub"><span class="iv__n"></span><span class="iv__txt iv__txt--sub"><em>Licencia de conducción vigente:</em></span><span class="iv__caja">{{ vigente(inspeccion().licenciaVigente) }}</span></div>
+      <div class="iv__fila iv__fila--sub"><span class="iv__n"></span><span class="iv__txt iv__txt--sub"><em>Manejo defensivo vigente:</em></span><span class="iv__caja">{{ vigente(inspeccion().manejoDefensivoVigente) }}</span></div>
+      <div class="iv__fila iv__fila--sub"><span class="iv__n"></span><span class="iv__txt iv__txt--sub"><em>Exámen médico vigente (1 año) - Exámen Psicosensométrico:</em></span><span class="iv__caja">{{ vigente(inspeccion().examenMedicoVigente && inspeccion().examenPsicosensometrico) }}</span></div>
+      <div class="iv__fila iv__fila--sub"><span class="iv__n"></span><span class="iv__txt iv__txt--sub"><em>Documentos requeridos por los clientes, carnets, etc.:</em></span><span class="iv__caja">{{ vigente(inspeccion().documentosClientes) }}</span></div>
+      <div class="iv__fila iv__fila--sub"><span class="iv__n"></span><span class="iv__txt iv__txt--sub"><em>Vacunas - Certificado:</em></span><span class="iv__caja">{{ vigente(inspeccion().vacunasCertificado) }}</span></div>
+    </div>
+  </div>
+
+  <div class="doc-banda iv__nota"><strong>NOTA 1:</strong> Si falta cualquier cinturón de seguridad o está en malas condiciones, el vehículo no podrá ser utilizado</div>
+
+  <!-- Cierre -->
+  <table class="iv__cierre">
+    <tr>
+      <td class="iv__mitad">
+        <div><em>Fecha / Date:</em> {{ fecha(inspeccion().fecha) }}</div>
+        <div class="iv__reune">
+          Reúne las condiciones para trabajar: SI <span class="doc-check">{{ inspeccion().reuneCondicionesParaTrabajar === true ? 'X' : '' }}</span>
+          NO <span class="doc-check">{{ inspeccion().reuneCondicionesParaTrabajar === false ? 'X' : '' }}</span>
+        </div>
+        <div class="iv__obs"><strong>Observaciones:</strong> {{ inspeccion().observacionesConductor }}</div>
+      </td>
+      <td class="iv__mitad iv__sinmarco"></td>
+    </tr>
+  </table>
+  <div class="iv__explicar">EXPLICAR LOS PUNTOS MARCADOS COMO X ó NC Y DARLES LA ATENCIÓN QUE NECESITAN.</div>
+  <div class="iv__espacio"></div>
+
+  <!-- Firmas: nombres de quien inspeccionó y de quien aprobó; la firma va sobre el PDF -->
+  <table class="iv__firmas">
+    <tr>
+      <td>
+        <div class="iv__firma-espacio"></div>
+        Firma del conductor / Inspector
+        <div><strong>Nombre y Apellido:</strong> {{ inspeccion().inspeccionadoPor }}</div>
+      </td>
+      <td>
+        <div class="iv__firma-espacio"></div>
+        Firma del Supervisor
+        <div><strong>Nombre y Apellido:</strong> {{ supervisor() }}</div>
+      </td>
+    </tr>
+  </table>
+</div>

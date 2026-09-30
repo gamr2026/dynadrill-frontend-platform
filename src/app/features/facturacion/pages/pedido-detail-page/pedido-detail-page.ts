@@ -38,7 +38,7 @@ import { DocumentoOperativoService, GuiaRemisionService, PedidoService, Prefactu
 import { AuthService } from '../../../../core/services/auth.service';
 import { Router } from '@angular/router';
 import { GuiaRemisionDialog, GuiaRemisionDialogData } from '../../components/guia-remision-dialog';
-import { GuiaRemisionPdfDialog, GuiaRemisionPdfDialogData } from '../../components/guia-remision-pdf-dialog';
+import { GuiaRemisionHoja } from '../../../../shared/documentos/formatos/guia-remision-hoja';
 import { FCR_PHASE_LABELS, FcrTicket } from '../../../operations/fcr/models/fcr.model';
 import { FcrService } from '../../../operations/fcr/services/fcr.service';
 import { PumpingService } from '../../../operations/pumping/services/pumping.service';
@@ -587,12 +587,11 @@ export class PedidoDetailPage {
     const guia = this.guiaRemision();
     const p = this.pedido();
     if (!guia || !p) return;
-    this.dialog.open<GuiaRemisionPdfDialog, GuiaRemisionPdfDialogData>({
-      title: 'Guía de remisión — Vista de impresión',
-      content: GuiaRemisionPdfDialog,
-      data: { guia, pedido: p },
-      footer: false,
-      width: '820px',
+    this.documentoPdf.abrir({
+      titulo: 'Guía de remisión — Vista de impresión',
+      component: GuiaRemisionHoja,
+      inputs: { guia, pedido: p },
+      nombreArchivo: `Guía de remisión ${p.code}`,
     });
   }
 

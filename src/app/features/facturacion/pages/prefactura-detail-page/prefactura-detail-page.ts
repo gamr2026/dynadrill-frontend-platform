@@ -23,7 +23,7 @@ import { DocumentoPdfService } from '../../../../shared/documentos';
 import { PrefacturaHoja } from '../../../../shared/documentos/formatos/prefactura-hoja';
 import { EnviarClienteDialog, EnviarClienteDialogData } from '../../components/enviar-cliente-dialog';
 import { RespuestaClienteDialog, RespuestaClienteDialogData } from '../../components/respuesta-cliente-dialog';
-import { GuiaRemisionPdfDialog, GuiaRemisionPdfDialogData } from '../../components/guia-remision-pdf-dialog';
+import { GuiaRemisionHoja } from '../../../../shared/documentos/formatos/guia-remision-hoja';
 import { AotGenerarDialog, AotGenerarDialogData } from '../../components/aot-generar-dialog';
 import { EditarRepresentantesDialog, EditarRepresentantesDialogData } from '../../components/editar-representantes-dialog';
 import { useDetailChrome } from '../../../../layout/page-chrome.service';
@@ -289,12 +289,11 @@ export class PrefacturaDetailPage {
     const guia = this.guiaRemision();
     const p = this.pedido();
     if (!guia || !p) return;
-    this.dialog.open<GuiaRemisionPdfDialog, GuiaRemisionPdfDialogData>({
-      title: 'Guía de remisión — Vista de impresión',
-      content: GuiaRemisionPdfDialog,
-      data: { guia, pedido: p },
-      footer: false,
-      width: '820px',
+    this.documentoPdf.abrir({
+      titulo: 'Guía de remisión — Vista de impresión',
+      component: GuiaRemisionHoja,
+      inputs: { guia, pedido: p },
+      nombreArchivo: `Guía de remisión ${p.code}`,
     });
   }
 

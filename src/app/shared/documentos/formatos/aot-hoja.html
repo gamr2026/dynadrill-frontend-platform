@@ -1,0 +1,81 @@
+<div class="doc-hoja aot">
+  <table class="aot__cab">
+    <tr>
+      <td class="aot__cliente"><strong>EP PETROECUADOR</strong></td>
+      <td class="aot__titulo">ORDEN DE TRABAJO<br />RESUMEN DE COSTOS</td>
+      <td class="aot__vacio"></td>
+    </tr>
+  </table>
+
+  <table class="aot__datos">
+    <tr>
+      <td class="aot__contratista"><strong>CONTRATISTA:</strong> DYNADRILL ECUADOR C.A.</td>
+      <td class="aot__no"><strong>No.</strong> &nbsp; <span class="aot__amarillo">{{ aot().numeroOpr }}</span></td>
+      <td rowspan="2" class="aot__pagina">Página 1 de 1</td>
+    </tr>
+    <tr>
+      <td class="aot__contrato">{{ aot().contratoTexto }}</td>
+      <td class="aot__fecha"><strong>FECHA:</strong> {{ fecha(aot().fecha) }}</td>
+    </tr>
+  </table>
+
+  <table class="aot__req">
+    <tr>
+      <td><strong>Descripción del Requerimiento o de la Orden de Trabajo</strong></td>
+      <td class="aot__nota"><strong>NOTA:</strong> No inicie actividades sin información previa</td>
+    </tr>
+    <tr class="aot__servicio">
+      <td><strong>SERVICIO:</strong></td>
+      <td class="doc-centro"><strong>{{ aot().servicio }}</strong></td>
+    </tr>
+  </table>
+  <div class="aot__tarifas">Las tarifas serán las del Contrato las mismas que serán incluidas en la presente hoja de costos estimados</div>
+
+  <table class="aot__tabla">
+    <colgroup>
+      <col class="aot__c-cod" /><col class="aot__c-desc" /><col class="aot__c-uni" /><col class="aot__c-tar" /><col class="aot__c-cant" /><col class="aot__c-tot" />
+    </colgroup>
+    <thead>
+      <tr>
+        <th>CODIGO</th><th>SERVICIOS REQUERIDOS</th><th>UNIDAD</th><th>TARIFA UNITARIA</th><th>CANTIDAD</th><th>TOTAL</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (it of aot().detalle; track $index) {
+        <tr>
+          <td class="aot__azul doc-centro">{{ it.codigo }}</td>
+          <td>{{ it.servicioRequerido }}</td>
+          <td class="doc-centro">{{ it.unidad }}</td>
+          <td class="aot__num">{{ it.tarifaUnitaria | number: '1.2-2' }}</td>
+          <td class="aot__num aot__azul">{{ it.cantidad | number: '1.2-2' }}</td>
+          <td class="aot__num">{{ it.total | number: '1.2-2' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <table class="aot__valor">
+    <tr><td class="aot__v-etq"><strong>Valor de la OT:</strong></td><td class="aot__v-val">{{ aot().valorOt | number: '1.2-2' }}</td></tr>
+  </table>
+
+  <div class="aot__fechas">
+    <div><strong>Fecha de Inicio:</strong> <span class="aot__azul">{{ fecha(aot().fechaInicio) }}</span></div>
+    <div><strong>Fecha de Terminación:</strong> <span class="aot__azul">{{ fecha(aot().fechaTerminacion) }}</span></div>
+  </div>
+
+  <!-- Firmas: solo en el PDF -->
+  <div class="aot__firmas">
+    <div class="aot__firma">
+      <div class="aot__firma-tit"><strong>REPRESENTANTE DE LA CONTRATISTA (Delegado):</strong></div>
+      <div class="aot__firma-espacio"></div>
+      <div><span class="aot__f-etq">Nombre:</span> {{ aot().representanteContratista.nombre }}</div>
+      <div><span class="aot__f-etq">Cargo:</span> {{ aot().representanteContratista.cargo }}</div>
+    </div>
+    <div class="aot__firma">
+      <div class="aot__firma-tit"><strong>REPRESENTANTE DE EP PETROECUADOR (Delegado):</strong></div>
+      <div class="aot__firma-espacio"></div>
+      <div><span class="aot__f-etq">Nombre:</span> {{ aot().representanteCliente.nombre }}</div>
+      <div><span class="aot__f-etq">Cargo:</span> {{ aot().representanteCliente.cargo }}</div>
+    </div>
+  </div>
+</div>

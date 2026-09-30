@@ -1,0 +1,104 @@
+.gr {
+  font-size: 9.5px;
+
+  table {
+    margin-top: -1px;
+  }
+
+  &__cab td {
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+
+  &__cliente {
+    width: 52%;
+  }
+
+  &__hora {
+    width: 22%;
+  }
+
+  &__abajo {
+    vertical-align: bottom !important;
+  }
+
+  &__origen-transp {
+    display: grid;
+    grid-template-columns: 1fr 1.25fr;
+    margin-top: -1px;
+    border: 1px solid #000;
+  }
+
+  &__origen,
+  &__transp {
+    padding: 6px 8px;
+    font-size: 10px;
+
+    div {
+      margin-bottom: 9px;
+    }
+  }
+
+  &__origen {
+    border-right: 1px solid #000;
+  }
+
+  &__transp-tit {
+    text-align: center;
+  }
+
+  &__veh {
+    display: flex;
+    gap: 24px;
+  }
+
+  &__tabla {
+    th {
+      padding: 4px;
+      text-align: center;
+      font-size: 9.5px;
+    }
+
+    td {
+      height: 26px;
+      vertical-align: middle;
+      font-size: 10px;
+    }
+  }
+
+  &__c-item {
+    width: 6%;
+  }
+
+  &__c-cant {
+    width: 12%;
+  }
+
+  &__c-cod {
+    width: 20%;
+  }
+
+  &__c-uni {
+    width: 14%;
+  }
+
+  &__firmas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 90px;
+    margin-top: -1px;
+    padding: 70px 40px 10px;
+    border: 1px solid #000;
+    font-size: 9.5px;
+    line-height: 1.5;
+  }
+
+  &__firma-linea {
+    height: 1px;
+    background: #000;
+  }
+
+  &__firma-tit {
+    text-align: center;
+  }
+}

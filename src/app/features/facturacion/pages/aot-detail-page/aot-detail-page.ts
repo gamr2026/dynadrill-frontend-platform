@@ -12,7 +12,8 @@ import {
 import { Aot } from '../../models/aot.model';
 import { AotService } from '../../services/pedido.service';
 import { AuthService } from '../../../../core/services/auth.service';
-import { AotPdfDialog, AotPdfDialogData } from '../../components/aot-pdf-dialog';
+import { DocumentoPdfService } from '../../../../shared/documentos';
+import { AotHoja } from '../../../../shared/documentos/formatos/aot-hoja';
 import { useDetailChrome } from '../../../../layout/page-chrome.service';
 
 /** Fase 6 — detalle de la AOT (documento oficial final). */
@@ -35,6 +36,7 @@ export class AotDetailPage {
   private readonly router = inject(Router);
   private readonly aotService = inject(AotService);
   private readonly dialog = inject(DynadrillDialogService);
+  private readonly documentoPdf = inject(DocumentoPdfService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
 
@@ -81,12 +83,11 @@ export class AotDetailPage {
   protected verPdf(): void {
     const aot = this.aot();
     if (!aot) return;
-    this.dialog.open<AotPdfDialog, AotPdfDialogData>({
-      title: 'AOT — Vista de impresión',
-      content: AotPdfDialog,
-      data: { aot },
-      footer: false,
-      width: '900px',
+    this.documentoPdf.abrir({
+      titulo: 'AOT — Vista de impresión',
+      component: AotHoja,
+      inputs: { aot },
+      nombreArchivo: `Orden de trabajo ${aot.numeroOpr}`,
     });
   }
 

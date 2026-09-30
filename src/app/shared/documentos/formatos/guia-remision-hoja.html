@@ -1,0 +1,64 @@
+<div class="doc-hoja gr">
+  <table class="gr__cab">
+    <tr>
+      <td class="gr__cliente"><strong>CLIENTE:</strong> {{ pedido().cliente }}</td>
+      <td class="gr__ruc"><strong>RUC:</strong> {{ guia().clienteRuc }}</td>
+      <td class="gr__hora"><strong>HORA SALIDA:</strong> {{ guia().horaSalida }}</td>
+    </tr>
+    <tr>
+      <td colspan="2"><strong>SOLICITADO POR:</strong> {{ guia().solicitadoPor }}</td>
+      <td rowspan="2" class="gr__hora gr__abajo"><strong>HORA LLEGADA:</strong> {{ guia().horaLlegada }}</td>
+    </tr>
+    <tr>
+      <td colspan="2"><strong>DESPACHADO POR:</strong> {{ guia().despachadoPor }}</td>
+    </tr>
+  </table>
+
+  <div class="gr__origen-transp">
+    <div class="gr__origen">
+      <div><strong>LUGAR DE ORIGEN:</strong> {{ guia().lugarOrigen }}</div>
+      <div><strong>CAMPO:</strong> {{ pedido().campo }}</div>
+      <div><strong>POZO:</strong> {{ pedido().pozo }}</div>
+      <div><strong>FECHA:</strong> {{ fecha(guia().fecha) }}</div>
+    </div>
+    <div class="gr__transp">
+      <div class="gr__transp-tit"><strong>DATOS DE LA PERSONA ENCARGADA DEL TRANSPORTE</strong></div>
+      <div><strong>NOMBRE O RAZÓN SOCIAL:</strong> {{ guia().personaTransporte?.nombreORazonSocial }}</div>
+      <div><strong>RUC / CEDULA:</strong> {{ guia().personaTransporte?.rucCedula }}</div>
+      <div class="gr__veh"><span><strong>VEHICULO:</strong> {{ guia().vehiculo }}</span><span><strong>PLACAS:</strong> {{ guia().placa }}</span></div>
+    </div>
+  </div>
+
+  <table class="gr__tabla">
+    <colgroup><col class="gr__c-item" /><col class="gr__c-cant" /><col class="gr__c-cod" /><col class="gr__c-uni" /><col /></colgroup>
+    <thead>
+      <tr><th>ITEM</th><th>CANTIDAD</th><th>SERIAL/CODIGO</th><th>UNIDAD DE MEDIDA</th><th>DESCRIPCION</th></tr>
+    </thead>
+    <tbody>
+      @for (it of filas(); track $index) {
+        <tr>
+          <td class="doc-centro">{{ it ? $index + 1 : '' }}</td>
+          <td class="doc-centro">{{ it?.cantidad }}</td>
+          <td class="doc-centro">{{ it?.codigo }}{{ it?.serie ? ' / ' + it?.serie : '' }}</td>
+          <td class="doc-centro">{{ it?.unidad }}</td>
+          <td>{{ it?.descripcion }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <!-- Firmas: solo en el PDF -->
+  <div class="gr__firmas">
+    <div class="gr__firma">
+      <div class="gr__firma-linea"></div>
+      <div class="gr__firma-tit"><strong>Entregue Conforme</strong></div>
+    </div>
+    <div class="gr__firma">
+      <div class="gr__firma-linea"></div>
+      <div class="gr__firma-tit"><strong>Recibí Conforme</strong></div>
+      <div>Nombre: {{ guia().firmaCliente?.nombre }}</div>
+      <div>Cargo: {{ guia().firmaCliente?.cargo }}</div>
+      <div>CI: {{ guia().firmaCliente?.cedula }}</div>
+    </div>
+  </div>
+</div>

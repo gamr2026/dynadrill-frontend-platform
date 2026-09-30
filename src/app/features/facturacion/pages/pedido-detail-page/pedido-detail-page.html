@@ -25,80 +25,22 @@
 
     <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
      <div class="pedido-detail__grid">
-      <section class="fact-card pedido-detail__aside-item">
-        <header class="pedido-detail__head"><h2>Estado</h2></header>
-        <div class="pedido-detail__estado-actual">
-          <dynadrill-tag [label]="estadoLabel()" [variant]="estadoFueraDeAlcance() ? 'neutral' : 'brand'" />
-        </div>
-        @if (estadoFueraDeAlcance()) {
-          <dynadrill-banner variant="info" message="Este estado ya está fuera del alcance del aplicativo (registro AS2 / SRI / cobro)." />
-        }
-        <ol class="pedido-detail__timeline" aria-label="Historial de estados">
-          @for (paso of pasosTimeline(); track $index; let last = $last) {
-            <li
-              class="pedido-detail__step"
-              [class.pedido-detail__step--done]="paso.state === 'done'"
-              [class.pedido-detail__step--current]="paso.state === 'current'"
-              [class.pedido-detail__step--pending]="paso.state === 'pending'"
-              [class.pedido-detail__step--last]="last"
-            >
-              <span class="pedido-detail__step-rail" aria-hidden="true">
-                <span class="pedido-detail__step-dot">
-                  @if (paso.state === 'done') {
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M20 6 9 17l-5-5" /></svg>
-                  }
-                </span>
-                <span class="pedido-detail__step-connector"></span>
-              </span>
-              @if (paso.tramo; as t) {
-                <button
-                  type="button"
-                  class="pedido-detail__step-text pedido-detail__step-text--btn"
-                  [class.pedido-detail__step-text--selected]="$index === selectedHistorialIndex()"
-                  [attr.aria-current]="paso.state === 'current' ? 'step' : null"
-                  (click)="seleccionarHistorial($index)"
-                  [appTimelinePopoverTrigger]="t"
-                  [faseIndice]="$index + 1"
-                  [faseLabel]="paso.label"
-                  [esFaseActual]="paso.state === 'current'"
-                  [responsableRolActual]="p.timelineResumen?.responsableRolActual ?? null"
-                >
-                  <span class="pedido-detail__step-title">{{ paso.label }}</span>
-                  <span class="pedido-detail__step-meta">{{ paso.fecha | date: 'dd MMM y' }}{{ paso.actor ? ' · ' + paso.actor : '' }}</span>
-                </button>
-              } @else {
-                <div class="pedido-detail__step-text" [attr.aria-current]="paso.state === 'current' ? 'step' : null">
-                  <span class="pedido-detail__step-title">{{ paso.label }}</span>
-                  <span class="pedido-detail__step-meta">
-                    @if (paso.state === 'pending') {
-                      Pendiente
-                    } @else {
-                      {{ paso.fecha | date: 'dd MMM y' }}{{ paso.actor ? ' · ' + paso.actor : '' }}{{ paso.motivo ? ' — ' + paso.motivo : '' }}
-                    }
-                  </span>
-                </div>
-              }
-            </li>
-          }
-        </ol>
-      </section>
-
-      <!-- ── Ticket operativo asociado (Pedido -> FCR) ── -->
-      <!-- Figma la muestra siempre: sin ticket asociado queda con "—" y el botón deshabilitado. -->
-      <section class="fact-card">
-          <header class="pedido-detail__head"><h2>Ticket FCR asociado</h2></header>
-          <dl class="pedido-detail__defs">
-            <div><dt>Ticket</dt><dd>{{ fcrTicket()?.code ?? '—' }}</dd></div>
-            <div><dt>Fase actual</dt><dd>{{ fcrTicket() ? fcrFaseLabel() : '—' }}</dd></div>
-          </dl>
-          <button type="button" class="pedido-detail__btn pedido-detail__btn--tonal" [disabled]="!fcrTicket()" (click)="irAFcr()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6" /></svg>
-            Ir a FCR
-          </button>
+      <div class="pedido-detail__main">
+      <!-- ── Ticket operativo asociado: FCR o Pumping según la línea del pedido ── -->
+      <section class="fact-card pedido-detail__ord-2">
+        <header class="pedido-detail__head"><h2>Ticket {{ lineaLabel() }} asociado</h2></header>
+        <dl class="pedido-detail__defs">
+          <div><dt>Ticket</dt><dd>{{ ticketAsociado().code || '—' }}</dd></div>
+          <div><dt>Fase actual</dt><dd>{{ ticketAsociado().fase || '—' }}</dd></div>
+        </dl>
+        <button type="button" class="pedido-detail__btn pedido-detail__btn--tonal" [disabled]="!ticketAsociado().id" (click)="irATicket()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6" /></svg>
+          Ir a {{ lineaLabel() }}
+        </button>
       </section>
 
       <!-- ── Documentos de respaldo (FACT-002) ── -->
-      <section class="fact-card">
+      <section class="fact-card pedido-detail__ord-3">
         <header class="pedido-detail__head"><h2>Documentos de respaldo</h2></header>
 
         @if (avance(); as a) {
@@ -108,7 +50,7 @@
                 <span>Reporte Job</span>
                 <span>{{ a.reporteJobDias }} de {{ a.reporteJobDiasEsperados }}</span>
               </div>
-              <dynadrill-progress [value]="a.reporteJobDias" [max]="a.reporteJobDiasEsperados" [showInfo]="false" />
+              <dynadrill-progress [value]="a.reporteJobDias" [max]="a.reporteJobDiasEsperados" [showInfo]="false" [statusOverride]="a.reporteJobDias >= a.reporteJobDiasEsperados ? 'success' : 'normal'" />
             </div>
             <dynadrill-tag
               [label]="a.reporteHerramientasAplica ? (a.reporteHerramientasAlDia ? 'Reporte de Htas.: al día' : 'Reporte de Htas.: pendiente') : 'Reporte de Htas.: no aplica'"
@@ -214,7 +156,7 @@
                           : 'Prefactura'
                     }}
                   </td>
-                  <td>{{ d.tipo === 'prefactura' ? 'Facturación' : d.tipo === 'reporte_herramientas' ? 'FCR' : 'FCR / Pumping' }}</td>
+                  <td>{{ d.tipo === 'prefactura' ? 'Facturación' : d.tipo === 'reporte_herramientas' ? 'FCR' : lineaLabel() }}</td>
                   <td>{{ d.fecha | date: 'dd/MM/yyyy' }}</td>
                   <td>—</td>
                   <td><dynadrill-tag [label]="d.firmado ? 'Firmado' : 'Falta firmar'" [variant]="d.firmado ? 'success' : 'warning'" /></td>
@@ -251,44 +193,6 @@
         <button type="button" class="pedido-detail__btn pedido-detail__btn--text" [disabled]="simulando()" (click)="simularCargaOperador()">
           {{ simulando() ? 'Simulando…' : 'Simular carga de operador' }}
         </button>
-      </section>
-
-      <!-- ── Prefactura (FACT-003) ── -->
-      <section class="fact-card pedido-detail__aside-item">
-        <header class="pedido-detail__head"><h2>Prefactura</h2></header>
-        @if (esRegeneracion()) {
-          <dynadrill-banner variant="warning" [message]="'Rechazada por el cliente: ' + (prefactura()?.rechazoCliente?.motivo ?? '') + '. Corrige la documentación necesaria y regenera la prefactura para reenviarla.'" />
-        }
-        @if (prefactura(); as pf) {
-          <dl class="pedido-detail__defs">
-            <div><dt>Código</dt><dd>{{ pf.code }}</dd></div>
-            <div><dt>Estado</dt><dd class="pedido-detail__capitalize">{{ pf.estado.replaceAll('_', ' ') }}</dd></div>
-          </dl>
-          <div class="pedido-detail__rows">
-            <div class="pedido-detail__row"><span>Subtotal servicios</span><strong>${{ pf.subtotalServicios | number: '1.2-2' }}</strong></div>
-            <div class="pedido-detail__row"><span>Subtotal materiales</span><strong>${{ pf.subtotalMateriales | number: '1.2-2' }}</strong></div>
-            <div class="pedido-detail__row"><span>IVA (15%)</span><strong>${{ pf.iva | number: '1.2-2' }}</strong></div>
-            <div class="pedido-detail__row"><span>Neto a cobrar</span><strong>${{ pf.netoCobrar | number: '1.2-2' }}</strong></div>
-          </div>
-          <button type="button" class="pedido-detail__btn pedido-detail__btn--primary" (click)="verPrefactura()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></svg>
-            Ver prefactura
-          </button>
-        } @else if (puedeGenerarPrefactura()) {
-          <dynadrill-text variant="caption">La documentación de respaldo está completa — puedes generar la prefactura.</dynadrill-text>
-        } @else if (avance()?.ptwAplica && !avance()?.ptwsCerrados) {
-          <dynadrill-banner
-            variant="warning"
-            message="Falta cerrar el PTW del servicio: HSE-SITIO-001 exige el PTW cerrado y el Acta de Devolución de Sitio firmada (FACT-002/004) antes de poder generar la prefactura."
-          />
-        } @else {
-          <dynadrill-banner variant="info" message="La prefactura se habilita cuando la documentación de respaldo (y la guía de remisión, si aplica) está completa." />
-        }
-        @if (puedeGenerarPrefactura()) {
-          <button type="button" class="pedido-detail__btn pedido-detail__btn--primary" [disabled]="generando()" (click)="generarPrefactura()">
-            {{ generando() ? 'Generando…' : esRegeneracion() ? 'Regenerar y reenviar' : 'Generar prefactura' }}
-          </button>
-        }
       </section>
 
       <!-- ── Despacho de Bodega — correlación con "Orden Salida Material" de AS2 ── -->
@@ -378,6 +282,107 @@
           </table>
         </div>
       </section>
+      </div>
+
+      <aside class="pedido-detail__side">
+      <section class="fact-card pedido-detail__ord-1">
+        <header class="pedido-detail__head"><h2>Estado</h2></header>
+        <div class="pedido-detail__estado-actual">
+          <dynadrill-tag [label]="estadoLabel()" [variant]="estadoFueraDeAlcance() ? 'neutral' : 'brand'" />
+        </div>
+        @if (estadoFueraDeAlcance()) {
+          <dynadrill-banner variant="info" message="Este estado ya está fuera del alcance del aplicativo (registro AS2 / SRI / cobro)." />
+        }
+        <ol class="pedido-detail__timeline" aria-label="Historial de estados">
+          @for (paso of pasosTimeline(); track $index; let last = $last) {
+            <li
+              class="pedido-detail__step"
+              [class.pedido-detail__step--done]="paso.state === 'done'"
+              [class.pedido-detail__step--current]="paso.state === 'current'"
+              [class.pedido-detail__step--pending]="paso.state === 'pending'"
+              [class.pedido-detail__step--last]="last"
+            >
+              <span class="pedido-detail__step-rail" aria-hidden="true">
+                <span class="pedido-detail__step-dot">
+                  @if (paso.state === 'done') {
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M20 6 9 17l-5-5" /></svg>
+                  }
+                </span>
+                <span class="pedido-detail__step-connector"></span>
+              </span>
+              @if (paso.tramo; as t) {
+                <button
+                  type="button"
+                  class="pedido-detail__step-text pedido-detail__step-text--btn"
+                  [class.pedido-detail__step-text--selected]="$index === selectedHistorialIndex()"
+                  [attr.aria-current]="paso.state === 'current' ? 'step' : null"
+                  (click)="seleccionarHistorial($index)"
+                  [appTimelinePopoverTrigger]="t"
+                  [faseIndice]="$index + 1"
+                  [faseLabel]="paso.label"
+                  [esFaseActual]="paso.state === 'current'"
+                  [responsableRolActual]="p.timelineResumen?.responsableRolActual ?? null"
+                >
+                  <span class="pedido-detail__step-title">{{ paso.label }}</span>
+                  <span class="pedido-detail__step-meta">{{ paso.fecha | date: 'dd MMM y' }}{{ paso.actor ? ' · ' + paso.actor : '' }}</span>
+                </button>
+              } @else {
+                <div class="pedido-detail__step-text" [attr.aria-current]="paso.state === 'current' ? 'step' : null">
+                  <span class="pedido-detail__step-title">{{ paso.label }}</span>
+                  <span class="pedido-detail__step-meta">
+                    @if (paso.state === 'pending') {
+                      Pendiente
+                    } @else {
+                      {{ paso.fecha | date: 'dd MMM y' }}{{ paso.actor ? ' · ' + paso.actor : '' }}{{ paso.motivo ? ' — ' + paso.motivo : '' }}
+                    }
+                  </span>
+                </div>
+              }
+            </li>
+          }
+        </ol>
+      </section>
+
+
+      <!-- ── Prefactura (FACT-003) ── -->
+      <section class="fact-card pedido-detail__ord-4">
+        <header class="pedido-detail__head"><h2>Prefactura</h2></header>
+        @if (esRegeneracion()) {
+          <dynadrill-banner variant="warning" [message]="'Rechazada por el cliente: ' + (prefactura()?.rechazoCliente?.motivo ?? '') + '. Corrige la documentación necesaria y regenera la prefactura para reenviarla.'" />
+        }
+        @if (prefactura(); as pf) {
+          <dl class="pedido-detail__defs">
+            <div><dt>Código</dt><dd>{{ pf.code }}</dd></div>
+            <div><dt>Estado</dt><dd class="pedido-detail__capitalize">{{ pf.estado.replaceAll('_', ' ') }}</dd></div>
+          </dl>
+          <div class="pedido-detail__rows">
+            <div class="pedido-detail__row"><span>Subtotal servicios</span><strong>${{ pf.subtotalServicios | number: '1.2-2' }}</strong></div>
+            <div class="pedido-detail__row"><span>Subtotal materiales</span><strong>${{ pf.subtotalMateriales | number: '1.2-2' }}</strong></div>
+            <div class="pedido-detail__row"><span>IVA (15%)</span><strong>${{ pf.iva | number: '1.2-2' }}</strong></div>
+            <div class="pedido-detail__row"><span>Neto a cobrar</span><strong>${{ pf.netoCobrar | number: '1.2-2' }}</strong></div>
+          </div>
+          <button type="button" class="pedido-detail__btn pedido-detail__btn--primary" (click)="verPrefactura()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></svg>
+            Ver prefactura
+          </button>
+        } @else if (puedeGenerarPrefactura()) {
+          <dynadrill-text variant="caption">La documentación de respaldo está completa — puedes generar la prefactura.</dynadrill-text>
+        } @else if (avance()?.ptwAplica && !avance()?.ptwsCerrados) {
+          <dynadrill-banner
+            variant="warning"
+            message="Falta cerrar el PTW del servicio: HSE-SITIO-001 exige el PTW cerrado y el Acta de Devolución de Sitio firmada (FACT-002/004) antes de poder generar la prefactura."
+          />
+        } @else {
+          <dynadrill-banner variant="info" message="La prefactura se habilita cuando la documentación de respaldo (y la guía de remisión, si aplica) está completa." />
+        }
+        @if (puedeGenerarPrefactura()) {
+          <button type="button" class="pedido-detail__btn pedido-detail__btn--primary" [disabled]="generando()" (click)="generarPrefactura()">
+            {{ generando() ? 'Generando…' : esRegeneracion() ? 'Regenerar y reenviar' : 'Generar prefactura' }}
+          </button>
+        }
+      </section>
+
+      </aside>
      </div>
     </dynadrill-spinner>
   } @else if (!loading()) {

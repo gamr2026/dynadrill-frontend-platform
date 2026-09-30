@@ -38,6 +38,7 @@ import { Router } from '@angular/router';
 import { GuiaRemisionDialog, GuiaRemisionDialogData } from '../../components/guia-remision-dialog';
 import { GuiaRemisionHoja } from '../../../../shared/documentos/formatos/guia-remision-hoja';
 import { FCR_PHASE_LABELS, FcrTicket } from '../../../operations/fcr/models/fcr.model';
+import { PUMPING_STEP_LABELS, type PumpingStep } from '../../../operations/pumping/models/pumping.model';
 import { FcrService } from '../../../operations/fcr/services/fcr.service';
 import { PumpingService } from '../../../operations/pumping/services/pumping.service';
 import { NuevoPedidoDialog } from '../../components/nuevo-pedido-dialog';
@@ -129,6 +130,24 @@ export class PedidoDetailPage {
   protected readonly simulando = signal(false);
   protected readonly generando = signal(false);
   protected readonly generandoGuia = signal(false);
+
+  /** "FCR" o "Pumping" según la línea del pedido — títulos y botones de esta pantalla. */
+  protected readonly lineaLabel = computed(() => (this.pedido()?.lineaServicio === 'pumping' ? 'Pumping' : 'FCR'));
+
+  /** Ticket operativo del pedido, sea de FCR o de Pumping. */
+  protected readonly ticketAsociado = computed<{ id: number | null; code: string; fase: string }>(() => {
+    if (this.pedido()?.lineaServicio === 'pumping') {
+      const a = this.avance();
+      const fase = a?.ticketPumpingFase;
+      return {
+        id: a?.ticketPumpingId ?? null,
+        code: a?.ticketPumpingCode ?? '',
+        fase: fase ? (PUMPING_STEP_LABELS[fase as PumpingStep] ?? fase) : '',
+      };
+    }
+    const t = this.fcrTicket();
+    return { id: t?.id ?? null, code: t?.code ?? '', fase: t ? this.fcrFaseLabel() : '' };
+  });
 
   protected readonly fcrFaseLabel = computed(() => {
     const t = this.fcrTicket();
@@ -566,11 +585,14 @@ export class PedidoDetailPage {
     });
   }
 
-  /** Puente Pedido -> FCR: el ticket FCR se creó automáticamente al abrir el pedido (líneas CTU/Fishing/Completion). */
-  protected irAFcr(): void {
-    const t = this.fcrTicket();
-    if (t) this.router.navigate(['/modulos/operativo/fcr', t.id]);
+  /** Puente Pedido -> ticket operativo: abre el ticket de FCR o de Pumping según la línea del pedido. */
+  protected irATicket(): void {
+    const t = this.ticketAsociado();
+    if (!t.id) return;
+    const modulo = this.pedido()?.lineaServicio === 'pumping' ? 'pumping' : 'fcr';
+    this.router.navigate([`/modulos/operativo/${modulo}`, t.id]);
   }
+
 
   protected verPrefactura(): void {
     const pf = this.prefactura();

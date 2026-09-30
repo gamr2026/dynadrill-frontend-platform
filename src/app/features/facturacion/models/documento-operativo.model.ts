@@ -87,6 +87,8 @@ export interface AvanceDocumental {
   /** Reporte de Unidad del ticket de Pumping (salida y, si ya se hizo, llegada) — se baja como PDF (formato DYN-MNT-RE-012). Null si aún no hay reporte de salida. */
   reporteUnidad?: PumpingUnitReport | null;
   ticketPumpingCode?: string | null;
+  ticketPumpingId?: number | null;
+  ticketPumpingFase?: string | null;
   completo: boolean;
 }
 

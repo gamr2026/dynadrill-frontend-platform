@@ -31,19 +31,12 @@
     }
   }
 
-  // Escritorio (Figma "D · Pedidos · Detalle"): 2 columnas — Estado y Prefactura
-  // forman una barra lateral a la derecha (marcadas con .pedido-detail__aside-item),
-  // el resto de secciones fluye en la columna principal.
+  // Escritorio (Figma "D · Pedidos · Detalle"): dos columnas INDEPENDIENTES — la principal (ticket, documentos, cliente,
+  // servicio…) y la barra lateral (Estado y Prefactura). Antes era un único grid con filas compartidas: la tarjeta alta de
+  // Estado estiraba su fila y dejaba un hueco enorme bajo las tarjetas de la izquierda.
   //
-  // Todo hijo que NO sea aside-item va explícito a columna 1 (regla de abajo)
-  // — sin esto, `grid-auto-flow: dense` sin columna fija en los ítems "auto"
-  // los va colando en cualquier hueco libre de la columna 2 en cuanto la 1 se
-  // adelanta de fila (ej. Cliente/Servicio terminando en la barra lateral en
-  // vez de la columna principal, bug reportado). Se usa `:not()` en vez de
-  // pisar con un segundo selector `.aside-item{grid-column:2}` porque
-  // Angular reescribe `> *` a `> [_ngcontent-xxx]` para el scoping de
-  // estilos — dejar de ser un selector universal le suma especificidad y
-  // termina ganándole al override por orden de aparición.
+  // En móvil ambas columnas se aplanan (`display: contents`) y `order` devuelve el orden original de la pantalla:
+  // Estado, Ticket, Documentos, Prefactura y luego el resto.
   &__grid {
     display: flex;
     flex-direction: column;
@@ -54,17 +47,39 @@
       grid-template-columns: 2fr 1fr;
       align-items: start;
       gap: 16px;
-
-      > *:not(.pedido-detail__aside-item) {
-        grid-column: 1;
-      }
     }
   }
 
-  &__aside-item {
+  &__main,
+  &__side {
+    display: contents;
+
     @media (min-width: 1100px) {
-      grid-column: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 0;
     }
+
+    > * {
+      order: 5;
+    }
+  }
+
+  &__side > &__ord-1 {
+    order: 1;
+  }
+
+  &__main > &__ord-2 {
+    order: 2;
+  }
+
+  &__main > &__ord-3 {
+    order: 3;
+  }
+
+  &__side > &__ord-4 {
+    order: 4;
   }
 
   &__head-actions {
@@ -386,6 +401,18 @@
     background: var(--surface, #fff);
     color: var(--text, #2c2b35);
     cursor: pointer;
+
+    // Escritorio (Figma): ícono simple, sin recuadro — el de 48 px con borde es el área táctil de móvil.
+    @media (min-width: 841px) {
+      width: 36px;
+      height: 36px;
+      border-color: transparent;
+      background: transparent;
+
+      &:hover {
+        background: var(--surface-muted, #f4f3f8);
+      }
+    }
 
     & + & {
       margin-left: 4px;

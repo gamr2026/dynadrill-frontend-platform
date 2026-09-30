@@ -39,6 +39,8 @@ import { GuiaRemisionDialog, GuiaRemisionDialogData } from '../../components/gui
 import { GuiaRemisionHoja } from '../../../../shared/documentos/formatos/guia-remision-hoja';
 import { FCR_PHASE_LABELS, FcrTicket } from '../../../operations/fcr/models/fcr.model';
 import { PUMPING_STEP_LABELS, type PumpingStep } from '../../../operations/pumping/models/pumping.model';
+import { PUMPING_ROLES } from '../../../operations/pumping/pumping.routes';
+import { FCR_ROLES } from '../../../operations/fcr/fcr.routes';
 import { FcrService } from '../../../operations/fcr/services/fcr.service';
 import { PumpingService } from '../../../operations/pumping/services/pumping.service';
 import { NuevoPedidoDialog } from '../../components/nuevo-pedido-dialog';
@@ -133,6 +135,12 @@ export class PedidoDetailPage {
 
   /** "FCR" o "Pumping" según la línea del pedido — títulos y botones de esta pantalla. */
   protected readonly lineaLabel = computed(() => (this.pedido()?.lineaServicio === 'pumping' ? 'Pumping' : 'FCR'));
+
+  /** El botón "Ir a FCR/Pumping" solo se muestra a los roles que pueden abrir ese ticket — sin acceso, el guard los sacaría al inicio. */
+  protected readonly puedeAbrirTicket = computed(() => {
+    const rol = this.auth.currentUser()?.roleName ?? '';
+    return (this.pedido()?.lineaServicio === 'pumping' ? PUMPING_ROLES : FCR_ROLES).includes(rol);
+  });
 
   /** Ticket operativo del pedido, sea de FCR o de Pumping. */
   protected readonly ticketAsociado = computed<{ id: number | null; code: string; fase: string }>(() => {

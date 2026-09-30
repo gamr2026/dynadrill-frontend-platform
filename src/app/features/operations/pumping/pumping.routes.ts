@@ -1,7 +1,8 @@
 import { Routes } from '@angular/router';
 import { roleGuard } from '../../../core/guards/role.guard';
 
-const PUMPING_ROLES = ['Jefe de Base', 'Supervisor', 'Supervisor Pumping', 'Operador'];
+/** Roles que pueden abrir tickets de Pumping — también lo usa el detalle del pedido para decidir si muestra "Ir a Pumping". */
+export const PUMPING_ROLES = ['Jefe de Base', 'Supervisor', 'Supervisor Pumping', 'Operador'];
 // El Conductor entra solo a la lista (ve sus tareas), no al detalle del ticket.
 const PUMPING_LIST_ROLES = [...PUMPING_ROLES, 'Conductor'];
 

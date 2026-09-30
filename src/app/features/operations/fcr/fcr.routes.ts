@@ -1,7 +1,8 @@
 import { Routes } from '@angular/router';
 import { roleGuard } from '../../../core/guards/role.guard';
 
-const FCR_ROLES = [
+/** Roles que pueden abrir tickets de FCR — también lo usa el detalle del pedido para decidir si muestra "Ir a FCR". */
+export const FCR_ROLES = [
   'Superadmin',
   'Jefe de Base',
   'Supervisor',

@@ -19,10 +19,6 @@ export * from './models/timeline.model';
 // Componentes de composición (documentos operativos)
 export { ReporteJobPdfDialog, type ReporteJobPdfDialogData } from './components/reporte-job-pdf-dialog/reporte-job-pdf-dialog';
 export {
-  ReporteHerramientasPdfDialog,
-  type ReporteHerramientasPdfDialogData,
-} from './components/reporte-herramientas-pdf-dialog/reporte-herramientas-pdf-dialog';
-export {
   ReporteCierrePdfDialog,
   type ReporteCierrePdfDialogData,
   type ReporteCierrePdfPhaseRow,

@@ -15,8 +15,6 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { useDetailChrome } from '../../../../layout/page-chrome.service';
 import {
-  ReporteHerramientasPdfDialog,
-  ReporteHerramientasPdfDialogData,
   ReporteJobPdfDialog,
   ReporteJobPdfDialogData,
   TimelinePopoverTriggerDirective,
@@ -52,6 +50,7 @@ import { SolicitarDespachoDialog, SolicitarDespachoDialogData } from '../../comp
 import { TimelineTramo } from '../../../../shared/models/timeline.model';
 import { DocumentoPdfService } from '../../../../shared/documentos';
 import { ReporteUnidadHoja } from '../../../../shared/documentos/formatos/reporte-unidad-hoja';
+import { ReporteHerramientasHoja } from '../../../../shared/documentos/formatos/reporte-herramientas-hoja';
 import { SolicitudDespachoBodega } from '../../models/solicitud-despacho-bodega.model';
 
 interface Dato {
@@ -444,12 +443,12 @@ export class PedidoDetailPage {
     if (!docs.length || !docs[0].header) return;
     const herramientas = docs.flatMap(d => d.herramientas ?? []);
     const usoHerramientas = docs.flatMap(d => d.usoHerramientas ?? []);
-    this.dialog.open<ReporteHerramientasPdfDialog, ReporteHerramientasPdfDialogData>({
-      title: 'Reporte de Herramientas',
-      content: ReporteHerramientasPdfDialog,
-      data: { header: docs[0].header, tools: herramientas, usageLog: usoHerramientas },
-      footer: false,
-      width: '920px',
+    this.documentoPdf.abrir({
+      titulo: 'Reporte de Herramientas',
+      component: ReporteHerramientasHoja,
+      inputs: { header: docs[0].header, tools: herramientas, usageLog: usoHerramientas },
+      orientacion: 'landscape',
+      nombreArchivo: `Reporte de Herramientas ${docs[0].header.code}`,
     });
   }
 

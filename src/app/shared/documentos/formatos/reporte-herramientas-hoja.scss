@@ -1,0 +1,149 @@
+.rh {
+  font-size: 8.5px;
+
+  table {
+    margin-top: -1px;
+  }
+
+  &__rojo {
+    color: #c00000;
+  }
+
+  &__ticket-n {
+    margin-left: 18px;
+    font-weight: 700;
+  }
+
+  &__datos td {
+    padding: 2px 6px;
+    font-size: 9px;
+    border-color: transparent;
+    border-left-color: #000;
+    border-right-color: #000;
+  }
+
+  &__c1 {
+    width: 12%;
+  }
+
+  &__c2 {
+    width: 38%;
+  }
+
+  &__c3,
+  &__c4 {
+    width: 25%;
+  }
+
+  // ── Matriz ──
+  &__matriz {
+    table-layout: fixed;
+
+    th,
+    td {
+      padding: 1px 2px;
+      font-size: 8px;
+      vertical-align: middle;
+    }
+  }
+
+  &__cod {
+    width: 7%;
+    text-align: center !important;
+    vertical-align: middle !important;
+  }
+
+  &__desc {
+    width: 30%;
+    text-align: center !important;
+    vertical-align: middle !important;
+  }
+
+  &__serie {
+    width: 16%;
+    text-align: center !important;
+    vertical-align: middle !important;
+  }
+
+  &__dia {
+    padding: 0 !important;
+    text-align: center !important;
+    font-size: 7px !important;
+  }
+
+  &__celda {
+    height: 14px;
+    text-align: center;
+    font-weight: 700;
+
+    &--uso {
+      background: #b7dee8;
+    }
+  }
+
+  &__vert {
+    width: 3.2%;
+    text-align: center !important;
+    font-size: 7px !important;
+  }
+
+  &__detalle {
+    margin-top: 6px;
+
+    td,
+    th {
+      font-size: 8px;
+    }
+  }
+
+  &__obs td {
+    padding: 2px 6px;
+    font-size: 9px;
+  }
+
+  &__obs-espacio td {
+    height: 30px;
+  }
+
+  &__instr {
+    th {
+      padding: 2px;
+      font-size: 10px;
+      letter-spacing: 2px;
+      font-weight: 400;
+    }
+
+    td {
+      padding: 1px 6px;
+      font-size: 8px;
+      border-top-color: transparent;
+      border-bottom-color: transparent;
+    }
+  }
+
+  &__instr-tit {
+    border-bottom: 1px solid #000;
+  }
+
+  &__firmas {
+    margin-top: 6px;
+
+    td,
+    th {
+      padding: 3px 6px;
+      font-size: 9px;
+    }
+  }
+
+  &__firma-nombre {
+    height: 16px;
+    text-align: center !important;
+    border-bottom-color: transparent !important;
+  }
+
+  &__firma-espacio td {
+    height: 60px;
+    border-top-color: transparent;
+    border-bottom-color: transparent;
+  }
+}

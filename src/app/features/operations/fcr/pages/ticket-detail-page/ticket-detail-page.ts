@@ -99,8 +99,6 @@ import {
   ReporteCierrePdfDialogData,
   type ReporteCierrePdfActivitySummaryRow,
   type ReporteCierrePdfDocumentRow,
-  ReporteHerramientasPdfDialog,
-  ReporteHerramientasPdfDialogData,
   ReporteJobPdfDialog,
   ReporteJobPdfDialogData,
   OperativoDocsBridgeService,
@@ -166,6 +164,9 @@ function resolveSupervisorName(t: FcrTicket): string {
   return t.phaseHistory.find(p => p.approvedByRole === 'Supervisor')?.approvedBy ?? '';
 }
 
+import { DocumentoPdfService } from '../../../../../shared/documentos';
+import { ReporteHerramientasHoja } from '../../../../../shared/documentos/formatos/reporte-herramientas-hoja';
+
 @Component({
   selector: 'app-fcr-ticket-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -203,6 +204,7 @@ export class FcrTicketDetailPage {
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(DynadrillDialogService);
+  private readonly documentoPdf = inject(DocumentoPdfService);
   private readonly docsBridge = inject(OperativoDocsBridgeService);
 
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
@@ -967,16 +969,16 @@ export class FcrTicketDetailPage {
   protected openReporteHerramientas(): void {
     const t = this.ticket();
     if (!t) return;
-    this.dialog.open<ReporteHerramientasPdfDialog, ReporteHerramientasPdfDialogData>({
-      title: 'Reporte de Herramientas — Vista de impresión',
-      content: ReporteHerramientasPdfDialog,
-      data: {
+    this.documentoPdf.abrir({
+      titulo: 'Reporte de Herramientas — Vista de impresión',
+      component: ReporteHerramientasHoja,
+      inputs: {
         header: { code: t.code, cliente: t.clientName, pozo: t.wellName, supervisor: resolveSupervisorName(t), operador: t.assignedOperator },
         tools: t.tools.map(tool => ({ id: tool.id, name: tool.name })),
         usageLog: t.toolUsageLog,
       },
-      footer: false,
-      width: '920px',
+      orientacion: 'landscape',
+      nombreArchivo: `Reporte de Herramientas ${t.code}`,
     });
   }
 

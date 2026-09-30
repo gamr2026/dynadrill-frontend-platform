@@ -1,0 +1,114 @@
+<div class="doc-hoja rh">
+  <app-doc-encabezado titulo="REPORTE DIARIO DE HERRAMIENTAS EN RENTA" codigo="DYN-FCR-RE-008" version="08" />
+
+  <!-- Datos del ticket -->
+  <table class="rh__datos">
+    <tr>
+      <td colspan="2" class="rh__ticket"><span class="rh__rojo">Ticket # :</span> <span class="rh__rojo rh__ticket-n">{{ header().code }}</span></td>
+      <td></td><td></td>
+    </tr>
+    <tr>
+      <td class="rh__c1"><strong>CLIENTE:</strong></td>
+      <td class="rh__c2">{{ header().cliente }}</td>
+      <td class="rh__c3"><strong>CAMPO:</strong></td>
+      <td class="rh__c4"><strong>BLOQUE:</strong></td>
+    </tr>
+    <tr>
+      <td><strong>POZO:</strong></td>
+      <td>{{ header().pozo }}</td>
+      <td colspan="2"><strong>REPRESENTANTE CLIENTE / COMPANY MAN:</strong></td>
+    </tr>
+    <tr>
+      <td><strong>FECHA:</strong></td>
+      <td>{{ fechaReporte() }}</td>
+      <td colspan="2"><strong>REPRESENTANTE DYNADRILL ECUADOR:</strong> {{ header().supervisor }}</td>
+    </tr>
+  </table>
+
+  <!-- Matriz herramienta × día -->
+  <table class="rh__matriz">
+    <thead>
+      <tr>
+        <th rowspan="2" class="rh__cod">CODIGO #</th>
+        <th rowspan="2" class="rh__desc">DESCRIPCION DE LA HERRAMIENTA</th>
+        <th rowspan="2" class="rh__serie">SERIE #</th>
+        @for (m of meses(); track m.etiqueta) {
+          <th [attr.colspan]="m.dias" class="doc-centro">{{ m.etiqueta }}</th>
+        }
+        <th rowspan="2" class="rh__vert"><span>O</span></th>
+        <th rowspan="2" class="rh__vert"><span>S</span></th>
+        <th rowspan="2" class="rh__vert"><span>D</span></th>
+        <th rowspan="2" class="rh__vert"><span>V</span></th>
+        <th rowspan="2" class="rh__vert"><span>TOTAL</span></th>
+      </tr>
+      <tr>
+        @for (d of dias(); track d) {
+          <th class="rh__dia">{{ dia(d) }}</th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (f of filas(); track $index) {
+        <tr>
+          <td class="doc-centro">{{ f.codigo }}</td>
+          <td>{{ f.nombre }}</td>
+          <td>{{ f.serie }}</td>
+          @for (d of dias(); track d) {
+            <td class="rh__celda" [class.rh__celda--uso]="f.celdas[d]">{{ f.celdas[d] }}</td>
+          }
+          <td class="doc-centro">{{ f.conteo.operacion }}</td>
+          <td class="doc-centro">{{ f.conteo.stand_by }}</td>
+          <td class="doc-centro">{{ f.conteo.daily_charge }}</td>
+          <td class="doc-centro">{{ f.conteo.venta }}</td>
+          <td class="doc-centro doc-negrita">{{ f.total }}</td>
+        </tr>
+      } @empty {
+        <tr><td [attr.colspan]="dias().length + 8">Sin uso de herramientas registrado todavía.</td></tr>
+      }
+    </tbody>
+  </table>
+
+  @if (detalle().length) {
+    <table class="rh__detalle">
+      <tr class="doc-gris"><th colspan="7">DETALLE DE COMPLETACIÓN / TIPO DE TRABAJO Y PICKER</th></tr>
+      <tr>
+        <th>Herramienta</th><th>Fecha</th><th>Tipo</th><th>Picker</th><th>Presión</th><th>Peso</th><th>Observación</th>
+      </tr>
+      @for (r of detalle(); track $index) {
+        <tr>
+          <td>{{ r.herramienta }}</td><td>{{ r.fecha }}</td><td>{{ r.tipo }}</td><td>{{ r.picker }}</td>
+          <td>{{ r.presion }}</td><td>{{ r.peso }}</td><td>{{ r.observacion }}</td>
+        </tr>
+      }
+    </table>
+  }
+
+  <table class="rh__obs">
+    <tr><td><strong>Observaciones:</strong></td></tr>
+    <tr class="rh__obs-espacio"><td></td></tr>
+  </table>
+
+  <table class="rh__instr">
+    <tr><th class="doc-centro rh__instr-tit">I N S T R U C C I O N E S</th></tr>
+    <tr><td>HERRAMIENTA EN OPERACION &nbsp;&nbsp;&nbsp;&nbsp; = &nbsp;&nbsp; O</td></tr>
+    <tr><td>HERRAMIENTA EN STAND-BY &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = &nbsp;&nbsp; S</td></tr>
+    <tr><td>HERRAMIENTA DAILY CHARGE &nbsp;&nbsp;&nbsp; = &nbsp;&nbsp; D</td></tr>
+    <tr><td>CONSUMIBLE - VENTA &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = &nbsp;&nbsp; V</td></tr>
+    <tr><td>1. POR FAVOR LLENAR EN EL FORMATO LAS HERRAMIENTAS DETALLADA EN LA DELIVERY DE ALMACEN.</td></tr>
+    <tr><td>2. ADJUNTAR UNA COPIA DEL FORMATO SI UNA O MAS HERRAMIENTAS ESTAN RETORNANDO A LA BASE</td></tr>
+    <tr><td>3. ENVIE EL REPORTE ORIGINAL, CUANDO RETORNE LA ULTIMA HERRAMIENTA.</td></tr>
+  </table>
+
+  <!-- Firmas: nombre del representante de Dynadrill; firma en blanco (se firma sobre el PDF) -->
+  <table class="rh__firmas">
+    <tr>
+      <td class="rh__firma-nombre">{{ header().supervisor }}</td>
+      <td class="rh__firma-nombre"></td>
+    </tr>
+    <tr class="rh__firma-espacio"><td></td><td></td></tr>
+    <tr>
+      <th class="doc-centro">Representante Dynadrill Ecuador</th>
+      <th class="doc-centro">Representante del Cliente / Company Man</th>
+    </tr>
+  </table>
+</div>

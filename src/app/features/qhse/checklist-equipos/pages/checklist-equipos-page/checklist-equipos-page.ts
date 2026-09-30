@@ -7,9 +7,13 @@ import {
   DynadrillIconButtonComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
   DynadrillTextComponent,
 } from '@digitec-it-projects/dynadrill-ui';
+import { PageHeader } from '../../../../../shared/components/page-header/page-header';
+import { KpiStat, type KpiStatTone } from '../../../../../shared/components/kpi-stat/kpi-stat';
+import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
+import { QhseRegistrosMovil, type RegistroMovil } from '../../../shared/components/qhse-registros-movil';
+import { QhseFiltros } from '../../../shared/components/qhse-filtros';
 import { ChecklistEquiposService } from '../../services/checklist-equipos.service';
 import { ChecklistEquipo } from '../../models/checklist-equipo.model';
 import { MotivoDialog, MotivoDialogData } from '../../../../../shared/components/motivo-dialog/motivo-dialog';
@@ -40,7 +44,9 @@ type Filtro = 'por_revisar' | 'aprobado' | 'rechazado' | 'todos';
   selector: 'app-checklist-equipos-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    DynadrillScreenHeaderComponent,
+    PageHeader,
+    QhseRegistrosMovil,
+    QhseFiltros,
     DynadrillDataTableComponent,
     DynadrillIconButtonComponent,
     DynadrillButtonComponent,
@@ -55,6 +61,7 @@ export class ChecklistEquiposPage {
   private readonly notify = inject(DynadrillNotificationService);
   private readonly dialogService = inject(DynadrillDialogService);
 
+  protected readonly isMobile = injectNarrowViewport();
   protected readonly loading = signal(true);
   protected readonly casos = signal<ChecklistEquipo[]>([]);
   protected readonly filtro = signal<Filtro>('por_revisar');
@@ -77,6 +84,8 @@ export class ChecklistEquiposPage {
       todos: all.length,
     };
   });
+
+  protected readonly opcionesFiltro = computed(() => this.filtros.map(f => ({ value: f.value, label: f.label, count: this.conteos()[f.value] })));
 
   protected readonly columns: DynadrillDataTableColumn[] = [
     { key: 'pumpingTicketId', header: 'Ticket', sortable: true, searchable: true },
@@ -104,6 +113,31 @@ export class ChecklistEquiposPage {
     if (f === 'por_revisar') return this.casos().filter(c => c.estado === 'cargado');
     return this.casos().filter(c => c.estado === f);
   });
+
+  /** Tarjetas de la lista en móvil (Figma "M · Checklist de equipos"). */
+  protected readonly itemsMovil = computed<RegistroMovil[]>(() =>
+    this.rows().map(r => ({
+      id: r.id,
+      eyebrow: `TICKET #${r.pumpingTicketId}`,
+      title: r.equipoNombre,
+      subtitle: r.caso.cargadoPor ? `Cargado por ${r.caso.cargadoPor}${r.caso.cargadoAt ? ' · ' + new Date(r.caso.cargadoAt).toLocaleDateString('es-EC') : ''}` : 'Sin documento cargado',
+      status: r.estadoBadge,
+      fields: [
+        { label: 'Revisado por', value: r.revisadoPor },
+        ...(r.caso.estado === 'rechazado' && r.caso.motivoRechazo ? [{ label: 'Motivo', value: r.caso.motivoRechazo, tone: 'error' as const }] : []),
+      ],
+      actions:
+        r.caso.estado === 'cargado'
+          ? [
+              { icon: 'check', label: 'Aprobar', primary: true, run: () => this.aprobar(r.caso) },
+              { icon: 'close', label: 'Rechazar', run: () => this.rechazar(r.caso) },
+              ...(r.caso.documentoNombreOriginal ? [{ icon: 'download', label: 'Descargar documento', run: () => this.descargar(r.caso.id) }] : []),
+            ]
+          : r.caso.documentoNombreOriginal
+            ? [{ icon: 'download', label: 'Descargar', primary: true, run: () => this.descargar(r.caso.id) }]
+            : [],
+    })),
+  );
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 

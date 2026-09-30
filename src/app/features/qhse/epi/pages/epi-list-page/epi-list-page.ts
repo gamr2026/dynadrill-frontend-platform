@@ -6,12 +6,14 @@ import {
   DynadrillDialogService,
   DynadrillIconButtonComponent,
   DynadrillInputComponent,
-  DynadrillKpiRowComponent,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
-  type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
+import { PageHeader } from '../../../../../shared/components/page-header/page-header';
+import { KpiStat, type KpiStatTone } from '../../../../../shared/components/kpi-stat/kpi-stat';
+import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
+import { QhseRegistrosMovil, type RegistroMovil } from '../../../shared/components/qhse-registros-movil';
+import { QhseFiltros } from '../../../shared/components/qhse-filtros';
 import { EntregaEpi, EpiEstado, EPI_ESTADO_LABELS, entregaEpiSinCapacitacion } from '../../models/entrega-epi.model';
 import { EntregaEpiService } from '../../services/entrega-epi.service';
 import { EntregaEpiDialog } from '../../components/entrega-epi-dialog';
@@ -41,8 +43,10 @@ import { EntregaEpiHoja } from '../../../../../shared/documentos/formatos/entreg
 @Component({
   selector: 'app-epi-list-page',
   imports: [
-    DynadrillScreenHeaderComponent,
-    DynadrillKpiRowComponent,
+    PageHeader,
+    KpiStat,
+    QhseRegistrosMovil,
+    QhseFiltros,
     DynadrillButtonComponent,
     DynadrillInputComponent,
     DynadrillIconButtonComponent,
@@ -57,6 +61,7 @@ export class EpiListPage {
   private readonly dialogService = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
 
+  protected readonly isMobile = injectNarrowViewport();
   protected readonly loading = signal(true);
   protected readonly entregas = signal<EntregaEpi[]>([]);
   protected readonly estadoLabels = EPI_ESTADO_LABELS;
@@ -79,7 +84,7 @@ export class EpiListPage {
     return counts;
   });
 
-  protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
+  protected readonly kpis = computed<{ label: string; value: number; tone: KpiStatTone }[]>(() => {
     const all = this.entregas();
     const mesActual = new Date().getMonth();
     const esteMes = all.filter(e => new Date(e.createdAt).getMonth() === mesActual).length;
@@ -90,6 +95,8 @@ export class EpiListPage {
       { label: 'Con ítems sin capacitación', value: all.filter(e => entregaEpiSinCapacitacion(e).length > 0).length, tone: 'warning' },
     ];
   });
+
+  protected readonly opcionesFiltro = computed(() => this.filtros.map(f => ({ value: f.value, label: f.label, count: this.conteos()[f.value] })));
 
   protected readonly columns: DynadrillDataTableColumn[] = [
     { key: 'code', header: 'ID', sortable: true },
@@ -122,6 +129,31 @@ export class EpiListPage {
       capacitacionBadge: entregaEpiSinCapacitacion(e).length === 0 ? CAPACITACION_COMPLETA : CAPACITACION_PENDIENTE,
       estadoBadge: { text: this.estadoLabels[e.estado], tone: ESTADO_TONE[e.estado] },
       entrega: e,
+    })),
+  );
+
+  /** Tarjetas de la lista en móvil (Figma "M · Entrega de EPI"): Ver detalle + aprobar/rechazar o despachar según el estado. */
+  protected readonly itemsMovil = computed<RegistroMovil[]>(() =>
+    this.rows().map(r => ({
+      id: r.id,
+      eyebrow: r.code,
+      title: r.trabajadorNombre,
+      subtitle: `${r.trabajadorCargo} · ${r.lugar} · ${r.fecha}`,
+      status: r.estadoBadge,
+      fields: [
+        { label: 'Ítems', value: String(r.itemsCount) },
+        { label: 'Capacitación', value: r.capacitacionBadge.text, tone: r.capacitacionBadge.tone === 'success' ? ('success' as const) : ('warning' as const) },
+      ],
+      actions: [
+        { icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.verDetalle(r.entrega) },
+        ...(r.entrega.estado === 'solicitado'
+          ? [
+              { icon: 'check', label: 'Aprobar', run: () => this.aprobar(r.id) },
+              { icon: 'close', label: 'Rechazar', run: () => this.rechazar(r.id) },
+            ]
+          : []),
+        ...(r.entrega.estado === 'aprobado' ? [{ icon: 'upload', label: 'Despachar', run: () => this.despachar(r.id) }] : []),
+      ],
     })),
   );
 

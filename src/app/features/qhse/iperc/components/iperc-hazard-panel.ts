@@ -56,6 +56,8 @@ type MomentoGtc = 'riesgoInicial' | 'riesgoResidual';
  */
 @Component({
   selector: 'app-iperc-hazard-panel',
+  /** Bottom sheet en móvil (Figma "Detalle del peligro") — ver styles.scss. */
+  host: { class: 'app-drawer-sheet-mobile' },
   imports: [
     DynadrillTextComponent,
     DynadrillTagComponent,
@@ -112,6 +114,11 @@ export class IpercHazardPanel {
     // I/II = No aceptable (crítico); III = Mejorable (advertencia); IV = Aceptable.
     return nivel === 'IV' ? 'success' : nivel === 'III' ? 'warning' : 'error';
   });
+
+  /** "Moderado (NR 360)" — texto del resumen de la cabecera; "Sin evaluar" si faltan ejes. */
+  protected nivelTexto(nr: number | null): string {
+    return nr == null ? 'Sin evaluar' : `${interpretarNR(nr).label} (NR ${nr})`;
+  }
 
   protected readonly controlType = signal<ControlType>('administrativo');
   protected readonly controlDescription = signal('');

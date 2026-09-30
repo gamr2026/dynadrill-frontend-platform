@@ -1,16 +1,14 @@
 <div class="iperc-hazard-panel">
   <section class="iperc-hazard-panel__section">
-    <dynadrill-text variant="caption">Peligro identificado</dynadrill-text>
-    <dynadrill-text variant="h2">{{ hazard().peligro }}</dynadrill-text>
-
-    <div class="iperc-hazard-panel__row">
-      <dynadrill-text variant="caption">Fuente del riesgo</dynadrill-text>
-      <dynadrill-text variant="body">{{ hazard().fuenteRiesgo }}</dynadrill-text>
+    <div class="iperc-hazard-panel__resumen">
+      <div><dynadrill-text variant="caption">Peligro</dynadrill-text><strong>{{ hazard().peligro }}</strong></div>
+      <div><dynadrill-text variant="caption">Fuente</dynadrill-text><strong>{{ hazard().fuenteRiesgo }}</strong></div>
+      <div><dynadrill-text variant="caption">Inicial</dynadrill-text><strong>{{ nivelTexto(nrInicial()) }}</strong></div>
+      <div>
+        <dynadrill-text variant="caption">Residual</dynadrill-text>
+        <strong [class]="residualTone() ? 'iperc-hazard-panel__valor--' + residualTone() : ''">{{ nivelTexto(nrResidual()) }}</strong>
+      </div>
     </div>
-
-    @if (residualTone(); as tone) {
-      <dynadrill-tag [label]="'Riesgo residual: ' + interpretarNR(nrResidual()!).label" [variant]="tone" />
-    }
   </section>
 
   <section class="iperc-hazard-panel__section">

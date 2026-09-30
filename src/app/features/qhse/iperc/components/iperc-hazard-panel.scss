@@ -123,3 +123,35 @@
     justify-content: flex-end;
   }
 }
+
+.iperc-hazard-panel__resumen {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  strong {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--dynadrill-navy, #131529);
+    overflow-wrap: anywhere;
+  }
+}
+
+.iperc-hazard-panel__valor--success {
+  color: var(--success-text, #237804) !important;
+}
+
+.iperc-hazard-panel__valor--warning {
+  color: var(--warning-text, #ad6800) !important;
+}
+
+.iperc-hazard-panel__valor--error {
+  color: var(--error-text, #cf1322) !important;
+}

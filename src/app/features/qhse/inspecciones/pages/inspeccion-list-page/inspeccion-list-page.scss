@@ -32,3 +32,58 @@
     max-width: 760px;
   }
 }
+
+// Cronograma en móvil: lista de tarjetas compactas dentro de una sola tarjeta (Figma).
+.cronograma {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: 16px;
+  background: var(--surface, #fff);
+  box-shadow: 0 1px 1px rgba(19, 21, 41, 0.05);
+}
+
+.cronograma__titulo {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.cronograma__nota {
+  margin: 0;
+  color: var(--text-muted, #5c5870);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.cronograma__lista {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cronograma__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border, #e5e4ea);
+  font-size: 14px;
+}
+
+.cronograma__codigo {
+  color: var(--dynadrill-purple, #662e9b);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.cronograma__fechas {
+  color: var(--text-muted, #5c5870);
+  font-size: 12px;
+}

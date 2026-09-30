@@ -5,12 +5,13 @@ import {
   DynadrillDataTableComponent,
   DynadrillDialogService,
   DynadrillIconButtonComponent,
-  DynadrillKpiRowComponent,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
-  type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
+import { PageHeader } from '../../../../../shared/components/page-header/page-header';
+import { KpiStat, type KpiStatTone } from '../../../../../shared/components/kpi-stat/kpi-stat';
+import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
+import { QhseRegistrosMovil, type RegistroMovil } from '../../../shared/components/qhse-registros-movil';
 import { ESTADO_OBJETIVO_LABELS, EstadoObjetivoAmbiental, ObjetivoAmbiental, estadoObjetivoAmbiental } from '../../models/objetivo-ambiental.model';
 import { ObjetivoAmbientalService } from '../../services/objetivo-ambiental.service';
 import { ObjetivoAmbientalDialog } from '../../components/objetivo-ambiental-dialog';
@@ -26,7 +27,7 @@ const ESTADO_TONE: Record<EstadoObjetivoAmbiental, DynadrillTagVariant> = {
 /** Objetivos del Sistema de Gestión Ambiental — revisión anual (ver OBJETIVOS AMBIENTALES.xlsx). */
 @Component({
   selector: 'app-objetivo-ambiental-list-page',
-  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillButtonComponent, DynadrillIconButtonComponent, DynadrillDataTableComponent],
+  imports: [PageHeader, KpiStat, QhseRegistrosMovil, DynadrillButtonComponent, DynadrillIconButtonComponent, DynadrillDataTableComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './objetivo-ambiental-list-page.html',
   styleUrl: './objetivo-ambiental-list-page.scss',
@@ -36,15 +37,16 @@ export class ObjetivoAmbientalListPage {
   private readonly dialogService = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
 
+  protected readonly isMobile = injectNarrowViewport();
   protected readonly loading = signal(true);
   protected readonly objetivos = signal<ObjetivoAmbiental[]>([]);
   protected readonly estadoLabels = ESTADO_OBJETIVO_LABELS;
 
-  protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
+  protected readonly kpis = computed<{ label: string; value: number; tone: KpiStatTone }[]>(() => {
     const all = this.objetivos();
     const estados = all.map(o => estadoObjetivoAmbiental(o.plazo));
     return [
-      { label: 'Total objetivos', value: all.length },
+      { label: 'Total objetivos', value: all.length, tone: 'neutral' },
       { label: 'Vigentes', value: estados.filter(e => e === 'vigente').length, tone: 'success' },
       { label: 'Por vencer', value: estados.filter(e => e === 'por_vencer').length, tone: 'warning' },
       { label: 'Vencidos', value: estados.filter(e => e === 'vencido').length, tone: 'error' },
@@ -77,6 +79,22 @@ export class ObjetivoAmbientalListPage {
         objetivo: o,
       };
     }),
+  );
+
+  /** Tarjetas de la lista en móvil (Figma "M · Objetivos Ambientales"). */
+  protected readonly itemsMovil = computed<RegistroMovil[]>(() =>
+    this.rows().map(r => ({
+      id: r.id,
+      eyebrow: r.code,
+      title: r.titulo,
+      subtitle: `Meta: ${r.meta}`,
+      status: r.estadoBadge,
+      fields: [
+        { label: 'Plazo', value: r.plazo },
+        { label: 'Indicador', value: r.objetivo.indicador || '—' },
+      ],
+      actions: [{ icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.verDetalle(r) }],
+    })),
   );
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);

@@ -1,25 +1,55 @@
-<div class="inspeccion-list-page">
-  <dynadrill-screen-header title="Inspecciones de campo" subtitle="HSE-SEGUIMIENTO-001 — eslingas, detectores de gas y vehículos-grúa" />
+<app-page-header
+  eyebrow="QHSE"
+  title="Inspecciones de campo"
+  subtitle="HSE-SEGUIMIENTO-001 — eslingas, detectores de gas y vehículos-grúa"
+>
+  <div actions><dynadrill-button (clicked)="nuevaInspeccion()">+ Nueva inspección</dynadrill-button></div>
+</app-page-header>
 
-  <div class="inspeccion-list-page__toolbar">
-    <dynadrill-button (clicked)="nuevaInspeccion()">+ Nueva inspección</dynadrill-button>
-  </div>
-
-  <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
-    <dynadrill-kpi-row [items]="kpis()" />
-    <div class="table-scroll">
-      <dynadrill-data-table [columns]="columns()" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" />
-    </div>
-
-    <section class="inspeccion-list-page__cronograma">
-      <h3>Cronograma — control periódico por equipo</h3>
-      <p class="inspeccion-list-page__cronograma-note">
-        Próxima inspección debida por equipo, calculada desde su último registro según la frecuencia que exige
-        HSE-SEGUIMIENTO-001 (diaria para grúas y detectores de gas, trimestral por código de colores para eslingas).
-        No sustituye la vigencia de 3 meses de arriba — es el control del día a día.
-      </p>
-      <dynadrill-kpi-row [items]="cronogramaKpis()" />
-      <dynadrill-data-table [columns]="cronogramaColumns" [rows]="cronograma()" [rowKey]="cronogramaRowKeyFn" [pageSize]="10" />
-    </section>
-  </dynadrill-spinner>
+<div class="kpi-stat-row" role="list">
+  @for (kpi of kpis(); track kpi.label) {
+    <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
+  }
 </div>
+
+@if (isMobile()) {
+  <app-qhse-registros-movil [items]="itemsMovil()" [loading]="loading()" vacio="Todavía no hay inspecciones registradas." />
+} @else {
+  <div class="table-scroll dyn-table-card">
+    <dynadrill-data-table [columns]="columns()" [rows]="rows()" [loading]="loading()" [rowKey]="rowKeyFn" [pageSize]="10" />
+  </div>
+}
+
+<!-- Cronograma: próxima inspección debida por equipo -->
+<section class="cronograma">
+  <h2 class="cronograma__titulo">Cronograma — control periódico por equipo</h2>
+  <p class="cronograma__nota">
+    Próxima inspección debida por equipo, calculada desde su último registro según la frecuencia que exige
+    HSE-SEGUIMIENTO-001 (diaria para grúas y detectores de gas, trimestral por código de colores para eslingas).
+    No sustituye la vigencia de 3 meses de arriba — es el control del día a día.
+  </p>
+
+  @if (isMobile()) {
+    <ul class="cronograma__lista">
+      @for (c of cronograma(); track c.equipoCodigo) {
+        <li class="cronograma__item">
+          <span class="cronograma__codigo">{{ c.equipoCodigo }}</span>
+          <strong>{{ c.tipoLabel }} · {{ c.frecuenciaLabel }}</strong>
+          <span class="cronograma__fechas">Última {{ c.ultimaFecha }} · Próxima {{ c.proximaFecha }}</span>
+          <app-qhse-chip [label]="c.cronogramaBadge.text" [tone]="c.cronogramaBadge.tone" />
+        </li>
+      } @empty {
+        <li class="cronograma__fechas">Sin historial para calcular el cronograma.</li>
+      }
+    </ul>
+  } @else {
+    <div class="kpi-stat-row" role="list">
+      @for (kpi of cronogramaKpis(); track kpi.label) {
+        <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
+      }
+    </div>
+    <div class="table-scroll dyn-table-card">
+      <dynadrill-data-table [columns]="cronogramaColumns" [rows]="cronograma()" [rowKey]="cronogramaRowKeyFn" [pageSize]="10" />
+    </div>
+  }
+</section>

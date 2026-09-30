@@ -1,23 +1,33 @@
-<dynadrill-screen-header eyebrow="QHSE" title="Gestión de Desechos" subtitle="HSE-AMBIENTAL-001 — bitácora, manifiestos y disposición final" roleTag="HSE" />
+<app-page-header
+  eyebrow="QHSE"
+  title="Gestión de Desechos"
+  subtitle="HSE-AMBIENTAL-001 — bitácora, manifiestos y disposición final"
+>
+  <div actions><dynadrill-button (clicked)="nuevoDesecho()">+ Registrar desecho</dynadrill-button></div>
+</app-page-header>
 
-<div class="desecho-list-page__toolbar">
-  <dynadrill-button (clicked)="nuevoDesecho()">+ Registrar desecho</dynadrill-button>
+<div class="kpi-stat-row" role="list">
+  @for (kpi of kpis(); track kpi.label) {
+    <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
+  }
 </div>
 
-<dynadrill-kpi-row [items]="kpis()" />
+@if (isMobile()) {
+  <app-qhse-registros-movil [items]="itemsMovil()" [loading]="loading()" vacio="Todavía no hay desechos registrados." />
+} @else {
+  <ng-template #actionsTpl let-row>
+    <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
+  </ng-template>
 
-<ng-template #actionsTpl let-row>
-  <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="viewDetail(row)" />
-</ng-template>
-
-<div class="table-scroll">
-  <dynadrill-data-table
-    [columns]="columns()"
-    [rows]="rows()"
-    [loading]="loading()"
-    [rowKey]="rowKeyFn"
-    [pageSize]="10"
-    actionsHeader="Acciones"
-    [actionsTemplate]="actionsTpl"
-  />
-</div>
+  <div class="table-scroll dyn-table-card">
+    <dynadrill-data-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [loading]="loading()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="10"
+      actionsHeader="Acciones"
+      [actionsTemplate]="actionsTpl"
+    />
+  </div>
+}

@@ -4,13 +4,14 @@ import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
-  DynadrillKpiRowComponent,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
-  DynadrillSpinnerComponent,
-  type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
+import { PageHeader } from '../../../../../shared/components/page-header/page-header';
+import { KpiStat, type KpiStatTone } from '../../../../../shared/components/kpi-stat/kpi-stat';
+import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
+import { QhseRegistrosMovil, type RegistroMovil } from '../../../shared/components/qhse-registros-movil';
+import { QhseChip } from '../../../shared/components/qhse-chip';
 import {
   INSPECCION_FRECUENCIA_LABEL,
   InspeccionEquipo,
@@ -31,11 +32,9 @@ function formatDate(iso: string): string {
 @Component({
   selector: 'app-inspeccion-list-page',
   imports: [
-    DynadrillScreenHeaderComponent,
-    DynadrillKpiRowComponent,
+    PageHeader, KpiStat, QhseRegistrosMovil, QhseChip,
     DynadrillButtonComponent,
     DynadrillDataTableComponent,
-    DynadrillSpinnerComponent,
     ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './inspeccion-list-page.html',
@@ -46,15 +45,16 @@ export class InspeccionListPage {
   private readonly dialogService = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
 
+  protected readonly isMobile = injectNarrowViewport();
   protected readonly loading = signal(true);
   protected readonly inspecciones = signal<InspeccionEquipo[]>([]);
 
-  protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
+  protected readonly kpis = computed<{ label: string; value: number; tone: KpiStatTone }[]>(() => {
     const all = this.inspecciones();
     return [
-      { label: 'Total registradas', value: all.length },
-      { label: 'Vigentes', value: all.filter(i => !inspeccionEnCuarentena(i) && !inspeccionVencida(i)).length },
-      { label: 'Vencidas', value: all.filter(i => !inspeccionEnCuarentena(i) && inspeccionVencida(i)).length },
+      { label: 'Total registradas', value: all.length, tone: 'neutral' },
+      { label: 'Vigentes', value: all.filter(i => !inspeccionEnCuarentena(i) && !inspeccionVencida(i)).length, tone: 'success' },
+      { label: 'Vencidas', value: all.filter(i => !inspeccionEnCuarentena(i) && inspeccionVencida(i)).length, tone: 'warning' },
     ];
   });
 
@@ -109,6 +109,22 @@ export class InspeccionListPage {
     }),
   );
 
+  /** Tarjetas de la lista en móvil (Figma "M · Inspecciones de campo"). */
+  protected readonly itemsMovil = computed<RegistroMovil[]>(() =>
+    this.rows().map(r => ({
+      id: r.id,
+      eyebrow: r.code,
+      title: `${r.tipoLabel} ${r.equipoCodigo}`,
+      subtitle: `${r.tipoLabel} · ${r.fecha}`,
+      status: r.estadoBadge,
+      fields: [
+        { label: 'Vigente hasta', value: r.vigenciaHasta },
+        { label: 'Mantenimiento', value: r.mantenimientoBadge.text },
+      ],
+      actions: [],
+    })),
+  );
+
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   // ── Cronograma: control periódico por equipo (HSE-SEGUIMIENTO-001, "planificar inspecciones del período") ──
@@ -155,11 +171,11 @@ export class InspeccionListPage {
 
   protected readonly cronogramaRowKeyFn = (row: Record<string, unknown>): string => String(row['equipoCodigo']);
 
-  protected readonly cronogramaKpis = computed<DynadrillKpiRowItem[]>(() => {
+  protected readonly cronogramaKpis = computed<{ label: string; value: number; tone: KpiStatTone }[]>(() => {
     const all = this.cronograma();
     return [
-      { label: 'Equipos con historial', value: all.length },
-      { label: 'Vencidos según cronograma', value: all.filter(c => c._vencida).length },
+      { label: 'Equipos con historial', value: all.length, tone: 'neutral' },
+      { label: 'Vencidos según cronograma', value: all.filter(c => c._vencida).length, tone: 'error' },
     ];
   });
 

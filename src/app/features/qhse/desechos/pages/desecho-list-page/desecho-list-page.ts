@@ -6,12 +6,13 @@ import {
   DynadrillDataTableComponent,
   DynadrillDialogService,
   DynadrillIconButtonComponent,
-  DynadrillKpiRowComponent,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
-  type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
+import { PageHeader } from '../../../../../shared/components/page-header/page-header';
+import { KpiStat, type KpiStatTone } from '../../../../../shared/components/kpi-stat/kpi-stat';
+import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
+import { QhseRegistrosMovil, type RegistroMovil } from '../../../shared/components/qhse-registros-movil';
 import { DESECHO_ESTADO_LABELS, Desecho, desechoTotalGalones } from '../../models/desecho.model';
 import { DesechoService } from '../../services/desecho.service';
 import { DesechoDialog } from '../../components/desecho-dialog';
@@ -30,8 +31,7 @@ const ESTADO_TONE: Record<Desecho['estado'], DynadrillTagVariant> = {
 @Component({
   selector: 'app-desecho-list-page',
   imports: [
-    DynadrillScreenHeaderComponent,
-    DynadrillKpiRowComponent,
+    PageHeader, KpiStat, QhseRegistrosMovil,
     DynadrillButtonComponent,
     DynadrillIconButtonComponent,
     DynadrillDataTableComponent,
@@ -47,15 +47,16 @@ export class DesechoListPage {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
+  protected readonly isMobile = injectNarrowViewport();
   protected readonly loading = signal(true);
   protected readonly desechos = signal<Desecho[]>([]);
 
-  protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
+  protected readonly kpis = computed<{ label: string; value: number; tone: KpiStatTone }[]>(() => {
     const all = this.desechos();
     return [
-      { label: 'Total registrados', value: all.length },
-      { label: 'Peligrosos', value: all.filter(d => d.clasificacion === 'peligroso').length },
-      { label: 'Dispuestos', value: all.filter(d => d.estado === 'dispuesto').length },
+      { label: 'Total registrados', value: all.length, tone: 'neutral' },
+      { label: 'Peligrosos', value: all.filter(d => d.clasificacion === 'peligroso').length, tone: 'neutral' },
+      { label: 'Dispuestos', value: all.filter(d => d.estado === 'dispuesto').length, tone: 'neutral' },
     ];
   });
 
@@ -92,6 +93,22 @@ export class DesechoListPage {
       totalGalones: desechoTotalGalones(d.items),
       limiteAlmacenamiento: formatDate(d.limiteAlmacenamientoHasta),
       estadoBadge: { text: DESECHO_ESTADO_LABELS[d.estado], tone: ESTADO_TONE[d.estado] },
+    })),
+  );
+
+  /** Tarjetas de la lista en móvil (Figma "M · Gestión de Desechos"). */
+  protected readonly itemsMovil = computed<RegistroMovil[]>(() =>
+    this.rows().map(r => ({
+      id: r.id,
+      eyebrow: r.code,
+      title: r.descripcion,
+      subtitle: `${r.clasificacionLabel} · ${r.itemsCount} ${r.itemsCount === 1 ? 'ítem' : 'ítems'} · ${r.totalGalones} gal`,
+      status: r.estadoBadge,
+      fields: [
+        { label: 'Límite almacenamiento', value: r.limiteAlmacenamiento },
+        { label: 'Clasificación', value: r.clasificacionLabel },
+      ],
+      actions: [{ icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail({ id: r.id }) }],
     })),
   );
 

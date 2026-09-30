@@ -7,4 +7,8 @@
   <dynadrill-context-card [items]="generalItems()" layout="vertical" />
   <dynadrill-context-card [items]="logisticaItems()" layout="vertical" />
   <dynadrill-context-card [items]="aprobacionItems()" layout="vertical" />
+
+  <footer class="gv-detail-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="verPdf()">Ver PDF</dynadrill-button>
+  </footer>
 </div>

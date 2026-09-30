@@ -25,6 +25,11 @@ export class GerenciamientoViajeService {
     return this.http.get<GerenciamientoViaje[]>(this.baseUrl);
   }
 
+  /** Un Gerenciamiento de Viaje completo — lo usa el PDF desde filas que solo traen el resumen. */
+  get(id: number): Observable<GerenciamientoViaje> {
+    return this.http.get<GerenciamientoViaje>(`${this.baseUrl}/${id}`);
+  }
+
   /** Los del conductor autenticado. */
   listMine(): Observable<GerenciamientoViaje[]> {
     return this.http.get<GerenciamientoViaje[]>(`${this.baseUrl}/mios`);

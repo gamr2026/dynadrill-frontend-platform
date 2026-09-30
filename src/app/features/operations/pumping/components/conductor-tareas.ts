@@ -22,6 +22,8 @@ import {
 import { GerenciamientoViajeService } from '../../../conductor/services/gerenciamiento-viaje.service';
 import { GerenciamientoViajeDialog, GerenciamientoViajeDialogData } from '../../../conductor/components/gerenciamiento-viaje-dialog';
 import { PUMPING_STEP_LABELS, type PumpingStep } from '../models/pumping.model';
+import { DocumentoPdfService } from '../../../../shared/documentos';
+import { GerenciamientoViajeHoja } from '../../../../shared/documentos/formatos/gerenciamiento-viaje-hoja';
 
 /** Pasos del ticket en los que le toca al Conductor cada Gerenciamiento de Viaje (el candado real está en PumpingDomainService.advance). */
 const PASOS_TAREA: Record<GerenciamientoViajeTipo, ReadonlySet<string>> = {
@@ -66,6 +68,7 @@ export class ConductorTareas {
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
+  private readonly documentoPdf = inject(DocumentoPdfService);
 
   protected readonly isMobile = injectNarrowViewport();
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
@@ -92,7 +95,7 @@ export class ConductorTareas {
             ? { text: GERENCIAMIENTO_VIAJE_ESTADO_LABELS[estado], tone: ESTADO_TONE[estado] }
             : { text: 'Por completar', tone: 'neutral' },
           actions: estado
-            ? []
+            ? [{ icon: 'file-pdf', label: 'Ver PDF', run: () => this.verPdf(t, tipo) }]
             : [
                 {
                   icon: 'edit',
@@ -157,6 +160,26 @@ export class ConductorTareas {
     ref.afterClose.subscribe((result: GerenciamientoViaje | undefined) => {
       if (result) this.reload();
     });
+  }
+
+  /** El GV vigente de ese tipo, completo, en el formato DYN-SGI-RE-049. */
+  protected verPdf(ticket: TicketConductor, tipo: GerenciamientoViajeTipo): void {
+    const resumen = ticket.gerenciamientos.find(g => g.tipo === tipo && g.estado !== 'rechazado');
+    if (!resumen) return;
+    this.service.get(resumen.id).subscribe({
+      next: gv =>
+        this.documentoPdf.abrir({
+          titulo: `Gerenciamiento de Viaje — ${gv.code}`,
+          component: GerenciamientoViajeHoja,
+          inputs: { gv },
+          nombreArchivo: `Gerenciamiento de Viaje ${gv.code}`,
+        }),
+      error: () => this.notify.error('Error', 'No se pudo abrir el Gerenciamiento de Viaje.'),
+    });
+  }
+
+  protected verPdfFila(row: Record<string, unknown>): void {
+    this.verPdf(row['ticket'] as TicketConductor, row['tipo'] as GerenciamientoViajeTipo);
   }
 
   protected completarFila(row: Record<string, unknown>): void {

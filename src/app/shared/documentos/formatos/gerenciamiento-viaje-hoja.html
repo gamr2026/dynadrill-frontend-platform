@@ -1,0 +1,169 @@
+<div class="doc-hoja gv">
+  <!-- Cabecera morada con logo -->
+  <table class="gv__cab">
+    <tr>
+      <td class="gv__cab-texto">
+        <div class="gv__cab-fila">
+          <span class="gv__cab-codigo">DYN-SGI-RE-049</span>
+          <span class="gv__cab-titulo">GERENCIAMIENTO DE VIAJE</span>
+        </div>
+        <div class="gv__cab-sub">Evaluación de riesgos de viajes y Plan de gestión de viajes</div>
+        <div class="gv__cab-fechas">
+          <span>Fecha de Elaboración: 12-10-2014</span>
+          <span>Fecha de Revisión: 15/04/2024</span>
+          <span>V10</span>
+        </div>
+      </td>
+      <td class="gv__cab-logo"><img src="/brand/dynadrill-logo.svg" alt="Dynadrill" /></td>
+    </tr>
+  </table>
+
+  <!-- Datos generales -->
+  <table class="gv__info">
+    <tr>
+      <td colspan="2"><strong>Fecha:</strong> {{ fecha(gv().fecha) }}</td>
+      <td colspan="4"><strong>Motivo del viaje:</strong> {{ gv().motivoViaje }}</td>
+    </tr>
+    <tr>
+      <td colspan="2"><strong>Línea de Servicio:</strong> {{ gv().lineaServicio }}</td>
+      <td colspan="2"><strong>Origen:</strong> {{ gv().origen }}</td>
+      <td colspan="2"><strong>Destino:</strong> {{ gv().destino }}</td>
+    </tr>
+    <tr>
+      <td colspan="2"><strong>Gerente/ Supervisor:</strong> {{ gv().assignedSupervisorNombre }}</td>
+      <td colspan="4"><strong>Ticket No.:</strong> {{ gv().ticketCode }}</td>
+    </tr>
+    <tr>
+      <td colspan="2"><strong>Conductor(es):</strong> {{ gv().conductorNames }}</td>
+      <td colspan="4">
+        <strong>Tipo de Vehículo:</strong>
+        Liviano <span class="doc-check">{{ gv().vehicleType === 'Liviano' ? 'X' : '' }}</span>
+        Pesado <span class="doc-check">{{ gv().vehicleType === 'Pesado' ? 'X' : '' }}</span>
+        <strong>Placas:</strong> {{ gv().placas }}
+      </td>
+    </tr>
+  </table>
+
+  <!-- Cuestionario de riesgo -->
+  <table class="gv__preg">
+    <colgroup>
+      <col class="gv__c-num" />
+      <col class="gv__c-preg" />
+      <col class="gv__c-op" />
+      <col class="gv__c-op" />
+      <col class="gv__c-op" />
+      <col class="gv__c-pts" />
+      <col class="gv__c-nota" />
+    </colgroup>
+    @for (f of filas(); track f.numero) {
+      <tr>
+        <td class="gv__num">{{ f.numero }}</td>
+        <td class="gv__pregunta">{{ f.pregunta }}</td>
+        @for (o of f.opciones; track $index) {
+          @if (o) {
+            <td class="gv__op" [class.gv__op--elegida]="o.elegida" [class.gv__op--bloquea]="o.bloquea">{{ o.texto }}</td>
+          } @else {
+            <td class="gv__op gv__op--vacia"></td>
+          }
+        }
+        <td class="gv__pts">{{ f.puntaje }}</td>
+        @if (mostrarNota(f)) {
+          <td class="gv__nota" [attr.rowspan]="f.notaFilas">{{ f.nota }}</td>
+        }
+      </tr>
+    }
+    <tr>
+      <td colspan="5" class="gv__total-etq">Total de puntos</td>
+      <td class="gv__pts gv__pts--total">{{ total() }}</td>
+      <td class="gv__nota"></td>
+    </tr>
+  </table>
+
+  <!-- Autoridad para detener el viaje + semáforo de riesgo -->
+  <table class="gv__riesgo">
+    <tr>
+      <td class="gv__detener" rowspan="4">
+        <div class="gv__detener-titulo">Cualquier conductor o pasajero tiene la autoridad y la responsabilidad de detener un viaje cuando:</div>
+        <p>1) Cambia el estado del conductor debido a fatiga, stress (mental o físico), medicación, etc.</p>
+        <p>2) Cambian otras condiciones, elevando el nivel de riesgo.</p>
+        <p>3) Los controles de gestión del viaje terrestre no están claramente establecidos o no son comprendidos.</p>
+      </td>
+      <th class="doc-gris">RIESGO</th>
+      <th class="doc-gris">PUNTOS</th>
+      <th class="doc-gris" colspan="2">GESTION DE RIESGOS</th>
+    </tr>
+    @for (r of riesgos; track r.nivel) {
+      <tr [class.gv__riesgo-actual]="gv().riskLevel === r.nivel">
+        <td class="gv__nivel gv__nivel--{{ r.nivel }}">{{ r.nivel }}</td>
+        <td class="doc-centro">{{ r.puntos }}</td>
+        <td class="doc-centro">{{ r.horario }}</td>
+        <td>{{ r.gestion }}</td>
+      </tr>
+    }
+  </table>
+
+  <!-- Plan de gestión de viajes terrestres: pasajeros y ruta a la izquierda; comunicación y aprobaciones a la derecha -->
+  <div class="doc-gris gv__banda-plan">Plan de gestión de viajes terrestres</div>
+  <div class="gv__plan">
+    <div class="gv__plan-col">
+      <table>
+        <tr><td class="gv__pasajeros"><strong>PASAJEROS:</strong>
+          @for (p of pasajeros(); track $index) {
+            <div>{{ $index + 1 }}. {{ p }}</div>
+          }
+        </td></tr>
+        <tr>
+          <td>
+            <strong>Posibilidad de combinar viajes:</strong>
+            SI <span class="doc-check">{{ gv().canCombineTrips === true ? 'X' : '' }}</span>
+            NO <span class="doc-check">{{ gv().canCombineTrips === false ? 'X' : '' }}</span>
+          </td>
+        </tr>
+        <tr><th class="doc-gris">Información de la ruta</th></tr>
+        <tr><td class="gv__sub">Locación | Hora arribo | Hora salida | Datos pernoctación (domicilio, tel., etc.)</td></tr>
+        <tr><td class="gv__ruta-fila">{{ ruta().location }}</td></tr>
+        <tr><td class="gv__ruta-fila"><strong>Hora de arribo:</strong> {{ ruta().arrivalTime }}</td></tr>
+        <tr><td class="gv__ruta-fila"><strong>Hora de salida:</strong> {{ ruta().departureTime }}</td></tr>
+        <tr><td class="gv__ruta-fila gv__ruta-fila--alta"><strong>Datos pernoctación (domicilio, telf., etc.):</strong> {{ ruta().overnightDetails }}</td></tr>
+      </table>
+    </div>
+
+    <div class="gv__plan-col">
+      <table class="gv__com">
+        <tr><th class="doc-gris" colspan="3">Detalles de la comunicación</th></tr>
+        <tr>
+          <td class="gv__sub">Frecuencia del contacto</td>
+          <td class="gv__sub">Persona de contacto</td>
+          <td class="gv__sub">Detalles del contacto (Ej. Tel., radio)</td>
+        </tr>
+        <tr><td colspan="3"><strong>Diaria:</strong></td></tr>
+        <tr><td colspan="3"><strong>Al arribo:</strong></td></tr>
+        <tr><td colspan="3"><strong>Emergencias:</strong></td></tr>
+        <tr><td colspan="3"><strong>Otro (Ej. Cada 2 horas):</strong></td></tr>
+        <tr>
+          <td>{{ comunicacion().frequency }}</td>
+          <td>{{ comunicacion().contactPerson }}</td>
+          <td>{{ comunicacion().contactDetails }}</td>
+        </tr>
+        <tr><td colspan="3"><strong>Otro</strong></td></tr>
+      </table>
+
+      <!-- Aprobaciones: nombres impresos, firma en blanco (se firma sobre el PDF) -->
+      <div class="gv__banda-aprob">Aprobaciones (riesgo alto, medio y bajo fuera de rutina) una vez completada la Evaluación de riesgos de viajes terrestres</div>
+      <table class="gv__aprob">
+        <tr>
+          <td><strong>Conductor(es) / Nombres:</strong> {{ gv().conductorNames }}</td>
+          <td><strong>Gerente que autoriza:</strong> {{ gv().aprobadoPor }}</td>
+        </tr>
+        <tr class="gv__firma">
+          <td><strong>Firma:</strong></td>
+          <td><strong>Firma:</strong></td>
+        </tr>
+        <tr>
+          <td><strong>Aprobación telefónica por:</strong> {{ gv().phoneApprovalBy }}</td>
+          <td><strong>Hora del llamado:</strong> {{ gv().phoneApprovalTime }}</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>

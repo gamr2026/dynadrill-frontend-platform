@@ -1,0 +1,253 @@
+$morado: #604a7b;
+
+.gv {
+  font-size: 8.5px;
+
+  table {
+    margin-top: -1px;
+  }
+
+  // ── Cabecera ──
+  &__cab {
+    td {
+      border: 1px solid #000;
+      padding: 0;
+    }
+  }
+
+  &__cab-texto {
+    background: $morado;
+    color: #fff;
+    padding: 6px 10px !important;
+    vertical-align: middle;
+  }
+
+  &__cab-fila {
+    display: flex;
+    gap: 34px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  &__cab-sub {
+    margin-top: 2px;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  &__cab-fechas {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 9px;
+    font-weight: 700;
+  }
+
+  &__cab-logo {
+    width: 28%;
+    text-align: center;
+    vertical-align: middle;
+
+    img {
+      max-width: 130px;
+      max-height: 52px;
+    }
+  }
+
+  &__info td {
+    padding: 3px 5px;
+    font-size: 9px;
+  }
+
+  // ── Cuestionario ──
+  &__c-num {
+    width: 3%;
+  }
+
+  &__c-preg {
+    width: 31%;
+  }
+
+  &__c-op {
+    width: 13%;
+  }
+
+  &__c-pts {
+    width: 7%;
+  }
+
+  &__c-nota {
+    width: 23%;
+  }
+
+  &__num {
+    background: #76923c;
+    color: #fff;
+    font-weight: 700;
+    text-align: center;
+    vertical-align: middle !important;
+  }
+
+  &__pregunta {
+    font-weight: 700;
+    vertical-align: middle !important;
+  }
+
+  &__op {
+    font-weight: 700;
+    text-align: center;
+    vertical-align: middle !important;
+
+    &--vacia {
+      background: #a6a6a6;
+    }
+
+    &--bloquea {
+      color: #c00000;
+    }
+
+    // La opción elegida se marca con un recuadro, para que se distinga también en blanco y negro.
+    &--elegida {
+      outline: 2px solid #000;
+      outline-offset: -3px;
+      background: #f2f2f2;
+    }
+  }
+
+  &__pts {
+    font-weight: 700;
+    text-align: center;
+    vertical-align: middle !important;
+
+    &--total {
+      font-size: 10px;
+    }
+  }
+
+  &__nota {
+    font-size: 7.5px;
+    font-weight: 700;
+    vertical-align: middle !important;
+  }
+
+  &__total-etq {
+    text-align: right !important;
+    font-weight: 700;
+  }
+
+  // ── Semáforo ──
+  &__detener {
+    width: 38%;
+    background: #ffc000;
+    font-size: 8.5px;
+    vertical-align: middle !important;
+
+    p {
+      margin: 5px 0 0;
+    }
+  }
+
+  &__detener-titulo {
+    text-align: center;
+    font-weight: 700;
+    font-style: italic;
+    text-decoration: underline;
+  }
+
+  &__nivel {
+    width: 11%;
+    text-align: center;
+    font-weight: 700;
+
+    &--ALTO {
+      background: #ff0000;
+      color: #fff;
+    }
+
+    &--MEDIO {
+      background: #ffff00;
+    }
+
+    &--BAJO {
+      background: #4f6228;
+      color: #fff;
+    }
+  }
+
+  &__riesgo-actual td {
+    border-top: 2px solid #000;
+    border-bottom: 2px solid #000;
+    font-weight: 700;
+  }
+
+  // ── Plan ──
+  &__banda-plan {
+    margin-top: -1px;
+    padding: 3px 4px;
+    border: 1px solid #000;
+    font-size: 11px;
+  }
+
+  &__plan {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin-top: -1px;
+  }
+
+  &__plan-col {
+    table {
+      margin-top: 0;
+    }
+
+    &:first-child table {
+      border-right: none;
+    }
+  }
+
+  &__pasajeros {
+    height: 62px;
+  }
+
+  &__sub {
+    font-size: 7.5px;
+    font-weight: 700;
+  }
+
+  &__ruta-fila {
+    height: 20px;
+
+    &--alta {
+      height: 46px;
+    }
+  }
+
+  &__com td {
+    height: 15px;
+  }
+
+  // ── Aprobaciones ──
+  &__banda-aprob {
+    margin-top: -1px;
+    padding: 4px 6px;
+    border: 1px solid #000;
+    background: $morado;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  &__aprob {
+    margin-top: -1px;
+
+    td {
+      padding: 4px 6px;
+      font-size: 9px;
+    }
+  }
+
+  &__firma td {
+    height: 50px;
+  }
+}

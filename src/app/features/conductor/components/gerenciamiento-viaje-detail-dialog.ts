@@ -1,12 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { NZ_MODAL_DATA } from 'ng-zorro-antd/modal';
-import { DynadrillContextCardComponent, DynadrillTagComponent, type DynadrillContextCardItem, type DynadrillTagVariant } from '@digitec-it-projects/dynadrill-ui';
+import { DynadrillButtonComponent, DynadrillContextCardComponent, DynadrillTagComponent, type DynadrillContextCardItem, type DynadrillTagVariant } from '@digitec-it-projects/dynadrill-ui';
 import {
   GERENCIAMIENTO_VIAJE_ESTADO_LABELS,
   GERENCIAMIENTO_VIAJE_TIPO_LABELS,
   GerenciamientoViaje,
   GerenciamientoViajeEstado,
 } from '../models/gerenciamiento-viaje.model';
+import { DocumentoPdfService } from '../../../shared/documentos';
+import { GerenciamientoViajeHoja } from '../../../shared/documentos/formatos/gerenciamiento-viaje-hoja';
 
 export interface GerenciamientoViajeDetailDialogData {
   gv: GerenciamientoViaje;
@@ -27,13 +29,14 @@ const RIESGO_TONE: Record<GerenciamientoViaje['riskLevel'], DynadrillTagVariant>
 /** Detalle de solo lectura de un Gerenciamiento de Viaje — mismo patrón que AspectoAmbientalDetailDialog. */
 @Component({
   selector: 'app-gerenciamiento-viaje-detail-dialog',
-  imports: [DynadrillContextCardComponent, DynadrillTagComponent],
+  imports: [DynadrillButtonComponent, DynadrillContextCardComponent, DynadrillTagComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './gerenciamiento-viaje-detail-dialog.html',
   styleUrl: './gerenciamiento-viaje-detail-dialog.scss',
 })
 export class GerenciamientoViajeDetailDialog {
   private readonly data = inject<GerenciamientoViajeDetailDialogData>(NZ_MODAL_DATA);
+  private readonly documentoPdf = inject(DocumentoPdfService);
 
   protected readonly gv = this.data.gv;
   protected readonly estadoLabels = GERENCIAMIENTO_VIAJE_ESTADO_LABELS;
@@ -90,4 +93,14 @@ export class GerenciamientoViajeDetailDialog {
     const revisor = g.riskLevel === 'BAJO' ? 'del Supervisor de Pumping' : 'del Jefe de Base o Gerente HSE';
     return [{ label: 'Estado', value: `Pendiente de autorización ${revisor}` }];
   });
+
+  /** Formato DYN-SGI-RE-049: con los nombres del conductor y de quien autorizó; la firma se hace sobre el PDF. */
+  protected verPdf(): void {
+    this.documentoPdf.abrir({
+      titulo: `Gerenciamiento de Viaje — ${this.gv.code}`,
+      component: GerenciamientoViajeHoja,
+      inputs: { gv: this.gv },
+      nombreArchivo: `Gerenciamiento de Viaje ${this.gv.code}`,
+    });
+  }
 }

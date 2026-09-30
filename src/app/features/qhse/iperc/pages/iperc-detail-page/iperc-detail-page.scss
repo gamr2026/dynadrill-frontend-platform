@@ -206,9 +206,31 @@
   }
 }
 
-@media (max-width: 480px) {
+// Peligro en pantallas angostas: nombre y fuente arriba, chips de riesgo debajo
+// y el ojo a la derecha (Figma). Antes los tres iban en una fila y el nombre
+// se partía palabra por palabra.
+@media (max-width: 720px) {
   .iperc-detail-page__hazard-row {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'info ver'
+      'riesgos ver';
+    align-items: start;
+    gap: 8px 12px;
+    padding: 12px;
+  }
+
+  .iperc-detail-page__hazard-info {
+    grid-area: info;
+  }
+
+  .iperc-detail-page__hazard-risks {
+    grid-area: riesgos;
+  }
+
+  .iperc-detail-page__hazard-row > dynadrill-icon-button {
+    grid-area: ver;
   }
 }
 

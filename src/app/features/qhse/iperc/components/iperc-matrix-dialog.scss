@@ -69,3 +69,67 @@
     }
   }
 }
+
+// Móvil (pantalla completa): equipo evaluador en tarjeta, "Agregar" a todo el ancho
+// y las dos acciones fijas abajo, repartidas en mitades (Figma).
+@media (max-width: 840px) {
+  .iperc-matrix-dialog {
+    min-height: calc(100dvh - 97px);
+    gap: 16px;
+
+    &__equipo {
+      gap: 12px;
+      padding: 16px;
+      background: var(--surface, #fff);
+      border: 1px solid var(--border, #e5e4ea);
+      border-radius: var(--radius-lg, 16px);
+    }
+
+    &__label {
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: 0;
+      text-transform: none;
+      color: var(--dynadrill-navy, #131529);
+    }
+
+    &__equipo-add {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    &__agregar ::ng-deep .ant-btn {
+      width: 100%;
+      height: 48px;
+    }
+
+    &__equipo-list li {
+      padding: 12px 0;
+      background: transparent;
+      border: 0;
+      border-top: 1px solid var(--border, #e5e4ea);
+      border-radius: 0;
+      font-weight: 500;
+    }
+
+    &__actions {
+      position: sticky;
+      bottom: 0;
+      z-index: 5;
+      margin: auto -16px -16px;
+      padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0));
+      background: var(--surface, #fff);
+
+      > dynadrill-button {
+        flex: 1;
+
+        ::ng-deep .ant-btn {
+          width: 100%;
+          height: 48px;
+          border-radius: var(--radius-md, 12px);
+          font-weight: 600;
+        }
+      }
+    }
+  }
+}

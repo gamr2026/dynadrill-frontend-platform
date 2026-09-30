@@ -27,7 +27,7 @@
     <span class="iperc-matrix-dialog__label">Equipo evaluador multidisciplinario</span>
     <div class="iperc-matrix-dialog__equipo-add">
       <dynadrill-input placeholder="Nombre y rol (ej. Ana Torres — Técnico HSE)" [value]="nuevoIntegrante()" (valueChange)="nuevoIntegrante.set($event)" />
-      <dynadrill-button variant="secondary" size="small" (clicked)="agregarIntegrante()">+ Agregar</dynadrill-button>
+      <dynadrill-button class="iperc-matrix-dialog__agregar" variant="secondary" size="small" (clicked)="agregarIntegrante()">+ Agregar</dynadrill-button>
     </div>
 
     @if (equipoEvaluador().length > 0) {

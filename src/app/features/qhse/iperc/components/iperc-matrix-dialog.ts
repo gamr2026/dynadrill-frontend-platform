@@ -15,6 +15,8 @@ import { IpercService } from '../services/iperc.service';
 /** HSE-PLAN-001 Fase 1 — "Conformar equipo evaluador multidisciplinario" + "desglosar actividad". El desglose en tareas se hace después, dentro del detalle. */
 @Component({
   selector: 'app-iperc-matrix-dialog',
+  /** Formulario a pantalla completa en móvil (Figma "Agregar actividad a la Matriz Maestra") — ver styles.scss. */
+  host: { class: 'app-dialog-fullscreen-mobile' },
   imports: [DynadrillInputComponent, DynadrillTextareaComponent, DynadrillSelectComponent, DynadrillButtonComponent, DynadrillIconButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './iperc-matrix-dialog.html',

@@ -1,10 +1,11 @@
 <div class="maintenance-kpis-page">
-  <dynadrill-screen-header title="Indicadores de Mantenimiento" subtitle="MAN-MASTER-001 — calculados sobre los datos actuales del sistema" />
+  <app-page-header eyebrow="MANTENIMIENTO" title="Indicadores de Mantenimiento" subtitle="MAN-MASTER-001 — calculados sobre los datos actuales del sistema" />
 
   <div class="maintenance-kpis-page__toolbar">
     <dynadrill-select
       class="maintenance-kpis-page__toolbar-select"
-      placeholder="Tipo de unidad"
+      label="Tipo de unidad"
+      placeholder="Todos"
       [options]="tipoOptions"
       [value]="filtroTipo()"
       (valueChange)="filtroTipo.set($any($event))"
@@ -15,7 +16,11 @@
   </div>
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Calculando indicadores…">
-    <dynadrill-kpi-row [items]="kpis()" />
+    <div class="kpi-stat-row" role="list">
+      @for (kpi of kpis(); track kpi.label) {
+        <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
+      }
+    </div>
 
     <div class="maintenance-kpis-page__pies">
       <div class="maintenance-kpis-page__card maintenance-kpis-page__card--left">

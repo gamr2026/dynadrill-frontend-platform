@@ -7,10 +7,12 @@ import {
   DynadrillDialogService,
   DynadrillIconButtonComponent,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
   DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
+import { injectNarrowViewport } from '../../../core/utils/narrow-viewport.util';
+import { QhseRegistrosMovil, type RegistroMovil } from '../../qhse/shared/components/qhse-registros-movil';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationsService, AppNotificationItem } from '../../../core/services/notifications.service';
 import { MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../models/maintenance-order.model';
@@ -39,7 +41,8 @@ const STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
 @Component({
   selector: 'app-operator-maintenance-page',
   imports: [
-    DynadrillScreenHeaderComponent,
+    PageHeader,
+    QhseRegistrosMovil,
     DynadrillDataTableComponent,
     DynadrillButtonComponent,
     DynadrillIconButtonComponent,
@@ -57,7 +60,7 @@ export class OperatorMaintenancePage {
   private readonly auth = inject(AuthService);
   private readonly notifications = inject(NotificationsService);
 
-  protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
+  protected readonly isMobile = injectNarrowViewport();
 
   protected readonly loading = signal(true);
   protected readonly orders = signal<MaintenanceOrderWithSubOrders[]>([]);
@@ -86,6 +89,24 @@ export class OperatorMaintenancePage {
         })),
       );
   });
+
+  /** Tarjetas en móvil (Figma "M · Mantenimiento Operativo"). */
+  protected readonly itemsMovil = computed<RegistroMovil[]>(() =>
+    this.rows().map(r => ({
+      id: r.id,
+      eyebrow: r.code,
+      title: r.unidad,
+      subtitle: `Orden ${r.orderCode}`,
+      status: r.statusBadge,
+      fields: r.deriveNote !== '—' ? [{ label: 'Nota de derivación', value: r.deriveNote }] : [],
+      actions: this.isActionable(r)
+        ? [
+            { icon: 'tool', label: 'Diagnosticar / Ejecutar', primary: true, run: () => this.openExecution(r) },
+            { icon: 'eye', label: 'Ver detalle', run: () => this.viewDetail(r) },
+          ]
+        : [{ icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(r) }],
+    })),
+  );
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 

@@ -1,19 +1,19 @@
 <div class="my-tasks-page">
-  <dynadrill-screen-header
-    title="Mantenimiento"
-    subtitle="Sub-órdenes asignadas — diagnóstico y ejecución"
-    [roleTag]="roleName()"
-  />
+  <app-page-header eyebrow="MANTENIMIENTO" title="Mantenimiento" subtitle="Sub-órdenes asignadas — diagnóstico y ejecución" />
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando tareas…">
-    <div class="table-scroll">
-      <dynadrill-data-table
-        [columns]="columns()"
-        [rows]="rows()"
-        [rowKey]="rowKeyFn"
-        [actionsTemplate]="actionsTpl"
-      />
-    </div>
+    @if (isMobile()) {
+      <app-qhse-registros-movil [items]="itemsMovil()" [loading]="loading()" vacio="No tienes sub-órdenes asignadas." />
+    } @else {
+      <div class="table-scroll dyn-table-card">
+        <dynadrill-data-table
+          [columns]="columns()"
+          [rows]="rows()"
+          [rowKey]="rowKeyFn"
+          [actionsTemplate]="actionsTpl"
+        />
+      </div>
+    }
   </dynadrill-spinner>
 
   <ng-template #actionsTpl let-row>

@@ -1,18 +1,20 @@
 <div class="operator-maintenance-page">
-  <dynadrill-screen-header
-    title="Mantenimiento Operativo"
-    subtitle="Sub-órdenes operativas derivadas a su equipo — diagnóstico y ejecución"
-    [roleTag]="roleName()"
-  />
+  <app-page-header eyebrow="MANTENIMIENTO" title="Mantenimiento Operativo" subtitle="Sub-órdenes operativas derivadas a su equipo — diagnóstico y ejecución" />
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando mantenimientos…">
-    <dynadrill-data-table
-      [columns]="columns()"
-      [rows]="rows()"
-      [rowKey]="rowKeyFn"
-      [actionsTemplate]="actionsTpl"
-      actionsHeader="Acciones"
-    />
+    @if (isMobile()) {
+      <app-qhse-registros-movil [items]="itemsMovil()" [loading]="loading()" vacio="No hay mantenimientos operativos derivados." />
+    } @else {
+      <div class="table-scroll dyn-table-card">
+        <dynadrill-data-table
+          [columns]="columns()"
+          [rows]="rows()"
+          [rowKey]="rowKeyFn"
+          [actionsTemplate]="actionsTpl"
+          actionsHeader="Acciones"
+        />
+      </div>
+    }
   </dynadrill-spinner>
 
   <ng-template #actionsTpl let-row>

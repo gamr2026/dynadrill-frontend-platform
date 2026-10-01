@@ -9,15 +9,14 @@ import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDrawerService,
-  DynadrillKpiRowComponent,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
   DynadrillSelectComponent,
   DynadrillSpinnerComponent,
   DynadrillTextComponent,
-  type DynadrillKpiRowItem,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
+import { KpiStat, type KpiStatTone } from '../../../shared/components/kpi-stat/kpi-stat';
 import { MaintenanceOrderWithSubOrders } from '../models/maintenance-order.model';
 import { UnitReport } from '../models/unit-report.model';
 import { Unidad, calcularAlertas } from '../models/unidad.model';
@@ -130,8 +129,8 @@ function donutOptions(segments: { name: string; value: number; color: string }[]
 @Component({
   selector: 'app-maintenance-kpis-page',
   imports: [
-    DynadrillScreenHeaderComponent,
-    DynadrillKpiRowComponent,
+    PageHeader,
+    KpiStat,
     DynadrillSpinnerComponent,
     DynadrillTextComponent,
     DynadrillChartComponent,
@@ -338,13 +337,14 @@ export class MaintenanceKpisPage {
 
   // ── KPI row + charts ──
 
-  protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => [
-    { label: 'Generación de orden (prom.)', value: `${this.tiempoGeneracionOrden().toFixed(1)} h` },
-    { label: 'Diagnóstico (prom.)', value: `${this.tiempoDiagnostico().toFixed(1)} h` },
-    { label: 'Reparación (prom.)', value: `${this.tiempoReparacion().toFixed(1)} h` },
-    { label: 'MTTR', value: `${this.mttrHoras().toFixed(1)} h` },
-    { label: 'MTBF', value: `${this.mtbfDias().toFixed(1)} d` },
-    { label: 'Alertas preventivas generadas', value: this.alertasGeneradas() },
+  /** Tarjetas de color (Figma "D · Indicadores de Mantenimiento"): MTTR en lila, MTBF en verde y alertas en ámbar. */
+  protected readonly kpis = computed<{ label: string; value: string | number; tone: KpiStatTone }[]>(() => [
+    { label: 'Generación de orden (prom.)', value: `${this.tiempoGeneracionOrden().toFixed(1)} h`, tone: 'neutral' },
+    { label: 'Diagnóstico (prom.)', value: `${this.tiempoDiagnostico().toFixed(1)} h`, tone: 'neutral' },
+    { label: 'Reparación (prom.)', value: `${this.tiempoReparacion().toFixed(1)} h`, tone: 'neutral' },
+    { label: 'MTTR', value: `${this.mttrHoras().toFixed(1)} h`, tone: 'brand' },
+    { label: 'MTBF', value: `${this.mtbfDias().toFixed(1)} d`, tone: 'success' },
+    { label: 'Alertas preventivas generadas', value: this.alertasGeneradas(), tone: 'warning' },
   ]);
 
   protected readonly fallasChartCategories = computed(() => this.fallasRepetitivas().map(r => r.unidad));

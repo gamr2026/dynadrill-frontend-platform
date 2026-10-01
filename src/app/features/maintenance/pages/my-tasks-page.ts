@@ -7,10 +7,12 @@ import {
   DynadrillDataTableComponent,
   DynadrillDialogService,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
   DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
+import { injectNarrowViewport } from '../../../core/utils/narrow-viewport.util';
+import { QhseRegistrosMovil, type RegistroMovil } from '../../qhse/shared/components/qhse-registros-movil';
 import { AuthService } from '../../../core/services/auth.service';
 import { MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../models/maintenance-order.model';
 import { UnitReport } from '../models/unit-report.model';
@@ -36,7 +38,7 @@ const SUB_ORDER_STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
  */
 @Component({
   selector: 'app-my-tasks-page',
-  imports: [CommonModule, DynadrillDataTableComponent, DynadrillButtonComponent, DynadrillSpinnerComponent, DynadrillScreenHeaderComponent],
+  imports: [CommonModule, DynadrillDataTableComponent, DynadrillButtonComponent, DynadrillSpinnerComponent, PageHeader, QhseRegistrosMovil],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './my-tasks-page.html',
   styleUrl: './my-tasks-page.scss',
@@ -48,7 +50,7 @@ export class MyTasksPage {
   private readonly dialog = inject(DynadrillDialogService);
   private readonly auth = inject(AuthService);
 
-  protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
+  protected readonly isMobile = injectNarrowViewport();
 
   protected readonly loading = signal(true);
   protected readonly orders = signal<MaintenanceOrderWithSubOrders[]>([]);
@@ -85,6 +87,27 @@ export class MyTasksPage {
         statusBadge: { text: sub.status, tone: SUB_ORDER_STATUS_TONE[sub.status] },
       }));
   });
+
+  /** Tarjetas en móvil (Figma "M · Mis tareas"): Diagnosticar / Ejecutar + ojo; si no hay nada que hacer, Ver detalle. */
+  protected readonly itemsMovil = computed<RegistroMovil[]>(() =>
+    this.rows().map(r => ({
+      id: r.id,
+      eyebrow: r.code,
+      title: r.unidad,
+      subtitle: `Orden ${r.orderCode} · ${r.type}`,
+      status: r.statusBadge,
+      fields: [
+        { label: 'Unidad', value: r.unidad },
+        { label: 'Tipo', value: r.type },
+      ],
+      actions: this.isActionable(r)
+        ? [
+            { icon: 'tool', label: 'Diagnosticar / Ejecutar', primary: true, run: () => this.openExecution(r) },
+            { icon: 'eye', label: 'Ver detalle', run: () => this.viewDetail(r) },
+          ]
+        : [{ icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(r) }],
+    })),
+  );
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 

@@ -16,6 +16,9 @@ import {
   DynadrillTextComponent,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
+import { DocumentoPdfService } from '../../../shared/documentos';
+import { IndicadoresMantenimientoHoja, type IndicadoresMantenimientoDatos } from '../../../shared/documentos/formatos/indicadores-mantenimiento-hoja';
+import { computeOrderStatus } from '../models/maintenance-order.model';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { KpiStat, type KpiStatTone } from '../../../shared/components/kpi-stat/kpi-stat';
 import { MaintenanceOrderWithSubOrders } from '../models/maintenance-order.model';
@@ -151,6 +154,7 @@ export class MaintenanceKpisPage {
   private readonly unidadesService = inject(UnidadesService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly drawer = inject(DynadrillDrawerService);
+  private readonly documentoPdf = inject(DocumentoPdfService);
 
   protected readonly loading = signal(true);
   protected readonly orders = signal<MaintenanceOrderWithSubOrders[]>([]);
@@ -222,6 +226,46 @@ export class MaintenanceKpisPage {
     const codes = new Set(this.filteredUnidades().map(u => u.code));
     return this.ordersEnRango().filter(o => codes.has(o.unidad));
   });
+
+  private static fechaCorta(d: Date): string {
+    return d.toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  /** Abre el reporte de los indicadores con el filtro vigente (tipo de unidad y rango de fechas) para imprimirlo o guardarlo en PDF. */
+  protected descargarReporte(): void {
+    const desde = this.fechaDesde();
+    const hasta = this.fechaHasta();
+    const rango =
+      desde || hasta
+        ? `${desde ? MaintenanceKpisPage.fechaCorta(desde) : 'inicio'} al ${hasta ? MaintenanceKpisPage.fechaCorta(hasta) : 'hoy'}`
+        : 'todas las fechas';
+    const tipo = this.filtroTipo();
+    const { cumplen, noCumplen } = this.cumplimientoPorUnidad();
+    const { disponibles, noDisponibles } = this.disponibilidadPorUnidad();
+
+    const datos: IndicadoresMantenimientoDatos = {
+      filtros: `${tipo ? 'Tipo de unidad: ' + tipo : 'Todos los tipos de unidad'} · ${rango}`,
+      generadoEn: new Date().toLocaleString('es-EC'),
+      kpis: this.kpis().map(k => ({ label: k.label, value: String(k.value) })),
+      cumplimiento: { cumplen: cumplen.length, noCumplen: noCumplen.length },
+      disponibilidad: { disponibles: disponibles.length, noDisponibles: noDisponibles.length },
+      ordenesPorTipo: this.ordenesPorTipoUnidad(),
+      fallasRepetitivas: this.fallasRepetitivas(),
+      ordenes: this.filteredOrders().map(o => ({
+        code: o.code,
+        unidad: o.unidad,
+        fecha: MaintenanceKpisPage.fechaCorta(new Date(o.createdAt)),
+        estado: computeOrderStatus(o, o.subOrders),
+      })),
+    };
+
+    this.documentoPdf.abrir({
+      titulo: 'Reporte de Indicadores de Mantenimiento',
+      component: IndicadoresMantenimientoHoja,
+      inputs: { datos },
+      nombreArchivo: 'Indicadores de Mantenimiento',
+    });
+  }
 
   constructor() {
     this.reload();

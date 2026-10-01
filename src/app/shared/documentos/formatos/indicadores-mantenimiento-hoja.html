@@ -1,0 +1,69 @@
+<div class="doc-hoja im-ind">
+  <app-doc-encabezado titulo="REPORTE DE INDICADORES DE MANTENIMIENTO" codigo="MAN-MASTER-001" />
+
+  <table class="im-ind__tabla">
+    <tr>
+      <td class="im-ind__etq"><strong>FILTRO:</strong></td>
+      <td>{{ datos().filtros }}</td>
+      <td class="im-ind__etq"><strong>GENERADO:</strong></td>
+      <td>{{ datos().generadoEn }}</td>
+    </tr>
+  </table>
+
+  <div class="im-ind__banda">INDICADORES</div>
+  <table class="im-ind__tabla">
+    <thead><tr><th>INDICADOR</th><th class="im-ind__num">VALOR</th></tr></thead>
+    <tbody>
+      @for (k of datos().kpis; track k.label) {
+        <tr><td>{{ k.label }}</td><td class="im-ind__num">{{ k.value }}</td></tr>
+      }
+    </tbody>
+  </table>
+
+  <div class="im-ind__banda">ESTADO DE LA FLOTA</div>
+  <table class="im-ind__tabla">
+    <thead><tr><th>CLASIFICACIÓN</th><th class="im-ind__num">UNIDADES</th><th class="im-ind__num">%</th></tr></thead>
+    <tbody>
+      <tr><td>Cumplen el plan preventivo</td><td class="im-ind__num">{{ datos().cumplimiento.cumplen }}</td><td class="im-ind__num">{{ porcentaje(datos().cumplimiento.cumplen, datos().cumplimiento.noCumplen) }}</td></tr>
+      <tr><td>No cumplen el plan preventivo</td><td class="im-ind__num">{{ datos().cumplimiento.noCumplen }}</td><td class="im-ind__num">{{ porcentaje(datos().cumplimiento.noCumplen, datos().cumplimiento.cumplen) }}</td></tr>
+      <tr><td>Disponibles</td><td class="im-ind__num">{{ datos().disponibilidad.disponibles }}</td><td class="im-ind__num">{{ porcentaje(datos().disponibilidad.disponibles, datos().disponibilidad.noDisponibles) }}</td></tr>
+      <tr><td>No disponibles</td><td class="im-ind__num">{{ datos().disponibilidad.noDisponibles }}</td><td class="im-ind__num">{{ porcentaje(datos().disponibilidad.noDisponibles, datos().disponibilidad.disponibles) }}</td></tr>
+    </tbody>
+  </table>
+
+  <div class="im-ind__banda">ÓRDENES POR TIPO DE UNIDAD</div>
+  <table class="im-ind__tabla">
+    <thead><tr><th>TIPO DE UNIDAD</th><th class="im-ind__num">ÓRDENES</th></tr></thead>
+    <tbody>
+      @for (o of datos().ordenesPorTipo; track o.tipo) {
+        <tr><td>{{ o.tipo }}</td><td class="im-ind__num">{{ o.cantidad }}</td></tr>
+      } @empty {
+        <tr><td colspan="2">Sin órdenes en el periodo.</td></tr>
+      }
+    </tbody>
+  </table>
+
+  <div class="im-ind__banda">UNIDADES CON FALLAS REPETITIVAS</div>
+  <table class="im-ind__tabla">
+    <thead><tr><th>UNIDAD</th><th class="im-ind__num">ÓRDENES CORRECTIVAS</th></tr></thead>
+    <tbody>
+      @for (f of datos().fallasRepetitivas; track f.unidad) {
+        <tr><td>{{ f.unidad }}</td><td class="im-ind__num">{{ f.cantidad }}</td></tr>
+      } @empty {
+        <tr><td colspan="2">Ninguna unidad tiene más de una orden correctiva.</td></tr>
+      }
+    </tbody>
+  </table>
+
+  <div class="im-ind__banda">DETALLE DE ÓRDENES</div>
+  <table class="im-ind__tabla">
+    <thead><tr><th>ORDEN</th><th>UNIDAD</th><th>FECHA</th><th>ESTADO</th></tr></thead>
+    <tbody>
+      @for (o of datos().ordenes; track o.code) {
+        <tr><td>{{ o.code }}</td><td>{{ o.unidad }}</td><td>{{ o.fecha }}</td><td>{{ o.estado }}</td></tr>
+      } @empty {
+        <tr><td colspan="4">Sin órdenes en el periodo.</td></tr>
+      }
+    </tbody>
+  </table>
+</div>

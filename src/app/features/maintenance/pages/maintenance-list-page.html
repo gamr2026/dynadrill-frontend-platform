@@ -35,10 +35,10 @@
         <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewDetail(row)" />
         @if (row['kind'] === 'order') {
           @if (tieneSubOrden(row, false)) {
-            <dynadrill-icon-button icon="file-text" tooltip="Orden de trabajo (PDF)" (clicked)="openOrdenGeneral(row)" />
+            <dynadrill-icon-button icon="file-text" iconSource="dynadrill" tooltip="Orden de trabajo (PDF)" (clicked)="openOrdenGeneral(row)" />
           }
           @if (tieneSubOrden(row, true)) {
-            <dynadrill-icon-button icon="tool" tooltip="Orden operativa (PDF)" (clicked)="openOrdenOperativa(row)" />
+            <dynadrill-icon-button icon="tool" iconSource="dynadrill" tooltip="Orden operativa (PDF)" (clicked)="openOrdenOperativa(row)" />
           }
           @if (row['statusBadge']?.['text'] === 'Cerrado') {
             <dynadrill-icon-button icon="file-pdf" tooltip="Ver informe" (clicked)="openReport(row)" />

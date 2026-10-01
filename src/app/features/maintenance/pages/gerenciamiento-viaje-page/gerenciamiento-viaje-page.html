@@ -1,38 +1,43 @@
-<dynadrill-screen-header
+<app-page-header
   eyebrow="Mantenimiento"
   title="Gerenciamiento de Viaje"
   subtitle="DYN-SGI-RE-049 — BAJO lo autoriza el Supervisor de Pumping, MEDIO/ALTO el Jefe de Base"
-  roleTag="Aprobaciones"
 />
 
-<div class="gerenciamiento-viaje-page__filtros">
-  @for (f of filtros; track f.value) {
-    <dynadrill-button [variant]="filtro() === f.value ? 'primary' : 'secondary'" size="small" (clicked)="filtro.set(f.value)">
-      {{ f.label }}
-    </dynadrill-button>
+<app-qhse-filtros [opciones]="opcionesFiltro" [selected]="filtro()" (selectedChange)="filtro.set($any($event))" />
+
+<div class="kpi-stat-row" role="list">
+  @for (kpi of kpis(); track kpi.label) {
+    <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
   }
 </div>
 
-<dynadrill-kpi-row [items]="kpis()" />
+@if (!puedeGestionarCualquierNivel()) {
+  <p class="gerenciamiento-viaje-page__aviso" role="note">Como Supervisor de Pumping solo puedes autorizar viajes de riesgo BAJO.</p>
+}
 
-<ng-template #actionsTpl let-row>
-  <div class="gerenciamiento-viaje-page__row-actions">
-    <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="verDetalle(row)" />
-    @if (row.gv.estado === 'pendiente' && row.puedeGestionar) {
-      <dynadrill-icon-button icon="check" tooltip="Autorizar" tooltipPlacement="top" (clicked)="aprobar(row)" />
-      <dynadrill-icon-button icon="close" tooltip="Rechazar" tooltipPlacement="top" (clicked)="rechazar(row)" />
-    }
+@if (isMobile()) {
+  <app-mnt-compact-list [items]="itemsMovil()" [loading]="loading()" vacio="No hay gerenciamientos de viaje con ese filtro." />
+} @else {
+  <ng-template #actionsTpl let-row>
+    <div class="gerenciamiento-viaje-page__row-actions">
+      <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="verDetalle(row)" />
+      @if (row.gv.estado === 'pendiente' && row.puedeGestionar) {
+        <dynadrill-icon-button icon="check" tooltip="Autorizar" tooltipPlacement="top" (clicked)="aprobar(row)" />
+        <dynadrill-icon-button icon="close" tooltip="Rechazar" tooltipPlacement="top" (clicked)="rechazar(row)" />
+      }
+    </div>
+  </ng-template>
+
+  <div class="table-scroll dyn-table-card">
+    <dynadrill-data-table
+      [columns]="columns"
+      [rows]="rows()"
+      [loading]="loading()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="10"
+      actionsHeader="Acciones"
+      [actionsTemplate]="actionsTpl"
+    />
   </div>
-</ng-template>
-
-<div class="table-scroll">
-  <dynadrill-data-table
-    [columns]="columns"
-    [rows]="rows()"
-    [loading]="loading()"
-    [rowKey]="rowKeyFn"
-    [pageSize]="10"
-    actionsHeader="Acciones"
-    [actionsTemplate]="actionsTpl"
-  />
-</div>
+}

@@ -5,12 +5,13 @@ import {
   DynadrillDataTableComponent,
   DynadrillDialogService,
   DynadrillIconButtonComponent,
-  DynadrillKpiRowComponent,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
-  type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
+import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { KpiStat, type KpiStatTone } from '../../../../shared/components/kpi-stat/kpi-stat';
+import { injectNarrowViewport } from '../../../../core/utils/narrow-viewport.util';
+import { MntCompactList, type MntCompactItem } from '../../../maintenance/components/mnt-compact-card';
 import {
   GERENCIAMIENTO_VIAJE_ESTADO_LABELS,
   GERENCIAMIENTO_VIAJE_TIPO_LABELS,
@@ -31,7 +32,7 @@ const ESTADO_TONE: Record<GerenciamientoViajeEstado, DynadrillTagVariant> = {
 /** Portal del Conductor — DYN-SGI-RE-049. Solo ve y solicita los suyos. */
 @Component({
   selector: 'app-mis-viajes-page',
-  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillButtonComponent, DynadrillIconButtonComponent, DynadrillDataTableComponent],
+  imports: [PageHeader, KpiStat, MntCompactList, DynadrillButtonComponent, DynadrillIconButtonComponent, DynadrillDataTableComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './mis-viajes-page.html',
   styleUrl: './mis-viajes-page.scss',
@@ -41,15 +42,16 @@ export class MisViajesPage {
   private readonly dialogService = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
 
+  protected readonly isMobile = injectNarrowViewport();
   protected readonly loading = signal(true);
   protected readonly viajes = signal<GerenciamientoViaje[]>([]);
   protected readonly estadoLabels = GERENCIAMIENTO_VIAJE_ESTADO_LABELS;
   protected readonly tipoLabels = GERENCIAMIENTO_VIAJE_TIPO_LABELS;
 
-  protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
+  protected readonly kpis = computed<{ label: string; value: number; tone: KpiStatTone }[]>(() => {
     const all = this.viajes();
     return [
-      { label: 'Total solicitados', value: all.length },
+      { label: 'Total solicitados', value: all.length, tone: 'neutral' },
       { label: 'Pendientes', value: all.filter(g => g.estado === 'pendiente').length, tone: 'warning' },
       { label: 'Aprobados', value: all.filter(g => g.estado === 'aprobado').length, tone: 'success' },
       { label: 'Rechazados', value: all.filter(g => g.estado === 'rechazado').length, tone: 'error' },
@@ -80,6 +82,20 @@ export class MisViajesPage {
       riskLevel: g.riskLevel,
       estadoBadge: { text: this.estadoLabels[g.estado], tone: ESTADO_TONE[g.estado] },
       gv: g,
+    })),
+  );
+
+  /** Filas compactas en móvil (Figma "M · Conductor · Mis viajes"): código y fecha, destino, riesgo y estado. */
+  protected readonly itemsMovil = computed<MntCompactItem[]>(() =>
+    this.viajes().map(g => ({
+      id: g.id,
+      title: `${g.code} · ${g.fecha}`,
+      lines: [`Destino: ${g.destino}`],
+      chips: [
+        { text: g.riskLevel, tone: (g.riskLevel === 'BAJO' ? 'success' : g.riskLevel === 'MEDIO' ? 'warning' : 'error') as 'success' | 'warning' | 'error' },
+        { text: g.estado === 'pendiente' ? 'Pendiente de autorización' : this.estadoLabels[g.estado], tone: ESTADO_TONE[g.estado] as 'warning' | 'success' | 'error' },
+      ],
+      actions: [{ icon: 'eye', label: 'Ver detalle', run: () => this.verDetalle({ gv: g } as Record<string, unknown>) }],
     })),
   );
 

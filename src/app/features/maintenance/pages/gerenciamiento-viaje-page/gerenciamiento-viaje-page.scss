@@ -18,3 +18,14 @@
 .table-scroll {
   overflow-x: auto;
 }
+
+// Aviso informativo (Figma: banner azul con barra lateral).
+.gerenciamiento-viaje-page__aviso {
+  margin: 0;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--info-text, #0958d9);
+  background: var(--info-bg, #e3f2ff);
+  border-left: 4px solid var(--info, #1890ff);
+  border-radius: var(--radius-md, 12px);
+}

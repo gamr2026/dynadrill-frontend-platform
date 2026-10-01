@@ -5,12 +5,14 @@ import {
   DynadrillDataTableComponent,
   DynadrillDialogService,
   DynadrillIconButtonComponent,
-  DynadrillKpiRowComponent,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
-  type DynadrillKpiRowItem,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
+import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { KpiStat, type KpiStatTone } from '../../../../shared/components/kpi-stat/kpi-stat';
+import { injectNarrowViewport } from '../../../../core/utils/narrow-viewport.util';
+import { QhseFiltros } from '../../../qhse/shared/components/qhse-filtros';
+import { MntCompactList, type MntCompactItem } from '../../components/mnt-compact-card';
 import {
   GERENCIAMIENTO_VIAJE_ESTADO_LABELS,
   GERENCIAMIENTO_VIAJE_TIPO_LABELS,
@@ -37,7 +39,7 @@ const ESTADO_TONE: Record<GerenciamientoViajeEstado, DynadrillTagVariant> = {
  */
 @Component({
   selector: 'app-gerenciamiento-viaje-page',
-  imports: [DynadrillScreenHeaderComponent, DynadrillKpiRowComponent, DynadrillButtonComponent, DynadrillIconButtonComponent, DynadrillDataTableComponent],
+  imports: [PageHeader, KpiStat, QhseFiltros, MntCompactList, DynadrillDataTableComponent, DynadrillIconButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './gerenciamiento-viaje-page.html',
   styleUrl: './gerenciamiento-viaje-page.scss',
@@ -54,6 +56,7 @@ export class GerenciamientoViajePage {
     return roleName === 'Jefe de Base' || roleName === 'Gerente HSE' || roleName === 'Superadmin';
   });
 
+  protected readonly isMobile = injectNarrowViewport();
   protected readonly loading = signal(true);
   protected readonly viajes = signal<GerenciamientoViaje[]>([]);
   protected readonly estadoLabels = GERENCIAMIENTO_VIAJE_ESTADO_LABELS;
@@ -67,15 +70,17 @@ export class GerenciamientoViajePage {
     { label: 'Todos', value: 'todos' },
   ];
 
-  protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
+  protected readonly kpis = computed<{ label: string; value: number; tone: KpiStatTone }[]>(() => {
     const all = this.viajes();
     return [
-      { label: 'Total', value: all.length },
+      { label: 'Total', value: all.length, tone: 'neutral' },
       { label: 'Pendientes', value: all.filter(g => g.estado === 'pendiente').length, tone: 'warning' },
       { label: 'Aprobados', value: all.filter(g => g.estado === 'aprobado').length, tone: 'success' },
       { label: 'Rechazados', value: all.filter(g => g.estado === 'rechazado').length, tone: 'error' },
     ];
   });
+
+  protected readonly opcionesFiltro = this.filtros.map(f => ({ value: f.value, label: f.label }));
 
   protected readonly filtrados = computed(() => {
     const f = this.filtro();
@@ -110,6 +115,32 @@ export class GerenciamientoViajePage {
       puedeGestionar: this.puedeGestionarCualquierNivel() || g.riskLevel === 'BAJO',
       gv: g,
     })),
+  );
+
+  /** Filas compactas en móvil (Figma "M · Gerenciamiento de Viaje · Bandeja"): ver, autorizar (✓) y rechazar (✗). */
+  protected readonly itemsMovil = computed<MntCompactItem[]>(() =>
+    this.rows().map(r => {
+      const gv = r.gv;
+      const riesgoTone = gv.riskLevel === 'BAJO' ? 'success' : gv.riskLevel === 'MEDIO' ? 'warning' : 'error';
+      return {
+        id: r.id,
+        title: `${gv.code} · ${gv.fecha}`,
+        lines: [`${gv.origen} → ${gv.destino} · ${gv.totalPoints} pts`],
+        chips: [
+          { text: gv.riskLevel, tone: riesgoTone as 'success' | 'warning' | 'error' },
+          { text: gv.estado === 'pendiente' ? 'Pendiente de autorización' : r.estadoBadge.text, tone: r.estadoBadge.tone as 'warning' | 'success' | 'error' },
+        ],
+        actions: [
+          { icon: 'eye', label: 'Ver detalle', run: () => this.verDetalle(r) },
+          ...(gv.estado === 'pendiente' && r.puedeGestionar
+            ? [
+                { icon: 'check', label: 'Autorizar', run: () => this.aprobar(r) },
+                { icon: 'close', label: 'Rechazar', run: () => this.rechazar(r) },
+              ]
+            : []),
+        ],
+      };
+    }),
   );
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);

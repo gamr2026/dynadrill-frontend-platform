@@ -29,6 +29,7 @@ const RIESGO_TONE: Record<GerenciamientoViaje['riskLevel'], DynadrillTagVariant>
 /** Detalle de solo lectura de un Gerenciamiento de Viaje — mismo patrón que AspectoAmbientalDetailDialog. */
 @Component({
   selector: 'app-gerenciamiento-viaje-detail-dialog',
+  host: { class: 'app-dialog-fullscreen-mobile' },
   imports: [DynadrillButtonComponent, DynadrillContextCardComponent, DynadrillTagComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './gerenciamiento-viaje-detail-dialog.html',

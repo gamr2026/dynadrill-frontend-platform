@@ -1,29 +1,36 @@
-<dynadrill-screen-header
+<app-page-header
   eyebrow="Conductor"
   title="Gerenciamiento de Viaje"
   subtitle="DYN-SGI-RE-049 — solicita y consulta el estado de tus viajes"
-  roleTag="Conductor"
-/>
+>
+  <div actions class="mis-viajes-page__toolbar">
+    <dynadrill-button variant="secondary" (clicked)="solicitar('salida')">+ Gerenciamiento de Salida</dynadrill-button>
+    <dynadrill-button (clicked)="solicitar('retorno')">+ Gerenciamiento de Retorno</dynadrill-button>
+  </div>
+</app-page-header>
 
-<div class="mis-viajes-page__toolbar">
-  <dynadrill-button variant="secondary" (clicked)="solicitar('salida')">+ Gerenciamiento de Salida</dynadrill-button>
-  <dynadrill-button (clicked)="solicitar('retorno')">+ Gerenciamiento de Retorno</dynadrill-button>
+<div class="kpi-stat-row" role="list">
+  @for (kpi of kpis(); track kpi.label) {
+    <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
+  }
 </div>
 
-<dynadrill-kpi-row [items]="kpis()" />
+@if (isMobile()) {
+  <app-mnt-compact-list [items]="itemsMovil()" [loading]="loading()" vacio="Todavía no solicitaste ningún gerenciamiento de viaje." />
+} @else {
+  <ng-template #actionsTpl let-row>
+    <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="verDetalle(row)" />
+  </ng-template>
 
-<ng-template #actionsTpl let-row>
-  <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="verDetalle(row)" />
-</ng-template>
-
-<div class="table-scroll">
-  <dynadrill-data-table
-    [columns]="columns"
-    [rows]="rows()"
-    [loading]="loading()"
-    [rowKey]="rowKeyFn"
-    [pageSize]="10"
-    actionsHeader="Acciones"
-    [actionsTemplate]="actionsTpl"
-  />
-</div>
+  <div class="table-scroll dyn-table-card">
+    <dynadrill-data-table
+      [columns]="columns"
+      [rows]="rows()"
+      [loading]="loading()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="10"
+      actionsHeader="Acciones"
+      [actionsTemplate]="actionsTpl"
+    />
+  </div>
+}

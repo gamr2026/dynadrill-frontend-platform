@@ -5,12 +5,26 @@
 
   &__toolbar {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
+    flex-wrap: wrap;
     gap: 10px;
+  }
+
+  &__toolbar-fecha {
+    width: 180px;
+
+    @media (max-width: 600px) {
+      flex: 1 1 140px;
+      width: auto;
+    }
   }
 
   &__toolbar-select {
     width: 220px;
+
+    @media (max-width: 600px) {
+      width: 100%;
+    }
   }
 
   // Pasteles de clasificación por unidad (cumplimiento / disponibilidad).

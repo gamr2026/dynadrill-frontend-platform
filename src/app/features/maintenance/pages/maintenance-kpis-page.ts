@@ -8,6 +8,7 @@ import {
   DynadrillChartSeries,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
+  DynadrillDatetimePickerComponent,
   DynadrillDrawerService,
   DynadrillNotificationService,
   DynadrillSelectComponent,
@@ -136,6 +137,7 @@ function donutOptions(segments: { name: string; value: number; color: string }[]
     DynadrillChartComponent,
     DynadrillDataTableComponent,
     DynadrillSelectComponent,
+    DynadrillDatetimePickerComponent,
     DynadrillButtonComponent,
     NgxEchartsDirective,
   ],
@@ -169,11 +171,56 @@ export class MaintenanceKpisPage {
     return tipo ? this.unidades().filter(u => u.tipo === String(tipo)) : this.unidades();
   });
 
+  // ── Filtro por rango de fechas (sobre la fecha de creación de la orden) ──
+
+  protected readonly fechaDesde = signal<Date | null>(null);
+  protected readonly fechaHasta = signal<Date | null>(null);
+
+  protected readonly hayFiltros = computed(() => !!this.filtroTipo() || !!this.fechaDesde() || !!this.fechaHasta());
+
+  protected setFechaDesde(fecha: Date | null): void {
+    this.fechaDesde.set(fecha ?? null);
+  }
+
+  protected setFechaHasta(fecha: Date | null): void {
+    this.fechaHasta.set(fecha ?? null);
+  }
+
+  /** Impide elegir un "Desde" posterior al "Hasta" y viceversa. */
+  protected readonly desdeNoPermitido = (fecha: Date): boolean => {
+    const hasta = this.fechaHasta();
+    return !!hasta && fecha.getTime() > hasta.getTime();
+  };
+
+  protected readonly hastaNoPermitido = (fecha: Date): boolean => {
+    const desde = this.fechaDesde();
+    return !!desde && fecha.getTime() < new Date(desde.getFullYear(), desde.getMonth(), desde.getDate()).getTime();
+  };
+
+  protected limpiarFiltros(): void {
+    this.filtroTipo.set(null);
+    this.fechaDesde.set(null);
+    this.fechaHasta.set(null);
+  }
+
+  /** Órdenes dentro del rango de fechas (ambos extremos inclusive), sin filtrar por tipo de unidad. */
+  protected readonly ordersEnRango = computed(() => {
+    const desde = this.fechaDesde();
+    const hasta = this.fechaHasta();
+    if (!desde && !hasta) return this.orders();
+    const inicio = desde ? new Date(desde.getFullYear(), desde.getMonth(), desde.getDate()).getTime() : -Infinity;
+    const fin = hasta ? new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate() + 1).getTime() : Infinity;
+    return this.orders().filter(o => {
+      const t = new Date(o.createdAt).getTime();
+      return t >= inicio && t < fin;
+    });
+  });
+
   protected readonly filteredOrders = computed(() => {
     const tipo = this.filtroTipo();
-    if (!tipo) return this.orders();
+    if (!tipo) return this.ordersEnRango();
     const codes = new Set(this.filteredUnidades().map(u => u.code));
-    return this.orders().filter(o => codes.has(o.unidad));
+    return this.ordersEnRango().filter(o => codes.has(o.unidad));
   });
 
   constructor() {
@@ -361,7 +408,7 @@ export class MaintenanceKpisPage {
   protected readonly ordenesPorTipoUnidad = computed(() => {
     const tipoPorCode = new Map(this.unidades().map(u => [u.code, u.tipo]));
     const conteo = new Map<string, number>();
-    for (const o of this.orders()) {
+    for (const o of this.ordersEnRango()) {
       const tipo = tipoPorCode.get(o.unidad) ?? 'Sin tipo';
       conteo.set(tipo, (conteo.get(tipo) ?? 0) + 1);
     }

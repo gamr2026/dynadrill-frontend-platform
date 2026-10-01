@@ -10,8 +10,26 @@
       [value]="filtroTipo()"
       (valueChange)="filtroTipo.set($any($event))"
     />
-    @if (filtroTipo()) {
-      <dynadrill-button variant="secondary" size="small" (clicked)="filtroTipo.set(null)">Limpiar filtro</dynadrill-button>
+    <dynadrill-datetime-picker
+      class="maintenance-kpis-page__toolbar-fecha"
+      mode="date"
+      label="Desde"
+      placeholder="Fecha inicial"
+      [value]="fechaDesde()!"
+      [disabledDate]="desdeNoPermitido"
+      (valueChange)="setFechaDesde($event)"
+    />
+    <dynadrill-datetime-picker
+      class="maintenance-kpis-page__toolbar-fecha"
+      mode="date"
+      label="Hasta"
+      placeholder="Fecha final"
+      [value]="fechaHasta()!"
+      [disabledDate]="hastaNoPermitido"
+      (valueChange)="setFechaHasta($event)"
+    />
+    @if (hayFiltros()) {
+      <dynadrill-button variant="secondary" size="small" (clicked)="limpiarFiltros()">Limpiar filtros</dynadrill-button>
     }
   </div>
 

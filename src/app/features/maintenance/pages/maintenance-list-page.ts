@@ -8,19 +8,20 @@ import {
   DynadrillDataTableProgressCell,
   DynadrillDialogService,
   DynadrillDrawerService,
-  DynadrillKpiRowComponent,
   DynadrillNotificationService,
-  DynadrillScreenHeaderComponent,
   DynadrillSelectComponent,
   DynadrillSpinnerComponent,
-  DynadrillStatisticComponent,
   DynadrillTabsComponent,
   DynadrillTagVariant,
-  type DynadrillKpiRowItem,
   type DynadrillSelectOption,
   type DynadrillTab,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../core/services/auth.service';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
+import { KpiStat, type KpiStatTone } from '../../../shared/components/kpi-stat/kpi-stat';
+import { injectNarrowViewport } from '../../../core/utils/narrow-viewport.util';
+import { QhseRegistrosMovil, type RegistroMovil } from '../../qhse/shared/components/qhse-registros-movil';
+import { MntCompactList, type MntCompactItem } from '../components/mnt-compact-card';
 import { AppNotificationItem, NotificationsService } from '../../../core/services/notifications.service';
 import { computeOrderStatus, MaintenanceOrderWithSubOrders, OrderStatus } from '../models/maintenance-order.model';
 import { unitReportCode, unitReportHasNovedades, UnitReport } from '../models/unit-report.model';
@@ -57,7 +58,7 @@ const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
 
 @Component({
   selector: 'app-maintenance-list-page',
-  imports: [DynadrillButtonComponent, DynadrillIconButtonComponent, DynadrillDataTableComponent, DynadrillKpiRowComponent, DynadrillScreenHeaderComponent, DynadrillSelectComponent, DynadrillSpinnerComponent, DynadrillStatisticComponent, DynadrillTabsComponent, VehicleInspectionsTable],
+  imports: [DynadrillButtonComponent, DynadrillIconButtonComponent, DynadrillDataTableComponent, PageHeader, KpiStat, QhseRegistrosMovil, MntCompactList, DynadrillSelectComponent, DynadrillSpinnerComponent, DynadrillTabsComponent, VehicleInspectionsTable],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './maintenance-list-page.html',
   styleUrl: './maintenance-list-page.scss',
@@ -73,7 +74,7 @@ export class MaintenanceListPage {
   private readonly auth = inject(AuthService);
   private readonly notifications = inject(NotificationsService);
 
-  protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
+  protected readonly isMobile = injectNarrowViewport();
 
   protected readonly loading = signal(true);
   protected readonly orders = signal<MaintenanceOrderWithSubOrders[]>([]);
@@ -310,19 +311,58 @@ export class MaintenanceListPage {
     return [...reportRows, ...orderRows];
   });
 
-  protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
+  /** Tarjetas de color (Figma): pendiente en ámbar, activas en lila, derivadas en neutro y cerradas en verde. */
+  protected readonly kpis = computed<{ label: string; value: number; caption: string; tone: KpiStatTone }[]>(() => {
     const pendientes = this.unitReports().filter(r => unitReportHasNovedades(r) && !r.dismissed && !this.orders().some(o => o.unitReportId === r.id)).length;
     const allOrders = this.orders();
     const activas = allOrders.filter(o => !o.returnedToOperation).length;
     const derivadas = allOrders.filter(o => o.subOrders.some(s => s.status === 'Derivado a Pumping')).length;
     const cerradas = allOrders.filter(o => o.returnedToOperation).length;
     return [
-      { label: 'Pendiente de clasificar', value: pendientes },
-      { label: 'Órdenes activas', value: activas },
-      { label: 'Derivadas a Pumping', value: derivadas },
-      { label: 'Cerradas', value: cerradas },
+      { label: 'Pendiente de clasificar', value: pendientes, caption: 'Reportes nuevos', tone: 'warning' },
+      { label: 'Órdenes activas', value: activas, caption: 'En curso', tone: 'brand' },
+      { label: 'Derivadas a Pumping', value: derivadas, caption: 'Operativo', tone: 'neutral' },
+      { label: 'Cerradas', value: cerradas, caption: 'Este mes', tone: 'success' },
     ];
   });
+
+  /** Tarjetas de la bandeja Correctivo en móvil (Figma "M · Bandeja · Correctivo"). */
+  protected readonly itemsMovil = computed<RegistroMovil[]>(() =>
+    this.rows().map(r => {
+      const cerrada = r.statusBadge.text === 'Cerrado';
+      return {
+        id: r.id,
+        eyebrow: r.code,
+        title: r.unidad,
+        subtitle: r.kind === 'pending' ? `Reporte de unidad · ${r.origin}` : `${r.tipo} · ${r.origin}`,
+        status: r.statusBadge,
+        fields: [
+          { label: 'Fecha', value: r.fecha },
+          { label: 'Tipo', value: r.tipo },
+          { label: 'Origen', value: r.origin },
+        ],
+        actions: [
+          cerrada && r.kind === 'order'
+            ? { icon: 'file-text', label: 'Ver informe', primary: true, run: () => this.openReport(r) }
+            : { icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(r) },
+        ],
+      };
+    }),
+  );
+
+  /** Filas del Preventivo en móvil (Figma "M · Preventivo"): registrar mantenimiento (✓) e historial (reloj). */
+  protected readonly prevItemsMovil = computed<MntCompactItem[]>(() =>
+    this.prevRows().map(r => ({
+      id: r.id,
+      title: `${r.unidadCode} · ${r.descripcion}`,
+      lines: [`Actual ${r.actualLabel} · Próximo en ${r.proximoEn}`],
+      chips: [r.estadoBadge as { text: string; tone: 'success' | 'warning' | 'error' }],
+      actions: [
+        { icon: 'check', label: 'Registrar mantenimiento', run: () => this.openRegisterPM(r) },
+        { icon: 'clock', label: 'Ver historial', run: () => this.openHistorial(r) },
+      ],
+    })),
+  );
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 

@@ -19,26 +19,26 @@
     gap: 16px;
   }
 
-  .prev-stats {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(120px, 200px));
-    gap: 12px;
+  // Las tarjetas de resumen del preventivo filtran al tocarlas: borde morado en la activa.
+  .prev-stats__card {
+    cursor: pointer;
+    border-radius: var(--radius-lg, 16px);
 
-    &__card {
-      padding: 16px 24px;
-      border-radius: var(--radius-md, 6px);
-      border: var(--border-width, 1px) solid var(--border, #e5e4ea);
-      background: var(--surface, #fff);
-      cursor: pointer;
-      transition: border-color 0.15s, box-shadow 0.15s;
-
-      &:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
-
-      &--active { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12); }
-      &--rojo.prev-stats__card--active    { border-color: var(--error, #ff4d4f);   background: rgba(255,77,79,.06); }
-      &--amarillo.prev-stats__card--active { border-color: var(--warning, #faad14); background: rgba(250,173,20,.06); }
-      &--verde.prev-stats__card--active   { border-color: var(--success, #52c41a); background: rgba(82,196,26,.06); }
+    &:focus-visible {
+      outline: 2px solid var(--dynadrill-purple, #662e9b);
+      outline-offset: 2px;
     }
+
+    &--active {
+      outline: 2px solid var(--dynadrill-purple, #662e9b);
+      outline-offset: -2px;
+    }
+  }
+
+  &__nota {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: var(--text-muted, #5c5870);
   }
 
   .prev-toolbar {
@@ -68,28 +68,10 @@
   // ── Responsive ──
 
   @media (max-width: 600px) {
-    .prev-stats {
-      grid-template-columns: repeat(3, 1fr);
-    }
-
     .prev-toolbar__select {
       width: 100%;
     }
 
-    ::ng-deep dynadrill-kpi-row .dynadrill-kpi-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-    }
-
-    ::ng-deep dynadrill-kpi-row .dynadrill-kpi-card {
-      width: 100% !important;
-      min-width: unset !important;
-    }
   }
 
-  @media (max-width: 400px) {
-    .prev-stats {
-      grid-template-columns: 1fr;
-    }
-  }
 }

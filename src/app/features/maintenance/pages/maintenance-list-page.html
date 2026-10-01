@@ -1,11 +1,11 @@
 <div class="maintenance-list-page">
-  <dynadrill-screen-header
-    title="Mantenimiento"
-    subtitle="Dashboard de órdenes correctivas y preventivas"
-    [roleTag]="roleName()"
-  />
+  <app-page-header eyebrow="MANTENIMIENTO" title="Mantenimiento" subtitle="Dashboard de órdenes correctivas y preventivas" />
 
-  <dynadrill-kpi-row [items]="kpis()" />
+  <div class="kpi-stat-row" role="list">
+    @for (kpi of kpis(); track kpi.label) {
+      <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [caption]="kpi.caption" [tone]="kpi.tone" />
+    }
+  </div>
 
   <dynadrill-tabs
     [tabs]="tabs"
@@ -16,15 +16,19 @@
   <!-- ── TAB CORRECTIVO — hidden en lugar de @if para no destruir/recrear ── -->
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando órdenes…">
   <div [hidden]="activeTab() !== 0">
-    <div class="table-scroll">
-      <dynadrill-data-table
-        [columns]="columns()"
-        [rows]="rows()"
-        [rowKey]="rowKeyFn"
-        [pageSize]="10"
-        [actionsTemplate]="actionsTpl"
-      />
-    </div>
+    @if (isMobile()) {
+      <app-qhse-registros-movil [items]="itemsMovil()" [loading]="loading()" vacio="No hay órdenes ni reportes." />
+    } @else {
+      <div class="table-scroll dyn-table-card">
+        <dynadrill-data-table
+          [columns]="columns()"
+          [rows]="rows()"
+          [rowKey]="rowKeyFn"
+          [pageSize]="10"
+          [actionsTemplate]="actionsTpl"
+        />
+      </div>
+    }
 
     <ng-template #actionsTpl let-row>
       <div class="dyn-actions-row">
@@ -47,24 +51,19 @@
   <!-- ── TAB PREVENTIVO — hidden en lugar de @if para no destruir/recrear ── -->
   <div [hidden]="activeTab() !== 1" class="prev-section">
 
-    <!-- Statistics — clic filtra la tabla -->
-    <div class="prev-stats">
-      <div class="prev-stats__card prev-stats__card--rojo" [class.prev-stats__card--active]="filtroNivel() === 'rojo'" (click)="toggleFiltroNivel('rojo')">
-        <dynadrill-statistic [value]="resumenPreventivo().rojo" title="Vencidos" tone="error" />
-      </div>
-      <div class="prev-stats__card prev-stats__card--amarillo" [class.prev-stats__card--active]="filtroNivel() === 'amarillo'" (click)="toggleFiltroNivel('amarillo')">
-        <dynadrill-statistic [value]="resumenPreventivo().amarillo" title="Próximos" tone="warning" />
-      </div>
-      <div class="prev-stats__card prev-stats__card--verde" [class.prev-stats__card--active]="filtroNivel() === 'verde'" (click)="toggleFiltroNivel('verde')">
-        <dynadrill-statistic [value]="resumenPreventivo().verde" title="Al día" tone="success" />
-      </div>
+    <!-- Tarjetas de resumen — clic filtra la lista -->
+    <div class="kpi-stat-row prev-stats" role="list">
+      <app-kpi-stat class="prev-stats__card" tabindex="0" [class.prev-stats__card--active]="filtroNivel() === 'rojo'" [value]="resumenPreventivo().rojo" label="Vencidos" caption="Toca filtrar" tone="error" (click)="toggleFiltroNivel('rojo')" (keydown.enter)="toggleFiltroNivel('rojo')" />
+      <app-kpi-stat class="prev-stats__card" tabindex="0" [class.prev-stats__card--active]="filtroNivel() === 'amarillo'" [value]="resumenPreventivo().amarillo" label="Próximos" caption="En ventana" tone="warning" (click)="toggleFiltroNivel('amarillo')" (keydown.enter)="toggleFiltroNivel('amarillo')" />
+      <app-kpi-stat class="prev-stats__card" tabindex="0" [class.prev-stats__card--active]="filtroNivel() === 'verde'" [value]="resumenPreventivo().verde" label="Al día" caption="Sin acción" tone="success" (click)="toggleFiltroNivel('verde')" (keydown.enter)="toggleFiltroNivel('verde')" />
     </div>
 
     <!-- Toolbar de filtros -->
     <div class="prev-toolbar">
       <dynadrill-select
         class="prev-toolbar__select"
-        placeholder="Tipo de unidad"
+        label="Tipo de unidad"
+        placeholder="Todos"
         [options]="tipoOptions"
         [value]="filtroTipo()"
         (valueChange)="filtroTipo.set($any($event)); prevPage.set(1)"
@@ -77,25 +76,24 @@
       <span class="prev-toolbar__count">{{ alertasFiltradas().length }} registros</span>
     </div>
 
-    <!--
-      Sin scrollX: nzScroll.x hace que nz-table mida el ancho "natural" de
-      cada columna con un renglón oculto (ant-table-measure-now) y lo fije
-      en px vía colgroup — esa medición no esperaba a que dynadrill-button
-      terminara de renderizar dentro del actionsTemplate, midió esa columna
-      en ~15px y la dejó fija así aunque el contenido real fuera mucho más
-      ancho (de ahí el texto montado/el encabezado partido letra por letra).
-      Sin scrollX, table-layout vuelve a "auto": cada columna se dimensiona
-      según su contenido real, sin medición previa que se pueda desincronizar.
-    -->
-    <div class="table-scroll">
-      <dynadrill-data-table
-        [columns]="prevColumns"
-        [rows]="prevRows()"
-        [rowKey]="prevRowKeyFn"
-        [pageSize]="10"
-        [actionsTemplate]="prevActionsTpl"
-      />
-    </div>
+    @if (isMobile()) {
+      <app-mnt-compact-list [items]="prevItemsMovil()" vacio="No hay mantenimientos preventivos con ese filtro." />
+    } @else {
+      <!--
+        Sin scrollX: nzScroll.x mide el ancho "natural" de cada columna con un renglón oculto y lo fija en px;
+        esa medición no esperaba a que dynadrill-button renderizara dentro del actionsTemplate y dejaba la
+        columna de acciones en ~15px. Sin scrollX, table-layout vuelve a "auto".
+      -->
+      <div class="table-scroll dyn-table-card">
+        <dynadrill-data-table
+          [columns]="prevColumns"
+          [rows]="prevRows()"
+          [rowKey]="prevRowKeyFn"
+          [pageSize]="10"
+          [actionsTemplate]="prevActionsTpl"
+        />
+      </div>
+    }
 
     <ng-template #prevActionsTpl let-row>
       <div class="dyn-actions-row">
@@ -107,6 +105,7 @@
 
   <!-- ── TAB INSPECCIONES — solo lectura, visibilidad total (con y sin novedad) ── -->
   <div [hidden]="activeTab() !== 2">
+    <p class="maintenance-list-page__nota">Solo lectura — las inspecciones las aprueba el Supervisor.</p>
     <app-vehicle-inspections-table
       [inspections]="inspections()"
       [orders]="orders()"

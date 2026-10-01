@@ -5,6 +5,8 @@ import {
   DynadrillDataTableComponent,
   DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
+import { injectNarrowViewport } from '../../../core/utils/narrow-viewport.util';
+import { MntCompactList, type MntCompactItem } from './mnt-compact-card';
 import { VehicleInspection, vehicleInspectionHasNoCumple } from '../models/vehicle-inspection.model';
 import { MaintenanceOrderWithSubOrders } from '../models/maintenance-order.model';
 import { UnitReport } from '../models/unit-report.model';
@@ -38,11 +40,12 @@ const EDITABLE_STATES: InspectionStateKey[] = ['sinNovedad', 'conNovedad', 'repo
  */
 @Component({
   selector: 'app-vehicle-inspections-table',
-  imports: [DynadrillDataTableComponent, DynadrillButtonComponent],
+  imports: [DynadrillDataTableComponent, DynadrillButtonComponent, MntCompactList],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './vehicle-inspections-table.html',
 })
 export class VehicleInspectionsTable {
+  protected readonly isMobile = injectNarrowViewport();
   readonly inspections = input.required<VehicleInspection[]>();
   readonly orders = input.required<MaintenanceOrderWithSubOrders[]>();
   readonly unitReports = input.required<UnitReport[]>();
@@ -102,6 +105,24 @@ export class VehicleInspectionsTable {
         canApprove: this.approvable() && !i.supervisorApprovedBy,
       };
     }),
+  );
+
+  /** Tarjetas en móvil (Figma "M · Bandeja · Inspecciones"): ver detalle con el ojo; editar/aprobar si corresponde. */
+  protected readonly itemsMovil = computed<MntCompactItem[]>(() =>
+    this.rows().map(r => ({
+      id: r['id'] as number,
+      title: `INS-${String(r['id']).padStart(4, '0')} · ${r['unidadCode']}`,
+      lines: [`${r['fecha']} · ${r['inspeccionadoPor']}`, `${r['puntoPartida']} → ${r['destino']}`],
+      chips: [
+        r['estadoBadge'] as { text: string; tone: 'success' | 'warning' | 'error' | 'info' | 'neutral' },
+        r['aprobacionBadge'] as { text: string; tone: 'success' | 'warning' },
+      ],
+      actions: [
+        { icon: 'eye', label: 'Ver detalle', run: () => this.onView(r) },
+        ...(r['canEdit'] ? [{ icon: 'edit', label: 'Editar inspección', run: () => this.onEdit(r) }] : []),
+        ...(r['canApprove'] ? [{ icon: 'check', label: 'Aprobar inspección', run: () => this.onApprove(r) }] : []),
+      ],
+    })),
   );
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);

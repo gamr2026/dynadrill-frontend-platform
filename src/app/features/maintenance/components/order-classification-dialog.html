@@ -18,12 +18,6 @@
     <div class="order-classification-dialog__novedades">
       <div class="order-classification-dialog__novedades-header">
         <dynadrill-text variant="caption">Novedades reportadas</dynadrill-text>
-        @if (requiresMaintenance() === null) {
-          <div class="order-classification-dialog__novedades-actions">
-            <dynadrill-button size="small" (clicked)="chooseYes()">Clasificar</dynadrill-button>
-            <dynadrill-button size="small" variant="secondary" (clicked)="chooseNo()">Descartar</dynadrill-button>
-          </div>
-        }
       </div>
 
       @for (row of novedadRows(); track row.cat) {
@@ -145,7 +139,11 @@
     </div>
 
     <div class="order-classification-dialog__actions">
-      <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+      @if (isEditMode) {
+        <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
+      } @else {
+        <dynadrill-button variant="secondary" (clicked)="chooseNo()">Descartar</dynadrill-button>
+      }
       <dynadrill-button [disabled]="!canConfirm() || submitting()" (clicked)="confirm()">
         {{ submitting() ? 'Guardando…' : isEditMode ? 'Guardar cambios' : 'Confirmar clasificación' }}
       </dynadrill-button>

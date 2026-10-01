@@ -26,6 +26,7 @@ export interface SuborderReviewDialogData {
  */
 @Component({
   selector: 'app-suborder-review-dialog',
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [
     CommonModule,
     DynadrillTextComponent,

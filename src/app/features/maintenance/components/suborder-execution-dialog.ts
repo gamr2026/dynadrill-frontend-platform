@@ -20,6 +20,7 @@ export interface SuborderExecutionDialogData {
 
 @Component({
   selector: 'app-suborder-execution-dialog',
+  host: { class: 'app-dialog-fullscreen-mobile' },
   imports: [
     CommonModule,
     DynadrillTextComponent,

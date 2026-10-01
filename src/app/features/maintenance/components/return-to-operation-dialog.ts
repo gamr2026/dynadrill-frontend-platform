@@ -36,6 +36,7 @@ const STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
 
 @Component({
   selector: 'app-return-to-operation-dialog',
+  host: { class: 'app-dialog-fullscreen-mobile' },
   imports: [CommonModule, DynadrillTextComponent, DynadrillInputComponent, DynadrillTextareaComponent, DynadrillButtonComponent, DynadrillCardComponent, DynadrillTagComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './return-to-operation-dialog.html',

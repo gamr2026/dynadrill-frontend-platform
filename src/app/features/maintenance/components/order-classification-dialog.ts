@@ -60,6 +60,8 @@ const NOVEDAD_ORDEN: NovedadCategoria[] = ['mecanica', 'instrumentacion', 'opera
  */
 @Component({
   selector: 'app-order-classification-dialog',
+  /** Pantalla completa en móvil (Figma \"M · Clasificación de reporte\") — ver styles.scss. */
+  host: { class: 'app-dialog-fullscreen-mobile' },
   imports: [
     CommonModule,
     DynadrillTextComponent,
@@ -85,7 +87,7 @@ export class OrderClassificationDialog {
   protected readonly isEditMode = !!this.data.existingOrder;
 
   protected readonly requiresMaintenance = signal<boolean | null>(
-    (this.isEditMode || this.data.skipDecision) ? true : null,
+    true,
   );
   protected readonly selectedTypes = signal<MaintenanceType[]>(this.data.existingOrder?.subOrders.map(s => s.type) ?? []);
   protected readonly dismissReason = signal('');

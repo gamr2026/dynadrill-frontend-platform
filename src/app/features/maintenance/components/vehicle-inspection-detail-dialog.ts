@@ -21,6 +21,7 @@ export interface VehicleInspectionDetailDialogData {
  */
 @Component({
   selector: 'app-vehicle-inspection-detail-dialog',
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [DynadrillContextCardComponent, DynadrillDataTableComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './vehicle-inspection-detail-dialog.html',

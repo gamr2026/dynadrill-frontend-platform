@@ -36,6 +36,7 @@ const NIVEL_LABEL: Record<AlertaPreventivaNivel, string> = {
 
 @Component({
   selector: 'app-register-pm-dialog',
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [
     DynadrillTextComponent,
     DynadrillInputComponent,

@@ -61,6 +61,7 @@ function toDualItems(labels: string[]): ChecklistDualItem[] {
  */
 @Component({
   selector: 'app-unit-report-dialog',
+  host: { class: 'app-dialog-fullscreen-mobile' },
   imports: [
     CommonModule,
     DynadrillInputComponent,

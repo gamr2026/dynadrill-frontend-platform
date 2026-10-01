@@ -11,6 +11,7 @@ export interface DeriveToPumpingDialogData {
 /** El Jefe deriva una sub-orden Operativo a Pumping — sale del flujo de Mantenimiento a partir de acá. */
 @Component({
   selector: 'app-derive-to-pumping-dialog',
+  host: { class: 'app-dialog-sheet-mobile' },
   imports: [DynadrillTextComponent, DynadrillTextareaComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './derive-to-pumping-dialog.html',

@@ -40,7 +40,7 @@ import { HistorialDialog, HistorialDialogData } from '../components/historial-di
 import { VehicleInspectionsTable } from '../components/vehicle-inspections-table';
 import { VehicleInspectionsService } from '../services/vehicle-inspections.service';
 import { ConductorPermisos, VehicleInspection, conductorPermisosPorVencer } from '../models/vehicle-inspection.model';
-import { VehicleInspectionDetailDialog, VehicleInspectionDetailDialogData } from '../components/vehicle-inspection-detail-dialog';
+import { VehicleInspectionDialog, VehicleInspectionDialogData } from '../components/vehicle-inspection-dialog';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -167,14 +167,17 @@ export class MaintenanceListPage {
 
   protected readonly prevRowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
-  /** Pestaña Inspecciones — el Jefe solo tiene visibilidad, sin acción sobre el registro. */
+  /**
+   * Pestaña Inspecciones — el Jefe solo tiene visibilidad. Abre el mismo diálogo que Pumping (DYN-SGI-RE-068, paso a
+   * paso) en modo lectura, así ambos roles ven la inspección igual.
+   */
   protected viewInspection(inspection: VehicleInspection): void {
-    this.dialogService.open<VehicleInspectionDetailDialog, VehicleInspectionDetailDialogData>({
-      title: `Inspección de Vehículos — ${inspection.unidadCode}`,
-      content: VehicleInspectionDetailDialog,
-      data: { inspection },
+    this.dialogService.open<VehicleInspectionDialog, VehicleInspectionDialogData>({
+      title: 'Detalle de Inspección — DYN-SGI-RE-068',
+      content: VehicleInspectionDialog,
+      data: { existing: inspection, readonly: true },
+      size: 'large',
       footer: false,
-      width: '640px',
     });
   }
 

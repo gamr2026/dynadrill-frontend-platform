@@ -589,10 +589,9 @@ body {
       border-radius: 0;
     }
 
+    // El encabezado conserva su fondo navy de marca (el título y la X son blancos): solo se ajusta el espacio.
     .ant-drawer-header {
       padding: 20px 16px;
-      background: var(--surface, #fff);
-      border-bottom: 1px solid var(--border, #e5e4ea);
     }
 
     .ant-drawer-body {

@@ -12,6 +12,9 @@
 
   // El botón de reporte va al final de la barra, a la derecha.
   &__descargar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin-left: auto;
   }
 

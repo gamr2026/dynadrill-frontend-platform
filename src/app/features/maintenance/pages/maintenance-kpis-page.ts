@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
+import * as XLSX from 'xlsx';
 import { NgxEchartsDirective } from 'ngx-echarts';
 import type { EChartsCoreOption } from 'echarts/core';
 import {
@@ -10,6 +11,7 @@ import {
   DynadrillDataTableComponent,
   DynadrillDatetimePickerComponent,
   DynadrillDrawerService,
+  DynadrillIconButtonComponent,
   DynadrillNotificationService,
   DynadrillSelectComponent,
   DynadrillSpinnerComponent,
@@ -142,6 +144,7 @@ function donutOptions(segments: { name: string; value: number; color: string }[]
     DynadrillSelectComponent,
     DynadrillDatetimePickerComponent,
     DynadrillButtonComponent,
+    DynadrillIconButtonComponent,
     NgxEchartsDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -231,8 +234,8 @@ export class MaintenanceKpisPage {
     return d.toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
-  /** Abre el reporte de los indicadores con el filtro vigente (tipo de unidad y rango de fechas) para imprimirlo o guardarlo en PDF. */
-  protected descargarReporte(): void {
+  /** Datos del reporte con el filtro vigente (tipo de unidad y rango de fechas) — los comparten el PDF y el Excel. */
+  private datosReporte(): IndicadoresMantenimientoDatos {
     const desde = this.fechaDesde();
     const hasta = this.fechaHasta();
     const rango =
@@ -243,7 +246,7 @@ export class MaintenanceKpisPage {
     const { cumplen, noCumplen } = this.cumplimientoPorUnidad();
     const { disponibles, noDisponibles } = this.disponibilidadPorUnidad();
 
-    const datos: IndicadoresMantenimientoDatos = {
+    return {
       filtros: `${tipo ? 'Tipo de unidad: ' + tipo : 'Todos los tipos de unidad'} · ${rango}`,
       generadoEn: new Date().toLocaleString('es-EC'),
       kpis: this.kpis().map(k => ({ label: k.label, value: String(k.value) })),
@@ -258,13 +261,57 @@ export class MaintenanceKpisPage {
         estado: computeOrderStatus(o, o.subOrders),
       })),
     };
+  }
 
+  /** Abre el reporte de los indicadores para imprimirlo o guardarlo en PDF. */
+  protected descargarReporte(): void {
     this.documentoPdf.abrir({
       titulo: 'Reporte de Indicadores de Mantenimiento',
       component: IndicadoresMantenimientoHoja,
-      inputs: { datos },
+      inputs: { datos: this.datosReporte() },
       nombreArchivo: 'Indicadores de Mantenimiento',
     });
+  }
+
+  /** Descarga el mismo reporte como libro de Excel: una hoja por bloque, para poder filtrar y graficar. */
+  protected descargarExcel(): void {
+    const d = this.datosReporte();
+    const libro = XLSX.utils.book_new();
+    const agregar = (nombre: string, filas: (string | number)[][], anchos: number[]): void => {
+      const hoja = XLSX.utils.aoa_to_sheet(filas);
+      hoja['!cols'] = anchos.map(wch => ({ wch }));
+      XLSX.utils.book_append_sheet(libro, hoja, nombre);
+    };
+
+    const pct = (parte: number, otra: number): string => (parte + otra ? `${Math.round((parte / (parte + otra)) * 100)} %` : '—');
+    agregar(
+      'Indicadores',
+      [
+        ['Reporte de Indicadores de Mantenimiento (MAN-MASTER-001)'],
+        ['Filtro', d.filtros],
+        ['Generado', d.generadoEn],
+        [],
+        ['Indicador', 'Valor'],
+        ...d.kpis.map(k => [k.label, k.value]),
+      ],
+      [34, 40],
+    );
+    agregar(
+      'Flota',
+      [
+        ['Clasificación', 'Unidades', '%'],
+        ['Cumplen el plan preventivo', d.cumplimiento.cumplen, pct(d.cumplimiento.cumplen, d.cumplimiento.noCumplen)],
+        ['No cumplen el plan preventivo', d.cumplimiento.noCumplen, pct(d.cumplimiento.noCumplen, d.cumplimiento.cumplen)],
+        ['Disponibles', d.disponibilidad.disponibles, pct(d.disponibilidad.disponibles, d.disponibilidad.noDisponibles)],
+        ['No disponibles', d.disponibilidad.noDisponibles, pct(d.disponibilidad.noDisponibles, d.disponibilidad.disponibles)],
+      ],
+      [34, 12, 10],
+    );
+    agregar('Órdenes por tipo', [['Tipo de unidad', 'Órdenes'], ...d.ordenesPorTipo.map(o => [o.tipo, o.cantidad])], [24, 12]);
+    agregar('Fallas repetitivas', [['Unidad', 'Órdenes correctivas'], ...d.fallasRepetitivas.map(f => [f.unidad, f.cantidad])], [18, 22]);
+    agregar('Órdenes', [['Orden', 'Unidad', 'Fecha', 'Estado'], ...d.ordenes.map(o => [o.code, o.unidad, o.fecha, o.estado])], [16, 16, 14, 22]);
+
+    XLSX.writeFile(libro, `Indicadores de Mantenimiento ${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
   constructor() {

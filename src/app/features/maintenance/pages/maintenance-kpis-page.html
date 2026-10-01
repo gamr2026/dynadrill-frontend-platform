@@ -31,7 +31,10 @@
     @if (hayFiltros()) {
       <dynadrill-button variant="secondary" size="small" (clicked)="limpiarFiltros()">Limpiar filtros</dynadrill-button>
     }
-    <dynadrill-button class="maintenance-kpis-page__descargar" variant="secondary" (clicked)="descargarReporte()">Descargar reporte</dynadrill-button>
+    <div class="maintenance-kpis-page__descargar">
+      <dynadrill-button variant="secondary" (clicked)="descargarReporte()">Descargar reporte (PDF)</dynadrill-button>
+      <dynadrill-icon-button icon="file-excel" tooltip="Exportar a Excel" tooltipPlacement="top" (clicked)="descargarExcel()" />
+    </div>
   </div>
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Calculando indicadores…">

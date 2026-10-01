@@ -10,12 +10,11 @@
     gap: 10px;
   }
 
-  // El botón de reporte va al final de la barra, a la derecha.
+  // Botones de reporte pegados a los filtros, alineados con la base de los campos.
   &__descargar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-left: auto;
+    gap: 6px;
   }
 
   &__toolbar-fecha {

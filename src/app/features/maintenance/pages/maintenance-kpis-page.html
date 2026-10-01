@@ -32,7 +32,7 @@
       <dynadrill-button variant="secondary" size="small" (clicked)="limpiarFiltros()">Limpiar filtros</dynadrill-button>
     }
     <div class="maintenance-kpis-page__descargar">
-      <dynadrill-button variant="secondary" (clicked)="descargarReporte()">Descargar reporte (PDF)</dynadrill-button>
+      <dynadrill-icon-button icon="file-pdf" tooltip="Descargar reporte en PDF" tooltipPlacement="top" (clicked)="descargarReporte()" />
       <dynadrill-icon-button icon="file-excel" tooltip="Exportar a Excel" tooltipPlacement="top" (clicked)="descargarExcel()" />
     </div>
   </div>

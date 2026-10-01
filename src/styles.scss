@@ -574,6 +574,35 @@ body {
 }
 
 /**
+ * Drawer a pantalla completa en móvil (Figma "M · Orden · Detalle"): el contenido marca su host con
+ * `.app-drawer-fullscreen-mobile` y el panel lateral pasa a ocupar toda la pantalla, con el cierre a la izquierda
+ * del título (Nav/TopAppBar Type=Detail).
+ */
+@media (max-width: 840px) {
+  .ant-drawer:has(.app-drawer-fullscreen-mobile) {
+    .ant-drawer-content-wrapper {
+      width: 100vw !important;
+      max-width: 100vw;
+    }
+
+    .ant-drawer-content {
+      border-radius: 0;
+    }
+
+    .ant-drawer-header {
+      padding: 20px 16px;
+      background: var(--surface, #fff);
+      border-bottom: 1px solid var(--border, #e5e4ea);
+    }
+
+    .ant-drawer-body {
+      padding: 16px;
+      background: var(--surface-muted, #faf9fc);
+    }
+  }
+}
+
+/**
  * Layout de pantallas de detalle: contenido a la izquierda y un panel
  * lateral a la derecha — "Avance del ticket" en Pumping/FCR, "Datos del
  * artículo" en Inventario (D · Ticket Pumping / D · Artículos · Detalle en

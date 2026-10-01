@@ -1,16 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_DRAWER_DATA, NzDrawerRef } from 'ng-zorro-antd/drawer';
 import {
-  DynadrillAvatarComponent,
   DynadrillButtonComponent,
-  DynadrillCardComponent,
   DynadrillDialogService,
   DynadrillIconButtonComponent,
   DynadrillNotificationService,
   DynadrillSelectComponent,
-  DynadrillTagComponent,
   DynadrillTextareaComponent,
-  DynadrillTextComponent,
   type DynadrillSelectOption,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
@@ -21,6 +17,7 @@ import { DeriveToPumpingDialog, DeriveToPumpingDialogData } from './derive-to-pu
 import { ReturnToOperationDialog, ReturnToOperationDialogData } from './return-to-operation-dialog';
 import { RolesService } from '../../users/services/users.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { QhseChip } from '../../qhse/shared/components/qhse-chip';
 
 export interface OrderDetailPanelData {
   unitReport: UnitReport;
@@ -49,15 +46,14 @@ const STATUS_ACCENT: Record<SubOrderStatus, 'warning' | 'info' | 'brand' | 'succ
 
 @Component({
   selector: 'app-order-detail-panel',
+  /** Pantalla completa en móvil (Figma "M · Orden · Detalle") — ver styles.scss. */
+  host: { class: 'app-drawer-fullscreen-mobile' },
   imports: [
-    DynadrillTextComponent,
     DynadrillButtonComponent,
-    DynadrillTagComponent,
     DynadrillSelectComponent,
-    DynadrillCardComponent,
-    DynadrillAvatarComponent,
     DynadrillIconButtonComponent,
     DynadrillTextareaComponent,
+    QhseChip,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './order-detail-panel.html',
@@ -93,6 +89,12 @@ export class OrderDetailPanel {
   protected readonly reviewing = signal(false);
 
   protected readonly statusTone = STATUS_TONE;
+
+  /** Tono del chip del estado general de la orden. */
+  protected readonly orderTone = computed<'success' | 'neutral' | 'error' | 'warning'>(() => {
+    const status = this.orderStatus();
+    return status === 'Aceptado' ? 'success' : status === 'Cerrado' ? 'neutral' : status === 'Requiere cambios' ? 'error' : 'warning';
+  });
   protected readonly statusAccent = STATUS_ACCENT;
 
   constructor() {

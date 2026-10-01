@@ -1,135 +1,171 @@
-.order-detail-panel {
+.odp {
   display: flex;
   flex-direction: column;
   gap: 16px;
 
-  &__order-info {
+  &__cabecera {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding-bottom: 12px;
-    border-bottom: var(--border-width, 1px) solid var(--border, #e5e4ea);
+    align-items: flex-start;
+    gap: 4px;
   }
 
-  &__row {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
+  &__eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dynadrill-purple, #662e9b);
   }
 
-  &__order-actions {
-    display: flex;
-    gap: 8px;
-
-    > * { flex: none; }
+  &__codigo {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--dynadrill-navy, #131529);
   }
 
-  &__suborders {
+  &__unidad {
+    margin: 0 0 8px;
+    font-size: 14px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__subs {
     display: flex;
     flex-direction: column;
     gap: 12px;
   }
 
-  // ── Dentro de cada DynadrillCard ──
-
-  &__card-extra {
+  &__sub {
     display: flex;
-    align-items: center;
-    gap: 6px;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-lg, 16px);
+    box-shadow: 0 1px 2px rgba(19, 21, 41, 0.05);
+
+    // La que espera la revisión del Jefe va resaltada (Figma: borde azul).
+    &--destacada {
+      border: 2px solid var(--info, #1890ff);
+    }
   }
 
-  &__card-header {
+  &__sub-cabecera {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 8px;
-    width: 100%;
   }
 
-  &__card-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  &__sub-titulo {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--dynadrill-navy, #131529);
   }
 
-  &__card-body {
+  &__sub-iconos {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  &__operator-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  &__operator-details {
-    display: flex;
-    flex-direction: column;
+    flex: none;
     gap: 2px;
   }
 
-  &__operator-row {
+  &__chips {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-
-    > * { flex: none; }
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
-  &__inline-edit {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
+  &__datos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin: 0;
 
-  &__inline-actions {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-
-    > * { flex: none; }
-  }
-
-  &__expanded {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 10px 12px;
-    background: var(--surface-muted, #faf9fc);
-    border-radius: var(--radius-sm, 4px);
-    border: var(--border-width, 1px) solid var(--border, #e5e4ea);
-  }
-
-  &__review-inline {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 10px 12px;
-    background: rgba(102, 46, 155, 0.04);
-    border: 1px solid rgba(102, 46, 155, 0.15);
-    border-radius: var(--radius-sm, 4px);
-  }
-
-  &__review-actions {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-
-    > * { flex: none; }
-  }
-
-  &__suborder-actions {
-    display: flex;
-    gap: 8px;
-
-    > * { flex: none; }
-
-    ::ng-deep dynadrill-button {
-      display: inline-flex !important;
-      width: auto !important;
+    dt {
+      font-size: 12px;
+      color: var(--text-muted, #5c5870);
     }
+
+    dd {
+      margin: 2px 0 0;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--dynadrill-navy, #131529);
+    }
+  }
+
+  &__detalle {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border, #e5e4ea);
+  }
+
+  &__texto {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--text, #2c2b35);
+  }
+
+  &__nota {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__repuesto {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border, #e5e4ea);
+  }
+
+  &__repuesto-parte {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--dynadrill-purple, #662e9b);
+  }
+
+  &__edicion {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__fila-botones {
+    display: flex;
+    gap: 8px;
+
+    > * {
+      flex: 1;
+    }
+  }
+
+  &__ancho {
+    display: block;
+  }
+
+  // "Derivar a Pumping" va tintado de lila (Figma), no como botón secundario con borde.
+  &__derivar ::ng-deep .ant-btn {
+    background: var(--dynadrill-purple-tint-strong, #e7deef);
+    border-color: transparent;
+    color: var(--dynadrill-purple, #662e9b);
+  }
+
+  // Botones a todo el ancho y altos, como en el Figma móvil.
+  &__ancho ::ng-deep .ant-btn,
+  &__fila-botones ::ng-deep .ant-btn {
+    width: 100%;
+    height: 48px;
+    border-radius: var(--radius-md, 12px);
+    font-weight: 600;
   }
 }

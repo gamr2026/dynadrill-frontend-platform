@@ -37,6 +37,19 @@
   </button>
   <img class="app-header__logo" src="/brand/dynadrill-logo.svg" alt="Dynadrill" />
   <div class="app-header__spacer"></div>
+  @if (puedeActuarComo()) {
+    <button type="button" class="app-header__actuar" nz-dropdown [nzDropdownMenu]="rolesMenu" nzTrigger="click" nzPlacement="bottomRight" aria-label="Actuar como otro rol">
+      <dynadrill-icon name="users" [size]="14" />
+      <span class="app-header__actuar-texto">Actuar como: <strong>{{ rolActual() }}</strong></span>
+    </button>
+    <nz-dropdown-menu #rolesMenu="nzDropdownMenu">
+      <ul nz-menu class="app-header__roles-menu">
+        @for (r of roles(); track r.id) {
+          <li nz-menu-item [nzSelected]="r.name === rolActual()" (click)="actuarComo(r.id, r.name)">{{ r.name }}</li>
+        }
+      </ul>
+    </nz-dropdown-menu>
+  }
   <dynadrill-button class="app-header__reportar-btn" variant="error" size="small" (clicked)="actions.openReportar()">
     <dynadrill-icon name="alert" [size]="14" />
     Reportar

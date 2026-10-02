@@ -13,6 +13,33 @@
     width: auto;
   }
 
+  // Selector de rol de la demo (solo sesiones Superadmin).
+  &__actuar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: none;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px dashed var(--brand, #1f3a6e);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--brand, #1f3a6e);
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  &__roles-menu {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  @media (max-width: 840px) {
+    &__actuar-texto {
+      display: none;
+    }
+  }
+
   &__spacer {
     flex: 1 1 auto;
   }

@@ -20,6 +20,7 @@ interface LoginResponse {
 
 const TOKEN_KEY = 'dynadrill_access_token';
 const USER_KEY = 'dynadrill_current_user';
+const SUPERADMIN_KEY = 'dynadrill_superadmin_real';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -31,14 +32,33 @@ export class AuthService {
   readonly isAuthenticated = computed(() => this.token() !== null);
   readonly currentUser = computed(() => this.user());
 
+  /**
+   * La sesión se abrió con una cuenta Superadmin (aunque ahora actúe con otro rol vía `switchRole`) —
+   * habilita el selector "Actuar como" del header para recorrer un flujo completo en la demo.
+   */
+  private readonly superadminReal = signal(localStorage.getItem(SUPERADMIN_KEY) === '1');
+  readonly puedeActuarComo = computed(() => this.isAuthenticated() && this.superadminReal());
+
   login(email: string, password: string): Observable<LoginResponse> {
     return this.http
       .post<LoginResponse>(`${environment.apiUrl}/auth/login`, { email, password })
-      .pipe(tap(({ accessToken, user }) => this.setSession(accessToken, user)));
+      .pipe(
+        tap(({ accessToken, user }) => {
+          this.setSession(accessToken, user);
+          this.marcarSuperadminReal(user?.roleName === 'Superadmin');
+        }),
+      );
   }
 
   logout(): void {
     this.setSession(null, null);
+    this.marcarSuperadminReal(false);
+  }
+
+  private marcarSuperadminReal(valor: boolean): void {
+    this.superadminReal.set(valor);
+    if (valor) localStorage.setItem(SUPERADMIN_KEY, '1');
+    else localStorage.removeItem(SUPERADMIN_KEY);
   }
 
   /**

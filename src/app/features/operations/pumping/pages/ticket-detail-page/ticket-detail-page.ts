@@ -539,6 +539,9 @@ export class TicketDetailPage {
   /** Líneas del pedido que Ventas marcó como químico. */
   protected readonly chemicalsPedido = computed(() => this.pedidoItems().filter(it => it.esQuimico));
 
+  /** Líneas del pedido que Ventas marcó como herramienta — se asignan al ticket al guardar la asignación. */
+  protected readonly herramientasPedido = computed(() => this.pedidoItems().filter(it => it.esHerramienta));
+
   /** Cada línea de químico del pedido, emparejada con su Articulo real de Inventario por código (o `undefined` si no hay coincidencia — Ventas y Bodega no siempre usan el mismo código). */
   protected readonly chemicalsPedidoResueltos = computed(() =>
     this.chemicalsPedido().map(item => ({ item, articulo: this.chemicalArticulos().find(a => a.codigo === item.codigo) })),
@@ -2338,6 +2341,7 @@ export class TicketDetailPage {
       unitIds: this.selectedUnits(),
       assignments: this.operatorAssignments(),
       chemicals,
+      tools: this.herramientasPedido().map(it => ({ codigo: it.codigo, name: it.descripcion, unit: it.unidad ?? '', cantidad: it.cantidad })),
       chemicalMixtureDocument: this.chemicalMixtureDocument()?.name,
     }).subscribe({
       next: updated => {

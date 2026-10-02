@@ -109,6 +109,9 @@ export interface PumpingTool {
   name: string;
   serialCode: string;
   status: 'seleccionada' | 'instalada' | 'devuelta';
+  /** Presentes cuando la herramienta viene cotizada en el pedido de Ventas. */
+  cantidad?: number;
+  unit?: string;
 }
 
 export interface PumpingOperator {

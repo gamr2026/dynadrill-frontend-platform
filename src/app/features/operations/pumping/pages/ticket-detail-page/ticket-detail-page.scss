@@ -1259,3 +1259,37 @@ details.dyn-accordion {
   flex-wrap: wrap;
   gap: 8px;
 }
+
+.ticket-detail__subtitle {
+  margin: 16px 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ticket-detail__herramientas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 12px;
+    align-items: baseline;
+    padding: 8px 12px;
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: 8px;
+  }
+}
+
+.ticket-detail__herramienta-codigo {
+  font-weight: 600;
+}
+
+.ticket-detail__herramienta-cant {
+  color: var(--text-secondary, #5c5b66);
+  white-space: nowrap;
+}

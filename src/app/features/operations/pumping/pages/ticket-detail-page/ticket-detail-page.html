@@ -345,13 +345,15 @@
       </section>
 
       <section class="ticket-detail__section">
-        <h2 class="ticket-detail__card-title">Químicos del pedido</h2>
+        <h2 class="ticket-detail__card-title">Químicos y herramientas del pedido</h2>
         <dynadrill-text variant="caption" class="ticket-detail__only-desktop">
-          Definidos por Ventas al crear el pedido — se precargan solos contra el catálogo real de Inventario. Ajustá la
-          cantidad a retirar si hace falta.
+          Lo que Ventas cotizó al crear el pedido. Los químicos se precargan contra el catálogo real de Inventario (ajustá la
+          cantidad a retirar si hace falta) y las herramientas quedan asignadas al ticket.
         </dynadrill-text>
+
+        <h3 class="ticket-detail__subtitle">Químicos</h3>
         @if (chemicalsPedido().length === 0) {
-          <dynadrill-text variant="caption">Este pedido no tiene ítems marcados como químico.</dynadrill-text>
+          <dynadrill-text variant="caption">Ventas no incluyó químicos en este pedido.</dynadrill-text>
         }
         @for (r of chemicalsPedidoResueltos(); track r.item.codigo) {
           @if (r.articulo; as articulo) {
@@ -374,6 +376,21 @@
               <dynadrill-select placeholder="Químico real de Inventario" [options]="chemicalOptions()" [value]="null" (valueChange)="onResolverQuimicoManual(r.item, $any($event))" />
             </div>
           }
+        }
+
+        <h3 class="ticket-detail__subtitle">Herramientas</h3>
+        @if (herramientasPedido().length === 0) {
+          <dynadrill-text variant="caption">Ventas no incluyó herramientas en este pedido.</dynadrill-text>
+        } @else {
+          <ul class="ticket-detail__herramientas">
+            @for (item of herramientasPedido(); track item.codigo) {
+              <li>
+                <span class="ticket-detail__herramienta-codigo">{{ item.codigo }}</span>
+                <span class="ticket-detail__herramienta-nombre">{{ item.descripcion }}</span>
+                <span class="ticket-detail__herramienta-cant">{{ item.cantidad }}{{ item.unidad ? ' ' + item.unidad : '' }}</span>
+              </li>
+            }
+          </ul>
         }
       </section>
 

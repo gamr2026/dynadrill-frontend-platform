@@ -471,6 +471,26 @@ export class NuevoPedidoDialog {
     );
   }
 
+  /** Tipo de cada línea de la cotización de Pumping — decide si el código sale del catálogo de químicos, de herramientas o es texto libre (servicio). */
+  protected readonly tipoLineaOptions: DynadrillSelectOption[] = [
+    { label: 'Servicio', value: 'servicio' },
+    { label: 'Químico', value: 'quimico' },
+    { label: 'Herramienta', value: 'herramienta' },
+  ];
+
+  protected tipoDeLinea(l: LineaEstimadaDraft): 'servicio' | 'quimico' | 'herramienta' {
+    return l.esQuimico ? 'quimico' : l.esHerramienta ? 'herramienta' : 'servicio';
+  }
+
+  protected onTipoLineaChange(index: number, tipo: 'servicio' | 'quimico' | 'herramienta' | null): void {
+    const linea = this.lineasEstimadas()[index];
+    if (!linea || (tipo ?? 'servicio') === this.tipoDeLinea(linea)) return;
+    // Al cambiar de tipo se limpia el código: uno de otro catálogo no sirve (ver onQuimicoToggle).
+    this.lineasEstimadas.update(ls =>
+      ls.map((l, i) => (i === index ? { ...l, esQuimico: tipo === 'quimico', esHerramienta: tipo === 'herramienta', codigo: '' } : l)),
+    );
+  }
+
   /** Espejo de `onQuimicoCodigoSeleccionado`, contra el catálogo de herramientas. */
   protected onHerramientaCodigoSeleccionado(index: number, codigo: string | null): void {
     const articulo = this.herramientasCatalogo().find(a => a.codigo === codigo);

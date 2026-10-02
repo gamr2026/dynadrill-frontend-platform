@@ -132,6 +132,10 @@
 
   // Checkbox "Químico" — Pumping lo usa para precargar la asignación de
   // recursos sin tener que volver a elegirlos del catálogo de Inventario.
+  &__tipo-cell {
+    min-width: 150px;
+  }
+
   &__quimico-cell {
     text-align: center;
 

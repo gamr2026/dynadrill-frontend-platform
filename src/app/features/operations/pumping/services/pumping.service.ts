@@ -54,6 +54,8 @@ export class PumpingService {
       /** Emparejamiento real operador -> unidad — sin esto el backend arma pares por posición de array y puede asignar la unidad de un operador a otro (ver PumpingDomainService.assignResources). */
       assignments: { operatorId: number; unitId: number | null }[];
       chemicals: { articuloId: number; name: string; unit: string; cantidad: number }[];
+      /** Herramientas que Ventas cotizó en el pedido — quedan asignadas al ticket como 'seleccionada'. */
+      tools?: { codigo: string; name: string; unit: string; cantidad: number }[];
       chemicalMixtureDocument?: string;
     },
   ): Observable<PumpingTicket> {

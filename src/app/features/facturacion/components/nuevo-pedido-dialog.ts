@@ -202,13 +202,18 @@ export class NuevoPedidoDialog {
     ([value, label]) => ({ label, value }),
   );
 
-  /** Segundo select, depende de la línea elegida — ver TIPOS_SERVICIO_POR_LINEA. Un pedido puede llevar más de un tipo (ej. Fishing + Milling en la misma OT). */
+  /** Segundo select, depende de la línea elegida — ver TIPOS_SERVICIO_POR_LINEA. FCR puede llevar más de un tipo (ej. Fishing + Milling en la misma OT); Pumping solo uno. */
   protected readonly tipoServicio = signal<TipoServicio[]>([]);
   protected readonly tipoServicioOptions = computed<DynadrillSelectOption[]>(() => {
     const linea = this.lineaServicio();
     if (!linea) return [];
     return TIPOS_SERVICIO_POR_LINEA[linea].map(value => ({ label: TIPO_SERVICIO_LABELS[value], value }));
   });
+
+  /** Valor del select: lista en FCR, un solo tipo (o nada) en Pumping. */
+  protected readonly tipoServicioValor = computed<TipoServicio[] | TipoServicio | null>(() =>
+    this.esFcr() ? this.tipoServicio() : this.tipoServicio().at(0) ?? null,
+  );
 
   /** Cambia la línea de servicio — los tipos de servicio elegidos pueden no aplicar a la línea nueva, así que se limpian. */
   protected onLineaServicioChange(value: LineaServicio | null): void {
@@ -217,14 +222,15 @@ export class NuevoPedidoDialog {
     this.subTipoServicio.set([]);
   }
 
-  /** Tercer select, depende de los Tipos de servicio elegidos (varios tipos → unión de sus sub-tipos). Solo descriptivo, no acoplado a IPERC. */
+  /** Tercer select (solo FCR), depende de los Tipos de servicio elegidos (varios tipos → unión de sus sub-tipos). Solo descriptivo, no acoplado a IPERC. */
   protected readonly subTipoServicio = signal<string[]>([]);
   protected readonly subTipoServicioOptions = computed<DynadrillSelectOption[]>(() =>
     subTiposServicioDisponibles(this.tipoServicio()).map(value => ({ label: value, value })),
   );
 
   protected onTipoServicioChange(value: unknown): void {
-    const tipos = Array.isArray(value) ? (value as TipoServicio[]) : [];
+    // Pumping admite un solo tipo (el select es simple y emite un valor suelto); FCR admite varios.
+    const tipos = Array.isArray(value) ? (value as TipoServicio[]) : value ? [value as TipoServicio] : [];
     this.tipoServicio.set(tipos);
     // Un sub-tipo ya elegido puede dejar de aplicar si se destilda el tipo que lo traía.
     const disponibles = new Set(subTiposServicioDisponibles(tipos));
@@ -884,7 +890,7 @@ export class NuevoPedidoDialog {
       subcliente: this.subcliente().trim() || undefined,
       lineaServicio: this.lineaServicio()!,
       tipoServicio: this.tipoServicio(),
-      subTipoServicio: this.subTipoServicio().length ? this.subTipoServicio() : undefined,
+      subTipoServicio: this.esFcr() && this.subTipoServicio().length ? this.subTipoServicio() : undefined,
       tipoOt: this.tipoOt()!,
       campo: this.ubicacion().campo,
       bloque: this.ubicacion().bloque,

@@ -43,23 +43,25 @@
         <dynadrill-select label="Línea de servicio *" placeholder="Selecciona" [options]="lineaOptions" [value]="lineaServicio()" (valueChange)="onLineaServicioChange($any($event))" />
       }
       <dynadrill-select
-        label="Tipos de servicio *"
+        [label]="esFcr() ? 'Tipos de servicio *' : 'Tipo de servicio *'"
         placeholder="Selecciona primero la línea"
         [options]="tipoServicioOptions()"
-        [value]="tipoServicio()"
-        [multiple]="true"
+        [value]="tipoServicioValor()"
+        [multiple]="esFcr()"
         [disabled]="!lineaServicio()"
         (valueChange)="onTipoServicioChange($event)"
       />
-      <dynadrill-select
-        label="Sub-tipos de servicio"
-        placeholder="Selecciona primero el/los tipo(s)"
-        [options]="subTipoServicioOptions()"
-        [value]="subTipoServicio()"
-        [multiple]="true"
-        [disabled]="!tipoServicio().length"
-        (valueChange)="onSubTipoServicioChange($event)"
-      />
+      @if (esFcr()) {
+        <dynadrill-select
+          label="Sub-tipos de servicio"
+          placeholder="Selecciona primero el/los tipo(s)"
+          [options]="subTipoServicioOptions()"
+          [value]="subTipoServicio()"
+          [multiple]="true"
+          [disabled]="!tipoServicio().length"
+          (valueChange)="onSubTipoServicioChange($event)"
+        />
+      }
       @if (isMobile()) {
         <div class="nuevo-pedido__chip-field">
           <span class="nuevo-pedido__chip-label">Tipo de OT *</span>

@@ -38,14 +38,33 @@
   <img class="app-header__logo" src="/brand/dynadrill-logo.svg" alt="Dynadrill" />
   <div class="app-header__spacer"></div>
   @if (puedeActuarComo()) {
-    <button type="button" class="app-header__actuar" nz-dropdown [nzDropdownMenu]="rolesMenu" nzTrigger="click" nzPlacement="bottomRight" aria-label="Actuar como otro rol">
+    <button
+      type="button"
+      class="app-header__actuar"
+      nz-dropdown
+      [nzDropdownMenu]="rolesMenu"
+      nzTrigger="click"
+      nzPlacement="bottomRight"
+      [nzClickHide]="false"
+      [nzVisible]="menuRolesAbierto()"
+      (nzVisibleChange)="onMenuRolesVisible($event)"
+      aria-label="Actuar como otro rol"
+    >
       <dynadrill-icon name="users" [size]="14" />
       <span class="app-header__actuar-texto">Actuar como: <strong>{{ rolActual() }}</strong></span>
     </button>
     <nz-dropdown-menu #rolesMenu="nzDropdownMenu">
       <ul nz-menu class="app-header__roles-menu">
-        @for (r of roles(); track r.id) {
-          <li nz-menu-item [nzSelected]="r.name === rolActual()" (click)="actuarComo(r.id, r.name)">{{ r.name }}</li>
+        @if (eligiendoUsuario(); as e) {
+          <li nz-menu-item (click)="eligiendoUsuario.set(null)">← Roles</li>
+          <li nz-menu-divider></li>
+          @for (u of e.usuarios; track u.id) {
+            <li nz-menu-item (click)="cambiarRol(e.rol, u.id)">{{ u.name }} <small>({{ e.rol.name }})</small></li>
+          }
+        } @else {
+          @for (r of roles(); track r.id) {
+            <li nz-menu-item [nzSelected]="r.name === rolActual()" (click)="elegirRol(r)">{{ r.name }}</li>
+          }
         }
       </ul>
     </nz-dropdown-menu>

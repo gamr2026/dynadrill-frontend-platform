@@ -9,6 +9,8 @@
 export interface Role {
   id: number;
   name: string;
+  /** Identificador estable del rol (ej. 'conductor') — lo usa el backend para autorización. */
+  code?: string;
   description?: string;
 }
 

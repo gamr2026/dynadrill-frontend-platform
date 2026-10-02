@@ -17,6 +17,8 @@
 
     <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
      <div class="pf-detail__grid">
+      <div class="pf-detail__main">
+        <div class="pf-detail__top">
       @if (pf.advertencia) {
         <dynadrill-banner variant="critical" [message]="pf.advertencia" />
       }
@@ -78,24 +80,8 @@
         }
       </section>
 
-      <section class="fact-card pf-detail__aside-item">
-        <header class="pf-detail__head"><h2>Liquidación</h2></header>
-        <div class="pf-detail__liquidacion">
-          <dl class="pf-detail__totals">
-            <div><dt>Subtotal Servicios</dt><dd>${{ pf.subtotalServicios | number: '1.2-2' }}</dd></div>
-            <div><dt>Subtotal Materiales</dt><dd>${{ pf.subtotalMateriales | number: '1.2-2' }}</dd></div>
-            <div class="pf-detail__totals-sum"><dt>Subtotal</dt><dd>${{ pf.subtotal | number: '1.2-2' }}</dd></div>
-            <div><dt>IVA (15%)</dt><dd>${{ pf.iva | number: '1.2-2' }}</dd></div>
-            <div class="pf-detail__totals-neg"><dt>Retención IR (1%)</dt><dd>−${{ pf.retencionIR | number: '1.2-2' }}</dd></div>
-            <div class="pf-detail__totals-neg"><dt>Retención IVA (30%)</dt><dd>−${{ pf.retencionIVA | number: '1.2-2' }}</dd></div>
-          </dl>
-          <div>
-            <dynadrill-kpi-card [value]="netoFmt()" label="Neto a cobrar" tone="brand" />
-            <dynadrill-text variant="caption" class="pf-detail__neto-caption">Subtotal + IVA − retenciones</dynadrill-text>
-          </div>
         </div>
-        <dynadrill-text variant="caption">Generada el {{ pf.fechaGeneracion | date: 'dd/MM/yyyy HH:mm' }}</dynadrill-text>
-      </section>
+        <div class="pf-detail__rest">
 
       <!-- ── Revisión + envío al cliente (FACT-003 / FACT-004) ── -->
       @if (pf.estado === 'generada') {
@@ -184,6 +170,28 @@
         </section>
       }
 
+        </div>
+      </div>
+      <div class="pf-detail__aside">
+      <section class="fact-card pf-detail__aside-item pf-detail__aside-item--liq">
+        <header class="pf-detail__head"><h2>Liquidación</h2></header>
+        <div class="pf-detail__liquidacion">
+          <dl class="pf-detail__totals">
+            <div><dt>Subtotal Servicios</dt><dd>${{ pf.subtotalServicios | number: '1.2-2' }}</dd></div>
+            <div><dt>Subtotal Materiales</dt><dd>${{ pf.subtotalMateriales | number: '1.2-2' }}</dd></div>
+            <div class="pf-detail__totals-sum"><dt>Subtotal</dt><dd>${{ pf.subtotal | number: '1.2-2' }}</dd></div>
+            <div><dt>IVA (15%)</dt><dd>${{ pf.iva | number: '1.2-2' }}</dd></div>
+            <div class="pf-detail__totals-neg"><dt>Retención IR (1%)</dt><dd>−${{ pf.retencionIR | number: '1.2-2' }}</dd></div>
+            <div class="pf-detail__totals-neg"><dt>Retención IVA (30%)</dt><dd>−${{ pf.retencionIVA | number: '1.2-2' }}</dd></div>
+          </dl>
+          <div>
+            <dynadrill-kpi-card [value]="netoFmt()" label="Neto a cobrar" tone="brand" />
+            <dynadrill-text variant="caption" class="pf-detail__neto-caption">Subtotal + IVA − retenciones</dynadrill-text>
+          </div>
+        </div>
+        <dynadrill-text variant="caption">Generada el {{ pf.fechaGeneracion | date: 'dd/MM/yyyy HH:mm' }}</dynadrill-text>
+      </section>
+
       <!-- ── Guía de remisión (FACT-002/004) — requisito previo, ya generada antes de esta prefactura ── -->
       @if (guiaRemision(); as g) {
         <section class="fact-card pf-detail__aside-item">
@@ -200,6 +208,7 @@
           <dynadrill-banner variant="warning" message="Esta prefactura tiene ítems Material sin guía de remisión asociada — revisa el Pedido." />
         </section>
       }
+      </div>
      </div>
     </dynadrill-spinner>
   } @else if (!loading()) {

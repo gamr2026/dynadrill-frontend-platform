@@ -21,13 +21,8 @@
     gap: 10px;
   }
 
-  // Escritorio (Figma "D · Prefacturas · Detalle"): 2 columnas — Liquidación
-  // y Guía de remisión forman la barra lateral (.pf-detail__aside-item), el
-  // resto fluye en la columna principal. Mismo truco que pedido-detail-page:
-  // todo hijo que NO sea aside-item va explícito a columna 1 — con `:not()`
-  // en vez de un segundo selector `.aside-item{grid-column:2}` porque
-  // Angular reescribe `> *` a `> [_ngcontent-xxx]` para el scoping de
-  // estilos, lo que le suma especificidad y le gana al override.
+  // Escritorio (Figma "D · Prefacturas · Detalle"): 2 columnas — principal (Ítems, Comercial,
+  // Revisión…) y lateral (Liquidación, Guía de remisión).
   &__grid {
     display: flex;
     flex-direction: column;
@@ -38,16 +33,46 @@
       grid-template-columns: 2fr 1fr;
       align-items: start;
       gap: 16px;
-
-      > *:not(.pf-detail__aside-item) {
-        grid-column: 1;
-      }
     }
   }
 
-  &__aside-item {
-    @media (min-width: 1100px) {
-      grid-column: 2;
+  // Dos columnas reales (principal + lateral): con un grid de filas compartidas, la
+  // Liquidación (alta) estiraba la fila de "Comercial y responsables" y dejaba un hueco.
+  &__main,
+  &__aside {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  &__top,
+  &__rest {
+    display: contents;
+  }
+
+  // Móvil/tablet: una sola columna con el orden de siempre — Ítems, Comercial, Liquidación,
+  // revisión y el resto, Guía de remisión. Los contenedores desaparecen y `order` reparte.
+  @media (max-width: 1099px) {
+    &__main,
+    &__aside {
+      display: contents;
+    }
+
+    &__top > * {
+      order: 0;
+    }
+
+    &__rest > * {
+      order: 2;
+    }
+
+    &__aside-item {
+      order: 3;
+    }
+
+    &__aside-item--liq {
+      order: 1;
     }
   }
 

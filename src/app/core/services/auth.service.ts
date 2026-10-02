@@ -21,6 +21,7 @@ interface LoginResponse {
 const TOKEN_KEY = 'dynadrill_access_token';
 const USER_KEY = 'dynadrill_current_user';
 const SUPERADMIN_KEY = 'dynadrill_superadmin_real';
+const SUPERADMIN_ID_KEY = 'dynadrill_superadmin_real_id';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -39,13 +40,16 @@ export class AuthService {
   private readonly superadminReal = signal(localStorage.getItem(SUPERADMIN_KEY) === '1');
   readonly puedeActuarComo = computed(() => this.isAuthenticated() && this.superadminReal());
 
+  /** Id del usuario Superadmin con el que se abrió la sesión — para volver a él tras actuar como otra persona. */
+  readonly superadminId = signal<number | null>(Number(localStorage.getItem(SUPERADMIN_ID_KEY)) || null);
+
   login(email: string, password: string): Observable<LoginResponse> {
     return this.http
       .post<LoginResponse>(`${environment.apiUrl}/auth/login`, { email, password })
       .pipe(
         tap(({ accessToken, user }) => {
           this.setSession(accessToken, user);
-          this.marcarSuperadminReal(user?.roleName === 'Superadmin');
+          this.marcarSuperadminReal(user?.roleName === 'Superadmin', user?.id);
         }),
       );
   }
@@ -55,10 +59,16 @@ export class AuthService {
     this.marcarSuperadminReal(false);
   }
 
-  private marcarSuperadminReal(valor: boolean): void {
+  private marcarSuperadminReal(valor: boolean, userId?: number): void {
     this.superadminReal.set(valor);
-    if (valor) localStorage.setItem(SUPERADMIN_KEY, '1');
-    else localStorage.removeItem(SUPERADMIN_KEY);
+    this.superadminId.set(valor && userId ? userId : null);
+    if (valor) {
+      localStorage.setItem(SUPERADMIN_KEY, '1');
+      if (userId) localStorage.setItem(SUPERADMIN_ID_KEY, String(userId));
+    } else {
+      localStorage.removeItem(SUPERADMIN_KEY);
+      localStorage.removeItem(SUPERADMIN_ID_KEY);
+    }
   }
 
   /**
@@ -71,12 +81,12 @@ export class AuthService {
    * (flag apagado / offline), cae al cambio solo-cliente para no romper la
    * demo visual.
    */
-  switchRole(roleName: string, roleId: number): void {
+  switchRole(roleName: string, roleId: number, userId?: number): void {
     const current = this.user();
     if (!current) return;
 
     this.http
-      .post<LoginResponse>(`${environment.apiUrl}/auth/switch-role`, { roleId })
+      .post<LoginResponse>(`${environment.apiUrl}/auth/switch-role`, { roleId, ...(userId ? { userId } : {}) })
       .pipe(
         catchError(() => {
           const updated: AuthenticatedUser = { ...current, roleName, roleId };

@@ -155,10 +155,12 @@
                         ? 'Reporte Job (consolidado)'
                         : d.tipo === 'reporte_herramientas'
                           ? 'Reporte de Herramientas (consolidado)'
-                          : 'Prefactura'
+                          : d.tipo === 'despacho_bodega'
+                            ? 'Despacho de Bodega' + (d.referencia ? ' (' + d.referencia + ')' : '')
+                            : 'Prefactura'
                     }}
                   </td>
-                  <td>{{ d.tipo === 'prefactura' ? 'Facturación' : d.tipo === 'reporte_herramientas' ? 'FCR' : lineaLabel() }}</td>
+                  <td>{{ d.tipo === 'prefactura' ? 'Facturación' : d.tipo === 'despacho_bodega' ? 'Bodega' : d.tipo === 'reporte_herramientas' ? 'FCR' : lineaLabel() }}</td>
                   <td>{{ d.fecha | date: 'dd/MM/yyyy' }}</td>
                   <td>—</td>
                   <td><dynadrill-tag [label]="d.firmado ? 'Firmado' : 'Falta firmar'" [variant]="d.firmado ? 'success' : 'warning'" /></td>

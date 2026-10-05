@@ -1985,9 +1985,11 @@ export class TicketDetailPage {
         // en "Jefe de Base" tras autorizar un gerenciamiento), se pasa a ese
         // rol en vez de bloquear el acceso.
         const expected = PUMPING_STEP_ROLE[ticket.currentStep];
-        // Con la sesión de Superadmin (selector "Actuar como") se respeta el rol elegido a mano: si no, volver a Jefe de Base o
-        // Supervisor Pumping para cargar ART/PT te devolvía al rol del paso y ocultaba los botones.
-        if (expected && !this.auth.puedeActuarComo() && !esRolResponsablePumping(expected.roleName, this.roleName())) {
+        // En una sesión Superadmin (selector "Actuar como") se respeta el rol elegido a mano — p. ej. Jefe de Base o Supervisor
+        // Pumping para cargar ART/PT aunque el paso lo actúe el Operador. Solo si sigue como "Superadmin" se pasa al rol del paso:
+        // el backend exige ese rol exacto para avanzar (WorkflowRoleGuard) y respondería 403.
+        const eligioRolAMano = this.auth.puedeActuarComo() && this.roleName() !== 'Superadmin';
+        if (expected && !eligioRolAMano && !esRolResponsablePumping(expected.roleName, this.roleName())) {
           this.auth.switchRole(expected.roleName, expected.roleId);
         }
         this.ticket.set(ticket);

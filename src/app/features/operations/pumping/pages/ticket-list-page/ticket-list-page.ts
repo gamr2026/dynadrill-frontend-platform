@@ -447,7 +447,7 @@ export class TicketListPage {
    * coincide con el rol responsable del paso.
    */
   protected canViewDetail(row: Record<string, unknown>): boolean {
-    if (this.esAdmin()) return true;
+    if (this.esAdmin() || this.auth.puedeActuarComo()) return true;
     const step = row['step'] as PumpingStep;
     const expectedRole = PUMPING_STEP_ROLE[step];
     return esRolResponsablePumping(expectedRole?.roleName, this.roleName());

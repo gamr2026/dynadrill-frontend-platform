@@ -1698,7 +1698,8 @@ export class TicketDetailPage {
 
   protected readonly isOperador = computed(() => this.roleName() === 'Operador');
   protected readonly isSupervisor = computed(() => this.roleName() === 'Supervisor' || this.roleName() === 'Supervisor Pumping');
-  protected readonly isJefeBase = computed(() => this.roleName() === 'Jefe de Base');
+  /** Jefe de Base y Superadmin (acceso total): ambos pueden cargar ART/PT aunque no sean el Supervisor asignado. */
+  protected readonly isJefeBase = computed(() => this.roleName() === 'Jefe de Base' || this.roleName() === 'Superadmin');
   /**
    * ART/PT los sube el Supervisor ASIGNADO a este ticket (Jefe de Base queda de respaldo/override) — antes cualquier
    * Supervisor con acceso al módulo podía subirlos, sin importar si era el asignado. El rol "Supervisor Pumping" es la

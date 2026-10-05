@@ -50,6 +50,112 @@
 
   <app-ticket-qhse-banner [vinculo]="qhseVinculo()" [canView]="puedeVerQhse()" />
 
+  <!-- Documentos QHSE (Formato de Recepción / ART / PT / SFI) — mismo circuito que Pumping: el Supervisor sube ART y PT del día; QHSE sube el resto. -->
+  @if (documentosQhse(); as dq) {
+    <section class="fcr-detail__section">
+      <dynadrill-text variant="h2">Documentos QHSE</dynadrill-text>
+
+      <ul class="qhse-docs">
+        <li class="qhse-doc">
+          <div class="qhse-doc__text">
+            <strong class="qhse-doc__name">Formato de Recepción</strong>
+            <span class="qhse-doc__meta">{{ dq.formatoRecepcion ? 'Cargado por QHSE' : 'Pendiente de QHSE' }}</span>
+            <dynadrill-tag [label]="dq.formatoRecepcion ? 'Cargado' : 'Pendiente'" [variant]="dq.formatoRecepcion ? 'success' : 'warning'" />
+          </div>
+          @if (dq.formatoRecepcion) {
+            <button type="button" class="qhse-doc__btn" aria-label="Descargar Formato de Recepción" title="Descargar" (click)="descargarDocumentoQhse('qhse_formato_recepcion', 'vigente')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
+          }
+        </li>
+
+        <li class="qhse-doc">
+          <div class="qhse-doc__text">
+            <strong class="qhse-doc__name">SFI</strong>
+            <span class="qhse-doc__meta">{{ dq.sfi ? 'Cargado por QHSE' : 'Pendiente de QHSE' }}</span>
+            <dynadrill-tag [label]="dq.sfi ? 'Cargado' : 'Pendiente'" [variant]="dq.sfi ? 'success' : 'warning'" />
+          </div>
+          @if (dq.sfi) {
+            <button type="button" class="qhse-doc__btn" aria-label="Descargar SFI" title="Descargar" (click)="descargarDocumentoQhse('qhse_sfi', 'vigente')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
+          }
+        </li>
+
+        <li class="qhse-doc">
+          <div class="qhse-doc__text">
+            <strong class="qhse-doc__name">ART</strong>
+            <span class="qhse-doc__meta">
+              @if (dq.artVigente === true) {
+                Vigente hasta {{ dq.artVigenciaHasta | date: 'dd/MM/yyyy' }}
+                @if (dq.artVenceEnDias !== null && dq.artVenceEnDias <= 3) {
+                  · vence en {{ dq.artVenceEnDias }} día(s)
+                }
+              } @else if (dq.artVigente === false) {
+                Vencido desde {{ dq.artVigenciaHasta | date: 'dd/MM/yyyy' }} — sube uno nuevo (vigencia de 15 días)
+              } @else {
+                Sin ART cargado
+              }
+            </span>
+            <dynadrill-tag
+              [label]="dq.artVigente === true ? 'Cargado' : dq.artVigente === false ? 'Vencido' : 'Pendiente'"
+              [variant]="dq.artVigente === true ? 'success' : dq.artVigente === false ? 'error' : 'warning'"
+            />
+          </div>
+          @if (dq.artVigente === true) {
+            <button type="button" class="qhse-doc__btn" aria-label="Descargar ART" title="Descargar" (click)="descargarDocumentoQhse('qhse_art', dq.artFechaEmision!)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
+          }
+          @if (puedeSubirQhse()) {
+            <button type="button" class="qhse-doc__btn" aria-label="Subir ART" title="Subir ART" [attr.aria-expanded]="subidaArtAbierta()" (click)="subidaArtAbierta.set(!subidaArtAbierta())"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m17 8-5-5-5 5" /><path d="M12 3v12" /></svg></button>
+          }
+        </li>
+
+        @if (subidaArtAbierta() && puedeSubirQhse()) {
+          <li class="qhse-doc-upload">
+            <dynadrill-datetime-picker mode="date" label="Fecha de emisión del ART" [value]="artFechaEmision()!" (valueChange)="artFechaEmision.set($event)" />
+            <dynadrill-upload-zone
+              [state]="artArchivo() ? 'uploaded' : 'idle'"
+              [fileName]="artArchivo()?.name ?? ''"
+              (fileSelected)="onArtArchivoSeleccionado($event)"
+            />
+            <dynadrill-button variant="secondary" size="small" [disabled]="!artArchivo() || documentosQhseSubmitting()" (clicked)="subirArtQhse()">Subir ART</dynadrill-button>
+          </li>
+        }
+
+        <li class="qhse-doc">
+          <div class="qhse-doc__text">
+            <strong class="qhse-doc__name">PT del día</strong>
+            <span class="qhse-doc__meta">
+              @if (!dq.ptwAbierto && !dq.ptwCerradoHoy) {
+                QHSE aún no abrió el PTW del día
+              } @else if (dq.ptDeHoy) {
+                PTW {{ (dq.ptwAbierto ?? dq.ptwCerradoHoy)!.code }}{{ dq.ptwAbierto ? '' : ' (cerrado)' }}
+              } @else if (!dq.ptwAbierto) {
+                PTW {{ dq.ptwCerradoHoy!.code }} cerrado sin PT cargado
+              } @else {
+                PTW {{ dq.ptwAbierto.code }} abierto — falta subir el PT de hoy
+              }
+            </span>
+            <dynadrill-tag [label]="dq.ptDeHoy ? 'Cargado' : 'Pendiente'" [variant]="dq.ptDeHoy ? 'success' : 'warning'" />
+          </div>
+          @if ((dq.ptwAbierto ?? dq.ptwCerradoHoy) && dq.ptDeHoy) {
+            <button type="button" class="qhse-doc__btn" aria-label="Descargar PT del día" title="Descargar" (click)="descargarDocumentoQhse('qhse_pt', (dq.ptwAbierto ?? dq.ptwCerradoHoy)!.code)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
+          }
+          @if (dq.ptwAbierto && !dq.ptDeHoy && puedeSubirQhse()) {
+            <button type="button" class="qhse-doc__btn" aria-label="Subir PT del día" title="Subir PT" [attr.aria-expanded]="subidaPtAbierta()" (click)="subidaPtAbierta.set(!subidaPtAbierta())"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m17 8-5-5-5 5" /><path d="M12 3v12" /></svg></button>
+          }
+        </li>
+
+        @if (subidaPtAbierta() && dq.ptwAbierto && !dq.ptDeHoy && puedeSubirQhse()) {
+          <li class="qhse-doc-upload">
+            <dynadrill-upload-zone
+              [state]="ptArchivo() ? 'uploaded' : 'idle'"
+              [fileName]="ptArchivo()?.name ?? ''"
+              (fileSelected)="onPtArchivoSeleccionado($event)"
+            />
+            <dynadrill-button variant="secondary" size="small" [disabled]="!ptArchivo() || documentosQhseSubmitting()" (clicked)="subirPtQhse()">Subir PT de hoy</dynadrill-button>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
   <dynadrill-context-card
     variant="card"
     icon="file-text"

@@ -33,8 +33,8 @@ const APROBADO: Badge = { text: 'Aprobado', tone: 'success' };
 /**
  * Bandeja "Documentos por pedido" de QHSE — ver PLAN-QHSE-PUMPING-NOTIFICACIONES,
  * Fase 2. QHSE sube acá el Formato de Recepción, el SFI y el Carnet de
- * Vacunas; ART y PT los sube el Supervisor desde su ticket de Pumping (esta
- * pantalla solo los muestra).
+ * Vacunas; ART y PT los sube el Supervisor desde su ticket de Pumping o FCR
+ * (esta pantalla solo los muestra).
  */
 @Component({
   selector: 'app-documentos-pedidos-page',
@@ -54,6 +54,7 @@ export class DocumentosPedidosPage {
 
   protected readonly columns: DynadrillDataTableColumn[] = [
     { key: 'code', header: 'Pedido', sortable: true, searchable: true },
+    { key: 'linea', header: 'Línea' },
     { key: 'cliente', header: 'Cliente', searchable: true },
     { key: 'campo', header: 'Campo / Pozo', searchable: true },
     { key: 'formatoRecepcionBadge', header: 'Formato de Recepción', type: 'badge' },
@@ -69,6 +70,7 @@ export class DocumentosPedidosPage {
     this.pedidos().map(p => ({
       pedidoId: p.pedidoId,
       code: p.code,
+      linea: p.lineaServicio === 'fcr' ? 'FCR' : 'Pumping',
       cliente: p.cliente,
       campo: `${p.campo} / ${p.pozo}`,
       formatoRecepcionBadge: p.estado.formatoRecepcion ? CARGADO : PENDIENTE,

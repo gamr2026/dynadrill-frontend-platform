@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import type { DocumentosQhseTicket } from '../../pumping/services/pumping.service';
 import { Observable } from 'rxjs';
 import { FcrPhase, FcrTicket, type FcrToolDailyStatus, type FcrToolStatus } from '../models/fcr.model';
 import { environment } from '@env';
@@ -217,5 +218,30 @@ export class FcrService {
    */
   descargarDocumento(ticketId: number, campo: CampoDocumentoFcr): Observable<Blob> {
     return this.http.get(`${this.baseUrl}/tickets/${ticketId}/documentos/${campo}`, { responseType: 'blob' });
+  }
+
+  // ── Documentos QHSE del pedido del ticket (ART / PT los sube el Supervisor) ──
+
+  documentosQhse(ticketId: number): Observable<DocumentosQhseTicket> {
+    return this.http.get<DocumentosQhseTicket>(`${this.baseUrl}/tickets/${ticketId}/documentos-qhse`);
+  }
+
+  subirArtQhse(ticketId: number, fechaEmision: string, archivo: File): Observable<unknown> {
+    const form = new FormData();
+    form.append('fechaEmision', fechaEmision);
+    form.append('file', archivo);
+    return this.http.post(`${this.baseUrl}/tickets/${ticketId}/documentos-qhse/art`, form);
+  }
+
+  subirPtQhse(ticketId: number, ptwCode: string, archivo: File): Observable<unknown> {
+    const form = new FormData();
+    form.append('file', archivo);
+    return this.http.post(`${this.baseUrl}/tickets/${ticketId}/documentos-qhse/pt/${encodeURIComponent(ptwCode)}`, form);
+  }
+
+  descargarDocumentoQhse(ticketId: number, tipo: string, referencia: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/tickets/${ticketId}/documentos-qhse/${tipo}/${encodeURIComponent(referencia)}`, {
+      responseType: 'blob',
+    });
   }
 }

@@ -40,6 +40,8 @@ export interface ChecklistIngresoEstado {
 
 export interface PedidoConEstadoDocumental {
   pedidoId: number;
+  /** 'pumping' | 'fcr'. */
+  lineaServicio: string;
   code: string;
   cliente: string;
   campo: string;

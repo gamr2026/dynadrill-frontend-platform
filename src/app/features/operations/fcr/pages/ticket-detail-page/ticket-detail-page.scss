@@ -417,3 +417,77 @@
     }
   }
 }
+
+.qhse-docs {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.qhse-doc {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border, #e5e4ea);
+
+  &__text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--text, #2c2b35);
+  }
+
+  &__meta {
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__btn {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-md, 12px);
+    background: var(--surface, #fff);
+    color: var(--text, #2c2b35);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--dynadrill-purple-tint, #f6f3f9);
+      color: var(--dynadrill-purple, #662e9b);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--dynadrill-purple, #662e9b);
+      outline-offset: 2px;
+    }
+  }
+}
+
+// Formulario de carga de ART / PT que se despliega con el ícono de subir.
+.qhse-doc-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface-muted, #faf9fc);
+}

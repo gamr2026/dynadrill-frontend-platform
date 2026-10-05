@@ -8,7 +8,7 @@ import {
   untracked,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { NgTemplateOutlet, formatDate } from '@angular/common';
+import { DatePipe, NgTemplateOutlet, formatDate } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom, type Observable } from 'rxjs';
 import type { NzUploadFile } from 'ng-zorro-antd/upload';
@@ -54,9 +54,10 @@ import {
 } from '../../models/fcr.model';
 import { fcrPhaseKeys, fcrResponsibleRole } from '../../models/fcr-flow';
 import { FcrService, type CampoDocumentoFcr } from '../../services/fcr.service';
+import type { DocumentosQhseTicket } from '../../../pumping/services/pumping.service';
 import { PedidoService } from '../../../../facturacion/services/pedido.service';
 import { itemsEstimadosDe, TIPO_OT_LABELS, TIPO_SERVICIO_LABELS, type Pedido } from '../../../../facturacion/models/pedido.model';
-import { capitalize, parseLocalDateString } from '../../../../../shared/utils';
+import { capitalize, parseLocalDateString, toLocalDateString } from '../../../../../shared/utils';
 import { MACRO_ESTADO_LABELS, MACRO_ESTADO_TONE } from '../../../../../shared/models/timeline.model';
 import { FcrToolInspeccionesService } from '../../services/fcr-tool-inspecciones.service';
 import {
@@ -171,6 +172,7 @@ import { ReporteHerramientasHoja } from '../../../../../shared/documentos/format
   selector: 'app-fcr-ticket-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    DatePipe,
     NgTemplateOutlet,
     DynadrillScreenHeaderComponent,
     DynadrillContextCardComponent,
@@ -211,6 +213,98 @@ export class FcrTicketDetailPage {
 
   protected readonly loading = signal(true);
   protected readonly ticket = signal<FcrTicket | null>(null);
+
+  // ── Documentos QHSE (ART / PT del día) — réplica del circuito de Pumping ──
+  protected readonly documentosQhse = signal<DocumentosQhseTicket | null>(null);
+  protected readonly artFechaEmision = signal<Date | null>(new Date());
+  protected readonly artArchivo = signal<File | null>(null);
+  protected readonly ptArchivo = signal<File | null>(null);
+  protected readonly documentosQhseSubmitting = signal(false);
+
+  /** Al tocar el ícono de subir de ART / PT se despliega el formulario de carga (fecha + archivo). */
+  protected readonly subidaArtAbierta = signal(false);
+  protected readonly subidaPtAbierta = signal(false);
+
+  private loadDocumentosQhse(ticketId: number): void {
+    this.fcrService.documentosQhse(ticketId).subscribe({
+      next: d => this.documentosQhse.set(d),
+      error: () => this.documentosQhse.set(null),
+    });
+  }
+
+  protected onArtArchivoSeleccionado(file: NzUploadFile): void {
+    this.artArchivo.set((file.originFileObj as File | undefined) ?? (file as unknown as File));
+  }
+
+  protected onPtArchivoSeleccionado(file: NzUploadFile): void {
+    this.ptArchivo.set((file.originFileObj as File | undefined) ?? (file as unknown as File));
+  }
+
+  protected subirArtQhse(): void {
+    const t = this.ticket();
+    const archivo = this.artArchivo();
+    const fecha = this.artFechaEmision();
+    if (!t || !archivo || !fecha) {
+      this.notify.error('ART', 'Elegí la fecha de emisión y el archivo del ART.');
+      return;
+    }
+    this.documentosQhseSubmitting.set(true);
+    this.fcrService.subirArtQhse(t.id, toLocalDateString(fecha), archivo).subscribe({
+      next: () => {
+        this.documentosQhseSubmitting.set(false);
+        this.artArchivo.set(null);
+        this.subidaArtAbierta.set(false);
+        this.notify.success('ART guardado', 'El ART quedó registrado para este pedido.');
+        this.loadDocumentosQhse(t.id);
+      },
+      error: () => {
+        this.documentosQhseSubmitting.set(false);
+        this.notify.error('Error', 'No se pudo subir el ART.');
+      },
+    });
+  }
+
+  protected subirPtQhse(): void {
+    const t = this.ticket();
+    const archivo = this.ptArchivo();
+    const ptwCode = this.documentosQhse()?.ptwAbierto?.code;
+    if (!t || !archivo || !ptwCode) {
+      this.notify.error('PT', 'No hay un PTW abierto contra el cual subir el PT de hoy.');
+      return;
+    }
+    this.documentosQhseSubmitting.set(true);
+    this.fcrService.subirPtQhse(t.id, ptwCode, archivo).subscribe({
+      next: () => {
+        this.documentosQhseSubmitting.set(false);
+        this.ptArchivo.set(null);
+        this.subidaPtAbierta.set(false);
+        this.notify.success('PT guardado', 'El Permiso de Trabajo de hoy quedó registrado.');
+        this.loadDocumentosQhse(t.id);
+      },
+      error: () => {
+        this.documentosQhseSubmitting.set(false);
+        this.notify.error('Error', 'No se pudo subir el PT.');
+      },
+    });
+  }
+
+  protected descargarDocumentoQhse(tipo: string, referencia: string): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.fcrService.descargarDocumentoQhse(t.id, tipo, referencia).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      },
+      error: () => this.notify.error('Error', 'No se pudo abrir el documento.'),
+    });
+  }
+
+  /** ART y PT los sube el Supervisor de FCR (Jefe de Base y Superadmin de respaldo) — QHSE los ve en "Documentos por pedido". */
+  protected readonly puedeSubirQhse = computed(() => ['Supervisor', 'Jefe de Base', 'Superadmin'].includes(this.roleName()));
+
+
 
   // ── Gates QHSE (HSE-PLAN-001 cobertura IPERC + HSE-SITIO-001 PTW + HSE-SEGUIMIENTO-003 SWA + HSE-TRIAGE-001 Emergencia) ──
   protected readonly qhseVinculo = computed(() => this.ticket()?.qhse ?? null);
@@ -1777,6 +1871,7 @@ export class FcrTicketDetailPage {
         this.loading.set(false);
         if (t.tipoOt === 'servicio') this.loadToolInspections(id);
         if (t.pedidoId) {
+          this.loadDocumentosQhse(id);
           this.pedidoService.get(t.pedidoId).subscribe({
             next: p => this.pedido.set(p),
             error: () => this.pedido.set(null),

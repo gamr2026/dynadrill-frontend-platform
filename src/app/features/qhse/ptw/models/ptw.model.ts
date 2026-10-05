@@ -14,9 +14,9 @@
  */
 export type PtwFase = 'gabinete' | 'ingreso' | 'verificaciones' | 'formalizacion' | 'ejecucion' | 'gestion_documental';
 
-export const PTW_FASE_ORDER: PtwFase[] = ['gabinete', 'formalizacion', 'gestion_documental'];
+export const PTW_FASE_ORDER: PtwFase[] = ['gabinete', 'gestion_documental'];
 
-export const PTW_FASE_STEPS = ['Gabinete', 'Formalización', 'Gest. doc.'];
+export const PTW_FASE_STEPS = ['Gabinete', 'Cierre'];
 
 export const PTW_FASE_LABELS: Record<PtwFase, string> = {
   gabinete: 'Preparación en gabinete',
@@ -24,7 +24,7 @@ export const PTW_FASE_LABELS: Record<PtwFase, string> = {
   verificaciones: 'Verificaciones de seguridad',
   formalizacion: 'Formalización del recibimiento',
   ejecucion: 'Ejecución y devolución',
-  gestion_documental: 'Gestión documental final',
+  gestion_documental: 'Cierre del PTW',
 };
 
 /**
@@ -85,13 +85,18 @@ export interface PtwMatrix {
   // "Ingreso a locación" + "Verificaciones de seguridad" ya no viven acá —
   // ver `ChecklistIngresoPumping` en el ticket de Pumping (Fase 2 del plan).
 
-  // Fase 2: Formalización
+  // Legado (PTW anteriores a la simplificación): QHSE ya no firma en sitio ni marca barricadas.
   ptwFirmadoSitio?: PtwFirma;
   actaRecibimientoFirmada?: PtwFirma;
-  barricadasInstaladas: boolean;
+  barricadasInstaladas?: boolean;
 
-  // Fase 3: Gestión documental final
+  // Cierre: QHSE confirma que el Supervisor cargó el Acta de Entrega de Locación (DYN-PMP-RE-027)
+  // y recién ahí cierra el PTW.
+  /** `true` = QHSE confirmó que el Acta de Entrega de Locación está cargada; `false` = todavía no. */
+  entregaLocacionConfirmada?: boolean;
+  entregaLocacionConfirmadaPor?: PtwFirma;
   ptwCerrado?: PtwFirma;
+  /** Se completa junto con `ptwCerrado` (misma firma): Facturación y los avisos leen "PTW cerrado" de esta pareja. */
   actaDevolucionFirmada?: PtwFirma;
   /**
    * HSE-SITIO-001: "Envío automático de respaldos a stakeholders" — ya no

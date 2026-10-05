@@ -20,9 +20,9 @@ import {
   ptwCerrado,
 } from '../../models/ptw.model';
 import { PtwService } from '../../services/ptw.service';
+import { QhseDocumentosService } from '../../../documentos/services/qhse-documentos.service';
+import { QHSE_REFERENCIA_VIGENTE, QHSE_TIPO_FORMATO_ENTREGA } from '../../../documentos/models/qhse-documentos.model';
 import { downloadQhseReport, escapeHtml, qhseBadge, type QhseReportSection } from '../../../shared/utils/qhse-report.util';
-
-type FirmaCampo = 'ptwFirmadoSitio' | 'actaRecibimientoFirmada' | 'ptwCerrado' | 'actaDevolucionFirmada';
 
 @Component({
   selector: 'app-ptw-detail-page',
@@ -40,6 +40,7 @@ type FirmaCampo = 'ptwFirmadoSitio' | 'actaRecibimientoFirmada' | 'ptwCerrado' |
 })
 export class PtwDetailPage {
   private readonly ptwService = inject(PtwService);
+  private readonly documentosService = inject(QhseDocumentosService);
   private readonly auth = inject(AuthService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly route = inject(ActivatedRoute);
@@ -52,8 +53,12 @@ export class PtwDetailPage {
 
   protected readonly currentIndex = computed(() => {
     const p = this.ptw();
-    return p ? Math.max(0, PTW_FASE_ORDER.indexOf(p.fase)) : 0;
+    // Fases heredadas (formalización, ejecución…) cuentan como "Cierre": ya pasaron el gabinete.
+    return p && p.fase !== 'gabinete' ? PTW_FASE_ORDER.indexOf('gestion_documental') : 0;
   });
+
+  /** Acta de Entrega de Locación cargada por el Supervisor (solo se puede consultar si el PTW está ligado a un pedido). */
+  protected readonly actaEntrega = signal<{ cargada: boolean; nombre?: string; cargadaPor?: string } | null>(null);
 
   protected readonly cerrado = computed(() => {
     const p = this.ptw();
@@ -62,24 +67,38 @@ export class PtwDetailPage {
 
   protected readonly puedeAvanzarDeGabinete = computed(() => (this.ptw()?.documentos ?? []).every(d => d.cargado));
 
-  protected readonly puedeAvanzarDeFormalizacion = computed(() => {
-    const p = this.ptw();
-    return !!p && !!p.ptwFirmadoSitio && !!p.actaRecibimientoFirmada && p.barricadasInstaladas;
-  });
-
-  protected readonly puedeCerrar = computed(() => {
-    const p = this.ptw();
-    return !!p && !!p.ptwCerrado && !!p.actaDevolucionFirmada && p.respaldosEnviados;
-  });
-
   constructor() {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.ptwService.get(id).subscribe({
       next: p => {
         this.ptw.set(p);
         this.loading.set(false);
+        if (p.pedidoId) this.cargarActaEntrega(p.pedidoId);
       },
       error: () => this.loading.set(false),
+    });
+  }
+
+  private cargarActaEntrega(pedidoId: number): void {
+    this.documentosService.listar(pedidoId).subscribe({
+      next: docs => {
+        const d = docs.find(x => x.tipo === QHSE_TIPO_FORMATO_ENTREGA && x.referencia === QHSE_REFERENCIA_VIGENTE);
+        this.actaEntrega.set(d ? { cargada: true, nombre: d.nombreOriginal, cargadaPor: d.uploadedBy } : { cargada: false });
+      },
+      error: () => this.actaEntrega.set(null),
+    });
+  }
+
+  protected descargarActaEntrega(): void {
+    const p = this.ptw();
+    if (!p?.pedidoId) return;
+    this.documentosService.descargar(p.pedidoId, QHSE_TIPO_FORMATO_ENTREGA, QHSE_REFERENCIA_VIGENTE).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      },
+      error: () => this.notify.error('Error', 'No se pudo abrir el Acta de Entrega.'),
     });
   }
 
@@ -197,12 +216,10 @@ export class PtwDetailPage {
     const firmaFila = (label: string, f?: PtwFirma) =>
       `<tr><td>${label}</td><td>${f ? `${escapeHtml(f.nombre)} — ${new Date(f.firmadoAt).toLocaleString('es-EC')}` : '—'}</td></tr>`;
     const firmasSection: QhseReportSection = {
-      title: 'Firmas y cierre',
+      title: 'Confirmación y cierre',
       bodyHtml: `<table>
-        ${firmaFila('PTW firmado en sitio', p.ptwFirmadoSitio)}
-        ${firmaFila('Acta de Recibimiento', p.actaRecibimientoFirmada)}
+        ${firmaFila('Entrega de locación confirmada por QHSE', p.entregaLocacionConfirmada ? p.entregaLocacionConfirmadaPor : undefined)}
         ${firmaFila('PTW cerrado', p.ptwCerrado)}
-        ${firmaFila('Acta de Devolución', p.actaDevolucionFirmada)}
       </table>`,
     };
 
@@ -214,33 +231,27 @@ export class PtwDetailPage {
     );
   }
 
-  /**
-   * HSE-SITIO-001: "Envío automático de respaldos a stakeholders" — apenas
-   * quedan firmadas las dos actas de cierre (Cerrar PTW + Acta de
-   * Devolución), no hace falta un tercer clic manual: se simula el envío
-   * a HSE Base + Operaciones + Facturación en el acto.
-   */
-  protected firmar(campo: FirmaCampo): void {
+  /** QHSE confirma (Sí / No) que el Supervisor cargó el Acta de Entrega de Locación. Con "Sí" ya se puede cerrar el PTW. */
+  protected confirmarEntrega(cargada: boolean): void {
     const p = this.ptw();
-    if (!p) return;
+    if (!p || this.cerrado()) return;
     const nombre = this.auth.currentUser()?.name ?? '';
-    const firma: PtwFirma = { nombre, firmadoAt: new Date().toISOString() };
-
-    const cambios: Partial<PtwMatrix> = { [campo]: firma };
-    const quedaCerradoConEsto =
-      (campo === 'ptwCerrado' && !!p.actaDevolucionFirmada) || (campo === 'actaDevolucionFirmada' && !!p.ptwCerrado);
-
-    if (quedaCerradoConEsto && !p.respaldosEnviados) {
-      cambios.respaldosEnviados = true;
-      this.notify.success('Respaldos enviados', 'Se enviaron automáticamente los respaldos digitales a HSE Base, Operaciones y Facturación.');
-    }
-
-    this.patch(cambios);
+    this.patch({
+      entregaLocacionConfirmada: cargada,
+      entregaLocacionConfirmadaPor: { nombre, firmadoAt: new Date().toISOString() },
+    });
   }
 
-  protected toggleBarricadas(): void {
+  /**
+   * Cierra el PTW. Se registra la misma firma en "PTW cerrado" y "Acta de devolución" (el resto del sistema —Facturación,
+   * avisos, gate del ticket— lee esa pareja) y se notifican solos los respaldos a HSE Base, Operaciones y Facturación.
+   */
+  protected cerrarPtw(): void {
     const p = this.ptw();
-    if (p) this.patch({ barricadasInstaladas: !p.barricadasInstaladas });
+    if (!p || !p.entregaLocacionConfirmada || p.ptwCerrado) return;
+    const firma: PtwFirma = { nombre: this.auth.currentUser()?.name ?? '', firmadoAt: new Date().toISOString() };
+    this.patch({ ptwCerrado: firma, actaDevolucionFirmada: firma, respaldosEnviados: true, fase: 'gestion_documental' });
+    this.notify.success('PTW cerrado', 'Se notificó a HSE Base, Operaciones y Facturación.');
   }
 
   protected avanzarFase(): void {

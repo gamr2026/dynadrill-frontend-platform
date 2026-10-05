@@ -258,9 +258,16 @@ export class SolicitudesDespachoBodegaService {
   }
 
   /** Adjunta el documento de respaldo y marca la solicitud como despachada — el pedido vuelve a `prefactura_generada`. */
-  despachar(id: number, usuario: string, archivo: File, extra: { notaBodega?: string; referenciaAs2?: string }): Observable<SolicitudDespachoBodega> {
+  despachar(
+    id: number,
+    usuario: string,
+    archivo: File,
+    extra: { notaBodega?: string; referenciaAs2?: string; msds?: File },
+  ): Observable<SolicitudDespachoBodega> {
     const form = new FormData();
     form.append('file', archivo);
+    // MSDS (hoja de datos de seguridad) — adjunto extra cuando se despachan químicos.
+    if (extra.msds) form.append('msds', extra.msds);
     form.append('usuario', usuario);
     if (extra.notaBodega) form.append('notaBodega', extra.notaBodega);
     if (extra.referenciaAs2) form.append('referenciaAs2', extra.referenciaAs2);

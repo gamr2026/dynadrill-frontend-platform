@@ -141,6 +141,30 @@
           <dynadrill-button variant="secondary" size="small" [disabled]="!ptArchivo() || documentosQhseSubmitting()" (clicked)="subirPtQhse()">Subir PT de hoy</dynadrill-button>
         </li>
       }
+      <li class="qhse-doc">
+        <div class="qhse-doc__text">
+          <strong class="qhse-doc__name">Acta de Entrega de Locación</strong>
+          <span class="qhse-doc__meta">{{ dq.formatoEntrega ? 'Cargada por el Supervisor' : 'Pendiente — se carga al finalizar el ticket (DYN-PMP-RE-027)' }}</span>
+          <dynadrill-tag [label]="dq.formatoEntrega ? 'Cargado' : 'Pendiente'" [variant]="dq.formatoEntrega ? 'success' : 'warning'" />
+        </div>
+        @if (dq.formatoEntrega) {
+          <button type="button" class="qhse-doc__btn" aria-label="Descargar Acta de Entrega" title="Descargar" (click)="descargarDocumentoQhse('qhse_formato_entrega', 'vigente')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
+        }
+        @if (isAssignedSupervisor() || isJefeBase()) {
+          <button type="button" class="qhse-doc__btn" aria-label="Subir Acta de Entrega" title="Subir Acta de Entrega" [attr.aria-expanded]="subidaEntregaAbierta()" (click)="subidaEntregaAbierta.set(!subidaEntregaAbierta())"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m17 8-5-5-5 5" /><path d="M12 3v12" /></svg></button>
+        }
+      </li>
+
+      @if (subidaEntregaAbierta() && (isAssignedSupervisor() || isJefeBase())) {
+        <li class="qhse-doc-upload">
+          <dynadrill-upload-zone
+            [state]="entregaArchivo() ? 'uploaded' : 'idle'"
+            [fileName]="entregaArchivo()?.name ?? ''"
+            (fileSelected)="onEntregaArchivoSeleccionado($event)"
+          />
+          <dynadrill-button variant="secondary" size="small" [disabled]="!entregaArchivo() || documentosQhseSubmitting()" (clicked)="subirEntregaQhse()">Subir Acta de Entrega</dynadrill-button>
+        </li>
+      }
     </ul>
   </section>
 }
@@ -559,7 +583,7 @@
         <dynadrill-text variant="caption">
           @if (ptwVinculo(); as ptw) {
             El servicio no puede pasar a ejecución en campo: el PTW {{ ptw.code }} está en
-            {{ ptwFaseLabel(ptw.fase) }} — falta la firma en sitio (HSE-SITIO-001).
+            {{ ptwFaseLabel(ptw.fase) }} — falta que QHSE valide los documentos del PTW (HSE-SITIO-001).
           } @else {
             El servicio no puede pasar a ejecución en campo: todavía no se abrió el PTW / Recibimiento de Sitio en QHSE.
           }

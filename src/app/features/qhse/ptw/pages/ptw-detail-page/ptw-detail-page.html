@@ -73,7 +73,7 @@
 
     @if (p.fase === 'gabinete') {
       <dynadrill-button [disabled]="!puedeAvanzarDeGabinete()" (click)="avanzarFase()">
-        Continuar a Formalización
+        Continuar al cierre
       </dynadrill-button>
     }
   </section>
@@ -85,75 +85,76 @@
     "Documentos por pedido".
   -->
 
-  <!-- Fase 2: Formalización -->
-  <section class="ptw-detail-page__fase">
-    <h3 class="ptw-detail-page__fase-title">2. Formalización del recibimiento</h3>
+  <!-- Cierre: QHSE confirma el Acta de Entrega de Locación (la carga el Supervisor) y cierra el PTW -->
+  <section class="ptw-detail-page__fase ptw-detail-page__cierre">
+    <h3 class="ptw-detail-page__fase-title">2. Cierre del PTW</h3>
+    <p class="ptw-detail-page__fase-note">
+      Al finalizar el ticket, el Supervisor carga el <strong>Acta de Entrega de Locación</strong> (DYN-PMP-RE-027,
+      firmada por el cliente). Confirma aquí que la recibiste para poder cerrar el PTW.
+    </p>
 
-    <div class="ptw-detail-page__firma">
-      <p>Firmar PTW en sitio</p>
-      @if (p.ptwFirmadoSitio; as f) {
-        <dynadrill-tag [label]="'Firmado por ' + f.nombre + ' · ' + (f.firmadoAt | date: 'short')" variant="success" />
-      } @else {
-        <dynadrill-button size="small" variant="secondary" (click)="firmar('ptwFirmadoSitio')">Firmar PTW en sitio</dynadrill-button>
-      }
-    </div>
-
-    <div class="ptw-detail-page__firma">
-      <p>Firmar Acta de Recibimiento</p>
-      @if (p.actaRecibimientoFirmada; as f) {
-        <dynadrill-tag [label]="'Firmado por ' + f.nombre + ' · ' + (f.firmadoAt | date: 'short')" variant="success" />
-      } @else {
-        <dynadrill-button size="small" variant="secondary" (click)="firmar('actaRecibimientoFirmada')">Firmar Acta de Recibimiento</dynadrill-button>
-      }
-    </div>
-
-    <div class="ptw-detail-page__firma">
-      <p>Barricadas y señalización instaladas</p>
-      <dynadrill-button size="small" variant="secondary" (click)="toggleBarricadas()">
-        {{ p.barricadasInstaladas ? 'Instaladas ✓' : 'Marcar como instaladas' }}
-      </dynadrill-button>
-    </div>
-
-    @if (p.fase === 'formalizacion') {
-      <dynadrill-button [disabled]="!puedeAvanzarDeFormalizacion()" (click)="avanzarFase()">
-        Continuar a Gestión documental
-      </dynadrill-button>
+    @if (p.pedidoId) {
+      <div class="ptw-detail-page__acta">
+        <div class="ptw-detail-page__acta-info">
+          <span class="ptw-detail-page__acta-label">Acta de Entrega de Locación</span>
+          @if (actaEntrega(); as acta) {
+            @if (acta.cargada) {
+              <dynadrill-tag label="Cargada por el Supervisor" variant="success" />
+              <span class="ptw-detail-page__acta-meta">{{ acta.nombre }} · {{ acta.cargadaPor }}</span>
+            } @else {
+              <dynadrill-tag label="Pendiente — el Supervisor aún no la carga" variant="warning" />
+            }
+          }
+        </div>
+        @if (actaEntrega()?.cargada) {
+          <dynadrill-button size="small" variant="secondary" (click)="descargarActaEntrega()">⬇ Ver acta</dynadrill-button>
+        }
+      </div>
     }
-  </section>
 
-  <!-- Fase 3: Gestión documental final -->
-  <section class="ptw-detail-page__fase">
-    <h3 class="ptw-detail-page__fase-title">3. Gestión documental final</h3>
+    <div class="ptw-detail-page__pregunta" role="group" aria-labelledby="ptw-pregunta-entrega">
+      <p id="ptw-pregunta-entrega" class="ptw-detail-page__pregunta-texto">¿Se cargó el Acta de Entrega de Locación?</p>
+      <div class="ptw-detail-page__opciones">
+        <button
+          type="button"
+          class="ptw-detail-page__opcion"
+          [class.ptw-detail-page__opcion--activa]="p.entregaLocacionConfirmada === true"
+          [attr.aria-pressed]="p.entregaLocacionConfirmada === true"
+          [disabled]="cerrado()"
+          (click)="confirmarEntrega(true)"
+        >Sí</button>
+        <button
+          type="button"
+          class="ptw-detail-page__opcion ptw-detail-page__opcion--no"
+          [class.ptw-detail-page__opcion--activa]="p.entregaLocacionConfirmada === false"
+          [attr.aria-pressed]="p.entregaLocacionConfirmada === false"
+          [disabled]="cerrado()"
+          (click)="confirmarEntrega(false)"
+        >No</button>
+      </div>
+    </div>
 
-    <div class="ptw-detail-page__firma">
-      <p>Cerrar PTW</p>
+    @if (p.entregaLocacionConfirmada === false) {
+      <p class="ptw-detail-page__fase-note">El PTW sigue abierto hasta que se cargue el Acta de Entrega y la confirmes con "Sí".</p>
+    }
+    @if (p.entregaLocacionConfirmada && actaEntrega() && !actaEntrega()!.cargada && !cerrado()) {
+      <p class="ptw-detail-page__aviso">Confirmaste que se cargó, pero el sistema no ve el acta en este pedido todavía.</p>
+    }
+
+    <div class="ptw-detail-page__cerrar">
       @if (p.ptwCerrado; as f) {
-        <dynadrill-tag [label]="'Firmado por ' + f.nombre + ' · ' + (f.firmadoAt | date: 'short')" variant="success" />
+        <dynadrill-tag [label]="'PTW cerrado por ' + f.nombre + ' · ' + (f.firmadoAt | date: 'short')" variant="success" />
       } @else {
-        <dynadrill-button size="small" variant="secondary" (click)="firmar('ptwCerrado')">Cerrar PTW</dynadrill-button>
+        <dynadrill-button [disabled]="!p.entregaLocacionConfirmada" (click)="cerrarPtw()">Cerrar PTW</dynadrill-button>
       }
     </div>
 
-    <div class="ptw-detail-page__firma">
-      <p>Firmar Acta de Devolución</p>
-      @if (p.actaDevolucionFirmada; as f) {
-        <dynadrill-tag [label]="'Firmado por ' + f.nombre + ' · ' + (f.firmadoAt | date: 'short')" variant="success" />
-      } @else {
-        <dynadrill-button size="small" variant="secondary" (click)="firmar('actaDevolucionFirmada')">Firmar Acta de Devolución</dynadrill-button>
-      }
-    </div>
-
-    <div class="ptw-detail-page__firma">
-      <p>Respaldos digitales enviados (HSE Base + Operaciones + Facturación)</p>
-      @if (p.respaldosEnviados) {
-        <dynadrill-tag label="Enviados automáticamente ✓" variant="success" />
-      } @else {
-        <dynadrill-tag label="Se envían solos al firmar Cerrar PTW y Acta de Devolución" variant="neutral" />
-      }
-    </div>
+    <p class="ptw-detail-page__leyenda">
+      <span aria-hidden="true">ⓘ</span>
+      Al cerrar el PTW se notificará automáticamente a las áreas correspondientes: HSE Base, Operaciones y Facturación.
+    </p>
 
     @if (cerrado()) {
-      <dynadrill-tag label="Sitio devuelto — PTW cerrado" variant="success" />
       <p class="ptw-detail-page__fase-note">
         Este PTW quedó cerrado y archivado. No requiere ninguna acción adicional aquí — para un nuevo trabajo se abre
         un PTW nuevo automáticamente junto con el ticket de Pumping/FCR correspondiente.

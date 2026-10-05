@@ -1,7 +1,7 @@
 <app-page-header
   eyebrow="QHSE"
   title="Documentos por pedido"
-  subtitle="Formato de Recepción, SFI y Carnet de Vacunas (QHSE) — ART y PT los sube el Supervisor desde su ticket de Pumping o FCR"
+  subtitle="Formato de Recepción, SFI y Carnet de Vacunas (QHSE). ART, PT y Acta de Entrega de Locación los sube el Supervisor desde su ticket de Pumping o FCR"
 />
 
 @if (isMobile()) {
@@ -29,6 +29,10 @@
         <dynadrill-icon-button icon="upload" tooltip="Subir SFI" tooltipPlacement="top" [disabled]="subiendoTipo(row.pedidoId, 'qhse_sfi')" (clicked)="sfiInput.click()" />
       }
       <input #sfiInput type="file" hidden (change)="subir(row.pedidoId, 'qhse_sfi', sfiInput)" />
+
+      @if (row.estado.formatoEntrega) {
+        <dynadrill-icon-button icon="download" tooltip="Descargar Acta de Entrega (la cargó el Supervisor)" tooltipPlacement="top" (clicked)="descargar(row.pedidoId, 'qhse_formato_entrega')" />
+      }
 
       @if (row.estado.checklistIngreso?.completo) {
         <dynadrill-icon-button icon="download" tooltip="Descargar certificado de Ingreso y Verificaciones" tooltipPlacement="top" (clicked)="descargarCertificadoChecklistIngreso(row)" />

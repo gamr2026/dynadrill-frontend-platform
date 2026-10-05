@@ -528,7 +528,7 @@ export class PedidoDetailPage {
    * propio botón "Descargar PDF" (jsPDF).
    */
   protected descargarDocumentoReal(doc: DocumentoRealPedido): void {
-    if (doc.origen === 'generado' && doc.tipo !== 'despacho_bodega') {
+    if (doc.origen === 'generado' && doc.tipo !== 'despacho_bodega' && doc.tipo !== 'msds') {
       if (doc.tipo === 'reporte_job') this.verReporteJobConsolidado();
       else if (doc.tipo === 'reporte_herramientas') this.verReporteHerramientas();
       else if (doc.tipo === 'prefactura') this.verPrefacturaPdf();
@@ -540,7 +540,7 @@ export class PedidoDetailPage {
     // literalmente se guardó ahí (ver `despacharSolicitudDespacho` en el
     // backend).
     const obs$ =
-      doc.tipo === 'despacho_bodega'
+      doc.tipo === 'despacho_bodega' || doc.tipo === 'msds'
         ? this.pedidoService.descargarDocumentoFirmado(this.pedidoId, doc.tipo, doc.referencia)
         : doc.origen === 'pumping'
           ? this.pumpingService.descargarDocumento(doc.ticketId!, doc.campo!)

@@ -13,6 +13,7 @@ import {
   PedidoConEstadoDocumental,
   QHSE_REFERENCIA_VIGENTE,
   QHSE_TIPO_CARNET_VACUNAS,
+  QHSE_TIPO_FORMATO_ENTREGA,
   QHSE_TIPO_FORMATO_RECEPCION,
   QHSE_TIPO_SFI,
 } from '../../models/qhse-documentos.model';
@@ -59,6 +60,7 @@ export class DocumentosPedidosPage {
     { key: 'campo', header: 'Campo / Pozo', searchable: true },
     { key: 'formatoRecepcionBadge', header: 'Formato de Recepción', type: 'badge' },
     { key: 'carnetVacunasBadge', header: 'Carnet de Vacunas', type: 'badge' },
+    { key: 'formatoEntregaBadge', header: 'Acta de Entrega', type: 'badge' },
     { key: 'artBadge', header: 'ART', type: 'badge' },
     { key: 'ptBadge', header: 'PT (hoy)', type: 'badge' },
     { key: 'sfiBadge', header: 'SFI', type: 'badge' },
@@ -75,6 +77,7 @@ export class DocumentosPedidosPage {
       campo: `${p.campo} / ${p.pozo}`,
       formatoRecepcionBadge: p.estado.formatoRecepcion ? CARGADO : PENDIENTE,
       carnetVacunasBadge: p.estado.carnetVacunas ? CARGADO : PENDIENTE,
+      formatoEntregaBadge: p.estado.formatoEntrega ? CARGADO : PENDIENTE,
       artBadge: p.estado.artVigente === true ? CARGADO : p.estado.artVigente === false ? VENCIDO : SIN_ART,
       ptBadge: p.estado.ptHoy ? CARGADO : PENDIENTE,
       sfiBadge: p.estado.sfi ? CARGADO : PENDIENTE,
@@ -102,6 +105,7 @@ export class DocumentosPedidosPage {
         fields: [
           { label: 'Formato Recepción', value: r.formatoRecepcionBadge.text, tone: tono(r.formatoRecepcionBadge) },
           { label: 'Carnet', value: r.carnetVacunasBadge.text, tone: tono(r.carnetVacunasBadge) },
+          { label: 'Acta de Entrega', value: r.formatoEntregaBadge.text, tone: tono(r.formatoEntregaBadge) },
           { label: 'ART', value: r.artBadge.text, tone: tono(r.artBadge) },
           { label: 'PT (hoy)', value: r.ptBadge.text, tone: tono(r.ptBadge) },
           { label: 'SFI', value: r.sfiBadge.text, tone: tono(r.sfiBadge) },
@@ -111,6 +115,9 @@ export class DocumentosPedidosPage {
           { ...accionDoc('Formato de Recepción', r.estado.formatoRecepcion, QHSE_TIPO_FORMATO_RECEPCION), primary: true },
           accionDoc('Carnet de Vacunas', r.estado.carnetVacunas, QHSE_TIPO_CARNET_VACUNAS),
           accionDoc('SFI', r.estado.sfi, QHSE_TIPO_SFI),
+          ...(r.estado.formatoEntrega
+            ? [{ icon: 'download', label: 'Descargar Acta de Entrega', run: () => this.descargar(r.pedidoId, QHSE_TIPO_FORMATO_ENTREGA) }]
+            : []),
         ],
       } satisfies RegistroMovil;
     }),

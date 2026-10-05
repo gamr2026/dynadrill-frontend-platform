@@ -288,6 +288,37 @@ export class FcrTicketDetailPage {
     });
   }
 
+  /** Acta de Entrega de Locación (DYN-PMP-RE-027): la sube el Supervisor al finalizar el ticket; QHSE confirma su recepción para cerrar el PTW. */
+  protected readonly entregaArchivo = signal<File | null>(null);
+  protected readonly subidaEntregaAbierta = signal(false);
+
+  protected onEntregaArchivoSeleccionado(file: NzUploadFile): void {
+    this.entregaArchivo.set((file.originFileObj as File | undefined) ?? (file as unknown as File));
+  }
+
+  protected subirEntregaQhse(): void {
+    const t = this.ticket();
+    const archivo = this.entregaArchivo();
+    if (!t || !archivo) {
+      this.notify.error('Acta de entrega', 'Elegí el archivo del Acta de Entrega de Locación.');
+      return;
+    }
+    this.documentosQhseSubmitting.set(true);
+    this.fcrService.subirEntregaQhse(t.id, archivo).subscribe({
+      next: () => {
+        this.documentosQhseSubmitting.set(false);
+        this.entregaArchivo.set(null);
+        this.subidaEntregaAbierta.set(false);
+        this.notify.success('Acta de entrega guardada', 'QHSE será notificado para confirmar la recepción y cerrar el PTW.');
+        this.loadDocumentosQhse(t.id);
+      },
+      error: () => {
+        this.documentosQhseSubmitting.set(false);
+        this.notify.error('Error', 'No se pudo subir el Acta de Entrega.');
+      },
+    });
+  }
+
   protected descargarDocumentoQhse(tipo: string, referencia: string): void {
     const t = this.ticket();
     if (!t) return;
@@ -1587,7 +1618,7 @@ export class FcrTicketDetailPage {
       if (!this.coberturaOk()) return 'Esperando acción de HSE: aprobar actividades pendientes en la Matriz IPERC';
       const ptw = this.qhseVinculo()?.ptw;
       return ptw
-        ? `Esperando acción de HSE: firma del PTW ${ptw.code} en sitio (HSE-SITIO-001)`
+        ? `Esperando acción de HSE: validación de los documentos del PTW ${ptw.code} (HSE-SITIO-001)`
         : 'Esperando acción de HSE: apertura del PTW / Recibimiento de Sitio';
     }
     return `Esperando acción de: ${this.responsibleRole()}`;
@@ -1841,7 +1872,7 @@ export class FcrTicketDetailPage {
         p
           ? `El servicio no puede pasar a ejecución de campo: el PTW ${p.code} está en ${ptwFaseLabel(
               p.fase,
-            )} — falta la firma en sitio.`
+            )} — falta que QHSE valide los documentos del PTW.`
           : 'El servicio no puede pasar a ejecución de campo: todavía no se abrió el PTW / Recibimiento de Sitio en QHSE.',
       );
       return;

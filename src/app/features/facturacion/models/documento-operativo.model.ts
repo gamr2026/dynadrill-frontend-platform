@@ -94,7 +94,7 @@ export interface AvanceDocumental {
 
 /** Un documento de respaldo real (monitoreo o mezcla) — ver `AvanceDocumental.documentosReales`. */
 export interface DocumentoRealPedido {
-  tipo: 'monitoreo' | 'mezcla' | 'reporte_job' | 'reporte_herramientas' | 'prefactura' | 'despacho_bodega';
+  tipo: 'monitoreo' | 'mezcla' | 'reporte_job' | 'reporte_herramientas' | 'prefactura' | 'despacho_bodega' | 'msds';
   /** `pumping` = archivo subido en el ticket de Pumping (`PumpingDocumento`, requiere `ticketId`+`campo` para descargarlo). `pedido` = archivo que Ventas adjuntó al crear el Pedido (`PedidoDocumento`, requiere `pedidoDocumentoId`). `generado` = Reporte Job/Herramientas/Prefactura/Despacho de Bodega — para los 3 primeros "Descargar" arma el PDF al vuelo (jsPDF) en vez de pedirlo al backend; Despacho de Bodega es la única excepción con archivo real detrás (el que Bodega adjuntó al despachar, ver `descargarDocumentoReal` en pedido-detail-page.ts). */
   origen: 'pumping' | 'pedido' | 'generado';
   nombreOriginal: string;

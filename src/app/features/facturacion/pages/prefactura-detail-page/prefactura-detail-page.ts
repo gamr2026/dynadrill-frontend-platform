@@ -236,6 +236,7 @@ export class PrefacturaDetailPage {
     reporte_herramientas: 'Reporte de Herramientas',
     prefactura: 'Prefactura',
     despacho_bodega: 'Despacho de Bodega',
+    msds: 'MSDS (hoja de datos de seguridad)',
   };
 
   protected enviarAlCliente(): void {

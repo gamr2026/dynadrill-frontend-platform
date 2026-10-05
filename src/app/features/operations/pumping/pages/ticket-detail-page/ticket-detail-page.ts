@@ -685,6 +685,37 @@ export class TicketDetailPage {
     });
   }
 
+  /** Acta de Entrega de Locación (DYN-PMP-RE-027): la sube el Supervisor al finalizar el ticket; QHSE confirma su recepción para cerrar el PTW. */
+  protected readonly entregaArchivo = signal<File | null>(null);
+  protected readonly subidaEntregaAbierta = signal(false);
+
+  protected onEntregaArchivoSeleccionado(file: NzUploadFile): void {
+    this.entregaArchivo.set((file.originFileObj as File | undefined) ?? (file as unknown as File));
+  }
+
+  protected subirEntregaQhse(): void {
+    const t = this.ticket();
+    const archivo = this.entregaArchivo();
+    if (!t || !archivo) {
+      this.notify.error('Acta de entrega', 'Elegí el archivo del Acta de Entrega de Locación.');
+      return;
+    }
+    this.documentosQhseSubmitting.set(true);
+    this.pumpingService.subirEntregaQhse(t.id, archivo).subscribe({
+      next: () => {
+        this.documentosQhseSubmitting.set(false);
+        this.entregaArchivo.set(null);
+        this.subidaEntregaAbierta.set(false);
+        this.notify.success('Acta de entrega guardada', 'QHSE será notificado para confirmar la recepción y cerrar el PTW.');
+        this.loadDocumentosQhse(t.id);
+      },
+      error: () => {
+        this.documentosQhseSubmitting.set(false);
+        this.notify.error('Error', 'No se pudo subir el Acta de Entrega.');
+      },
+    });
+  }
+
   protected descargarDocumentoQhse(tipo: string, referencia: string): void {
     const t = this.ticket();
     if (!t) return;
@@ -1398,7 +1429,7 @@ export class TicketDetailPage {
         p
           ? `El servicio no puede pasar a ejecución en campo: el PTW ${p.code} está en ${this.ptwFaseLabel(
               p.fase,
-            )} — falta la firma en sitio (HSE-SITIO-001).`
+            )} — falta que QHSE valide los documentos del PTW (HSE-SITIO-001).`
           : 'El servicio no puede pasar a ejecución en campo: todavía no se abrió el PTW/Recibimiento de Sitio en QHSE.',
       );
       return;

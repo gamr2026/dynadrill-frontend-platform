@@ -150,6 +150,12 @@ export class PumpingService {
     return this.http.post(`${this.baseUrl}/tickets/${ticketId}/documentos-qhse/pt/${encodeURIComponent(ptwCode)}`, form);
   }
 
+  subirEntregaQhse(ticketId: number, archivo: File): Observable<unknown> {
+    const form = new FormData();
+    form.append('file', archivo);
+    return this.http.post(`${this.baseUrl}/tickets/${ticketId}/documentos-qhse/entrega`, form);
+  }
+
   descargarDocumentoQhse(ticketId: number, tipo: string, referencia: string): Observable<Blob> {
     return this.http.get(`${this.baseUrl}/tickets/${ticketId}/documentos-qhse/${tipo}/${encodeURIComponent(referencia)}`, {
       responseType: 'blob',
@@ -267,6 +273,8 @@ export interface ChecklistIngreso extends ChecklistIngresoBooleanos {
 export interface DocumentosQhseTicket {
   pedidoId: number;
   formatoRecepcion: boolean;
+  /** Acta de Entrega de Locación (DYN-PMP-RE-027) — la sube el Supervisor al finalizar el ticket. */
+  formatoEntrega: boolean;
   sfi: boolean;
   artVigente: boolean | null;
   artFechaEmision: string | null;

@@ -70,9 +70,9 @@
             @if (p.cerrado) {
               cerrado, sitio devuelto.
             } @else if (p.firmadoSitio) {
-              firmado en sitio; ejecución en campo habilitada.
+              documentos validados por QHSE; ejecución en campo habilitada.
             } @else {
-              en {{ ptwFaseLabel(p.fase) }}. La ejecución en campo requiere la firma en sitio.
+              en {{ ptwFaseLabel(p.fase) }}. La ejecución en campo requiere que QHSE valide los documentos del PTW (ART, PT, Formato de Recepción, SFI y Carnet).
             }
             @if (canView()) {
               <button type="button" class="ticket-qhse-banner__link" (click)="verPtw()">Ver PTW</button>

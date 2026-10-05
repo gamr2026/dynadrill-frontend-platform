@@ -34,6 +34,8 @@ export class GestionarDespachoDialog {
   protected readonly esPendiente = this.data.solicitud.estado === 'pendiente';
 
   protected readonly archivo = signal<File | null>(null);
+  /** MSDS (hoja de datos de seguridad): opcional, se adjunta cuando el despacho incluye químicos. */
+  protected readonly msds = signal<File | null>(null);
   protected readonly notaBodega = signal('');
   protected readonly referenciaAs2 = signal('');
   protected readonly motivoRechazo = signal('');
@@ -46,6 +48,10 @@ export class GestionarDespachoDialog {
     this.archivo.set(files?.[0] ?? null);
   }
 
+  protected seleccionarMsds(files: FileList | null): void {
+    this.msds.set(files?.[0] ?? null);
+  }
+
   protected despachar(): void {
     if (!this.puedeDespachar() || this.submitting()) return;
     const archivo = this.archivo();
@@ -56,6 +62,7 @@ export class GestionarDespachoDialog {
       .despachar(this.data.solicitud.id, usuario, archivo, {
         notaBodega: this.notaBodega().trim() || undefined,
         referenciaAs2: this.referenciaAs2().trim() || undefined,
+        msds: this.msds() ?? undefined,
       })
       .subscribe({
         next: () => {

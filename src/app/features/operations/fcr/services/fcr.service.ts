@@ -239,6 +239,12 @@ export class FcrService {
     return this.http.post(`${this.baseUrl}/tickets/${ticketId}/documentos-qhse/pt/${encodeURIComponent(ptwCode)}`, form);
   }
 
+  subirEntregaQhse(ticketId: number, archivo: File): Observable<unknown> {
+    const form = new FormData();
+    form.append('file', archivo);
+    return this.http.post(`${this.baseUrl}/tickets/${ticketId}/documentos-qhse/entrega`, form);
+  }
+
   descargarDocumentoQhse(ticketId: number, tipo: string, referencia: string): Observable<Blob> {
     return this.http.get(`${this.baseUrl}/tickets/${ticketId}/documentos-qhse/${tipo}/${encodeURIComponent(referencia)}`, {
       responseType: 'blob',

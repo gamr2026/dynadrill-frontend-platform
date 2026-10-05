@@ -12,10 +12,8 @@ import { QhseDocumentosService } from '../../services/qhse-documentos.service';
 import {
   PedidoConEstadoDocumental,
   QHSE_REFERENCIA_VIGENTE,
-  QHSE_TIPO_ART,
   QHSE_TIPO_CARNET_VACUNAS,
   QHSE_TIPO_FORMATO_RECEPCION,
-  QHSE_TIPO_PT,
   QHSE_TIPO_SFI,
 } from '../../models/qhse-documentos.model';
 import { crearReportePdf, descargarReportePdf } from '../../../../../shared/utils/reporte-pdf.util';
@@ -35,9 +33,8 @@ const APROBADO: Badge = { text: 'Aprobado', tone: 'success' };
 /**
  * Bandeja "Documentos por pedido" de QHSE — ver PLAN-QHSE-PUMPING-NOTIFICACIONES,
  * Fase 2. QHSE sube acá el Formato de Recepción, el SFI y el Carnet de
- * Vacunas. En Pumping, ART y PT los sube el Supervisor desde su ticket (esta
- * pantalla solo los muestra); en FCR no hay esa pantalla, así que QHSE también
- * los sube acá.
+ * Vacunas; ART y PT los sube el Supervisor desde su ticket de Pumping (esta
+ * pantalla solo los muestra).
  */
 @Component({
   selector: 'app-documentos-pedidos-page',
@@ -57,7 +54,6 @@ export class DocumentosPedidosPage {
 
   protected readonly columns: DynadrillDataTableColumn[] = [
     { key: 'code', header: 'Pedido', sortable: true, searchable: true },
-    { key: 'linea', header: 'Línea' },
     { key: 'cliente', header: 'Cliente', searchable: true },
     { key: 'campo', header: 'Campo / Pozo', searchable: true },
     { key: 'formatoRecepcionBadge', header: 'Formato de Recepción', type: 'badge' },
@@ -73,9 +69,6 @@ export class DocumentosPedidosPage {
     this.pedidos().map(p => ({
       pedidoId: p.pedidoId,
       code: p.code,
-      linea: p.lineaServicio === 'fcr' ? 'FCR' : 'Pumping',
-      esFcr: p.lineaServicio === 'fcr',
-      ptwAbiertoCode: p.ptwAbiertoCode,
       cliente: p.cliente,
       campo: `${p.campo} / ${p.pozo}`,
       formatoRecepcionBadge: p.estado.formatoRecepcion ? CARGADO : PENDIENTE,
@@ -116,35 +109,21 @@ export class DocumentosPedidosPage {
           { ...accionDoc('Formato de Recepción', r.estado.formatoRecepcion, QHSE_TIPO_FORMATO_RECEPCION), primary: true },
           accionDoc('Carnet de Vacunas', r.estado.carnetVacunas, QHSE_TIPO_CARNET_VACUNAS),
           accionDoc('SFI', r.estado.sfi, QHSE_TIPO_SFI),
-          ...(r.esFcr
-            ? [
-                r.estado.artVigente === true
-                  ? { icon: 'download', label: 'Descargar ART', run: () => this.descargar(r.pedidoId, QHSE_TIPO_ART, r.estado.artFechaEmision ?? this.hoy) }
-                  : { icon: 'upload', label: 'Subir ART', run: () => this.elegirYSubir(r.pedidoId, QHSE_TIPO_ART, this.hoy) },
-                ...(r.ptwAbiertoCode
-                  ? [
-                      r.estado.ptHoy
-                        ? { icon: 'download', label: 'Descargar PT', run: () => this.descargar(r.pedidoId, QHSE_TIPO_PT, r.ptwAbiertoCode!) }
-                        : { icon: 'upload', label: 'Subir PT', run: () => this.elegirYSubir(r.pedidoId, QHSE_TIPO_PT, r.ptwAbiertoCode!) },
-                    ]
-                  : []),
-              ]
-            : []),
         ],
       } satisfies RegistroMovil;
     }),
   );
 
   /** En móvil no hay `<input type=file>` por fila: se crea uno al vuelo y se reutiliza `subir`. */
-  protected elegirYSubir(pedidoId: number, tipo: string, referencia: string = QHSE_REFERENCIA_VIGENTE): void {
+  protected elegirYSubir(
+    pedidoId: number,
+    tipo: typeof QHSE_TIPO_FORMATO_RECEPCION | typeof QHSE_TIPO_SFI | typeof QHSE_TIPO_CARNET_VACUNAS,
+  ): void {
     const input = document.createElement('input');
     input.type = 'file';
-    input.addEventListener('change', () => this.subir(pedidoId, tipo, input, referencia));
+    input.addEventListener('change', () => this.subir(pedidoId, tipo, input));
     input.click();
   }
-
-  /** ART de un pedido de FCR: la fecha de emisión (su referencia) es la de hoy; el ART vale 30 días desde ahí. */
-  protected readonly hoy = new Date().toISOString().slice(0, 10);
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['pedidoId']);
 
@@ -172,12 +151,16 @@ export class DocumentosPedidosPage {
   }
 
   /** Sube (o reemplaza) el Formato de Recepción, el SFI o el Carnet de Vacunas de un pedido — los tipos que QHSE sube directamente. */
-  protected subir(pedidoId: number, tipo: string, input: HTMLInputElement, referencia: string = QHSE_REFERENCIA_VIGENTE): void {
+  protected subir(
+    pedidoId: number,
+    tipo: typeof QHSE_TIPO_FORMATO_RECEPCION | typeof QHSE_TIPO_SFI | typeof QHSE_TIPO_CARNET_VACUNAS,
+    input: HTMLInputElement,
+  ): void {
     const archivo = input.files?.[0];
     input.value = '';
     if (!archivo) return;
     this.subiendo.set(this.key(pedidoId, tipo));
-    this.service.subir(pedidoId, tipo, referencia, archivo).subscribe({
+    this.service.subir(pedidoId, tipo, QHSE_REFERENCIA_VIGENTE, archivo).subscribe({
       next: () => {
         this.subiendo.set(null);
         this.notify.success('Guardado', 'El documento quedó guardado.');
@@ -190,8 +173,8 @@ export class DocumentosPedidosPage {
     });
   }
 
-  protected descargar(pedidoId: number, tipo: string, referencia: string = QHSE_REFERENCIA_VIGENTE): void {
-    this.service.descargar(pedidoId, tipo, referencia).subscribe({
+  protected descargar(pedidoId: number, tipo: string): void {
+    this.service.descargar(pedidoId, tipo, QHSE_REFERENCIA_VIGENTE).subscribe({
       next: blob => {
         const url = URL.createObjectURL(blob);
         window.open(url, '_blank');

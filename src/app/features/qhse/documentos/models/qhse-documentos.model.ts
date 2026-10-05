@@ -40,10 +40,6 @@ export interface ChecklistIngresoEstado {
 
 export interface PedidoConEstadoDocumental {
   pedidoId: number;
-  /** 'pumping' | 'fcr' — en FCR el ART y el PT los sube QHSE desde esta bandeja (no hay ticket de Supervisor equivalente). */
-  lineaServicio: string;
-  /** Código del PTW abierto del pedido; el PT de un pedido de FCR se sube contra él. */
-  ptwAbiertoCode: string | null;
   code: string;
   cliente: string;
   campo: string;
@@ -57,5 +53,3 @@ export const QHSE_TIPO_FORMATO_RECEPCION = 'qhse_formato_recepcion';
 export const QHSE_TIPO_SFI = 'qhse_sfi';
 export const QHSE_TIPO_CARNET_VACUNAS = 'qhse_carnet_vacunas';
 export const QHSE_REFERENCIA_VIGENTE = 'vigente';
-export const QHSE_TIPO_ART = 'qhse_art';
-export const QHSE_TIPO_PT = 'qhse_pt';

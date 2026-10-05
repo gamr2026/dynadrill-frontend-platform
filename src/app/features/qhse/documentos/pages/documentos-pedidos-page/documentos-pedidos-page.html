@@ -1,7 +1,7 @@
 <app-page-header
   eyebrow="QHSE"
   title="Documentos por pedido"
-  subtitle="Formato de Recepción, SFI y Carnet de Vacunas (QHSE). ART y PT: en Pumping los sube el Supervisor desde su ticket; en FCR, QHSE desde aquí"
+  subtitle="Formato de Recepción, SFI y Carnet de Vacunas (QHSE) — ART y PT los sube el Supervisor desde su ticket de Pumping"
 />
 
 @if (isMobile()) {
@@ -29,22 +29,6 @@
         <dynadrill-icon-button icon="upload" tooltip="Subir SFI" tooltipPlacement="top" [disabled]="subiendoTipo(row.pedidoId, 'qhse_sfi')" (clicked)="sfiInput.click()" />
       }
       <input #sfiInput type="file" hidden (change)="subir(row.pedidoId, 'qhse_sfi', sfiInput)" />
-
-      @if (row.esFcr) {
-        @if (row.estado.artVigente === true) {
-          <dynadrill-icon-button icon="download" tooltip="Descargar ART" tooltipPlacement="top" (clicked)="descargar(row.pedidoId, 'qhse_art', row.estado.artFechaEmision)" />
-        } @else {
-          <dynadrill-icon-button icon="upload" tooltip="Subir ART (emisión hoy)" tooltipPlacement="top" [disabled]="subiendoTipo(row.pedidoId, 'qhse_art')" (clicked)="artInput.click()" />
-        }
-        <input #artInput type="file" hidden (change)="subir(row.pedidoId, 'qhse_art', artInput, hoy)" />
-
-        @if (row.estado.ptHoy && row.ptwAbiertoCode) {
-          <dynadrill-icon-button icon="download" tooltip="Descargar PT" tooltipPlacement="top" (clicked)="descargar(row.pedidoId, 'qhse_pt', row.ptwAbiertoCode)" />
-        } @else {
-          <dynadrill-icon-button icon="upload" [tooltip]="row.ptwAbiertoCode ? 'Subir PT del PTW ' + row.ptwAbiertoCode : 'QHSE aún no abrió el PTW'" tooltipPlacement="top" [disabled]="!row.ptwAbiertoCode || subiendoTipo(row.pedidoId, 'qhse_pt')" (clicked)="ptInput.click()" />
-        }
-        <input #ptInput type="file" hidden (change)="subir(row.pedidoId, 'qhse_pt', ptInput, row.ptwAbiertoCode)" />
-      }
 
       @if (row.estado.checklistIngreso?.completo) {
         <dynadrill-icon-button icon="download" tooltip="Descargar certificado de Ingreso y Verificaciones" tooltipPlacement="top" (clicked)="descargarCertificadoChecklistIngreso(row)" />

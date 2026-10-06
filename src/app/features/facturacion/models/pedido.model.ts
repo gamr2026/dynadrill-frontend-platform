@@ -248,6 +248,8 @@ export interface ItemEstimado {
   esQuimico?: boolean;
   /** Igual que `esQuimico`, pero para herramientas de Inventario (categoría HERRAMIENTAS). */
   esHerramienta?: boolean;
+  /** La prefactura factura exactamente esta cantidad: los ítems "por día" no se recalculan con los días del Reporte Job (ej. 4 días de personal de CT en un job de 5). */
+  cantidadFija?: boolean;
 }
 
 export interface CambioEstado {

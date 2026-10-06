@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { roleGuard } from '../../../core/guards/role.guard';
+import { PUMPING_MANTENIMIENTO_ROLES } from './models/pumping.model';
 
 /** Roles que pueden abrir tickets de Pumping — también lo usa el detalle del pedido para decidir si muestra "Ir a Pumping". */
 export const PUMPING_ROLES = ['Superadmin', 'Jefe de Base', 'Supervisor', 'Supervisor Pumping', 'Operador'];
@@ -23,6 +24,7 @@ export const pumpingRoutes: Routes = [
     path: ':id',
     loadComponent: () => import('./pages/ticket-detail-page/ticket-detail-page').then(m => m.TicketDetailPage),
     canActivate: [roleGuard],
-    data: { allowedRoles: PUMPING_ROLES },
+    // Mantenimiento entra solo de lectura al card "Mantenimientos" (ver PUMPING_MANTENIMIENTO_ROLES).
+    data: { allowedRoles: [...PUMPING_ROLES, ...Object.keys(PUMPING_MANTENIMIENTO_ROLES)] },
   },
 ];

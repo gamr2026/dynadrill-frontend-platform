@@ -33,6 +33,9 @@
     <ng-template #actionsTpl let-row>
       <div class="dyn-actions-row">
         <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewDetail(row)" />
+        @if (row['pumpingTicketId']) {
+          <dynadrill-icon-button icon="project" tooltip="Ver ticket de Pumping" (clicked)="verTicketPumping(row)" />
+        }
         @if (row['kind'] === 'order') {
           @if (tieneSubOrden(row, false)) {
             <dynadrill-icon-button icon="file-text" iconSource="dynadrill" tooltip="Orden de trabajo (PDF)" (clicked)="openOrdenGeneral(row)" />

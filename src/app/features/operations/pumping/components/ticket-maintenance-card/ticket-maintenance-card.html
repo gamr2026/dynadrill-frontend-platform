@@ -1,0 +1,40 @@
+<section class="ticket-maintenance" aria-labelledby="ticket-maintenance-title" aria-live="polite">
+  <h2 class="ticket-maintenance__title" id="ticket-maintenance-title">Mantenimientos</h2>
+
+  @if (loading()) {
+    <p class="ticket-maintenance__muted">Cargando mantenimientos…</p>
+  } @else if (error()) {
+    <p class="ticket-maintenance__muted">No se pudieron cargar los mantenimientos.</p>
+  } @else if (filas().length === 0) {
+    <p class="ticket-maintenance__muted">Sin mantenimientos registrados para la unidad {{ unitCode() }}.</p>
+  } @else {
+    <p class="ticket-maintenance__summary">
+      Unidad {{ unitCode() }} · {{ abiertos() }} {{ abiertos() === 1 ? 'abierto' : 'abiertos' }} ·
+      {{ cerrados() }} {{ cerrados() === 1 ? 'cerrado' : 'cerrados' }}
+    </p>
+    <ul class="ticket-maintenance__list">
+      @for (fila of filas(); track fila.sub.id) {
+        <li class="ticket-maintenance__item">
+          <div class="ticket-maintenance__head">
+            <span class="ticket-maintenance__code">{{ fila.sub.code }} · {{ fila.sub.type }}</span>
+            <dynadrill-tag [label]="fila.sub.status" [variant]="fila.tono" />
+          </div>
+          <p class="ticket-maintenance__meta">Orden {{ fila.order.code }} · {{ fila.order.createdAt | date: 'dd/MM/yyyy' }}</p>
+          <p class="ticket-maintenance__meta">Responsable: {{ fila.responsable }}</p>
+          @if (fila.novedad) {
+            <p class="ticket-maintenance__novedad" [title]="fila.novedad">{{ fila.novedad }}</p>
+          }
+          <div class="ticket-maintenance__actions">
+            <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="verDetalle(fila)" />
+            @if (fila.ejecutable) {
+              <dynadrill-icon-button icon="tool" tooltip="Diagnosticar / Ejecutar" (clicked)="ejecutar(fila)" />
+            }
+            @if (fila.revisable) {
+              <dynadrill-icon-button icon="check" tooltip="Revisar cierre" (clicked)="revisar(fila)" />
+            }
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>

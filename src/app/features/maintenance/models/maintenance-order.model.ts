@@ -63,6 +63,8 @@ export interface MaintenanceOrder {
   unitReportId: number;
   origin: string;
   sourceModule: MaintenanceSourceModule;
+  /** Ticket de Pumping que originó la orden (solo `sourceModule === 'Pumping'`) — para "Ver ticket". */
+  pumpingTicketId?: number;
   createdAt: string;
   /** Fin Correctivo — se llena solo cuando la orden ya se devolvió a Operaciones. */
   returnedToOperation: boolean;

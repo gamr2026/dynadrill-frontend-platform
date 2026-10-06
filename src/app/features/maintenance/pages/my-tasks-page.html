@@ -22,6 +22,9 @@
       @if (isActionable(row)) {
         <dynadrill-button size="small" (clicked)="openExecution(row)">Diagnosticar / Ejecutar</dynadrill-button>
       }
+      @if (row['pumpingTicketId']) {
+        <dynadrill-icon-button icon="project" tooltip="Ver ticket de Pumping" (clicked)="verTicketPumping(row)" />
+      }
     </div>
   </ng-template>
 </div>

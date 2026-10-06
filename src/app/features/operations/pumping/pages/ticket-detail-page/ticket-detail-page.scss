@@ -17,6 +17,16 @@
   margin-top: 0.75rem;
 }
 
+// Columna lateral: "Avance del ticket" + "Mantenimientos" apilados. Sin
+// sticky (global en .dyn-detail-layout__aside): con los dos cards supera el
+// alto de la ventana y el final del segundo quedaría inalcanzable.
+.dyn-detail-layout__aside.ticket-detail__aside {
+  position: static;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .ticket-detail__section {
   margin-top: 1.5rem;
   padding: 1.5rem;
@@ -165,23 +175,6 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.ticket-detail__maintenance-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border-default, #e0e0e0);
-  border-radius: 8px;
-  margin-bottom: 0.5rem;
-}
-
-.ticket-detail__maintenance-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
 }
 
 // ── Editable table grid (tires, hubodometro) ──

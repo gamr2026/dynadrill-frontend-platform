@@ -38,7 +38,6 @@ export type PumpingStep =
   | 'ejecucion_operativa'
   | 'control_retorno'
   | 'traslado_llegada'
-  | 'mantenimiento'
   | 'revision_reportes_llegada'
   | 'revision_final'
   | 'cierre';
@@ -51,7 +50,6 @@ export const PUMPING_STEP_LABELS: Record<PumpingStep, string> = {
   ejecucion_operativa: 'Ejecución Operativa',
   control_retorno: 'Control de Retorno',
   traslado_llegada: 'Traslado de Llegada',
-  mantenimiento: 'Mantenimiento',
   revision_reportes_llegada: 'Revisión de Reportes de Llegada',
   revision_final: 'Revisión Final',
   cierre: 'Cierre',
@@ -77,10 +75,19 @@ export const PUMPING_STEP_ROLE: Record<PumpingStep, { roleName: string; roleId: 
   ejecucion_operativa: { roleName: 'Operador', roleId: 2 },
   control_retorno: { roleName: 'Supervisor Pumping', roleId: 17 },
   traslado_llegada: { roleName: 'Operador', roleId: 2 },
-  mantenimiento: { roleName: 'Supervisor Pumping', roleId: 17 },
   revision_reportes_llegada: { roleName: 'Supervisor Pumping', roleId: 17 },
   revision_final: { roleName: 'Supervisor Pumping', roleId: 17 },
   cierre: { roleName: 'Supervisor Pumping', roleId: 17 },
+};
+
+/**
+ * Roles de Mantenimiento que entran al detalle del ticket desde su Bandeja
+ * ("Ver ticket") — solo al card "Mantenimientos": no actúan ningún paso del
+ * ticket. Valor = a dónde vuelven.
+ */
+export const PUMPING_MANTENIMIENTO_ROLES: Readonly<Record<string, string>> = {
+  'Jefe de Mantenimiento': '/dashboard/mantenimiento',
+  'Operador de Mantenimiento': '/dashboard/mantenimiento/mis-tareas',
 };
 
 /** Compara el rol esperado del paso (ver PUMPING_STEP_ROLE) con el de la sesión — el "Supervisor" genérico ya no cuenta: es de FCR. */

@@ -1,11 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import {
   DynadrillButtonComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
+  DynadrillIconButtonComponent,
   DynadrillNotificationService,
   DynadrillSpinnerComponent,
   DynadrillTagVariant,
@@ -38,13 +40,14 @@ const SUB_ORDER_STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
  */
 @Component({
   selector: 'app-my-tasks-page',
-  imports: [CommonModule, DynadrillDataTableComponent, DynadrillButtonComponent, DynadrillSpinnerComponent, PageHeader, QhseRegistrosMovil],
+  imports: [CommonModule, DynadrillDataTableComponent, DynadrillButtonComponent, DynadrillIconButtonComponent, DynadrillSpinnerComponent, PageHeader, QhseRegistrosMovil],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './my-tasks-page.html',
   styleUrl: './my-tasks-page.scss',
 })
 export class MyTasksPage {
   private readonly ordersService = inject(MaintenanceOrdersService);
+  private readonly router = inject(Router);
   private readonly unitReportsService = inject(UnitReportsService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly dialog = inject(DynadrillDialogService);
@@ -83,6 +86,7 @@ export class MyTasksPage {
         code: sub.code,
         orderCode: order.code,
         unidad: order.unidad,
+        pumpingTicketId: order.pumpingTicketId,
         type: sub.type,
         statusBadge: { text: sub.status, tone: SUB_ORDER_STATUS_TONE[sub.status] },
       }));
@@ -100,12 +104,15 @@ export class MyTasksPage {
         { label: 'Unidad', value: r.unidad },
         { label: 'Tipo', value: r.type },
       ],
-      actions: this.isActionable(r)
-        ? [
-            { icon: 'tool', label: 'Diagnosticar / Ejecutar', primary: true, run: () => this.openExecution(r) },
-            { icon: 'eye', label: 'Ver detalle', run: () => this.viewDetail(r) },
-          ]
-        : [{ icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(r) }],
+      actions: [
+        ...(this.isActionable(r)
+          ? [
+              { icon: 'tool', label: 'Diagnosticar / Ejecutar', primary: true, run: () => this.openExecution(r) },
+              { icon: 'eye', label: 'Ver detalle', run: () => this.viewDetail(r) },
+            ]
+          : [{ icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(r) }]),
+        ...(r.pumpingTicketId ? [{ icon: 'project', label: 'Ver ticket de Pumping', run: () => this.verTicketPumping(r) }] : []),
+      ],
     })),
   );
 
@@ -151,6 +158,11 @@ export class MyTasksPage {
     if (subOrder.type === 'Mecánico') return report.problemasMecanica;
     if (subOrder.type === 'Instrumental') return report.problemasInstrumentacion;
     return report.problemasOperaciones;
+  }
+
+  /** El mantenimiento ya no es un paso del ticket: desde acá se entra a su card "Mantenimientos". */
+  protected verTicketPumping(row: Record<string, unknown>): void {
+    void this.router.navigate(['/modulos/operativo/pumping', row['pumpingTicketId']]);
   }
 
   viewDetail(row: Record<string, unknown>): void {

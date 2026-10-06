@@ -19,7 +19,7 @@ export class TicketProgress {
   readonly labels = input.required<string[]>();
   readonly currentIndex = input.required<number>();
   readonly selectedIndex = input.required<number>();
-  readonly tramos = input<TimelineTramo[] | undefined>(undefined);
+  readonly tramos = input<readonly (TimelineTramo | undefined)[] | undefined>(undefined);
   readonly responsableRolActual = input<string | null>(null);
 
   readonly select = output<number>();

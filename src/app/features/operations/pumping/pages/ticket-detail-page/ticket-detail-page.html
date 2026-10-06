@@ -23,15 +23,38 @@
 }
 
 <div class="dyn-detail-layout">
-<app-ticket-progress
-  class="dyn-detail-layout__aside"
-  [labels]="stepLabels"
-  [currentIndex]="currentStepIndex()"
-  [selectedIndex]="selectedStepIndex()"
-  [tramos]="ticket()?.timelineResumen?.tramos"
-  [responsableRolActual]="ticket()?.timelineResumen?.responsableRolActual ?? null"
-  (select)="seleccionarPaso($event)"
-/>
+<div class="dyn-detail-layout__aside ticket-detail__aside">
+  <app-ticket-progress
+    [labels]="stepLabels"
+    [currentIndex]="currentStepIndex()"
+    [selectedIndex]="selectedStepIndex()"
+    [tramos]="tramosPorPaso()"
+    [responsableRolActual]="ticket()?.timelineResumen?.responsableRolActual ?? null"
+    (select)="seleccionarPaso($event)"
+  />
+  @if (ticket()?.unitCode; as unitCode) {
+    <app-ticket-maintenance-card [unitCode]="unitCode" />
+  }
+</div>
+@if (esVistaMantenimiento()) {
+  <div class="dyn-detail-layout__main">
+    @if (ticket()) {
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="h2">Información del ticket</dynadrill-text>
+        <dynadrill-context-card
+          variant="card"
+          icon="file-text"
+          [title]="(ticket()?.code ?? '')"
+          subtitle="Ticket de Servicio Operativo"
+          [tags]="contextCardTags()"
+          [groups]="contextCardGroups()"
+          [footerId]="(ticket()?.code ?? '')"
+          [footerStatus]="contextCardFooterStatus()"
+        />
+      </section>
+    }
+  </div>
+} @else {
 <div class="dyn-detail-layout__main">
 
 <app-ticket-qhse-banner [vinculo]="ipercVinculo()" [canView]="puedeVerMatrizIperc()" />
@@ -837,65 +860,6 @@
   }
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
-  <!-- PASO: Mantenimiento — Supervisor revisa mantenimientos operativos -->
-  <!-- ══════════════════════════════════════════════════════════════════ -->
-  @if (currentStep() === 'mantenimiento') {
-    <section class="ticket-detail__section">
-      <dynadrill-text variant="h1">Mantenimiento</dynadrill-text>
-      <dynadrill-text variant="body">Revise los mantenimientos asociados a la unidad antes de continuar con la ejecución de llegada.</dynadrill-text>
-    </section>
-
-    <section class="ticket-detail__section">
-      <dynadrill-text variant="h2">Mantenimientos de la unidad</dynadrill-text>
-      <dynadrill-text variant="caption">Incluye lo reportado a Mantenimiento (Mecánico/Instrumental) y lo derivado a Pumping (Operativo) — todos bloquean el avance hasta quedar Cerrados.</dynadrill-text>
-
-      @if (todasLasSubOrdenesDeLaUnidad().length === 0) {
-        <dynadrill-text variant="caption">No hay mantenimientos asociados a esta unidad.</dynadrill-text>
-      } @else {
-        @for (sub of todasLasSubOrdenesDeLaUnidad(); track sub.id) {
-          <div class="ticket-detail__maintenance-row">
-            <div class="ticket-detail__maintenance-info">
-              <dynadrill-text variant="body">{{ sub.code }} · {{ sub.type }}</dynadrill-text>
-              <dynadrill-text variant="caption">Estado: {{ sub.status }}</dynadrill-text>
-              @if (sub.type === 'Operativo' && novedadOperativaDe(sub); as novedad) {
-                <dynadrill-text variant="caption">Novedad reportada: {{ novedad }}</dynadrill-text>
-              }
-              @if (sub.deriveNote) {
-                <dynadrill-text variant="caption">Nota de derivación: {{ sub.deriveNote }}</dynadrill-text>
-              }
-              @if (sub.diagnostico) {
-                <dynadrill-text variant="caption">Diagnóstico: {{ sub.diagnostico }}</dynadrill-text>
-              }
-              @if (sub.actividadesCorrectivas) {
-                <dynadrill-text variant="caption">Actividades correctivas: {{ sub.actividadesCorrectivas }}</dynadrill-text>
-              }
-            </div>
-            @if (sub.type === 'Operativo') {
-              <dynadrill-button variant="primary" size="small" (clicked)="reviewOperativoMaintenance(sub)">
-                Revisar mantenimiento operativo
-              </dynadrill-button>
-            }
-          </div>
-        }
-      }
-    </section>
-
-    @if (!allNovedadesResolved()) {
-      <dynadrill-banner
-        variant="warning"
-        [message]="'No se puede continuar: hay mantenimientos sin cerrar para esta unidad — ' + novedadesSinAtender().map(s => s.code + ' (' + s.type + ' — ' + s.status + ')').join(', ') + '.'"
-      />
-    }
-
-    <footer class="ticket-detail__actions ticket-detail__actions--single">
-      <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="success" [disabled]="!allNovedadesResolved() || submitting()" (clicked)="approveMaintenanceStep()">
-        Continuar a ejecución de llegada
-      </dynadrill-button>
-    </footer>
-  }
-
-  <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- PASO 3a: En ejecución (SALIDA) — Solo Chasis modo salida         -->
   <!-- ══════════════════════════════════════════════════════════════════ -->
   @if (currentStep() === 'traslado_salida') {
@@ -1568,4 +1532,5 @@
   }
 }
 </div>
+}
 </div>

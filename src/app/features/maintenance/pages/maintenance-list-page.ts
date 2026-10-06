@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import {
   DynadrillButtonComponent,
@@ -65,6 +66,7 @@ const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
 })
 export class MaintenanceListPage {
   private readonly ordersService = inject(MaintenanceOrdersService);
+  private readonly router = inject(Router);
   private readonly unitReportsService = inject(UnitReportsService);
   private readonly unidadesService = inject(UnidadesService);
   private readonly inspectionsService = inject(VehicleInspectionsService);
@@ -307,6 +309,7 @@ export class MaintenanceListPage {
         fecha: formatDate(order.createdAt),
         tipo: tipos || '—',
         origin: order.sourceModule,
+        pumpingTicketId: order.pumpingTicketId,
         statusBadge: { text: status, tone: ORDER_STATUS_TONE[status] },
       };
     });
@@ -348,6 +351,9 @@ export class MaintenanceListPage {
           cerrada && r.kind === 'order'
             ? { icon: 'file-text', label: 'Ver informe', primary: true, run: () => this.openReport(r) }
             : { icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(r) },
+          ...(r.kind === 'order' && r.pumpingTicketId
+            ? [{ icon: 'project', label: 'Ver ticket de Pumping', run: () => this.verTicketPumping(r) }]
+            : []),
         ],
       };
     }),
@@ -466,6 +472,11 @@ export class MaintenanceListPage {
    * - Reporte pendiente → modal de clasificación (novedades + Clasificar/Descartar en un solo paso)
    * - Orden clasificada → panel lateral (para ver y gestionar el estado de cada sub-orden)
    */
+  /** El mantenimiento ya no es un paso del ticket: desde acá se entra a su card "Mantenimientos". */
+  protected verTicketPumping(row: Record<string, unknown>): void {
+    void this.router.navigate(['/modulos/operativo/pumping', row['pumpingTicketId']]);
+  }
+
   viewDetail(row: Record<string, unknown>): void {
     const isOrder = row['kind'] === 'order';
     const order = isOrder ? this.orders().find(o => o.id === row['orderId']) : undefined;

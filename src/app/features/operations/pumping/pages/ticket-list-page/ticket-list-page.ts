@@ -1,17 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
-  DynadrillButtonComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
   DynadrillIconButtonComponent,
   DynadrillNotificationService,
   DynadrillTabsComponent,
-  DynadrillTagComponent,
   type DynadrillTab,
 } from '@digitec-it-projects/dynadrill-ui';
 import {
@@ -25,10 +22,6 @@ import {
 import { PumpingService } from '../../services/pumping.service';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { MACRO_ESTADO_TONE } from '../../../../../shared/index';
-import { MaintenanceOrderWithSubOrders, SubOrder } from '../../../../maintenance/models/maintenance-order.model';
-import { MaintenanceOrdersService } from '../../../../maintenance/services/maintenance-orders.service';
-import { SuborderReviewDialog, SuborderReviewDialogData } from '../../../../maintenance/components/suborder-review-dialog';
-import { SuborderDetailDialog, SuborderDetailDialogData } from '../../../../maintenance/components/suborder-detail-dialog';
 import { DocumentoOperativoService } from '../../../../facturacion/services/pedido.service';
 import { TicketDocumentosDialog, TicketDocumentosDialogData } from '../../components/ticket-documentos-dialog';
 import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
@@ -48,7 +41,6 @@ const STEP_BADGES: Record<PumpingStep, { text: string; tone: BadgeTone }> = {
   ejecucion_operativa: { text: 'Ejecución Operativa', tone: 'brand' },
   control_retorno: { text: 'Control de Retorno', tone: 'warning' },
   traslado_llegada: { text: 'Traslado de Llegada', tone: 'brand' },
-  mantenimiento: { text: 'Mantenimiento', tone: 'info' },
   revision_reportes_llegada: { text: 'Revisión de Reportes de Llegada', tone: 'warning' },
   revision_final: { text: 'Revisión Final', tone: 'warning' },
   cierre: { text: 'Cierre', tone: 'success' },
@@ -66,23 +58,19 @@ const STEP_FILTERS = Object.entries(PUMPING_STEP_LABELS).map(
   selector: 'app-ticket-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    NgTemplateOutlet,
     ConductorTareas,
     PageHeader,
     RecordCard,
     KpiStat,
     DynadrillDataTableComponent,
     DynadrillTabsComponent,
-    DynadrillButtonComponent,
     DynadrillIconButtonComponent,
-    DynadrillTagComponent,
   ],
   templateUrl: './ticket-list-page.html',
   styleUrl: './ticket-list-page.scss',
 })
 export class TicketListPage {
   private readonly pumpingService = inject(PumpingService);
-  private readonly maintenanceOrdersService = inject(MaintenanceOrdersService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly auth = inject(AuthService);
@@ -106,7 +94,6 @@ export class TicketListPage {
 
   protected readonly loading = signal(true);
   protected readonly tickets = signal<PumpingTicket[]>([]);
-  protected readonly maintenanceOrders = signal<MaintenanceOrderWithSubOrders[]>([]);
 
   // ── Pestañas ──
 
@@ -166,19 +153,6 @@ export class TicketListPage {
     { key: 'statusBadge', header: 'Estado', type: 'badge' },
   ];
 
-  /** Steps where maintenance expandable detail is shown */
-  private static readonly MAINTENANCE_RELEVANT_STEPS: ReadonlySet<PumpingStep> = new Set([
-    'mantenimiento',
-  ]);
-
-  private static readonly SUB_ORDER_STATUS_TONES: Record<string, BadgeTone> = {
-    'En Ejecución': 'brand',
-    'En Revisión': 'warning',
-    Pendiente: 'warning',
-    Aprobado: 'success',
-    Rechazado: 'error',
-  };
-
   // ── Filas ──
 
   protected readonly inProcessRows = computed(() => {
@@ -192,51 +166,22 @@ export class TicketListPage {
         seenIds.add(t.id);
         return true;
       })
-      .map(t => {
-        const orders = this.maintenanceOrders().filter(o => o.unidad === t.unitCode);
-        const isMaintenanceRelevant = TicketListPage.MAINTENANCE_RELEVANT_STEPS.has(t.currentStep);
-        return {
-          id: t.id,
-          code: t.code,
-          wellName: t.wellName,
-          clientName: t.clientName,
-          serviceType: { text: PUMPING_SERVICE_TYPE_LABELS[t.serviceType], tone: 'brand' as const },
-          // Texto = paso específico (como antes); color = macro-estado universal (6 tonos en vez de 11).
-          statusBadge: {
-            text: (STEP_BADGES[t.currentStep] ?? { text: t.currentStep }).text,
-            tone: MACRO_ESTADO_TONE[t.timelineResumen?.macroEstadoActual ?? 'pendiente'],
-          },
-          step: t.currentStep,
-          serviceTypeLabel: PUMPING_SERVICE_TYPE_LABELS[t.serviceType],
-          actions: this.inProcessActions(t.id, t.currentStep, !!t.unitReport && !!t.pedidoId, t.pedidoId),
-          isMaintenanceStep: isMaintenanceRelevant,
-          hasMaintenanceOrders: isMaintenanceRelevant && orders.length > 0,
-          maintenanceSubOrders: isMaintenanceRelevant
-            ? orders.flatMap(o => o.subOrders.map(s => {
-                const displayStatus = this.mapSubOrderDisplayStatus(s.status, s.type);
-                return {
-                  id: s.id,
-                  code: s.code,
-                  type: s.type,
-                  status: displayStatus,
-                  statusTone: TicketListPage.SUB_ORDER_STATUS_TONES[displayStatus] ?? ('neutral' as BadgeTone),
-                  canReview: displayStatus === 'En Revisión',
-                };
-              }))
-            : [],
-        };
-      });
+      .map(t => ({
+        id: t.id,
+        code: t.code,
+        wellName: t.wellName,
+        clientName: t.clientName,
+        serviceType: { text: PUMPING_SERVICE_TYPE_LABELS[t.serviceType], tone: 'brand' as const },
+        // Texto = paso específico (como antes); color = macro-estado universal (6 tonos en vez de 11).
+        statusBadge: {
+          text: (STEP_BADGES[t.currentStep] ?? { text: t.currentStep }).text,
+          tone: MACRO_ESTADO_TONE[t.timelineResumen?.macroEstadoActual ?? 'pendiente'],
+        },
+        step: t.currentStep,
+        serviceTypeLabel: PUMPING_SERVICE_TYPE_LABELS[t.serviceType],
+        actions: this.inProcessActions(t.id, t.currentStep, !!t.unitReport && !!t.pedidoId, t.pedidoId),
+      }));
   });
-
-  /**
-   * El botón de "expandir" solo tiene sentido si alguna fila está en el
-   * paso de mantenimiento (es la única con detalle extra). Sin esto, el
-   * Supervisor veía el chevron en todas las filas y al abrirlo no aparecía
-   * nada.
-   */
-  protected readonly hasExpandableRows = computed(() =>
-    this.inProcessRows().some(r => r['isMaintenanceStep']),
-  );
 
   protected readonly approvedRows = computed(() =>
     this.approvedTickets().map(t => ({
@@ -306,98 +251,10 @@ export class TicketListPage {
       },
       error: () => this.loading.set(false),
     });
-    this.maintenanceOrdersService.list().subscribe({
-      next: orders => this.maintenanceOrders.set(orders),
-      error: () => this.notify.error('Error', 'No se pudieron cargar las órdenes de mantenimiento.'),
-    });
-  }
-
-  /**
-   * Mapea los estados internos de sub-orden a los 4 estados visibles
-   * para el supervisor: En Ejecución, En Revisión, Aprobado, Rechazado.
-   * Si el tipo es Instrumental y está en revisión, se muestra como Rechazado.
-   * Si el tipo es Operativo y está en revisión, se muestra como En Revisión (puede revisar).
-   */
-  private mapSubOrderDisplayStatus(status: string, type: string): string {
-    switch (status) {
-      case 'Pendiente':
-      case 'En Diagnóstico':
-      case 'En Ejecución':
-        return 'En Ejecución';
-      case 'En Revisión de Cierre':
-      case 'Corrección Solicitada':
-        return type === 'Instrumental' ? 'Rechazado' : 'En Revisión';
-      case 'Cerrado':
-        return 'Aprobado';
-      case 'Derivado a Pumping':
-        // El Jefe de Mantenimiento derivó la novedad, pero el operador de
-        // Pumping (operador@dynadrill.com) todavía no la atendió — antes
-        // se mostraba "Aprobado" (mismo caso que 'Cerrado'), dando a
-        // entender que ya estaba resuelta cuando en realidad recién
-        // empieza a esperar por el lado de Pumping.
-        return 'Pendiente';
-      default:
-        return 'Rechazado';
-    }
   }
 
   protected onTabChange(index: number): void {
     this.activeTabIndex.set(index);
-  }
-
-  /**
-   * Abre el mismo diálogo de revisión que usa el Jefe de Mantenimiento
-   * para aprobar o rechazar una sub-orden de mantenimiento.
-   */
-  protected reviewMaintenance(subOrderId: number): void {
-    const subOrder = this.findSubOrder(subOrderId);
-    if (!subOrder) return;
-
-    const order = this.maintenanceOrders().find(o => o.subOrders.some(s => s.id === subOrderId));
-    const novedadOriginal = order ? `Origen: ${order.origin}` : '';
-
-    const ref = this.dialog.open<SuborderReviewDialog, SuborderReviewDialogData>({
-      title: 'Revisar mantenimiento — ' + subOrder.code,
-      content: SuborderReviewDialog,
-      data: { subOrder, novedadOriginal },
-      footer: false,
-    });
-
-    ref.afterClose.subscribe(changed => {
-      if (changed) {
-        this.maintenanceOrdersService.list().subscribe({
-          next: orders => this.maintenanceOrders.set(orders),
-          error: () => this.notify.error('Error', 'No se pudieron recargar las órdenes de mantenimiento.'),
-        });
-      }
-    });
-  }
-
-  /**
-   * "Ver detalle" — lectura del avance real del área de Mantenimiento
-   * (diagnóstico/actividades correctivas de jefe.mantenimiento@/operador.
-   * mecanico@/operador.instrumental@) sobre la novedad que Pumping les
-   * reportó — antes solo se podía ver el estado del badge, sin saber si
-   * ya había algún avance real detrás.
-   */
-  protected verDetalleMaintenance(subOrderId: number): void {
-    const subOrder = this.findSubOrder(subOrderId);
-    if (!subOrder) return;
-    const order = this.maintenanceOrders().find(o => o.subOrders.some(s => s.id === subOrderId));
-    this.dialog.open<SuborderDetailDialog, SuborderDetailDialogData>({
-      title: 'Detalle de mantenimiento — ' + subOrder.code,
-      content: SuborderDetailDialog,
-      data: { subOrder, orderCode: order?.code ?? '', novedadOriginal: order ? `Origen: ${order.origin}` : '' },
-      footer: false,
-    });
-  }
-
-  private findSubOrder(id: number): SubOrder | undefined {
-    for (const order of this.maintenanceOrders()) {
-      const sub = order.subOrders.find(s => s.id === id);
-      if (sub) return sub;
-    }
-    return undefined;
   }
 
   /**

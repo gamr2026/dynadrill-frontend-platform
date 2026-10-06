@@ -48,6 +48,7 @@ import {
   PUMPING_STEP_LABELS,
   PUMPING_STEP_ROLE,
   esRolResponsablePumping,
+  PUMPING_MANTENIMIENTO_ROLES,
   createChassisInspectionItems,
   createMotorInspectionItems,
   createArrivalEquipmentItems,
@@ -88,13 +89,14 @@ import { itemsEstimadosDe, TIPO_SERVICIO_LABELS, type ItemEstimado, type Pedido,
 import { VerPedidoDialog, VerPedidoDialogData } from '../../../../facturacion/components/ver-pedido-dialog';
 import { TicketQhseBanner } from '../../../shared/ticket-qhse-banner/ticket-qhse-banner';
 import { TicketProgress } from '../../../shared/ticket-progress/ticket-progress';
+import { TicketMaintenanceCard } from '../../components/ticket-maintenance-card/ticket-maintenance-card';
 import { useDetailChrome } from '../../../../../layout/page-chrome.service';
 import {
   OperativoDocsBridgeService,
   UbicacionSelectorComponent,
   type UbicacionSeleccion,
 } from '../../../../../shared/index';
-import { CreateUnitReportInput, unitReportHasNovedades, type UnitReport } from '../../../../maintenance/models/unit-report.model';
+import { CreateUnitReportInput, unitReportHasNovedades } from '../../../../maintenance/models/unit-report.model';
 import { UnitReportsService } from '../../../../maintenance/services/unit-reports.service';
 import { UnidadesService } from '../../../../maintenance/services/unidades.service';
 import type { Unidad } from '../../../../maintenance/models/unidad.model';
@@ -108,10 +110,6 @@ import { VehicleInspectionDialog, VehicleInspectionDialogData } from '../../../.
 import { VehicleInspectionsService } from '../../../../maintenance/services/vehicle-inspections.service';
 import { ReviewArrivalReportDialog, ReviewArrivalReportDialogData, ReviewArrivalReportDialogResult } from '../../components/review-arrival-report-dialog';
 import { DailyActivityReportDialog, DailyActivityReportDialogData, DailyActivityReportDialogResult } from '../../components/daily-activity-report-dialog';
-import { MaintenanceOrdersService } from '../../../../maintenance/services/maintenance-orders.service';
-import { MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../../../../maintenance/models/maintenance-order.model';
-import { SuborderDetailDialog, SuborderDetailDialogData } from '../../../../maintenance/components/suborder-detail-dialog';
-import { SuborderReviewDialog, SuborderReviewDialogData } from '../../../../maintenance/components/suborder-review-dialog';
 import { Articulo } from '../../../../inventario/models/articulo.model';
 import { ArticulosService } from '../../../../inventario/services/articulos.service';
 import { MovimientosInventarioService } from '../../../../inventario/services/movimientos-inventario.service';
@@ -167,7 +165,7 @@ function createMockCompletedInspection(
   };
 }
 
-const STEP_KEYS: PumpingStep[] = ['revision_inicial', 'asignacion', 'traslado_salida', 'revision_reportes_salida', 'ejecucion_operativa', 'control_retorno', 'traslado_llegada', 'mantenimiento', 'revision_reportes_llegada', 'revision_final', 'cierre'];
+const STEP_KEYS: PumpingStep[] = ['revision_inicial', 'asignacion', 'traslado_salida', 'revision_reportes_salida', 'ejecucion_operativa', 'control_retorno', 'traslado_llegada', 'revision_reportes_llegada', 'revision_final', 'cierre'];
 
 /** Mismo límite que el documento de monitoreo (`daily-activity-report-dialog.ts`). */
 const MAX_CHEMICAL_MIXTURE_BYTES = 5 * 1024 * 1024;
@@ -218,6 +216,7 @@ function toFuelReading(raw: string): number | null {
     UbicacionSelectorComponent,
     TicketQhseBanner,
     TicketProgress,
+    TicketMaintenanceCard,
   ],
   templateUrl: './ticket-detail-page.html',
   styleUrl: './ticket-detail-page.scss',
@@ -233,6 +232,8 @@ export class TicketDetailPage {
   private readonly epiService = inject(EntregaEpiService);
 
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
+  /** Jefe/Operador de Mantenimiento: solo ven el resumen y el card "Mantenimientos", sin pasos ni datos de otros módulos. */
+  protected readonly esVistaMantenimiento = computed(() => Object.hasOwn(PUMPING_MANTENIMIENTO_ROLES, this.roleName()));
 
   // ── Cobertura de la Matriz Maestra IPERC (HSE-PLAN-001) ──
   /** Resultado del chequeo del backend: la matriz maestra cubre —aprobadas— las actividades del trabajo. */
@@ -372,7 +373,6 @@ export class TicketDetailPage {
     return '';
   }
   private readonly vehicleInspectionsService = inject(VehicleInspectionsService);
-  private readonly maintenanceOrdersService = inject(MaintenanceOrdersService);
   private readonly articulosService = inject(ArticulosService);
   private readonly movimientosInventarioService = inject(MovimientosInventarioService);
 
@@ -398,22 +398,21 @@ export class TicketDetailPage {
   /** Solicitud de cambio de ítems todavía sin resolver por el Supervisor (si hay una). */
   protected readonly solicitudPendiente = signal<SolicitudCambioItems | null>(null);
   protected readonly viewMode = signal<string>(''); // 'asignar' | 'resumen' | ''
-  protected readonly maintenanceOrders = signal<MaintenanceOrderWithSubOrders[]>([]);
-  /**
-   * `maintenanceOrders` arranca en `[]` hasta que responde la llamada HTTP
-   * de `loadMaintenanceOrders()` — mientras tanto, `novedadesSinAtender()`
-   * (que filtra sobre ese array) da una lista vacía por falta de datos, no
-   * porque de verdad no haya nada pendiente, y el botón "Continuar a
-   * ejecución de llegada" quedaba habilitado en esa ventana (bug
-   * reportado: aparecía habilitado sin haber hecho los mantenimientos).
-   */
-  protected readonly maintenanceOrdersLoading = signal(true);
-  /** Solo para leer el texto de la novedad original inline en la lista de "Mantenimientos operativos" — el detalle completo (diagnóstico, etc.) sigue viviendo en SuborderReviewDialog. */
-  private readonly unitReports = signal<UnitReport[]>([]);
 
   // ── Stepper ──
 
   protected readonly stepLabels = Object.values(PUMPING_STEP_LABELS);
+
+  /**
+   * Tramo del timeline de cada paso del stepper, emparejado por fase y no
+   * por posición: los tickets anteriores al cambio tienen un tramo
+   * `mantenimiento` (paso retirado del flujo) y los rechazos repiten fases,
+   * así que el índice del tramo no coincide con el del paso.
+   */
+  protected readonly tramosPorPaso = computed(() => {
+    const tramos = this.ticket()?.timelineResumen?.tramos ?? [];
+    return STEP_KEYS.map(paso => [...tramos].reverse().find(t => t.fase === paso));
+  });
 
   protected readonly currentStepIndex = computed(() => {
     const t = this.ticket();
@@ -2006,11 +2005,16 @@ export class TicketDetailPage {
 
   constructor() {
     // Móvil: barra "← PUM-XXXX" (Nav/TopAppBar Type=Detail) en vez de hamburguesa + logo.
-    useDetailChrome(() => this.ticket()?.code ?? 'Ticket', '/modulos/operativo/pumping');
+    useDetailChrome(() => this.ticket()?.code ?? 'Ticket', PUMPING_MANTENIMIENTO_ROLES[this.roleName()] ?? '/modulos/operativo/pumping');
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.viewMode.set(this.route.snapshot.queryParamMap.get('mode') ?? '');
     this.pumpingService.getTicket(id).subscribe({
       next: ticket => {
+        if (this.esVistaMantenimiento()) {
+          this.ticket.set(ticket);
+          this.loading.set(false);
+          return;
+        }
         // Demo: un mismo usuario recorre todos los roles. Si el rol de la
         // sesión no es el que actúa el paso actual del ticket (p. ej. quedó
         // en "Jefe de Base" tras autorizar un gerenciamiento), se pasa a ese
@@ -2026,7 +2030,6 @@ export class TicketDetailPage {
         this.ticket.set(ticket);
         this.loading.set(false);
         this.initFromTicket(ticket);
-        this.loadMaintenanceOrders();
         this.loadDocumentosQhse(ticket.id);
         this.loadChecklistQhse(ticket.id);
         this.loadChecklistIngreso(ticket.id);
@@ -2049,19 +2052,7 @@ export class TicketDetailPage {
       },
       error: () => this.loading.set(false),
     });
-    this.loadChemicalArticulos();
-    this.unidadesService.list().subscribe(us => {
-      this.unidades.set(us);
-      this.syncMockInspections();
-    });
-    this.vehicleInspectionsService.listConductoresPermisos().subscribe(cs => {
-      this.conductoresPermisos.set(cs.map(c => c.nombre));
-      this.syncMockInspections();
-    });
-    this.vehicleInspectionsService.list().subscribe(list => {
-      this.realInspections.set(list);
-      this.syncMockInspections();
-    });
+    if (!this.esVistaMantenimiento()) this.loadDatosDePasos();
 
     // Si el ticket avanza de paso, la selección manual vieja del detalle ya no aplica.
     effect(() => {
@@ -2150,128 +2141,20 @@ export class TicketDetailPage {
     });
   }
 
-  // ══════════════════════════════════════════════
-  // Mantenimientos asociados a la unidad del ticket
-  // ══════════════════════════════════════════════
-
-  private loadMaintenanceOrders(): void {
-    this.maintenanceOrdersService.list().subscribe({
-      next: orders => {
-        this.maintenanceOrders.set(orders);
-        this.maintenanceOrdersLoading.set(false);
-      },
-      error: () => this.maintenanceOrdersLoading.set(false),
+  /** Catálogos que solo usan los formularios de los pasos del ticket. */
+  private loadDatosDePasos(): void {
+    this.loadChemicalArticulos();
+    this.unidadesService.list().subscribe(us => {
+      this.unidades.set(us);
+      this.syncMockInspections();
     });
-    this.unitReportsService.list().subscribe({
-      next: reports => this.unitReports.set(reports),
+    this.vehicleInspectionsService.listConductoresPermisos().subscribe(cs => {
+      this.conductoresPermisos.set(cs.map(c => c.nombre));
+      this.syncMockInspections();
     });
-  }
-
-  /** Novedad original (Reporte de Unidad) detrás de una sub-orden Operativo — mismo dato que ya usa reviewOperativoMaintenance(), acá para mostrarlo inline en la lista sin abrir el diálogo. */
-  protected novedadOperativaDe(sub: SubOrder): string {
-    const order = this.maintenanceOrders().find(o => o.subOrders.some(s => s.id === sub.id));
-    const report = order ? this.unitReports().find(r => r.id === order.unitReportId) : undefined;
-    return report?.problemasOperaciones || '';
-  }
-
-  /** Texto resumen de mantenimientos para una unidad: "Mecánico — En Ejecución, Operativo — Pendiente" */
-  protected maintenanceStatusForUnit(unitCode: string): string {
-    const orders = this.maintenanceOrders().filter(o => o.unidad === unitCode);
-    if (orders.length === 0) return 'Sin mantenimientos';
-    const lines = orders.flatMap(o =>
-      o.subOrders.map(sub => `${sub.type} — ${sub.status}`),
-    );
-    return lines.join('\n');
-  }
-
-  /** Sub-órdenes Operativo de la unidad del ticket (las únicas que revisa el Supervisor de Pumping acá). */
-  protected readonly operativoSubOrders = computed(() => {
-    const t = this.ticket();
-    if (!t) return [];
-    return this.maintenanceOrders()
-      .filter(o => o.unidad === t.unitCode)
-      .flatMap(o => o.subOrders.filter(s => s.type === 'Operativo'));
-  });
-
-  /**
-   * TODAS las sub-órdenes de la unidad (Mecánico/Instrumental/Operativo) —
-   * antes el paso "Mantenimiento" solo mostraba el detalle (diagnóstico,
-   * actividades, nota) de las Operativo; las de Mecánico/Instrumental solo
-   * aparecían mencionadas por código en el banner de advertencia, sin
-   * ningún detalle, aunque también bloquean el avance (ver
-   * `novedadesSinAtender`). El Supervisor no tenía forma de ver su avance
-   * desde acá sin ir al módulo de Mantenimiento aparte.
-   */
-  protected readonly todasLasSubOrdenesDeLaUnidad = computed(() => {
-    const t = this.ticket();
-    if (!t) return [];
-    return this.maintenanceOrders()
-      .filter(o => o.unidad === t.unitCode)
-      .flatMap(o => o.subOrders);
-  });
-
-  /** Todas las sub-órdenes Operativo de esta unidad están cerradas o no hay ninguna. */
-  protected readonly allOperativoResolved = computed(() => {
-    const subs = this.operativoSubOrders();
-    if (subs.length === 0) return true;
-    return subs.every(s => s.status === 'Cerrado');
-  });
-
-  /**
-   * Todas las sub-órdenes (Mecánico/Instrumental/Operativo) de la unidad
-   * están cerradas — antes solo se chequeaba Operativo acá; el backend ya
-   * bloquea el PATCH de avance para las 3 (ver `PumpingDomainService.advance`),
-   * esto solo evita el viaje redondo y explica por qué el botón está
-   * deshabilitado.
-   */
-  protected readonly novedadesSinAtender = computed(() => {
-    const t = this.ticket();
-    if (!t) return [];
-    return this.maintenanceOrders()
-      .filter(o => o.unidad === t.unitCode)
-      .flatMap(o => o.subOrders)
-      .filter(s => s.status !== 'Cerrado');
-  });
-  protected readonly allNovedadesResolved = computed(
-    () => !this.maintenanceOrdersLoading() && this.novedadesSinAtender().length === 0,
-  );
-
-  protected reviewOperativoMaintenance(sub: SubOrder): void {
-    const order = this.maintenanceOrders().find(o => o.subOrders.some(s => s.id === sub.id));
-    this.unitReportsService.list().subscribe(reports => {
-      const report = order ? reports.find(r => r.id === order.unitReportId) : undefined;
-      const novedadOriginal = report?.problemasOperaciones || '';
-      const ref = this.dialog.open<SuborderReviewDialog, SuborderReviewDialogData>({
-        title: 'Revisar mantenimiento operativo — ' + sub.code,
-        content: SuborderReviewDialog,
-        data: { subOrder: sub, novedadOriginal },
-        footer: false,
-      });
-      ref.afterClose.subscribe(changed => {
-        if (changed) this.loadMaintenanceOrders();
-      });
-    });
-  }
-
-  protected approveMaintenanceStep(): void {
-    const t = this.ticket();
-    if (!t) return;
-    if (this.bloqueadoPorSwa()) return;
-    this.submitting.set(true);
-    const nextStep: PumpingStep = 'revision_reportes_llegada';
-    this.pumpingService.advanceStep(t.id, nextStep).subscribe({
-      next: updated => {
-        this.ticket.set(updated);
-        this.submitting.set(false);
-        const nextRole = PUMPING_STEP_ROLE[nextStep];
-        this.auth.switchRole(nextRole.roleName, nextRole.roleId);
-        this.notify.success('Mantenimiento revisado', `Avanza a Revisar reportes de llegada. Ahora actúa como ${nextRole.roleName}.`);
-        this.router.navigate(['..'], { relativeTo: this.route });
-      },
-      error: () => {
-        this.submitting.set(false);
-        this.notify.error('Error', 'No se pudo avanzar el ticket.');
-      },
+    this.vehicleInspectionsService.list().subscribe(list => {
+      this.realInspections.set(list);
+      this.syncMockInspections();
     });
   }
 
@@ -2530,8 +2413,7 @@ export class TicketDetailPage {
     traslado_salida: 'revision_reportes_salida',
     revision_reportes_salida: 'ejecucion_operativa',
     ejecucion_operativa: 'traslado_llegada',
-    traslado_llegada: 'mantenimiento',
-    mantenimiento: 'revision_reportes_llegada',
+    traslado_llegada: 'revision_reportes_llegada',
   };
 
   private advanceToNextStep(t: PumpingTicket): void {
@@ -2885,7 +2767,7 @@ export class TicketDetailPage {
     this.reportClientName.set(ticket.clientName);
     this.reportUnitCode.set(ticket.unitCode || '');
 
-    // Desde `traslado_llegada` en adelante (llegada, mantenimiento, revisar
+    // Desde `traslado_llegada` en adelante (llegada, revisar
     // reportes de llegada, revisión, cierre) la inspección de salida ya
     // fue realizada y aprobada por el supervisor. Antes solo se hidrataba en
     // `traslado_llegada` exacto, por lo que la sección "Inspección de

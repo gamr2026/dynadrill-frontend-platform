@@ -325,8 +325,20 @@ export class NuevoPedidoDialog {
     return this.quimicosCatalogoCompleto().filter(a => codigos.has(a.codigo));
   });
   protected readonly quimicoOptions = computed<DynadrillSelectOption[]>(() =>
-    this.quimicosCatalogo().map(a => ({ label: `${a.codigo} — ${a.nombre}`, value: a.codigo })),
+    this.conCodigosDeLasLineas(this.quimicosCatalogo().map(a => ({ label: `${a.codigo} — ${a.nombre}`, value: a.codigo })), l => l.esQuimico),
   );
+
+  /**
+   * Las opciones salen de la Lista de Precios del cliente, que recién existe al elegir cliente. Si las líneas ya vienen cargadas
+   * (plantilla, edición), se suman sus códigos para que el selector los muestre en vez de quedar vacío.
+   */
+  private conCodigosDeLasLineas(opciones: DynadrillSelectOption[], esDelTipo: (l: LineaEstimadaDraft) => boolean): DynadrillSelectOption[] {
+    const presentes = new Set(opciones.map(o => o.value));
+    const extra = this.lineasEstimadas()
+      .filter(l => esDelTipo(l) && l.codigo && !presentes.has(l.codigo))
+      .map(l => ({ label: `${l.codigo} — ${l.descripcion}`, value: l.codigo }));
+    return [...opciones, ...extra];
+  }
 
   /** Espejo de `quimicosCatalogo`, para herramientas. */
   protected readonly herramientasCatalogo = computed<Articulo[]>(() => {
@@ -336,7 +348,7 @@ export class NuevoPedidoDialog {
     return this.herramientasCatalogoCompleto().filter(a => codigos.has(a.codigo));
   });
   protected readonly herramientaOptions = computed<DynadrillSelectOption[]>(() =>
-    this.herramientasCatalogo().map(a => ({ label: `${a.codigo} — ${a.nombre}`, value: a.codigo })),
+    this.conCodigosDeLasLineas(this.herramientasCatalogo().map(a => ({ label: `${a.codigo} — ${a.nombre}`, value: a.codigo })), l => l.esHerramienta || this.esFcr()),
   );
 
   /**

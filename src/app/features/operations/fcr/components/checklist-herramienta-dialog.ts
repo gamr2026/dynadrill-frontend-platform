@@ -10,6 +10,7 @@ import {
   DynadrillCheckboxComponent,
   DynadrillDatetimePickerComponent,
   DynadrillDialogService,
+  DynadrillIconButtonComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
   DynadrillSelectComponent,
@@ -115,6 +116,7 @@ import { ChecklistHerramientaHoja } from '../../../../shared/documentos/formatos
     DatePipe,
     DynadrillTextComponent,
     DynadrillInputComponent,
+    DynadrillIconButtonComponent,
     DynadrillSelectComponent,
     DynadrillDatetimePickerComponent,
     DynadrillCheckboxComponent,
@@ -247,6 +249,51 @@ export class ChecklistHerramientaDialog {
   /** Texto legible del/de los rol(es) habilitados para esta firma — usado tanto en el motivo de bloqueo como en el hint "por hacer". */
   protected rolRequeridoTexto(rol: FcrToolInspectionFirmaRol): string {
     return FCR_TOOL_INSPECTION_FIRMA_ROLES_REQUERIDOS[rol].join(' / ');
+  }
+
+  // ── Partes agregadas a mano (la herramienta no las traía en el catálogo) ──
+
+  protected readonly nuevaParteDescripcion = signal('');
+  protected readonly nuevaParteCodigo = signal('');
+  protected readonly nuevaParteCantidad = signal('1');
+  protected readonly agregandoParte = signal(false);
+  protected readonly puedeAgregarParte = computed(() => this.nuevaParteDescripcion().trim().length > 0 && !this.agregandoParte());
+
+  /** Se guarda en la base al instante; los resultados que ya se marcaron en pantalla no se tocan (solo se suma la fila nueva). */
+  protected async agregarParte(): Promise<void> {
+    const inspectionId = this.inspectionId();
+    if (!inspectionId || !this.puedeAgregarParte()) return;
+    this.agregandoParte.set(true);
+    try {
+      const cantidad = Number(this.nuevaParteCantidad());
+      const inspeccion = await firstValueFrom(
+        this.toolInspecciones.agregarParte(this.data.ticketId, inspectionId, {
+          descripcion: this.nuevaParteDescripcion().trim(),
+          codigo: this.nuevaParteCodigo().trim() || undefined,
+          cantidadEsperada: Number.isInteger(cantidad) && cantidad > 0 ? cantidad : 1,
+        }),
+      );
+      const conocidas = new Set(this.partes().map(p => p.id));
+      this.partes.update(rows => [...rows, ...inspeccion.partes.filter(p => !conocidas.has(p.id))]);
+      this.nuevaParteDescripcion.set('');
+      this.nuevaParteCodigo.set('');
+      this.nuevaParteCantidad.set('1');
+    } catch {
+      this.notify.error('Error', 'No se pudo agregar la parte. Inténtalo de nuevo.');
+    } finally {
+      this.agregandoParte.set(false);
+    }
+  }
+
+  protected async quitarParte(parte: FcrToolInspectionParte): Promise<void> {
+    const inspectionId = this.inspectionId();
+    if (!inspectionId || !parte.manual) return;
+    try {
+      await firstValueFrom(this.toolInspecciones.quitarParte(this.data.ticketId, inspectionId, parte.id));
+      this.partes.update(rows => rows.filter(p => p.id !== parte.id));
+    } catch {
+      this.notify.error('Error', 'No se pudo quitar la parte.');
+    }
   }
 
   protected updateParte(id: number, patch: Partial<FcrToolInspectionParte>): void {

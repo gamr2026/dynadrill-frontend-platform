@@ -210,3 +210,34 @@
   gap: 0.75rem;
   padding-top: 1rem;
 }
+
+// Alta rápida de una parte (herramienta sin partes en el catálogo, o con una de menos).
+.checklist-dialog__nueva-parte {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) minmax(120px, 1fr) 90px auto;
+  gap: 12px;
+  align-items: end;
+  margin: 12px 0 16px;
+  padding: 12px;
+  border: 1px dashed var(--border, #e5e4ea);
+  border-radius: 12px;
+  background: var(--surface-muted, #faf9fc);
+
+  @media (max-width: 840px) {
+    grid-template-columns: 1fr 1fr;
+
+    > :first-child,
+    > :last-child {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+.checklist-dialog__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

@@ -94,6 +94,7 @@
               <th>End</th>
               <th>Cambio · Cantidad</th>
               <th>Acción</th>
+              <th><span class="checklist-dialog__sr-only">Quitar</span></th>
             </tr>
           </thead>
           <tbody>
@@ -138,10 +139,28 @@
                 <td data-label="Acción">
                   <dynadrill-input placeholder="Acción tomada" [value]="parte.accion" (valueChange)="onAccionChange(parte.id, $event)" />
                 </td>
+                <td>
+                  @if (parte.manual) {
+                    <dynadrill-icon-button icon="delete" tooltip="Quitar parte agregada" (clicked)="quitarParte(parte)" />
+                  }
+                </td>
               </tr>
             }
           </tbody>
         </table>
+      </div>
+
+      @if (partes().length === 0) {
+        <dynadrill-banner
+          variant="warning"
+          message="Esta herramienta no tiene partes cargadas. Agrega las que la componen: se guardan al momento y quedan como lista de partes para las próximas inspecciones."
+        />
+      }
+      <div class="checklist-dialog__nueva-parte" role="group" aria-label="Agregar parte">
+        <dynadrill-input label="Parte (mini herramienta) *" placeholder="Ej. O-ring, fishing neck…" [value]="nuevaParteDescripcion()" (valueChange)="nuevaParteDescripcion.set($event)" />
+        <dynadrill-input label="N.º de parte" placeholder="Opcional" [value]="nuevaParteCodigo()" (valueChange)="nuevaParteCodigo.set($event)" />
+        <dynadrill-input label="Cant." type="number" [value]="nuevaParteCantidad()" (valueChange)="nuevaParteCantidad.set($event)" />
+        <dynadrill-button variant="secondary" [disabled]="!puedeAgregarParte()" (clicked)="agregarParte()">+ Agregar parte</dynadrill-button>
       </div>
 
       <dynadrill-textarea

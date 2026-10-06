@@ -69,6 +69,14 @@ export interface FcrToolInspectionParte {
   /** "Cambio de elemento → Cantidad": dato informativo, no dispara movimiento de kardex. */
   cambioCantidad: number | null;
   accion: string;
+  /** Agregada a mano durante la inspección (la herramienta no la traía en el catálogo) — la única que se puede quitar. */
+  manual: boolean;
+}
+
+export interface FcrToolInspectionParteNueva {
+  descripcion: string;
+  codigo?: string;
+  cantidadEsperada?: number;
 }
 
 export interface FcrToolInspection {

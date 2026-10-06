@@ -6,6 +6,7 @@ import {
   FcrToolInspectionFirmaRol,
   FcrToolInspectionHeaderInput,
   FcrToolInspectionParteInput,
+  FcrToolInspectionParteNueva,
 } from '../models/fcr-tool-inspeccion.model';
 import { environment } from '@env';
 
@@ -37,6 +38,16 @@ export class FcrToolInspeccionesService {
       `${this.baseUrl}/${ticketId}/tool-inspections/${inspectionId}/partes/${parteId}`,
       cambios,
     );
+  }
+
+  /** La herramienta no trae partes (o falta una): se agrega al instante, queda guardada en la base. */
+  agregarParte(ticketId: number, inspectionId: number, parte: FcrToolInspectionParteNueva): Observable<FcrToolInspection> {
+    return this.http.post<FcrToolInspection>(`${this.baseUrl}/${ticketId}/tool-inspections/${inspectionId}/partes`, parte);
+  }
+
+  /** Solo las agregadas a mano. */
+  quitarParte(ticketId: number, inspectionId: number, parteId: number): Observable<FcrToolInspection> {
+    return this.http.delete<FcrToolInspection>(`${this.baseUrl}/${ticketId}/tool-inspections/${inspectionId}/partes/${parteId}`);
   }
 
   /** El nombre de quien firma ya NO se manda — lo resuelve el backend del usuario autenticado. */

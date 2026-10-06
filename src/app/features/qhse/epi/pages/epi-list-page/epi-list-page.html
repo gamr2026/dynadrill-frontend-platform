@@ -3,45 +3,51 @@
     <div actions><dynadrill-button (clicked)="nuevaEntrega()">+ Nueva entrega de EPI</dynadrill-button></div>
   </app-page-header>
 
-  <div class="kpi-stat-row" role="list">
-    @for (kpi of kpis(); track kpi.label) {
-      <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
-    }
-  </div>
+  <dynadrill-tabs [tabs]="tabs" [activeIndex]="tabActiva()" (activeIndexChange)="tabActiva.set($event)" />
 
-  <div class="epi-list-page__toolbar">
-    <app-qhse-filtros [opciones]="opcionesFiltro()" [selected]="filtroEstado()" (selectedChange)="filtroEstado.set($any($event))" />
-    <dynadrill-input placeholder="Buscar por ID, nombre, lugar…" [value]="busqueda()" (valueChange)="busqueda.set($event)" />
-  </div>
-
-  @if (isMobile()) {
-    <app-qhse-registros-movil [items]="itemsMovil()" [loading]="loading()" vacio="No hay entregas de EPI con ese filtro." />
+  @if (tabActiva() === 1) {
+    <app-aceptaciones-terminos-panel />
   } @else {
-    <ng-template #actionsTpl let-row>
-      <div class="epi-list-page__row-actions">
-        <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="verDetalle(row.entrega)" />
-        <dynadrill-icon-button icon="file-pdf" tooltip="Ver PDF" tooltipPlacement="top" (clicked)="verPdf(row.entrega)" />
-
-        @if (row.entrega.estado === 'solicitado') {
-          <dynadrill-icon-button icon="check" tooltip="Aprobar" tooltipPlacement="top" [disabled]="submittingId() === row.id" (clicked)="aprobar(row.id)" />
-          <dynadrill-icon-button icon="close" tooltip="Rechazar" tooltipPlacement="top" [disabled]="submittingId() === row.id" (clicked)="rechazar(row.id)" />
-        }
-        @if (row.entrega.estado === 'aprobado') {
-          <dynadrill-icon-button icon="upload" tooltip="Despachar" tooltipPlacement="top" [disabled]="submittingId() === row.id" (clicked)="despachar(row.id)" />
-        }
-      </div>
-    </ng-template>
-
-    <div class="table-scroll dyn-table-card">
-      <dynadrill-data-table
-        [columns]="columns"
-        [rows]="rows()"
-        [loading]="loading()"
-        [rowKey]="rowKeyFn"
-        [pageSize]="10"
-        actionsHeader="Acciones"
-        [actionsTemplate]="actionsTpl"
-      />
+    <div class="kpi-stat-row" role="list">
+      @for (kpi of kpis(); track kpi.label) {
+        <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
+      }
     </div>
+
+    <div class="epi-list-page__toolbar">
+      <app-qhse-filtros [opciones]="opcionesFiltro()" [selected]="filtroEstado()" (selectedChange)="filtroEstado.set($any($event))" />
+      <dynadrill-input placeholder="Buscar por ID, nombre, lugar…" [value]="busqueda()" (valueChange)="busqueda.set($event)" />
+    </div>
+
+    @if (isMobile()) {
+      <app-qhse-registros-movil [items]="itemsMovil()" [loading]="loading()" vacio="No hay entregas de EPI con ese filtro." />
+    } @else {
+      <ng-template #actionsTpl let-row>
+        <div class="epi-list-page__row-actions">
+          <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="verDetalle(row.entrega)" />
+          <dynadrill-icon-button icon="file-pdf" tooltip="Ver PDF" tooltipPlacement="top" (clicked)="verPdf(row.entrega)" />
+
+          @if (row.entrega.estado === 'solicitado') {
+            <dynadrill-icon-button icon="check" tooltip="Aprobar" tooltipPlacement="top" [disabled]="submittingId() === row.id" (clicked)="aprobar(row.id)" />
+            <dynadrill-icon-button icon="close" tooltip="Rechazar" tooltipPlacement="top" [disabled]="submittingId() === row.id" (clicked)="rechazar(row.id)" />
+          }
+          @if (row.entrega.estado === 'aprobado') {
+            <dynadrill-icon-button icon="upload" tooltip="Despachar" tooltipPlacement="top" [disabled]="submittingId() === row.id" (clicked)="despachar(row.id)" />
+          }
+        </div>
+      </ng-template>
+
+      <div class="table-scroll dyn-table-card">
+        <dynadrill-data-table
+          [columns]="columns"
+          [rows]="rows()"
+          [loading]="loading()"
+          [rowKey]="rowKeyFn"
+          [pageSize]="10"
+          actionsHeader="Acciones"
+          [actionsTemplate]="actionsTpl"
+        />
+      </div>
+    }
   }
 </div>

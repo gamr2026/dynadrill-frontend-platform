@@ -188,6 +188,25 @@
           <dynadrill-button variant="secondary" size="small" [disabled]="!entregaArchivo() || documentosQhseSubmitting()" (clicked)="subirEntregaQhse()">Subir Acta de Entrega</dynadrill-button>
         </li>
       }
+      <li class="qhse-doc">
+        <div class="qhse-doc__text">
+          <strong class="qhse-doc__name">Términos y condiciones de uso de equipos</strong>
+          <span class="qhse-doc__meta">
+            @for (p of terminosPorOperador(); track p.operador.id) {
+              {{ p.operador.name }}: {{ p.aceptacion ? 'aceptó ' + p.aceptacion.version + ' el ' + (p.aceptacion.aceptadoAt | date: 'dd/MM/yyyy HH:mm') : 'pendiente' }}@if (!$last) {<br />}
+            } @empty {
+              Sin operadores asignados
+            }
+          </span>
+          <dynadrill-tag
+            [label]="terminosPendientes().length === 0 && terminosPorOperador().length > 0 ? 'Aceptado' : 'Pendiente'"
+            [variant]="terminosPendientes().length === 0 && terminosPorOperador().length > 0 ? 'success' : 'warning'"
+          />
+        </div>
+        @if (aceptacionesTerminos().length > 0) {
+          <button type="button" class="qhse-doc__btn" aria-label="Ver constancia de términos y condiciones (PDF)" title="Ver constancia (PDF)" (click)="verConstanciaTerminos()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M9 15h6" /><path d="M9 11h6" /></svg></button>
+        }
+      </li>
     </ul>
   </section>
 }
@@ -1022,7 +1041,17 @@
           </div>
         </div>
       }
+      @if (terminosBloquea()) {
+        <div class="blocked" role="alert">
+          <svg class="blocked__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+          <div class="blocked__body">
+            <strong class="blocked__title">Términos y condiciones sin aceptar</strong>
+            <p class="blocked__text">Cada operador debe leer y aceptar los términos de uso del equipo: {{ terminosPendientes().join(', ') }}.</p>
+          </div>
+        </div>
+      }
       @for (p of epiPorOperador(); track p.operador.id) {
+        @let aceptacionTyc = aceptacionPorOperador().get(p.operador.name);
         <div class="ticket-detail__row-card">
           <div class="qhse-doc__text">
             <strong class="qhse-doc__name">{{ p.operador.name }}</strong>
@@ -1040,8 +1069,14 @@
               [variant]="p.entrega?.estado === 'despachado' ? 'success' : p.entrega?.estado === 'aprobado' ? 'info' : p.entrega?.estado === 'rechazado' ? 'error' : p.entrega?.estado === 'solicitado' ? 'warning' : 'neutral'"
             />
           </div>
+          <dynadrill-tag
+            [label]="aceptacionTyc ? 'Términos aceptados — ' + aceptacionTyc.version : 'Términos sin aceptar'"
+            [variant]="aceptacionTyc ? 'success' : 'warning'"
+          />
           @if (!p.entrega || p.entrega.estado === 'rechazado') {
             <button type="button" class="ticket-detail__outline-btn" (click)="solicitarEpi(p.operador)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>Solicitar EPI</button>
+          } @else if (!aceptacionTyc) {
+            <button type="button" class="ticket-detail__outline-btn" (click)="aceptarTerminos(p.operador)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5" /></svg>Aceptar términos</button>
           }
         </div>
       }
@@ -1195,7 +1230,7 @@
 
     <footer class="ticket-detail__actions ticket-detail__actions--single">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || submitting() || checklistQhseBloquea() || checklistIngresoBloquea() || epiBloquea()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
+      <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || submitting() || checklistQhseBloquea() || checklistIngresoBloquea() || epiBloquea() || terminosBloquea()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
     </footer>
   }
 

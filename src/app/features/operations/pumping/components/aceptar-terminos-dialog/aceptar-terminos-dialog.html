@@ -1,0 +1,53 @@
+<div class="aceptar-terminos">
+  @if (errorCarga()) {
+    <p class="aceptar-terminos__error" role="alert">No se pudo cargar el texto de los términos y condiciones.</p>
+  } @else if (terminos(); as t) {
+    <p class="aceptar-terminos__operador">
+      Operador: <strong>{{ data.operadorNombre }}</strong> · Versión {{ t.version }}
+    </p>
+
+    <section
+      #texto
+      class="aceptar-terminos__texto"
+      tabindex="0"
+      role="region"
+      [attr.aria-label]="t.titulo"
+      (scroll)="onScroll(texto)"
+    >
+      <h3 class="aceptar-terminos__titulo">{{ t.titulo }}</h3>
+      <p class="aceptar-terminos__parrafos">{{ t.texto }}</p>
+    </section>
+    @if (!leido()) {
+      <p class="aceptar-terminos__hint" id="terminos-hint">Desplázate hasta el final del texto para habilitar la aceptación.</p>
+    }
+
+    <div class="aceptar-terminos__cedula">
+      <dynadrill-input
+        label="Cédula del operador"
+        placeholder="10 dígitos"
+        [value]="cedula()"
+        (valueChange)="cedula.set($event); cedulaTocada.set(true)"
+      />
+      @if (cedulaTocada() && !cedulaValida()) {
+        <p class="aceptar-terminos__error" role="alert">La cédula debe tener 10 dígitos.</p>
+      }
+    </div>
+
+    <dynadrill-checkbox
+      [label]="'Yo, ' + data.operadorNombre + ', he leído y acepto los términos y condiciones de uso de equipos.'"
+      [checked]="acepta()"
+      [disabled]="!leido()"
+      [attr.aria-describedby]="leido() ? null : 'terminos-hint'"
+      (checkedChange)="acepta.set($event)"
+    />
+  } @else {
+    <p class="aceptar-terminos__operador">Cargando términos y condiciones…</p>
+  }
+
+  <div class="aceptar-terminos__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeAceptar()" (clicked)="aceptar()">
+      {{ submitting() ? 'Registrando…' : 'Aceptar términos' }}
+    </dynadrill-button>
+  </div>
+</div>

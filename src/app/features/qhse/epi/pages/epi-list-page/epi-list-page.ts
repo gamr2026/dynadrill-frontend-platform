@@ -4,6 +4,8 @@ import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
+  DynadrillTabsComponent,
+  type DynadrillTab,
   DynadrillIconButtonComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
@@ -39,6 +41,7 @@ type FiltroEstado = EpiEstado | 'todos';
 /** DYN-SGI-RE-032 — bandeja de entregas de EPI (Fase 5: solicitar → aprobar/rechazar → despachar). */
 import { DocumentoPdfService } from '../../../../../shared/documentos';
 import { EntregaEpiHoja } from '../../../../../shared/documentos/formatos/entrega-epi-hoja';
+import { AceptacionesTerminosPanel } from '../../components/aceptaciones-terminos-panel/aceptaciones-terminos-panel';
 
 @Component({
   selector: 'app-epi-list-page',
@@ -51,6 +54,8 @@ import { EntregaEpiHoja } from '../../../../../shared/documentos/formatos/entreg
     DynadrillInputComponent,
     DynadrillIconButtonComponent,
     DynadrillDataTableComponent,
+    DynadrillTabsComponent,
+    AceptacionesTerminosPanel,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './epi-list-page.html',
@@ -62,6 +67,9 @@ export class EpiListPage {
   private readonly notify = inject(DynadrillNotificationService);
 
   protected readonly isMobile = injectNarrowViewport();
+  /** Pestaña 1: historial de aceptaciones de Términos y condiciones de Pumping (por cédula). */
+  protected readonly tabs: DynadrillTab[] = [{ label: 'Entregas de EPI' }, { label: 'Términos y condiciones (Pumping)' }];
+  protected readonly tabActiva = signal(0);
   protected readonly loading = signal(true);
   protected readonly entregas = signal<EntregaEpi[]>([]);
   protected readonly estadoLabels = EPI_ESTADO_LABELS;

@@ -77,6 +77,11 @@ import {
 import { EntregaEpiService } from '../../../../qhse/epi/services/entrega-epi.service';
 import { type EntregaEpi } from '../../../../qhse/epi/models/entrega-epi.model';
 import { EntregaEpiDialog, type EntregaEpiDialogData } from '../../../../qhse/epi/components/entrega-epi-dialog';
+import { AceptarTerminosDialog, type AceptarTerminosDialogData } from '../../components/aceptar-terminos-dialog/aceptar-terminos-dialog';
+import type { AceptacionTerminos } from '../../models/terminos.model';
+import { TerminosPumpingService } from '../../services/terminos-pumping.service';
+import { DocumentoPdfService } from '../../../../../shared/documentos';
+import { ConstanciaTerminosHoja } from '../../../../../shared/documentos/formatos/constancia-terminos-hoja';
 import { SolicitudCambioItemsService } from '../../services/solicitud-cambio-items.service';
 import type { SolicitudCambioItems } from '../../models/solicitud-cambio-items.model';
 import {
@@ -230,6 +235,8 @@ export class TicketDetailPage {
   private readonly dialog = inject(DynadrillDialogService);
   private readonly docsBridge = inject(OperativoDocsBridgeService);
   private readonly epiService = inject(EntregaEpiService);
+  private readonly terminosService = inject(TerminosPumpingService);
+  private readonly documentoPdf = inject(DocumentoPdfService);
 
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
   /** Jefe/Operador de Mantenimiento: solo ven el resumen y el card "Mantenimientos", sin pasos ni datos de otros módulos. */
@@ -972,7 +979,73 @@ export class TicketDetailPage {
     });
   }
 
+  // ── Términos y condiciones de uso de equipos (specs/pumping-terminos-condiciones) ──
+
+  protected readonly aceptacionesTerminos = signal<AceptacionTerminos[]>([]);
+
+  protected readonly aceptacionPorOperador = computed(
+    () => new Map(this.aceptacionesTerminos().map(a => [a.operadorNombre, a] as const)),
+  );
+
+  protected readonly terminosPorOperador = computed(() =>
+    (this.ticket()?.operators ?? []).map(o => ({ operador: o, aceptacion: this.aceptacionPorOperador().get(o.name) ?? null })),
+  );
+
+  protected readonly terminosPendientes = computed(() => this.terminosPorOperador().filter(p => !p.aceptacion).map(p => p.operador.name));
+
+  /** Mismo candado que el backend (`gateTrasladoSalida`): todos los operadores asignados deben haber aceptado. */
+  protected readonly terminosBloquea = computed(() => this.currentStep() === 'traslado_salida' && this.terminosPendientes().length > 0);
+
+  private loadAceptacionesTerminos(ticketId: number): void {
+    this.terminosService.deTicket(ticketId).subscribe({
+      next: a => this.aceptacionesTerminos.set(a),
+      error: () => this.aceptacionesTerminos.set([]),
+    });
+  }
+
+  /** Abre la lectura/aceptación de términos; `alAceptar` corre solo si el operador aceptó. */
+  protected aceptarTerminos(operador: PumpingOperator, alAceptar?: () => void): void {
+    const t = this.ticket();
+    if (!t) return;
+    const ref = this.dialog.open<AceptarTerminosDialog, AceptarTerminosDialogData>({
+      title: 'Términos y condiciones de uso de equipos',
+      content: AceptarTerminosDialog,
+      data: { ticketId: t.id, operadorNombre: operador.name },
+      footer: false,
+      width: '680px',
+    });
+    ref.afterClose.subscribe((aceptacion: AceptacionTerminos | undefined) => {
+      if (!aceptacion) return;
+      this.aceptacionesTerminos.update(list => [...list.filter(a => a.id !== aceptacion.id), aceptacion]);
+      alAceptar?.();
+    });
+  }
+
+  protected verConstanciaTerminos(): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.terminosService.vigentes().subscribe({
+      next: terminos =>
+        this.documentoPdf.abrir({
+          titulo: `Términos y condiciones — ${t.code}`,
+          component: ConstanciaTerminosHoja,
+          inputs: { ticketCode: t.code, terminos, aceptaciones: this.aceptacionesTerminos() },
+          nombreArchivo: `Constancia TyC ${t.code}`,
+        }),
+      error: () => this.notify.error('Error', 'No se pudo cargar el texto de los términos y condiciones.'),
+    });
+  }
+
+  /** La solicitud de EPI arranca por los términos: si el operador todavía no aceptó, primero se los muestra. */
   protected solicitarEpi(operador: PumpingOperator): void {
+    if (this.aceptacionPorOperador().has(operador.name)) {
+      this.abrirSolicitudEpi(operador);
+    } else {
+      this.aceptarTerminos(operador, () => this.abrirSolicitudEpi(operador));
+    }
+  }
+
+  private abrirSolicitudEpi(operador: PumpingOperator): void {
     const t = this.ticket();
     if (!t) return;
     const ref = this.dialog.open<EntregaEpiDialog, EntregaEpiDialogData>({
@@ -2034,6 +2107,7 @@ export class TicketDetailPage {
         this.loadChecklistQhse(ticket.id);
         this.loadChecklistIngreso(ticket.id);
         this.loadEpiEntregas(ticket.id);
+        this.loadAceptacionesTerminos(ticket.id);
         this.pumpingService.gerenciamientosViaje(ticket.id).subscribe(gvs => this.gerenciamientosViajeTicket.set(gvs));
         if (ticket.pedidoId) {
           this.pedidoService.get(ticket.pedidoId).subscribe({

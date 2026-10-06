@@ -1,0 +1,35 @@
+.tyc {
+  font-size: 10px;
+
+  table {
+    width: 100%;
+    margin-top: -1px;
+    border-collapse: collapse;
+  }
+
+  td,
+  th {
+    padding: 4px 6px;
+    border: 1px solid #000;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    background: #e6e0ec;
+  }
+
+  &__hash {
+    font-family: monospace;
+    font-size: 8px;
+    word-break: break-all;
+  }
+
+  &__texto {
+    margin-top: -1px;
+    padding: 8px 10px;
+    border: 1px solid #000;
+    line-height: 1.45;
+    white-space: pre-line;
+  }
+}

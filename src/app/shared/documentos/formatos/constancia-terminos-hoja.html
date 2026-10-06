@@ -1,0 +1,39 @@
+<div class="doc-hoja tyc">
+  <app-doc-encabezado [titulo]="terminos().titulo" [version]="terminos().version" etiquetaVersion="Versión" />
+
+  <table class="tyc__datos">
+    <tr>
+      <td><strong>Ticket:</strong> {{ ticketCode() }}</td>
+      <td><strong>Huella del texto (SHA-256):</strong> <span class="tyc__hash">{{ terminos().textoHash }}</span></td>
+    </tr>
+  </table>
+
+  <div class="tyc__texto">{{ terminos().texto }}</div>
+
+  <table class="tyc__tabla">
+    <thead>
+      <tr>
+        <th>Operador</th>
+        <th>Cédula</th>
+        <th>Versión aceptada</th>
+        <th>Fecha y hora (servidor)</th>
+        <th>Registrado por</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (a of aceptaciones(); track a.id) {
+        <tr>
+          <td>{{ a.operadorNombre }}</td>
+          <td>{{ a.operadorCedula }}</td>
+          <td>{{ a.version }}</td>
+          <td>{{ fechaHora(a.aceptadoAt) }}</td>
+          <td>{{ a.registradoPor }}</td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="5">Sin aceptaciones registradas.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

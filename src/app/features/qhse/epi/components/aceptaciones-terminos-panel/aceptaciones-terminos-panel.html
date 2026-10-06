@@ -1,0 +1,13 @@
+<div class="tyc-panel__toolbar" role="search">
+  <dynadrill-input label="Cédula" placeholder="10 dígitos" [value]="cedula()" (valueChange)="cedula.set($event)" (keydown.enter)="buscar()" />
+  <dynadrill-input label="Nombre del operador" [value]="nombre()" (valueChange)="nombre.set($event)" (keydown.enter)="buscar()" />
+  <dynadrill-button (clicked)="buscar()">Buscar</dynadrill-button>
+</div>
+
+@if (error()) {
+  <p class="tyc-panel__error" role="alert">No se pudo cargar el historial de aceptaciones.</p>
+} @else {
+  <div class="table-scroll dyn-table-card">
+    <dynadrill-data-table [columns]="columns" [rows]="rows()" [loading]="loading()" [rowKey]="rowKeyFn" [pageSize]="10" />
+  </div>
+}

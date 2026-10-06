@@ -215,7 +215,7 @@
                 @if (l.esQuimico) {
                   <dynadrill-select
                     label=""
-                    [placeholder]="cliente() ? 'Elegir químico de la Lista de Precios del cliente' : 'Selecciona primero el cliente'"
+                    [placeholder]="cliente() ? 'Elegir material de la Lista de Precios del cliente' : 'Selecciona primero el cliente'"
                     [options]="quimicoOptions()"
                     [value]="l.codigo || null"
                     [searchable]="true"

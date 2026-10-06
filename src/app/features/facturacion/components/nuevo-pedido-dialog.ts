@@ -530,7 +530,8 @@ export class NuevoPedidoDialog {
   /** Tipo de cada línea de la cotización de Pumping — decide si el código sale del catálogo de químicos, de herramientas o es texto libre (servicio). */
   protected readonly tipoLineaOptions: DynadrillSelectOption[] = [
     { label: 'Servicio', value: 'servicio' },
-    { label: 'Químico', value: 'quimico' },
+    // Se llama "Material" porque así lo clasifica la Lista de Precios; internamente sigue siendo `esQuimico` (categoría QUIMICA de Inventario).
+    { label: 'Material', value: 'quimico' },
     { label: 'Herramienta', value: 'herramienta' },
   ];
 

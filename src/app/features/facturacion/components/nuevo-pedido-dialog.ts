@@ -137,7 +137,7 @@ const PLANTILLAS_EJEMPLO: PlantillaEjemplo[] = [
   {
     id: 'fcr-sarta',
     titulo: 'FCR · Sarta de limpieza de casing 7"',
-    detalle: 'Ticket 4426 — 2 herramientas + movilización',
+    detalle: 'Ticket 4426 — sarta de limpieza, subs y movilización (4 líneas)',
     archivo: 'pedido-fcr-sarta-limpieza-4426.xlsx',
     linea: 'fcr',
     tipoServicio: 'wellbore_cleanup_tools',

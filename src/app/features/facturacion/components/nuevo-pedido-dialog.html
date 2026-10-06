@@ -172,6 +172,21 @@
         <dynadrill-button variant="secondary" size="small" (clicked)="descargarPlantilla()">Descargar plantilla</dynadrill-button>
         <dynadrill-upload-zone state="idle" (fileSelected)="onCargarPlantilla($event)" />
       </div>
+      <dynadrill-text variant="caption">
+        O empezá desde un ejemplo armado con las líneas de un ticket real — carga las líneas, la línea de servicio y el tipo de servicio:
+      </dynadrill-text>
+      <ul class="nuevo-pedido__ejemplos">
+        @for (p of plantillasEjemplo; track p.id) {
+          <li class="nuevo-pedido__ejemplo">
+            <span class="nuevo-pedido__ejemplo-texto">
+              <strong>{{ p.titulo }}</strong>
+              <small>{{ p.detalle }}</small>
+            </span>
+            <dynadrill-button variant="secondary" size="small" (clicked)="cargarPlantillaEjemplo(p)">Cargar</dynadrill-button>
+            <dynadrill-icon-button icon="download" [tooltip]="'Descargar ' + p.archivo" (clicked)="descargarPlantillaEjemplo(p)" />
+          </li>
+        }
+      </ul>
     </div>
 
     <div class="table-scroll">
@@ -184,6 +199,7 @@
             <th class="num">Cantidad</th>
             <th class="num">Precio unitario</th>
             <th class="num">% Descuento</th>
+            <th title="Se factura exactamente esta cantidad (no se recalcula con los días del Reporte Job)">Cant. fija</th>
             @if (esPumping()) {
               <th>Tipo</th>
             }
@@ -254,6 +270,10 @@
                 <span class="nuevo-pedido__td-label">% Descuento</span>
                 <dynadrill-input label="" type="number" [value]="l.descuentoPorcentaje" (valueChange)="onLineaCampoChange($index, 'descuentoPorcentaje', $event)" />
               </td>
+              <td class="nuevo-pedido__quimico-cell">
+                <span class="nuevo-pedido__td-label">Cant. fija</span>
+                <input type="checkbox" [checked]="l.cantidadFija" (change)="onLineaCampoChange($index, 'cantidadFija', $any($event.target).checked)" aria-label="Cantidad fija: se factura exactamente esta cantidad" />
+              </td>
               @if (esPumping()) {
                 <td class="nuevo-pedido__tipo-cell">
                   <span class="nuevo-pedido__td-label">Tipo</span>
@@ -279,7 +299,7 @@
         </tbody>
         <tfoot>
           <tr>
-            <td [attr.colspan]="6" class="num"><strong>Valor estimado total</strong></td>
+            <td [attr.colspan]="7" class="num"><strong>Valor estimado total</strong></td>
             <td class="num"><strong>${{ valorEstimadoTotal() | number: '1.2-2' }}</strong></td>
             <td></td>
           </tr>

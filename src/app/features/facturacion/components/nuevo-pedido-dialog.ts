@@ -67,6 +67,8 @@ interface LineaEstimadaDraft {
   esQuimico: boolean;
   /** Igual que `esQuimico`, pero contra el catálogo de herramientas de Inventario (categoría HERRAMIENTAS). */
   esHerramienta: boolean;
+  /** La prefactura factura exactamente esta cantidad — no la recalcula con los días del Reporte Job (ver `cantidadFija` en pedido.model.ts). */
+  cantidadFija: boolean;
 }
 
 /**
@@ -92,6 +94,7 @@ const LINEA_ESTIMADA_VACIA: LineaEstimadaDraft = {
   descuentoPorcentaje: '0',
   esQuimico: false,
   esHerramienta: false,
+  cantidadFija: false,
 };
 
 /** Cabecera real de la plantilla descargable de AS2 (hoja "Ventas", fila 4) — "AS2 Pedido Cliente.xlsx". */
@@ -99,6 +102,47 @@ const CABECERA_PLANTILLA_AS2 = 'Codigo Producto AS2';
 const MAX_PLANTILLA_BYTES = 5 * 1024 * 1024;
 /** Copia estática de la plantilla real de AS2 — ver public/plantillas/. */
 const URL_PLANTILLA_AS2 = '/plantillas/as2-pedido-cliente.xlsx';
+
+/**
+ * Plantillas de ejemplo (mismo formato AS2, con la columna opcional "Cantidad fija") armadas con las líneas de tickets
+ * reales del cliente — 4368 y 4412 de Pumping, 4426 de FCR. "Cargar" las aplica directo; también se pueden descargar y
+ * subir con "Cargar plantilla". Fijan la línea de servicio y el tipo de servicio que usó ese ticket.
+ */
+interface PlantillaEjemplo {
+  id: string;
+  titulo: string;
+  detalle: string;
+  archivo: string;
+  linea: LineaServicio;
+  tipoServicio: TipoServicio;
+}
+
+const PLANTILLAS_EJEMPLO: PlantillaEjemplo[] = [
+  {
+    id: 'pumping-bes',
+    titulo: 'Pumping · Limpieza de equipo BES con CTU',
+    detalle: 'Ticket 4368 — 37 líneas, 5 químicos',
+    archivo: 'pedido-pumping-limpieza-bes-4368.xlsx',
+    linea: 'pumping',
+    tipoServicio: 'coiled_tubing',
+  },
+  {
+    id: 'pumping-linea',
+    titulo: 'Pumping · Limpieza de línea de superficie y flushing',
+    detalle: 'Ticket 4412 — 38 líneas, 4 químicos',
+    archivo: 'pedido-pumping-limpieza-linea-4412.xlsx',
+    linea: 'pumping',
+    tipoServicio: 'coiled_tubing',
+  },
+  {
+    id: 'fcr-sarta',
+    titulo: 'FCR · Sarta de limpieza de casing 7"',
+    detalle: 'Ticket 4426 — 2 herramientas + movilización',
+    archivo: 'pedido-fcr-sarta-limpieza-4426.xlsx',
+    linea: 'fcr',
+    tipoServicio: 'wellbore_cleanup_tools',
+  },
+];
 
 /**
  * Mismos tipos que acepta el backend para documentos adjuntos del Pedido
@@ -573,54 +617,91 @@ export class NuevoPedidoDialog {
     }
 
     const reader = new FileReader();
-    reader.onload = evento => {
-      try {
-        const datos = new Uint8Array(evento.target!.result as ArrayBuffer);
-        const libro = XLSX.read(datos, { type: 'array' });
-        const hoja = libro.Sheets[libro.SheetNames[0]];
-        const filas = XLSX.utils.sheet_to_json<unknown[]>(hoja, { header: 1, defval: '', raw: false });
-
-        const idxCabecera = filas.findIndex(f => (f[0] ?? '').toString().trim() === CABECERA_PLANTILLA_AS2);
-        if (idxCabecera === -1) {
-          this.notify.error(
-            'Plantilla no reconocida',
-            `No se encontró el encabezado "${CABECERA_PLANTILLA_AS2}" — ¿es la plantilla de AS2 Pedido Cliente?`,
-          );
-          return;
-        }
-
-        const lineas: LineaEstimadaDraft[] = [];
-        for (const fila of filas.slice(idxCabecera + 1)) {
-          const codigo = (fila[0] ?? '').toString().trim();
-          if (!codigo) break; // primera fila vacía = fin de los datos
-          const unidad = (fila[1] ?? '').toString().trim();
-          const cantidad = (fila[2] ?? '').toString().trim();
-          const descripcion = (fila[3] ?? '').toString().trim();
-          const precio = (fila[4] ?? '').toString().trim();
-          const descuento = (fila[5] ?? '').toString().trim();
-          lineas.push({
-            codigo,
-            descripcion,
-            unidad,
-            cantidad: cantidad || '1',
-            valorUnitario: precio || '0',
-            descuentoPorcentaje: descuento || '0',
-            esQuimico: false,
-            esHerramienta: false,
-          });
-        }
-
-        if (!lineas.length) {
-          this.notify.error('Sin registros', 'La plantilla no trae ninguna línea después del encabezado.');
-          return;
-        }
-        this.lineasEstimadas.set(lineas);
-        this.notify.success('Plantilla cargada', `${lineas.length} línea(s) cargada(s) desde el archivo.`);
-      } catch {
-        this.notify.error('Error al leer el archivo', 'No se pudo procesar el Excel. Verificá que no esté dañado.');
-      }
-    };
+    reader.onload = evento => this.procesarPlantilla(new Uint8Array(evento.target!.result as ArrayBuffer));
     reader.readAsArrayBuffer(archivo);
+  }
+
+  /** Plantillas de ejemplo (ver `PLANTILLAS_EJEMPLO`) — mismo formato que la de AS2, listas para cargar o descargar. */
+  protected readonly plantillasEjemplo = PLANTILLAS_EJEMPLO;
+
+  protected descargarPlantillaEjemplo(p: PlantillaEjemplo): void {
+    const a = document.createElement('a');
+    a.href = `/plantillas/${p.archivo}`;
+    a.download = p.archivo;
+    a.click();
+  }
+
+  /** Aplica una plantilla de ejemplo: fija la línea y el tipo de servicio del ticket de origen y carga sus líneas. */
+  protected async cargarPlantillaEjemplo(p: PlantillaEjemplo): Promise<void> {
+    try {
+      const resp = await fetch(`/plantillas/${p.archivo}`);
+      if (!resp.ok) throw new Error(String(resp.status));
+      const datos = new Uint8Array(await resp.arrayBuffer());
+      if (this.procesarPlantilla(datos)) {
+        if (this.lineaServicio() !== p.linea) this.onLineaServicioChange(p.linea);
+        this.onTipoServicioChange(p.linea === 'pumping' ? p.tipoServicio : [p.tipoServicio]);
+      }
+    } catch {
+      this.notify.error('No se pudo cargar el ejemplo', 'No se encontró el archivo de la plantilla. Probá de nuevo.');
+    }
+  }
+
+  /**
+   * Lee un Excel con el formato de AS2 Pedido Cliente y reemplaza las líneas. Columna G opcional "Cantidad fija" (SI):
+   * esa línea se factura con su cantidad exacta. Los códigos que existen como químico / herramienta en Inventario quedan
+   * marcados solos (Pumping precarga los químicos; FCR, las herramientas). Devuelve `true` si cargó líneas.
+   */
+  private procesarPlantilla(datos: Uint8Array): boolean {
+    try {
+      const libro = XLSX.read(datos, { type: 'array' });
+      const hoja = libro.Sheets[libro.SheetNames[0]];
+      const filas = XLSX.utils.sheet_to_json<unknown[]>(hoja, { header: 1, defval: '', raw: false });
+
+      const idxCabecera = filas.findIndex(f => (f[0] ?? '').toString().trim() === CABECERA_PLANTILLA_AS2);
+      if (idxCabecera === -1) {
+        this.notify.error(
+          'Plantilla no reconocida',
+          `No se encontró el encabezado "${CABECERA_PLANTILLA_AS2}" — ¿es la plantilla de AS2 Pedido Cliente?`,
+        );
+        return false;
+      }
+
+      const quimicos = new Set(this.quimicosCatalogoCompleto().map(a => a.codigo));
+      const herramientas = new Set(this.herramientasCatalogoCompleto().map(a => a.codigo));
+      const lineas: LineaEstimadaDraft[] = [];
+      for (const fila of filas.slice(idxCabecera + 1)) {
+        const codigo = (fila[0] ?? '').toString().trim();
+        if (!codigo) break; // primera fila vacía = fin de los datos
+        const unidad = (fila[1] ?? '').toString().trim();
+        const cantidad = (fila[2] ?? '').toString().trim();
+        const descripcion = (fila[3] ?? '').toString().trim();
+        const precio = (fila[4] ?? '').toString().trim();
+        const descuento = (fila[5] ?? '').toString().trim();
+        const fija = (fila[6] ?? '').toString().trim().toUpperCase();
+        lineas.push({
+          codigo,
+          descripcion,
+          unidad,
+          cantidad: cantidad || '1',
+          valorUnitario: precio || '0',
+          descuentoPorcentaje: descuento || '0',
+          esQuimico: this.esPumping() && quimicos.has(codigo),
+          esHerramienta: herramientas.has(codigo),
+          cantidadFija: ['SI', 'SÍ', 'S', '1', 'TRUE', 'X'].includes(fija),
+        });
+      }
+
+      if (!lineas.length) {
+        this.notify.error('Sin registros', 'La plantilla no trae ninguna línea después del encabezado.');
+        return false;
+      }
+      this.lineasEstimadas.set(lineas);
+      this.notify.success('Plantilla cargada', `${lineas.length} línea(s) cargada(s) desde el archivo.`);
+      return true;
+    } catch {
+      this.notify.error('Error al leer el archivo', 'No se pudo procesar el Excel. Verificá que no esté dañado.');
+      return false;
+    }
   }
 
   protected readonly submitting = signal(false);
@@ -763,6 +844,7 @@ export class NuevoPedidoDialog {
           descuentoPorcentaje: it.descuentoPorcentaje != null ? String(it.descuentoPorcentaje) : '0',
           esQuimico: it.esQuimico ?? false,
           esHerramienta: it.esHerramienta ?? false,
+          cantidadFija: it.cantidadFija ?? false,
         })),
       );
     }
@@ -900,6 +982,7 @@ export class NuevoPedidoDialog {
       esQuimico: l.esQuimico,
       // FCR se asume siempre herramienta, aunque no haya checkbox para marcarlo línea por línea.
       esHerramienta: l.esHerramienta || this.esFcr(),
+      ...(l.cantidadFija ? { cantidadFija: true } : {}),
     }));
 
     const payload = {

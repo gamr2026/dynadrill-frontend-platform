@@ -112,6 +112,7 @@ import {
 } from '../../../../maintenance/models/vehicle-inspection.model';
 import { VehicleInspectionDialog, VehicleInspectionDialogData } from '../../../../maintenance/components/vehicle-inspection-dialog';
 import { VehicleInspectionsService } from '../../../../maintenance/services/vehicle-inspections.service';
+import { TicketPrefacturaService } from '../../../../../shared/services/ticket-prefactura.service';
 import { TicketPrefacturaDialog, type TicketPrefacturaDialogData } from '../../../../../shared/components/ticket-prefactura-dialog/ticket-prefactura-dialog';
 import { ReviewArrivalReportDialog, ReviewArrivalReportDialogData, ReviewArrivalReportDialogResult } from '../../components/review-arrival-report-dialog';
 import { DailyActivityReportDialog, DailyActivityReportDialogData, DailyActivityReportDialogResult } from '../../components/daily-activity-report-dialog';
@@ -231,6 +232,7 @@ export class TicketDetailPage {
   private readonly router = inject(Router);
   private readonly pumpingService = inject(PumpingService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly ticketPrefactura = inject(TicketPrefacturaService);
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly docsBridge = inject(OperativoDocsBridgeService);
@@ -2601,11 +2603,26 @@ export class TicketDetailPage {
       return;
     }
     this.submitting.set(true);
+    const ofrecerFirma = this.puedeVerPrefactura();
     this.pumpingService.approveTicket(t.id).subscribe({
       next: () => {
         this.submitting.set(false);
         this.notify.success('Aprobado', 'Ticket aprobado — pasa a estado Finalizado.');
-        this.router.navigate(['..'], { relativeTo: this.route });
+        const salir = (): void => void this.router.navigate(['..'], { relativeTo: this.route });
+        if (!ofrecerFirma) return salir();
+        // Si todavía falta la firma del Company Man, se abre la prefactura para registrarla antes de salir.
+        this.ticketPrefactura.necesitaFirma('pumping', t.id).subscribe(necesita => {
+          if (!necesita) return salir();
+          this.dialog
+            .open<TicketPrefacturaDialog, TicketPrefacturaDialogData>({
+              title: 'Prefactura del servicio — firma del Company Man',
+              content: TicketPrefacturaDialog,
+              data: { linea: 'pumping', ticketId: t.id, ticketCode: t.code },
+              footer: false,
+              width: 1000,
+            })
+            .afterClose.subscribe(salir);
+        });
       },
       error: (err: { error?: { message?: string } }) => {
         this.submitting.set(false);

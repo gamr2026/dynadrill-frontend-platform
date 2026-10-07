@@ -14,7 +14,9 @@ export interface TicketPrefacturaVista {
   prefactura: Prefactura;
   preliminar: boolean;
   ticketCerrado: boolean;
-  /** Ticket cerrado + documentación completa + prefactura sin firmar. */
+  /** El ticket está en su etapa final (revisión final / cierre) o terminado: ahí se gestiona la firma del Company Man. */
+  enCierre: boolean;
+  /** Etapa final del ticket + documentación completa + prefactura sin firmar. */
   puedeFirmar: boolean;
   /** Por qué todavía no se puede firmar (documentación incompleta), si aplica. */
   motivoNoFirma: string | null;

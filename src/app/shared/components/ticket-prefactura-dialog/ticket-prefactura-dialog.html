@@ -24,6 +24,12 @@
     </div>
   </header>
 
+  @if (v.puedeFirmar) {
+    <dynadrill-banner
+      variant="warning"
+      message="Falta la firma del Company Man: regístrala abajo (sección «Firma del Company Man») antes de finalizar el ticket, y Facturación recibirá la prefactura cargada y firmada."
+    />
+  }
   @if (v.preliminar) {
     <dynadrill-banner
       variant="warning"
@@ -139,8 +145,8 @@
       <dynadrill-banner
         variant="info"
         [message]="
-          !v.ticketCerrado
-            ? 'La firma se registra al finalizar el ticket: el servicio todavía no está cerrado.'
+          !v.enCierre
+            ? 'La firma del Company Man se registra en la etapa final del ticket (revisión final / cierre), cuando el servicio ya terminó.'
             : (v.motivoNoFirma ?? 'La prefactura no se puede firmar en este momento.')
         "
       />

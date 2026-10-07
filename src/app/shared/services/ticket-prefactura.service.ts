@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, catchError, map, of } from 'rxjs';
 import { environment } from '@env';
 import type { LineaTicketPrefactura, TicketPrefacturaVista } from '../models/ticket-prefactura.model';
 
@@ -15,6 +15,14 @@ export class TicketPrefacturaService {
 
   ver(linea: LineaTicketPrefactura, ticketId: number): Observable<TicketPrefacturaVista> {
     return this.http.get<TicketPrefacturaVista>(this.url(linea, ticketId));
+  }
+
+  /** ¿Todavía falta registrar la firma del Company Man (y ya se puede)? Si no se puede consultar, `false`: nunca estorba. */
+  necesitaFirma(linea: LineaTicketPrefactura, ticketId: number): Observable<boolean> {
+    return this.ver(linea, ticketId).pipe(
+      map(v => v.puedeFirmar),
+      catchError(() => of(false)),
+    );
   }
 
   /** Sube la prefactura firmada por el Company Man: queda FIRMADA para Facturación. */

@@ -94,6 +94,7 @@ import { AsignarOperadorDialog, AsignarOperadorDialogData, AsignarOperadorDialog
 import { ChecklistHerramientaDialog, ChecklistHerramientaDialogData } from '../../components/checklist-herramienta-dialog';
 import { HerramientaFaltanteDialog, HerramientaFaltanteDialogData, HerramientaFaltanteDialogResult } from '../../components/herramienta-faltante-dialog';
 import { GuiaSalidaBodegaDialog, GuiaSalidaBodegaDialogData, GuiaSalidaBodegaDialogResult } from '../../components/guia-salida-bodega-dialog';
+import { TicketPrefacturaService } from '../../../../../shared/services/ticket-prefactura.service';
 import { TicketPrefacturaDialog, type TicketPrefacturaDialogData } from '../../../../../shared/components/ticket-prefactura-dialog/ticket-prefactura-dialog';
 import { CierreTicketDialog, CierreTicketDialogData, CierreTicketDialogResult } from '../../components/cierre-ticket-dialog';
 import {
@@ -190,6 +191,7 @@ export class FcrTicketDetailPage {
   private readonly articulosService = inject(ArticulosService);
   private readonly pedidoService = inject(PedidoService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly ticketPrefactura = inject(TicketPrefacturaService);
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly documentoPdf = inject(DocumentoPdfService);
@@ -1469,6 +1471,12 @@ export class FcrTicketDetailPage {
         next: updated => {
           this.ticket.set(updated);
           this.notify.success('Ticket cerrado. Encuesta de satisfacción enviada al cliente.');
+          // Al finalizar, se abre la prefactura para registrar la firma del Company Man (queda firmada en Facturación).
+          if (this.puedeVerPrefactura()) {
+            this.ticketPrefactura.necesitaFirma('fcr', t.id).subscribe(necesita => {
+              if (necesita) this.verPrefactura();
+            });
+          }
         },
         error: (err: { error?: { message?: string } }) => this.notify.error('Error', err?.error?.message ?? 'No se pudo cerrar el ticket.'),
       });

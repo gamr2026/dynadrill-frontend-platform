@@ -738,15 +738,20 @@ export class TicketDetailPage {
   }
 
   // ══════════════════════════════════════════════
-  // Inspección de vehículos por unidad — bloquea `traslado_salida` hasta que el Supervisor apruebe la inspección de
-  // cada unidad de Transporte asignada (el Operador la hace; el Supervisor la aprueba desde Mantenimiento).
+  // Inspección de vehículos por unidad — `traslado_salida` exige que el Operador la haya REALIZADA; el paso de
+  // `revision_reportes_salida` a ejecución exige que el Supervisor la haya APROBADO (queda guardada al aprobar en la revisión).
   // ══════════════════════════════════════════════
 
   protected readonly inspeccionesVehiculo = signal<InspeccionesVehiculoEstado | null>(null);
 
   /** Solo bloquea el formulario en `traslado_salida` — en cualquier otro paso ya no aplica. */
   protected readonly inspeccionesVehiculoBloquea = computed(
-    () => this.currentStep() === 'traslado_salida' && this.inspeccionesVehiculo()?.gate.ok === false,
+    () => this.currentStep() === 'traslado_salida' && this.inspeccionesVehiculo()?.gateRealizada.ok === false,
+  );
+
+  /** En la revisión de salida: falta guardar la aprobación del Supervisor de alguna unidad. */
+  protected readonly inspeccionesSinAprobar = computed(
+    () => this.currentStep() === 'revision_reportes_salida' && this.inspeccionesVehiculo()?.gateAprobada.ok === false,
   );
 
   private loadInspeccionesVehiculo(ticketId: number): void {
@@ -1319,6 +1324,7 @@ export class TicketDetailPage {
     });
 
     ref.afterClose.subscribe((result: ReviewArrivalReportDialogResult | undefined) => {
+      this.loadInspeccionesVehiculo(t.id);
       if (!result) return;
 
       const id = row['id'] as number;

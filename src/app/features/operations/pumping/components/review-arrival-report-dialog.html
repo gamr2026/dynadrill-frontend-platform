@@ -66,7 +66,7 @@
         <dynadrill-button variant="error" [disabled]="rejectionReason().trim().length === 0" (clicked)="confirmReject()">Confirmar rechazo</dynadrill-button>
       } @else {
         <dynadrill-button variant="error" (clicked)="toggleReject()">Rechazar</dynadrill-button>
-        <dynadrill-button variant="success" (clicked)="approveInspectionStep()">Aprobar inspección</dynadrill-button>
+        <dynadrill-button variant="success" [disabled]="aprobando()" (clicked)="approveInspectionStep()">Aprobar inspección</dynadrill-button>
       }
     </footer>
   }

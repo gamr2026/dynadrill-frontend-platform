@@ -7,6 +7,7 @@ import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillInspectionGridComponent,
+  DynadrillNotificationService,
   DynadrillStepperComponent,
   DynadrillTextComponent,
   DynadrillTextareaComponent,
@@ -15,6 +16,8 @@ import {
 import type { PumpingUnitReport } from '../models/pumping.model';
 import type { VehicleInspection } from '../../../maintenance/models/vehicle-inspection.model';
 import { DocumentoPdfService } from '../../../../shared/documentos';
+import { AuthService } from '../../../../core/services/auth.service';
+import { VehicleInspectionsService } from '../../../maintenance/services/vehicle-inspections.service';
 import { ReporteUnidadHoja } from '../../../../shared/documentos/formatos/reporte-unidad-hoja';
 
 export interface ReviewArrivalReportDialogData {
@@ -51,6 +54,10 @@ export class ReviewArrivalReportDialog {
   private readonly modalRef = inject(NzModalRef<ReviewArrivalReportDialog, ReviewArrivalReportDialogResult | undefined>);
   private readonly data = inject<ReviewArrivalReportDialogData>(NZ_MODAL_DATA);
   private readonly documentoPdf = inject(DocumentoPdfService);
+  private readonly auth = inject(AuthService);
+  private readonly inspeccionesService = inject(VehicleInspectionsService);
+  private readonly notify = inject(DynadrillNotificationService);
+  protected readonly aprobando = signal(false);
 
   protected readonly operatorName = this.data.operatorName;
   protected readonly unitCode = this.data.unitCode;
@@ -283,11 +290,33 @@ export class ReviewArrivalReportDialog {
   // ── Signatures ──
   // ── Actions ──
 
-  /** Aprueba la inspección y avanza al paso 2 (reporte de unidad) */
+  /**
+   * Aprueba la inspección y avanza al paso 2 (reporte de unidad). La aprobación queda GUARDADA (firma del Supervisor en
+   * la inspección real): sin ella el ticket no pasa a ejecución. Si ya estaba aprobada, o es una inspección de ejemplo
+   * sin registro real (id 0), solo se avanza.
+   */
   protected approveInspectionStep(): void {
-    this.currentReviewStep.set(1);
-    this.showRejectForm.set(false);
-    this.rejectionReason.set('');
+    const inspeccion = this.inspection;
+    const avanzar = (): void => {
+      this.currentReviewStep.set(1);
+      this.showRejectForm.set(false);
+      this.rejectionReason.set('');
+    };
+    if (!inspeccion || !inspeccion.id || inspeccion.supervisorApprovedBy) {
+      avanzar();
+      return;
+    }
+    this.aprobando.set(true);
+    this.inspeccionesService.approve(inspeccion.id, this.auth.currentUser()?.name ?? 'Supervisor').subscribe({
+      next: () => {
+        this.aprobando.set(false);
+        avanzar();
+      },
+      error: () => {
+        this.aprobando.set(false);
+        this.notify.error('Error', 'No se pudo guardar la aprobación de la inspección. Inténtalo de nuevo.');
+      },
+    });
   }
 
   protected approve(): void {

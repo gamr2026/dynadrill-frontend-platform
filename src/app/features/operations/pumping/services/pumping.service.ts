@@ -162,8 +162,9 @@ export class PumpingService {
     });
   }
 
-  // ── Inspección de vehículos por unidad — bloquea traslado_salida hasta que el Supervisor apruebe la de
-  // cada unidad de Transporte asignada (reemplaza al checklist de equipos de QHSE: era el mismo documento).
+  // ── Inspección de vehículos por unidad — bloquea traslado_salida hasta que el Operador la realice y el paso a
+  // ejecución hasta que el Supervisor la apruebe, por cada unidad de Transporte asignada (reemplaza al checklist de
+  // equipos de QHSE: era el mismo documento).
 
   inspeccionesVehiculo(ticketId: number): Observable<InspeccionesVehiculoEstado> {
     return this.http.get<InspeccionesVehiculoEstado>(`${this.baseUrl}/tickets/${ticketId}/inspecciones-vehiculo`);
@@ -204,10 +205,14 @@ export interface InspeccionVehiculoCaso {
   aprobadaPor?: string;
 }
 
-/** Respuesta de `GET .../tickets/:id/inspecciones-vehiculo`. `gate` usa el mismo criterio exacto que bloquea `advance` en el backend. */
+/**
+ * Respuesta de `GET .../tickets/:id/inspecciones-vehiculo`. Los dos candados usan el mismo criterio exacto que bloquea
+ * `advance` en el backend: `gateRealizada` (salir de traslado_salida) y `gateAprobada` (salir de revision_reportes_salida).
+ */
 export interface InspeccionesVehiculoEstado {
   casos: InspeccionVehiculoCaso[];
-  gate: { ok: boolean; faltantes: string[] };
+  gateRealizada: { ok: boolean; faltantes: string[] };
+  gateAprobada: { ok: boolean; faltantes: string[] };
 }
 
 export type ChecklistIngresoGas = 'H2S' | 'LEL' | 'O2' | 'CO';

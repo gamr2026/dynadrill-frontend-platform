@@ -609,6 +609,13 @@
       <section class="ticket-detail__section">
         <dynadrill-text variant="caption">Debe aprobar todos los reportes de salida antes de continuar.</dynadrill-text>
       </section>
+    } @else if (inspeccionesSinAprobar()) {
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="caption">
+          Falta guardar la aprobación de la inspección de vehículos de: {{ inspeccionesVehiculo()?.gateAprobada?.faltantes?.join(', ') }}.
+          Abre la revisión de esa unidad y pulsa «Aprobar inspección».
+        </dynadrill-text>
+      </section>
     } @else if (!gvSalidaAprobado()) {
       <section class="ticket-detail__section">
         <dynadrill-text variant="caption">El Gerenciamiento de Viaje (DYN-SGI-RE-049) de salida todavía no está aprobado.</dynadrill-text>
@@ -635,7 +642,7 @@
 
     <footer class="ticket-detail__actions ticket-detail__actions--single">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="success" [disabled]="!allSalidaApproved() || !gvSalidaAprobado() || !coberturaOk() || !ptwFirmadoOk() || submitting()" (clicked)="approveAllSalidaReports()">Aprobar reportes de salida</dynadrill-button>
+      <dynadrill-button variant="success" [disabled]="!allSalidaApproved() || inspeccionesSinAprobar() || !gvSalidaAprobado() || !coberturaOk() || !ptwFirmadoOk() || submitting()" (clicked)="approveAllSalidaReports()">Aprobar reportes de salida</dynadrill-button>
     </footer>
   }
 
@@ -882,17 +889,17 @@
   <!-- PASO 3a: En ejecución (SALIDA) — Solo Chasis modo salida         -->
   <!-- ══════════════════════════════════════════════════════════════════ -->
   @if (currentStep() === 'traslado_salida') {
-    <!-- Inspección de vehículos — mientras falte la aprobación del Supervisor en alguna unidad de Transporte
-         asignada, no se puede enviar el reporte de salida. -->
+    <!-- Inspección de vehículos — mientras falte que el Operador realice la inspección de alguna unidad de
+         Transporte asignada, no se puede enviar el reporte de salida. La aprobación del Supervisor va en el paso siguiente. -->
     @if (inspeccionesVehiculo(); as iv) {
       @if (inspeccionesVehiculoBloquea()) {
         <div class="blocked" role="alert">
           <svg class="blocked__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
           <div class="blocked__body">
-            <strong class="blocked__title">Traslado de salida bloqueado: inspección de vehículos sin aprobar</strong>
-            <p class="blocked__text">Falta la inspección aprobada por el Supervisor de:</p>
+            <strong class="blocked__title">Traslado de salida bloqueado: falta la inspección de vehículos</strong>
+            <p class="blocked__text">Falta realizar la inspección de:</p>
             <ul class="blocked__chips">
-              @for (unidad of iv.gate.faltantes; track unidad) {
+              @for (unidad of iv.gateRealizada.faltantes; track unidad) {
                 <li>{{ unidad }}</li>
               }
             </ul>
@@ -903,7 +910,7 @@
       @if (iv.casos.length > 0) {
         <section class="ticket-detail__section">
           <dynadrill-text variant="h2">Inspección de vehículos por unidad</dynadrill-text>
-          <dynadrill-text variant="caption">El Operador la realiza; el Supervisor la aprueba desde Mantenimiento → Inspecciones.</dynadrill-text>
+          <dynadrill-text variant="caption">El Operador la realiza aquí; el Supervisor la aprueba en la revisión de salida, antes de pasar a ejecución.</dynadrill-text>
           @for (caso of iv.casos; track caso.unidadId) {
             <div class="ticket-detail__row-card">
               <div class="qhse-doc__text">

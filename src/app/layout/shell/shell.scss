@@ -40,6 +40,10 @@
   &__content {
     grid-area: content;
     overflow-y: auto;
+    // Contiene a los elementos con position: absolute de las páginas (ej. textos solo para lectores
+    // de pantalla de las tablas). Sin esto se ubicaban respecto de la página entera y, en páginas
+    // largas como el detalle del ticket FCR, la alargaban: quedaba un blanco enorme bajo el footer.
+    position: relative;
     // Padding derecho mayor que el izquierdo: a la izquierda el sidebar
     // oscuro (260px sólido) ya da sensación fuerte de margen; a la derecha
     // no hay ningún bloque visual que lo ancle, así que 24px se percibía

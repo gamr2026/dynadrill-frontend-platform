@@ -1,0 +1,70 @@
+.cfg-codigo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__kit {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__kit-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  &__kit-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  &__rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 96px auto;
+    align-items: end;
+    gap: 8px;
+
+    // Móvil: la herramienta ocupa todo el ancho; cantidad y quitar debajo.
+    @media (max-width: 480px) {
+      grid-template-columns: minmax(0, 1fr) auto;
+
+      .cfg-codigo__tool {
+        grid-column: 1 / -1;
+      }
+    }
+  }
+
+  &__warning {
+    color: var(--warning-text, #8a5300);
+  }
+
+  &__error {
+    margin: 0;
+    color: var(--error-text, #b42318);
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+}

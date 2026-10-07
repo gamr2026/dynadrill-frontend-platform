@@ -10,6 +10,8 @@ import { NavEntry, NavModule, allLinks } from './nav.model';
 const PUMPING: NavEntry = { label: 'Pumping', icon: 'gauge', link: '/modulos/operativo/pumping' };
 const APROBACIONES: NavEntry = { label: 'Aprobaciones', icon: 'check', link: '/modulos/operativo/pumping/aprobaciones' };
 const FCR: NavEntry = { label: 'FCR', icon: 'tool', link: '/modulos/operativo/fcr' };
+/** Kits y clase de cada código por cliente para la precarga de herramientas — ver FCR_CONFIGURACION_CODIGOS_ROLES. */
+const FCR_CODIGOS: NavEntry = { label: 'Códigos por cliente', shortLabel: 'Códigos', icon: 'clipboard', link: '/modulos/operativo/fcr/configuracion-codigos' };
 
 const BANDEJA_MANTENIMIENTO: NavEntry = { label: 'Bandeja', icon: 'list', link: '/dashboard/mantenimiento' };
 const INDICADORES_MANTENIMIENTO: NavEntry = { label: 'Indicadores', icon: 'chart', link: '/dashboard/mantenimiento/kpis' };
@@ -139,9 +141,11 @@ export class NavigationService {
       case 'Supervisor':
       case 'Operador FCR':
       case 'Supervisor Operaciones FCR':
-      // Cuenta exclusiva de FCR (ventas.fcr@dynadrill.com) — sin Facturación, a pedido del cliente no deben cruzarse.
-      case 'Ingeniería de Ventas FCR':
         return [INICIO, operaciones(FCR)];
+      // Cuenta exclusiva de FCR (ventas.fcr@dynadrill.com) — sin Facturación, a pedido del cliente no deben cruzarse.
+      // Arma los kits de herramientas por cliente (Códigos por cliente).
+      case 'Ingeniería de Ventas FCR':
+        return [INICIO, operaciones(FCR, FCR_CODIGOS)];
       // Acotado a Pumping y su bandeja de Aprobaciones (nunca FCR). También autoriza Gerenciamiento de Viaje de riesgo BAJO (DYN-SGI-RE-049).
       case 'Supervisor Pumping':
         return [INICIO, operaciones(PUMPING, APROBACIONES, GERENCIAMIENTO_VIAJE)];
@@ -169,7 +173,7 @@ export class NavigationService {
       case 'Superadmin':
         return [
           INICIO,
-          operaciones(PUMPING, FCR),
+          operaciones(PUMPING, FCR, FCR_CODIGOS),
           mantenimiento(BANDEJA_MANTENIMIENTO, INDICADORES_MANTENIMIENTO, GERENCIAMIENTO_VIAJE),
           qhse(),
           inventario(),

@@ -47,6 +47,20 @@ describe('NavigationService', () => {
     expect(links(service, 'operaciones')).toEqual(['/modulos/operativo/pumping']);
   });
 
+  it('"Códigos por cliente" de FCR: solo Ventas FCR y Superadmin, y activa su propia entrada (no la de FCR)', () => {
+    const codigos = '/modulos/operativo/fcr/configuracion-codigos';
+    const service = setup('Ingeniería de Ventas FCR', codigos);
+    expect(links(service, 'operaciones')).toEqual(['/modulos/operativo/fcr', codigos]);
+    expect(service.activeModule().key).toBe('operaciones');
+    expect(service.isActive({ label: 'FCR', link: '/modulos/operativo/fcr' })).toBe(false);
+
+    for (const rol of ['Superadmin', 'Supervisor', 'Bodeguero', 'Ingeniería de Ventas']) {
+      TestBed.resetTestingModule();
+      const conCodigos = setup(rol).modules().some(m => allLinks(m).includes(codigos));
+      expect([rol, conCodigos]).toEqual([rol, rol === 'Superadmin']);
+    }
+  });
+
   it('Facturación no ve Catálogos', () => {
     const service = setup('Facturación');
     expect(links(service, 'facturacion')).not.toContain('/dashboard/facturacion/catalogos');

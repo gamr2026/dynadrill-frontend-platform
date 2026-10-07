@@ -16,12 +16,27 @@ export const FCR_ROLES = [
   'Gerente HSE',
 ];
 
+/**
+ * Configuran qué hace FCR con cada código de la Lista de Precios de un cliente
+ * (backend `ModuleRoles.fcrConfiguracionCodigos`). Ingeniería de Ventas queda
+ * afuera: Ventas y FCR no se cruzan (ver navigation.service.ts).
+ */
+export const FCR_CONFIGURACION_CODIGOS_ROLES = ['Superadmin', 'Jefe de Base', 'Ingeniería de Ventas FCR'];
+
 export const fcrRoutes: Routes = [
   {
     path: '',
     loadComponent: () => import('./pages/ticket-list-page/ticket-list-page').then(m => m.FcrTicketListPage),
     canActivate: [roleGuard],
     data: { allowedRoles: FCR_ROLES },
+  },
+  // Antes de ':id' para que no se lea "configuracion-codigos" como id de ticket.
+  {
+    path: 'configuracion-codigos',
+    loadComponent: () =>
+      import('./pages/configuracion-codigos-page/configuracion-codigos-page').then(m => m.FcrConfiguracionCodigosPage),
+    canActivate: [roleGuard],
+    data: { allowedRoles: FCR_CONFIGURACION_CODIGOS_ROLES },
   },
   {
     path: ':id',

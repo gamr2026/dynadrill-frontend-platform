@@ -67,3 +67,10 @@ evento a `phaseHistory`, así que `timelineResumen.macroEstadoActual` se queda e
 Propuesta aprobada en alcance: macroestado `finalizado`; `close()` registra el evento y valida fase
 `cierre` y que no esté ya cerrado; frontend con el ticket cerrado en solo lectura, pero con
 imprimibles y descargables disponibles. Pumping fuera de alcance. Hacer spec corta antes de implementar.
+
+**Hecho 2026-10-07 (parcial):** con `status: 'cerrado'` el detalle FCR queda en solo lectura (`ticketCerrado`
+apaga `esActual` e `isMyTurn`), la línea de avance marca todas las fases completadas, el aviso dice "Ticket
+finalizado — solo lectura" y la etiqueta muestra "Finalizado". ART/PT del día se bloquean; el Acta de Entrega
+se puede seguir subiendo (se carga al finalizar). Backend: `close()` solo desde `cierre` y una sola vez (409).
+**Pendiente:** macroestado `finalizado` en `libs/common/src/estados` (hoy el timeline queda en "Aprobado"; la
+etiqueta del front lo resuelve por `status`).

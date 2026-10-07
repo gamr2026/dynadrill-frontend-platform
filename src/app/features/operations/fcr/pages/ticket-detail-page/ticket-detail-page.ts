@@ -94,6 +94,7 @@ import { AsignarOperadorDialog, AsignarOperadorDialogData, AsignarOperadorDialog
 import { ChecklistHerramientaDialog, ChecklistHerramientaDialogData } from '../../components/checklist-herramienta-dialog';
 import { HerramientaFaltanteDialog, HerramientaFaltanteDialogData, HerramientaFaltanteDialogResult } from '../../components/herramienta-faltante-dialog';
 import { GuiaSalidaBodegaDialog, GuiaSalidaBodegaDialogData, GuiaSalidaBodegaDialogResult } from '../../components/guia-salida-bodega-dialog';
+import { TicketPrefacturaFirma } from '../../../../../shared/components/ticket-prefactura-firma/ticket-prefactura-firma';
 import { TicketPrefacturaService } from '../../../../../shared/services/ticket-prefactura.service';
 import { TicketPrefacturaDialog, type TicketPrefacturaDialogData } from '../../../../../shared/components/ticket-prefactura-dialog/ticket-prefactura-dialog';
 import { CierreTicketDialog, CierreTicketDialogData, CierreTicketDialogResult } from '../../components/cierre-ticket-dialog';
@@ -159,6 +160,7 @@ import { ReporteHerramientasHoja } from '../../../../../shared/documentos/format
   selector: 'app-fcr-ticket-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    TicketPrefacturaFirma,
     DatePipe,
     NgTemplateOutlet,
     DynadrillScreenHeaderComponent,

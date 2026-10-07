@@ -1547,6 +1547,10 @@
       />
     </section>
 
+    @if (puedeVerPrefactura() && ticket(); as tk) {
+      <app-ticket-prefactura-firma linea="pumping" [ticketId]="tk.id" />
+    }
+
     <section class="ticket-detail__section ticket-detail__only-desktop">
       <dynadrill-text variant="h2">Decisión del supervisor</dynadrill-text>
       <dynadrill-approval-actions
@@ -1572,6 +1576,10 @@
       <dynadrill-button class="ticket-detail__only-mobile" variant="error" [disabled]="submitting() || !ticketRejectionReason().trim()" (clicked)="confirmarRechazoTicket()">Rechazar</dynadrill-button>
       <dynadrill-button class="ticket-detail__only-mobile" variant="primary" [disabled]="submitting()" (clicked)="onDecisionChange('approved')">Aprobar</dynadrill-button>
     </footer>
+  }
+
+  @if (currentStep() === 'cierre' && puedeVerPrefactura() && ticket(); as tk) {
+    <app-ticket-prefactura-firma linea="pumping" [ticketId]="tk.id" />
   }
 
 }

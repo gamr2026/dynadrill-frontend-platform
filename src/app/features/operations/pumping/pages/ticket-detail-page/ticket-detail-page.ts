@@ -112,6 +112,7 @@ import {
 } from '../../../../maintenance/models/vehicle-inspection.model';
 import { VehicleInspectionDialog, VehicleInspectionDialogData } from '../../../../maintenance/components/vehicle-inspection-dialog';
 import { VehicleInspectionsService } from '../../../../maintenance/services/vehicle-inspections.service';
+import { TicketPrefacturaFirma } from '../../../../../shared/components/ticket-prefactura-firma/ticket-prefactura-firma';
 import { TicketPrefacturaService } from '../../../../../shared/services/ticket-prefactura.service';
 import { TicketPrefacturaDialog, type TicketPrefacturaDialogData } from '../../../../../shared/components/ticket-prefactura-dialog/ticket-prefactura-dialog';
 import { ReviewArrivalReportDialog, ReviewArrivalReportDialogData, ReviewArrivalReportDialogResult } from '../../components/review-arrival-report-dialog';
@@ -198,6 +199,7 @@ function toFuelReading(raw: string): number | null {
   selector: 'app-ticket-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    TicketPrefacturaFirma,
     DatePipe,
     DecimalPipe,
     NgTemplateOutlet,

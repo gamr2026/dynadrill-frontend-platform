@@ -1329,6 +1329,10 @@
           }
         </div>
 
+        @if (puedeVerPrefactura() && esActual) {
+          <app-ticket-prefactura-firma linea="fcr" [ticketId]="ticket()!.id" />
+        }
+
         @if (ticket()!.surveySent) {
           <dynadrill-banner variant="info" message="Ticket cerrado. Encuesta de satisfacción enviada al cliente." />
         } @else if (isMyTurn() && esActual) {

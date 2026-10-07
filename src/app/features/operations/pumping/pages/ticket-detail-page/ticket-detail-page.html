@@ -1565,6 +1565,18 @@
       <dynadrill-button class="ticket-detail__only-mobile" variant="primary" [disabled]="submitting()" (clicked)="onDecisionChange('approved')">Aprobar</dynadrill-button>
     </footer>
   }
+
+  @if (puedeVerPrefactura()) {
+    <section class="ticket-detail__section">
+      <dynadrill-text variant="h2">Prefactura</dynadrill-text>
+      <dynadrill-text variant="caption">
+        Detalle con lo cotizado y los documentos generados hasta el momento. Al finalizar, el Company Man la firma y queda firmada en Facturación.
+      </dynadrill-text>
+      <div>
+        <dynadrill-button variant="secondary" (clicked)="verPrefactura()">Ver prefactura</dynadrill-button>
+      </div>
+    </section>
+  }
 }
 </div>
 }

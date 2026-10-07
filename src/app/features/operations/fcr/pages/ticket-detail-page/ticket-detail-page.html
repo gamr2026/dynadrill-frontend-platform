@@ -1331,6 +1331,14 @@
         } @else if (isMyTurn() && esActual) {
           <dynadrill-button variant="success" (clicked)="openCierreTicket()">Cerrar ticket</dynadrill-button>
         }
+        @if (puedeVerPrefactura() && esActual) {
+          <div class="fcr-detail__prefactura">
+            <dynadrill-text variant="caption">
+              Prefactura con lo cotizado y los documentos generados hasta el momento. Al finalizar, el Company Man la firma y queda firmada en Facturación.
+            </dynadrill-text>
+            <dynadrill-button variant="secondary" (clicked)="verPrefactura()">Ver prefactura</dynadrill-button>
+          </div>
+        }
       </section>
     }
     }

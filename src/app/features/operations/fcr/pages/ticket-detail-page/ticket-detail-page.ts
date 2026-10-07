@@ -94,6 +94,7 @@ import { AsignarOperadorDialog, AsignarOperadorDialogData, AsignarOperadorDialog
 import { ChecklistHerramientaDialog, ChecklistHerramientaDialogData } from '../../components/checklist-herramienta-dialog';
 import { HerramientaFaltanteDialog, HerramientaFaltanteDialogData, HerramientaFaltanteDialogResult } from '../../components/herramienta-faltante-dialog';
 import { GuiaSalidaBodegaDialog, GuiaSalidaBodegaDialogData, GuiaSalidaBodegaDialogResult } from '../../components/guia-salida-bodega-dialog';
+import { TicketPrefacturaDialog, type TicketPrefacturaDialogData } from '../../../../../shared/components/ticket-prefactura-dialog/ticket-prefactura-dialog';
 import { CierreTicketDialog, CierreTicketDialogData, CierreTicketDialogResult } from '../../components/cierre-ticket-dialog';
 import {
   ReporteCierrePdfDialog,
@@ -1418,6 +1419,26 @@ export class FcrTicketDetailPage {
   // ══════════════════════════════════════════════
   // FASE: Cierre
   // ══════════════════════════════════════════════
+
+  /** "Ver prefactura": la ve el Supervisor (y Jefe de Base) en el cierre del ticket, para llevarla a firmar al Company Man. */
+  protected readonly puedeVerPrefactura = computed(() => {
+    const t = this.ticket();
+    return (
+      !!t && ['Supervisor', 'Jefe de Base', 'Superadmin'].includes(this.roleName()) && (t.currentPhase === 'cierre' || t.status === 'cerrado')
+    );
+  });
+
+  protected verPrefactura(): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.dialog.open<TicketPrefacturaDialog, TicketPrefacturaDialogData>({
+      title: 'Prefactura del servicio',
+      content: TicketPrefacturaDialog,
+      data: { linea: 'fcr', ticketId: t.id, ticketCode: t.code },
+      footer: false,
+      width: 1000,
+    });
+  }
 
   protected openCierreTicket(): void {
     const t = this.ticket();

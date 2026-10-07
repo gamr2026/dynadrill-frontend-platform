@@ -664,8 +664,8 @@ export class NuevoPedidoDialog {
   }
 
   /**
-   * Tipo de cada línea — decide de dónde sale el código. Pumping: Servicio (texto libre), Material (químicos) y
-   * Herramienta. FCR: Servicio y Movilización (de la Lista de Precios) y Herramienta (Inventario).
+   * Tipo de cada línea — decide de dónde sale el código. Pumping: Servicio (texto libre), Material (químicos),
+   * Herramienta y Movilización. FCR: Servicio y Movilización (de la Lista de Precios) y Herramienta (Inventario).
    */
   protected readonly tipoLineaOptions = computed<DynadrillSelectOption[]>(() =>
     this.esFcr()
@@ -679,6 +679,8 @@ export class NuevoPedidoDialog {
           // Se llama "Material" porque así lo clasifica la Lista de Precios; internamente sigue siendo `esQuimico` (categoría QUIMICA de Inventario).
           { label: 'Material', value: 'quimico' },
           { label: 'Herramienta', value: 'herramienta' },
+          // Las líneas de movilización (km) también se cargan en Pumping: el código sale de la Lista de Precios, igual que en FCR.
+          { label: 'Movilización', value: 'movilizacion' },
         ],
   );
 

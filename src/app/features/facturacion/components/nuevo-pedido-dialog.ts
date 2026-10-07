@@ -1,6 +1,6 @@
 import { DecimalPipe } from '@angular/common';
 import { BreakpointObserver } from '@angular/cdk/layout';
-import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import type { NzUploadFile } from 'ng-zorro-antd/upload';
@@ -848,6 +848,18 @@ export class NuevoPedidoDialog {
   });
 
   constructor() {
+    // En Pumping, una línea cuyo código es un químico de Inventario se marca como Material sin importar el orden en que
+    // se cargó la plantilla (antes o después de elegir la línea de servicio, o antes de que llegue el catálogo).
+    effect(() => {
+      const pumping = this.esPumping();
+      const quimicos = new Set(this.quimicosCatalogoCompleto().map(a => a.codigo));
+      if (!pumping || quimicos.size === 0) return;
+      untracked(() => {
+        const lineas = this.lineasEstimadas();
+        if (!lineas.some(l => !l.esQuimico && !l.esHerramienta && quimicos.has(l.codigo.trim()))) return;
+        this.lineasEstimadas.set(lineas.map(l => (!l.esQuimico && !l.esHerramienta && quimicos.has(l.codigo.trim()) ? { ...l, esQuimico: true } : l)));
+      });
+    });
     this.listaService.list().subscribe(listas => {
       this.actualizarListaCliente(listas);
     });

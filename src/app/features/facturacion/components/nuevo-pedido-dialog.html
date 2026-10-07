@@ -75,6 +75,7 @@
     </div>
     <app-ubicacion-selector
       [requiereTaladro]="true"
+      [permitirAlta]="true"
       [mostrarRigContractual]="false"
       [valorInicial]="ubicacionInicial()"
       (seleccionChange)="onUbicacionChange($event)"
@@ -90,38 +91,66 @@
       </h2>
     </header>
     <div class="nuevo-pedido__grid nuevo-pedido__grid--ancho">
-      <dynadrill-select
-        label="Agente comercial (Dynadrill) *"
-        placeholder="Busca un agente comercial"
-        [options]="agenteComercialOptions()"
-        [value]="agenteComercial()"
-        [searchable]="true"
-        (valueChange)="agenteComercial.set($any($event))"
-      />
-      <dynadrill-select
-        label="Representante en campo *"
-        placeholder="Busca un representante de campo"
-        [options]="representanteCampoOptions()"
-        [value]="representanteCampo()"
-        [searchable]="true"
-        (valueChange)="representanteCampo.set($any($event))"
-      />
-      <dynadrill-select
-        label="Representante en Quito (PEC) *"
-        placeholder="Busca un representante en Quito"
-        [options]="representanteQuitoOptions()"
-        [value]="representanteQuito()"
-        [searchable]="true"
-        (valueChange)="representanteQuito.set($any($event))"
-      />
-      <dynadrill-select
-        label="Analista de facturación"
-        placeholder="Busca un analista de facturación"
-        [options]="analistaFacturacionOptions()"
-        [value]="analistaFacturacion()"
-        [searchable]="true"
-        (valueChange)="analistaFacturacion.set($any($event))"
-      />
+      <div class="nuevo-pedido__con-borrar">
+        <dynadrill-select
+          label="Agente comercial (Dynadrill) *"
+          placeholder="Busca un agente comercial"
+          [options]="agenteComercialOptions()"
+          [value]="agenteComercial()"
+          [searchable]="true"
+          [creatable]="true"
+          (valueChange)="agenteComercial.set($any($event))"
+          (itemCreated)="altaPersona('agente_comercial', $event)"
+        />
+        @if (puedeEliminarPersona('agente_comercial')) {
+          <dynadrill-icon-button icon="delete" tooltip="Eliminar del catálogo" (clicked)="eliminarPersona('agente_comercial')" />
+        }
+      </div>
+      <div class="nuevo-pedido__con-borrar">
+        <dynadrill-select
+          label="Representante en campo *"
+          placeholder="Busca un representante de campo"
+          [options]="representanteCampoOptions()"
+          [value]="representanteCampo()"
+          [searchable]="true"
+          [creatable]="true"
+          (valueChange)="representanteCampo.set($any($event))"
+          (itemCreated)="altaPersona('representante_campo', $event)"
+        />
+        @if (puedeEliminarPersona('representante_campo')) {
+          <dynadrill-icon-button icon="delete" tooltip="Eliminar del catálogo" (clicked)="eliminarPersona('representante_campo')" />
+        }
+      </div>
+      <div class="nuevo-pedido__con-borrar">
+        <dynadrill-select
+          label="Representante en Quito (PEC) *"
+          placeholder="Busca un representante en Quito"
+          [options]="representanteQuitoOptions()"
+          [value]="representanteQuito()"
+          [searchable]="true"
+          [creatable]="true"
+          (valueChange)="representanteQuito.set($any($event))"
+          (itemCreated)="altaPersona('representante_quito', $event)"
+        />
+        @if (puedeEliminarPersona('representante_quito')) {
+          <dynadrill-icon-button icon="delete" tooltip="Eliminar del catálogo" (clicked)="eliminarPersona('representante_quito')" />
+        }
+      </div>
+      <div class="nuevo-pedido__con-borrar">
+        <dynadrill-select
+          label="Analista de facturación"
+          placeholder="Busca un analista de facturación"
+          [options]="analistaFacturacionOptions()"
+          [value]="analistaFacturacion()"
+          [searchable]="true"
+          [creatable]="true"
+          (valueChange)="analistaFacturacion.set($any($event))"
+          (itemCreated)="altaPersona('analista_facturacion', $event)"
+        />
+        @if (puedeEliminarPersona('analista_facturacion')) {
+          <dynadrill-icon-button icon="delete" tooltip="Eliminar del catálogo" (clicked)="eliminarPersona('analista_facturacion')" />
+        }
+      </div>
       <dynadrill-select
         label="Técnico HSE responsable *"
         placeholder="Selecciona un Técnico HSE activo"

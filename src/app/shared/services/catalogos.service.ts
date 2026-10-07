@@ -30,6 +30,32 @@ export class CatalogosService {
     return this.http.get<Pozo[]>(`${this.base}/pozos`, { params });
   }
 
+  // ── Alta rápida / baja desde los selects (Ventas y admins) ──
+
+  crearPozo(input: { codigo: string; nombreCompleto: string; campoId: number; bloqueId: number }): Observable<Pozo> {
+    return this.http.post<Pozo>(`${this.base}/pozos`, input);
+  }
+
+  eliminarPozo(id: number): Observable<unknown> {
+    return this.http.delete(`${this.base}/pozos/${id}`);
+  }
+
+  crearCampo(input: { nombre: string; zona?: string }): Observable<Campo> {
+    return this.http.post<Campo>(`${this.base}/campos`, input);
+  }
+
+  crearBloque(input: { nombre: string }): Observable<Bloque> {
+    return this.http.post<Bloque>(`${this.base}/bloques`, input);
+  }
+
+  crearTaladro(input: { nombre: string; rigContractual?: string }): Observable<Taladro> {
+    return this.http.post<Taladro>(`${this.base}/taladros`, input);
+  }
+
+  eliminarTaladro(id: number): Observable<unknown> {
+    return this.http.delete(`${this.base}/taladros/${id}`);
+  }
+
   // ── Personas de contacto de un Pedido (FACT-001) — representante_campo (= Company Man),
   // representante_quito, analista_facturacion, agente_comercial. Escritura solo Ventas. ──
 

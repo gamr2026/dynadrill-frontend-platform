@@ -413,3 +413,15 @@
     color: var(--text-muted, #5c5870);
   }
 }
+
+// Select + botón de eliminar del catálogo al costado.
+.nuevo-pedido__con-borrar {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+
+  > dynadrill-select {
+    flex: 1;
+    min-width: 0;
+  }
+}

@@ -11,6 +11,7 @@ import {
   DynadrillButtonComponent,
   DynadrillChipGroupComponent,
   DynadrillDatetimePickerComponent,
+  DynadrillDialogService,
   DynadrillIconButtonComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
@@ -43,6 +44,7 @@ import {
   UBICACION_VACIA,
   UbicacionSelectorComponent,
   type ClienteCatalogo,
+  type PersonaContacto,
   type TipoPersonaContacto,
   type UbicacionSeleccion,
 } from '../../../shared/index';
@@ -212,6 +214,7 @@ export class NuevoPedidoDialog {
   private readonly articulosService = inject(ArticulosService);
   private readonly auth = inject(AuthService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly dialog = inject(DynadrillDialogService);
   private readonly modalRef = inject(NzModalRef<NuevoPedidoDialog, Pedido | undefined>);
   private readonly data = inject<NuevoPedidoDialogData | null>(NZ_MODAL_DATA, { optional: true });
 
@@ -419,8 +422,73 @@ export class NuevoPedidoDialog {
    */
   private cargarPersonas(tipo: TipoPersonaContacto, destino: typeof this.agenteComercialOptions): void {
     this.catalogosService.personas(tipo).subscribe(personas => {
+      this.personasPorTipo.update(m => ({ ...m, [tipo]: personas }));
       destino.set(personas.map(p => ({ label: p.cedula ? `${p.nombre} — ${p.cedula}` : p.nombre, value: p.nombre })));
     });
+  }
+
+  // ── Alta rápida / baja de personas desde el propio select (se guardan en la base) ──
+
+  private readonly personasPorTipo = signal<Partial<Record<TipoPersonaContacto, PersonaContacto[]>>>({});
+
+  private personaSelects(tipo: TipoPersonaContacto) {
+    switch (tipo) {
+      case 'agente_comercial':
+        return { valor: this.agenteComercial, opciones: this.agenteComercialOptions };
+      case 'representante_campo':
+        return { valor: this.representanteCampo, opciones: this.representanteCampoOptions };
+      case 'representante_quito':
+        return { valor: this.representanteQuito, opciones: this.representanteQuitoOptions };
+      case 'analista_facturacion':
+        return { valor: this.analistaFacturacion, opciones: this.analistaFacturacionOptions };
+    }
+  }
+
+  protected altaPersona(tipo: TipoPersonaContacto, texto: string): void {
+    const nombre = texto.trim();
+    if (!nombre) return;
+    const { valor } = this.personaSelects(tipo);
+    const existente = (this.personasPorTipo()[tipo] ?? []).find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
+    if (existente) {
+      valor.set(existente.nombre);
+      return;
+    }
+    this.catalogosService.crearPersona({ tipo, nombre }).subscribe({
+      next: persona => {
+        this.personasPorTipo.update(m => ({ ...m, [tipo]: [...(m[tipo] ?? []), persona] }));
+        this.personaSelects(tipo).opciones.update(o => [...o, { label: persona.nombre, value: persona.nombre }]);
+        valor.set(persona.nombre);
+        this.notify.success('Guardado', `${persona.nombre} agregado al catálogo.`);
+      },
+      error: () => this.notify.error('Error', 'No se pudo guardar. Solo Ventas puede agregar personas.'),
+    });
+  }
+
+  protected async eliminarPersona(tipo: TipoPersonaContacto): Promise<void> {
+    const { valor, opciones } = this.personaSelects(tipo);
+    const persona = (this.personasPorTipo()[tipo] ?? []).find(p => p.nombre === valor());
+    if (!persona) return;
+    const confirmado = await this.dialog.confirm({
+      title: `¿Eliminar a ${persona.nombre}?`,
+      content: 'Se quita del catálogo para todos. Los pedidos que ya lo usan conservan su dato. Esta acción no se puede deshacer.',
+      okText: 'Eliminar',
+      danger: true,
+    });
+    if (!confirmado) return;
+    this.catalogosService.eliminarPersona(persona.id).subscribe({
+      next: () => {
+        this.personasPorTipo.update(m => ({ ...m, [tipo]: (m[tipo] ?? []).filter(p => p.id !== persona.id) }));
+        opciones.update(o => o.filter(x => x.value !== persona.nombre));
+        valor.set('');
+        this.notify.success('Eliminado', `${persona.nombre} eliminado.`);
+      },
+      error: () => this.notify.error('Error', 'No se pudo eliminar.'),
+    });
+  }
+
+  protected puedeEliminarPersona(tipo: TipoPersonaContacto): boolean {
+    const valor = this.personaSelects(tipo).valor();
+    return !!valor && (this.personasPorTipo()[tipo] ?? []).some(p => p.nombre === valor);
   }
   /**
    * FACT-001 Fase 2/3: "Asignar Técnico HSE responsable" — el sistema no

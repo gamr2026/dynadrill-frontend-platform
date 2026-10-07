@@ -285,6 +285,31 @@ export class ChecklistHerramientaDialog {
     }
   }
 
+  /** Atajo para demos: carga unas partes genéricas de una herramienta sin partes (quedan guardadas como manuales, igual que si se agregaran a mano). */
+  protected async agregarPartesEjemplo(): Promise<void> {
+    const inspectionId = this.inspectionId();
+    if (!inspectionId || this.agregandoParte()) return;
+    const ejemplo = [
+      { descripcion: 'Cuerpo principal', codigo: 'EJ-001', cantidadEsperada: 1 },
+      { descripcion: 'Conexión PIN', codigo: 'EJ-002', cantidadEsperada: 1 },
+      { descripcion: 'Conexión BOX', codigo: 'EJ-003', cantidadEsperada: 1 },
+      { descripcion: 'O-ring', codigo: 'EJ-004', cantidadEsperada: 2 },
+      { descripcion: 'Protector de rosca', codigo: 'EJ-005', cantidadEsperada: 2 },
+    ];
+    this.agregandoParte.set(true);
+    try {
+      for (const parte of ejemplo) {
+        const inspeccion = await firstValueFrom(this.toolInspecciones.agregarParte(this.data.ticketId, inspectionId, parte));
+        const conocidas = new Set(this.partes().map(p => p.id));
+        this.partes.update(rows => [...rows, ...inspeccion.partes.filter(p => !conocidas.has(p.id))]);
+      }
+    } catch {
+      this.notify.error('Error', 'No se pudieron agregar las partes de ejemplo.');
+    } finally {
+      this.agregandoParte.set(false);
+    }
+  }
+
   protected async quitarParte(parte: FcrToolInspectionParte): Promise<void> {
     const inspectionId = this.inspectionId();
     if (!inspectionId || !parte.manual) return;

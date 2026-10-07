@@ -155,6 +155,9 @@
           variant="warning"
           message="Esta herramienta no tiene partes cargadas. Agrega las que la componen: se guardan al momento y quedan como lista de partes para las próximas inspecciones."
         />
+        <div class="checklist-dialog__ejemplo">
+          <dynadrill-button variant="secondary" [disabled]="agregandoParte()" (clicked)="agregarPartesEjemplo()">Agregar partes de ejemplo</dynadrill-button>
+        </div>
       }
       <div class="checklist-dialog__nueva-parte" role="group" aria-label="Agregar parte">
         <dynadrill-input label="Parte (mini herramienta) *" placeholder="Ej. O-ring, fishing neck…" [value]="nuevaParteDescripcion()" (valueChange)="nuevaParteDescripcion.set($event)" />

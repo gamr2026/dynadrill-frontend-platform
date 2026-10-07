@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { DynadrillIconButtonComponent } from '@digitec-it-projects/dynadrill-ui';
 import type { ActividadTabla } from '../../../../shared/models/operativo-docs.model';
-import { TABLAS_PLANTILLA } from '../../../../shared/utils/actividad-tablas';
+import { crearTablaVacia } from '../../../../shared/utils/actividad-tablas';
 
 /**
  * Tablas dentro de una actividad del Reporte diario (como las del Reporte Job real: volúmenes de bombeo, resumen del
- * día…). Se parte de un modelo ya armado o de una tabla en blanco; título, encabezados, filas y columnas son editables.
+ * día…). Se agrega una tabla en blanco; título, encabezados, filas y columnas son editables.
  * Va a todo el ancho de la actividad (no dentro de la columna angosta del detalle). Es "tonto": no guarda nada,
  * emite la lista nueva en cada cambio.
  */
@@ -17,7 +17,7 @@ import { TABLAS_PLANTILLA } from '../../../../shared/utils/actividad-tablas';
     <section class="ted" aria-label="Tablas de la actividad">
       <header class="ted__seccion">
         <span class="ted__seccion-titulo">Tablas de la actividad</span>
-        <span class="ted__seccion-nota">Opcional · volúmenes de bombeo, resumen del día…</span>
+        <span class="ted__seccion-nota">Opcional · volúmenes de bombeo, resumen del día… (o cárgalas desde el Excel)</span>
       </header>
 
       @for (tabla of tablas(); track $index; let t = $index) {
@@ -97,13 +97,11 @@ import { TABLAS_PLANTILLA } from '../../../../shared/utils/actividad-tablas';
         </article>
       }
 
-      <div class="ted__agregar" role="group" aria-label="Agregar una tabla a la actividad">
-        @for (p of plantillas; track p.id) {
-          <button type="button" class="ted__chip" (click)="agregarTabla(p.id)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>
-            {{ p.label }}
-          </button>
-        }
+      <div class="ted__agregar">
+        <button type="button" class="ted__chip" (click)="agregarTabla()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>
+          Agregar tabla
+        </button>
       </div>
     </section>
   `,
@@ -316,8 +314,6 @@ export class ActividadTablasEditor {
   readonly tablas = input<ActividadTabla[]>([]);
   readonly tablasChange = output<ActividadTabla[]>();
 
-  protected readonly plantillas = TABLAS_PLANTILLA;
-
   private actualizar(t: number, cambio: (tabla: ActividadTabla) => ActividadTabla): void {
     this.tablasChange.emit(this.tablas().map((tabla, i) => (i === t ? cambio(tabla) : tabla)));
   }
@@ -327,9 +323,8 @@ export class ActividadTablasEditor {
     return fila[c] ?? '';
   }
 
-  protected agregarTabla(id: string): void {
-    const plantilla = this.plantillas.find(p => p.id === id);
-    if (plantilla) this.tablasChange.emit([...this.tablas(), plantilla.crear()]);
+  protected agregarTabla(): void {
+    this.tablasChange.emit([...this.tablas(), crearTablaVacia()]);
   }
 
   protected quitarTabla(t: number): void {

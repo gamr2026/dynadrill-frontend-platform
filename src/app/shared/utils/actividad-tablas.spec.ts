@@ -1,10 +1,9 @@
 import type { ActividadTabla } from '../models/operativo-docs.model';
-import { TABLAS_PLANTILLA, limpiarTablas, tablaATexto } from './actividad-tablas';
+import { crearTablaVacia, limpiarTablas, tablaATexto, tablaDesdeFilas } from './actividad-tablas';
 
 describe('limpiarTablas', () => {
   it('descarta las tablas sin ningún dato (recién agregadas y sin llenar)', () => {
-    const vacia = TABLAS_PLANTILLA[0].crear();
-    expect(limpiarTablas([vacia])).toEqual([]);
+    expect(limpiarTablas([crearTablaVacia()])).toEqual([]);
   });
 
   it('descarta las filas vacías y recorta los textos', () => {
@@ -36,5 +35,35 @@ describe('tablaATexto', () => {
 
   it('sin título no deja línea vacía', () => {
     expect(tablaATexto({ titulo: '', columnas: ['A'], filas: [['1']] })).toBe('A\n1');
+  });
+});
+
+describe('tablaDesdeFilas (tablas que vienen dentro del Excel)', () => {
+  it('toma la primera fila como encabezado y descarta las columnas vacías por celdas combinadas', () => {
+    const t = tablaDesdeFilas([
+      ['Tipo de Fluido', 'Volumen (bbl)', 'Tipo de fluido', '', 'Volumen (bbl)'],
+      ['Agua Fresca', '211', 'Colchón mecánico', '', '20'],
+      ['', '', 'Agua Fresca', '', '189.5'],
+    ]);
+    expect(t).toEqual({
+      titulo: '',
+      columnas: ['Tipo de Fluido', 'Volumen (bbl)', 'Tipo de fluido', 'Volumen (bbl)'],
+      filas: [
+        ['Agua Fresca', '211', 'Colchón mecánico', '20'],
+        ['', '', 'Agua Fresca', '189.5'],
+      ],
+    });
+  });
+
+  it('una sola fila no alcanza para una tabla', () => {
+    expect(tablaDesdeFilas([['A', 'B']])).toBeNull();
+  });
+
+  it('con una sola columna con datos no es tabla', () => {
+    expect(tablaDesdeFilas([['A', ''], ['B', '']])).toBeNull();
+  });
+
+  it('un encabezado vacío recibe un nombre', () => {
+    expect(tablaDesdeFilas([['A', ''], ['1', '2']])?.columnas).toEqual(['A', 'Columna 2']);
   });
 });

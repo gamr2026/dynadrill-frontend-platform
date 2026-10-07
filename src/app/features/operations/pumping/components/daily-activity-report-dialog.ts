@@ -20,10 +20,12 @@ import { UBICACION_VACIA, UbicacionSelectorComponent, type UbicacionSeleccion } 
 import { parseLocalDateString, toLocalDateString } from '../../../../shared/utils';
 import { PumpingDocumento, PumpingService } from '../services/pumping.service';
 import { ActividadTablasEditor } from './actividad-tablas-editor';
-import { limpiarTablas } from '../../../../shared/utils/actividad-tablas';
+import { limpiarTablas, tablaDesdeFilas } from '../../../../shared/utils/actividad-tablas';
 import type { ActividadTabla } from '../../../../shared/models/operativo-docs.model';
 
 const MAX_PLANTILLA_BYTES = 5 * 1024 * 1024;
+/** Cuántas columnas (desde la del detalle) se miran al buscar tablas dentro de una actividad del Excel. */
+const COLUMNAS_TABLA = 8;
 const MAX_MONITOREO_BYTES = 5 * 1024 * 1024;
 
 /**
@@ -429,14 +431,38 @@ export class DailyActivityReportDialog {
         if (nombreSupervisor) this.nombreSupervisor.set(nombreSupervisor);
 
         const actividades: DailyActivityEntry[] = [];
+        // Filas "de tabla": sin hora de inicio ni fin y con 2 o más celdas llenas a partir del detalle (como las tablas de
+        // volúmenes de bombeo del Reporte Job real). Las consecutivas forman una tabla de la actividad anterior; si no
+        // alcanzan para una tabla, se leen como actividades de texto, igual que antes.
+        let bloque: string[][] = [];
+        const cerrarBloque = (): void => {
+          if (!bloque.length) return;
+          const tabla = tablaDesdeFilas(bloque);
+          const ultima = actividades[actividades.length - 1];
+          if (tabla && ultima) {
+            ultima.tablas = [...(ultima.tablas ?? []), tabla];
+          } else {
+            for (const celdas of bloque) {
+              if (celdas[0]) actividades.push({ inicio: '', fin: '', horas: null, detalle: celdas[0] });
+            }
+          }
+          bloque = [];
+        };
         for (let f = FILA.actividadesInicio; f <= FILA.actividadesFin; f++) {
           const detalle = celda(f, COL.actDetalle);
           const inicio = parseHoraPlantilla(celda(f, COL.actInicio));
           const fin = parseHoraPlantilla(celda(f, COL.actFin));
+          const celdasDerecha = Array.from({ length: COLUMNAS_TABLA }, (_, i) => celda(f, COL.actDetalle + i));
+          if (!inicio && !fin && actividades.length > 0 && celdasDerecha.filter(Boolean).length >= 2) {
+            bloque.push(celdasDerecha);
+            continue;
+          }
+          cerrarBloque();
           if (!detalle && !inicio && !fin) continue;
           const horasTexto = celda(f, COL.actHoras);
           actividades.push({ inicio, fin, horas: horasTexto ? Number(horasTexto) || null : null, detalle });
         }
+        cerrarBloque();
         if (actividades.length) this.actividades.set(actividades);
 
         const tiempoProductivo = celda(FILA.tiempos, COL.tiempoProductivo);

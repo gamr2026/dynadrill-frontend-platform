@@ -19,6 +19,9 @@ import type { DailyActivityEntry, DailyActivityReport } from '../models/pumping.
 import { UBICACION_VACIA, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../../shared/index';
 import { parseLocalDateString, toLocalDateString } from '../../../../shared/utils';
 import { PumpingDocumento, PumpingService } from '../services/pumping.service';
+import { ActividadTablasEditor } from './actividad-tablas-editor';
+import { NOMBRE_HOJA_TABLAS, limpiarTablas, tablasDesdeHoja } from '../../../../shared/utils/actividad-tablas';
+import type { ActividadTabla } from '../../../../shared/models/operativo-docs.model';
 
 const MAX_PLANTILLA_BYTES = 5 * 1024 * 1024;
 const MAX_MONITOREO_BYTES = 5 * 1024 * 1024;
@@ -143,6 +146,7 @@ const URL_PLANTILLA_REPORTE_DIARIO = '/plantillas/reporte-diario-actividades.xls
     DynadrillTextareaComponent,
     DynadrillUploadZoneComponent,
     UbicacionSelectorComponent,
+    ActividadTablasEditor,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './daily-activity-report-dialog.html',
@@ -188,12 +192,52 @@ export class DailyActivityReportDialog {
     this.data.existing?.actividades ?? [{ inicio: '', fin: '', horas: null, detalle: '' }],
   );
 
-  /** Descarga el formato físico DYN-SGI-RE-047 en blanco — para quien prefiera llenarlo a mano y adjuntarlo. */
-  protected descargarPlantilla(): void {
+  /**
+   * Descarga el formato DYN-SGI-RE-047 con lo ya definido en el Pedido/Ticket precargado (cliente, contrato, pozo,
+   * campo/bloque, taladro, Representante del Cliente y su cargo, Supervisor y la fecha) — quien lo llena a mano solo
+   * completa las actividades. Se escribe en las mismas celdas que `onFileSelected` lee al volver a cargar la plantilla.
+   * Si no se puede abrir el .xlsx se descarga en blanco, como antes.
+   */
+  protected async descargarPlantilla(): Promise<void> {
+    const nombre = 'DYN-SGI-RE-047 Reporte diario actividades.xlsx';
+    let url = URL_PLANTILLA_REPORTE_DIARIO;
+    let blobUrl: string | null = null;
+    try {
+      const respuesta = await fetch(URL_PLANTILLA_REPORTE_DIARIO);
+      const { Workbook } = await import('exceljs');
+      const libro = new Workbook();
+      await libro.xlsx.load(await respuesta.arrayBuffer());
+      const hoja = libro.worksheets[0];
+      const poner = (fila: number, col: number, valor: string | undefined | null): void => {
+        const texto = (valor ?? '').toString().trim();
+        if (texto) hoja.getCell(fila + 1, col + 1).value = texto;
+      };
+      const fecha = this.fecha();
+      const dd = (n: number): string => String(n).padStart(2, '0');
+      poner(FILA.fecha, COL.fecha, fecha ? `${dd(fecha.getDate())}/${dd(fecha.getMonth() + 1)}/${fecha.getFullYear()}` : '');
+      poner(FILA.cliente, COL.cliente, this.cliente());
+      poner(FILA.cliente, COL.ordenContrato, this.ordenContrato());
+      poner(FILA.pozo, COL.pozo, this.data.pozo);
+      poner(FILA.pozo, COL.representanteCliente, this.representanteCliente());
+      poner(FILA.campoBloque, COL.campoBloque, this.data.campoBloque);
+      poner(FILA.campoBloque, COL.cargo, this.cargo());
+      poner(FILA.taladro, COL.taladro, this.data.existing?.taladro ?? this.data.taladro);
+      poner(FILA.firmas, COL.nombreSupervisor, this.nombreSupervisor());
+      // "Nombre:" del Representante del Cliente en el recuadro de firmas — H30, junto a su etiqueta.
+      poner(FILA.firmas, 7, this.representanteCliente());
+      const buffer = await libro.xlsx.writeBuffer();
+      blobUrl = URL.createObjectURL(
+        new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+      );
+      url = blobUrl;
+    } catch {
+      /* se descarga la plantilla en blanco */
+    }
     const a = document.createElement('a');
-    a.href = URL_PLANTILLA_REPORTE_DIARIO;
-    a.download = 'DYN-SGI-RE-047 Reporte diario actividades.xlsx';
+    a.href = url;
+    a.download = nombre;
     a.click();
+    if (blobUrl) setTimeout(() => URL.revokeObjectURL(blobUrl!), 60_000);
   }
 
   protected addActivity(): void {
@@ -204,7 +248,11 @@ export class DailyActivityReportDialog {
     this.actividades.update(list => list.filter((_, i) => i !== index));
   }
 
-  protected onActivityChange(index: number, field: keyof DailyActivityEntry, value: string): void {
+  protected onActivityTablas(index: number, tablas: ActividadTabla[]): void {
+    this.actividades.update(list => list.map((entry, i) => (i === index ? { ...entry, tablas } : entry)));
+  }
+
+  protected onActivityChange(index: number, field: Exclude<keyof DailyActivityEntry, 'tablas'>, value: string): void {
     this.actividades.update(list =>
       list.map((entry, i) => {
         if (i !== index) return entry;
@@ -389,6 +437,25 @@ export class DailyActivityReportDialog {
           const horasTexto = celda(f, COL.actHoras);
           actividades.push({ inicio, fin, horas: horasTexto ? Number(horasTexto) || null : null, detalle });
         }
+
+        // Tablas de las actividades: van en la hoja «Tablas» del formato (un bloque por tabla, con el N.° de actividad).
+        let tablasCargadas = 0;
+        let tablasSinActividad = 0;
+        const nombreHojaTablas = libro.SheetNames.find(n => n.trim().toLowerCase() === NOMBRE_HOJA_TABLAS.toLowerCase());
+        if (nombreHojaTablas) {
+          const filasTablas = XLSX.utils.sheet_to_json<string[]>(libro.Sheets[nombreHojaTablas], { header: 1, defval: '', raw: false });
+          const leidas = tablasDesdeHoja(filasTablas);
+          tablasSinActividad = leidas.sinActividad;
+          for (const { actividad, tabla } of leidas.tablas) {
+            const destino = actividades[actividad - 1];
+            if (!destino) {
+              tablasSinActividad++;
+              continue;
+            }
+            destino.tablas = [...(destino.tablas ?? []), tabla];
+            tablasCargadas++;
+          }
+        }
         if (actividades.length) this.actividades.set(actividades);
 
         const tiempoProductivo = celda(FILA.tiempos, COL.tiempoProductivo);
@@ -405,7 +472,16 @@ export class DailyActivityReportDialog {
         this.uploadFileName.set(archivo.name ?? '');
         this.uploadedFileData.set(archivo.name ?? null);
         this.uploadState.set('uploaded');
-        this.notify.success('Plantilla cargada', 'Se completaron los campos con los datos del archivo — revisalos antes de guardar.');
+        this.notify.success(
+          'Plantilla cargada',
+          `Se completaron los campos con los datos del archivo${tablasCargadas ? ` y ${tablasCargadas} tabla(s) de las actividades` : ''} — revísalos antes de guardar.`,
+        );
+        if (tablasSinActividad > 0) {
+          this.notify.error(
+            'Tablas sin actividad',
+            `${tablasSinActividad} tabla(s) de la hoja «Tablas» no se cargaron: el N.° de actividad no existe en el reporte (1 = la primera actividad con datos).`,
+          );
+        }
       } catch {
         this.notify.error('Error al leer el archivo', 'No se pudo procesar el Excel. Verificá que sea el formato DYN-SGI-RE-047 y que no esté dañado.');
       }
@@ -433,7 +509,12 @@ export class DailyActivityReportDialog {
       campoBloque: [this.ubicacion().campo, this.ubicacion().bloque].filter(Boolean).join(' / '),
       cargo: this.cargo(),
       taladro: this.ubicacion().taladro || this.ubicacionInicial.taladro || '',
-      actividades: this.actividades().filter(a => a.detalle.trim() !== ''),
+      actividades: this.actividades()
+        .filter(a => a.detalle.trim() !== '')
+        .map(a => {
+          const tablas = limpiarTablas(a.tablas);
+          return tablas.length ? { ...a, tablas } : { ...a, tablas: undefined };
+        }),
       tiempoProductivo: Number(this.tiempoProductivo()) || null,
       tiempoNoProductivo: Number(this.tiempoNoProductivo()) || null,
       tiempoTotal: this.tiempoTotal(),

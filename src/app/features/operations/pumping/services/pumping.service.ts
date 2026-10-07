@@ -162,21 +162,16 @@ export class PumpingService {
     });
   }
 
-  // ── Checklist QHSE por equipo (Fase 4, D5) — bloquea traslado_salida
-  // hasta que QHSE apruebe el checklist de todas las unidades asignadas.
+  // ── Inspección de vehículos por unidad — bloquea traslado_salida hasta que el Operador la realice y el paso a
+  // ejecución hasta que el Supervisor la apruebe, por cada unidad de Transporte asignada (reemplaza al checklist de
+  // equipos de QHSE: era el mismo documento).
 
-  checklistQhse(ticketId: number): Observable<ChecklistQhseEstado> {
-    return this.http.get<ChecklistQhseEstado>(`${this.baseUrl}/tickets/${ticketId}/checklist-qhse`);
-  }
-
-  cargarChecklistQhse(ticketId: number, checklistId: number, archivo: File): Observable<ChecklistQhseEquipo> {
-    const form = new FormData();
-    form.append('file', archivo);
-    return this.http.post<ChecklistQhseEquipo>(`${this.baseUrl}/tickets/${ticketId}/checklist-qhse/${checklistId}`, form);
+  inspeccionesVehiculo(ticketId: number): Observable<InspeccionesVehiculoEstado> {
+    return this.http.get<InspeccionesVehiculoEstado>(`${this.baseUrl}/tickets/${ticketId}/inspecciones-vehiculo`);
   }
 
   // ── Checklist de Ingreso a locación + Verificaciones de seguridad (Fase 2,
-  // PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS) — se suma al gate D5 de arriba
+  // PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS) — se suma al gate de arriba
   // sobre la misma transición `traslado_salida`. Antes vivía en el PTW,
   // solo QHSE lo veía; ahora lo llena Operativo.
 
@@ -201,27 +196,23 @@ export class PumpingService {
   }
 }
 
-/** `QhseChecklistEquipo` del backend — un caso por unidad asignada. */
-export interface ChecklistQhseEquipo {
-  id: number;
-  pumpingTicketId: number;
-  equipoTipo: string;
-  equipoId: number;
-  equipoNombre: string;
-  estado: 'pendiente' | 'cargado' | 'aprobado' | 'rechazado';
-  abiertoPor: string;
-  documentoNombreOriginal: string | null;
-  cargadoPor: string | null;
-  cargadoAt: string | null;
-  revisadoPor: string | null;
-  revisadoAt: string | null;
-  motivoRechazo: string | null;
+/** Una unidad de Transporte asignada y el estado de su Inspección de Vehículos de este ticket. */
+export interface InspeccionVehiculoCaso {
+  unidadId: number;
+  unidadCode: string;
+  estado: 'pendiente' | 'por_aprobar' | 'aprobada';
+  inspeccionId?: number;
+  aprobadaPor?: string;
 }
 
-/** Respuesta de `GET .../tickets/:id/checklist-qhse`. `gate` usa el mismo criterio exacto que bloquea `advance`/`unit-report` en el backend (D5). */
-export interface ChecklistQhseEstado {
-  casos: ChecklistQhseEquipo[];
-  gate: { ok: boolean; faltantes: string[] };
+/**
+ * Respuesta de `GET .../tickets/:id/inspecciones-vehiculo`. Los dos candados usan el mismo criterio exacto que bloquea
+ * `advance` en el backend: `gateRealizada` (salir de traslado_salida) y `gateAprobada` (salir de revision_reportes_salida).
+ */
+export interface InspeccionesVehiculoEstado {
+  casos: InspeccionVehiculoCaso[];
+  gateRealizada: { ok: boolean; faltantes: string[] };
+  gateAprobada: { ok: boolean; faltantes: string[] };
 }
 
 export type ChecklistIngresoGas = 'H2S' | 'LEL' | 'O2' | 'CO';

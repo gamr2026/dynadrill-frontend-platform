@@ -1,0 +1,50 @@
+.cert {
+  font-size: 10px;
+
+  table {
+    width: 100%;
+    margin-top: -1px;
+    border-collapse: collapse;
+  }
+
+  td,
+  th {
+    padding: 4px 6px;
+    border: 1px solid #000;
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  th {
+    background: #e6e0ec;
+  }
+
+  &__seccion {
+    background: #cfc3dc;
+    font-size: 10px;
+    letter-spacing: 0.02em;
+  }
+
+  &__tabla {
+    break-inside: avoid;
+  }
+
+  &__estado {
+    width: 22%;
+    text-align: center;
+
+    &--no {
+      font-weight: 700;
+    }
+  }
+
+  &__num {
+    width: 14%;
+    text-align: center;
+  }
+
+  app-doc-firmas {
+    display: block;
+    margin-top: 10px;
+  }
+}

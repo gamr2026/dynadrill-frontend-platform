@@ -13,16 +13,17 @@
   @if (uploadState() === 'uploaded') {
     <span class="daily-report__hint">Cargado: {{ uploadFileName() }}</span>
   }
-  <button type="button" class="daily-report__text-btn" (click)="descargarPlantilla()">⬇ Descargar formato en blanco</button>
+  <button type="button" class="daily-report__text-btn" (click)="descargarPlantilla()">⬇ Descargar formato con los datos del pedido</button>
 </section>
 
 <section class="daily-report__section daily-report__only-desktop">
   <div class="daily-report__section-head">
     <dynadrill-text variant="h2">Cargar documento</dynadrill-text>
-    <dynadrill-button variant="secondary" size="small" (clicked)="descargarPlantilla()">⬇ Descargar formato en blanco</dynadrill-button>
+    <dynadrill-button variant="secondary" size="small" (clicked)="descargarPlantilla()">⬇ Descargar formato con los datos del pedido</dynadrill-button>
   </div>
   <dynadrill-text variant="caption">
     ¿Prefiere llenarlo a mano? Descargue el formato, complételo y súbalo aquí — o complete el formulario directamente abajo.
+    Las tablas de cada actividad van en la hoja «Tablas» del formato.
   </dynadrill-text>
   <dynadrill-upload-zone
     [state]="uploadState()"
@@ -98,6 +99,10 @@
         @if (actividades().length > 1) {
           <dynadrill-icon-button icon="delete" tooltip="Quitar actividad" (clicked)="removeActivity($index)" />
         }
+      </div>
+      <!-- Las tablas van a todo el ancho de la actividad (no dentro de la columna angosta del detalle). -->
+      <div class="daily-report__col-tablas">
+        <app-actividad-tablas-editor [tablas]="activity.tablas ?? []" (tablasChange)="onActivityTablas($index, $event)" />
       </div>
     </div>
   }

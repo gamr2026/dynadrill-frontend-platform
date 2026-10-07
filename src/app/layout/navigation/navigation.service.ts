@@ -55,7 +55,6 @@ const QHSE_CHILDREN: NavEntry[] = [
       { label: 'Desechos', link: '/dashboard/qhse/desechos' },
       { label: 'Aspectos ambientales', link: '/dashboard/qhse/aspectos-ambientales' },
       { label: 'Entrega de EPI', link: '/dashboard/qhse/epi' },
-      { label: 'Checklist de equipos', link: '/dashboard/qhse/checklist-equipos' },
     ],
   },
   {

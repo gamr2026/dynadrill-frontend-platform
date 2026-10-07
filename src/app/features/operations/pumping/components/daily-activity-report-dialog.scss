@@ -92,6 +92,12 @@
     justify-content: center;
   }
 
+  // Tablas de la actividad: ocupan todo el ancho de la fila.
+  &__col-tablas {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
   &__time-input {
     height: 36px;
     padding: 0 0.5rem;
@@ -175,7 +181,8 @@
     grid-template-columns: 1fr 1fr auto;
     grid-template-areas:
       'inicio fin accion'
-      'detalle detalle detalle';
+      'detalle detalle detalle'
+      'tablas tablas tablas';
     row-gap: 0.5rem;
   }
 
@@ -184,6 +191,7 @@
   .daily-report__col-hours { display: none; }
   .daily-report__col-detail { grid-area: detalle; }
   .daily-report__col-action { grid-area: accion; justify-content: flex-end; }
+  .daily-report__col-tablas { grid-area: tablas; }
 }
 
 // ── Móvil (Figma "M · Reporte diario de actividades"): pantalla completa con barra fija ──

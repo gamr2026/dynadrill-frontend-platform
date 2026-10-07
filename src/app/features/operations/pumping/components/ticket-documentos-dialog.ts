@@ -1,3 +1,4 @@
+import { tablaATexto } from '../../../../shared/utils/actividad-tablas';
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
@@ -107,6 +108,7 @@ export class TicketDocumentosDialog {
         Fin: a.endTime,
         'Horas': a.durationHours,
         Detalle: a.detail,
+        Tablas: (a.tablas ?? []).map(tablaATexto).join('\n\n'),
         Autor: a.author,
         'Firmado por': d.firmadoPor ?? '',
       })));

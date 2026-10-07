@@ -32,7 +32,7 @@ export const PTW_FASE_LABELS: Record<PtwFase, string> = {
  * externos (MSP) — el sistema únicamente los carga, valida y archiva, no
  * los construye como formulario propio (a diferencia de la Matriz IPERC).
  */
-export type PtwDocumentoTipo = 'formato_recepcion' | 'art' | 'ptw_prellenado' | 'carnet_vacunas' | 'sfi';
+export type PtwDocumentoTipo = 'formato_recepcion' | 'art' | 'ptw_prellenado' | 'sfi';
 
 export const PTW_DOCUMENTOS_REQUERIDOS: { tipo: PtwDocumentoTipo; label: string }[] = [
   { tipo: 'formato_recepcion', label: 'Formato de Recepción de la Locación' },
@@ -40,7 +40,6 @@ export const PTW_DOCUMENTOS_REQUERIDOS: { tipo: PtwDocumentoTipo; label: string 
   // Antes "Permiso de Trabajo (PTW) pre-llenado" — D3: mismo documento
   // (`tipo` sin cambios), solo cambia el label pedido por el negocio.
   { tipo: 'ptw_prellenado', label: 'Permiso de Trabajo (PT)' },
-  { tipo: 'carnet_vacunas', label: 'Carnet o Registro de Vacunas' },
   // Nuevo (Fase 2, punto 6): lo elabora QHSE, el Supervisor se lo entrega a PE.
   { tipo: 'sfi', label: 'Formato de Seguridad de Ingreso (SFI)' },
 ];
@@ -90,11 +89,8 @@ export interface PtwMatrix {
   actaRecibimientoFirmada?: PtwFirma;
   barricadasInstaladas?: boolean;
 
-  // Cierre: QHSE confirma que el Supervisor cargó el Acta de Entrega de Locación (DYN-PMP-RE-027)
-  // y recién ahí cierra el PTW.
-  /** `true` = QHSE confirmó que el Acta de Entrega de Locación está cargada; `false` = todavía no. */
-  entregaLocacionConfirmada?: boolean;
-  entregaLocacionConfirmadaPor?: PtwFirma;
+  // Cierre: QHSE cierra el PTW al terminar el trabajo en sitio. El Acta de Entrega de Locación (DYN-PMP-RE-027)
+  // no es requisito del PTW — la carga el Supervisor y la exige el cierre del ticket.
   ptwCerrado?: PtwFirma;
   /** Se completa junto con `ptwCerrado` (misma firma): Facturación y los avisos leen "PTW cerrado" de esta pareja. */
   actaDevolucionFirmada?: PtwFirma;

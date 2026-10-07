@@ -15,8 +15,6 @@ import {
 import { DashboardMetasService } from '../../services/dashboard-metas.service';
 import { PTW_FASE_LABELS, PTW_FASE_ORDER, PtwFase, PtwMatrix, ptwCerrado } from '../../../ptw/models/ptw.model';
 import { PtwService } from '../../../ptw/services/ptw.service';
-import { ChecklistEquiposService } from '../../../checklist-equipos/services/checklist-equipos.service';
-import { ChecklistEquipo } from '../../../checklist-equipos/models/checklist-equipo.model';
 import { EntregaEpiService } from '../../../epi/services/entrega-epi.service';
 import { EntregaEpi, EpiEstado, EPI_ESTADO_LABELS } from '../../../epi/models/entrega-epi.model';
 import { InspeccionEquipoService } from '../../../inspecciones/services/inspeccion-equipo.service';
@@ -52,13 +50,6 @@ const SEMAFORO_LABEL: Record<SemaforoColor, string> = {
 function daysBetween(a: Date, b: Date): number {
   return Math.abs(a.getTime() - b.getTime()) / 86_400_000;
 }
-
-const CHECKLIST_EQUIPO_TONE: Record<ChecklistEquipo['estado'], DynadrillTagVariant> = {
-  pendiente: 'neutral',
-  cargado: 'warning',
-  aprobado: 'success',
-  rechazado: 'error',
-};
 
 const EPI_TONE: Record<EpiEstado, DynadrillTagVariant> = {
   solicitado: 'warning',
@@ -102,7 +93,6 @@ interface AtencionItem {
 })
 export class QhseDashboardPage {
   private readonly ptwService = inject(PtwService);
-  private readonly checklistEquiposService = inject(ChecklistEquiposService);
   private readonly epiService = inject(EntregaEpiService);
   private readonly inspeccionService = inject(InspeccionEquipoService);
   private readonly desechoService = inject(DesechoService);
@@ -129,32 +119,12 @@ export class QhseDashboardPage {
 
   protected readonly metaEdits = signal<Record<string, string>>({});
 
-  // ── Estado operativo — Checklist de equipos, Entrega de EPI y PTW (distinto del reporte por caso: acá es agregado y accionable) ──
+  // ── Estado operativo — Entrega de EPI y PTW (distinto del reporte por caso: acá es agregado y accionable) ──
   protected readonly ptwFaseLabels = PTW_FASE_LABELS;
   protected readonly ptwDiasSinActividadAlerta = PTW_DIAS_SIN_ACTIVIDAD_ALERTA;
   protected readonly epiEstadoLabels = EPI_ESTADO_LABELS;
-  private readonly checklistEquiposRaw = signal<ChecklistEquipo[]>([]);
   private readonly entregasEpiRaw = signal<EntregaEpi[]>([]);
   private readonly ptwRaw = signal<PtwMatrix[]>([]);
-
-  protected readonly checklistEquiposTotal = computed(() => this.checklistEquiposRaw().length);
-
-  protected readonly checklistEquiposPorEstado = computed(() => {
-    const all = this.checklistEquiposRaw();
-    return (['pendiente', 'cargado', 'aprobado', 'rechazado'] as const).map(estado => ({
-      estado,
-      label: estado === 'cargado' ? 'Cargado — a revisar' : estado.charAt(0).toUpperCase() + estado.slice(1),
-      tone: CHECKLIST_EQUIPO_TONE[estado],
-      count: all.filter(c => c.estado === estado).length,
-    }));
-  });
-
-  /** Casos "cargado" — lo que QHSE tiene pendiente de aprobar/rechazar hoy (Fase 4). */
-  protected readonly checklistEquiposAtencion = computed<AtencionItem[]>(() =>
-    this.checklistEquiposRaw()
-      .filter(c => c.estado === 'cargado')
-      .map(c => ({ id: c.id, code: `Ticket ${c.pumpingTicketId}`, titulo: c.equipoNombre, estado: 'Por revisar', tone: 'warning' as DynadrillTagVariant })),
-  );
 
   protected readonly entregasEpiTotal = computed(() => this.entregasEpiRaw().length);
 
@@ -204,10 +174,6 @@ export class QhseDashboardPage {
         tone: 'warning' as DynadrillTagVariant,
       }));
   });
-
-  protected verChecklistEquipos(): void {
-    this.router.navigate(['/dashboard/qhse/checklist-equipos']);
-  }
 
   protected verEpi(): void {
     this.router.navigate(['/dashboard/qhse/epi']);
@@ -271,7 +237,6 @@ export class QhseDashboardPage {
 
   constructor() {
     forkJoin({
-      checklistEquipos: this.checklistEquiposService.listar(),
       entregasEpi: this.epiService.list(),
       ptw: this.ptwService.list(),
       inspecciones: this.inspeccionService.list(),
@@ -286,7 +251,7 @@ export class QhseDashboardPage {
       usuarios: this.usersService.list().pipe(catchError(() => of<User[]>([]))),
       metas: this.metasService.get(),
     }).subscribe({
-      next: ({ checklistEquipos, entregasEpi, ptw, inspecciones, desechos, derrames, stop, swa, investigaciones, usuarios, metas }) => {
+      next: ({ entregasEpi, ptw, inspecciones, desechos, derrames, stop, swa, investigaciones, usuarios, metas }) => {
         const ahora = new Date();
         const detalleLegal: string[] = [];
 
@@ -367,7 +332,6 @@ export class QhseDashboardPage {
         this.incumplimientoLegal.set(detalleLegal.length > 0);
         this.incumplimientoDetalle.set(detalleLegal);
         this.metas.set(metas);
-        this.checklistEquiposRaw.set(checklistEquipos);
         this.entregasEpiRaw.set(entregasEpi);
         this.ptwRaw.set(ptw);
         this.loading.set(false);

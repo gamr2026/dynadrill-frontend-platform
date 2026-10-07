@@ -42,7 +42,6 @@ const HUBS: Record<string, Hub> = {
       { titulo: 'Desechos', descripcion: 'Bitácora y manifiestos', icono: 'leaf', link: '/dashboard/qhse/desechos' },
       { titulo: 'Aspectos ambientales', descripcion: 'Impactos y controles', icono: 'droplet', link: '/dashboard/qhse/aspectos-ambientales' },
       { titulo: 'Entrega de EPI', descripcion: 'Solicitar → despachar', icono: 'helmet', link: '/dashboard/qhse/epi' },
-      { titulo: 'Checklist de equipos', descripcion: 'Aprobación por unidad', icono: 'check', link: '/dashboard/qhse/checklist-equipos' },
     ],
   },
   eventos: {

@@ -1,3 +1,4 @@
+import type { ActividadTabla } from '../../../../shared/models/operativo-docs.model';
 import { Ticket } from '../../../../shared/models/ticket.model';
 import type { DynadrillInspectionItem } from '@digitec-it-projects/dynadrill-ui';
 
@@ -321,6 +322,8 @@ export interface DailyActivityEntry {
   fin: string;
   horas: number | null;
   detalle: string;
+  /** Tablas de la actividad (opcional) — viajan al Reporte Job que ve Facturación. */
+  tablas?: ActividadTabla[];
 }
 
 export interface DailyActivityReport {

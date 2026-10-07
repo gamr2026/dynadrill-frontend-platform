@@ -122,6 +122,13 @@
   min-width: 8rem;
 }
 
+.fcr-detail__log-form-row > .fcr-detail__date-field {
+  display: flex;
+  flex: 0 1 16rem;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .fcr-detail__time-field {
   display: flex;
   flex-direction: column;
@@ -183,6 +190,33 @@
   flex-direction: column;
   gap: 0.375rem;
   min-width: 0;
+}
+
+.fcr-detail__pedido-reference-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.fcr-detail__pedido-reference-title {
+  margin: 0.375rem 0 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text, #2c2b35);
+}
+
+// Cada línea del Pedido con su estado al lado (cuántas herramientas trajo / aviso de la precarga).
+.fcr-detail__actividad {
+  span {
+    margin-right: 0.375rem;
+  }
+
+  dynadrill-tag {
+    display: inline-block;
+    margin-right: 0.25rem;
+    vertical-align: middle;
+  }
 }
 
 .fcr-detail__pedido-reference-list {
@@ -282,33 +316,6 @@
       background: var(--color-danger-bg, #fdf0ef) !important;
     }
   }
-}
-
-// ── Dashboard de resumen (fase Cierre) ──
-
-.fcr-detail__dashboard {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.fcr-detail__stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-  padding: 1rem;
-  background: var(--surface-secondary, #f8f9fa);
-  border-radius: 0.5rem;
-
-  @media (max-width: 720px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.fcr-detail__dashboard-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 }
 
 // ── Tablas de herramientas ──

@@ -95,6 +95,20 @@
     }
   }
 
+  // Cifras a la derecha, en columna.
+  &__num {
+    text-align: right !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  // Separador de día (bitácora y uso de herramientas), igual que en el Reporte Job.
+  &__dia th,
+  &__dia td {
+    font-weight: 700;
+    color: var(--dynadrill-purple, #662e9b);
+    background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
+  }
+
   &__footer {
     text-align: center;
     padding-top: 8px;

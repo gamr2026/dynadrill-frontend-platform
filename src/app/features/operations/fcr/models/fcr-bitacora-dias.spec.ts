@@ -1,5 +1,5 @@
 import type { FcrActivityLogEntry, FcrDiaBitacoraEnviado } from './fcr.model';
-import { agruparBitacoraPorDia, estadoDiaBitacora } from './fcr-bitacora-dias';
+import { agruparBitacoraPorDia, agruparPorFecha, estadoDiaBitacora, fechaSugeridaEnServicio, fueraDelServicio } from './fcr-bitacora-dias';
 
 function entrada(id: number, date: string, startTime: string, durationHours: number): FcrActivityLogEntry {
   return { id, date, startTime, endTime: '23:00', durationHours, detail: `Actividad ${id}`, author: 'Operador' };
@@ -55,5 +55,33 @@ describe('estadoDiaBitacora', () => {
     expect(estadoDiaBitacora({ ...enviado, modificadoRol: 'Facturación', modificadoAt: '2026-10-07T10:00:00.000Z' })).toBe(
       'corregido_facturacion',
     );
+  });
+});
+
+describe('fechas del servicio del Pedido', () => {
+  const rango = { desde: '2026-10-07', hasta: '2026-10-09' };
+
+  it('fuera del servicio solo antes del inicio o después del fin; los extremos y una fecha futura dentro valen', () => {
+    expect(fueraDelServicio('2026-10-06', rango)).toBe(true);
+    expect(fueraDelServicio('2026-10-10', rango)).toBe(true);
+    expect(fueraDelServicio('2026-10-07', rango)).toBe(false);
+    expect(fueraDelServicio('2026-10-09', rango)).toBe(false);
+  });
+
+  it('sin fechas en el Pedido no limita', () => {
+    expect(fueraDelServicio('2020-01-01', { desde: null, hasta: null })).toBe(false);
+  });
+
+  it('sugiere hoy, o el día más cercano dentro del servicio', () => {
+    expect(fechaSugeridaEnServicio('2026-10-08', rango)).toBe('2026-10-08');
+    expect(fechaSugeridaEnServicio('2026-10-01', rango)).toBe('2026-10-07');
+    expect(fechaSugeridaEnServicio('2026-10-20', rango)).toBe('2026-10-09');
+  });
+});
+
+describe('agruparPorFecha', () => {
+  it('agrupa por día en orden de fecha y respeta el orden dentro del día', () => {
+    const r = agruparPorFecha([{ date: '2026-10-08', id: 1 }, { date: '2026-10-07', id: 2 }, { date: '2026-10-08', id: 3 }]);
+    expect(r.map(g => [g.fecha, g.items.map(i => i.id)])).toEqual([['2026-10-07', [2]], ['2026-10-08', [1, 3]]]);
   });
 });

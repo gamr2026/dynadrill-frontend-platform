@@ -22,8 +22,8 @@ export {
   type ReporteCierrePdfDialogData,
   type ReporteCierrePdfPhaseRow,
   type ReporteCierrePdfToolRow,
-  type ReporteCierrePdfDocumentRow,
-  type ReporteCierrePdfActivitySummaryRow,
+  type ReporteCierrePdfDiaBitacora,
+  type ReporteCierrePdfDiaUso,
 } from './components/reporte-cierre-pdf-dialog/reporte-cierre-pdf-dialog';
 
 // Servicios

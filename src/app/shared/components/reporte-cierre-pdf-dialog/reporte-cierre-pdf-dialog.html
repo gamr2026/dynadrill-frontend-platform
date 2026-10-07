@@ -27,9 +27,9 @@
   <div class="reporte-pdf__section">
     <div class="reporte-pdf__grid-4">
       <div class="reporte-pdf__field"><dynadrill-text variant="caption">Herramientas</dynadrill-text><dynadrill-text variant="body">{{ data.tools.length }}</dynadrill-text></div>
-      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Documentos subidos</dynadrill-text><dynadrill-text variant="body">{{ documentsUploadedCount() }} de {{ data.documentos.length }}</dynadrill-text></div>
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Registros de uso</dynadrill-text><dynadrill-text variant="body">{{ registrosDeUso() }}</dynadrill-text></div>
       <div class="reporte-pdf__field"><dynadrill-text variant="caption">Horas trabajadas</dynadrill-text><dynadrill-text variant="body">{{ data.totalHours | number: '1.1-2' }} h</dynadrill-text></div>
-      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Fases completadas</dynadrill-text><dynadrill-text variant="body">{{ data.phases.length }}</dynadrill-text></div>
+      <div class="reporte-pdf__field"><dynadrill-text variant="caption">Fases completadas</dynadrill-text><dynadrill-text variant="body">{{ fasesCompletadas() }}</dynadrill-text></div>
     </div>
   </div>
 
@@ -37,18 +37,20 @@
     <dynadrill-text variant="caption" class="reporte-pdf__section-label">Línea de tiempo — responsables por fase</dynadrill-text>
     <table class="reporte-pdf__table">
       <thead>
-        <tr><th>Fase</th><th>Responsable</th><th>Rol</th><th>Fecha</th></tr>
+        <tr><th>Fase</th><th>Responsable</th><th>Rol</th><th>Inicio</th><th>Finalización</th><th class="reporte-pdf__num">Duración</th></tr>
       </thead>
       <tbody>
         @for (phase of data.phases; track $index) {
           <tr>
             <td>{{ phase.label }}</td>
-            <td>{{ phase.approvedBy }}</td>
-            <td>{{ phase.approvedByRole }}</td>
-            <td>{{ formatDate(phase.date) }}</td>
+            <td>{{ phase.responsable }}</td>
+            <td>{{ phase.rol }}</td>
+            <td>{{ phase.inicio | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td>{{ phase.fin ? (phase.fin | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
+            <td class="reporte-pdf__num">{{ phase.duracionMs != null ? (phase.duracionMs | duracion) : '—' }}</td>
           </tr>
         } @empty {
-          <tr><td colspan="4">Sin fases registradas todavía.</td></tr>
+          <tr><td colspan="6">Sin fases registradas todavía.</td></tr>
         }
       </tbody>
     </table>
@@ -74,45 +76,58 @@
   </div>
 
   <div class="reporte-pdf__section">
-    <dynadrill-text variant="caption" class="reporte-pdf__section-label">Documentos generados</dynadrill-text>
+    <dynadrill-text variant="caption" class="reporte-pdf__section-label">Reporte de trabajo — bitácora de actividades</dynadrill-text>
     <table class="reporte-pdf__table">
       <thead>
-        <tr><th>Documento</th><th>Estado</th><th>Archivo</th></tr>
+        <tr><th>Inicio</th><th>Fin</th><th class="reporte-pdf__num">Horas</th><th>Detalle de actividades</th></tr>
       </thead>
-      <tbody>
-        @for (doc of data.documentos; track doc.label) {
-          <tr>
-            <td>{{ doc.label }}</td>
-            <td>{{ doc.uploaded ? 'Generado' : 'Pendiente' }}</td>
-            <td>{{ doc.nombreArchivo ?? '—' }}</td>
-          </tr>
-        }
-      </tbody>
+      @for (dia of data.bitacora; track dia.fecha) {
+        <tbody>
+          <tr class="reporte-pdf__dia"><th scope="rowgroup" colspan="2">{{ dia.fecha }}</th><td class="reporte-pdf__num">{{ dia.totalHoras | number: '1.1-2' }}</td><td></td></tr>
+          @for (a of dia.actividades; track $index) {
+            <tr>
+              <td>{{ a.startTime }}</td>
+              <td>{{ a.endTime }}</td>
+              <td class="reporte-pdf__num">{{ a.durationHours | number: '1.1-2' }}</td>
+              <td>{{ a.detail }}</td>
+            </tr>
+          }
+        </tbody>
+      } @empty {
+        <tbody><tr><td colspan="4">Sin actividades registradas.</td></tr></tbody>
+      }
+      <tfoot>
+        <tr><td colspan="2">Total</td><td class="reporte-pdf__num">{{ data.totalHours | number: '1.1-2' }}</td><td></td></tr>
+      </tfoot>
     </table>
   </div>
 
   <div class="reporte-pdf__section">
-    <dynadrill-text variant="caption" class="reporte-pdf__section-label">Bitácora de actividades — resumen por día</dynadrill-text>
+    <dynadrill-text variant="caption" class="reporte-pdf__section-label">Uso de herramientas</dynadrill-text>
     <table class="reporte-pdf__table">
       <thead>
-        <tr><th>Fecha</th><th>Actividades registradas</th><th>Horas</th></tr>
+        <tr><th>Herramienta</th><th>Estado</th><th>{{ data.tipoUsoLabel }}</th><th>Picker</th><th class="reporte-pdf__num">Presión</th><th class="reporte-pdf__num">Peso</th><th>Observación</th></tr>
       </thead>
-      <tbody>
-        @for (row of data.activitySummary; track row.date) {
-          <tr>
-            <td>{{ formatDate(row.date) }}</td>
-            <td>{{ row.count }}</td>
-            <td>{{ row.totalHours | number: '1.1-2' }}</td>
-          </tr>
-        } @empty {
-          <tr><td colspan="3">Sin actividades registradas todavía.</td></tr>
-        }
-      </tbody>
-      <tfoot>
-        <tr><td>Total</td><td></td><td>{{ data.totalHours | number: '1.1-2' }}</td></tr>
-      </tfoot>
+      @for (dia of data.usoHerramientas; track dia.fecha) {
+        <tbody>
+          <tr class="reporte-pdf__dia"><th scope="rowgroup" colspan="7">{{ dia.fecha }}</th></tr>
+          @for (u of dia.usos; track $index) {
+            <tr>
+              <td>{{ u.herramienta }}</td>
+              <td>{{ u.estado }}</td>
+              <td>{{ u.tipo }}</td>
+              <td>{{ u.picker }}</td>
+              <td class="reporte-pdf__num">{{ u.presion }}</td>
+              <td class="reporte-pdf__num">{{ u.peso }}</td>
+              <td>{{ u.observacion }}</td>
+            </tr>
+          }
+        </tbody>
+      } @empty {
+        <tbody><tr><td colspan="7">Sin registros de uso de herramientas.</td></tr></tbody>
+      }
     </table>
-    <dynadrill-text variant="caption">{{ data.toolUsageCount }} registro(s) de uso de herramientas · {{ data.observationsCount }} observación(es) durante el ticket.</dynadrill-text>
+    <dynadrill-text variant="caption">{{ data.observationsCount }} observación(es) durante el ticket.</dynadrill-text>
   </div>
 
   <div class="reporte-pdf__footer">

@@ -30,3 +30,28 @@ export function estadoDiaBitacora(envio: FcrDiaBitacoraEnviado | null): EstadoDi
   if (!envio) return 'pendiente';
   return envio.modificadoRol === 'Facturación' ? 'corregido_facturacion' : 'enviado';
 }
+
+/** Fechas del servicio del Pedido (`YYYY-MM-DD`); `null` = Ventas no la cargó y no limita. */
+export interface RangoServicio {
+  desde: string | null;
+  hasta: string | null;
+}
+
+/** Espejo de la validación del backend (`assertFechaEnServicio`): la bitácora no se sale del servicio del Pedido. */
+export function fueraDelServicio(fecha: string, rango: RangoServicio): boolean {
+  return (!!rango.desde && fecha < rango.desde) || (!!rango.hasta && fecha > rango.hasta);
+}
+
+/** Fecha sugerida para una actividad nueva: hoy, o el día más cercano dentro del servicio si hoy cae afuera. */
+export function fechaSugeridaEnServicio(hoy: string, rango: RangoServicio): string {
+  if (rango.desde && hoy < rango.desde) return rango.desde;
+  if (rango.hasta && hoy > rango.hasta) return rango.hasta;
+  return hoy;
+}
+
+/** Agrupa registros por día (`date`), en orden de fecha y sin cambiar el orden dentro del día — mismo criterio que la bitácora. */
+export function agruparPorFecha<T extends { date: string }>(items: T[]): { fecha: string; items: T[] }[] {
+  const porFecha = new Map<string, T[]>();
+  for (const item of items) porFecha.set(item.date, [...(porFecha.get(item.date) ?? []), item]);
+  return [...porFecha.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([fecha, items]) => ({ fecha, items }));
+}

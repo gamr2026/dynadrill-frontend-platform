@@ -99,6 +99,8 @@ export interface FcrTool {
   origen?: 'pedido' | 'manual';
   /** Snapshot de `Articulo.stockActual` al momento de auto-cargar — informativo, no hay reserva real de stock en el sistema. */
   stockDisponible?: number;
+  /** Línea del Pedido (código) de cuyo kit salió — solo las `origen: 'pedido'` precargadas desde specs/fcr-precarga-herramientas. */
+  codigoPedido?: string;
   /** Se agregó después de que el resto de la selección ya había avanzado — se muestra aparte para no confundirla con la tanda original. */
   addedLate?: boolean;
   /**
@@ -239,6 +241,24 @@ export interface FcrToolUsageEntry extends OperativoToolUsageEntry {
 
 // ── Ticket FCR ──
 
+/** Línea de movilización del Pedido guardada en el ticket al crearlo — solo informativa, sin acción de Bodega. */
+export interface MovilizacionPedido {
+  codigo: string;
+  descripcion: string;
+  cantidad: number;
+  unidad: string;
+}
+
+/** Por qué la precarga no pudo traer (todas) las herramientas de una línea — espejo de `PrecargaFcrService` del backend. */
+export type MotivoAvisoPrecarga = 'pedido_sin_cliente' | 'sin_configurar' | 'kit_vacio' | 'articulo_inactivo' | 'cantidad_excedida';
+
+export interface AvisoPrecarga {
+  motivo: MotivoAvisoPrecarga;
+  /** Ausente en avisos del Pedido entero (`pedido_sin_cliente`). */
+  codigo?: string;
+  descripcion?: string;
+}
+
 export interface FcrTicket extends Ticket {
   currentPhase: FcrPhase;
   /** Decide qué entrada usa este ticket (preparacion_herramientas vs. revision_inicial) — viene del Pedido, no editable aquí. */
@@ -249,6 +269,9 @@ export interface FcrTicket extends Ticket {
   /** FK real del Pedido asociado (columna escalar del ticket) — se usa para traer el detalle completo de solo lectura en 'revision_inicial'. */
   pedidoId?: number | null;
   tools: FcrTool[];
+  /** Tickets creados antes de la precarga por kits no los traen. */
+  movilizaciones?: MovilizacionPedido[];
+  avisosPrecarga?: AvisoPrecarga[];
   // ── Entrada SERVICIOS ──
   tipoOperador?: TipoOperador;
   /** Operador mecánico/soldador elegido en 'tipo_operador' (roster simulado) — quien repara e inspecciona por herramienta. Autocompleta "Reparado por" en cada checklist. */

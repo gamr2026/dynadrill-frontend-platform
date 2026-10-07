@@ -61,6 +61,11 @@ export class FcrService {
     return this.http.delete<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}`);
   }
 
+  /** Vuelve a precargar las herramientas de los kits del Pedido — conserva las manuales y las ya enviadas a Bodega (specs/fcr-precarga-herramientas). */
+  recargarDesdePedido(ticketId: number): Observable<FcrTicket> {
+    return this.http.post<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/recargar-desde-pedido`, {});
+  }
+
   /** Supervisor solicita a Bodega, herramienta por herramienta — botón embebido en la fila. */
   sendToolToBodega(ticketId: number, toolId: number): Observable<FcrTicket> {
     return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/send-to-bodega`, {});

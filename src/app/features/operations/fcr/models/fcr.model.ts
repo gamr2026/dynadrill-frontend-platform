@@ -207,6 +207,16 @@ export interface FcrPhaseApproval {
 // Los tipos viven en `shared/` porque también los produce Pumping y los consume Facturación.
 
 export type FcrActivityLogEntry = OperativoActivityLogEntry;
+
+/** Registro del envío de un día de bitácora a Facturación — lo arma el backend con hora del servidor. */
+export interface FcrDiaBitacoraEnviado {
+  fecha: string;
+  enviadoAt: string;
+  enviadoPor: string;
+  modificadoAt?: string;
+  modificadoPor?: string;
+  modificadoRol?: 'Operador' | 'Facturación';
+}
 export type FcrToolDailyStatus = ToolDailyStatus;
 export const FCR_TOOL_DAILY_STATUS_LABELS = TOOL_DAILY_STATUS_LABELS;
 export const FCR_TOOL_DAILY_STATUS_CODE = TOOL_DAILY_STATUS_CODE;
@@ -269,6 +279,8 @@ export interface FcrTicket extends Ticket {
   toolReportUploaded: boolean;
   finalReviewGuideUploaded: boolean;
   activityLog: FcrActivityLogEntry[];
+  /** Días de la bitácora ya enviados a Facturación (envío diario). Ausente en tickets anteriores a esa funcionalidad. */
+  diasBitacoraEnviados?: FcrDiaBitacoraEnviado[];
   toolUsageLog: FcrToolUsageEntry[];
   observations: FcrObservation[];
   reportsApproved: boolean;

@@ -229,7 +229,7 @@
             <th class="num">Precio unitario</th>
             <th class="num">% Descuento</th>
             <th title="Se factura exactamente esta cantidad (no se recalcula con los días del Reporte Job)">Cant. fija</th>
-            @if (esPumping()) {
+            @if (esPumping() || esFcr()) {
               <th>Tipo</th>
             }
             <th class="num">Total</th>
@@ -250,7 +250,7 @@
                     [searchable]="true"
                     (valueChange)="onQuimicoCodigoSeleccionado($index, $any($event))"
                   />
-                } @else if (l.esHerramienta || esFcr()) {
+                } @else if (l.esHerramienta) {
                   <dynadrill-select
                     label=""
                     [placeholder]="cliente() ? 'Elegir herramienta de la Lista de Precios del cliente' : 'Selecciona primero el cliente'"
@@ -258,6 +258,24 @@
                     [value]="l.codigo || null"
                     [searchable]="true"
                     (valueChange)="onHerramientaCodigoSeleccionado($index, $any($event))"
+                  />
+                } @else if (l.esMovilizacion) {
+                  <dynadrill-select
+                    label=""
+                    placeholder="Elegir movilización de la Lista de Precios"
+                    [options]="movilizacionOptions()"
+                    [value]="l.codigo || null"
+                    [searchable]="true"
+                    (valueChange)="onItemDeListaSeleccionado($index, $any($event))"
+                  />
+                } @else if (esFcr()) {
+                  <dynadrill-select
+                    label=""
+                    placeholder="Elegir servicio de la Lista de Precios"
+                    [options]="servicioOptions()"
+                    [value]="l.codigo || null"
+                    [searchable]="true"
+                    (valueChange)="onItemDeListaSeleccionado($index, $any($event))"
                   />
                 } @else {
                   <dynadrill-input label="" [value]="l.codigo" (valueChange)="onLineaCampoChange($index, 'codigo', $event)" />
@@ -275,17 +293,21 @@
                       Define el precio de venta.
                     </dynadrill-text>
                   </div>
+                } @else if (avisoPrecioReferencia(l)) {
+                  <div class="nuevo-pedido__precio-referencia">
+                    <dynadrill-text variant="caption">⚠ Precio de referencia (lista Normal), no pactado con el cliente. Confirme el precio de venta.</dynadrill-text>
+                  </div>
                 } @else if (codigoFueraDeListaPrecios(l.codigo)) {
-                  <dynadrill-text variant="caption">⚠ Fuera de la Lista de Precios — no entra a la prefactura automática.</dynadrill-text>
+                  <dynadrill-text variant="caption">⚠ Fuera de la Lista de Precios del cliente: se factura con el precio del Pedido y Facturación la revisa.</dynadrill-text>
                 }
               </td>
               <td class="nuevo-pedido__td--full">
                 <span class="nuevo-pedido__td-label">Descripción</span>
-                <dynadrill-input label="" [value]="l.descripcion" [disabled]="l.esQuimico || l.esHerramienta || esFcr()" (valueChange)="onLineaCampoChange($index, 'descripcion', $event)" />
+                <dynadrill-input label="" [value]="l.descripcion" [disabled]="l.esQuimico || l.esHerramienta || l.esMovilizacion || esFcr()" (valueChange)="onLineaCampoChange($index, 'descripcion', $event)" />
               </td>
               <td>
                 <span class="nuevo-pedido__td-label">Unidad</span>
-                <dynadrill-input label="" [value]="l.unidad" [disabled]="l.esQuimico || l.esHerramienta || esFcr()" (valueChange)="onLineaCampoChange($index, 'unidad', $event)" />
+                <dynadrill-input label="" [value]="l.unidad" [disabled]="l.esQuimico || l.esHerramienta || l.esMovilizacion || esFcr()" (valueChange)="onLineaCampoChange($index, 'unidad', $event)" />
               </td>
               <td class="num">
                 <span class="nuevo-pedido__td-label">Cantidad</span>
@@ -293,7 +315,7 @@
               </td>
               <td class="num">
                 <span class="nuevo-pedido__td-label">Precio unitario</span>
-                <dynadrill-input label="" type="number" [value]="l.valorUnitario" (valueChange)="onLineaCampoChange($index, 'valorUnitario', $event)" />
+                <dynadrill-input label="" type="number" [value]="l.valorUnitario" [disabled]="precioFijo(l)" (valueChange)="onLineaCampoChange($index, 'valorUnitario', $event)" />
               </td>
               <td class="num">
                 <span class="nuevo-pedido__td-label">% Descuento</span>
@@ -303,12 +325,12 @@
                 <span class="nuevo-pedido__td-label">Cant. fija</span>
                 <input type="checkbox" [checked]="l.cantidadFija" (change)="onLineaCampoChange($index, 'cantidadFija', $any($event.target).checked)" aria-label="Cantidad fija: se factura exactamente esta cantidad" />
               </td>
-              @if (esPumping()) {
+              @if (esPumping() || esFcr()) {
                 <td class="nuevo-pedido__tipo-cell">
                   <span class="nuevo-pedido__td-label">Tipo</span>
                   <dynadrill-select
                     label=""
-                    [options]="tipoLineaOptions"
+                    [options]="tipoLineaOptions()"
                     [value]="tipoDeLinea(l)"
                     (valueChange)="onTipoLineaChange($index, $any($event))"
                   />

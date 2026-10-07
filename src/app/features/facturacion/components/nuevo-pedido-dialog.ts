@@ -33,7 +33,9 @@ import {
   TipoOt,
   TipoServicio,
 } from '../models/pedido.model';
-import { ListaPrecios } from '../models/lista-precios.model';
+import { ListaPrecios, ListaPreciosItem } from '../models/lista-precios.model';
+import { itemsDeMovilizacion, itemsDeServicio, listaParaLineas, precioFijoDeMovilizacion } from '../models/lineas-lista-precios';
+import { parseLocalDateString, toLocalDateString } from '../../../shared/utils';
 import { Prefactura } from '../models/prefactura.model';
 import { ListaPreciosService, PedidoService, PrefacturaService } from '../services/pedido.service';
 import { RolesService } from '../../users/services/users.service';
@@ -69,6 +71,8 @@ interface LineaEstimadaDraft {
   esQuimico: boolean;
   /** Igual que `esQuimico`, pero contra el catálogo de herramientas de Inventario (categoría HERRAMIENTAS). */
   esHerramienta: boolean;
+  /** Código elegido de los ítems de movilización de la Lista de Precios (ver `lineas-lista-precios.ts`). */
+  esMovilizacion: boolean;
   /** La prefactura factura exactamente esta cantidad — no la recalcula con los días del Reporte Job (ver `cantidadFija` en pedido.model.ts). */
   cantidadFija: boolean;
 }
@@ -96,8 +100,17 @@ const LINEA_ESTIMADA_VACIA: LineaEstimadaDraft = {
   descuentoPorcentaje: '0',
   esQuimico: false,
   esHerramienta: false,
+  esMovilizacion: false,
   cantidadFija: false,
 };
+
+/** Tipo de cada línea: decide de qué catálogo o lista sale el código. */
+type TipoLinea = 'servicio' | 'quimico' | 'herramienta' | 'movilizacion';
+
+const opcionDeItem = (i: ListaPreciosItem): DynadrillSelectOption => ({ label: `${i.codigo} — ${i.descripcion}`, value: i.codigo });
+
+/** `AAAA-MM-DD` del día local elegido (no UTC: después de las 19:00 en Ecuador daba el día siguiente). */
+const aDiaLocal = (d: Date | null): string | undefined => (d ? toLocalDateString(d) : undefined);
 
 /** Cabecera real de la plantilla descargable de AS2 (hoja "Ventas", fila 4) — "AS2 Pedido Cliente.xlsx". */
 const CABECERA_PLANTILLA_AS2 = 'Codigo Producto AS2';
@@ -298,7 +311,7 @@ export class NuevoPedidoDialog {
     ([value, label]) => ({ label, value }),
   );
   protected readonly esPumping = computed(() => this.lineaServicio() === 'pumping');
-  /** FCR (fishing/completion) se asume siempre herramienta — no hace falta un checkbox para elegirlo línea por línea, el selector de herramienta aparece directo en la columna Código. */
+  /** FCR (fishing/completion): cada línea elige su tipo (Servicio / Herramienta / Movilización) y su código sale siempre de una lista, nunca de texto libre. */
   protected readonly esFcr = computed(() => this.lineaServicio() === 'fcr');
 
   /**
@@ -351,8 +364,56 @@ export class NuevoPedidoDialog {
     return this.herramientasCatalogoCompleto().filter(a => codigos.has(a.codigo));
   });
   protected readonly herramientaOptions = computed<DynadrillSelectOption[]>(() =>
-    this.conCodigosDeLasLineas(this.herramientasCatalogo().map(a => ({ label: `${a.codigo} — ${a.nombre}`, value: a.codigo })), l => l.esHerramienta || this.esFcr()),
+    this.conCodigosDeLasLineas(this.herramientasCatalogo().map(a => ({ label: `${a.codigo} — ${a.nombre}`, value: a.codigo })), l => l.esHerramienta),
   );
+
+  // ── Servicio y Movilización: el código sale de la Lista de Precios del cliente (o la Normal) ──
+
+  private readonly listas = signal<ListaPrecios[]>([]);
+  /** "Normal": catálogo de referencia interna, sin cliente — sus precios son de relleno, nunca pactados. */
+  private readonly listaReferencia = computed(() => this.listas().find(lp => lp.clienteId == null) ?? null);
+  private readonly listaParaLineas = computed(() => listaParaLineas(this.listaCliente(), this.listaReferencia()));
+  private readonly codigosDeMovilizacion = computed(() => new Set(itemsDeMovilizacion(this.listaParaLineas()).map(i => i.codigo)));
+
+  protected readonly movilizacionOptions = computed<DynadrillSelectOption[]>(() =>
+    this.conCodigosDeLasLineas(itemsDeMovilizacion(this.listaParaLineas()).map(opcionDeItem), l => l.esMovilizacion),
+  );
+  /** Solo FCR: en Pumping, Servicio sigue siendo código de texto libre. */
+  protected readonly servicioOptions = computed<DynadrillSelectOption[]>(() =>
+    this.conCodigosDeLasLineas(itemsDeServicio(this.listaParaLineas()).map(opcionDeItem), l => this.tipoDeLinea(l) === 'servicio'),
+  );
+
+  /** Autocompleta la línea con el ítem de la lista: código, descripción, unidad y precio salen de ahí, no se tipean. */
+  protected onItemDeListaSeleccionado(index: number, codigo: string | null): void {
+    const item = this.listaParaLineas()?.items.find(i => i.codigo === codigo);
+    this.lineasEstimadas.update(ls =>
+      ls.map((l, i) =>
+        i === index
+          ? {
+              ...l,
+              codigo: item?.codigo ?? '',
+              descripcion: item?.descripcion ?? '',
+              unidad: item?.unidad ?? '',
+              valorUnitario: item ? String(item.precio) : '0',
+            }
+          : l,
+      ),
+    );
+  }
+
+  /** Una movilización con precio pactado (está en la lista del cliente) no se edita. */
+  protected precioFijo(l: LineaEstimadaDraft): boolean {
+    return l.esMovilizacion && precioFijoDeMovilizacion(l.codigo, this.listaCliente());
+  }
+
+  /**
+   * Código de Movilización o de Servicio (FCR) que no está en la lista del cliente — sale de la Normal, cuyo
+   * precio es de relleno: Ventas debe confirmarlo. No aplica a Servicio en Pumping (texto libre, sin lista).
+   */
+  protected avisoPrecioReferencia(l: LineaEstimadaDraft): boolean {
+    const deLista = l.esMovilizacion || (this.esFcr() && this.tipoDeLinea(l) === 'servicio');
+    return deLista && !!l.codigo.trim() && !precioFijoDeMovilizacion(l.codigo, this.listaCliente());
+  }
 
   /**
    * Documentos de referencia — solo para Pumping (a pedido del cliente):
@@ -525,7 +586,7 @@ export class NuevoPedidoDialog {
 
   protected readonly lineasEstimadas = signal<LineaEstimadaDraft[]>([{ ...LINEA_ESTIMADA_VACIA }]);
 
-  /** true si el código NO está en la Lista de Precios interna del cliente — esa línea no entrará a la prefactura automática (armarPrefacturaItems solo toma códigos conocidos). */
+  /** true si el código NO está en la Lista de Precios interna del cliente — la prefactura igual la cobra, con el precio del Pedido y marcada `personal_manual` para que Facturación la revise (ver armarPrefacturaItems en el backend). */
   protected codigoFueraDeListaPrecios(codigo: string): boolean {
     const lista = this.listaCliente();
     if (!lista || !codigo.trim()) return false;
@@ -555,8 +616,7 @@ export class NuevoPedidoDialog {
   private precioSugeridoParaCodigo(codigo: string): number | null {
     const enListaCliente = this.listaCliente()?.items.find(i => i.codigo === codigo)?.precio;
     if (enListaCliente != null) return enListaCliente;
-    const listaReferencia = this.todasLasListas.find(lp => lp.clienteId == null);
-    return listaReferencia?.items.find(i => i.codigo === codigo)?.precio ?? null;
+    return this.listaReferencia()?.items.find(i => i.codigo === codigo)?.precio ?? null;
   }
 
   /**
@@ -599,29 +659,46 @@ export class NuevoPedidoDialog {
   protected onQuimicoToggle(index: number, esQuimico: boolean): void {
     this.lineasEstimadas.update(ls =>
       ls.map((l, i) =>
-        i === index ? { ...l, esQuimico, esHerramienta: esQuimico ? false : l.esHerramienta, codigo: esQuimico ? '' : l.codigo } : l,
+        i === index
+          ? { ...l, esQuimico, esHerramienta: esQuimico ? false : l.esHerramienta, esMovilizacion: esQuimico ? false : l.esMovilizacion, codigo: esQuimico ? '' : l.codigo }
+          : l,
       ),
     );
   }
 
-  /** Tipo de cada línea de la cotización de Pumping — decide si el código sale del catálogo de químicos, de herramientas o es texto libre (servicio). */
-  protected readonly tipoLineaOptions: DynadrillSelectOption[] = [
-    { label: 'Servicio', value: 'servicio' },
-    // Se llama "Material" porque así lo clasifica la Lista de Precios; internamente sigue siendo `esQuimico` (categoría QUIMICA de Inventario).
-    { label: 'Material', value: 'quimico' },
-    { label: 'Herramienta', value: 'herramienta' },
-  ];
+  /**
+   * Tipo de cada línea — decide de dónde sale el código. Pumping: Servicio (texto libre), Material (químicos) y
+   * Herramienta. FCR: Servicio y Movilización (de la Lista de Precios) y Herramienta (Inventario).
+   */
+  protected readonly tipoLineaOptions = computed<DynadrillSelectOption[]>(() =>
+    this.esFcr()
+      ? [
+          { label: 'Servicio', value: 'servicio' },
+          { label: 'Herramienta', value: 'herramienta' },
+          { label: 'Movilización', value: 'movilizacion' },
+        ]
+      : [
+          { label: 'Servicio', value: 'servicio' },
+          // Se llama "Material" porque así lo clasifica la Lista de Precios; internamente sigue siendo `esQuimico` (categoría QUIMICA de Inventario).
+          { label: 'Material', value: 'quimico' },
+          { label: 'Herramienta', value: 'herramienta' },
+        ],
+  );
 
-  protected tipoDeLinea(l: LineaEstimadaDraft): 'servicio' | 'quimico' | 'herramienta' {
-    return l.esQuimico ? 'quimico' : l.esHerramienta ? 'herramienta' : 'servicio';
+  protected tipoDeLinea(l: LineaEstimadaDraft): TipoLinea {
+    return l.esQuimico ? 'quimico' : l.esHerramienta ? 'herramienta' : l.esMovilizacion ? 'movilizacion' : 'servicio';
   }
 
-  protected onTipoLineaChange(index: number, tipo: 'servicio' | 'quimico' | 'herramienta' | null): void {
+  protected onTipoLineaChange(index: number, tipo: TipoLinea | null): void {
     const linea = this.lineasEstimadas()[index];
     if (!linea || (tipo ?? 'servicio') === this.tipoDeLinea(linea)) return;
     // Al cambiar de tipo se limpia el código: uno de otro catálogo no sirve (ver onQuimicoToggle).
     this.lineasEstimadas.update(ls =>
-      ls.map((l, i) => (i === index ? { ...l, esQuimico: tipo === 'quimico', esHerramienta: tipo === 'herramienta', codigo: '' } : l)),
+      ls.map((l, i) =>
+        i === index
+          ? { ...l, esQuimico: tipo === 'quimico', esHerramienta: tipo === 'herramienta', esMovilizacion: tipo === 'movilizacion', codigo: '' }
+          : l,
+      ),
     );
   }
 
@@ -649,7 +726,9 @@ export class NuevoPedidoDialog {
   protected onHerramientaToggle(index: number, esHerramienta: boolean): void {
     this.lineasEstimadas.update(ls =>
       ls.map((l, i) =>
-        i === index ? { ...l, esHerramienta, esQuimico: esHerramienta ? false : l.esQuimico, codigo: esHerramienta ? '' : l.codigo } : l,
+        i === index
+          ? { ...l, esHerramienta, esQuimico: esHerramienta ? false : l.esQuimico, esMovilizacion: esHerramienta ? false : l.esMovilizacion, codigo: esHerramienta ? '' : l.codigo }
+          : l,
       ),
     );
   }
@@ -666,8 +745,7 @@ export class NuevoPedidoDialog {
     if (!codigo || (!l.esQuimico && !l.esHerramienta) || !this.codigoFueraDeListaPrecios(codigo)) return null;
     const catalogo = l.esQuimico ? this.quimicosCatalogo() : this.herramientasCatalogo();
     const costoInterno = catalogo.find(a => a.codigo === codigo)?.costoUnitario;
-    const listaReferencia = this.todasLasListas.find(lp => lp.clienteId == null);
-    const precioSugerido = listaReferencia?.items.find(i => i.codigo === codigo)?.precio;
+    const precioSugerido = this.listaReferencia()?.items.find(i => i.codigo === codigo)?.precio;
     if (costoInterno == null && precioSugerido == null) return null;
     return { costoInterno, precioSugerido };
   }
@@ -758,6 +836,7 @@ export class NuevoPedidoDialog {
 
       const quimicos = new Set(this.quimicosCatalogoCompleto().map(a => a.codigo));
       const herramientas = new Set(this.herramientasCatalogoCompleto().map(a => a.codigo));
+      const movilizaciones = this.codigosDeMovilizacion();
       const lineas: LineaEstimadaDraft[] = [];
       for (const fila of filas.slice(idxCabecera + 1)) {
         const codigo = (fila[0] ?? '').toString().trim();
@@ -777,6 +856,7 @@ export class NuevoPedidoDialog {
           descuentoPorcentaje: descuento || '0',
           esQuimico: this.esPumping() && quimicos.has(codigo),
           esHerramienta: herramientas.has(codigo),
+          esMovilizacion: !herramientas.has(codigo) && !(this.esPumping() && quimicos.has(codigo)) && movilizaciones.has(codigo),
           cantidadFija: ['SI', 'SÍ', 'S', '1', 'TRUE', 'X'].includes(fija),
         });
       }
@@ -865,8 +945,9 @@ export class NuevoPedidoDialog {
       if (!pumping || quimicos.size === 0) return;
       untracked(() => {
         const lineas = this.lineasEstimadas();
-        if (!lineas.some(l => !l.esQuimico && !l.esHerramienta && quimicos.has(l.codigo.trim()))) return;
-        this.lineasEstimadas.set(lineas.map(l => (!l.esQuimico && !l.esHerramienta && quimicos.has(l.codigo.trim()) ? { ...l, esQuimico: true } : l)));
+        const esQuimicoSinMarcar = (l: LineaEstimadaDraft) => !l.esQuimico && !l.esHerramienta && !l.esMovilizacion && quimicos.has(l.codigo.trim());
+        if (!lineas.some(esQuimicoSinMarcar)) return;
+        this.lineasEstimadas.set(lineas.map(l => (esQuimicoSinMarcar(l) ? { ...l, esQuimico: true } : l)));
       });
     });
     this.listaService.list().subscribe(listas => {
@@ -924,8 +1005,9 @@ export class NuevoPedidoDialog {
     this.tipoServicio.set(p.tipoServicio ?? []);
     this.subTipoServicio.set(p.subTipoServicio ?? []);
     this.tipoOt.set(p.tipoOt);
-    this.fechaInicioServicio.set(p.fechaInicioServicio ? new Date(p.fechaInicioServicio) : null);
-    this.fechaFinServicio.set(p.fechaFinServicio ? new Date(p.fechaFinServicio) : null);
+    // Hora local: `new Date('AAAA-MM-DD')` es medianoche UTC y en Ecuador mostraba el día anterior.
+    this.fechaInicioServicio.set(p.fechaInicioServicio ? parseLocalDateString(p.fechaInicioServicio.slice(0, 10)) : null);
+    this.fechaFinServicio.set(p.fechaFinServicio ? parseLocalDateString(p.fechaFinServicio.slice(0, 10)) : null);
     this.agenteComercial.set(p.agenteComercial ?? '');
     this.representanteCampo.set(p.representanteCampo ?? '');
     this.representanteQuito.set(p.representanteQuito ?? '');
@@ -946,16 +1028,15 @@ export class NuevoPedidoDialog {
           descuentoPorcentaje: it.descuentoPorcentaje != null ? String(it.descuentoPorcentaje) : '0',
           esQuimico: it.esQuimico ?? false,
           esHerramienta: it.esHerramienta ?? false,
+          esMovilizacion: it.esMovilizacion ?? false,
           cantidadFija: it.cantidadFija ?? false,
         })),
       );
     }
   }
 
-  private todasLasListas: ListaPrecios[] = [];
-
   private actualizarListaCliente(listas: ListaPrecios[]): void {
-    this.todasLasListas = listas;
+    this.listas.set(listas);
     this.emparejarLista();
   }
 
@@ -978,13 +1059,14 @@ export class NuevoPedidoDialog {
    */
   private emparejarLista(): void {
     const clienteId = this.clienteId();
+    const todasLasListas = this.listas();
     this.listaCliente.set(
       (clienteId != null
-        ? (this.todasLasListas.find(l => l.clienteId === clienteId && l.numeroContrato === this.numeroContrato() && l.activa) ??
-          this.todasLasListas.find(l => l.clienteId === clienteId && l.activa))
+        ? (todasLasListas.find(l => l.clienteId === clienteId && l.numeroContrato === this.numeroContrato() && l.activa) ??
+          todasLasListas.find(l => l.clienteId === clienteId && l.activa))
         : undefined) ??
-        this.todasLasListas.find(l => l.cliente === this.cliente() && l.numeroContrato === this.numeroContrato() && l.activa) ??
-        this.todasLasListas.find(l => l.cliente === this.cliente() && l.activa) ??
+        todasLasListas.find(l => l.cliente === this.cliente() && l.numeroContrato === this.numeroContrato() && l.activa) ??
+        todasLasListas.find(l => l.cliente === this.cliente() && l.activa) ??
         null,
     );
   }
@@ -1082,8 +1164,8 @@ export class NuevoPedidoDialog {
       valorUnitario: Number(l.valorUnitario),
       descuentoPorcentaje: Number(l.descuentoPorcentaje) || 0,
       esQuimico: l.esQuimico,
-      // FCR se asume siempre herramienta, aunque no haya checkbox para marcarlo línea por línea.
-      esHerramienta: l.esHerramienta || this.esFcr(),
+      esHerramienta: l.esHerramienta,
+      ...(l.esMovilizacion ? { esMovilizacion: true } : {}),
       ...(l.cantidadFija ? { cantidadFija: true } : {}),
     }));
 
@@ -1117,8 +1199,8 @@ export class NuevoPedidoDialog {
       zona: this.zona().trim() || undefined,
       bodega: this.bodega().trim() || undefined,
       itemsEstimados,
-      fechaInicioServicio: this.fechaInicioServicio()?.toISOString().slice(0, 10),
-      fechaFinServicio: this.fechaFinServicio()?.toISOString().slice(0, 10),
+      fechaInicioServicio: aDiaLocal(this.fechaInicioServicio()),
+      fechaFinServicio: aDiaLocal(this.fechaFinServicio()),
       createdBy: nombre,
     };
 

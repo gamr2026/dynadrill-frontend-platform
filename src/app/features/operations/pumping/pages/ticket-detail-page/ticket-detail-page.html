@@ -672,17 +672,113 @@
       />
     </section>
 
+    <!-- Verificaciones del sitio — Ingreso a locación, Verificaciones de seguridad (gases y LOTO) y Formalización de
+         ejecución. Se hacen al llegar, antes de empezar a trabajar: por eso viven al inicio de la Ejecución Operativa
+         y no en el Traslado de salida (donde todavía no están en la locación). -->
+    @if (checklistIngreso(); as ci) {
+      @if (verificacionesPreviasPendientes()) {
+        <div class="blocked" role="alert">
+          <svg class="blocked__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+          <div class="blocked__body">
+            <strong class="blocked__title">Ejecución bloqueada hasta completar las verificaciones del sitio</strong>
+            <p class="blocked__text">Antes de registrar el trabajo falta completar el checklist de Ingreso a locación y Verificaciones de seguridad (gases y LOTO).</p>
+          </div>
+        </div>
+      }
+
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="h2">Ingreso a locación</dynadrill-text>
+        <dynadrill-checkbox label="Toolbox Talk realizado (5 min obligatorios)" [checked]="ci.toolboxTalkRealizado" (checkedChange)="onChecklistIngresoBooleanoToggle('toolboxTalkRealizado')" />
+        <dynadrill-checkbox label="Inspección conjunta Walk-around" [checked]="ci.walkaroundCompletado" (checkedChange)="onChecklistIngresoBooleanoToggle('walkaroundCompletado')" />
+        <dynadrill-checkbox label="Línea base ambiental documentada" [checked]="ci.lineaBaseAmbientalDocumentada" (checkedChange)="onChecklistIngresoBooleanoToggle('lineaBaseAmbientalDocumentada')" />
+        <dynadrill-checkbox label="Rutas de emergencia verificadas" [checked]="ci.rutasEmergenciaVerificadas" (checkedChange)="onChecklistIngresoBooleanoToggle('rutasEmergenciaVerificadas')" />
+        <dynadrill-checkbox label="SIMOPS confirmado — sin trabajos incompatibles" [checked]="ci.simopsConfirmado" (checkedChange)="onChecklistIngresoBooleanoToggle('simopsConfirmado')" />
+      </section>
+
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="h2">Verificaciones de seguridad</dynadrill-text>
+
+        <h3 class="ticket-detail__subtitle">Monitoreo de gases</h3>
+        <ul class="gas-grid">
+          @for (gas of checklistIngresoGasKeys; track gas; let i = $index) {
+            <li
+              class="gas-card"
+              [class.gas-card--seguro]="checklistIngresoUltimaLecturaPorGas()[gas]?.seguro === true"
+              [class.gas-card--fuera]="checklistIngresoUltimaLecturaPorGas()[gas]?.seguro === false"
+            >
+              <div class="gas-card__head">
+                <strong class="gas-card__name">{{ checklistIngresoGasLimites[gas].label }}</strong>
+                @if (checklistIngresoUltimaLecturaPorGas()[gas]; as r) {
+                  <dynadrill-tag [label]="r.seguro ? 'Seguro' : 'Fuera de rango'" [variant]="r.seguro ? 'success' : 'error'" />
+                } @else {
+                  <dynadrill-tag label="Sin lectura" variant="neutral" />
+                }
+              </div>
+              @if (checklistIngresoUltimaLecturaPorGas()[gas]; as r) {
+                <span class="gas-card__reading">Última lectura: {{ r.lectura }} {{ checklistIngresoGasLimites[gas].unidad }}</span>
+              }
+              <dynadrill-input
+                [label]="'Lectura (' + checklistIngresoGasLimites[gas].unidad + ')'"
+                type="number"
+                placeholder="0"
+                [value]="checklistIngresoGasDraft()[gas]"
+                (valueChange)="onChecklistIngresoGasDraftChange(gas, $event)"
+                (keydown)="bloquearTeclaGas($event)"
+                (keydown.enter)="onGasEnter($event, i)"
+              />
+              <span class="gas-card__range">Rango seguro: {{ rangoSeguroGas(gas) }}</span>
+              @if (gasBorradorEstado()[gas]; as estado) {
+                <span class="gas-card__preview" [class.gas-card__preview--fuera]="estado === 'fuera'" role="status">
+                  {{ estado === 'seguro' ? '✓ Dentro del rango seguro' : '⚠ Fuera del rango seguro — se registrará igual' }}
+                </span>
+              }
+            </li>
+          }
+        </ul>
+
+        <button type="button" class="gas-submit" [disabled]="gasRegistrando() || gasLecturasPendientes().length === 0" (click)="registrarLecturasChecklistIngreso()">
+          {{ gasRegistrando() ? 'Registrando…' : gasLecturasPendientes().length > 0 ? 'Registrar lecturas (' + gasLecturasPendientes().length + ')' : 'Registrar lecturas' }}
+        </button>
+
+        <h3 class="ticket-detail__subtitle">Verificación LOTO (Lock-out/Tag-out)</h3>
+        @for (item of ci.lotoChecklist; track $index) {
+          <dynadrill-checkbox [label]="item.label" [checked]="item.checked" (checkedChange)="onChecklistIngresoLotoToggle($index)" />
+        }
+        @if (ci.lotoNotificadoClienteAt) {
+          <dynadrill-tag [label]="'Cliente notificado ' + (ci.lotoNotificadoClienteAt | date: 'short')" variant="success" />
+        }
+
+        @if (ci.completo) {
+          <dynadrill-tag [label]="'Completo — confirmado por ' + ci.confirmadoPor" variant="success" />
+        }
+      </section>
+    }
+
+    <!-- Formalización de ejecución (Fase 3, PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS)
+         — el Supervisor confirma que el Company Man aprobó (hoy de palabra) el
+         inicio del trabajo. Solo informativo: no bloquea el paso. -->
+    @if (ticket(); as t) {
+      <section class="ticket-detail__section">
+        <dynadrill-text variant="h2">Formalización de ejecución</dynadrill-text>
+        @if (t.companyManAprobo) {
+          <dynadrill-tag [label]="'Company Man aprobó — confirmado por ' + t.companyManAprobadoPor" variant="success" />
+        } @else {
+          <button type="button" class="ticket-detail__tonal-btn" (click)="confirmarCompanyManAprobo()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5" /></svg>Confirmar aprobación del Company Man</button>
+        }
+      </section>
+    }
+
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Reportes diarios de actividades</dynadrill-text>
 
       <ng-template #dailyReportActionsTpl let-row>
         @if (isDailyReportCompleted(row)) {
           <dynadrill-tag label="Completado" variant="success" />
-          <dynadrill-button variant="secondary" size="small" (click)="openDailyActivityReportForDay(row)">
+          <dynadrill-button variant="secondary" size="small" [disabled]="verificacionesPreviasPendientes()" (click)="openDailyActivityReportForDay(row)">
             Editar reporte diario
           </dynadrill-button>
         } @else {
-          <dynadrill-button variant="primary" size="small" (click)="openDailyActivityReportForDay(row)">
+          <dynadrill-button variant="primary" size="small" [disabled]="verificacionesPreviasPendientes()" (click)="openDailyActivityReportForDay(row)">
             Llenar reporte diario
           </dynadrill-button>
         }
@@ -698,7 +794,7 @@
           </li>
         }
         <li>
-          <button type="button" class="ticket-detail__tonal-btn" (click)="openDailyActivityReportForDay(dailyReportDayRows()[0])">
+          <button type="button" class="ticket-detail__tonal-btn" [disabled]="verificacionesPreviasPendientes()" (click)="openDailyActivityReportForDay(dailyReportDayRows()[0])">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>
             {{ allDailyReportsCompleted() ? 'Editar reporte diario' : 'Llenar reporte diario' }}
           </button>
@@ -932,102 +1028,6 @@
       }
     }
 
-    <!-- Checklist de Ingreso a locación + Verificaciones de seguridad (Fase 2,
-         PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS) — antes vivía en el PTW (solo
-         QHSE), ahora lo llena Operativo. Se suma al gate de arriba. -->
-    @if (checklistIngreso(); as ci) {
-      @if (checklistIngresoBloquea()) {
-        <div class="blocked" role="alert">
-          <svg class="blocked__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
-          <div class="blocked__body">
-            <strong class="blocked__title">Traslado de salida bloqueado</strong>
-            <p class="blocked__text">Falta completar el checklist de Ingreso a locación y Verificaciones de seguridad.</p>
-          </div>
-        </div>
-      }
-
-      <section class="ticket-detail__section">
-        <dynadrill-text variant="h2">Ingreso a locación</dynadrill-text>
-        <dynadrill-checkbox label="Toolbox Talk realizado (5 min obligatorios)" [checked]="ci.toolboxTalkRealizado" (checkedChange)="onChecklistIngresoBooleanoToggle('toolboxTalkRealizado')" />
-        <dynadrill-checkbox label="Inspección conjunta Walk-around" [checked]="ci.walkaroundCompletado" (checkedChange)="onChecklistIngresoBooleanoToggle('walkaroundCompletado')" />
-        <dynadrill-checkbox label="Línea base ambiental documentada" [checked]="ci.lineaBaseAmbientalDocumentada" (checkedChange)="onChecklistIngresoBooleanoToggle('lineaBaseAmbientalDocumentada')" />
-        <dynadrill-checkbox label="Rutas de emergencia verificadas" [checked]="ci.rutasEmergenciaVerificadas" (checkedChange)="onChecklistIngresoBooleanoToggle('rutasEmergenciaVerificadas')" />
-        <dynadrill-checkbox label="SIMOPS confirmado — sin trabajos incompatibles" [checked]="ci.simopsConfirmado" (checkedChange)="onChecklistIngresoBooleanoToggle('simopsConfirmado')" />
-      </section>
-
-      <section class="ticket-detail__section">
-        <dynadrill-text variant="h2">Verificaciones de seguridad</dynadrill-text>
-
-        <h3 class="ticket-detail__subtitle">Monitoreo de gases</h3>
-        <ul class="gas-grid">
-          @for (gas of checklistIngresoGasKeys; track gas; let i = $index) {
-            <li
-              class="gas-card"
-              [class.gas-card--seguro]="checklistIngresoUltimaLecturaPorGas()[gas]?.seguro === true"
-              [class.gas-card--fuera]="checklistIngresoUltimaLecturaPorGas()[gas]?.seguro === false"
-            >
-              <div class="gas-card__head">
-                <strong class="gas-card__name">{{ checklistIngresoGasLimites[gas].label }}</strong>
-                @if (checklistIngresoUltimaLecturaPorGas()[gas]; as r) {
-                  <dynadrill-tag [label]="r.seguro ? 'Seguro' : 'Fuera de rango'" [variant]="r.seguro ? 'success' : 'error'" />
-                } @else {
-                  <dynadrill-tag label="Sin lectura" variant="neutral" />
-                }
-              </div>
-              @if (checklistIngresoUltimaLecturaPorGas()[gas]; as r) {
-                <span class="gas-card__reading">Última lectura: {{ r.lectura }} {{ checklistIngresoGasLimites[gas].unidad }}</span>
-              }
-              <dynadrill-input
-                [label]="'Lectura (' + checklistIngresoGasLimites[gas].unidad + ')'"
-                type="number"
-                placeholder="0"
-                [value]="checklistIngresoGasDraft()[gas]"
-                (valueChange)="onChecklistIngresoGasDraftChange(gas, $event)"
-                (keydown)="bloquearTeclaGas($event)"
-                (keydown.enter)="onGasEnter($event, i)"
-              />
-              <span class="gas-card__range">Rango seguro: {{ rangoSeguroGas(gas) }}</span>
-              @if (gasBorradorEstado()[gas]; as estado) {
-                <span class="gas-card__preview" [class.gas-card__preview--fuera]="estado === 'fuera'" role="status">
-                  {{ estado === 'seguro' ? '✓ Dentro del rango seguro' : '⚠ Fuera del rango seguro — se registrará igual' }}
-                </span>
-              }
-            </li>
-          }
-        </ul>
-
-        <button type="button" class="gas-submit" [disabled]="gasRegistrando() || gasLecturasPendientes().length === 0" (click)="registrarLecturasChecklistIngreso()">
-          {{ gasRegistrando() ? 'Registrando…' : gasLecturasPendientes().length > 0 ? 'Registrar lecturas (' + gasLecturasPendientes().length + ')' : 'Registrar lecturas' }}
-        </button>
-
-        <h3 class="ticket-detail__subtitle">Verificación LOTO (Lock-out/Tag-out)</h3>
-        @for (item of ci.lotoChecklist; track $index) {
-          <dynadrill-checkbox [label]="item.label" [checked]="item.checked" (checkedChange)="onChecklistIngresoLotoToggle($index)" />
-        }
-        @if (ci.lotoNotificadoClienteAt) {
-          <dynadrill-tag [label]="'Cliente notificado ' + (ci.lotoNotificadoClienteAt | date: 'short')" variant="success" />
-        }
-
-        @if (ci.completo) {
-          <dynadrill-tag [label]="'Completo — confirmado por ' + ci.confirmadoPor" variant="success" />
-        }
-      </section>
-    }
-
-    <!-- Formalización de ejecución (Fase 3, PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS)
-         — el Supervisor confirma que el Company Man aprobó (hoy de palabra) el
-         inicio del trabajo. Solo informativo: no bloquea el paso. -->
-    @if (ticket(); as t) {
-      <section class="ticket-detail__section">
-        <dynadrill-text variant="h2">Formalización de ejecución</dynadrill-text>
-        @if (t.companyManAprobo) {
-          <dynadrill-tag [label]="'Company Man aprobó — confirmado por ' + t.companyManAprobadoPor" variant="success" />
-        } @else {
-          <button type="button" class="ticket-detail__tonal-btn" (click)="confirmarCompanyManAprobo()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5" /></svg>Confirmar aprobación del Company Man</button>
-        }
-      </section>
-    }
-
     <!-- Entrega de EPI (Fase 5, PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS) — el
          operativo genera la orden, QHSE aprueba/rechaza/despacha. Se suma al
          gate de arriba: bloquea hasta que TODOS los operadores asignados
@@ -1232,7 +1232,7 @@
 
     <footer class="ticket-detail__actions ticket-detail__actions--single">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || submitting() || inspeccionesVehiculoBloquea() || checklistIngresoBloquea() || epiBloquea() || terminosBloquea()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
+      <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || submitting() || inspeccionesVehiculoBloquea() || epiBloquea() || terminosBloquea()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
     </footer>
   }
 

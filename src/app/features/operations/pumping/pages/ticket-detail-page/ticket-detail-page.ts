@@ -765,8 +765,8 @@ export class TicketDetailPage {
   // ══════════════════════════════════════════════
   // Checklist de Ingreso a locación + Verificaciones de seguridad (Fase 2,
   // PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS) — antes vivía en el PTW (solo
-  // QHSE), ahora lo llena Operativo. Se suma al gate de `traslado_salida`
-  // junto a la inspección de vehículos de arriba.
+  // QHSE), ahora lo llena Operativo — al llegar al sitio, al iniciar la ejecución
+  // (no en el traslado de salida).
   // ══════════════════════════════════════════════
 
   protected readonly checklistIngreso = signal<ChecklistIngreso | null>(null);
@@ -774,9 +774,9 @@ export class TicketDetailPage {
   protected readonly checklistIngresoGasLimites = CHECKLIST_INGRESO_GAS_LIMITES;
   protected readonly checklistIngresoGasDraft = signal<Record<ChecklistIngresoGas, string>>({ H2S: '', LEL: '', O2: '', CO: '' });
 
-  /** Solo bloquea en `traslado_salida` — mismo criterio que `inspeccionesVehiculoBloquea`. */
-  protected readonly checklistIngresoBloquea = computed(
-    () => this.currentStep() === 'traslado_salida' && this.checklistIngreso()?.completo === false,
+  /** Las verificaciones del sitio se hacen al llegar: bloquean el inicio de la ejecución (el reporte diario), no la salida. */
+  protected readonly verificacionesPreviasPendientes = computed(
+    () => this.currentStep() === 'ejecucion_operativa' && this.checklistIngreso()?.completo === false,
   );
 
   protected readonly checklistIngresoUltimaLecturaPorGas = computed<Partial<Record<ChecklistIngresoGas, ChecklistIngresoGasReading>>>(() => {
@@ -1615,6 +1615,13 @@ export class TicketDetailPage {
   protected openDailyActivityReportForDay(row: Record<string, unknown>): void {
     const t = this.ticket();
     if (!t) return;
+    if (this.verificacionesPreviasPendientes()) {
+      this.notify.error(
+        'Verificaciones pendientes',
+        'Antes de registrar el trabajo completa el checklist de Ingreso a locación y Verificaciones de seguridad (gases y LOTO).',
+      );
+      return;
+    }
     const fecha = row['fecha'] as string;
 
     const ref = this.dialog.open<DailyActivityReportDialog, DailyActivityReportDialogData>({

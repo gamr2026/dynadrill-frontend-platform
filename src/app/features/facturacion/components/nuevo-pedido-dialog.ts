@@ -427,7 +427,16 @@ export class NuevoPedidoDialog {
     });
   }
 
-  // ── Alta rápida / baja de personas desde el propio select (se guardan en la base) ──
+  // ── Alta rápida / baja de personas, pozos y taladros desde el propio select (se guardan en la base) ──
+
+  /**
+   * Solo quien tiene permiso de escritura de catálogos en el backend (ModuleRoles.catalogosWrite / personasWrite: Superadmin,
+   * Jefe de Base e Ingeniería de Ventas) ve los controles de agregar/eliminar — el resto (ej. Facturación al editar un pedido)
+   * los usaría y recibiría un 403.
+   */
+  protected readonly puedeAdministrarCatalogos = computed(() =>
+    ['Superadmin', 'Jefe de Base', 'Ingeniería de Ventas'].includes(this.auth.currentUser()?.roleName ?? ''),
+  );
 
   private readonly personasPorTipo = signal<Partial<Record<TipoPersonaContacto, PersonaContacto[]>>>({});
 

@@ -75,7 +75,7 @@
     </div>
     <app-ubicacion-selector
       [requiereTaladro]="true"
-      [permitirAlta]="true"
+      [permitirAlta]="puedeAdministrarCatalogos()"
       [mostrarRigContractual]="false"
       [valorInicial]="ubicacionInicial()"
       (seleccionChange)="onUbicacionChange($event)"
@@ -98,11 +98,11 @@
           [options]="agenteComercialOptions()"
           [value]="agenteComercial()"
           [searchable]="true"
-          [creatable]="true"
+          [creatable]="puedeAdministrarCatalogos()"
           (valueChange)="agenteComercial.set($any($event))"
           (itemCreated)="altaPersona('agente_comercial', $event)"
         />
-        @if (puedeEliminarPersona('agente_comercial')) {
+        @if (puedeAdministrarCatalogos() && puedeEliminarPersona('agente_comercial')) {
           <dynadrill-icon-button icon="delete" tooltip="Eliminar del catálogo" (clicked)="eliminarPersona('agente_comercial')" />
         }
       </div>
@@ -113,11 +113,11 @@
           [options]="representanteCampoOptions()"
           [value]="representanteCampo()"
           [searchable]="true"
-          [creatable]="true"
+          [creatable]="puedeAdministrarCatalogos()"
           (valueChange)="representanteCampo.set($any($event))"
           (itemCreated)="altaPersona('representante_campo', $event)"
         />
-        @if (puedeEliminarPersona('representante_campo')) {
+        @if (puedeAdministrarCatalogos() && puedeEliminarPersona('representante_campo')) {
           <dynadrill-icon-button icon="delete" tooltip="Eliminar del catálogo" (clicked)="eliminarPersona('representante_campo')" />
         }
       </div>
@@ -128,11 +128,11 @@
           [options]="representanteQuitoOptions()"
           [value]="representanteQuito()"
           [searchable]="true"
-          [creatable]="true"
+          [creatable]="puedeAdministrarCatalogos()"
           (valueChange)="representanteQuito.set($any($event))"
           (itemCreated)="altaPersona('representante_quito', $event)"
         />
-        @if (puedeEliminarPersona('representante_quito')) {
+        @if (puedeAdministrarCatalogos() && puedeEliminarPersona('representante_quito')) {
           <dynadrill-icon-button icon="delete" tooltip="Eliminar del catálogo" (clicked)="eliminarPersona('representante_quito')" />
         }
       </div>
@@ -143,11 +143,11 @@
           [options]="analistaFacturacionOptions()"
           [value]="analistaFacturacion()"
           [searchable]="true"
-          [creatable]="true"
+          [creatable]="puedeAdministrarCatalogos()"
           (valueChange)="analistaFacturacion.set($any($event))"
           (itemCreated)="altaPersona('analista_facturacion', $event)"
         />
-        @if (puedeEliminarPersona('analista_facturacion')) {
+        @if (puedeAdministrarCatalogos() && puedeEliminarPersona('analista_facturacion')) {
           <dynadrill-icon-button icon="delete" tooltip="Eliminar del catálogo" (clicked)="eliminarPersona('analista_facturacion')" />
         }
       </div>

@@ -1,0 +1,46 @@
+<div class="corregir-reporte-job">
+  <dynadrill-text variant="caption">
+    Día {{ fecha }} · los cambios se guardan en la bitácora del ticket FCR y se regenera el Reporte Job del Pedido. La fecha no se puede cambiar.
+  </dynadrill-text>
+
+  @if (filas().length === 0) {
+    <p class="corregir-reporte-job__vacio" role="status">El día no tiene actividades. Agrega una o guarda para quitar el Reporte Job de este día.</p>
+  }
+
+  <ol class="corregir-reporte-job__lista">
+    @for (f of filas(); track f.key; let i = $index) {
+      <li class="corregir-reporte-job__fila" [class.corregir-reporte-job__fila--invalida]="!esValida(f)">
+        <div class="corregir-reporte-job__fila-header">
+          <dynadrill-text variant="subtitle">Actividad {{ i + 1 }}</dynadrill-text>
+          <dynadrill-icon-button icon="delete" [tooltip]="'Quitar actividad ' + (i + 1)" (clicked)="quitarFila(f.key)" />
+        </div>
+        <div class="corregir-reporte-job__horas">
+          <dynadrill-select label="Inicio (hora)" placeholder="HH" [options]="hourOptions" [value]="hora(f.startTime)" (valueChange)="cambiarHora(f.key, 'startTime', 'hora', $any($event))" />
+          <dynadrill-select label="Inicio (min)" placeholder="MM" [options]="minuteOptions" [value]="minuto(f.startTime)" (valueChange)="cambiarHora(f.key, 'startTime', 'minuto', $any($event))" />
+          <dynadrill-select label="Fin (hora)" placeholder="HH" [options]="hourOptions" [value]="hora(f.endTime)" (valueChange)="cambiarHora(f.key, 'endTime', 'hora', $any($event))" />
+          <dynadrill-select label="Fin (min)" placeholder="MM" [options]="minuteOptions" [value]="minuto(f.endTime)" (valueChange)="cambiarHora(f.key, 'endTime', 'minuto', $any($event))" />
+          <div class="corregir-reporte-job__duracion">
+            <dynadrill-text variant="caption">Duración</dynadrill-text>
+            <dynadrill-text variant="body">{{ duracion(f) }}</dynadrill-text>
+          </div>
+        </div>
+        <dynadrill-textarea label="Detalle de la actividad" placeholder="Describa la actividad realizada…" [rows]="2" [value]="f.detail" (valueChange)="cambiarDetalle(f.key, $event)" />
+        @if (!esValida(f)) {
+          <dynadrill-text variant="caption" class="corregir-reporte-job__error">Completa hora de inicio, hora de fin y detalle.</dynadrill-text>
+        }
+      </li>
+    }
+  </ol>
+
+  <div class="corregir-reporte-job__resumen">
+    <dynadrill-button variant="secondary" size="small" (clicked)="agregarFila()">+ Agregar actividad</dynadrill-button>
+    <dynadrill-text variant="body" aria-live="polite">Total del día: {{ totalHoras() }} h</dynadrill-text>
+  </div>
+</div>
+
+<footer class="corregir-reporte-job__actions">
+  <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+  <dynadrill-button variant="primary" [disabled]="!puedeGuardar()" (clicked)="guardar()">
+    {{ submitting() ? 'Guardando…' : 'Guardar corrección' }}
+  </dynadrill-button>
+</footer>

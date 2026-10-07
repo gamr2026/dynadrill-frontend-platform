@@ -57,7 +57,7 @@ import { FcrService, type CampoDocumentoFcr } from '../../services/fcr.service';
 import type { DocumentosQhseTicket } from '../../../pumping/services/pumping.service';
 import { PedidoService } from '../../../../facturacion/services/pedido.service';
 import { itemsEstimadosDe, TIPO_OT_LABELS, TIPO_SERVICIO_LABELS, type Pedido } from '../../../../facturacion/models/pedido.model';
-import { capitalize, parseLocalDateString, toLocalDateString } from '../../../../../shared/utils';
+import { calcDurationHours, capitalize, HOUR_OPTIONS, MINUTE_OPTIONS, parseLocalDateString, toLocalDateString } from '../../../../../shared/utils';
 import { MACRO_ESTADO_LABELS, MACRO_ESTADO_TONE } from '../../../../../shared/models/timeline.model';
 import { FcrToolInspeccionesService } from '../../services/fcr-tool-inspecciones.service';
 import {
@@ -125,24 +125,6 @@ const CAMPO_DOCUMENTO_SERVICIO: Record<'formularioExterno' | 'dimensionamiento' 
   dureza: 'formatoDurezaServicio',
 };
 
-const HOUR_OPTIONS: DynadrillSelectOption[] = Array.from({ length: 24 }, (_, h) => {
-  const v = String(h).padStart(2, '0');
-  return { value: v, label: v };
-});
-const MINUTE_OPTIONS: DynadrillSelectOption[] = Array.from({ length: 60 }, (_, m) => {
-  const v = String(m).padStart(2, '0');
-  return { value: v, label: v };
-});
-
-/** 'HH:mm' a 'HH:mm' → horas — mismo criterio que el servidor, para mostrar la duración calculada antes de guardar. */
-function calcDurationHours(startTime: string, endTime: string): number {
-  const [startH, startM] = startTime.split(':').map(Number);
-  const [endH, endM] = endTime.split(':').map(Number);
-  let minutes = endH * 60 + endM - (startH * 60 + startM);
-  if (minutes < 0) minutes += 24 * 60;
-  return Math.round((minutes / 60) * 100) / 100;
-}
-
 function toIso(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
@@ -164,6 +146,9 @@ function resolveSupervisorName(t: FcrTicket): string {
 }
 
 import { DocumentoPdfService } from '../../../../../shared/documentos';
+import { fechaDoc, fechaHoraDoc } from '../../../../../shared/documentos/documento-format.util';
+import { agruparBitacoraPorDia, estadoDiaBitacora, type FcrBitacoraDia } from '../../models/fcr-bitacora-dias';
+import { HttpErrorResponse } from '@angular/common/http';
 import { EncuestaSatisfaccionHoja } from '../../../../../shared/documentos/formatos/encuesta-satisfaccion-hoja';
 import { ReporteJobHoja } from '../../../../../shared/documentos/formatos/reporte-job-hoja';
 import { ReporteHerramientasHoja } from '../../../../../shared/documentos/formatos/reporte-herramientas-hoja';
@@ -846,9 +831,37 @@ export class FcrTicketDetailPage {
     [...(this.ticket()?.activityLog ?? [])].sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime)),
   );
 
-  protected addActivityLogEntry(): void {
+  /** Bitácora agrupada por día — cada día se envía a Facturación por separado (specs/fcr-bitacora-envio-diario). */
+  protected readonly bitacoraDias = computed(() => {
+    const t = this.ticket();
+    return agruparBitacoraPorDia(t?.activityLog ?? [], t?.diasBitacoraEnviados ?? []);
+  });
+
+  protected readonly fechaDia = fechaDoc;
+  protected readonly fechaHoraEnvio = fechaHoraDoc;
+  protected readonly estadoDia = estadoDiaBitacora;
+
+  protected async enviarDiaBitacora(dia: FcrBitacoraDia): Promise<void> {
+    const t = this.ticket();
+    if (!t) return;
+    const ok = await this.confirmStep(
+      'Enviar día a Facturación',
+      `Se enviará el Reporte Job del ${fechaDoc(dia.fecha)} (${dia.actividades.length} actividad(es), ${dia.totalHoras} h) al Pedido ${t.pedidoCode ?? ''}. Facturación podrá revisarlo y corregirlo.`,
+    );
+    if (!ok) return;
+    this.fcrService.enviarDiaBitacora(t.id, dia.fecha).subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        this.notify.success('Día enviado a Facturación', `Reporte Job del ${fechaDoc(dia.fecha)} vinculado al Pedido ${t.pedidoCode ?? ''}.`);
+      },
+      error: (err: HttpErrorResponse) => this.notify.error('Error', err.error?.message ?? 'No se pudo enviar el día a Facturación.'),
+    });
+  }
+
+  protected async addActivityLogEntry(): Promise<void> {
     const t = this.ticket();
     if (!t || !this.canAddActivity()) return;
+    if (!(await this.confirmarCambioEnDiaEnviado(todayIso()))) return;
     const author = this.auth.currentUser()?.name ?? this.roleName();
     this.fcrService
       .addActivityLogEntry(t.id, { date: todayIso(), startTime: this.activityStart(), endTime: this.activityEnd(), detail: this.activityDetail(), author })
@@ -867,9 +880,31 @@ export class FcrTicketDetailPage {
   protected async removeActivityLogEntry(entryId: number): Promise<void> {
     const t = this.ticket();
     if (!t) return;
-    const ok = await this.confirmStep('Quitar actividad', 'Esta acción no se puede deshacer. ¿Quitar esta entrada de la bitácora?', true);
+    const fecha = t.activityLog.find(e => e.id === entryId)?.date;
+    const aviso = fecha ? this.avisoDiaEnviado(fecha) : '';
+    const ok = await this.confirmStep('Quitar actividad', `Esta acción no se puede deshacer. ¿Quitar esta entrada de la bitácora?${aviso}`, true);
     if (!ok) return;
     this.updateTicket(this.fcrService.removeActivityLogEntry(t.id, entryId), 'Actividad eliminada de la bitácora.');
+  }
+
+  /** Agregar a un día ya enviado cambia el Reporte Job que Facturación tiene — se avisa antes (specs/fcr-bitacora-envio-diario, F3). */
+  private async confirmarCambioEnDiaEnviado(fecha: string): Promise<boolean> {
+    const aviso = this.avisoDiaEnviado(fecha);
+    if (!aviso) return true;
+    return this.confirmStep('Modificar día enviado', `Vas a agregar una actividad al ${fechaDoc(fecha)}.${aviso}`);
+  }
+
+  /** '' si el día no fue enviado; si lo fue, el texto que explica qué pasa en Facturación. */
+  private avisoDiaEnviado(fecha: string): string {
+    const envio = this.ticket()?.diasBitacoraEnviados?.find(d => d.fecha === fecha) ?? null;
+    switch (estadoDiaBitacora(envio)) {
+      case 'pendiente':
+        return '';
+      case 'corregido_facturacion':
+        return ' Este día ya fue corregido por Facturación: tu cambio se aplica sobre su corrección y actualiza el Reporte Job del Pedido.';
+      case 'enviado':
+        return ' Este día ya está en Facturación: su Reporte Job se actualizará.';
+    }
   }
 
   /** Plantilla CSV (se abre en Excel) con las mismas columnas que ya captura el formulario manual de arriba. */

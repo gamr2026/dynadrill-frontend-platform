@@ -29,6 +29,21 @@ export const TIPO_DOCUMENTO_OPERATIVO_LABELS: Record<TipoDocumentoOperativo, str
 
 export type EstadoDocumentoOperativo = 'borrador' | 'firmado' | 'recibido';
 
+/**
+ * Desde que el Pedido sale al cliente para firmas, Facturación ya no corrige
+ * sus Reporte Job (specs/fcr-bitacora-envio-diario, regla 1). Espejo de
+ * `ESTADOS_PEDIDO_DOCUMENTOS_CERRADOS` del backend, que es quien lo hace cumplir (409).
+ */
+export const ESTADOS_PEDIDO_DOCUMENTOS_CERRADOS: readonly string[] = [
+  'enviado_para_firmas',
+  'ticket_firmado',
+  'aot_generada',
+  'anulado',
+  'enviado_a_control_de_costos',
+  'listo_para_facturar',
+  'facturado',
+];
+
 export interface DocumentoOperativo {
   id: number;
   pedidoId: number;

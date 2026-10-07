@@ -29,7 +29,8 @@ import {
   valorEstimadoPedido,
   itemsEstimadosDe,
 } from '../../models/pedido.model';
-import { AvanceDocumental, DocumentoOperativo, DocumentoRealPedido } from '../../models/documento-operativo.model';
+import { AvanceDocumental, DocumentoOperativo, DocumentoRealPedido, ESTADOS_PEDIDO_DOCUMENTOS_CERRADOS } from '../../models/documento-operativo.model';
+import { CorregirReporteJobDialog, CorregirReporteJobDialogData, CorregirReporteJobDialogResult } from '../../components/corregir-reporte-job-dialog';
 import { Prefactura } from '../../models/prefactura.model';
 import { GuiaRemision } from '../../models/guia-remision.model';
 import { DocumentoOperativoService, GuiaRemisionService, PedidoService, PrefacturaService } from '../../services/pedido.service';
@@ -466,6 +467,27 @@ export class PedidoDetailPage {
       ordenContrato: p.numeroContrato,
       representanteCliente: p.representanteCampo,
     };
+  }
+
+  /** Solo Facturación, solo Reporte Job de FCR y solo antes de que el Pedido salga a firmas — el backend aplica la misma regla (409). */
+  protected readonly puedeCorregirReporteJob = computed(() => {
+    const p = this.pedido();
+    const role = this.auth.currentUser()?.roleName;
+    const rolPermitido = role === 'Facturación' || role === 'Superadmin' || role === 'Jefe de Base';
+    return rolPermitido && !!p && !ESTADOS_PEDIDO_DOCUMENTOS_CERRADOS.includes(p.estado);
+  });
+
+  protected corregirReporteJob(doc: DocumentoOperativo): void {
+    const ref = this.dialog.open<CorregirReporteJobDialog, CorregirReporteJobDialogData>({
+      title: `Corregir Reporte Job — ${this.fechaCorta(doc.fecha)}`,
+      content: CorregirReporteJobDialog,
+      data: { doc },
+      footer: false,
+      width: '760px',
+    });
+    ref.afterClose.subscribe((guardado: CorregirReporteJobDialogResult | undefined) => {
+      if (guardado) this.reload();
+    });
   }
 
   protected verReporteJob(doc: DocumentoOperativo): void {

@@ -151,6 +151,19 @@ export class FcrService {
     return this.http.delete<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/activity-log/${entryId}`);
   }
 
+  /** Envío diario: genera en el Pedido el Reporte Job de esa fecha (`fecha` = 'YYYY-MM-DD'). */
+  enviarDiaBitacora(ticketId: number, fecha: string): Observable<FcrTicket> {
+    return this.http.post<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/activity-log/dias/${fecha}/enviar`, {});
+  }
+
+  /**
+   * Corrección de un día: reemplaza todas sus actividades en la bitácora del ticket (fuente única).
+   * La usan el Operador y Facturación; si el día ya fue enviado, el backend regenera su Reporte Job.
+   */
+  reemplazarDiaBitacora(ticketId: number, fecha: string, actividades: { startTime: string; endTime: string; detail: string }[]): Observable<FcrTicket> {
+    return this.http.put<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/activity-log/dias/${fecha}`, { actividades });
+  }
+
   /**
    * Registrar de nuevo (misma herramienta, misma fecha) reemplaza la fila de ese día en vez de duplicarla.
    * Los campos de completación/trabajo + picker + presión/peso/observación son "por herramienta" — van en

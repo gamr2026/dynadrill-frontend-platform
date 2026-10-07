@@ -935,26 +935,59 @@
             </div>
           }
 
-          @if (sortedActivityLog().length > 0) {
+          @if (bitacoraDias().length > 0) {
             <div class="fcr-detail__table-scroll">
-              <table class="fcr-detail__table">
-                <thead><tr><th>Fecha</th><th>Inicio</th><th>Fin</th><th>Horas</th><th>Detalle</th><th></th></tr></thead>
-                <tbody>
-                  @for (entry of sortedActivityLog(); track entry.id) {
-                    <tr>
-                      <td>{{ formatDate(entry.date) }}</td>
-                      <td>{{ entry.startTime }}</td>
-                      <td>{{ entry.endTime }}</td>
-                      <td>{{ entry.durationHours }}</td>
-                      <td>{{ entry.detail }}</td>
+              <table class="fcr-detail__table fcr-detail__table--por-dia">
+                <caption class="fcr-detail__sr-only">Bitácora de actividades agrupada por día, con su estado de envío a Facturación</caption>
+                <thead><tr><th scope="col">Inicio</th><th scope="col">Fin</th><th scope="col">Horas</th><th scope="col">Detalle</th><th scope="col"><span class="fcr-detail__sr-only">Acciones</span></th></tr></thead>
+                @for (dia of bitacoraDias(); track dia.fecha) {
+                  <tbody>
+                    <tr class="fcr-detail__day-row">
+                      <th scope="rowgroup" colspan="2">{{ fechaDia(dia.fecha) }}</th>
+                      <td>{{ dia.totalHoras }} h</td>
                       <td>
-                        @if (isMyTurn() && esActual) {
-                          <dynadrill-icon-button class="fcr-detail__tool-delete" icon="delete" tooltip="Quitar actividad" (clicked)="removeActivityLogEntry(entry.id)" />
+                        @switch (estadoDia(dia.envio)) {
+                          @case ('corregido_facturacion') {
+                            <span class="fcr-detail__day-status fcr-detail__day-status--corregido">
+                              <dynadrill-icon name="edit" [size]="14" />
+                              Corregido por Facturación · {{ fechaHoraEnvio(dia.envio!.modificadoAt) }}
+                            </span>
+                          }
+                          @case ('enviado') {
+                            <span class="fcr-detail__day-status fcr-detail__day-status--enviado">
+                              <dynadrill-icon name="success" [size]="14" />
+                              Enviado a Facturación · {{ fechaHoraEnvio(dia.envio!.enviadoAt) }}
+                            </span>
+                          }
+                          @default {
+                            <span class="fcr-detail__day-status">
+                              <dynadrill-icon name="clock" [size]="14" />
+                              Pendiente de envío
+                            </span>
+                          }
+                        }
+                      </td>
+                      <td>
+                        @if (isMyTurn() && esActual && !dia.envio && ticket()!.pedidoCode) {
+                          <dynadrill-icon-button icon="send" [tooltip]="'Enviar ' + fechaDia(dia.fecha) + ' a Facturación'" (clicked)="enviarDiaBitacora(dia)" />
                         }
                       </td>
                     </tr>
-                  }
-                </tbody>
+                    @for (entry of dia.actividades; track entry.id) {
+                      <tr>
+                        <td>{{ entry.startTime }}</td>
+                        <td>{{ entry.endTime }}</td>
+                        <td>{{ entry.durationHours }}</td>
+                        <td>{{ entry.detail }}</td>
+                        <td>
+                          @if (isMyTurn() && esActual) {
+                            <dynadrill-icon-button class="fcr-detail__tool-delete" icon="delete" tooltip="Quitar actividad" (clicked)="removeActivityLogEntry(entry.id)" />
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                }
               </table>
             </div>
           }

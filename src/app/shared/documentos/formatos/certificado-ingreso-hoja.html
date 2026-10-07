@@ -1,0 +1,97 @@
+<div class="doc-hoja cert">
+  <app-doc-encabezado titulo="Certificado de Ingreso y Verificaciones de Seguridad" />
+
+  <table class="cert__datos">
+    <tr>
+      <td><strong>Pedido:</strong> {{ pedidoCode() }}</td>
+      <td><strong>Cliente:</strong> {{ cliente() }}</td>
+    </tr>
+    <tr>
+      <td><strong>Campo:</strong> {{ campo() }}</td>
+      <td><strong>Pozo:</strong> {{ pozo() }}</td>
+    </tr>
+    <tr>
+      <td><strong>Inicio del servicio:</strong> {{ fecha(fechaServicio()) }}</td>
+      <td>
+        <strong>Checklist confirmado:</strong> {{ checklist().confirmadoPor ?? '—' }}
+        @if (checklist().confirmadoAt) {
+          — {{ fechaHora(checklist().confirmadoAt) }}
+        }
+      </td>
+    </tr>
+  </table>
+
+  <table class="cert__tabla">
+    <thead>
+      <tr>
+        <th colspan="2" class="cert__seccion">1. Ingreso a locación</th>
+      </tr>
+      <tr>
+        <th>Verificación</th>
+        <th class="cert__estado">Cumple</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (v of verificaciones(); track v.label) {
+        <tr>
+          <td>{{ v.label }}</td>
+          <td class="cert__estado" [class.cert__estado--no]="!v.ok">{{ v.ok ? 'Sí' : 'No' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <table class="cert__tabla">
+    <thead>
+      <tr>
+        <th colspan="4" class="cert__seccion">2. Monitoreo de gases</th>
+      </tr>
+      <tr>
+        <th>Gas</th>
+        <th class="cert__num">Lectura</th>
+        <th class="cert__estado">Resultado</th>
+        <th>Fecha y hora</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (g of checklist().gasReadings; track $index) {
+        <tr>
+          <td>{{ g.gas }}</td>
+          <td class="cert__num">{{ g.lectura }}</td>
+          <td class="cert__estado" [class.cert__estado--no]="!g.seguro">{{ g.seguro ? 'Seguro' : 'Fuera de rango' }}</td>
+          <td>{{ fechaHora(g.medidoAt) }}</td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="4">Sin lecturas registradas.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <table class="cert__tabla">
+    <thead>
+      <tr>
+        <th colspan="2" class="cert__seccion">3. Verificación LOTO (bloqueo y etiquetado)</th>
+      </tr>
+      <tr>
+        <th>Verificación</th>
+        <th class="cert__estado">Cumple</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of checklist().lotoChecklist; track item.label) {
+        <tr>
+          <td>{{ item.label }}</td>
+          <td class="cert__estado" [class.cert__estado--no]="!item.checked">{{ item.checked ? 'Sí' : 'No' }}</td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="2">Sin verificación LOTO registrada.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <app-doc-firmas [firmantes]="firmantes()" />
+</div>

@@ -1329,6 +1329,9 @@
         @if (ticket()!.surveySent) {
           <dynadrill-banner variant="info" message="Ticket cerrado. Encuesta de satisfacción enviada al cliente." />
         } @else if (isMyTurn() && esActual) {
+          @if (faltaActaEntrega()) {
+            <dynadrill-banner variant="warning" message="Carga el Acta de Entrega de Locación (DYN-PMP-RE-027) firmada por el cliente en «Documentos QHSE» antes de cerrar el ticket." />
+          }
           <dynadrill-button variant="success" (clicked)="openCierreTicket()">Cerrar ticket</dynadrill-button>
         }
       </section>

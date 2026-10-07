@@ -882,17 +882,17 @@
   <!-- PASO 3a: En ejecución (SALIDA) — Solo Chasis modo salida         -->
   <!-- ══════════════════════════════════════════════════════════════════ -->
   @if (currentStep() === 'traslado_salida') {
-    <!-- Checklist QHSE por equipo (Fase 4, D5) — mientras falte aprobar el checklist
-         de alguna unidad asignada, no se puede enviar el reporte de salida. -->
-    @if (checklistQhse(); as cq) {
-      @if (checklistQhseBloquea()) {
+    <!-- Inspección de vehículos — mientras falte la aprobación del Supervisor en alguna unidad de Transporte
+         asignada, no se puede enviar el reporte de salida. -->
+    @if (inspeccionesVehiculo(); as iv) {
+      @if (inspeccionesVehiculoBloquea()) {
         <div class="blocked" role="alert">
           <svg class="blocked__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
           <div class="blocked__body">
-            <strong class="blocked__title">Traslado de salida bloqueado por QHSE</strong>
-            <p class="blocked__text">Falta la aprobación del checklist QHSE de:</p>
+            <strong class="blocked__title">Traslado de salida bloqueado: inspección de vehículos sin aprobar</strong>
+            <p class="blocked__text">Falta la inspección aprobada por el Supervisor de:</p>
             <ul class="blocked__chips">
-              @for (unidad of cq.gate.faltantes; track unidad) {
+              @for (unidad of iv.gate.faltantes; track unidad) {
                 <li>{{ unidad }}</li>
               }
             </ul>
@@ -900,34 +900,30 @@
         </div>
       }
 
-      <section class="ticket-detail__section">
-        <dynadrill-text variant="h2">Checklist QHSE por equipo</dynadrill-text>
-        @if (cq.casos.length === 0) {
-          <dynadrill-text variant="caption">QHSE todavía no abrió el checklist de las unidades asignadas.</dynadrill-text>
-        }
-        @for (caso of cq.casos; track caso.id) {
-          <div class="ticket-detail__row-card">
-            <div class="qhse-doc__text">
-              <strong class="qhse-doc__name">{{ caso.equipoNombre }}</strong>
-              <span class="qhse-doc__meta">
-                @switch (caso.estado) {
-                  @case ('aprobado') { Aprobado por {{ caso.revisadoPor }} }
-                  @case ('cargado') { Cargado, esperando revisión de QHSE }
-                  @case ('rechazado') { Rechazado — {{ caso.motivoRechazo }} }
-                  @default { Pendiente de cargar }
-                }
-              </span>
-              <dynadrill-tag
-                [label]="caso.estado === 'aprobado' ? 'Aprobado' : caso.estado === 'cargado' ? 'Cargado' : caso.estado === 'rechazado' ? 'Rechazado' : 'Pendiente de cargar'"
-                [variant]="caso.estado === 'aprobado' ? 'success' : caso.estado === 'cargado' ? 'info' : caso.estado === 'rechazado' ? 'error' : 'neutral'"
-              />
+      @if (iv.casos.length > 0) {
+        <section class="ticket-detail__section">
+          <dynadrill-text variant="h2">Inspección de vehículos por unidad</dynadrill-text>
+          <dynadrill-text variant="caption">El Operador la realiza; el Supervisor la aprueba desde Mantenimiento → Inspecciones.</dynadrill-text>
+          @for (caso of iv.casos; track caso.unidadId) {
+            <div class="ticket-detail__row-card">
+              <div class="qhse-doc__text">
+                <strong class="qhse-doc__name">{{ caso.unidadCode }}</strong>
+                <span class="qhse-doc__meta">
+                  @switch (caso.estado) {
+                    @case ('aprobada') { Aprobada por {{ caso.aprobadaPor }} }
+                    @case ('por_aprobar') { Realizada, esperando la aprobación del Supervisor }
+                    @default { Pendiente de realizar }
+                  }
+                </span>
+                <dynadrill-tag
+                  [label]="caso.estado === 'aprobada' ? 'Aprobada' : caso.estado === 'por_aprobar' ? 'Por aprobar' : 'Pendiente'"
+                  [variant]="caso.estado === 'aprobada' ? 'success' : caso.estado === 'por_aprobar' ? 'info' : 'neutral'"
+                />
+              </div>
             </div>
-            @if (caso.estado !== 'aprobado') {
-              <dynadrill-upload-zone state="idle" fileName="" (fileSelected)="onChecklistArchivoSeleccionado(caso, $event)" />
-            }
-          </div>
-        }
-      </section>
+          }
+        </section>
+      }
     }
 
     <!-- Checklist de Ingreso a locación + Verificaciones de seguridad (Fase 2,
@@ -1230,7 +1226,7 @@
 
     <footer class="ticket-detail__actions ticket-detail__actions--single">
       <dynadrill-button variant="secondary" (clicked)="goBack()">Volver</dynadrill-button>
-      <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || submitting() || checklistQhseBloquea() || checklistIngresoBloquea() || epiBloquea() || terminosBloquea()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
+      <dynadrill-button variant="primary" [disabled]="!allInspectionsCompleted() || submitting() || inspeccionesVehiculoBloquea() || checklistIngresoBloquea() || epiBloquea() || terminosBloquea()" (clicked)="saveUnitReport()">Enviar reporte de unidad de salida</dynadrill-button>
     </footer>
   }
 
@@ -1493,6 +1489,9 @@
   <!-- PASO 4: En revisión — Aprobación            -->
   <!-- ═══════════════════════════════════════════ -->
   @if (currentStep() === 'revision_final') {
+    @if (faltaActaEntrega()) {
+      <dynadrill-banner variant="warning" message="Carga el Acta de Entrega de Locación (DYN-PMP-RE-027) firmada por el cliente en «Documentos QHSE» antes de cerrar el ticket." />
+    }
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Resumen del servicio</dynadrill-text>
       <dynadrill-context-card

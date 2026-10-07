@@ -66,8 +66,7 @@ import {
 import {
   PumpingService,
   type DocumentosQhseTicket,
-  type ChecklistQhseEstado,
-  type ChecklistQhseEquipo,
+  type InspeccionesVehiculoEstado,
   type ChecklistIngreso,
   type ChecklistIngresoGas,
   type ChecklistIngresoGasReading,
@@ -622,6 +621,9 @@ export class TicketDetailPage {
   protected readonly subidaArtAbierta = signal(false);
   protected readonly subidaPtAbierta = signal(false);
 
+  /** El ticket no se cierra sin el Acta de Entrega de Locación (el PTW sí se cierra sin ella). `false` mientras carga el estado documental. */
+  protected readonly faltaActaEntrega = computed(() => this.documentosQhse()?.formatoEntrega === false);
+
   /** Tipo de servicio del ticket, para la tarjeta "Información de la propuesta" (móvil). */
   protected readonly tipoServicioLabel = computed(() => {
     const t = this.ticket();
@@ -691,7 +693,7 @@ export class TicketDetailPage {
     });
   }
 
-  /** Acta de Entrega de Locación (DYN-PMP-RE-027): la sube el Supervisor al finalizar el ticket; QHSE confirma su recepción para cerrar el PTW. */
+  /** Acta de Entrega de Locación (DYN-PMP-RE-027): la sube el Supervisor al finalizar el ticket y el ticket no se puede cerrar sin ella (el PTW sí). */
   protected readonly entregaArchivo = signal<File | null>(null);
   protected readonly subidaEntregaAbierta = signal(false);
 
@@ -712,7 +714,7 @@ export class TicketDetailPage {
         this.documentosQhseSubmitting.set(false);
         this.entregaArchivo.set(null);
         this.subidaEntregaAbierta.set(false);
-        this.notify.success('Acta de entrega guardada', 'QHSE será notificado para confirmar la recepción y cerrar el PTW.');
+        this.notify.success('Acta de entrega guardada', 'Ya puedes cerrar el ticket.');
         this.loadDocumentosQhse(t.id);
       },
       error: () => {
@@ -736,38 +738,21 @@ export class TicketDetailPage {
   }
 
   // ══════════════════════════════════════════════
-  // Checklist QHSE por equipo (Fase 4, D5) — bloquea `traslado_salida`
-  // hasta que QHSE apruebe el checklist de todas las unidades asignadas.
+  // Inspección de vehículos por unidad — bloquea `traslado_salida` hasta que el Supervisor apruebe la inspección de
+  // cada unidad de Transporte asignada (el Operador la hace; el Supervisor la aprueba desde Mantenimiento).
   // ══════════════════════════════════════════════
 
-  protected readonly checklistQhse = signal<ChecklistQhseEstado | null>(null);
-  protected readonly checklistQhseSubmitting = signal<number | null>(null); // id del checklist en curso, o null
+  protected readonly inspeccionesVehiculo = signal<InspeccionesVehiculoEstado | null>(null);
 
-  /** Solo bloquea el formulario en `traslado_salida` — en cualquier otro paso el checklist ya no aplica (D5). */
-  protected readonly checklistQhseBloquea = computed(() => this.currentStep() === 'traslado_salida' && this.checklistQhse()?.gate.ok === false);
+  /** Solo bloquea el formulario en `traslado_salida` — en cualquier otro paso ya no aplica. */
+  protected readonly inspeccionesVehiculoBloquea = computed(
+    () => this.currentStep() === 'traslado_salida' && this.inspeccionesVehiculo()?.gate.ok === false,
+  );
 
-  private loadChecklistQhse(ticketId: number): void {
-    this.pumpingService.checklistQhse(ticketId).subscribe({
-      next: c => this.checklistQhse.set(c),
-      error: () => this.checklistQhse.set(null),
-    });
-  }
-
-  protected onChecklistArchivoSeleccionado(caso: ChecklistQhseEquipo, file: NzUploadFile): void {
-    const t = this.ticket();
-    const archivo = (file.originFileObj as File | undefined) ?? (file as unknown as File);
-    if (!t || !archivo) return;
-    this.checklistQhseSubmitting.set(caso.id);
-    this.pumpingService.cargarChecklistQhse(t.id, caso.id, archivo).subscribe({
-      next: () => {
-        this.checklistQhseSubmitting.set(null);
-        this.notify.success('Checklist guardado', `Se cargó el checklist de ${caso.equipoNombre} — queda pendiente de revisión de QHSE.`);
-        this.loadChecklistQhse(t.id);
-      },
-      error: () => {
-        this.checklistQhseSubmitting.set(null);
-        this.notify.error('Error', `No se pudo cargar el checklist de ${caso.equipoNombre}.`);
-      },
+  private loadInspeccionesVehiculo(ticketId: number): void {
+    this.pumpingService.inspeccionesVehiculo(ticketId).subscribe({
+      next: e => this.inspeccionesVehiculo.set(e),
+      error: () => this.inspeccionesVehiculo.set(null),
     });
   }
 
@@ -775,7 +760,7 @@ export class TicketDetailPage {
   // Checklist de Ingreso a locación + Verificaciones de seguridad (Fase 2,
   // PLAN-QHSE-FASE2-PTW-STOP-EPI-DESECHOS) — antes vivía en el PTW (solo
   // QHSE), ahora lo llena Operativo. Se suma al gate de `traslado_salida`
-  // junto al Checklist QHSE de equipos de arriba.
+  // junto a la inspección de vehículos de arriba.
   // ══════════════════════════════════════════════
 
   protected readonly checklistIngreso = signal<ChecklistIngreso | null>(null);
@@ -783,7 +768,7 @@ export class TicketDetailPage {
   protected readonly checklistIngresoGasLimites = CHECKLIST_INGRESO_GAS_LIMITES;
   protected readonly checklistIngresoGasDraft = signal<Record<ChecklistIngresoGas, string>>({ H2S: '', LEL: '', O2: '', CO: '' });
 
-  /** Solo bloquea en `traslado_salida` — mismo criterio que `checklistQhseBloquea`. */
+  /** Solo bloquea en `traslado_salida` — mismo criterio que `inspeccionesVehiculoBloquea`. */
   protected readonly checklistIngresoBloquea = computed(
     () => this.currentStep() === 'traslado_salida' && this.checklistIngreso()?.completo === false,
   );
@@ -2104,7 +2089,7 @@ export class TicketDetailPage {
         this.loading.set(false);
         this.initFromTicket(ticket);
         this.loadDocumentosQhse(ticket.id);
-        this.loadChecklistQhse(ticket.id);
+        this.loadInspeccionesVehiculo(ticket.id);
         this.loadChecklistIngreso(ticket.id);
         this.loadEpiEntregas(ticket.id);
         this.loadAceptacionesTerminos(ticket.id);
@@ -2576,6 +2561,10 @@ export class TicketDetailPage {
     const t = this.ticket();
     if (!t || this.decision() !== 'approved') return;
     if (this.bloqueadoPorSwa()) return;
+    if (this.faltaActaEntrega()) {
+      this.notify.error('Acta de Entrega pendiente', 'Carga el Acta de Entrega de Locación (DYN-PMP-RE-027) firmada por el cliente en «Documentos QHSE» antes de cerrar el ticket.');
+      return;
+    }
     this.submitting.set(true);
     this.pumpingService.approveTicket(t.id).subscribe({
       next: () => {
@@ -2583,9 +2572,9 @@ export class TicketDetailPage {
         this.notify.success('Aprobado', 'Ticket aprobado — pasa a estado Finalizado.');
         this.router.navigate(['..'], { relativeTo: this.route });
       },
-      error: () => {
+      error: (err: { error?: { message?: string } }) => {
         this.submitting.set(false);
-        this.notify.error('Error', 'No se pudo aprobar el ticket.');
+        this.notify.error('Error', err?.error?.message ?? 'No se pudo aprobar el ticket.');
       },
     });
   }
@@ -2748,6 +2737,8 @@ export class TicketDetailPage {
           // La inspección de salida ya pide Origen/Destino — se precargan acá
           // para no volver a tipearlos en "Fecha, ruta y combustible". No pisa
           // un valor que el usuario ya haya escrito a mano en esa sección.
+          const tk = this.ticket();
+          if (tk) this.loadInspeccionesVehiculo(tk.id);
           if (!this.reportOrigin() && result.puntoPartida) this.reportOrigin.set(result.puntoPartida);
           if (!this.reportDestination() && result.destino) this.reportDestination.set(result.destino);
         }

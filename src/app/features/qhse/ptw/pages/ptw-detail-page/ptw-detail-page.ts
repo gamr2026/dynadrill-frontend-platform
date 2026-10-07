@@ -20,8 +20,6 @@ import {
   ptwCerrado,
 } from '../../models/ptw.model';
 import { PtwService } from '../../services/ptw.service';
-import { QhseDocumentosService } from '../../../documentos/services/qhse-documentos.service';
-import { QHSE_REFERENCIA_VIGENTE, QHSE_TIPO_FORMATO_ENTREGA } from '../../../documentos/models/qhse-documentos.model';
 import { downloadQhseReport, escapeHtml, qhseBadge, type QhseReportSection } from '../../../shared/utils/qhse-report.util';
 
 @Component({
@@ -40,7 +38,6 @@ import { downloadQhseReport, escapeHtml, qhseBadge, type QhseReportSection } fro
 })
 export class PtwDetailPage {
   private readonly ptwService = inject(PtwService);
-  private readonly documentosService = inject(QhseDocumentosService);
   private readonly auth = inject(AuthService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly route = inject(ActivatedRoute);
@@ -57,9 +54,6 @@ export class PtwDetailPage {
     return p && p.fase !== 'gabinete' ? PTW_FASE_ORDER.indexOf('gestion_documental') : 0;
   });
 
-  /** Acta de Entrega de Locación cargada por el Supervisor (solo se puede consultar si el PTW está ligado a un pedido). */
-  protected readonly actaEntrega = signal<{ cargada: boolean; nombre?: string; cargadaPor?: string } | null>(null);
-
   protected readonly cerrado = computed(() => {
     const p = this.ptw();
     return !!p && ptwCerrado(p);
@@ -73,32 +67,8 @@ export class PtwDetailPage {
       next: p => {
         this.ptw.set(p);
         this.loading.set(false);
-        if (p.pedidoId) this.cargarActaEntrega(p.pedidoId);
       },
       error: () => this.loading.set(false),
-    });
-  }
-
-  private cargarActaEntrega(pedidoId: number): void {
-    this.documentosService.listar(pedidoId).subscribe({
-      next: docs => {
-        const d = docs.find(x => x.tipo === QHSE_TIPO_FORMATO_ENTREGA && x.referencia === QHSE_REFERENCIA_VIGENTE);
-        this.actaEntrega.set(d ? { cargada: true, nombre: d.nombreOriginal, cargadaPor: d.uploadedBy } : { cargada: false });
-      },
-      error: () => this.actaEntrega.set(null),
-    });
-  }
-
-  protected descargarActaEntrega(): void {
-    const p = this.ptw();
-    if (!p?.pedidoId) return;
-    this.documentosService.descargar(p.pedidoId, QHSE_TIPO_FORMATO_ENTREGA, QHSE_REFERENCIA_VIGENTE).subscribe({
-      next: blob => {
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
-        setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      },
-      error: () => this.notify.error('Error', 'No se pudo abrir el Acta de Entrega.'),
     });
   }
 
@@ -145,14 +115,11 @@ export class PtwDetailPage {
    * claramente marcado como plantilla, con el mismo mecanismo de descarga
    * (Blob + <a download>) que ya usa downloadQhseReport(), para que quien
    * necesite el formato tenga algo que llenar e imprimir/adjuntar sin
-   * salir del sistema. Carnet de Vacunas queda afuera a propósito: es un
-   * documento personal del trabajador, no una plantilla que Dynadrill
-   * provea.
-   */
+   * salir del sistema.   */
   // `sfi` queda afuera a propósito: no es un formato que el cliente/MSP provea
   // para completar y volver a cargar — lo elabora QHSE directamente (punto 6
   // del plan QHSE↔Pumping), no tiene sentido un "formato en blanco" para él.
-  protected descargarFormatoBlanco(tipo: Exclude<PtwDocumentoTipo, 'carnet_vacunas' | 'sfi'>): void {
+  protected descargarFormatoBlanco(tipo: Exclude<PtwDocumentoTipo, 'sfi'>): void {
     const doc = PTW_DOCUMENTOS_REQUERIDOS.find(d => d.tipo === tipo);
     if (!doc) return;
 
@@ -218,7 +185,6 @@ export class PtwDetailPage {
     const firmasSection: QhseReportSection = {
       title: 'Confirmación y cierre',
       bodyHtml: `<table>
-        ${firmaFila('Entrega de locación confirmada por QHSE', p.entregaLocacionConfirmada ? p.entregaLocacionConfirmadaPor : undefined)}
         ${firmaFila('PTW cerrado', p.ptwCerrado)}
       </table>`,
     };
@@ -231,24 +197,13 @@ export class PtwDetailPage {
     );
   }
 
-  /** QHSE confirma (Sí / No) que el Supervisor cargó el Acta de Entrega de Locación. Con "Sí" ya se puede cerrar el PTW. */
-  protected confirmarEntrega(cargada: boolean): void {
-    const p = this.ptw();
-    if (!p || this.cerrado()) return;
-    const nombre = this.auth.currentUser()?.name ?? '';
-    this.patch({
-      entregaLocacionConfirmada: cargada,
-      entregaLocacionConfirmadaPor: { nombre, firmadoAt: new Date().toISOString() },
-    });
-  }
-
   /**
    * Cierra el PTW. Se registra la misma firma en "PTW cerrado" y "Acta de devolución" (el resto del sistema —Facturación,
    * avisos, gate del ticket— lee esa pareja) y se notifican solos los respaldos a HSE Base, Operaciones y Facturación.
    */
   protected cerrarPtw(): void {
     const p = this.ptw();
-    if (!p || !p.entregaLocacionConfirmada || p.ptwCerrado) return;
+    if (!p || p.ptwCerrado) return;
     const firma: PtwFirma = { nombre: this.auth.currentUser()?.name ?? '', firmadoAt: new Date().toISOString() };
     this.patch({ ptwCerrado: firma, actaDevolucionFirmada: firma, respaldosEnviados: true, fase: 'gestion_documental' });
     this.notify.success('PTW cerrado', 'Se notificó a HSE Base, Operaciones y Facturación.');

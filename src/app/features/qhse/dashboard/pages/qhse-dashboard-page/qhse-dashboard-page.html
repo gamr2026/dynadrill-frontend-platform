@@ -31,28 +31,6 @@
     <div class="qd-operativo__grid">
       <article class="qd-op">
         <header class="qd-op__head">
-          <h3 class="qd-op__titulo">Checklist de equipos</h3>
-          <a class="qd-op__ver" routerLink="/dashboard/qhse/checklist-equipos">Ver todo</a>
-        </header>
-        <div class="qd-chips">
-          @for (e of checklistEquiposPorEstado(); track e.estado) {
-            @if (e.count > 0) {
-              <app-qhse-chip [label]="e.count + ' ' + e.label" [tone]="e.tone" />
-            }
-          }
-          @if (checklistEquiposTotal() === 0) {
-            <span class="qd-vacio">Sin checklists registrados todavía.</span>
-          }
-        </div>
-        @if (checklistEquiposAtencion()[0]; as a) {
-          <button type="button" class="qd-op__linea" (click)="verChecklistEquipos()">{{ a.code }} · {{ a.titulo }}</button>
-        } @else if (checklistEquiposTotal() > 0) {
-          <p class="qd-vacio">Nada pendiente de revisión.</p>
-        }
-      </article>
-
-      <article class="qd-op">
-        <header class="qd-op__head">
           <h3 class="qd-op__titulo">Entrega de EPI</h3>
           <a class="qd-op__ver" routerLink="/dashboard/qhse/epi">Ver todo</a>
         </header>

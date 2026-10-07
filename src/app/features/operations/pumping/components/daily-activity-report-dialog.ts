@@ -188,12 +188,52 @@ export class DailyActivityReportDialog {
     this.data.existing?.actividades ?? [{ inicio: '', fin: '', horas: null, detalle: '' }],
   );
 
-  /** Descarga el formato físico DYN-SGI-RE-047 en blanco — para quien prefiera llenarlo a mano y adjuntarlo. */
-  protected descargarPlantilla(): void {
+  /**
+   * Descarga el formato DYN-SGI-RE-047 con lo ya definido en el Pedido/Ticket precargado (cliente, contrato, pozo,
+   * campo/bloque, taladro, Representante del Cliente y su cargo, Supervisor y la fecha) — quien lo llena a mano solo
+   * completa las actividades. Se escribe en las mismas celdas que `onFileSelected` lee al volver a cargar la plantilla.
+   * Si no se puede abrir el .xlsx se descarga en blanco, como antes.
+   */
+  protected async descargarPlantilla(): Promise<void> {
+    const nombre = 'DYN-SGI-RE-047 Reporte diario actividades.xlsx';
+    let url = URL_PLANTILLA_REPORTE_DIARIO;
+    let blobUrl: string | null = null;
+    try {
+      const respuesta = await fetch(URL_PLANTILLA_REPORTE_DIARIO);
+      const { Workbook } = await import('exceljs');
+      const libro = new Workbook();
+      await libro.xlsx.load(await respuesta.arrayBuffer());
+      const hoja = libro.worksheets[0];
+      const poner = (fila: number, col: number, valor: string | undefined | null): void => {
+        const texto = (valor ?? '').toString().trim();
+        if (texto) hoja.getCell(fila + 1, col + 1).value = texto;
+      };
+      const fecha = this.fecha();
+      const dd = (n: number): string => String(n).padStart(2, '0');
+      poner(FILA.fecha, COL.fecha, fecha ? `${dd(fecha.getDate())}/${dd(fecha.getMonth() + 1)}/${fecha.getFullYear()}` : '');
+      poner(FILA.cliente, COL.cliente, this.cliente());
+      poner(FILA.cliente, COL.ordenContrato, this.ordenContrato());
+      poner(FILA.pozo, COL.pozo, this.data.pozo);
+      poner(FILA.pozo, COL.representanteCliente, this.representanteCliente());
+      poner(FILA.campoBloque, COL.campoBloque, this.data.campoBloque);
+      poner(FILA.campoBloque, COL.cargo, this.cargo());
+      poner(FILA.taladro, COL.taladro, this.data.existing?.taladro ?? this.data.taladro);
+      poner(FILA.firmas, COL.nombreSupervisor, this.nombreSupervisor());
+      // "Nombre:" del Representante del Cliente en el recuadro de firmas — H30, junto a su etiqueta.
+      poner(FILA.firmas, 7, this.representanteCliente());
+      const buffer = await libro.xlsx.writeBuffer();
+      blobUrl = URL.createObjectURL(
+        new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+      );
+      url = blobUrl;
+    } catch {
+      /* se descarga la plantilla en blanco */
+    }
     const a = document.createElement('a');
-    a.href = URL_PLANTILLA_REPORTE_DIARIO;
-    a.download = 'DYN-SGI-RE-047 Reporte diario actividades.xlsx';
+    a.href = url;
+    a.download = nombre;
     a.click();
+    if (blobUrl) setTimeout(() => URL.revokeObjectURL(blobUrl!), 60_000);
   }
 
   protected addActivity(): void {

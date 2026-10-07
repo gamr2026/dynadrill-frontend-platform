@@ -205,6 +205,8 @@ export class FcrTicketDetailPage {
   protected readonly artArchivo = signal<File | null>(null);
   protected readonly ptArchivo = signal<File | null>(null);
   protected readonly documentosQhseSubmitting = signal(false);
+  /** El ticket no se cierra sin el Acta de Entrega de Locación (el PTW sí se cierra sin ella). `false` mientras carga el estado documental. */
+  protected readonly faltaActaEntrega = computed(() => this.documentosQhse()?.formatoEntrega === false);
 
   /** Al tocar el ícono de subir de ART / PT se despliega el formulario de carga (fecha + archivo). */
   protected readonly subidaArtAbierta = signal(false);
@@ -273,7 +275,7 @@ export class FcrTicketDetailPage {
     });
   }
 
-  /** Acta de Entrega de Locación (DYN-PMP-RE-027): la sube el Supervisor al finalizar el ticket; QHSE confirma su recepción para cerrar el PTW. */
+  /** Acta de Entrega de Locación (DYN-PMP-RE-027): la sube el Supervisor al finalizar el ticket y el ticket no se puede cerrar sin ella (el PTW sí). */
   protected readonly entregaArchivo = signal<File | null>(null);
   protected readonly subidaEntregaAbierta = signal(false);
 
@@ -294,7 +296,7 @@ export class FcrTicketDetailPage {
         this.documentosQhseSubmitting.set(false);
         this.entregaArchivo.set(null);
         this.subidaEntregaAbierta.set(false);
-        this.notify.success('Acta de entrega guardada', 'QHSE será notificado para confirmar la recepción y cerrar el PTW.');
+        this.notify.success('Acta de entrega guardada', 'Ya puedes cerrar el ticket.');
         this.loadDocumentosQhse(t.id);
       },
       error: () => {
@@ -1422,6 +1424,10 @@ export class FcrTicketDetailPage {
   protected openCierreTicket(): void {
     const t = this.ticket();
     if (!t || !this.isMyTurn()) return;
+    if (this.faltaActaEntrega()) {
+      this.notify.error('Acta de Entrega pendiente', 'Carga el Acta de Entrega de Locación (DYN-PMP-RE-027) firmada por el cliente en «Documentos QHSE» antes de cerrar el ticket.');
+      return;
+    }
     const returned = t.tools.filter(tool => tool.status === 'devuelta').length;
     const enviados = t.tools.filter(tool => this.toolInspectionByToolId().get(tool.id)?.estado === 'enviado').length;
     const ref = this.dialog.open<CierreTicketDialog, CierreTicketDialogData>({
@@ -1443,7 +1449,7 @@ export class FcrTicketDetailPage {
           this.ticket.set(updated);
           this.notify.success('Ticket cerrado. Encuesta de satisfacción enviada al cliente.');
         },
-        error: () => this.notify.error('Error', 'No se pudo cerrar el ticket.'),
+        error: (err: { error?: { message?: string } }) => this.notify.error('Error', err?.error?.message ?? 'No se pudo cerrar el ticket.'),
       });
     });
   }

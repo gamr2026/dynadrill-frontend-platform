@@ -32,6 +32,9 @@ export class PrefacturaHoja {
   protected readonly fecha = fechaDoc;
   protected readonly condiciones = CONDICIONES_SERVICIO;
 
+  /** Calculada al vuelo desde el ticket (todavía no es la prefactura oficial de Facturación). */
+  protected readonly preliminar = computed(() => this.prefactura().code === 'PRELIMINAR');
+
   protected readonly esVerbal = computed(() => this.pedido().solicitudMedio === 'verbal');
 
   protected readonly observaciones = computed(() =>

@@ -112,6 +112,7 @@ import {
 } from '../../../../maintenance/models/vehicle-inspection.model';
 import { VehicleInspectionDialog, VehicleInspectionDialogData } from '../../../../maintenance/components/vehicle-inspection-dialog';
 import { VehicleInspectionsService } from '../../../../maintenance/services/vehicle-inspections.service';
+import { TicketPrefacturaDialog, type TicketPrefacturaDialogData } from '../../../../../shared/components/ticket-prefactura-dialog/ticket-prefactura-dialog';
 import { ReviewArrivalReportDialog, ReviewArrivalReportDialogData, ReviewArrivalReportDialogResult } from '../../components/review-arrival-report-dialog';
 import { DailyActivityReportDialog, DailyActivityReportDialogData, DailyActivityReportDialogResult } from '../../components/daily-activity-report-dialog';
 import { Articulo } from '../../../../inventario/models/articulo.model';
@@ -2562,6 +2563,25 @@ export class TicketDetailPage {
           error: () => this.notify.error('No se sincronizó con Mantenimiento', 'El reporte de Pumping sí quedó guardado, pero no se pudo enviar la novedad a la Bandeja.'),
         });
       });
+    });
+  }
+
+  /** "Ver prefactura": la ve el Supervisor (y Jefe de Base) al final del ticket, para llevarla a firmar al Company Man. */
+  protected readonly puedeVerPrefactura = computed(
+    () =>
+      ['Supervisor', 'Supervisor Pumping', 'Jefe de Base', 'Superadmin'].includes(this.roleName()) &&
+      (this.currentStep() === 'revision_final' || this.currentStep() === 'cierre'),
+  );
+
+  protected verPrefactura(): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.dialog.open<TicketPrefacturaDialog, TicketPrefacturaDialogData>({
+      title: 'Prefactura del servicio',
+      content: TicketPrefacturaDialog,
+      data: { linea: 'pumping', ticketId: t.id, ticketCode: t.code },
+      footer: false,
+      width: 1000,
     });
   }
 

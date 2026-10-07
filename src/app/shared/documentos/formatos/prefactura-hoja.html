@@ -1,6 +1,12 @@
 <div class="doc-hoja pf">
   <app-doc-encabezado titulo="Prefactura" codigo="DYN-AFN-RE-11" version="09" />
 
+  @if (preliminar()) {
+    <div class="pf__preliminar">
+      PRELIMINAR — calculada con la documentación disponible al {{ fecha(prefactura().fechaGeneracion) }}; sujeta a validación de Facturación
+    </div>
+  }
+
   <!-- Datos de la empresa -->
   <div class="pf__empresa">
     <div>Vía Coca Lago Km 2, &nbsp;Orellana - Ecuador</div>
@@ -75,7 +81,7 @@
     <div class="pf__firma">
       <div class="pf__firma-linea"></div>
       <div>Aprobado Cliente</div>
-      <div>Nombre : {{ prefactura().firmaCliente?.nombre }}</div>
+      <div>Nombre : {{ prefactura().firmaCliente?.nombre ?? pedido().representanteCampo }}</div>
       <div>C.I.:</div>
     </div>
   </div>

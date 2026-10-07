@@ -1632,7 +1632,8 @@ export class TicketDetailPage {
         taladroId: t.taladroId,
         // Representante del cliente ya se definió en el Pedido (Company Man / Representante de Campo) — no hace falta re-tipearlo acá.
         representanteCliente: this.pedido()?.representanteCampo,
-        existing: undefined,
+        // Si el día ya tiene reporte (se llenó en esta sesión) se abre con esos datos para poder corregirlo.
+        existing: this.dailyActivityReports().get(fecha),
       },
       size: 'large',
       footer: false,

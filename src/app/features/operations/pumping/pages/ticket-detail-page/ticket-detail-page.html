@@ -677,8 +677,9 @@
 
       <ng-template #dailyReportActionsTpl let-row>
         @if (isDailyReportCompleted(row)) {
-          <dynadrill-button variant="success" size="small" [disabled]="true">
-            Completado
+          <dynadrill-tag label="Completado" variant="success" />
+          <dynadrill-button variant="secondary" size="small" (click)="openDailyActivityReportForDay(row)">
+            Editar reporte diario
           </dynadrill-button>
         } @else {
           <dynadrill-button variant="primary" size="small" (click)="openDailyActivityReportForDay(row)">
@@ -696,14 +697,12 @@
             <dynadrill-tag [label]="row.statusBadge.text" [variant]="row.statusBadge.tone" />
           </li>
         }
-        @if (!allDailyReportsCompleted()) {
-          <li>
-            <button type="button" class="ticket-detail__tonal-btn" (click)="openDailyActivityReportForDay(dailyReportDayRows()[0])">
+        <li>
+          <button type="button" class="ticket-detail__tonal-btn" (click)="openDailyActivityReportForDay(dailyReportDayRows()[0])">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>
-              Llenar reporte diario
-            </button>
-          </li>
-        }
+            {{ allDailyReportsCompleted() ? 'Editar reporte diario' : 'Llenar reporte diario' }}
+          </button>
+        </li>
       </ul>
 
       <div class="ticket-detail__only-desktop">

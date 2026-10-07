@@ -12,6 +12,9 @@
       Observaciones ({{ t.observations.length }})
     </dynadrill-button>
   }
+  @if (puedeVerPrefactura()) {
+    <dynadrill-button variant="secondary" size="small" (clicked)="verPrefactura()">Ver prefactura</dynadrill-button>
+  }
 </div>
 
 @if (loading()) {
@@ -1333,14 +1336,6 @@
             <dynadrill-banner variant="warning" message="Carga el Acta de Entrega de Locación (DYN-PMP-RE-027) firmada por el cliente en «Documentos QHSE» antes de cerrar el ticket." />
           }
           <dynadrill-button variant="success" (clicked)="openCierreTicket()">Cerrar ticket</dynadrill-button>
-        }
-        @if (puedeVerPrefactura() && esActual) {
-          <div class="fcr-detail__prefactura">
-            <dynadrill-text variant="caption">
-              Prefactura con lo cotizado y los documentos generados hasta el momento. Antes de cerrar el ticket, gestiona aquí la firma del Company Man: al cerrar, la prefactura queda cargada y firmada en Facturación.
-            </dynadrill-text>
-            <dynadrill-button variant="secondary" (clicked)="verPrefactura()">Ver prefactura</dynadrill-button>
-          </div>
         }
       </section>
     }

@@ -13,6 +13,9 @@
         Ver / solicitar cambio de ítems del pedido
       </dynadrill-button>
     }
+    @if (puedeVerPrefactura()) {
+      <dynadrill-button variant="secondary" size="small" (clicked)="verPrefactura()">Ver prefactura</dynadrill-button>
+    }
   </div>
 }
 @if (solicitudPendiente(); as sp) {
@@ -1571,17 +1574,6 @@
     </footer>
   }
 
-  @if (puedeVerPrefactura()) {
-    <section class="ticket-detail__section">
-      <dynadrill-text variant="h2">Prefactura</dynadrill-text>
-      <dynadrill-text variant="caption">
-        Detalle con lo cotizado y los documentos generados hasta el momento. Antes de finalizar el ticket, gestiona aquí la firma del Company Man: al finalizar, la prefactura queda cargada y firmada en Facturación.
-      </dynadrill-text>
-      <div>
-        <dynadrill-button variant="secondary" (clicked)="verPrefactura()">Ver prefactura</dynadrill-button>
-      </div>
-    </section>
-  }
 }
 </div>
 }

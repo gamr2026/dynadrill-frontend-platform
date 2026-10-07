@@ -69,8 +69,6 @@ interface LineaEstimadaDraft {
   esQuimico: boolean;
   /** Igual que `esQuimico`, pero contra el catálogo de herramientas de Inventario (categoría HERRAMIENTAS). */
   esHerramienta: boolean;
-  /** La prefactura factura exactamente esta cantidad — no la recalcula con los días del Reporte Job (ver `cantidadFija` en pedido.model.ts). */
-  cantidadFija: boolean;
 }
 
 /**
@@ -96,7 +94,6 @@ const LINEA_ESTIMADA_VACIA: LineaEstimadaDraft = {
   descuentoPorcentaje: '0',
   esQuimico: false,
   esHerramienta: false,
-  cantidadFija: false,
 };
 
 /** Cabecera real de la plantilla descargable de AS2 (hoja "Ventas", fila 4) — "AS2 Pedido Cliente.xlsx". */
@@ -106,7 +103,7 @@ const MAX_PLANTILLA_BYTES = 5 * 1024 * 1024;
 const URL_PLANTILLA_AS2 = '/plantillas/as2-pedido-cliente.xlsx';
 
 /**
- * Plantillas de ejemplo (mismo formato AS2, con la columna opcional "Cantidad fija") armadas con las líneas de tickets
+ * Plantillas de ejemplo (mismo formato AS2) armadas con las líneas de tickets
  * reales del cliente — 4368 y 4412 de Pumping, 4426 de FCR. "Cargar" las aplica directo; también se pueden descargar y
  * subir con "Cargar plantilla". Fijan la línea de servicio y el tipo de servicio que usó ese ticket.
  */
@@ -767,7 +764,6 @@ export class NuevoPedidoDialog {
         const descripcion = (fila[3] ?? '').toString().trim();
         const precio = (fila[4] ?? '').toString().trim();
         const descuento = (fila[5] ?? '').toString().trim();
-        const fija = (fila[6] ?? '').toString().trim().toUpperCase();
         lineas.push({
           codigo,
           descripcion,
@@ -777,7 +773,6 @@ export class NuevoPedidoDialog {
           descuentoPorcentaje: descuento || '0',
           esQuimico: this.esPumping() && quimicos.has(codigo),
           esHerramienta: herramientas.has(codigo),
-          cantidadFija: ['SI', 'SÍ', 'S', '1', 'TRUE', 'X'].includes(fija),
         });
       }
 
@@ -946,7 +941,6 @@ export class NuevoPedidoDialog {
           descuentoPorcentaje: it.descuentoPorcentaje != null ? String(it.descuentoPorcentaje) : '0',
           esQuimico: it.esQuimico ?? false,
           esHerramienta: it.esHerramienta ?? false,
-          cantidadFija: it.cantidadFija ?? false,
         })),
       );
     }
@@ -1084,7 +1078,6 @@ export class NuevoPedidoDialog {
       esQuimico: l.esQuimico,
       // FCR se asume siempre herramienta, aunque no haya checkbox para marcarlo línea por línea.
       esHerramienta: l.esHerramienta || this.esFcr(),
-      ...(l.cantidadFija ? { cantidadFija: true } : {}),
     }));
 
     const payload = {

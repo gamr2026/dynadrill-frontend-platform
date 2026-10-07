@@ -228,7 +228,6 @@
             <th class="num">Cantidad</th>
             <th class="num">Precio unitario</th>
             <th class="num">% Descuento</th>
-            <th title="Se factura exactamente esta cantidad (no se recalcula con los días del Reporte Job)">Cant. fija</th>
             @if (esPumping()) {
               <th>Tipo</th>
             }
@@ -298,10 +297,6 @@
               <td class="num">
                 <span class="nuevo-pedido__td-label">% Descuento</span>
                 <dynadrill-input label="" type="number" [value]="l.descuentoPorcentaje" (valueChange)="onLineaCampoChange($index, 'descuentoPorcentaje', $event)" />
-              </td>
-              <td class="nuevo-pedido__quimico-cell">
-                <span class="nuevo-pedido__td-label">Cant. fija</span>
-                <input type="checkbox" [checked]="l.cantidadFija" (change)="onLineaCampoChange($index, 'cantidadFija', $any($event.target).checked)" aria-label="Cantidad fija: se factura exactamente esta cantidad" />
               </td>
               @if (esPumping()) {
                 <td class="nuevo-pedido__tipo-cell">

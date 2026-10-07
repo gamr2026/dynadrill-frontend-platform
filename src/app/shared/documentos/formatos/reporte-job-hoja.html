@@ -34,7 +34,32 @@
               <td class="doc-centro">{{ f.e.startTime }}</td>
               <td class="doc-centro">{{ f.e.endTime }}</td>
               <td class="doc-centro">{{ f.e.durationHours | number: '1.1-2' }}</td>
-              <td>{{ f.e.detail }}</td>
+              <td>
+                {{ f.e.detail }}
+                @for (tb of f.e.tablas ?? []; track $index) {
+                  <table class="rj__subtabla">
+                    @if (tb.titulo) {
+                      <caption>{{ tb.titulo }}</caption>
+                    }
+                    <thead>
+                      <tr>
+                        @for (col of tb.columnas; track $index) {
+                          <th>{{ col }}</th>
+                        }
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (fila of tb.filas; track $index) {
+                        <tr>
+                          @for (col of tb.columnas; track $index; let j = $index) {
+                            <td>{{ fila[j] }}</td>
+                          }
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                }
+              </td>
             </tr>
           }
           @default {

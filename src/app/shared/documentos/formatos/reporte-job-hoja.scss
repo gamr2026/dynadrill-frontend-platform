@@ -96,3 +96,33 @@
     }
   }
 }
+
+// Tablas dentro de una actividad (volúmenes de bombeo, resumen del día…).
+.rj .rj__subtabla {
+  width: 100%;
+  margin: 4px 0 2px;
+  border-collapse: collapse;
+  break-inside: avoid;
+
+  caption {
+    padding: 2px 4px;
+    border: 1px solid #000;
+    border-bottom: none;
+    background: #cfc3dc;
+    font-size: 8.5px;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  th,
+  td {
+    padding: 2px 4px;
+    border: 1px solid #000;
+    font-size: 8.5px;
+    text-align: center;
+  }
+
+  th {
+    background: #e6e0ec;
+  }
+}

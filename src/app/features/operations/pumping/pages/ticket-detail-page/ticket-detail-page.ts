@@ -1596,6 +1596,7 @@ export class TicketDetailPage {
         durationHours: a.horas ?? 0,
         detail: a.detalle,
         author: report.nombreSupervisor || t.assignedSupervisor,
+        ...(a.tablas?.length ? { tablas: a.tablas } : {}),
       }));
     if (!actividades.length) return;
     this.docsBridge.pushReporteJob({

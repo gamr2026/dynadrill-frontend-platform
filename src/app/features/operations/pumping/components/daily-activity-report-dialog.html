@@ -93,6 +93,7 @@
       <div class="daily-report__col-detail">
         <span class="daily-report__mobile-label">Detalle · {{ activity.horas ?? '—' }} h</span>
         <dynadrill-textarea label="" placeholder="Describa la actividad..." [value]="activity.detalle" (valueChange)="onActivityChange($index, 'detalle', $event)" />
+        <app-actividad-tablas-editor [tablas]="activity.tablas ?? []" (tablasChange)="onActivityTablas($index, $event)" />
       </div>
       <div class="daily-report__col-action">
         @if (actividades().length > 1) {

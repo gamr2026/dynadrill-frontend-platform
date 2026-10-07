@@ -46,6 +46,14 @@ export interface OperativoToolUsageEntry {
 
 // ── Reporte Job — bitácora horaria ──
 
+/** Tabla dentro de una actividad (volúmenes de bombeo, resumen del día…) — como las de los Reportes Job reales. */
+export interface ActividadTabla {
+  titulo: string;
+  columnas: string[];
+  /** Una fila por renglón, con una celda por columna. */
+  filas: string[][];
+}
+
 /** Una entrada de la bitácora — la duración se calcula, nunca se captura a mano. */
 export interface OperativoActivityLogEntry {
   id: number;
@@ -55,6 +63,8 @@ export interface OperativoActivityLogEntry {
   durationHours: number;
   detail: string;
   author: string;
+  /** Tablas de la actividad (opcional). */
+  tablas?: ActividadTabla[];
 }
 
 // ── Cabecera común a los PDF operativos ──

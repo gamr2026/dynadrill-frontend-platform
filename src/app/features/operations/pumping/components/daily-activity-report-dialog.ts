@@ -19,6 +19,9 @@ import type { DailyActivityEntry, DailyActivityReport } from '../models/pumping.
 import { UBICACION_VACIA, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../../shared/index';
 import { parseLocalDateString, toLocalDateString } from '../../../../shared/utils';
 import { PumpingDocumento, PumpingService } from '../services/pumping.service';
+import { ActividadTablasEditor } from './actividad-tablas-editor';
+import { limpiarTablas } from '../../../../shared/utils/actividad-tablas';
+import type { ActividadTabla } from '../../../../shared/models/operativo-docs.model';
 
 const MAX_PLANTILLA_BYTES = 5 * 1024 * 1024;
 const MAX_MONITOREO_BYTES = 5 * 1024 * 1024;
@@ -143,6 +146,7 @@ const URL_PLANTILLA_REPORTE_DIARIO = '/plantillas/reporte-diario-actividades.xls
     DynadrillTextareaComponent,
     DynadrillUploadZoneComponent,
     UbicacionSelectorComponent,
+    ActividadTablasEditor,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './daily-activity-report-dialog.html',
@@ -244,7 +248,11 @@ export class DailyActivityReportDialog {
     this.actividades.update(list => list.filter((_, i) => i !== index));
   }
 
-  protected onActivityChange(index: number, field: keyof DailyActivityEntry, value: string): void {
+  protected onActivityTablas(index: number, tablas: ActividadTabla[]): void {
+    this.actividades.update(list => list.map((entry, i) => (i === index ? { ...entry, tablas } : entry)));
+  }
+
+  protected onActivityChange(index: number, field: Exclude<keyof DailyActivityEntry, 'tablas'>, value: string): void {
     this.actividades.update(list =>
       list.map((entry, i) => {
         if (i !== index) return entry;
@@ -473,7 +481,12 @@ export class DailyActivityReportDialog {
       campoBloque: [this.ubicacion().campo, this.ubicacion().bloque].filter(Boolean).join(' / '),
       cargo: this.cargo(),
       taladro: this.ubicacion().taladro || this.ubicacionInicial.taladro || '',
-      actividades: this.actividades().filter(a => a.detalle.trim() !== ''),
+      actividades: this.actividades()
+        .filter(a => a.detalle.trim() !== '')
+        .map(a => {
+          const tablas = limpiarTablas(a.tablas);
+          return tablas.length ? { ...a, tablas } : { ...a, tablas: undefined };
+        }),
       tiempoProductivo: Number(this.tiempoProductivo()) || null,
       tiempoNoProductivo: Number(this.tiempoNoProductivo()) || null,
       tiempoTotal: this.tiempoTotal(),

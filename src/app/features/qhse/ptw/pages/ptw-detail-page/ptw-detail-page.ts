@@ -50,7 +50,7 @@ export class PtwDetailPage {
 
   protected readonly currentIndex = computed(() => {
     const p = this.ptw();
-    // Fases heredadas (formalización, ejecución…) cuentan como "Cierre": ya pasaron el gabinete.
+    // Fases heredadas (formalización, ejecución…) cuentan como "Aprobación": ya pasaron el gabinete.
     return p && p.fase !== 'gabinete' ? PTW_FASE_ORDER.indexOf('gestion_documental') : 0;
   });
 
@@ -183,9 +183,9 @@ export class PtwDetailPage {
     const firmaFila = (label: string, f?: PtwFirma) =>
       `<tr><td>${label}</td><td>${f ? `${escapeHtml(f.nombre)} — ${new Date(f.firmadoAt).toLocaleString('es-EC')}` : '—'}</td></tr>`;
     const firmasSection: QhseReportSection = {
-      title: 'Confirmación y cierre',
+      title: 'Confirmación y aprobación',
       bodyHtml: `<table>
-        ${firmaFila('PTW cerrado', p.ptwCerrado)}
+        ${firmaFila('PTW aprobado', p.ptwCerrado)}
       </table>`,
     };
 
@@ -198,7 +198,7 @@ export class PtwDetailPage {
   }
 
   /**
-   * Cierra el PTW. Se registra la misma firma en "PTW cerrado" y "Acta de devolución" (el resto del sistema —Facturación,
+   * Aprueba el PTW (internamente `ptwCerrado`). Se registra la misma firma en "PTW aprobado" y "Acta de devolución" (el resto del sistema —Facturación,
    * avisos, gate del ticket— lee esa pareja) y se notifican solos los respaldos a HSE Base, Operaciones y Facturación.
    */
   protected cerrarPtw(): void {
@@ -206,7 +206,7 @@ export class PtwDetailPage {
     if (!p || p.ptwCerrado) return;
     const firma: PtwFirma = { nombre: this.auth.currentUser()?.name ?? '', firmadoAt: new Date().toISOString() };
     this.patch({ ptwCerrado: firma, actaDevolucionFirmada: firma, respaldosEnviados: true, fase: 'gestion_documental' });
-    this.notify.success('PTW cerrado', 'Se notificó a HSE Base, Operaciones y Facturación.');
+    this.notify.success('PTW aprobado', 'Se notificó a HSE Base, Operaciones y Facturación.');
   }
 
   protected avanzarFase(): void {

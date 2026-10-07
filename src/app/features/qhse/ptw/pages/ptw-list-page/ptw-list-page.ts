@@ -36,7 +36,7 @@ const FASE_BADGES: Record<PtwFase, { text: string; tone: BadgeTone }> = {
   gestion_documental: { text: PTW_FASE_LABELS['gestion_documental'], tone: 'info' },
 };
 
-const CERRADO_BADGE: { text: string; tone: BadgeTone } = { text: 'Cerrado', tone: 'success' };
+const CERRADO_BADGE: { text: string; tone: BadgeTone } = { text: 'Aprobado', tone: 'success' };
 
 @Component({
   selector: 'app-ptw-list-page',
@@ -69,7 +69,7 @@ export class PtwListPage {
       { label: 'Total PTW', value: all.length },
       { label: 'En preparación', value: all.filter(p => p.fase === 'gabinete' || p.fase === 'ingreso').length },
       { label: 'En verificación/formalización', value: all.filter(p => p.fase === 'verificaciones' || p.fase === 'formalizacion').length },
-      { label: 'Cerrados', value: all.filter(p => ptwCerrado(p)).length },
+      { label: 'Aprobados', value: all.filter(p => ptwCerrado(p)).length },
     ];
   });
 

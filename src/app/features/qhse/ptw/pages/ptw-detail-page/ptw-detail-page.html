@@ -5,7 +5,7 @@
     [eyebrow]="p.code"
     [title]="p.actividad"
     [subtitle]="p.ubicacion"
-    [roleTag]="cerrado() ? 'Cerrado' : 'HSE'"
+    [roleTag]="cerrado() ? 'Aprobado' : 'HSE'"
   />
 
   <div class="ptw-detail-page__toolbar">
@@ -73,7 +73,7 @@
 
     @if (p.fase === 'gabinete') {
       <dynadrill-button [disabled]="!puedeAvanzarDeGabinete()" (click)="avanzarFase()">
-        Continuar al cierre
+        Continuar a la aprobación
       </dynadrill-button>
     }
   </section>
@@ -85,31 +85,31 @@
     "Documentos por pedido".
   -->
 
-  <!-- Cierre: QHSE cierra el PTW (el permiso para trabajar). El Acta de Entrega de Locación va después: la carga el Supervisor al finalizar el ticket y es el ticket (no el PTW) el que la exige. -->
+  <!-- Aprobación: QHSE aprueba el PTW (el permiso para trabajar). El Acta de Entrega de Locación va después: la carga el Supervisor al finalizar el ticket y es el ticket (no el PTW) el que la exige. -->
   <section class="ptw-detail-page__fase ptw-detail-page__cierre">
-    <h3 class="ptw-detail-page__fase-title">2. Cierre del PTW</h3>
+    <h3 class="ptw-detail-page__fase-title">2. Aprobación del PTW</h3>
     <p class="ptw-detail-page__fase-note">
-      El PTW es el permiso para trabajar en campo: se cierra al terminar el trabajo en sitio. El
+      El PTW es el permiso para trabajar en campo: QHSE lo aprueba una vez revisados sus documentos. El
       <strong>Acta de Entrega de Locación</strong> (DYN-PMP-RE-027) se genera al final y la carga el Supervisor desde su
-      ticket — no es requisito para cerrar el PTW, pero el ticket no se puede cerrar sin ella.
+      ticket — no es requisito para aprobar el PTW, pero el ticket no se puede cerrar sin ella.
     </p>
 
     <div class="ptw-detail-page__cerrar">
       @if (p.ptwCerrado; as f) {
-        <dynadrill-tag [label]="'PTW cerrado por ' + f.nombre + ' · ' + (f.firmadoAt | date: 'short')" variant="success" />
+        <dynadrill-tag [label]="'PTW aprobado por ' + f.nombre + ' · ' + (f.firmadoAt | date: 'short')" variant="success" />
       } @else {
-        <dynadrill-button (click)="cerrarPtw()">Cerrar PTW</dynadrill-button>
+        <dynadrill-button (click)="cerrarPtw()">Aprobar PTW</dynadrill-button>
       }
     </div>
 
     <p class="ptw-detail-page__leyenda">
       <span aria-hidden="true">ⓘ</span>
-      Al cerrar el PTW se notificará automáticamente a las áreas correspondientes: HSE Base, Operaciones y Facturación.
+      Al aprobar el PTW se notificará automáticamente a las áreas correspondientes: HSE Base, Operaciones y Facturación.
     </p>
 
     @if (cerrado()) {
       <p class="ptw-detail-page__fase-note">
-        Este PTW quedó cerrado y archivado. No requiere ninguna acción adicional aquí — para un nuevo trabajo se abre
+        Este PTW quedó aprobado y archivado. No requiere ninguna acción adicional aquí — para un nuevo trabajo se abre
         un PTW nuevo automáticamente junto con el ticket de Pumping/FCR correspondiente.
       </p>
       <dynadrill-button variant="secondary" size="small" (click)="back()">← Volver a Recibimiento de Sitio</dynadrill-button>

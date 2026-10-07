@@ -16,7 +16,7 @@ export type PtwFase = 'gabinete' | 'ingreso' | 'verificaciones' | 'formalizacion
 
 export const PTW_FASE_ORDER: PtwFase[] = ['gabinete', 'gestion_documental'];
 
-export const PTW_FASE_STEPS = ['Gabinete', 'Cierre'];
+export const PTW_FASE_STEPS = ['Gabinete', 'Aprobación'];
 
 export const PTW_FASE_LABELS: Record<PtwFase, string> = {
   gabinete: 'Preparación en gabinete',
@@ -24,7 +24,7 @@ export const PTW_FASE_LABELS: Record<PtwFase, string> = {
   verificaciones: 'Verificaciones de seguridad',
   formalizacion: 'Formalización del recibimiento',
   ejecucion: 'Ejecución y devolución',
-  gestion_documental: 'Cierre del PTW',
+  gestion_documental: 'Aprobación del PTW',
 };
 
 /**
@@ -89,10 +89,10 @@ export interface PtwMatrix {
   actaRecibimientoFirmada?: PtwFirma;
   barricadasInstaladas?: boolean;
 
-  // Cierre: QHSE cierra el PTW al terminar el trabajo en sitio. El Acta de Entrega de Locación (DYN-PMP-RE-027)
+  // Aprobación: QHSE aprueba el PTW (internamente `ptwCerrado`). El Acta de Entrega de Locación (DYN-PMP-RE-027)
   // no es requisito del PTW — la carga el Supervisor y la exige el cierre del ticket.
   ptwCerrado?: PtwFirma;
-  /** Se completa junto con `ptwCerrado` (misma firma): Facturación y los avisos leen "PTW cerrado" de esta pareja. */
+  /** Se completa junto con `ptwCerrado` (misma firma): Facturación y los avisos leen "PTW aprobado" de esta pareja. */
   actaDevolucionFirmada?: PtwFirma;
   /**
    * HSE-SITIO-001: "Envío automático de respaldos a stakeholders" — ya no

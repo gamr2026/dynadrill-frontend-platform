@@ -93,12 +93,15 @@
       <div class="daily-report__col-detail">
         <span class="daily-report__mobile-label">Detalle · {{ activity.horas ?? '—' }} h</span>
         <dynadrill-textarea label="" placeholder="Describa la actividad..." [value]="activity.detalle" (valueChange)="onActivityChange($index, 'detalle', $event)" />
-        <app-actividad-tablas-editor [tablas]="activity.tablas ?? []" (tablasChange)="onActivityTablas($index, $event)" />
       </div>
       <div class="daily-report__col-action">
         @if (actividades().length > 1) {
           <dynadrill-icon-button icon="delete" tooltip="Quitar actividad" (clicked)="removeActivity($index)" />
         }
+      </div>
+      <!-- Las tablas van a todo el ancho de la actividad (no dentro de la columna angosta del detalle). -->
+      <div class="daily-report__col-tablas">
+        <app-actividad-tablas-editor [tablas]="activity.tablas ?? []" (tablasChange)="onActivityTablas($index, $event)" />
       </div>
     </div>
   }

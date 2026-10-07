@@ -2,7 +2,7 @@ import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import type { OperativoActivityLogEntry, OperativoDocHeader } from '../../models/operativo-docs.model';
 import { DocumentoEncabezado } from '../documento-encabezado';
-import { fechaDoc } from '../documento-format.util';
+import { fechaDiaDoc, fechaDoc } from '../documento-format.util';
 
 /** Datos del encabezado del formato que no viajan en `OperativoDocHeader` — opcionales: si no se pasan, quedan en blanco. */
 export interface ReporteJobExtras {
@@ -46,7 +46,7 @@ export class ReporteJobHoja {
     for (const e of this.ordenado()) {
       if (e.date !== diaActual) {
         diaActual = e.date;
-        filas.push({ tipo: 'dia', dia: fechaDoc(e.date) });
+        filas.push({ tipo: 'dia', dia: fechaDiaDoc(e.date) });
       }
       filas.push({ tipo: 'act', e });
     }

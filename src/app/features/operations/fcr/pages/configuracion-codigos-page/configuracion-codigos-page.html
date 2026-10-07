@@ -1,0 +1,100 @@
+<app-page-header
+  eyebrow="OPERATIVO · FCR"
+  title="Códigos por cliente"
+  subtitle="Qué hace FCR con cada código de la Lista de Precios: herramientas (con su kit) que se piden a Bodega, o servicio. La movilización se marca en el Pedido."
+  [roleTag]="roleName()"
+/>
+
+<div class="cfg-codigos__toolbar">
+  <dynadrill-select
+    class="cfg-codigos__cliente"
+    label="Cliente"
+    placeholder="Buscar cliente…"
+    [searchable]="true"
+    [options]="clienteOptions()"
+    [value]="clienteId()"
+    (valueChange)="onClienteChange($event)"
+  />
+  @if (clienteId()) {
+    <app-search-field
+      class="cfg-codigos__search"
+      label="Buscar código o descripción"
+      placeholder="Buscar código o descripción…"
+      [value]="busqueda()"
+      (valueChange)="onBusqueda($event)"
+    />
+  }
+</div>
+
+@if (!clienteId()) {
+  <p class="cfg-codigos__hint" role="status">Elija un cliente para ver los códigos de su Lista de Precios.</p>
+} @else if (codigos.error()) {
+  <dynadrill-banner variant="critical" message="No se pudieron cargar los códigos del cliente." />
+} @else {
+  <dynadrill-spinner mode="overlay" [spinning]="codigos.isLoading()" tip="Cargando…">
+    <dynadrill-chip-group
+      class="cfg-codigos__chips"
+      aria-label="Filtrar por clase"
+      mode="single"
+      [options]="filtroLabels()"
+      [selected]="filtroSeleccionado()"
+      (selectedChange)="onFiltroChange($event)"
+    />
+    @if (sinConfigurar() > 0) {
+      <p class="cfg-codigos__hint" role="status">{{ sinConfigurar() }} código(s) sin configurar: los tickets nuevos los tratan como servicio.</p>
+    }
+
+    <div class="cfg-codigos__table-scroll">
+      <table class="cfg-codigos__table">
+        <caption class="cfg-codigos__sr-only">Códigos de la Lista de Precios del cliente y su configuración en FCR</caption>
+        <thead>
+          <tr><th scope="col">Código</th><th scope="col">Descripción</th><th scope="col">Unidad</th><th scope="col">Clase</th><th scope="col">Kit</th><th scope="col"><span class="cfg-codigos__sr-only">Acciones</span></th></tr>
+        </thead>
+        <tbody>
+          @for (fila of pagination.pageItems(); track fila.codigo) {
+            <tr>
+              <td>
+                {{ fila.codigo }}
+                @if (!fila.enListaPrecios) {
+                  <dynadrill-tag label="No está en la Lista de Precios" variant="warning" />
+                }
+              </td>
+              <td>{{ fila.descripcion || '—' }}</td>
+              <td>{{ fila.unidad || '—' }}</td>
+              <td>
+                @if (fila.clase) {
+                  <dynadrill-tag [label]="claseLabels[fila.clase]" [variant]="fila.clase === 'herramienta' ? 'info' : 'neutral'" />
+                } @else {
+                  <dynadrill-tag label="Sin configurar" variant="warning" />
+                }
+              </td>
+              <td>
+                @if (fila.clase === 'herramienta') {
+                  @if (fila.kit.length) {
+                    {{ resumenKit(fila) }}
+                  } @else {
+                    <dynadrill-tag label="Sin kit" variant="warning" />
+                  }
+                } @else { — }
+              </td>
+              <td class="cfg-codigos__actions">
+                <dynadrill-icon-button icon="settings" iconSource="dynadrill" [tooltip]="'Configurar ' + fila.codigo" (clicked)="configurar(fila)" />
+                @if (fila.id !== null) {
+                  <dynadrill-icon-button icon="delete" [tooltip]="'Quitar configuración de ' + fila.codigo" (clicked)="quitarConfiguracion(fila)" />
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6">
+                {{ mensajeVacio() }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-list-pager [pagination]="pagination" summaryLabel="códigos" label="Paginación de códigos" />
+  </dynadrill-spinner>
+}

@@ -184,6 +184,16 @@ body {
  * de Pumping superara el budget de `anyComponentStyle` (8kB) en el build de
  * QA/producción.
  */
+/**
+ * Tarjeta de resumen de los tickets (`dynadrill-context-card` con grupos): el
+ * primer grupo — el cliente — ocupa toda la fila. La librería reparte los
+ * grupos en 3 columnas iguales y los nombres reales de cliente son largos
+ * (se partían en un tercio del ancho). Opt-in con la clase, no cambia otros usos.
+ */
+.dyn-context-card--cliente-fila .dynadrill-context-card__group:first-child {
+  grid-column: 1 / -1;
+}
+
 .dyn-pedido-card {
   display: flex;
   flex-direction: column;
@@ -210,6 +220,12 @@ body {
   align-items: center;
   gap: 0.5rem;
   color: var(--dynadrill-purple, #662e9b);
+
+  // Título de la tarjeta: un escalón arriba de los valores de los datos (ver app-pedido-datos).
+  .dynadrill-text--subtitle {
+    font-size: 1.125rem;
+    font-weight: 700;
+  }
 }
 
 .dyn-pedido-card__tags {
@@ -217,25 +233,6 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
-}
-
-.dyn-pedido-card__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 1.25rem 1.5rem;
-  width: 100%;
-}
-
-.dyn-pedido-card__field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 0;
-}
-
-.dyn-pedido-card__field dynadrill-icon {
-  color: var(--text-muted, #5c5870);
-  margin-bottom: -0.15rem;
 }
 
 .dyn-pedido-card__items {
@@ -256,6 +253,15 @@ body {
   -webkit-overflow-scrolling: touch;
   margin: 0 -0.25rem;
   padding: 0 0.25rem;
+}
+
+.dyn-pedido-card__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .dyn-pedido-card__table {
@@ -282,6 +288,19 @@ body {
     background: var(--surface-muted, #faf9fc);
   }
 
+  // El código es la llave de cada línea: se lee primero.
+  tbody td:first-child {
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  // Cifras a la derecha y con dígitos de ancho fijo: se leen en columna (ver app-pedido-items).
+  .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  tfoot th,
   tfoot td {
     font-weight: 700;
     color: var(--dynadrill-purple, #662e9b);

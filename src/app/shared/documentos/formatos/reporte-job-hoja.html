@@ -27,7 +27,8 @@
       @for (f of filas(); track $index) {
         @switch (f.tipo) {
           @case ('dia') {
-            <tr class="rj__dia"><td colspan="3"></td><td><strong>{{ f.dia }}</strong></td></tr>
+            <!-- Igual que el formato en Excel: la fecha va bajo Inicio/Fin/Horas y el detalle queda vacío. -->
+            <tr class="rj__dia"><td colspan="3" class="doc-centro"><strong>{{ f.dia }}</strong></td><td></td></tr>
           }
           @case ('act') {
             <tr>

@@ -248,6 +248,8 @@ export interface ItemEstimado {
   esQuimico?: boolean;
   /** Igual que `esQuimico`, pero para herramientas de Inventario (categoría HERRAMIENTAS). */
   esHerramienta?: boolean;
+  /** Tipo de línea "Movilización": código y precio de la Lista de Precios del cliente (o la Normal). FCR la muestra en el ticket sin acción de Bodega. */
+  esMovilizacion?: boolean;
   /** La prefactura factura exactamente esta cantidad: los ítems "por día" no se recalculan con los días del Reporte Job (ej. 4 días de personal de CT en un job de 5). */
 }
 

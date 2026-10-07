@@ -5,6 +5,14 @@ export function fechaDoc(valor: string | null | undefined): string {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : valor;
 }
 
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+/** "2026-08-27" → "27-ago-2026": separador de día del Reporte Job, igual que el formato en Excel (DYN-SGI-RE-047). */
+export function fechaDiaDoc(valor: string | null | undefined): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(valor ?? '');
+  return m ? `${m[3]}-${MESES_CORTOS[Number(m[2]) - 1]}-${m[1]}` : (valor ?? '');
+}
+
 /** ISO con hora → "29/09/2026 20:43" (hora local). Sin hora se comporta como `fechaDoc`. */
 export function fechaHoraDoc(valor: string | null | undefined): string {
   if (!valor) return '';

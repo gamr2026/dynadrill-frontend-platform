@@ -1,0 +1,74 @@
+:host {
+  display: block;
+  padding: 1.5rem;
+
+  @media (max-width: 480px) {
+    padding: 1rem;
+  }
+}
+
+.cfg-codigos__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin: 1rem 0;
+}
+
+.cfg-codigos__cliente {
+  flex: 1 1 280px;
+  max-width: 420px;
+}
+
+.cfg-codigos__search {
+  flex: 1 1 240px;
+}
+
+.cfg-codigos__chips {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.cfg-codigos__hint {
+  margin: 0 0 12px;
+  color: var(--text-muted, #5c5870);
+}
+
+.cfg-codigos__table-scroll {
+  overflow-x: auto;
+}
+
+.cfg-codigos__table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border, #e5e4ea);
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  td:first-child {
+    white-space: nowrap;
+  }
+
+  dynadrill-tag {
+    margin-left: 4px;
+  }
+}
+
+.cfg-codigos__actions {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.cfg-codigos__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

@@ -44,7 +44,7 @@
     @if (ticket()) {
       <section class="ticket-detail__section">
         <dynadrill-text variant="h2">Información del ticket</dynadrill-text>
-        <dynadrill-context-card
+        <dynadrill-context-card class="dyn-context-card--cliente-fila"
           variant="card"
           icon="file-text"
           [title]="(ticket()?.code ?? '')"
@@ -233,7 +233,7 @@
     </section>
     <section class="ticket-detail__section ticket-detail__only-desktop">
       <dynadrill-text variant="h2">Información de la propuesta</dynadrill-text>
-      <dynadrill-context-card
+      <dynadrill-context-card class="dyn-context-card--cliente-fila"
         variant="card"
         icon="file-text"
         [title]="(ticket()?.code ?? '')"
@@ -278,63 +278,11 @@
             </div>
           </div>
 
-          <div class="dyn-pedido-card__grid">
-            <div class="dyn-pedido-card__field">
-              <dynadrill-icon name="users" [size]="14" /><dynadrill-text variant="caption">Cliente</dynadrill-text>
-              <dynadrill-text variant="body">{{ p.cliente }}{{ p.clienteRuc ? ' · ' + p.clienteRuc : '' }}</dynadrill-text>
-            </div>
-            <div class="dyn-pedido-card__field">
-              <dynadrill-icon name="location" [size]="14" /><dynadrill-text variant="caption">Ubicación</dynadrill-text>
-              <dynadrill-text variant="body">{{ p.campo }} · Bloque {{ p.bloque }} · Pozo {{ p.pozo }}</dynadrill-text>
-            </div>
-            <div class="dyn-pedido-card__field">
-              <dynadrill-icon name="tool" [size]="14" /><dynadrill-text variant="caption">Taladro</dynadrill-text>
-              <dynadrill-text variant="body">{{ p.taladroRig || '—' }}</dynadrill-text>
-            </div>
-            <div class="dyn-pedido-card__field">
-              <dynadrill-icon name="file-text" [size]="14" /><dynadrill-text variant="caption">N° de contrato</dynadrill-text>
-              <dynadrill-text variant="body">{{ p.numeroContrato || '—' }}</dynadrill-text>
-            </div>
-            <div class="dyn-pedido-card__field">
-              <dynadrill-icon name="users" [size]="14" /><dynadrill-text variant="caption">Agente comercial</dynadrill-text>
-              <dynadrill-text variant="body">{{ p.agenteComercial || '—' }}</dynadrill-text>
-            </div>
-            <div class="dyn-pedido-card__field">
-              <dynadrill-icon name="users" [size]="14" /><dynadrill-text variant="caption">Representante de campo</dynadrill-text>
-              <dynadrill-text variant="body">{{ p.representanteCampo || '—' }}</dynadrill-text>
-            </div>
-            <div class="dyn-pedido-card__field">
-              <dynadrill-icon name="calendar" [size]="14" /><dynadrill-text variant="caption">Fechas de servicio</dynadrill-text>
-              <dynadrill-text variant="body">{{ p.fechaInicioServicio ? formatDate(p.fechaInicioServicio) : '—' }} a {{ p.fechaFinServicio ? formatDate(p.fechaFinServicio) : '—' }}</dynadrill-text>
-            </div>
-          </div>
+          <app-pedido-datos [pedido]="p" />
 
           <div class="dyn-pedido-card__items">
             <dynadrill-text variant="caption" class="dyn-pedido-card__items-label">Ítems estimados</dynadrill-text>
-            <div class="dyn-pedido-card__table-scroll">
-              <table class="dyn-pedido-card__table">
-                <thead>
-                  <tr><th>Código</th><th>Descripción</th><th>Unidad</th><th>Cantidad</th><th>Valor unitario</th><th>Subtotal</th></tr>
-                </thead>
-                <tbody>
-                  @for (item of pedidoItems(); track item.codigo) {
-                    <tr>
-                      <td>{{ item.codigo }}</td>
-                      <td>{{ item.descripcion }}</td>
-                      <td>{{ item.unidad }}</td>
-                      <td>{{ item.cantidad }}</td>
-                      <td>{{ item.valorUnitario.toFixed(2) }}</td>
-                      <td>{{ (item.cantidad * item.valorUnitario).toFixed(2) }}</td>
-                    </tr>
-                  } @empty {
-                    <tr><td colspan="6">Sin ítems estimados registrados.</td></tr>
-                  }
-                </tbody>
-                <tfoot>
-                  <tr><td colspan="5">Total estimado</td><td>{{ pedidoItemsTotal().toFixed(2) }}</td></tr>
-                </tfoot>
-              </table>
-            </div>
+            <app-pedido-items [items]="pedidoItems()" />
           </div>
         </div>
       </section>
@@ -362,7 +310,7 @@
   @if (currentStep() === 'asignacion') {
     <section class="ticket-detail__section ticket-detail__only-desktop">
       <dynadrill-text variant="h2">Información del ticket</dynadrill-text>
-      <dynadrill-context-card
+      <dynadrill-context-card class="dyn-context-card--cliente-fila"
         variant="card"
         icon="file-text"
         [title]="(ticket()?.code ?? '')"
@@ -662,7 +610,7 @@
 
     <section class="ticket-detail__section ticket-detail__only-desktop">
       <dynadrill-text variant="h2">Información del ticket</dynadrill-text>
-      <dynadrill-context-card
+      <dynadrill-context-card class="dyn-context-card--cliente-fila"
         variant="card"
         icon="file-text"
         [title]="(ticket()?.code ?? '')"
@@ -1307,7 +1255,7 @@
     <!-- Info general (datos de salida, solo lectura) -->
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Información general</dynadrill-text>
-      <dynadrill-context-card
+      <dynadrill-context-card class="dyn-context-card--cliente-fila"
         variant="card"
         icon="file-text"
         [title]="reportUnitCode() || 'Reporte de unidad'"
@@ -1503,7 +1451,7 @@
     }
     <section class="ticket-detail__section">
       <dynadrill-text variant="h2">Resumen del servicio</dynadrill-text>
-      <dynadrill-context-card
+      <dynadrill-context-card class="dyn-context-card--cliente-fila"
         variant="card"
         icon="file-text"
         [title]="(ticket()?.code ?? '')"

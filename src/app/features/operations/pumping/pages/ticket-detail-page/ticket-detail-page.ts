@@ -121,6 +121,8 @@ import { Articulo } from '../../../../inventario/models/articulo.model';
 import { ArticulosService } from '../../../../inventario/services/articulos.service';
 import { MovimientosInventarioService } from '../../../../inventario/services/movimientos-inventario.service';
 import { forkJoin, map, of, type Observable } from 'rxjs';
+import { PedidoDatos } from '../../../../../shared/components/pedido-datos/pedido-datos';
+import { PedidoItems } from '../../../../../shared/components/pedido-items/pedido-items';
 
 /**
  * Inspección de salida de ejemplo — solo para MOSTRAR el detalle en los
@@ -200,6 +202,8 @@ function toFuelReading(raw: string): number | null {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     TicketPrefacturaFirma,
+    PedidoDatos,
+    PedidoItems,
     DatePipe,
     DecimalPipe,
     NgTemplateOutlet,
@@ -399,9 +403,6 @@ export class TicketDetailPage {
     const p = this.pedido();
     return p ? itemsEstimadosDe(p) : [];
   });
-  protected readonly pedidoItemsTotal = computed(() =>
-    this.pedidoItems().reduce((sum, item) => sum + item.cantidad * item.valorUnitario, 0),
-  );
   protected readonly pedidoTipoServicioLabels = computed(() => {
     const p = this.pedido();
     return p ? p.tipoServicio.map(t => TIPO_SERVICIO_LABELS[t]) : [];
@@ -456,8 +457,10 @@ export class TicketDetailPage {
   protected readonly contextCardGroups = computed<DynadrillContextCardItem[][]>(() => {
     const t = this.ticket();
     if (!t) return [];
+    const ruc = this.pedido()?.clienteRuc;
     return [
-      [{ label: 'Cliente', value: t.clientName, icon: 'users' }],
+      // El RUC salió de los datos del Pedido (no se repite el cliente): va acá, bajo el nombre.
+      [{ label: 'Cliente', value: t.clientName, icon: 'users', caption: ruc ? `RUC ${ruc}` : undefined }],
       [
         { label: 'Pozo', value: t.wellName, icon: 'location' },
         { label: 'Tipo de servicio', value: PUMPING_SERVICE_TYPE_LABELS[t.serviceType], icon: 'tool', badgeVariant: 'brand' },
@@ -2043,8 +2046,10 @@ export class TicketDetailPage {
   protected readonly reviewContextGroups = computed<DynadrillContextCardItem[][]>(() => {
     const t = this.ticket();
     if (!t) return [];
+    const ruc = this.pedido()?.clienteRuc;
     return [
-      [{ label: 'Cliente', value: t.clientName, icon: 'users' }],
+      // El RUC salió de los datos del Pedido (no se repite el cliente): va acá, bajo el nombre.
+      [{ label: 'Cliente', value: t.clientName, icon: 'users', caption: ruc ? `RUC ${ruc}` : undefined }],
       [
         { label: 'Pozo', value: t.wellName, icon: 'location' },
         { label: 'Tipo de servicio', value: PUMPING_SERVICE_TYPE_LABELS[t.serviceType], icon: 'tool', badgeVariant: 'brand' },

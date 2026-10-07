@@ -26,7 +26,6 @@ import {
   DynadrillScreenHeaderComponent,
   DynadrillSelectComponent,
   DynadrillSkeletonComponent,
-  DynadrillStatisticComponent,
   DynadrillTagComponent,
   DynadrillTextComponent,
   DynadrillTextareaComponent,
@@ -101,8 +100,7 @@ import { CierreTicketDialog, CierreTicketDialogData, CierreTicketDialogResult } 
 import {
   ReporteCierrePdfDialog,
   ReporteCierrePdfDialogData,
-  type ReporteCierrePdfActivitySummaryRow,
-  type ReporteCierrePdfDocumentRow,
+  type ReporteCierrePdfPhaseRow,
   OperativoDocsBridgeService,
   descargarCsv,
   parseCsvFile,
@@ -128,8 +126,9 @@ const CAMPO_DOCUMENTO_SERVICIO: Record<'formularioExterno' | 'dimensionamiento' 
   dureza: 'formatoDurezaServicio',
 };
 
+/** Día del calendario en hora LOCAL — `toISOString()` es UTC y en Ecuador (UTC-5) después de las 19:00 ya daba el día siguiente. */
 function toIso(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  return toLocalDateString(date);
 }
 
 function todayIso(): string {
@@ -149,18 +148,31 @@ function resolveSupervisorName(t: FcrTicket): string {
 }
 
 import { DocumentoPdfService } from '../../../../../shared/documentos';
-import { fechaDoc, fechaHoraDoc } from '../../../../../shared/documentos/documento-format.util';
-import { agruparBitacoraPorDia, estadoDiaBitacora, type FcrBitacoraDia } from '../../models/fcr-bitacora-dias';
+import { fechaDiaDoc, fechaDoc, fechaHoraDoc } from '../../../../../shared/documentos/documento-format.util';
+import {
+  agruparBitacoraPorDia,
+  agruparPorFecha,
+  estadoDiaBitacora,
+  fechaSugeridaEnServicio,
+  fueraDelServicio,
+  type FcrBitacoraDia,
+  type RangoServicio,
+} from '../../models/fcr-bitacora-dias';
+import { agruparActividadesDelPedido, ETIQUETA_AVISO_PRECARGA, notaPrecarga } from '../../models/fcr-actividades-pedido';
 import { HttpErrorResponse } from '@angular/common/http';
 import { EncuestaSatisfaccionHoja } from '../../../../../shared/documentos/formatos/encuesta-satisfaccion-hoja';
 import { ReporteJobHoja } from '../../../../../shared/documentos/formatos/reporte-job-hoja';
 import { ReporteHerramientasHoja } from '../../../../../shared/documentos/formatos/reporte-herramientas-hoja';
+import { PedidoDatos } from '../../../../../shared/components/pedido-datos/pedido-datos';
+import { PedidoItems } from '../../../../../shared/components/pedido-items/pedido-items';
 
 @Component({
   selector: 'app-fcr-ticket-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     TicketPrefacturaFirma,
+    PedidoDatos,
+    PedidoItems,
     DatePipe,
     NgTemplateOutlet,
     DynadrillScreenHeaderComponent,
@@ -175,7 +187,6 @@ import { ReporteHerramientasHoja } from '../../../../../shared/documentos/format
     DynadrillTextComponent,
     DynadrillTagComponent,
     DynadrillSelectComponent,
-    DynadrillStatisticComponent,
     DynadrillTextareaComponent,
     DynadrillUploadZoneComponent,
     DynadrillApprovalActionsComponent,
@@ -326,6 +337,8 @@ export class FcrTicketDetailPage {
 
   /** ART y PT los sube el Supervisor de FCR (Jefe de Base y Superadmin de respaldo) — QHSE los ve en "Documentos por pedido". */
   protected readonly puedeSubirQhse = computed(() => ['Supervisor', 'Jefe de Base', 'Superadmin'].includes(this.roleName()));
+  /** ART y PT del día son de la operación en curso: con el ticket cerrado ya no se suben. El Acta de Entrega sí, se carga al finalizar. */
+  protected readonly puedeSubirQhseEnCurso = computed(() => this.puedeSubirQhse() && !this.ticketCerrado());
 
 
 
@@ -346,6 +359,11 @@ export class FcrTicketDetailPage {
     const t = this.ticket();
     return t ? this.phaseKeys().indexOf(t.currentPhase) : 0;
   });
+
+  /** Cerrado = finalizado: todo en solo lectura (imprimibles y descargas siguen disponibles). */
+  protected readonly ticketCerrado = computed(() => this.ticket()?.status === 'cerrado');
+  /** Para la línea de avance: con el ticket cerrado todas las fases quedan completadas (incluida Cierre). */
+  protected readonly progressIndex = computed(() => (this.ticketCerrado() ? this.phaseKeys().length : this.currentPhaseIndex()));
 
   /**
    * Pantalla acumulativa: 'aprobacion_supervisor_operaciones' (solo SERVICIOS),
@@ -400,7 +418,7 @@ export class FcrTicketDetailPage {
     const t = this.ticket();
     return t ? fcrResponsibleRole(t) : FCR_PHASE_ROLE[this.currentPhase()].roleName;
   });
-  protected readonly isMyTurn = computed(() => this.responsibleRole() === this.roleName());
+  protected readonly isMyTurn = computed(() => !this.ticketCerrado() && this.responsibleRole() === this.roleName());
 
   /** Accesible desde cualquier fase — a diferencia de "Solicitar corrección" (atado a rechazar 'revision_inicial'), esto no dispara ninguna otra acción de negocio. */
   protected openObservaciones(): void {
@@ -458,9 +476,13 @@ export class FcrTicketDetailPage {
     const p = this.pedido();
     return p ? itemsEstimadosDe(p) : [];
   });
-  protected readonly pedidoItemsTotal = computed(() =>
-    this.pedidoItems().reduce((sum, item) => sum + item.cantidad * item.valorUnitario, 0),
+  /** Preparación de Herramientas: qué línea trajo herramientas para Bodega, cuál es movilización (informativa) y el resto. */
+  protected readonly actividadesPedido = computed(() =>
+    agruparActividadesDelPedido(this.pedidoItems(), this.ticket()?.tools ?? [], this.ticket()?.movilizaciones, this.ticket()?.avisosPrecarga ?? []),
   );
+  /** Lo que la precarga no pudo traer — el Supervisor lo completa a mano con "Agregar herramienta adicional". */
+  protected readonly notaPrecarga = computed(() => notaPrecarga(this.ticket()?.avisosPrecarga ?? []));
+  protected readonly etiquetaAviso = ETIQUETA_AVISO_PRECARGA;
 
   // ── Contexto ──
 
@@ -468,7 +490,9 @@ export class FcrTicketDetailPage {
     const t = this.ticket();
     const macro = t?.timelineResumen?.macroEstadoActual;
     const tags: DynadrillContextCardTag[] = [];
-    if (macro) tags.push({ label: MACRO_ESTADO_LABELS[macro], variant: MACRO_ESTADO_TONE[macro] });
+    // Cerrado manda sobre el macroestado del timeline (queda en "Aprobado", el de la fase Cierre).
+    if (this.ticketCerrado()) tags.push({ label: 'Finalizado', variant: 'success' });
+    else if (macro) tags.push({ label: MACRO_ESTADO_LABELS[macro], variant: MACRO_ESTADO_TONE[macro] });
     // Tickets sembrados antes de este campo no traen tipoOt — mismo default que ticket-list-page.ts ('venta').
     if (t) tags.push({ label: TIPO_OT_LABELS[t.tipoOt ?? 'venta'], variant: 'info' });
     return tags;
@@ -478,23 +502,26 @@ export class FcrTicketDetailPage {
     const t = this.ticket();
     if (!t) return [];
     const herramientasRecibidas = t.tools.filter(tool => tool.status === 'recibida').length;
+    const ruc = this.pedido()?.clienteRuc;
+    // El primer grupo (cliente) ocupa toda la fila — ver `.dyn-context-card--cliente-fila` en styles.scss.
+    // Debajo, una columna por tema: dónde y cuándo / responsables / estado.
     return [
-      [
-        { label: 'Cliente', value: t.clientName, icon: 'users' },
-        { label: 'Propuesta', value: `V${t.proposalVersion} · aprobada`, icon: 'file-text' },
-      ],
+      [{ label: 'Cliente', value: t.clientName, icon: 'users', caption: ruc ? `RUC ${ruc}` : undefined }],
       [
         { label: 'Pozo', value: t.wellName, icon: 'location' },
-        { label: 'Supervisor', value: resolveSupervisorName(t) || '—', icon: 'users' },
-      ],
-      [
         {
           label: 'Fecha estimada',
           value: t.estimatedDate || '—',
           icon: 'calendar',
           caption: t.estimatedDate ? capitalize(formatDate(parseLocalDateString(t.estimatedDate), "EEEE, d 'de' MMMM y", 'es')) : undefined,
         },
+      ],
+      [
+        { label: 'Supervisor', value: resolveSupervisorName(t) || '—', icon: 'users' },
         { label: 'Operador asignado', value: t.assignedOperator || 'Sin asignar', icon: 'users' },
+      ],
+      [
+        { label: 'Propuesta', value: `V${t.proposalVersion} · aprobada`, icon: 'file-text' },
         {
           label: 'Herramientas',
           value: `${herramientasRecibidas} de ${t.tools.length} recibidas`,
@@ -614,6 +641,28 @@ export class FcrTicketDetailPage {
         this.notify.success('Herramienta agregada a la lista.');
       },
       error: () => this.notify.error('Error', 'No se pudo agregar la herramienta.'),
+    });
+  }
+
+  /**
+   * Para tickets creados antes de configurar los kits, o cuando cambió el Pedido. Muestra el motivo del backend
+   * si no se puede (fuera de la fase, lista cerrada…) en vez de un error genérico.
+   */
+  protected async recargarDesdePedido(): Promise<void> {
+    const t = this.ticket();
+    if (!t) return;
+    const ok = await this.confirmStep(
+      'Recargar desde el Pedido',
+      'Vuelve a cargar las herramientas de los kits del Pedido. Solo se reemplazan las del Pedido que todavía no se solicitaron a Bodega; las agregadas a mano y las ya enviadas se conservan. ¿Continuar?',
+    );
+    if (!ok) return;
+    this.fcrService.recargarDesdePedido(t.id).subscribe({
+      next: updated => {
+        this.ticket.set(updated);
+        if (updated.pedidoId) this.cargarPedido(updated.pedidoId);
+        this.notify.success('Herramientas recargadas desde el Pedido.');
+      },
+      error: (err: HttpErrorResponse) => this.notify.error('No se pudo recargar', err.error?.message ?? 'Inténtalo de nuevo.'),
     });
   }
 
@@ -832,7 +881,42 @@ export class FcrTicketDetailPage {
     return calcDurationHours(start, end);
   });
 
-  protected readonly canAddActivity = computed(() => this.activityDuration() !== null && this.activityDetail().trim().length > 0);
+  /** Fechas del servicio del Pedido: la bitácora no se sale de ahí (el backend también lo valida). */
+  protected readonly rangoServicio = computed<RangoServicio>(() => {
+    const p = this.pedido();
+    const dia = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null);
+    return { desde: dia(p?.fechaInicioServicio), hasta: dia(p?.fechaFinServicio) };
+  });
+  protected readonly hayRangoServicio = computed(() => !!this.rangoServicio().desde || !!this.rangoServicio().hasta);
+  protected readonly textoRangoServicio = computed(() => {
+    const { desde, hasta } = this.rangoServicio();
+    return `del ${desde ? fechaDoc(desde) : '…'} al ${hasta ? fechaDoc(hasta) : '…'}`;
+  });
+
+  /**
+   * Fecha elegida, o la sugerida: hoy (o el día más cercano dentro del servicio). `todayIso()` no es
+   * reactivo, así que al guardar se vuelve a llamar acá — si la página quedó abierta pasada la
+   * medianoche, el `computed` todavía tendría "ayer".
+   */
+  private fechaEfectiva(elegida: Date | null): string {
+    return elegida ? toIso(elegida) : fechaSugeridaEnServicio(todayIso(), this.rangoServicio());
+  }
+
+  /** Día al que pertenece la actividad. `null` = no se eligió: se sugiere hoy, o el día más cercano dentro del servicio. */
+  private readonly activityDateElegida = signal<Date | null>(null);
+  private readonly activityFecha = computed(() => this.fechaEfectiva(this.activityDateElegida()));
+  protected readonly activityDate = computed(() => parseLocalDateString(this.activityFecha()));
+  protected readonly activityFueraDelServicio = computed(() => fueraDelServicio(this.activityFecha(), this.rangoServicio()));
+  /** El calendario deshabilita los días fuera del servicio del Pedido. */
+  protected readonly diaFueraDelServicio = (dia: Date): boolean => fueraDelServicio(toIso(dia), this.rangoServicio());
+
+  protected onActivityDateChange(value: Date | null): void {
+    if (value) this.activityDateElegida.set(value);
+  }
+
+  protected readonly canAddActivity = computed(
+    () => this.activityDuration() !== null && this.activityDetail().trim().length > 0 && !this.activityFueraDelServicio(),
+  );
 
   protected readonly sortedActivityLog = computed(() =>
     [...(this.ticket()?.activityLog ?? [])].sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime)),
@@ -868,10 +952,11 @@ export class FcrTicketDetailPage {
   protected async addActivityLogEntry(): Promise<void> {
     const t = this.ticket();
     if (!t || !this.canAddActivity()) return;
-    if (!(await this.confirmarCambioEnDiaEnviado(todayIso()))) return;
+    const fecha = this.fechaEfectiva(this.activityDateElegida());
+    if (!(await this.confirmarCambioEnDiaEnviado(fecha))) return;
     const author = this.auth.currentUser()?.name ?? this.roleName();
     this.fcrService
-      .addActivityLogEntry(t.id, { date: todayIso(), startTime: this.activityStart(), endTime: this.activityEnd(), detail: this.activityDetail(), author })
+      .addActivityLogEntry(t.id, { date: fecha, startTime: this.activityStart(), endTime: this.activityEnd(), detail: this.activityDetail(), author })
       .subscribe({
         next: updated => {
           this.ticket.set(updated);
@@ -880,7 +965,7 @@ export class FcrTicketDetailPage {
           this.activityDetail.set('');
           this.notify.success('Actividad registrada en la bitácora.');
         },
-        error: () => this.notify.error('Error', 'No se pudo registrar la actividad.'),
+        error: (err: HttpErrorResponse) => this.notify.error('Error', err.error?.message ?? 'No se pudo registrar la actividad.'),
       });
   }
 
@@ -959,6 +1044,10 @@ export class FcrTicketDetailPage {
         );
         continue;
       }
+      if (fueraDelServicio(fecha, this.rangoServicio())) {
+        errores.push(`${fechaDoc(fecha)} está fuera del servicio del Pedido (${this.textoRangoServicio()}).`);
+        continue;
+      }
       try {
         const actualizado = await firstValueFrom(
           this.fcrService.addActivityLogEntry(t.id, { date: fecha, startTime: horaInicio.trim(), endTime: horaFin.trim(), detail: detalle, author }),
@@ -979,7 +1068,11 @@ export class FcrTicketDetailPage {
   // ══════════════════════════════════════════════
 
   protected readonly usageToolId = signal<number | null>(null);
-  protected readonly usageDate = signal(new Date());
+  /** Mismo criterio que la bitácora: `null` = no se eligió, se sugiere hoy o el día más cercano dentro del servicio del Pedido. */
+  private readonly usageDateElegida = signal<Date | null>(null);
+  private readonly usageFecha = computed(() => this.fechaEfectiva(this.usageDateElegida()));
+  protected readonly usageDate = computed(() => parseLocalDateString(this.usageFecha()));
+  protected readonly usageFueraDelServicio = computed(() => fueraDelServicio(this.usageFecha(), this.rangoServicio()));
   protected readonly usageStatus = signal<FcrToolDailyStatus | null>(null);
   // Completación/trabajo + picker + presión/peso/observación — por herramienta, junto al resto del registro de uso.
   protected readonly usageTipoCompletacion = signal<TipoCompletacion | null>(null);
@@ -997,7 +1090,7 @@ export class FcrTicketDetailPage {
   protected readonly canAddToolUsage = computed(() => {
     const t = this.ticket();
     if (!t || this.usageToolId() === null || !this.usageStatus()) return false;
-    if (!this.usageTipoPicker() || !this.usagePresion().trim() || !this.usagePeso().trim()) return false;
+    if (!this.usageTipoPicker() || !this.usagePresion().trim() || !this.usagePeso().trim() || this.usageFueraDelServicio()) return false;
     return t.tipoOt === 'servicio' ? !!this.usageTipoTrabajo() : !!this.usageTipoCompletacion();
   });
 
@@ -1008,13 +1101,15 @@ export class FcrTicketDetailPage {
       .sort((a, b) => (a.date + a.toolId).localeCompare(b.date + b.toolId))
       .map(entry => ({ ...entry, toolName: t.tools.find(tool => tool.id === entry.toolId)?.name ?? `#${entry.toolId}` }));
   });
+  /** Uso de herramientas agrupado por día, igual que la bitácora. */
+  protected readonly toolUsagePorDia = computed(() => agruparPorFecha(this.sortedToolUsageLog()));
 
   protected readonly toolDailyStatusLabel = (status: FcrToolDailyStatus): string => `${FCR_TOOL_DAILY_STATUS_CODE[status]} — ${FCR_TOOL_DAILY_STATUS_LABELS[status]}`;
   protected readonly tipoTrabajoLabel = (value: TipoTrabajo): string => TIPO_TRABAJO_LABELS[value];
   protected readonly tipoCompletacionLabel = (value: TipoCompletacion): string => TIPO_COMPLETACION_LABELS[value];
 
   protected onUsageDateChange(value: Date | null): void {
-    if (value) this.usageDate.set(value);
+    if (value) this.usageDateElegida.set(value);
   }
 
   protected onUsageToolChange(value: unknown): void {
@@ -1025,15 +1120,25 @@ export class FcrTicketDetailPage {
     this.usageStatus.set(value as FcrToolDailyStatus);
   }
 
-  protected addToolUsageEntry(): void {
+  protected async addToolUsageEntry(): Promise<void> {
     const t = this.ticket();
     const toolId = this.usageToolId();
     const status = this.usageStatus();
     if (!t || toolId === null || !status || !this.canAddToolUsage()) return;
+    const fecha = this.fechaEfectiva(this.usageDateElegida());
+    // Hay un solo registro por herramienta y día: registrar de nuevo lo reemplaza — antes pasaba en silencio.
+    const existente = this.sortedToolUsageLog().find(e => e.toolId === toolId && e.date === fecha);
+    if (existente) {
+      const ok = await this.confirmStep(
+        'Reemplazar registro',
+        `${existente.toolName} ya tiene un registro el ${fechaDoc(fecha)} (${this.toolDailyStatusLabel(existente.status)}). Hay un solo registro por herramienta y día: ¿reemplazarlo? Para otro día, cambie la fecha.`,
+      );
+      if (!ok) return;
+    }
     this.fcrService
       .addToolUsageEntry(t.id, {
         toolId,
-        date: toIso(this.usageDate()),
+        date: fecha,
         status,
         // Tickets sembrados antes de tipoOt no lo traen — se tratan como venta (mismo default que en el resto de la página).
         tipoCompletacion: t.tipoOt !== 'servicio' ? (this.usageTipoCompletacion() ?? undefined) : undefined,
@@ -1056,7 +1161,7 @@ export class FcrTicketDetailPage {
           this.usageObservacion.set('');
           this.notify.success('Uso de herramienta registrado.');
         },
-        error: () => this.notify.error('Error', 'No se pudo registrar el uso de la herramienta.'),
+        error: (err: HttpErrorResponse) => this.notify.error('Error', err.error?.message ?? 'No se pudo registrar el uso de la herramienta.'),
       });
   }
 
@@ -1315,10 +1420,10 @@ export class FcrTicketDetailPage {
   protected readonly phaseLabel = (phase: FcrPhase): string => FCR_PHASE_LABELS[phase];
 
   /**
-   * KPIs del dashboard de cierre. "Documentos subidos" cuenta solo los 6
+   * Totales para los PDF de cierre (el dashboard en pantalla se quitó). "Documentos subidos" cuenta solo los 6
    * flags de documento con archivo real (3 de la rama SERVICIOS + 3 de la
    * rama VENTA) — los otros 6 hitos (`workReportUploaded`,
-   * `toolReportUploaded`, `finalReviewGuideUploaded`,
+   * `toolReportUploaded`, `finalReviewGuideUploaded` (ya no se muestra: no existe en el proceso real),
    * `movementGuideGenerated`, `reviewGuideGenerated`,
    * `bodegaExitGuideGenerated`) nunca tuvieron opción real de "subir un
    * documento" (se marcan solos como efecto de otra acción), así que no
@@ -1327,7 +1432,7 @@ export class FcrTicketDetailPage {
    */
   protected readonly closureStats = computed(() => {
     const t = this.ticket();
-    if (!t) return { toolsCount: 0, documentsCount: 0, totalHours: 0, phasesCompletedCount: 0 };
+    if (!t) return { documentsCount: 0, totalHours: 0 };
     const docFlags = [
       t.formularioInspeccionExternoUploaded,
       t.formatoDimensionamientoServicioUploaded,
@@ -1337,70 +1442,55 @@ export class FcrTicketDetailPage {
       t.inspectionDocumentUploaded,
     ];
     return {
-      toolsCount: t.tools.length,
       documentsCount: docFlags.filter(Boolean).length,
       totalHours: t.activityLog.reduce((sum, e) => sum + e.durationHours, 0),
-      phasesCompletedCount: t.phaseHistory.length,
     };
   });
 
   /**
-   * Hitos generados durante el ticket, fuera de los 6 flags reales de
-   * documento. Ninguno de estos 6 es en realidad "subir un documento" (se
-   * marcan solos como efecto de otra acción: "Finalizar ejecución", subir el
-   * documento de inspección, o "Generar guía de salida de bodega") — por
-   * eso, mientras estén pendientes, NO se muestran (dejarían la falsa
-   * impresión de un documento faltante que nunca tuvo opción de cargarse).
-   * Solo aparecen una vez generados, para no perder el acceso a "Ver PDF".
+   * Fases del resumen con inicio, finalización y duración — mismos tramos que la tarjeta del avance del
+   * ticket, para que el PDF y la pantalla digan lo mismo. Tickets sin `timelineResumen`: historial de fases.
    */
-  protected readonly closureOtherDocuments = computed(() => {
+  private fasesDelResumen(): ReporteCierrePdfPhaseRow[] {
     const t = this.ticket();
     if (!t) return [];
-    return [
-      { key: 'workReport' as const, label: 'Reporte de trabajo', uploaded: t.workReportUploaded },
-      { key: 'toolReport' as const, label: 'Reporte de herramientas', uploaded: t.toolReportUploaded },
-      { key: 'finalReviewGuide' as const, label: 'Guía de revisión final', uploaded: t.finalReviewGuideUploaded },
-      { key: 'movementGuide' as const, label: 'Guía de movimiento', uploaded: t.movementGuideGenerated },
-      { key: 'reviewGuide' as const, label: 'Guía de revisión', uploaded: t.reviewGuideGenerated },
-      { key: 'bodegaExitGuide' as const, label: 'Guía de salida de bodega', uploaded: t.bodegaExitGuideGenerated },
-    ].filter(doc => doc.uploaded);
-  });
+    const tramos = t.timelineResumen?.tramos ?? [];
+    if (tramos.length) {
+      return tramos.map(tramo => ({
+        label: this.phaseLabel(tramo.fase as FcrPhase),
+        responsable: tramo.actorNombre ?? '—',
+        rol: tramo.actorRolLabel ?? tramo.actorRol ?? '—',
+        inicio: tramo.inicio,
+        fin: tramo.fin,
+        duracionMs: tramo.fin ? tramo.duracionMs : undefined,
+      }));
+    }
+    return t.phaseHistory.map(p => ({ label: this.phaseLabel(p.phase), responsable: p.approvedBy, rol: p.approvedByRole, inicio: p.date }));
+  }
 
   /** Abre la vista imprimible del resumen de cierre — datos derivados del ticket completo, sin llamada adicional al backend. */
   protected openReporteCierre(): void {
     const t = this.ticket();
     if (!t) return;
 
-    // Solo los documentos con archivo real — los otros hitos (reporte de
-    // trabajo/herramientas, guías) nunca fueron un documento que se "sube",
-    // así que no van en el reporte formal de cierre (ver `closureOtherDocuments`).
-    // Las 2 entradas (SERVICIOS/VENTA) usan campos de documento distintos y
-    // mutuamente excluyentes (ver 'inspeccion' vs 'preparacion_herramientas'
-    // en el HTML) — listar los 6 siempre mostraba 3 "Pendiente" que esa
-    // entrada nunca iba a llenar, por diseño.
-    const documentos: ReporteCierrePdfDocumentRow[] =
-      t.tipoOt === 'servicio'
-        ? [
-            { label: 'Formulario de inspección externo', uploaded: !!t.formularioInspeccionExternoUploaded, nombreArchivo: t.formularioInspeccionExternoNombreArchivo },
-            { label: 'Formato de dimensionamiento', uploaded: !!t.formatoDimensionamientoServicioUploaded, nombreArchivo: t.formatoDimensionamientoServicioNombreArchivo },
-            { label: 'Formato de Dureza', uploaded: !!t.formatoDurezaServicioUploaded, nombreArchivo: t.formatoDurezaServicioNombreArchivo },
-          ]
-        : [
-            { label: 'Documento de inspección', uploaded: t.inspectionDocumentUploaded, nombreArchivo: t.inspectionDocumentNombreArchivo },
-            { label: 'Registro de dureza', uploaded: !!t.registroDurezaUploaded, nombreArchivo: t.registroDurezaNombreArchivo },
-            { label: 'Registro firmado de QAQC', uploaded: !!t.registroQaqcUploaded, nombreArchivo: t.registroQaqcNombreArchivo },
-          ];
-
-    const byDate = new Map<string, { count: number; totalHours: number }>();
-    for (const entry of t.activityLog) {
-      const acc = byDate.get(entry.date) ?? { count: 0, totalHours: 0 };
-      acc.count += 1;
-      acc.totalHours += entry.durationHours;
-      byDate.set(entry.date, acc);
-    }
-    const activitySummary: ReporteCierrePdfActivitySummaryRow[] = [...byDate.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, acc]) => ({ date, count: acc.count, totalHours: acc.totalHours }));
+    // Reporte de trabajo y uso de herramientas completos, por día (no nombres de archivo).
+    const bitacora = agruparBitacoraPorDia(t.activityLog, []).map(dia => ({
+      fecha: fechaDiaDoc(dia.fecha),
+      totalHoras: dia.totalHoras,
+      actividades: dia.actividades.map(a => ({ startTime: a.startTime, endTime: a.endTime, durationHours: a.durationHours, detail: a.detail })),
+    }));
+    const usoHerramientas = this.toolUsagePorDia().map(dia => ({
+      fecha: fechaDiaDoc(dia.fecha),
+      usos: dia.items.map(u => ({
+        herramienta: u.toolName,
+        estado: this.toolDailyStatusLabel(u.status),
+        tipo: u.tipoTrabajo ? this.tipoTrabajoLabel(u.tipoTrabajo) : u.tipoCompletacion ? this.tipoCompletacionLabel(u.tipoCompletacion) : '—',
+        picker: u.tipoPicker ?? '—',
+        presion: u.presion ?? '—',
+        peso: u.peso ?? '—',
+        observacion: u.observacion ?? '—',
+      })),
+    }));
 
     this.dialog.open<ReporteCierrePdfDialog, ReporteCierrePdfDialogData>({
       title: 'Resumen de Cierre — Vista de impresión',
@@ -1409,16 +1499,17 @@ export class FcrTicketDetailPage {
         header: { code: t.code, cliente: t.clientName, pozo: t.wellName, supervisor: resolveSupervisorName(t), operador: t.assignedOperator },
         tipoOtLabel: t.tipoOt === 'servicio' ? 'Servicio' : 'Venta',
         estimatedDate: t.estimatedDate,
-        phases: t.phaseHistory.map(p => ({ label: this.phaseLabel(p.phase), approvedBy: p.approvedBy, approvedByRole: p.approvedByRole, date: p.date })),
+        phases: this.fasesDelResumen(),
         tools: t.tools.map(tool => ({ id: tool.id, name: tool.name, status: this.toolStatusLabel(tool.status) })),
-        documentos,
-        activitySummary,
+        bitacora,
+        usoHerramientas,
+        tipoUsoLabel: t.tipoOt === 'servicio' ? 'Tipo de trabajo' : 'Tipo de completación',
         totalHours: this.closureStats().totalHours,
-        toolUsageCount: t.toolUsageLog.length,
         observationsCount: t.observations.length,
+        nombreArchivo: `Resumen de cierre ${t.code}`,
       },
       footer: false,
-      width: '900px',
+      width: '1100px',
     });
   }
 
@@ -1680,6 +1771,7 @@ export class FcrTicketDetailPage {
   });
 
   protected readonly bannerAccionEsperada = computed(() => {
+    if (this.ticketCerrado()) return 'Ticket finalizado — solo lectura. Los documentos y reportes siguen disponibles para ver y descargar.';
     if (this.currentPhase() === 'inspeccion') {
       const roles = this.rolesConAccionPendienteEnInspeccion();
       if (roles.length > 0) return `Esperando firma de checklist: ${roles.join(', ')}`;
@@ -1964,6 +2056,13 @@ export class FcrTicketDetailPage {
   // Carga inicial
   // ══════════════════════════════════════════════
 
+  private cargarPedido(pedidoId: number): void {
+    this.pedidoService.get(pedidoId).subscribe({
+      next: p => this.pedido.set(p),
+      error: () => this.pedido.set(null),
+    });
+  }
+
   constructor() {
     // Móvil: barra "← FCR-XXXX" (Nav/TopAppBar Type=Detail) en vez de hamburguesa + logo.
     useDetailChrome(() => this.ticket()?.code ?? 'Ticket', '/modulos/operativo/fcr');
@@ -1975,10 +2074,7 @@ export class FcrTicketDetailPage {
         if (t.tipoOt === 'servicio') this.loadToolInspections(id);
         if (t.pedidoId) {
           this.loadDocumentosQhse(id);
-          this.pedidoService.get(t.pedidoId).subscribe({
-            next: p => this.pedido.set(p),
-            error: () => this.pedido.set(null),
-          });
+          this.cargarPedido(t.pedidoId);
         }
       },
       error: () => this.loading.set(false),

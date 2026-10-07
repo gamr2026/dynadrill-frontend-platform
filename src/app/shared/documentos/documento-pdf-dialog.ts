@@ -2,6 +2,7 @@ import { NgComponentOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, Type } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import { DynadrillButtonComponent } from '@digitec-it-projects/dynadrill-ui';
+import { imprimirDocumento } from './imprimir.util';
 
 export type DocumentoOrientacion = 'portrait' | 'landscape';
 
@@ -71,17 +72,6 @@ export class DocumentoPdfDialog {
 
   /** Orientación y nombre de archivo son por documento: se inyectan solo durante la impresión y se retiran al terminar. */
   protected imprimir(): void {
-    const estilo = document.createElement('style');
-    estilo.textContent = `@page { size: A4 ${this.data.orientacion}; margin: 8mm; }`;
-    document.head.appendChild(estilo);
-    const tituloPrevio = document.title;
-    document.title = this.data.nombreArchivo;
-    const restaurar = (): void => {
-      estilo.remove();
-      document.title = tituloPrevio;
-      window.removeEventListener('afterprint', restaurar);
-    };
-    window.addEventListener('afterprint', restaurar);
-    window.print();
+    imprimirDocumento({ orientacion: this.data.orientacion, nombreArchivo: this.data.nombreArchivo });
   }
 }

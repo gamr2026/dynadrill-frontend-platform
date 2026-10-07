@@ -1,5 +1,5 @@
 import type { ActividadTabla } from '../models/operativo-docs.model';
-import { crearTablaVacia, limpiarTablas, tablaATexto, tablaDesdeFilas } from './actividad-tablas';
+import { crearTablaVacia, limpiarTablas, tablaATexto, tablasDesdeHoja } from './actividad-tablas';
 
 describe('limpiarTablas', () => {
   it('descarta las tablas sin ningún dato (recién agregadas y sin llenar)', () => {
@@ -38,32 +38,58 @@ describe('tablaATexto', () => {
   });
 });
 
-describe('tablaDesdeFilas (tablas que vienen dentro del Excel)', () => {
-  it('toma la primera fila como encabezado y descarta las columnas vacías por celdas combinadas', () => {
-    const t = tablaDesdeFilas([
-      ['Tipo de Fluido', 'Volumen (bbl)', 'Tipo de fluido', '', 'Volumen (bbl)'],
-      ['Agua Fresca', '211', 'Colchón mecánico', '', '20'],
-      ['', '', 'Agua Fresca', '', '189.5'],
+/** Una fila de la hoja «Tablas»: columna A + 8 celdas de datos. */
+const fila = (a: string, ...resto: string[]): string[] => [a, ...resto, ...Array(Math.max(0, 8 - resto.length)).fill('')];
+
+describe('tablasDesdeHoja (hoja «Tablas» del formato)', () => {
+  it('lee un bloque: N° de actividad, título, encabezados y filas de datos', () => {
+    const { tablas, sinActividad } = tablasDesdeHoja([
+      fila('Instrucciones…'),
+      fila('TABLA', '2', 'BOMBEO'),
+      fila('Encabezados', 'Tipo de fluido', 'Volumen (bbl)'),
+      fila('Datos', 'Agua fresca', '211'),
+      fila('', 'Colchón mecánico', '20'),
+      fila(''),
     ]);
-    expect(t).toEqual({
-      titulo: '',
-      columnas: ['Tipo de Fluido', 'Volumen (bbl)', 'Tipo de fluido', 'Volumen (bbl)'],
-      filas: [
-        ['Agua Fresca', '211', 'Colchón mecánico', '20'],
-        ['', '', 'Agua Fresca', '189.5'],
-      ],
-    });
+    expect(sinActividad).toBe(0);
+    expect(tablas).toEqual([
+      {
+        actividad: 2,
+        tabla: { titulo: 'BOMBEO', columnas: ['Tipo de fluido', 'Volumen (bbl)'], filas: [['Agua fresca', '211'], ['Colchón mecánico', '20']] },
+      },
+    ]);
   });
 
-  it('una sola fila no alcanza para una tabla', () => {
-    expect(tablaDesdeFilas([['A', 'B']])).toBeNull();
+  it('ignora los bloques en blanco que trae el formato y lee varios bloques seguidos', () => {
+    const { tablas } = tablasDesdeHoja([
+      fila('TABLA', '', ''),
+      fila('Encabezados'),
+      fila('Datos'),
+      fila(''),
+      fila('TABLA', '1', 'A'),
+      fila('Encabezados', 'x', 'y'),
+      fila('Datos', '1', '2'),
+      fila('TABLA', '3', 'B'),
+      fila('Encabezados', 'z'),
+      fila('Datos', '9'),
+    ]);
+    expect(tablas.map(t => [t.actividad, t.tabla.titulo])).toEqual([[1, 'A'], [3, 'B']]);
   });
 
-  it('con una sola columna con datos no es tabla', () => {
-    expect(tablaDesdeFilas([['A', ''], ['B', '']])).toBeNull();
+  it('un bloque con datos pero sin N° de actividad válido se cuenta aparte, no se pierde en silencio', () => {
+    const { tablas, sinActividad } = tablasDesdeHoja([fila('TABLA', 'uno', 'X'), fila('Encabezados', 'a'), fila('Datos', '1')]);
+    expect(tablas).toEqual([]);
+    expect(sinActividad).toBe(1);
   });
 
-  it('un encabezado vacío recibe un nombre', () => {
-    expect(tablaDesdeFilas([['A', ''], ['1', '2']])?.columnas).toEqual(['A', 'Columna 2']);
+  it('recorta las columnas vacías del final y nombra los encabezados que falten', () => {
+    const { tablas } = tablasDesdeHoja([fila('TABLA', '1'), fila('Encabezados', 'A', '', 'C'), fila('Datos', '1', '2', '3')]);
+    expect(tablas[0].tabla.columnas).toEqual(['A', 'Columna 2', 'C']);
+    expect(tablas[0].tabla.filas).toEqual([['1', '2', '3']]);
+  });
+
+  it('el bloque termina en la primera fila en blanco', () => {
+    const { tablas } = tablasDesdeHoja([fila('TABLA', '1'), fila('Encabezados', 'A'), fila('Datos', '1'), fila(''), fila('', 'suelto')]);
+    expect(tablas[0].tabla.filas).toEqual([['1']]);
   });
 });

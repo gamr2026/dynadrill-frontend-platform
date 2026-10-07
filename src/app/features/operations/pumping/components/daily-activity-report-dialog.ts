@@ -20,12 +20,10 @@ import { UBICACION_VACIA, UbicacionSelectorComponent, type UbicacionSeleccion } 
 import { parseLocalDateString, toLocalDateString } from '../../../../shared/utils';
 import { PumpingDocumento, PumpingService } from '../services/pumping.service';
 import { ActividadTablasEditor } from './actividad-tablas-editor';
-import { limpiarTablas, tablaDesdeFilas } from '../../../../shared/utils/actividad-tablas';
+import { NOMBRE_HOJA_TABLAS, limpiarTablas, tablasDesdeHoja } from '../../../../shared/utils/actividad-tablas';
 import type { ActividadTabla } from '../../../../shared/models/operativo-docs.model';
 
 const MAX_PLANTILLA_BYTES = 5 * 1024 * 1024;
-/** Cuántas columnas (desde la del detalle) se miran al buscar tablas dentro de una actividad del Excel. */
-const COLUMNAS_TABLA = 8;
 const MAX_MONITOREO_BYTES = 5 * 1024 * 1024;
 
 /**
@@ -431,38 +429,33 @@ export class DailyActivityReportDialog {
         if (nombreSupervisor) this.nombreSupervisor.set(nombreSupervisor);
 
         const actividades: DailyActivityEntry[] = [];
-        // Filas "de tabla": sin hora de inicio ni fin y con 2 o más celdas llenas a partir del detalle (como las tablas de
-        // volúmenes de bombeo del Reporte Job real). Las consecutivas forman una tabla de la actividad anterior; si no
-        // alcanzan para una tabla, se leen como actividades de texto, igual que antes.
-        let bloque: string[][] = [];
-        const cerrarBloque = (): void => {
-          if (!bloque.length) return;
-          const tabla = tablaDesdeFilas(bloque);
-          const ultima = actividades[actividades.length - 1];
-          if (tabla && ultima) {
-            ultima.tablas = [...(ultima.tablas ?? []), tabla];
-          } else {
-            for (const celdas of bloque) {
-              if (celdas[0]) actividades.push({ inicio: '', fin: '', horas: null, detalle: celdas[0] });
-            }
-          }
-          bloque = [];
-        };
         for (let f = FILA.actividadesInicio; f <= FILA.actividadesFin; f++) {
           const detalle = celda(f, COL.actDetalle);
           const inicio = parseHoraPlantilla(celda(f, COL.actInicio));
           const fin = parseHoraPlantilla(celda(f, COL.actFin));
-          const celdasDerecha = Array.from({ length: COLUMNAS_TABLA }, (_, i) => celda(f, COL.actDetalle + i));
-          if (!inicio && !fin && actividades.length > 0 && celdasDerecha.filter(Boolean).length >= 2) {
-            bloque.push(celdasDerecha);
-            continue;
-          }
-          cerrarBloque();
           if (!detalle && !inicio && !fin) continue;
           const horasTexto = celda(f, COL.actHoras);
           actividades.push({ inicio, fin, horas: horasTexto ? Number(horasTexto) || null : null, detalle });
         }
-        cerrarBloque();
+
+        // Tablas de las actividades: van en la hoja «Tablas» del formato (un bloque por tabla, con el N.° de actividad).
+        let tablasCargadas = 0;
+        let tablasSinActividad = 0;
+        const nombreHojaTablas = libro.SheetNames.find(n => n.trim().toLowerCase() === NOMBRE_HOJA_TABLAS.toLowerCase());
+        if (nombreHojaTablas) {
+          const filasTablas = XLSX.utils.sheet_to_json<string[]>(libro.Sheets[nombreHojaTablas], { header: 1, defval: '', raw: false });
+          const leidas = tablasDesdeHoja(filasTablas);
+          tablasSinActividad = leidas.sinActividad;
+          for (const { actividad, tabla } of leidas.tablas) {
+            const destino = actividades[actividad - 1];
+            if (!destino) {
+              tablasSinActividad++;
+              continue;
+            }
+            destino.tablas = [...(destino.tablas ?? []), tabla];
+            tablasCargadas++;
+          }
+        }
         if (actividades.length) this.actividades.set(actividades);
 
         const tiempoProductivo = celda(FILA.tiempos, COL.tiempoProductivo);
@@ -479,7 +472,16 @@ export class DailyActivityReportDialog {
         this.uploadFileName.set(archivo.name ?? '');
         this.uploadedFileData.set(archivo.name ?? null);
         this.uploadState.set('uploaded');
-        this.notify.success('Plantilla cargada', 'Se completaron los campos con los datos del archivo — revisalos antes de guardar.');
+        this.notify.success(
+          'Plantilla cargada',
+          `Se completaron los campos con los datos del archivo${tablasCargadas ? ` y ${tablasCargadas} tabla(s) de las actividades` : ''} — revísalos antes de guardar.`,
+        );
+        if (tablasSinActividad > 0) {
+          this.notify.error(
+            'Tablas sin actividad',
+            `${tablasSinActividad} tabla(s) de la hoja «Tablas» no se cargaron: el N.° de actividad no existe en el reporte (1 = la primera actividad con datos).`,
+          );
+        }
       } catch {
         this.notify.error('Error al leer el archivo', 'No se pudo procesar el Excel. Verificá que sea el formato DYN-SGI-RE-047 y que no esté dañado.');
       }

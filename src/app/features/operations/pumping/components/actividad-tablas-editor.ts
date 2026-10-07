@@ -59,7 +59,7 @@ import { TABLAS_PLANTILLA } from '../../../../shared/utils/actividad-tablas';
                         type="text"
                         class="tablas-ed__celda"
                         aria-label="Fila {{ f + 1 }}, {{ col || 'columna ' + (c + 1) }}"
-                        [value]="fila[c] ?? ''"
+                        [value]="celda(fila, c)"
                         (input)="cambiarCelda(t, f, c, $any($event.target).value)"
                       />
                     </td>
@@ -207,6 +207,11 @@ export class ActividadTablasEditor {
 
   private actualizar(t: number, cambio: (tabla: ActividadTabla) => ActividadTabla): void {
     this.tablasChange.emit(this.tablas().map((tabla, i) => (i === t ? cambio(tabla) : tabla)));
+  }
+
+  /** Una fila vieja puede traer menos celdas que columnas: la que falta se muestra vacía. */
+  protected celda(fila: string[], c: number): string {
+    return fila[c] ?? '';
   }
 
   protected agregarTabla(id: string): void {

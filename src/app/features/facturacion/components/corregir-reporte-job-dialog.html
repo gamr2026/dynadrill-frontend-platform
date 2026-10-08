@@ -1,6 +1,10 @@
 <div class="corregir-reporte-job">
   <dynadrill-text variant="caption">
-    Día {{ fecha }} · los cambios se guardan en la bitácora del ticket FCR y se regenera el Reporte Job del Pedido. La fecha no se puede cambiar.
+    @if (esPumping) {
+      Día {{ fecha }} · los cambios se guardan en el Reporte Job del Pedido, con las tablas de cada actividad. Facturación tiene la última palabra: el ticket de Pumping ya no podrá volver a enviar este día. La fecha no se puede cambiar.
+    } @else {
+      Día {{ fecha }} · los cambios se guardan en la bitácora del ticket FCR y se regenera el Reporte Job del Pedido. La fecha no se puede cambiar.
+    }
   </dynadrill-text>
 
   @if (filas().length === 0) {
@@ -25,6 +29,9 @@
           </div>
         </div>
         <dynadrill-textarea label="Detalle de la actividad" placeholder="Describa la actividad realizada…" [rows]="2" [value]="f.detail" (valueChange)="cambiarDetalle(f.key, $event)" />
+        @if (esPumping) {
+          <app-actividad-tablas-editor [tablas]="f.tablas ?? []" (tablasChange)="cambiarTablas(f.key, $event)" />
+        }
         @if (!esValida(f)) {
           <dynadrill-text variant="caption" class="corregir-reporte-job__error">Completa hora de inicio, hora de fin y detalle.</dynadrill-text>
         }

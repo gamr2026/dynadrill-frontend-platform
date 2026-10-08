@@ -469,7 +469,7 @@ export class PedidoDetailPage {
     };
   }
 
-  /** Solo Facturación, solo Reporte Job de FCR y solo antes de que el Pedido salga a firmas — el backend aplica la misma regla (409). */
+  /** Solo Facturación, Reporte Job de FCR o de Pumping, y solo antes de que el Pedido salga a firmas — el backend aplica la misma regla (409). */
   protected readonly puedeCorregirReporteJob = computed(() => {
     const p = this.pedido();
     const role = this.auth.currentUser()?.roleName;

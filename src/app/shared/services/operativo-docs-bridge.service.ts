@@ -17,6 +17,12 @@ import type {
  * Falla en silencio (log): un problema de sincronización con Facturación no
  * debe bloquear el flujo operativo.
  */
+/** Quién envía el documento puede enterarse del resultado (ej. 409: Facturación ya corrigió ese día). */
+export interface ResultadoEnvio {
+  alEnviar?: () => void;
+  alFallar?: (mensaje: string) => void;
+}
+
 @Injectable({ providedIn: 'root' })
 export class OperativoDocsBridgeService {
   private readonly http = inject(HttpClient);
@@ -30,8 +36,8 @@ export class OperativoDocsBridgeService {
     firmadoPor: string;
     header: OperativoDocHeader;
     actividades: OperativoActivityLogEntry[];
-  }): void {
-    this.enviar({ ...payload, tipo: 'reporte_job', firmadoAt: new Date().toISOString() });
+  }, resultado?: ResultadoEnvio): void {
+    this.enviar({ ...payload, tipo: 'reporte_job', firmadoAt: new Date().toISOString() }, resultado);
   }
 
   pushReporteHerramientas(payload: {
@@ -46,10 +52,13 @@ export class OperativoDocsBridgeService {
     this.enviar({ ...payload, tipo: 'reporte_herramientas', firmadoAt: new Date().toISOString() });
   }
 
-  private enviar(body: Record<string, unknown>): void {
-    this.http
-      .post(this.endpoint, body)
-      .pipe(catchError(err => (console.warn('[OperativoDocsBridge] no se pudo notificar a Facturación', err), of(null))))
-      .subscribe();
+  private enviar(body: Record<string, unknown>, resultado?: ResultadoEnvio): void {
+    this.http.post(this.endpoint, body).subscribe({
+      next: () => resultado?.alEnviar?.(),
+      error: (err: { error?: { message?: string } }) => {
+        console.warn('[OperativoDocsBridge] no se pudo notificar a Facturación', err);
+        resultado?.alFallar?.(err?.error?.message ?? 'No se pudo notificar a Facturación.');
+      },
+    });
   }
 }

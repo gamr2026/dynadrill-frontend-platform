@@ -1615,8 +1615,10 @@ export class TicketDetailPage {
       firmadoPor: report.nombreSupervisor || t.assignedSupervisor,
       header: { code: t.code, cliente: t.clientName, pozo: t.wellName, supervisor: t.assignedSupervisor, operador: t.assignedOperator },
       actividades,
+    }, {
+      alEnviar: () => this.notify.info('Enviado a Facturación', `Reporte Job del ${report.fecha} vinculado al Pedido ${t.pedidoCode}.`),
+      alFallar: mensaje => this.notify.error('No se envió a Facturación', mensaje),
     });
-    this.notify.info('Enviado a Facturación', `Reporte Job del ${report.fecha} vinculado al Pedido ${t.pedidoCode}.`);
   }
 
   protected openDailyActivityReportForDay(row: Record<string, unknown>): void {

@@ -75,4 +75,114 @@
     padding-top: 16px;
     border-top: 1px solid #ecebf1;
   }
+
+  // ── Formato del Reporte diario de Pumping ──
+  &__pumping {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  &__p-header,
+  &__p-row {
+    display: grid;
+    grid-template-columns: 100px 100px 60px 1fr 40px;
+    gap: 0.75rem;
+  }
+
+  &__p-header {
+    padding: 0.5rem 0;
+    border-bottom: 2px solid var(--color-border, #e0e0e0);
+    font-weight: 600;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary, #555);
+  }
+
+  &__p-row {
+    align-items: center;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--color-border, #f0f0f0);
+    border-radius: 8px;
+    background: var(--surface, #fff);
+
+    &--invalida {
+      border-color: var(--error, #cf1322);
+    }
+  }
+
+  &__p-horas {
+    display: flex;
+    justify-content: center;
+  }
+
+  &__p-detalle {
+    min-width: 0;
+
+    ::ng-deep dynadrill-textarea {
+      width: 100%;
+
+      textarea,
+      .ant-input {
+        min-height: 60px;
+        resize: vertical;
+      }
+    }
+  }
+
+  &__p-accion {
+    display: flex;
+    align-items: center;
+  }
+
+  &__p-tablas {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  &__p-time {
+    width: 100%;
+    height: 36px;
+    padding: 0 0.5rem;
+    border: 1px solid var(--color-border, #d9d9d9);
+    border-radius: 6px;
+    font: inherit;
+    font-size: 0.8125rem;
+    background: var(--color-surface, #fff);
+    color: var(--color-text, #222);
+
+    &:focus {
+      outline: none;
+      border-color: var(--color-primary, #5b2d8e);
+      box-shadow: 0 0 0 2px rgba(91, 45, 142, 0.1);
+    }
+  }
+
+  &__p-label {
+    display: none;
+    margin-bottom: 4px;
+    font-size: 11px;
+    color: var(--text-muted, #5c5870);
+  }
+}
+
+@media (max-width: 640px) {
+  .corregir-reporte-job__p-header {
+    display: none;
+  }
+
+  .corregir-reporte-job__p-row {
+    grid-template-columns: 1fr 1fr auto;
+    grid-template-areas:
+      'inicio fin accion'
+      'detalle detalle detalle'
+      'tablas tablas tablas';
+  }
+
+  .corregir-reporte-job__p-row > :nth-child(1) { grid-area: inicio; }
+  .corregir-reporte-job__p-row > :nth-child(2) { grid-area: fin; }
+  .corregir-reporte-job__p-row > .corregir-reporte-job__p-horas { display: none; }
+  .corregir-reporte-job__p-row > .corregir-reporte-job__p-detalle { grid-area: detalle; }
+  .corregir-reporte-job__p-row > .corregir-reporte-job__p-accion { grid-area: accion; justify-content: flex-end; }
+  .corregir-reporte-job__p-row > .corregir-reporte-job__p-tablas { grid-area: tablas; }
+  .corregir-reporte-job__p-label { display: block; }
 }

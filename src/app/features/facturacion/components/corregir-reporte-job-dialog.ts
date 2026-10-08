@@ -98,6 +98,12 @@ export class CorregirReporteJobDialog {
     });
   }
 
+  protected cambiarCampoHora(key: number, campo: 'startTime' | 'endTime', valor: string): void {
+    this.actualizar(key, f => ({ ...f, [campo]: valor }));
+  }
+
+  protected readonly totalFila = (f: FilaActividad): number => calcDurationHours(f.startTime, f.endTime);
+
   protected cambiarDetalle(key: number, detail: string): void {
     this.actualizar(key, f => ({ ...f, detail }));
   }

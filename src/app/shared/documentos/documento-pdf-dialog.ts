@@ -1,5 +1,5 @@
 import { NgComponentOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, Type } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, Type } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import { DynadrillButtonComponent } from '@digitec-it-projects/dynadrill-ui';
 import { imprimirDocumento } from './imprimir.util';
@@ -13,6 +13,7 @@ export interface DocumentoPdfData {
   orientacion: DocumentoOrientacion;
   /** Nombre sugerido del archivo: el navegador lo toma del título de la página al "Guardar como PDF". */
   nombreArchivo: string;
+  descargar?: boolean;
 }
 
 /**
@@ -62,9 +63,14 @@ export interface DocumentoPdfData {
     }
   `,
 })
-export class DocumentoPdfDialog {
+export class DocumentoPdfDialog implements OnInit {
   protected readonly data = inject<DocumentoPdfData>(NZ_MODAL_DATA);
   private readonly modalRef = inject(NzModalRef<DocumentoPdfDialog>);
+
+  /** Modo «Descargar»: espera a que la hoja termine de pintarse y abre el diálogo de impresión. */
+  ngOnInit(): void {
+    if (this.data.descargar) setTimeout(() => this.imprimir(), 600);
+  }
 
   protected cerrar(): void {
     this.modalRef.close();

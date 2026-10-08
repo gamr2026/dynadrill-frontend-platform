@@ -446,7 +446,7 @@ export class PedidoDetailPage {
   }
 
   /** Reporte de Unidad del ticket de Pumping (formato DYN-MNT-RE-012) con lo registrado hasta ahora: salida y, si ya se hizo, llegada. */
-  protected verReporteUnidad(): void {
+  protected verReporteUnidad(descargar = false): void {
     const reporte = this.reporteUnidad();
     if (!reporte) return;
     this.documentoPdf.abrir({
@@ -454,6 +454,7 @@ export class PedidoDetailPage {
       component: ReporteUnidadHoja,
       inputs: { reporte, ticketCode: this.avance()?.ticketPumpingCode ?? '' },
       nombreArchivo: `Reporte de Unidad ${reporte.reportCode}`,
+      descargar,
     });
   }
 
@@ -490,18 +491,19 @@ export class PedidoDetailPage {
     });
   }
 
-  protected verReporteJob(doc: DocumentoOperativo): void {
+  protected verReporteJob(doc: DocumentoOperativo, descargar = false): void {
     if (!doc.header || !doc.actividades) return;
     this.documentoPdf.abrir({
       titulo: `Reporte Job — ${doc.fecha ?? ''}`,
       component: ReporteJobHoja,
       inputs: { header: doc.header, log: doc.actividades, extras: this.extrasReporteJob() },
       nombreArchivo: `Reporte diario de actividades ${doc.header.code} ${doc.fecha ?? ''}`.trim(),
+      descargar,
     });
   }
 
   /** Un solo PDF de Reporte de Herramientas consolidando todos los días recibidos. */
-  protected verReporteHerramientas(): void {
+  protected verReporteHerramientas(descargar = false): void {
     const docs = this.reporteHtasDocs();
     if (!docs.length || !docs[0].header) return;
     const herramientas = docs.flatMap(d => d.herramientas ?? []);
@@ -512,6 +514,7 @@ export class PedidoDetailPage {
       inputs: { header: docs[0].header, tools: herramientas, usageLog: usoHerramientas },
       orientacion: 'landscape',
       nombreArchivo: `Reporte de Herramientas ${docs[0].header.code}`,
+      descargar,
     });
   }
 
@@ -648,7 +651,7 @@ export class PedidoDetailPage {
     });
   }
 
-  protected verGuiaRemisionPdf(): void {
+  protected verGuiaRemisionPdf(descargar = false): void {
     const guia = this.guiaRemision();
     const p = this.pedido();
     if (!guia || !p) return;
@@ -657,6 +660,7 @@ export class PedidoDetailPage {
       component: GuiaRemisionHoja,
       inputs: { guia, pedido: p },
       nombreArchivo: `Guía de remisión ${p.code}`,
+      descargar,
     });
   }
 

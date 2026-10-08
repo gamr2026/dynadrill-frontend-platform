@@ -11,13 +11,17 @@ import {
   DynadrillTextareaComponent,
 } from '@digitec-it-projects/dynadrill-ui';
 import { FcrService } from '../../operations/fcr/services/fcr.service';
+import { PumpingService } from '../../operations/pumping/services/pumping.service';
+import { ActividadTablasEditor } from '../../operations/pumping/components/actividad-tablas-editor';
+import { limpiarTablas } from '../../../shared/utils/actividad-tablas';
+import type { ActividadTabla } from '../../../shared/models/operativo-docs.model';
 import { calcDurationHours, HOUR_OPTIONS, MINUTE_OPTIONS } from '../../../shared/utils';
 import { fechaDoc } from '../../../shared/documentos/documento-format.util';
 import type { DocumentoOperativo } from '../models/documento-operativo.model';
 import { filaActividadValida, filasActividadValidas, type FilaActividad } from './corregir-reporte-job.util';
 
 export interface CorregirReporteJobDialogData {
-  /** Reporte Job de origen FCR — trae `ticketOperativoId` y `fecha` del día a corregir. */
+  /** Reporte Job de origen FCR o Pumping — trae `ticketOperativoId` y `fecha` del día a corregir. */
   doc: DocumentoOperativo;
 }
 
@@ -27,17 +31,30 @@ export type CorregirReporteJobDialogResult = boolean;
 interface FilaEditable extends FilaActividad {
   /** Clave estable para el `@for` — las filas no tienen id hasta que el backend las guarda. */
   key: number;
+  /** Id de la actividad original (Pumping): conserva su autor al guardar. */
+  id?: number;
+  /** Tablas de la actividad (Pumping). */
+  tablas?: ActividadTabla[];
 }
 
 /**
  * Facturación corrige el Reporte Job de un día (specs/fcr-bitacora-envio-diario):
- * edita, agrega y quita actividades de esa fecha. Se guarda sobre la bitácora
- * del ticket FCR (fuente única), así el Operador ve la misma corrección y el
- * backend regenera el Reporte Job del Pedido.
+ * edita, agrega y quita actividades de esa fecha. FCR: se guarda sobre la bitácora
+ * del ticket (fuente única), así el Operador ve la misma corrección y el backend
+ * regenera el Reporte Job del Pedido. Pumping: se edita el propio documento (con
+ * las tablas de cada actividad) y Facturación tiene la última palabra — el ticket
+ * ya no puede volver a enviar ese día.
  */
 @Component({
   selector: 'app-corregir-reporte-job-dialog',
-  imports: [DynadrillSelectComponent, DynadrillTextareaComponent, DynadrillButtonComponent, DynadrillIconButtonComponent, DynadrillTextComponent],
+  imports: [
+    DynadrillSelectComponent,
+    DynadrillTextareaComponent,
+    DynadrillButtonComponent,
+    DynadrillIconButtonComponent,
+    DynadrillTextComponent,
+    ActividadTablasEditor,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './corregir-reporte-job-dialog.html',
   styleUrl: './corregir-reporte-job-dialog.scss',
@@ -45,6 +62,7 @@ interface FilaEditable extends FilaActividad {
 })
 export class CorregirReporteJobDialog {
   private readonly fcrService = inject(FcrService);
+  private readonly pumpingService = inject(PumpingService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<CorregirReporteJobDialog, CorregirReporteJobDialogResult>);
@@ -53,12 +71,13 @@ export class CorregirReporteJobDialog {
   protected readonly hourOptions = HOUR_OPTIONS;
   protected readonly minuteOptions = MINUTE_OPTIONS;
   protected readonly fecha = fechaDoc(this.data.doc.fecha);
+  protected readonly esPumping = this.data.doc.origen === 'pumping';
 
   private nextKey = 0;
   protected readonly filas = signal<FilaEditable[]>(
     [...(this.data.doc.actividades ?? [])]
       .sort((a, b) => a.startTime.localeCompare(b.startTime))
-      .map(a => ({ key: this.nextKey++, startTime: a.startTime, endTime: a.endTime, detail: a.detail })),
+      .map(a => ({ key: this.nextKey++, id: a.id, startTime: a.startTime, endTime: a.endTime, detail: a.detail, tablas: a.tablas })),
   );
 
   protected readonly submitting = signal(false);
@@ -79,8 +98,18 @@ export class CorregirReporteJobDialog {
     });
   }
 
+  protected cambiarCampoHora(key: number, campo: 'startTime' | 'endTime', valor: string): void {
+    this.actualizar(key, f => ({ ...f, [campo]: valor }));
+  }
+
+  protected readonly totalFila = (f: FilaActividad): number => calcDurationHours(f.startTime, f.endTime);
+
   protected cambiarDetalle(key: number, detail: string): void {
     this.actualizar(key, f => ({ ...f, detail }));
+  }
+
+  protected cambiarTablas(key: number, tablas: ActividadTabla[]): void {
+    this.actualizar(key, f => ({ ...f, tablas }));
   }
 
   protected agregarFila(): void {
@@ -98,7 +127,9 @@ export class CorregirReporteJobDialog {
     if (!this.filas().length) {
       const ok = await this.dialog.confirm({
         title: 'Dejar el día sin actividades',
-        content: `El Reporte Job del ${this.fecha} se quitará del Pedido y de la bitácora del ticket FCR. ¿Continuar?`,
+        content: this.esPumping
+          ? `El Reporte Job del ${this.fecha} se quitará del Pedido. ¿Continuar?`
+          : `El Reporte Job del ${this.fecha} se quitará del Pedido y de la bitácora del ticket FCR. ¿Continuar?`,
         okText: 'Confirmar',
         cancelText: 'Cancelar',
         danger: true,
@@ -107,17 +138,28 @@ export class CorregirReporteJobDialog {
     }
 
     this.submitting.set(true);
+    const dia = fecha.slice(0, 10);
+    const alGuardar = (): void => {
+      this.notify.success(
+        'Reporte Job corregido',
+        this.esPumping ? `Se actualizó el día ${this.fecha} en el Pedido.` : `Se actualizó el día ${this.fecha} en el Pedido y en la bitácora FCR.`,
+      );
+      this.modalRef.close(true);
+    };
+    const alFallar = (err: HttpErrorResponse): void => {
+      this.submitting.set(false);
+      this.notify.error('Error', err.error?.message ?? 'No se pudo guardar la corrección.');
+    };
+    if (this.esPumping) {
+      const actividadesPumping = this.filas().map(({ id, startTime, endTime, detail, tablas }) => {
+        const limpias = limpiarTablas(tablas);
+        return { ...(id != null ? { id } : {}), startTime, endTime, detail: detail.trim(), ...(limpias.length ? { tablas: limpias } : {}) };
+      });
+      this.pumpingService.corregirReporteJobDia(ticketOperativoId, dia, actividadesPumping).subscribe({ next: alGuardar, error: alFallar });
+      return;
+    }
     const actividades = this.filas().map(({ startTime, endTime, detail }) => ({ startTime, endTime, detail: detail.trim() }));
-    this.fcrService.reemplazarDiaBitacora(ticketOperativoId, fecha.slice(0, 10), actividades).subscribe({
-      next: () => {
-        this.notify.success('Reporte Job corregido', `Se actualizó el día ${this.fecha} en el Pedido y en la bitácora FCR.`);
-        this.modalRef.close(true);
-      },
-      error: (err: HttpErrorResponse) => {
-        this.submitting.set(false);
-        this.notify.error('Error', err.error?.message ?? 'No se pudo guardar la corrección.');
-      },
-    });
+    this.fcrService.reemplazarDiaBitacora(ticketOperativoId, dia, actividades).subscribe({ next: alGuardar, error: alFallar });
   }
 
   protected cancelar(): void {

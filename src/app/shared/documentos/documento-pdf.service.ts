@@ -10,6 +10,8 @@ export interface AbrirDocumentoPdf {
   /** Por defecto vertical; los formatos anchos (tablas de muchas columnas) se imprimen en horizontal. */
   orientacion?: DocumentoOrientacion;
   nombreArchivo?: string;
+  /** Abre el diálogo de impresión directamente ("Guardar como PDF") en vez de esperar el clic en «Imprimir / Guardar PDF». */
+  descargar?: boolean;
 }
 
 /** Punto único para abrir un formato digitalizado en su vista de impresión (PDF). */
@@ -26,6 +28,7 @@ export class DocumentoPdfService {
         inputs: config.inputs,
         orientacion: config.orientacion ?? 'portrait',
         nombreArchivo: config.nombreArchivo ?? config.titulo,
+        descargar: config.descargar ?? false,
       },
       footer: false,
       width: config.orientacion === 'landscape' ? 1180 : 940,

@@ -36,15 +36,18 @@ describe('NavigationService', () => {
 
   it('Supervisor Pumping ve Pumping + Aprobaciones y Gerenciamiento de Viaje, nunca FCR', () => {
     const service = setup('Supervisor Pumping');
-    expect(keys(service)).toEqual(['inicio', 'operaciones', 'mantenimiento']);
-    expect(links(service, 'operaciones')).toEqual(['/modulos/operativo/pumping', '/modulos/operativo/pumping/aprobaciones']);
-    expect(links(service, 'mantenimiento')).toEqual(['/dashboard/mantenimiento/gerenciamiento-viaje']);
+    expect(keys(service)).toEqual(['inicio', 'operaciones']);
+    expect(links(service, 'operaciones')).toEqual([
+      '/modulos/operativo/pumping',
+      '/modulos/operativo/pumping/aprobaciones',
+      '/dashboard/mantenimiento/gerenciamiento-viaje',
+    ]);
   });
 
-  it('Jefe de Base solo ve Pumping en Operaciones (sin Usuarios en la UI)', () => {
+  it('Jefe de Base solo ve Pumping y Gerenciamiento de Viaje en Operaciones (sin Usuarios en la UI)', () => {
     const service = setup('Jefe de Base');
-    expect(keys(service)).toEqual(['inicio', 'operaciones', 'mantenimiento']);
-    expect(links(service, 'operaciones')).toEqual(['/modulos/operativo/pumping']);
+    expect(keys(service)).toEqual(['inicio', 'operaciones']);
+    expect(links(service, 'operaciones')).toEqual(['/modulos/operativo/pumping', '/dashboard/mantenimiento/gerenciamiento-viaje']);
   });
 
   it('"Códigos por cliente" de FCR: solo Ventas FCR y Superadmin, y activa su propia entrada (no la de FCR)', () => {

@@ -1,3 +1,4 @@
+import type { ActividadTabla } from '../../../../shared/models/operativo-docs.model';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -78,6 +79,18 @@ export class PumpingService {
       `${this.baseUrl}/tickets/${ticketId}/unit-report`,
       report,
     );
+  }
+
+  /**
+   * Facturación corrige un día del Reporte Job del ticket (actividades con sus tablas). Tiene la última palabra: después
+   * el ticket ya no puede volver a enviar ese día.
+   */
+  corregirReporteJobDia(
+    ticketId: number,
+    fecha: string,
+    actividades: { id?: number; startTime: string; endTime: string; detail: string; tablas?: ActividadTabla[] }[],
+  ): Observable<unknown> {
+    return this.http.put(`${this.baseUrl}/tickets/${ticketId}/reporte-job/dias/${fecha}`, { actividades });
   }
 
   approveTicket(ticketId: number): Observable<PumpingTicket> {

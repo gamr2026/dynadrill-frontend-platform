@@ -1,0 +1,48 @@
+<div class="epi-list-page">
+  <app-page-header eyebrow="QHSE" title="Entrega de EPI" subtitle="DYN-SGI-RE-032 — solicitar, aprobar o rechazar y despachar">
+    <div actions>
+      @if (puedeCrear()) {
+        <dynadrill-button (clicked)="nueva()">+ Nueva entrega de EPI</dynadrill-button>
+      }
+    </div>
+  </app-page-header>
+
+  <dynadrill-tabs [tabs]="tabs" [activeIndex]="tabActiva()" (activeIndexChange)="tabActiva.set($event)" />
+
+  @if (tabActiva() === 1) {
+    <app-aceptaciones-terminos-panel />
+  } @else {
+    <div class="kpi-stat-row" role="list">
+      @for (kpi of kpis(); track kpi.label) {
+        <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
+      }
+    </div>
+
+    <div class="epi-list-page__toolbar">
+      <app-qhse-filtros [opciones]="opcionesFiltro()" [selected]="filtroEstado()" (selectedChange)="filtroEstado.set($any($event))" />
+      <dynadrill-input placeholder="Buscar por ID, nombre, cédula, ticket…" [value]="busqueda()" (valueChange)="busqueda.set($event)" />
+    </div>
+
+    @if (isMobile()) {
+      <app-qhse-registros-movil [items]="itemsMovil()" [loading]="cargando()" vacio="No hay entregas de EPI con ese filtro." />
+    } @else {
+      <ng-template #accionesTpl let-row>
+        <div class="epi-list-page__row-actions">
+          <dynadrill-icon-button icon="eye" tooltip="Abrir" tooltipPlacement="top" (clicked)="abrir(row.id)" />
+        </div>
+      </ng-template>
+
+      <div class="table-scroll dyn-table-card">
+        <dynadrill-data-table
+          [columns]="columnas"
+          [rows]="filas()"
+          [loading]="cargando()"
+          [rowKey]="rowKeyFn"
+          [pageSize]="10"
+          actionsHeader="Acciones"
+          [actionsTemplate]="accionesTpl"
+        />
+      </div>
+    }
+  }
+</div>

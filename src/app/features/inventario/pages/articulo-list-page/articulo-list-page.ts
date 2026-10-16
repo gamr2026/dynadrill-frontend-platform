@@ -14,8 +14,8 @@ import {
   type DynadrillKpiRowItem,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
-import { ArticulosService } from '../../services/articulos.service';
-import { Articulo } from '../../models/articulo.model';
+import { InventarioPlataformaService } from '../../services/inventario-plataforma.service';
+import { formatearCantidad, mensajeErrorInventario, type ArticuloInventario } from '../../models/inventario-plataforma.model';
 import { ArticuloFormDialog, ArticuloFormDialogData } from '../../components/articulo-form-dialog';
 import { injectNarrowViewport } from '../../../../core/utils/narrow-viewport.util';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
@@ -48,7 +48,7 @@ const PAGE_SIZE = 10;
   styleUrl: './articulo-list-page.scss',
 })
 export class ArticuloListPage {
-  private readonly articulosService = inject(ArticulosService);
+  private readonly inventario = inject(InventarioPlataformaService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly router = inject(Router);
@@ -57,15 +57,20 @@ export class ArticuloListPage {
   protected readonly isMobile = injectNarrowViewport();
 
   protected readonly loading = signal(true);
-  protected readonly articulos = signal<Articulo[]>([]);
+  protected readonly articulos = signal<ArticuloInventario[]>([]);
+  /** Id de la categoría elegida (el filtro de la tabla y el de los chips de móvil). */
   protected readonly filtroCategoria = signal<string | null>(null);
 
   protected readonly categoriaOptions = computed<DynadrillSelectOption[]>(() => {
-    const categorias = new Set(this.articulos().map(a => a.categoria));
-    return [...categorias].sort().map(c => ({ label: c, value: c }));
+    const categorias = new Map(this.articulos().map(a => [a.categoria.id, a.categoria.nombre]));
+    return [...categorias].sort((x, y) => x[1].localeCompare(y[1], 'es')).map(([id, nombre]) => ({ label: nombre, value: id }));
   });
 
-  protected readonly categoriaChips = computed(() => [TODAS, ...this.categoriaOptions().map(o => String(o.value))]);
+  protected readonly categoriaChips = computed(() => [TODAS, ...this.categoriaOptions().map(o => o.label)]);
+  /** Etiqueta del chip elegido (los chips muestran el nombre; el filtro usa el id). */
+  protected readonly chipElegido = computed(
+    () => this.categoriaOptions().find(o => o.value === this.filtroCategoria())?.label ?? TODAS,
+  );
   /** Búsqueda por código o nombre — solo móvil; en escritorio la tabla ya busca por columna. */
   protected readonly query = signal('');
 
@@ -90,34 +95,34 @@ export class ArticuloListPage {
   protected readonly rows = computed(() => {
     const filtro = this.filtroCategoria();
     return this.articulos()
-      .filter(a => !filtro || a.categoria === filtro)
+      .filter(a => !filtro || a.categoria.id === filtro)
       .map(a => ({
         id: a.id,
         codigo: a.codigo,
         nombre: a.nombre,
-        categoria: a.categoria,
-        subcategoria: a.subcategoria,
-        stockLabel: `${a.stockActual} ${a.unidadStock}`,
+        categoria: a.categoria.nombre,
+        subcategoria: a.subcategoria?.nombre ?? '—',
+        stockLabel: this.stockTexto(a),
         estadoBadge: a.activo ? { text: 'Activo', tone: 'success' as const } : { text: 'Inactivo', tone: 'neutral' as const },
       }));
   });
 
-  protected readonly cards = computed<(RecordCardData & { id: number })[]>(() => {
+  protected readonly cards = computed<(RecordCardData & { id: string })[]>(() => {
     const filtro = this.filtroCategoria();
     const q = this.query().trim().toLocaleLowerCase('es');
     return this.articulos()
-      .filter(a => !filtro || a.categoria === filtro)
+      .filter(a => !filtro || a.categoria.id === filtro)
       .filter(a => !q || a.codigo.toLocaleLowerCase('es').includes(q) || a.nombre.toLocaleLowerCase('es').includes(q))
       .map(a => ({
         id: a.id,
         eyebrow: a.codigo,
         title: a.nombre,
-        subtitle: `${a.categoria} · ${a.subcategoria}`,
+        subtitle: a.subcategoria ? `${a.categoria.nombre} · ${a.subcategoria.nombre}` : a.categoria.nombre,
         status: a.activo ? { text: 'Activo', tone: 'success' } : { text: 'Inactivo', tone: 'neutral' },
         fields: [
-          { label: 'Categoría', value: a.categoria },
-          { label: 'Stock', value: `${a.stockActual} ${a.unidadStock}` },
-          { label: 'Subcategoría', value: a.subcategoria },
+          { label: 'Categoría', value: a.categoria.nombre },
+          { label: 'Stock', value: this.stockTexto(a) },
+          { label: 'Subcategoría', value: a.subcategoria?.nombre ?? '—' },
         ],
         actions: [{ icon: 'eye', label: 'Ver detalle', run: () => this.viewDetail({ id: a.id }) }],
       }));
@@ -127,7 +132,7 @@ export class ArticuloListPage {
   protected onCategoriaChip(selected: string[]): void {
     const value = selected[0];
     if (!value) return;
-    this.filtroCategoria.set(value === TODAS ? null : value);
+    this.filtroCategoria.set(this.categoriaOptions().find(o => o.label === value)?.value?.toString() ?? null);
     this.pagination.reset();
   }
 
@@ -144,16 +149,20 @@ export class ArticuloListPage {
 
   private reload(): void {
     this.loading.set(true);
-    this.articulosService.list().subscribe({
+    this.inventario.articulos().subscribe({
       next: articulos => {
         this.articulos.set(articulos);
         this.loading.set(false);
       },
-      error: () => {
+      error: err => {
         this.loading.set(false);
-        this.notify.error('Error', 'No se pudo cargar el listado de artículos.');
+        this.notify.error('Error', mensajeErrorInventario(err, 'No se pudo cargar el listado de artículos.'));
       },
     });
+  }
+
+  private stockTexto(a: ArticuloInventario): string {
+    return `${formatearCantidad(a.stockActual)} ${a.unidadStock.simbolo}`;
   }
 
   protected viewDetail(row: Record<string, unknown>): void {

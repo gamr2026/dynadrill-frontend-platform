@@ -1,7 +1,7 @@
 @if (loading()) {
   <p class="articulo-detail-page__loading">Cargando artículo…</p>
 } @else if (articulo(); as a) {
-  <app-page-header [eyebrow]="a.codigo" [title]="a.nombre" [subtitle]="a.categoria + ' — ' + a.subcategoria">
+  <app-page-header [eyebrow]="a.codigo" [title]="a.nombre" [subtitle]="a.subcategoria ? a.categoria.nombre + ' — ' + a.subcategoria.nombre : a.categoria.nombre">
     @if (!isMobile()) {
       <dynadrill-button actions variant="secondary" (clicked)="back()">
         <dynadrill-icon name="arrow-left" [size]="16" />
@@ -39,7 +39,7 @@
                 <div class="articulo-detail-page__list-body">
                   <span class="articulo-detail-page__accent">{{ m.fecha }}</span>
                   <strong>{{ m.motivo }}</strong>
-                  <span class="articulo-detail-page__meta">{{ m.responsable }} · Saldo {{ m.saldoResultante }}</span>
+                  <span class="articulo-detail-page__meta">{{ m.bodega }} · {{ m.responsable }} · Saldo {{ m.saldoResultante }}</span>
                   <dynadrill-tag [label]="m.tipoBadge.text" [variant]="m.tipoBadge.tone" />
                 </div>
                 <span class="articulo-detail-page__qty">{{ m.cantidad }}</span>

@@ -1,0 +1,31 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.unidades-list-page__filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+
+  dynadrill-select {
+    min-width: 220px;
+  }
+}
+
+.unidades-list-page__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.unidades-list-page__empty {
+  padding: 24px 0;
+  color: var(--text-muted, #5c5870);
+  text-align: center;
+}

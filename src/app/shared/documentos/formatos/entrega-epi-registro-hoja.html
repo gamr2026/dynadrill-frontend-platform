@@ -1,0 +1,91 @@
+<div class="doc-hoja epi">
+  <app-doc-encabezado
+    titulo="Registro de entrega de EPI (Equipo de protección individual) y ropa de trabajo"
+    codigo="DYN-SGI-RE-032"
+    etiquetaCodigo="Código: "
+    version="11"
+    etiquetaVersion="Revisión"
+    elaboracion="2/3/2026"
+    etiquetaFecha="Fecha emisión"
+  />
+
+  <div class="epi__declaracion">
+    Firmo y acepto ser responsable por los elementos de protección individual y ropa de trabajo que me están entregando y me comprometo a dar uso adecuado de dichos elementos de acuerdo a las indicaciones recibidas.
+  </div>
+
+  <table class="epi__datos">
+    <tr>
+      <td class="epi__lugar"><strong>Lugar:</strong> {{ entrega().lugar }}</td>
+      <td class="epi__nombre"><strong>Nombre y apellido:</strong> {{ entrega().trabajador.nombre }}@if (entrega().trabajador.cedula) { — C.I. {{ entrega().trabajador.cedula }} }</td>
+      <td class="epi__firma-datos"><strong>Firma:</strong></td>
+      <td class="epi__cargo"><strong>Cargo:</strong> {{ entrega().trabajador.cargo }}</td>
+    </tr>
+  </table>
+
+  <table class="epi__tabla">
+    <colgroup>
+      <col class="epi__c-item" /><col class="epi__c-elem" /><col class="epi__c-cant" /><col class="epi__c-talla" />
+      <col class="epi__c-cod" /><col class="epi__c-si" /><col class="epi__c-si" />
+      <col class="epi__c-fecha" /><col class="epi__c-fecha" /><col class="epi__c-obs" />
+    </colgroup>
+    <thead>
+      <tr>
+        <th rowspan="2" class="doc-centro">ITEM</th>
+        <th rowspan="2" class="doc-centro">ELEMENTO DE PROTECCION INDIVIDUAL ENTREGADO</th>
+        <th rowspan="2" class="doc-centro">CANTIDAD</th>
+        <th rowspan="2" class="doc-centro">TALLA</th>
+        <th rowspan="2" class="doc-centro">CÓDIGO O CÉDULA</th>
+        <th colspan="2" class="doc-centro">RECIBIÓ CAPACITACIÓN EN USO Y MANEJO DEL EPI</th>
+        <th rowspan="2" class="doc-centro">FECHA / FIRMA RECIBIDO</th>
+        <th rowspan="2" class="doc-centro">FECHA / FIRMA ENTREGADO</th>
+        <th rowspan="2" class="doc-centro">OBSERVACIONES</th>
+      </tr>
+      <tr>
+        <th class="doc-centro">SI</th>
+        <th class="doc-centro">NO</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (it of filas(); track $index) {
+        <tr>
+          <td class="doc-centro">{{ $index + 1 }}</td>
+          <td>{{ it?.elemento }}</td>
+          <td class="doc-centro">{{ it?.cantidad }}</td>
+          <td class="doc-centro">{{ it?.talla }}</td>
+          <td class="doc-centro">{{ it ? (it.codigo ?? entrega().trabajador.cedula) : '' }}</td>
+          <td class="doc-centro">{{ it?.recibioCapacitacion === true ? 'X' : '' }}</td>
+          <td class="doc-centro">{{ it?.recibioCapacitacion === false ? 'X' : '' }}</td>
+          <td class="epi__firma">
+            @if (it) {
+              <div>{{ fecha(entrega().firmaTrabajador?.at ?? it.entregadoEl) }}</div>
+              <div class="epi__quien">{{ entrega().trabajador.nombre }}</div>
+            }
+          </td>
+          <td class="epi__firma">
+            @if (it) {
+              <div>{{ fecha(entrega().despachado?.at ?? it.entregadoEl) }}</div>
+              <div class="epi__quien">{{ entregadoPor() }}</div>
+            }
+          </td>
+          <td>{{ it?.observaciones }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <div class="epi__nota">NOTA: Cuando el expediente se encuentre completo entregar el registro al file del trabajador en talento Humano.</div>
+
+  <table class="epi__th">
+    <tr><td colspan="4" class="doc-centro epi__th-titulo">Recibe conforme Talento Humano:</td></tr>
+    <tr>
+      <td><strong>Nombre:</strong> {{ entrega().firmaTalentoHumano?.nombre }}</td>
+      <td><strong>Cargo:</strong> Talento Humano</td>
+      <td><strong>Nombre:</strong> {{ entregadoPor() }}</td>
+      <td><strong>Cargo:</strong> {{ entregadoPor() ? 'QHSE' : '' }}</td>
+    </tr>
+    <tr class="epi__th-firma">
+      <td colspan="2"><strong>Firma</strong> ________________</td>
+      <td colspan="2"><strong>Firma:</strong> ______________________</td>
+    </tr>
+  </table>
+</div>

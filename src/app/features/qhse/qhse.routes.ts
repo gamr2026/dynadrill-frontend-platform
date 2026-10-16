@@ -2,6 +2,8 @@ import { Routes } from '@angular/router';
 import { provideDynadrillCharts } from '@digitec-it-projects/dynadrill-ui';
 import { BarChart } from 'echarts/charts';
 import { roleGuard } from '../../core/guards/role.guard';
+import { permissionGuard } from '../../core/guards/permission.guard';
+import { PERMISO_EPI_VER } from './entrega-epi/models/entrega-epi';
 
 /**
  * Fase 1 del módulo QHSE (HSE-PLAN-001 / HSE-SITIO-001): IPERC + PTW.
@@ -154,10 +156,10 @@ export const qhseRoutes: Routes = [
     data: { allowedRoles: HSE_STAFF_ROLES },
   },
   {
+    // Entrega de EPI del backend nuevo (contenedor qhse, `/api/v2/qhse/epi`): se autoriza por permiso del token, no por rol.
     path: 'epi',
-    loadComponent: () => import('./epi/pages/epi-list-page/epi-list-page').then(m => m.EpiListPage),
-    canActivate: [roleGuard],
-    data: { allowedRoles: HSE_STAFF_ROLES },
+    loadComponent: () => import('./entrega-epi/pages/entrega-epi-list-page/entrega-epi-list-page').then(m => m.EntregaEpiListPage),
+    canActivate: [permissionGuard(PERMISO_EPI_VER)],
   },
   {
     // Fase 2, PLAN-QHSE-PUMPING-NOTIFICACIONES: bandeja "Documentos por pedido".

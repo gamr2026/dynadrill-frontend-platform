@@ -14,11 +14,15 @@ import {
   DynadrillTagVariant,
   type DynadrillContextCardItem,
 } from '@digitec-it-projects/dynadrill-ui';
-import { ArticulosService } from '../../services/articulos.service';
-import { MovimientosInventarioService } from '../../services/movimientos-inventario.service';
-import { ArticuloPartesService } from '../../services/articulo-partes.service';
-import { Articulo, MOVIMIENTO_TIPO_LABELS, MovimientoInventario } from '../../models/articulo.model';
-import { ArticuloParte } from '../../models/articulo-parte.model';
+import { InventarioPlataformaService } from '../../services/inventario-plataforma.service';
+import {
+  formatearCantidad,
+  mensajeErrorInventario,
+  MOVIMIENTO_TIPO_LABELS,
+  type ArticuloInventarioDetalle,
+  type MovimientoKardex,
+  type ParteArticulo,
+} from '../../models/inventario-plataforma.model';
 import { ArticuloFormDialog, ArticuloFormDialogData } from '../../components/articulo-form-dialog';
 import { MovimientoDialog, MovimientoDialogData } from '../../components/movimiento-dialog';
 import { ArticuloParteFormDialog, ArticuloParteFormDialogData } from '../../components/articulo-parte-form-dialog';
@@ -26,18 +30,13 @@ import { injectNarrowViewport } from '../../../../core/utils/narrow-viewport.uti
 import { useDetailChrome } from '../../../../layout/page-chrome.service';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 
-const TIPO_TONE: Record<MovimientoInventario['tipo'], DynadrillTagVariant> = {
+const TIPO_TONE: Record<MovimientoKardex['tipo'], DynadrillTagVariant> = {
   entrada: 'success',
   salida: 'warning',
 };
 
-/**
- * Categorías de `Articulo` que tienen BOM/partes (sección "Partes" de esta pantalla, y el
- * checklist de inspección de FCR que lo consume vía `ArticuloParte.findByArticulo`).
- * Incluye tanto `HERRAMIENTAS` (catálogo de prueba, 51 ítems) como `FISHING & TOOLS`
- * (catálogo real importado, 151 ítems, el que usa FCR para agregar herramientas a un ticket).
- */
-const CATEGORIAS_CON_PARTES = new Set(['HERRAMIENTAS', 'FISHING & TOOLS']);
+/** El kardex muestra los últimos movimientos; el saldo de cada renglón ya trae el acumulado. */
+const KARDEX_LIMITE = 200;
 
 @Component({
   selector: 'app-articulo-detail-page',
@@ -58,35 +57,38 @@ const CATEGORIAS_CON_PARTES = new Set(['HERRAMIENTAS', 'FISHING & TOOLS']);
 export class ArticuloDetailPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly articulosService = inject(ArticulosService);
-  private readonly movimientosService = inject(MovimientosInventarioService);
-  private readonly partesService = inject(ArticuloPartesService);
+  private readonly inventario = inject(InventarioPlataformaService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
 
-  private readonly articuloId = Number(this.route.snapshot.paramMap.get('id'));
+  private readonly articuloId = this.route.snapshot.paramMap.get('id') ?? '';
 
   /** Móvil: kardex y partes como listas en vez de tablas (M · Artículos · Detalle en Figma). */
   protected readonly isMobile = injectNarrowViewport();
 
   protected readonly loading = signal(true);
-  protected readonly articulo = signal<Articulo | null>(null);
-  protected readonly movimientos = signal<MovimientoInventario[]>([]);
-  protected readonly partes = signal<ArticuloParte[]>([]);
+  protected readonly articulo = signal<ArticuloInventarioDetalle | null>(null);
+  protected readonly movimientos = signal<MovimientoKardex[]>([]);
+  protected readonly partes = signal<ParteArticulo[]>([]);
   protected readonly loadingPartes = signal(false);
 
-  protected readonly esHerramienta = computed(() => CATEGORIAS_CON_PARTES.has(this.articulo()?.categoria ?? ''));
+  /** La categoría del artículo dice si lleva lista de partes (herramientas). */
+  protected readonly esHerramienta = computed(() => this.articulo()?.categoria.llevaPartes ?? false);
 
   protected readonly contextItems = computed<DynadrillContextCardItem[]>(() => {
     const a = this.articulo();
     if (!a) return [];
+    const unidad = a.unidadStock.simbolo;
     return [
       { label: 'Código', value: a.codigo },
-      { label: 'Código alterno', value: a.codigoAlterno ?? '—' },
-      { label: 'Categoría', value: a.categoria },
-      { label: 'Subcategoría', value: a.subcategoria },
-      { label: 'Unidad de stock', value: a.unidadStock },
-      { label: 'Stock actual', value: `${a.stockActual} ${a.unidadStock}` },
+      { label: 'Código alterno', value: a.codigos.alterno ?? '—' },
+      { label: 'Categoría', value: a.categoria.nombre },
+      { label: 'Subcategoría', value: a.subcategoria?.nombre ?? '—' },
+      { label: 'Unidad de stock', value: a.unidadStock.nombre },
+      { label: 'Stock total', value: `${formatearCantidad(a.stockActual)} ${unidad}` },
+      ...a.stockPorBodega.map(s => ({ label: s.bodega, value: `${formatearCantidad(s.stock)} ${unidad}` })),
+      { label: 'Costo unitario (interno)', value: a.costoUnitario === null ? '—' : `$ ${formatearCantidad(a.costoUnitario)}` },
+      { label: 'Descuento sugerido', value: a.descuentoSugerido === null ? '—' : `${formatearCantidad(a.descuentoSugerido)} %` },
     ];
   });
 
@@ -94,24 +96,28 @@ export class ArticuloDetailPage {
     { key: 'fecha', header: 'Fecha', sortable: true },
     { key: 'tipoBadge', header: 'Tipo', type: 'badge' },
     { key: 'cantidad', header: 'Cantidad' },
+    { key: 'bodega', header: 'Bodega' },
     { key: 'motivo', header: 'Motivo' },
     { key: 'responsable', header: 'Responsable' },
-    { key: 'saldoResultante', header: 'Saldo' },
+    { key: 'saldoResultante', header: 'Saldo en bodega' },
   ];
 
-  protected readonly kardexRows = computed(() =>
-    [...this.movimientos()]
-      .sort((a, b) => b.fecha.localeCompare(a.fecha) || b.id - a.id)
+  protected readonly kardexRows = computed(() => {
+    const unidad = this.articulo()?.unidadStock.simbolo ?? '';
+    // más reciente primero (el orden estricto del kardex es la secuencia, no la fecha)
+    return [...this.movimientos()]
+      .sort((a, b) => b.secuencia - a.secuencia)
       .map(m => ({
         id: m.id,
-        fecha: m.fecha,
+        fecha: this.fechaCorta(m.fecha),
         tipoBadge: { text: MOVIMIENTO_TIPO_LABELS[m.tipo], tone: TIPO_TONE[m.tipo] },
-        cantidad: `${m.tipo === 'salida' ? '-' : '+'}${m.cantidad}`,
-        motivo: m.motivo,
-        responsable: m.responsable,
-        saldoResultante: `${m.saldoResultante} ${this.articulo()?.unidadStock ?? ''}`,
-      })),
-  );
+        cantidad: `${m.tipo === 'salida' ? '-' : '+'}${formatearCantidad(m.cantidad)}`,
+        bodega: m.bodega.nombre,
+        motivo: m.observacion ? `${m.motivo.nombre} — ${m.observacion}` : m.motivo.nombre,
+        responsable: m.responsable.nombre,
+        saldoResultante: `${formatearCantidad(m.saldoResultante)} ${unidad}`,
+      }));
+  });
 
   protected readonly kardexRowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
@@ -139,7 +145,7 @@ export class ArticuloDetailPage {
   constructor() {
     // Móvil: barra "← código" (Nav/TopAppBar Type=Detail) en vez de hamburguesa + logo.
     useDetailChrome(() => this.articulo()?.codigo ?? 'Artículo', '/dashboard/inventario/articulos');
-    if (Number.isNaN(this.articuloId)) {
+    if (!this.articuloId) {
       this.notify.error('Error', 'El artículo solicitado no es válido.');
       this.router.navigate(['/dashboard/inventario/articulos']);
       return;
@@ -147,35 +153,43 @@ export class ArticuloDetailPage {
     this.reload();
   }
 
+  private fechaCorta(iso: string): string {
+    return new Intl.DateTimeFormat('es-EC', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
+  }
+
   private reload(): void {
     this.loading.set(true);
-    this.articulosService.get(this.articuloId).subscribe({
+    this.inventario.articulo(this.articuloId).subscribe({
       next: articulo => {
         this.articulo.set(articulo);
         this.loading.set(false);
-        if (CATEGORIAS_CON_PARTES.has(articulo.categoria)) this.reloadPartes();
+        if (articulo.categoria.llevaPartes) this.reloadPartes();
       },
-      error: () => {
+      error: err => {
         this.loading.set(false);
-        this.notify.error('Error', 'No se pudo cargar el artículo.');
+        this.notify.error('Error', mensajeErrorInventario(err, 'No se pudo cargar el artículo.'));
       },
     });
-    this.movimientosService.list(this.articuloId).subscribe({
+    this.reloadKardex();
+  }
+
+  private reloadKardex(): void {
+    this.inventario.kardex(this.articuloId, { limite: KARDEX_LIMITE }).subscribe({
       next: movimientos => this.movimientos.set(movimientos),
-      error: () => this.notify.error('Error', 'No se pudo cargar el historial de movimientos.'),
+      error: err => this.notify.error('Error', mensajeErrorInventario(err, 'No se pudo cargar el historial de movimientos.')),
     });
   }
 
   private reloadPartes(): void {
     this.loadingPartes.set(true);
-    this.partesService.list(this.articuloId).subscribe({
+    this.inventario.partes(this.articuloId).subscribe({
       next: partes => {
         this.partes.set(partes);
         this.loadingPartes.set(false);
       },
-      error: () => {
+      error: err => {
         this.loadingPartes.set(false);
-        this.notify.error('Error', 'No se pudo cargar el catálogo de partes.');
+        this.notify.error('Error', mensajeErrorInventario(err, 'No se pudo cargar el catálogo de partes.'));
       },
     });
   }
@@ -194,7 +208,11 @@ export class ArticuloDetailPage {
       footer: false,
     });
     ref.afterClose.subscribe(updated => {
-      if (updated) this.articulo.set(updated);
+      if (updated) {
+        this.articulo.set(updated as ArticuloInventarioDetalle);
+        // si cambió de categoría, puede haber pasado a llevar (o dejar de llevar) partes
+        if ((updated as ArticuloInventarioDetalle).categoria.llevaPartes) this.reloadPartes();
+      }
     });
   }
 
@@ -249,12 +267,12 @@ export class ArticuloDetailPage {
     });
     if (!confirmed) return;
 
-    this.partesService.delete(this.articuloId, parte.id).subscribe({
+    this.inventario.eliminarParte(parte.id).subscribe({
       next: () => {
         this.notify.success('Eliminada', 'Parte eliminada del catálogo.');
         this.reloadPartes();
       },
-      error: () => this.notify.error('Error', 'No se pudo eliminar la parte.'),
+      error: err => this.notify.error('Error', mensajeErrorInventario(err, 'No se pudo eliminar la parte.')),
     });
   }
 }

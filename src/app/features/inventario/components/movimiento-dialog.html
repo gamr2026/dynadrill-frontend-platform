@@ -1,33 +1,51 @@
 <div class="movimiento-dialog">
   <div class="movimiento-dialog__stock">
-    Stock actual: <strong>{{ targetArticulo.stockActual }} {{ targetArticulo.unidadStock }}</strong>
+    Stock total: <strong>{{ stockTotalTexto }}</strong>
+    @if (stockBodegaTexto(); as s) {
+      · En la bodega elegida: <strong>{{ s }}</strong>
+    }
   </div>
 
-  <div class="movimiento-dialog__tipo">
-    <dynadrill-button [variant]="tipo() === 'entrada' ? 'primary' : 'secondary'" (clicked)="setTipo('entrada')">Entrada</dynadrill-button>
-    <dynadrill-button [variant]="tipo() === 'salida' ? 'primary' : 'secondary'" (clicked)="setTipo('salida')">Salida</dynadrill-button>
-  </div>
+  <dynadrill-select
+    label="Bodega"
+    placeholder="Seleccione la bodega"
+    [options]="bodegaOptions()"
+    [value]="bodegaId()"
+    [searchable]="true"
+    (valueChange)="onBodega($event)"
+  />
+
+  <dynadrill-select
+    label="Motivo"
+    placeholder="Seleccione el motivo"
+    [options]="motivoOptions()"
+    [value]="motivoId()"
+    [grouped]="true"
+    (valueChange)="onMotivo($event)"
+  />
 
   <dynadrill-input
     label="Cantidad"
     type="number"
-    [placeholder]="targetArticulo.unidadStock"
+    [placeholder]="unidad"
     [value]="cantidad()"
     (valueChange)="cantidad.set($event)"
   />
 
+  @if (excedeStock()) {
+    <p class="movimiento-dialog__error">La salida supera la existencia de la bodega ({{ stockBodegaTexto() }}).</p>
+  }
+
   <dynadrill-textarea
-    label="Motivo"
-    placeholder="Ej. Compra, consumo en Ticket #123, ajuste de inventario"
-    [value]="motivo()"
-    (valueChange)="motivo.set($event)"
+    label="Observación (opcional)"
+    placeholder="Ej. Factura 001-002-000123, conteo del 15/10"
+    [value]="observacion()"
+    (valueChange)="observacion.set($event)"
     [rows]="2"
   />
 
-  <dynadrill-input label="Responsable" [value]="responsable()" (valueChange)="responsable.set($event)" />
-
   @if (error()) {
-    <p class="movimiento-dialog__error">{{ error() }}</p>
+    <p class="movimiento-dialog__error" role="alert">{{ error() }}</p>
   }
 
   <div class="movimiento-dialog__actions">

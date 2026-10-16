@@ -1,13 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import { DynadrillButtonComponent, DynadrillInputComponent, DynadrillNotificationService } from '@digitec-it-projects/dynadrill-ui';
-import { ArticuloParte, CreateArticuloParteInput } from '../models/articulo-parte.model';
-import { ArticuloPartesService } from '../services/articulo-partes.service';
+import { mensajeErrorInventario, type ParteArticulo } from '../models/inventario-plataforma.model';
+import { InventarioPlataformaService } from '../services/inventario-plataforma.service';
 
 export interface ArticuloParteFormDialogData {
-  articuloId: number;
+  articuloId: string;
   /** Presente = editar; ausente = crear. */
-  parte?: ArticuloParte;
+  parte?: ParteArticulo;
 }
 
 @Component({
@@ -18,9 +18,9 @@ export interface ArticuloParteFormDialogData {
   styleUrl: './articulo-parte-form-dialog.scss',
 })
 export class ArticuloParteFormDialog {
-  private readonly partesService = inject(ArticuloPartesService);
+  private readonly inventario = inject(InventarioPlataformaService);
   private readonly notify = inject(DynadrillNotificationService);
-  private readonly modalRef = inject(NzModalRef<ArticuloParteFormDialog, ArticuloParte | undefined>);
+  private readonly modalRef = inject(NzModalRef<ArticuloParteFormDialog, ParteArticulo | undefined>);
   private readonly data = inject<ArticuloParteFormDialogData>(NZ_MODAL_DATA);
 
   protected readonly isEditMode = !!this.data.parte;
@@ -41,15 +41,15 @@ export class ArticuloParteFormDialog {
       this.item().trim().length > 0 &&
       this.codigo().trim().length > 0 &&
       this.descripcion().trim().length > 0 &&
-      Number.isFinite(this.cantidadEsperadaNum()) &&
-      this.cantidadEsperadaNum() >= 0,
+      Number.isInteger(this.cantidadEsperadaNum()) &&
+      this.cantidadEsperadaNum() >= 1,
   );
 
   protected save(): void {
     if (!this.canSave() || this.submitting()) return;
     this.submitting.set(true);
 
-    const input: CreateArticuloParteInput = {
+    const input = {
       item: this.item().trim(),
       codigo: this.codigo().trim(),
       descripcion: this.descripcion().trim(),
@@ -57,17 +57,17 @@ export class ArticuloParteFormDialog {
     };
 
     const request$ = this.isEditMode
-      ? this.partesService.update(this.articuloId, this.editingId!, input)
-      : this.partesService.create(this.articuloId, input);
+      ? this.inventario.actualizarParte(this.editingId!, input)
+      : this.inventario.crearParte(this.articuloId, input);
 
     request$.subscribe({
       next: parte => {
         this.notify.success(this.isEditMode ? 'Parte actualizada' : 'Parte creada', parte.descripcion);
         this.modalRef.close(parte);
       },
-      error: () => {
+      error: err => {
         this.submitting.set(false);
-        this.notify.error('Error', 'No se pudo guardar la parte.');
+        this.notify.error('Error', mensajeErrorInventario(err, 'No se pudo guardar la parte.'));
       },
     });
   }

@@ -1,51 +1,118 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
-import { DynadrillButtonComponent, DynadrillInputComponent, DynadrillNotificationService, DynadrillTextareaComponent } from '@digitec-it-projects/dynadrill-ui';
-import { Articulo, CreateMovimientoInput, MovimientoInventario, MovimientoTipo } from '../models/articulo.model';
-import { MovimientosInventarioService } from '../services/movimientos-inventario.service';
-import { AuthService } from '../../../core/services/auth.service';
-import { toLocalDateString } from '../../../shared/utils';
+import {
+  DynadrillButtonComponent,
+  DynadrillInputComponent,
+  DynadrillNotificationService,
+  DynadrillSelectComponent,
+  DynadrillTextareaComponent,
+  type DynadrillSelectOption,
+  type DynadrillSelectValue,
+} from '@digitec-it-projects/dynadrill-ui';
+import {
+  formatearCantidad,
+  mensajeErrorInventario,
+  MOVIMIENTO_TIPO_LABELS,
+  type ArticuloInventarioDetalle,
+  type BodegaInventario,
+  type MotivoMovimiento,
+  type MovimientoKardex,
+} from '../models/inventario-plataforma.model';
+import { InventarioPlataformaService } from '../services/inventario-plataforma.service';
 
 export interface MovimientoDialogData {
-  articulo: Articulo;
+  articulo: ArticuloInventarioDetalle;
 }
 
+/**
+ * Movimiento manual de Bodega. El motivo elegido fija si es entrada o salida; el servidor calcula el saldo y rechaza una
+ * salida que deje la bodega en negativo. Quien registra queda como responsable (sale de la sesión, no se escribe).
+ */
 @Component({
   selector: 'app-movimiento-dialog',
   /** Bottom sheet en móvil (Overlay/BottomSheet en Figma) — ver styles.scss. */
   host: { class: 'app-dialog-sheet-mobile' },
-  imports: [DynadrillInputComponent, DynadrillTextareaComponent, DynadrillButtonComponent],
+  imports: [DynadrillInputComponent, DynadrillSelectComponent, DynadrillTextareaComponent, DynadrillButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './movimiento-dialog.html',
   styleUrl: './movimiento-dialog.scss',
 })
 export class MovimientoDialog {
-  private readonly movimientosService = inject(MovimientosInventarioService);
+  private readonly inventario = inject(InventarioPlataformaService);
   private readonly notify = inject(DynadrillNotificationService);
-  private readonly auth = inject(AuthService);
-  private readonly modalRef = inject(NzModalRef<MovimientoDialog, MovimientoInventario | undefined>);
+  private readonly modalRef = inject(NzModalRef<MovimientoDialog, MovimientoKardex | undefined>);
   private readonly data = inject<MovimientoDialogData>(NZ_MODAL_DATA);
 
   protected readonly targetArticulo = this.data.articulo;
+  protected readonly unidad = this.data.articulo.unidadStock.simbolo;
 
-  protected readonly tipo = signal<MovimientoTipo>('entrada');
+  protected readonly bodegas = signal<BodegaInventario[]>([]);
+  protected readonly motivos = signal<MotivoMovimiento[]>([]);
+
+  protected readonly bodegaId = signal<string | null>(null);
+  protected readonly motivoId = signal<string | null>(null);
   protected readonly cantidad = signal('');
-  protected readonly motivo = signal('');
-  protected readonly responsable = signal(this.auth.currentUser()?.name ?? '');
+  protected readonly observacion = signal('');
   protected readonly submitting = signal(false);
   protected readonly error = signal<string | null>(null);
 
-  protected readonly cantidadNum = computed(() => Number(this.cantidad()));
+  protected readonly bodegaOptions = computed<DynadrillSelectOption[]>(() =>
+    this.bodegas().map(b => ({ label: b.nombre, value: b.id })),
+  );
+  protected readonly motivoOptions = computed<DynadrillSelectOption[]>(() =>
+    this.motivos().map(m => ({ label: m.nombre, value: m.id, group: MOVIMIENTO_TIPO_LABELS[m.tipo] })),
+  );
 
-  protected readonly canSave = computed(() => {
-    const n = this.cantidadNum();
-    if (!Number.isFinite(n) || n <= 0) return false;
-    if (this.tipo() === 'salida' && n > this.targetArticulo.stockActual) return false;
-    return this.motivo().trim().length > 0 && this.responsable().trim().length > 0;
+  private readonly motivo = computed(() => this.motivos().find(m => m.id === this.motivoId()) ?? null);
+  protected readonly cantidadNum = computed(() => Number(this.cantidad().replace(',', '.')));
+
+  /** Existencia del artículo en la bodega elegida (la que el kardex dejó al último movimiento). */
+  protected readonly stockEnBodega = computed(() => {
+    const id = this.bodegaId();
+    return id ? (this.targetArticulo.stockPorBodega.find(s => s.bodegaId === id)?.stock ?? 0) : null;
+  });
+  protected readonly stockTotalTexto = `${formatearCantidad(this.targetArticulo.stockActual)} ${this.unidad}`;
+  protected readonly stockBodegaTexto = computed(() => {
+    const s = this.stockEnBodega();
+    return s === null ? null : `${formatearCantidad(s)} ${this.unidad}`;
   });
 
-  protected setTipo(tipo: MovimientoTipo): void {
-    this.tipo.set(tipo);
+  protected readonly cantidadValida = computed(() => {
+    const n = this.cantidadNum();
+    return Number.isFinite(n) && n > 0 && Math.round(n * 1000) / 1000 === n;
+  });
+  protected readonly excedeStock = computed(() => {
+    const stock = this.stockEnBodega();
+    return this.motivo()?.tipo === 'salida' && stock !== null && this.cantidadValida() && this.cantidadNum() > stock;
+  });
+  protected readonly canSave = computed(
+    () => !!this.bodegaId() && !!this.motivoId() && this.cantidadValida() && !this.excedeStock(),
+  );
+
+  constructor() {
+    this.inventario.bodegas().subscribe({
+      next: bodegas => {
+        this.bodegas.set(bodegas);
+        // con una sola bodega (o con existencias en una sola) no hay nada que elegir
+        const conStock = this.targetArticulo.stockPorBodega.filter(s => s.stock > 0);
+        if (bodegas.length === 1) this.bodegaId.set(bodegas[0].id);
+        else if (conStock.length === 1) this.bodegaId.set(conStock[0].bodegaId);
+      },
+      error: () => this.error.set('No se pudieron cargar las bodegas.'),
+    });
+    this.inventario.motivos({ manual: true }).subscribe({
+      next: motivos => this.motivos.set(motivos),
+      error: () => this.error.set('No se pudieron cargar los motivos de movimiento.'),
+    });
+  }
+
+  protected onBodega(value: DynadrillSelectValue): void {
+    this.bodegaId.set(typeof value === 'string' && value ? value : null);
+    this.error.set(null);
+  }
+
+  protected onMotivo(value: DynadrillSelectValue): void {
+    this.motivoId.set(typeof value === 'string' && value ? value : null);
     this.error.set(null);
   }
 
@@ -53,26 +120,30 @@ export class MovimientoDialog {
     if (!this.canSave() || this.submitting()) return;
     this.submitting.set(true);
     this.error.set(null);
+    const cantidad = this.cantidadNum();
+    const motivo = this.motivo();
 
-    const input: CreateMovimientoInput = {
-      articuloId: this.targetArticulo.id,
-      tipo: this.tipo(),
-      cantidad: this.cantidadNum(),
-      fecha: toLocalDateString(new Date()),
-      motivo: this.motivo().trim(),
-      responsable: this.responsable().trim(),
-    };
-
-    this.movimientosService.registrar(input).subscribe({
-      next: movimiento => {
-        this.notify.success('Movimiento registrado', `${this.tipo() === 'entrada' ? 'Entrada' : 'Salida'} de ${input.cantidad} ${this.targetArticulo.unidadStock}.`);
-        this.modalRef.close(movimiento);
-      },
-      error: () => {
-        this.submitting.set(false);
-        this.error.set('No se pudo registrar el movimiento — verifica el stock disponible.');
-      },
-    });
+    this.inventario
+      .registrarMovimiento({
+        articuloId: this.targetArticulo.id,
+        bodegaId: this.bodegaId() as string,
+        motivoId: this.motivoId() as string,
+        cantidad,
+        ...(this.observacion().trim() ? { observacion: this.observacion().trim() } : {}),
+      })
+      .subscribe({
+        next: movimiento => {
+          this.notify.success(
+            'Movimiento registrado',
+            `${motivo ? MOVIMIENTO_TIPO_LABELS[motivo.tipo] : 'Movimiento'} de ${formatearCantidad(cantidad)} ${this.unidad}.`,
+          );
+          this.modalRef.close(movimiento);
+        },
+        error: err => {
+          this.submitting.set(false);
+          this.error.set(mensajeErrorInventario(err, 'No se pudo registrar el movimiento.'));
+        },
+      });
   }
 
   protected cancel(): void {

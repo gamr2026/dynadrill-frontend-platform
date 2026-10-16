@@ -29,6 +29,16 @@
             Pendiente de Bodega.
           }
         </p>
+        @if (d.realizado; as r) {
+          <p class="gs__meta">
+            @if (r.respaldo; as a) {
+              Respaldo: <a href="#" (click)="$event.preventDefault(); descargarDespacho(a)">{{ a.nombre }}</a>.
+            }
+            @if (r.msds; as a) {
+              Hoja MSDS: <a href="#" (click)="$event.preventDefault(); descargarDespacho(a)">{{ a.nombre }}</a>.
+            }
+          </p>
+        }
       }
     }
 

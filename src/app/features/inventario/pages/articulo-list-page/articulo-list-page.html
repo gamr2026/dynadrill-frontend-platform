@@ -18,7 +18,7 @@
       aria-labelledby="articulos-categoria"
       [options]="categoriaChips()"
       mode="single"
-      [selected]="[filtroCategoria() ?? 'Todas']"
+      [selected]="[chipElegido()]"
       (selectedChange)="onCategoriaChip($event)"
     />
   </div>

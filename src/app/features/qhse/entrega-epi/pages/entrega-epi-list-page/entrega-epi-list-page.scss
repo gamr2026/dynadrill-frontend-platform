@@ -1,0 +1,24 @@
+.epi-list-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  // Sin flex-wrap: con wrap, las acciones se apilan en celdas angostas (mismo criterio que el resto de tablas QHSE).
+  &__row-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
+}

@@ -10,6 +10,8 @@ export const PERMISOS_GUIAS = {
 } as const;
 
 export const MODULO_ARCHIVO_GUIA = 'guia_documento';
+/** Documento de respaldo y hoja MSDS del despacho a Bodega. */
+export const MODULO_ARCHIVO_DESPACHO = 'despacho_documento';
 
 export type EstadoGuia = 'emitida' | 'anulada';
 export type OrigenItemGuia = 'herramienta' | 'material' | 'manual';
@@ -91,7 +93,17 @@ export interface LugarDespacho {
 
 export interface DespachoEstado {
   solicitado: { at: string; por: string | null } | null;
-  realizado: { at: string; por: string | null } | null;
+  realizado: {
+    at: string;
+    por: string | null;
+    respaldo: { id: string; nombre: string } | null;
+    msds: { id: string; nombre: string } | null;
+  } | null;
+}
+
+export interface RealizarDespachoRequest {
+  archivoRespaldoId: string;
+  archivoMsdsId?: string;
 }
 
 export interface EmitirGuiaRequest {

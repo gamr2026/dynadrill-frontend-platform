@@ -1,6 +1,12 @@
 <div class="articulo-form-dialog">
   <div class="articulo-form-dialog__row">
-    <dynadrill-input label="Código" placeholder="Ej. 0256822" [value]="codigo()" (valueChange)="codigo.set($event)" />
+    <dynadrill-input
+      label="Código (AS2)"
+      placeholder="Ej. 0256822"
+      [value]="codigo()"
+      [disabled]="isEditMode"
+      (valueChange)="codigo.set($event)"
+    />
     <dynadrill-input label="Código alterno" [value]="codigoAlterno()" (valueChange)="codigoAlterno.set($event)" />
   </div>
 
@@ -13,11 +19,46 @@
   <dynadrill-input label="Nombre comercial" [value]="nombreComercial()" (valueChange)="nombreComercial.set($event)" />
 
   <div class="articulo-form-dialog__row">
-    <dynadrill-input label="Categoría" placeholder="Ej. QUIMICA" [value]="categoria()" (valueChange)="categoria.set($event)" />
-    <dynadrill-input label="Subcategoría" placeholder="Ej. OTROS" [value]="subcategoria()" (valueChange)="subcategoria.set($event)" />
+    <dynadrill-select
+      label="Categoría"
+      placeholder="Seleccione la categoría"
+      [options]="categoriaOptions()"
+      [value]="categoriaId()"
+      [searchable]="true"
+      (valueChange)="onCategoria($event)"
+    />
+    <dynadrill-select
+      label="Subcategoría"
+      placeholder="Sin subcategoría"
+      [options]="subcategoriaOptions()"
+      [value]="subcategoriaId()"
+      [disabled]="!categoriaId()"
+      [searchable]="true"
+      (valueChange)="onSubcategoria($event)"
+    />
   </div>
 
-  <dynadrill-input label="Unidad de stock" placeholder="Ej. GL, bbl, Unidad" [value]="unidadStock()" (valueChange)="unidadStock.set($event)" />
+  <div class="articulo-form-dialog__row">
+    <dynadrill-select
+      label="Unidad de stock"
+      placeholder="Seleccione la unidad"
+      [options]="unidadOptions()"
+      [value]="unidadStockId()"
+      (valueChange)="onUnidad($event)"
+    />
+    <dynadrill-input
+      label="Costo unitario (USD, interno)"
+      type="number"
+      [value]="costoUnitario()"
+      (valueChange)="costoUnitario.set($event)"
+    />
+    <dynadrill-input
+      label="Descuento sugerido (%)"
+      type="number"
+      [value]="descuentoSugerido()"
+      (valueChange)="descuentoSugerido.set($event)"
+    />
+  </div>
 
   <dynadrill-textarea label="Nota" [value]="nota()" (valueChange)="nota.set($event)" [rows]="2" />
   <dynadrill-textarea label="Información adicional" [value]="informacionAdicional()" (valueChange)="informacionAdicional.set($event)" [rows]="2" />

@@ -12,6 +12,7 @@ import { AuthService } from '../../../../../core/services/auth.service';
 import { ArchivosService } from '../../services/archivos.service';
 import { GuiasComercialService } from '../../services/guias-comercial.service';
 import { GuiaHoja } from '../guia-hoja/guia-hoja';
+import { DespachoRealizarDialog, type DespachoRealizarDialogData } from '../despacho-realizar-dialog/despacho-realizar-dialog';
 import { GuiaAccionDialog, type GuiaAccionDialogData } from '../guia-accion-dialog/guia-accion-dialog';
 import { GuiaEmitirDialog, type GuiaEmitirDialogData } from '../guia-emitir-dialog/guia-emitir-dialog';
 import { formatoDia, type PedidoDetalle } from '../../models/pedido-comercial.model';
@@ -205,8 +206,25 @@ export class GuiasSeccion {
     this.llamarDespacho(this.servicio.solicitarDespacho(this.pedido().id), 'Despacho solicitado a Bodega');
   }
 
+  /** Bodega adjunta el documento de respaldo (y la hoja MSDS si despachó químicos) al registrar el despacho. */
   protected realizarDespacho(): void {
-    this.llamarDespacho(this.servicio.realizarDespacho(this.pedido().id), 'Despacho registrado');
+    const ref = this.dialog.open<DespachoRealizarDialog, DespachoRealizarDialogData>({
+      title: 'Registrar despacho realizado',
+      content: DespachoRealizarDialog,
+      data: { pedidoId: this.pedido().id },
+      footer: false,
+      width: '520px',
+    });
+    ref.afterClose.subscribe((d: DespachoEstado | undefined) => {
+      if (d) this.recargar();
+    });
+  }
+
+  protected descargarDespacho(a: { id: string; nombre: string }): void {
+    this.archivos.contenido(a.id).subscribe({
+      next: blob => this.archivos.guardarComo(blob, a.nombre),
+      error: () => this.notify.error('No se pudo descargar', 'No se pudo descargar el documento. Intente de nuevo.'),
+    });
   }
 
   private llamarDespacho(obs: ReturnType<GuiasComercialService['solicitarDespacho']>, titulo: string): void {

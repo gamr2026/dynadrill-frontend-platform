@@ -77,7 +77,10 @@ export class MyTasksPage {
   ]);
 
   protected readonly rows = computed(() => {
-    const userId = this.auth.currentUser()?.id;
+    // TRANSICIÓN (puente de ids): `assignedUserId` viene de la demo (id numérico) — se compara con el `legacyId` del usuario.
+    // Se retira cuando mantenimiento migre al backend nuevo (UUID). Sin `legacyId` no hay tareas que mostrar.
+    const userId = this.auth.legacyUserId();
+    if (userId == null) return [];
     return this.orders()
       .flatMap(order => order.subOrders.map(sub => ({ order, sub })))
       .filter(({ sub }) => sub.assignedUserId === userId)

@@ -11,6 +11,7 @@ import {
   DynadrillSkeletonComponent,
 } from '@digitec-it-projects/dynadrill-ui';
 import { forkJoin } from 'rxjs';
+import { AuthService } from '../../../core/services/auth.service';
 import { injectNarrowViewport } from '../../../core/utils/narrow-viewport.util';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { SearchField } from '../../../shared/components/search-field/search-field';
@@ -18,6 +19,7 @@ import { EntityCard } from '../../../shared/components/entity-card/entity-card';
 import { ListPager } from '../../../shared/components/list-pager/list-pager';
 import type { RecordAction } from '../../../shared/components/record-card/record-card';
 import { createPagination } from '../../../shared/utils/pagination.util';
+import { mensajeError } from '../../roles-permisos/models/roles-permisos.model';
 import { UserFormDialog, UserFormDialogData } from '../components/user-form-dialog';
 import { UserRow, matchesUserQuery, toUserRows } from '../models/user-row.model';
 import { Role, User } from '../models/user.model';
@@ -49,6 +51,12 @@ export class UserListPage {
   private readonly rolesService = inject(RolesService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly auth = inject(AuthService);
+
+  /** Cada acción exige su propio permiso; el backend responde 403 si falta. */
+  protected readonly puedeCrear = computed(() => this.auth.can('identidad.usuarios.crear'));
+  protected readonly puedeEditar = computed(() => this.auth.can('identidad.usuarios.editar'));
+  protected readonly puedeInactivar = computed(() => this.auth.can('identidad.usuarios.inactivar'));
 
   protected readonly isMobile = injectNarrowViewport();
   protected readonly pageSize = PAGE_SIZE;
@@ -90,8 +98,8 @@ export class UserListPage {
         row.active ? { text: 'Activo', tone: 'success' as const } : { text: 'Inactivo', tone: 'neutral' as const },
       ],
       actions: [
-        { icon: 'edit', label: `Editar a ${row.name}`, run: () => this.editUser(row) },
-        { icon: 'delete', label: `Eliminar a ${row.name}`, run: () => this.deleteUser(row) },
+        ...(this.puedeEditar() ? [{ icon: 'edit', label: `Editar a ${row.name}`, run: () => this.editUser(row) }] : []),
+        ...(this.puedeInactivar() ? [{ icon: 'delete', label: `Inactivar a ${row.name}`, run: () => this.deleteUser(row) }] : []),
       ] as RecordAction[],
     })),
   );
@@ -116,9 +124,9 @@ export class UserListPage {
         this.roles.set(roles);
         this.loading.set(false);
       },
-      error: () => {
+      error: err => {
         this.loading.set(false);
-        this.notify.error('Error', 'No se pudo cargar la lista de usuarios.');
+        this.notify.error('Error', mensajeError(err, 'No se pudo cargar la lista de usuarios.'));
       },
     });
   }
@@ -131,7 +139,7 @@ export class UserListPage {
     this.openUserFormDialog(user.id);
   }
 
-  private openUserFormDialog(userId?: number): void {
+  private openUserFormDialog(userId?: string): void {
     const ref = this.dialog.open<UserFormDialog, UserFormDialogData>({
       title: userId != null ? 'Editar usuario' : 'Nuevo usuario',
       content: UserFormDialog,
@@ -143,21 +151,22 @@ export class UserListPage {
     });
   }
 
+  /** El backend ya no elimina: `DELETE /users/:id` inactiva la cuenta (status=false) y conserva su historial. */
   async deleteUser(user: Pick<UserRow, 'id' | 'name'>): Promise<void> {
     const confirmed = await this.dialog.confirm({
-      title: `¿Eliminar a ${user.name}?`,
-      content: 'Esta acción no se puede deshacer.',
-      okText: 'Eliminar',
+      title: `¿Inactivar a ${user.name}?`,
+      content: 'La cuenta ya no podrá iniciar sesión. Usted puede reactivarla después editando al usuario.',
+      okText: 'Inactivar',
       danger: true,
     });
     if (!confirmed) return;
 
     this.usersService.delete(user.id).subscribe({
       next: () => {
-        this.notify.success('Eliminado', 'Usuario eliminado.');
+        this.notify.success('Inactivado', 'Usuario inactivado.');
         this.reload();
       },
-      error: () => this.notify.error('Error', 'No se pudo completar la eliminación.'),
+      error: err => this.notify.error('Error', mensajeError(err, 'No se pudo inactivar al usuario.')),
     });
   }
 }

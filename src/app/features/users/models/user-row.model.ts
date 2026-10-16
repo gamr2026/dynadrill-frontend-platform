@@ -2,7 +2,7 @@ import { Role, User } from './user.model';
 
 /** Usuario listo para mostrar (tabla en escritorio, tarjeta en móvil). */
 export interface UserRow {
-  id: number;
+  id: string;
   name: string;
   username: string;
   email: string;

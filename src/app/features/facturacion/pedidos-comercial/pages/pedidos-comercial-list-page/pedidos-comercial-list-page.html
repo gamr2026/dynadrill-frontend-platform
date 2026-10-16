@@ -1,0 +1,38 @@
+<div class="pedidos-page">
+  <div class="pedidos-page__cabecera">
+    <dynadrill-screen-header
+      class="pedidos-page__titulo"
+      eyebrow="FACTURACIÓN"
+      title="Pedidos"
+      subtitle="Un pedido nace en AS2; el portal guarda su propio código y lo sigue por estados hasta facturar"
+    />
+    @if (puedeCrear()) {
+      <dynadrill-button (clicked)="nuevo()">
+        <span class="pedidos-page__boton">
+          <dynadrill-icon name="add" [size]="18" />
+          Nuevo pedido
+        </span>
+      </dynadrill-button>
+    }
+  </div>
+
+  <section class="pedidos-page__tarjeta">
+    <dynadrill-tabs [tabs]="tabs()" [activeIndex]="activa()" (activeIndexChange)="activa.set($event)" [contentTemplate]="contenido" />
+  </section>
+
+  <ng-template #contenido let-index="index">
+    @if (index === activa()) {
+      @switch (claveActiva()) {
+        @case ('por-completar') {
+          <app-por-completar-panel />
+        }
+        @case ('sin-analista') {
+          <app-pedidos-lista-panel [estados]="estados()" [catalogo]="catalogo()" [sinAnalista]="true" />
+        }
+        @default {
+          <app-pedidos-lista-panel [estados]="estados()" [catalogo]="catalogo()" />
+        }
+      }
+    }
+  </ng-template>
+</div>

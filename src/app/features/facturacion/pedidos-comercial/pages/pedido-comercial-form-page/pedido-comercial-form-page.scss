@@ -1,0 +1,47 @@
+@use '../../pc' as pc;
+@use '../../../facturacion-ui' as f;
+
+.form {
+  @include f.page;
+
+  &__cuerpo {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  &__tarjeta {
+    @include pc.tarjeta;
+  }
+
+  &__nota {
+    margin: 0 0 12px;
+    font-size: 0.8125rem;
+    color: var(--dd-color-text-secondary, #6b7280);
+  }
+
+  &__titulo {
+    @include f.card-head;
+  }
+
+  &__rejilla {
+    @include f.field-grid(240px);
+  }
+
+  &__ayuda {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__error {
+    margin: 0;
+    font-size: 13px;
+    color: var(--error, #cf1322);
+  }
+
+  &__acciones {
+    @include f.dialog-actions;
+    flex-wrap: wrap;
+  }
+}

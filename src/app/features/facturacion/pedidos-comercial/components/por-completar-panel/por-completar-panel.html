@@ -1,0 +1,86 @@
+<div class="panel">
+  <dynadrill-banner variant="info" [message]="'Pedidos de AS2 del año ' + anio + ', solo lectura: el portal no guarda los datos de AS2. Cree el pedido en el portal o vincúlelo con uno ya creado.'" />
+
+  <div class="panel__filtros">
+    <app-search-field class="busqueda" label="Buscar en la descripción del pedido de AS2" placeholder="Buscar en la descripción…" [value]="busqueda()" (valueChange)="onBusqueda($event)" />
+    <dynadrill-select label="Líneas" placeholder="Con y sin líneas" [options]="lineasOpciones" [value]="filtroLineas()" (valueChange)="filtroLineas.set($any($event)); onFiltro()" />
+    <dynadrill-select label="Estado en AS2" placeholder="Todos" [options]="estadoOpciones()" [value]="filtroEstado()" (valueChange)="filtroEstado.set($any($event)); onFiltro()" />
+    @if (hayFiltros()) {
+      <dynadrill-button variant="secondary" (clicked)="limpiar()">Limpiar filtros</dynadrill-button>
+    }
+  </div>
+
+  @if (error(); as e) {
+    <dynadrill-banner variant="critical" [message]="e" />
+  }
+
+  <dynadrill-spinner mode="overlay" [spinning]="cargando()" tip="Consultando AS2…">
+    <div class="panel__tabla">
+      <table>
+        <caption class="sr-only">Pedidos de AS2 por completar</caption>
+        <thead>
+          <tr>
+            <th scope="col">Pedido AS2</th>
+            <th scope="col">Cliente</th>
+            <th scope="col">Descripción</th>
+            <th scope="col">Estado AS2</th>
+            <th scope="col">Líneas</th>
+            <th scope="col" class="num">Total final</th>
+            <th scope="col">En el portal</th>
+            <th scope="col"><span class="sr-only">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of items(); track p.idPedidoCliente) {
+            <tr>
+              <td>
+                <span class="codigo">{{ p.numero ?? p.idPedidoCliente }}</span>
+                <span class="secundario">{{ dia(p.fecha) }}</span>
+              </td>
+              <td>{{ p.empresaNombre ?? '—' }}<span class="secundario">{{ p.empresaIdentificacion ?? '' }}</span></td>
+              <td>{{ p.descripcion ?? '—' }}</td>
+              <td>{{ p.estado ?? '—' }}</td>
+              <td><dynadrill-tag [label]="conLineas(p) ? 'Con líneas' : 'Sin líneas'" [variant]="conLineas(p) ? 'success' : 'neutral'" [uppercase]="false" /></td>
+              <td class="num">{{ moneda(totalFinal(p)) }}</td>
+              <td>
+                @if (vinculoDe(p); as v) {
+                  <button type="button" class="enlace" (click)="abrirPedido(v)">{{ v.codigo ?? 'Por completar' }}</button>
+                } @else {
+                  <span class="secundario">Aún no está en el portal</span>
+                }
+              </td>
+              <td>
+                <div class="acciones">
+                  @if (vinculoDe(p); as v) {
+                    @if (puedeEditar() && conLineas(p)) {
+                      <dynadrill-button variant="secondary" size="small" [disabled]="ocupado() !== null" (clicked)="importarLineas(p)">Importar líneas de AS2</dynadrill-button>
+                    }
+                  } @else {
+                    @if (puedeCrear()) {
+                      <dynadrill-button size="small" [disabled]="ocupado() !== null" (clicked)="crearEnPortal(p)">Crear en el portal desde AS2</dynadrill-button>
+                    }
+                    @if (puedeEditar()) {
+                      <dynadrill-button variant="secondary" size="small" [disabled]="ocupado() !== null" (clicked)="vincular(p)">Vincular</dynadrill-button>
+                    }
+                  }
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td class="vacio" colspan="8">{{ cargando() ? 'Consultando AS2…' : 'No hay pedidos de AS2 que coincidan con los filtros.' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </dynadrill-spinner>
+
+  <nav class="panel__paginador" aria-label="Paginación de pedidos de AS2">
+    <p aria-live="polite">{{ resumen() }}</p>
+    <div class="botones">
+      <dynadrill-icon-button icon="left" tooltip="Página anterior" [disabled]="!hayAnterior() || cargando()" (clicked)="irA(-1)" />
+      <dynadrill-icon-button icon="right" tooltip="Página siguiente" [disabled]="!haySiguiente() || cargando()" (clicked)="irA(1)" />
+    </div>
+  </nav>
+</div>

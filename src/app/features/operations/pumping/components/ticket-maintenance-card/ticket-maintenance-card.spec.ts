@@ -21,6 +21,8 @@ describe('puedeEjecutar', () => {
   it('Operador de Mantenimiento ejecuta solo sus Mecánico/Instrumental abiertas', () => {
     expect(puedeEjecutar(sub({ assignedUserId: 7 }), 'Operador de Mantenimiento', 7)).toBe(true);
     expect(puedeEjecutar(sub({ assignedUserId: 8 }), 'Operador de Mantenimiento', 7)).toBe(false);
+    // Sin id legacy (usuario nacido en el backend nuevo) no hay sub-órdenes propias: nunca coincide con `undefined`.
+    expect(puedeEjecutar(sub({}), 'Operador de Mantenimiento', null)).toBe(false);
     expect(puedeEjecutar(sub({ assignedUserId: 7, status: 'En Revisión de Cierre' }), 'Operador de Mantenimiento', 7)).toBe(false);
   });
 
@@ -68,10 +70,20 @@ describe('TicketMaintenanceCard', () => {
   });
 
   function render(orders: MaintenanceOrderWithSubOrders[], roleName = 'Jefe de Mantenimiento'): HTMLElement {
-    const user = signal<AuthenticatedUser>({ id: 1, name: 'Jefe', email: 'j@dynadrill.com', roleId: 1, roleName });
+    const user = signal<AuthenticatedUser>({
+      id: 'u-1',
+      legacyId: 1,
+      name: 'Jefe',
+      email: 'j@dynadrill.com',
+      roleId: 'r-1',
+      roleLegacyId: 1,
+      roleName,
+      roleCode: 'rol',
+      permissions: [],
+    });
     TestBed.configureTestingModule({
       providers: [
-        { provide: AuthService, useValue: { currentUser: user.asReadonly() } },
+        { provide: AuthService, useValue: { currentUser: user.asReadonly(), legacyUserId: () => user().legacyId } },
         { provide: MaintenanceOrdersService, useValue: { list: () => of(orders) } },
         { provide: UnitReportsService, useValue: { list: () => of([]) } },
         { provide: DynadrillDialogService, useValue: { open: () => undefined } },

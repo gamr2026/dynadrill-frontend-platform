@@ -1,0 +1,30 @@
+@use '../../pc' as pc;
+@use '../../../facturacion-ui' as f;
+
+.pedidos-page {
+  @include f.page;
+
+  &__cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  &__titulo {
+    flex: 1 1 320px;
+    min-width: 0;
+  }
+
+  &__boton {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+
+  &__tarjeta {
+    @include pc.tarjeta;
+  }
+}

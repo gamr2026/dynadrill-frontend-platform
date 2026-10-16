@@ -16,6 +16,7 @@ import { MaintenanceOrdersService } from '../services/maintenance-orders.service
 import { DeriveToPumpingDialog, DeriveToPumpingDialogData } from './derive-to-pumping-dialog';
 import { ReturnToOperationDialog, ReturnToOperationDialogData } from './return-to-operation-dialog';
 import { RolesService } from '../../users/services/users.service';
+import { conIdLegacy } from '../../users/models/user.model';
 import { AuthService } from '../../../core/services/auth.service';
 import { QhseChip } from '../../qhse/shared/components/qhse-chip';
 
@@ -98,7 +99,10 @@ export class OrderDetailPanel {
   protected readonly statusAccent = STATUS_ACCENT;
 
   constructor() {
-    this.rolesService.usuariosPorRol('operador_mantenimiento').subscribe(usuarios => {
+    this.rolesService.usuariosPorRol('operador_mantenimiento').subscribe(usuariosNuevos => {
+      // TRANSICIÓN (puente de ids): `reassignOperator` envía el id a la demo (numérico): solo se ofrecen operadores con
+      // `legacyId`. Se retira cuando mantenimiento migre al backend nuevo (UUID).
+      const usuarios = conIdLegacy(usuariosNuevos);
       this.mecanicoOptions.set(usuarios.filter(u => u.specialty === 'Mecánico').map(u => ({ label: u.name, value: u.id })));
       this.instrumentalOptions.set(usuarios.filter(u => u.specialty === 'Instrumental').map(u => ({ label: u.name, value: u.id })));
     });

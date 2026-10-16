@@ -1,0 +1,229 @@
+<div class="roles-permisos">
+  <app-page-header
+    eyebrow="Administración"
+    title="Roles y permisos"
+    subtitle="Asigne o quite permisos a cada rol. Los roles y el catálogo de permisos son fijos."
+  />
+
+  <p class="roles-permisos__aviso" role="note">
+    Los cambios se aplican a los usuarios de este rol en su próxima renovación de sesión (hasta 15 minutos).
+  </p>
+
+  @if (loading()) {
+    <div class="roles-permisos__cargando" role="status" aria-label="Cargando roles y permisos…">
+      @for (placeholder of [1, 2, 3, 4, 5]; track placeholder) {
+        <dynadrill-skeleton variant="block" height="56px" />
+      }
+    </div>
+  } @else if (loadError()) {
+    <div class="roles-permisos__error" role="alert">
+      <p>{{ loadError() }}</p>
+      <dynadrill-button (clicked)="cargarInicial()">Reintentar</dynadrill-button>
+    </div>
+  } @else {
+    <div class="roles-permisos__layout">
+      <section class="roles-permisos__roles" aria-labelledby="roles-titulo">
+        <h2 id="roles-titulo" class="roles-permisos__subtitulo">Roles ({{ roles().length }})</h2>
+        <app-search-field label="Buscar roles" placeholder="Buscar rol…" [value]="query()" (valueChange)="onQueryChange($event)" />
+
+        @if (rolesFiltrados().length === 0) {
+          <dynadrill-empty-state title="Sin resultados" description="Ningún rol coincide con la búsqueda." />
+        } @else {
+          <ul class="roles-permisos__lista">
+            @for (rol of rolesFiltrados(); track rol.id) {
+              <li>
+                <button
+                  type="button"
+                  class="rol"
+                  [class.rol--activo]="rolSeleccionado()?.id === rol.id"
+                  [attr.aria-pressed]="rolSeleccionado()?.id === rol.id"
+                  (click)="seleccionarRol(rol)"
+                >
+                  <span class="rol__nombre">{{ rol.name }}</span>
+                  <span class="rol__codigo">{{ rol.code }}</span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      <section class="roles-permisos__detalle" aria-labelledby="permisos-titulo" aria-live="polite">
+        @if (!rolSeleccionado()) {
+          <dynadrill-empty-state title="Elija un rol" description="Seleccione un rol de la lista para ver y editar sus permisos." />
+        } @else {
+          <header class="detalle__cabecera">
+            <div>
+              <h2 id="permisos-titulo" class="roles-permisos__subtitulo">Permisos de {{ rolSeleccionado()?.name }}</h2>
+              @if (rolSeleccionado()?.description) {
+                <p class="detalle__descripcion">{{ rolSeleccionado()?.description }}</p>
+              }
+            </div>
+            <div class="detalle__acciones">
+              @if (dirty()) {
+                <dynadrill-tag
+                  variant="warning"
+                  [label]="'Cambios sin guardar · +' + otorgar() + ' / -' + revocar()"
+                />
+              }
+              <dynadrill-button variant="secondary" (clicked)="verHistorial()">Historial</dynadrill-button>
+              @if (puedeEditar()) {
+                <dynadrill-button variant="secondary" [disabled]="!dirty() || saving()" (clicked)="descartar()">Descartar</dynadrill-button>
+                <dynadrill-button [disabled]="!dirty() || saving() || loadingPermisos()" (clicked)="guardar()">
+                  {{ saving() ? 'Guardando…' : 'Guardar' }}
+                </dynadrill-button>
+              }
+            </div>
+          </header>
+
+          @if (!puedeEditar()) {
+            <p class="roles-permisos__aviso roles-permisos__aviso--lectura" role="note">Solo lectura: no tiene permiso para editar.</p>
+          }
+
+          @if (saveError()) {
+            <p class="roles-permisos__error-inline" role="alert">{{ saveError() }}</p>
+          }
+
+          @if (loadingPermisos()) {
+            <div class="roles-permisos__cargando" role="status" aria-label="Cargando permisos del rol…">
+              @for (placeholder of [1, 2, 3]; track placeholder) {
+                <dynadrill-skeleton variant="block" height="120px" />
+              }
+            </div>
+          } @else if (permisosError()) {
+            <div class="roles-permisos__error" role="alert">
+              <p>{{ permisosError() }}</p>
+              <dynadrill-button (clicked)="reintentarPermisos()">Reintentar</dynadrill-button>
+            </div>
+          } @else {
+            <div class="detalle__grupos">
+              @for (grupo of grupos(); track grupo.modulo) {
+                <section class="grupo" [attr.aria-labelledby]="'grupo-' + grupo.modulo">
+                  <header class="grupo__cabecera">
+                    <h3 class="grupo__titulo" [id]="'grupo-' + grupo.modulo">
+                      {{ grupo.nombre }}
+                      <span class="grupo__cuenta">{{ grupo.seleccionados }} de {{ grupo.permisos.length }}</span>
+                    </h3>
+                    <label class="grupo__todo">
+                      <input
+                        type="checkbox"
+                        [checked]="grupo.todos"
+                        [indeterminate]="grupo.algunos"
+                        [disabled]="grupo.sinEditables || saving() || !puedeEditar()"
+                        (change)="alternarModulo(grupo, $any($event.target).checked)"
+                      />
+                      <span>Seleccionar todo en {{ grupo.nombre }}</span>
+                    </label>
+                  </header>
+
+                  <div class="matriz" role="region" tabindex="0" [attr.aria-label]="'Matriz de permisos de ' + grupo.nombre">
+                    <table class="matriz__tabla">
+                      <caption class="sr-only">Permisos de {{ grupo.nombre }} por recurso y acción</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col" class="matriz__recurso">Recurso</th>
+                          @for (columna of columnas; track columna.accion) {
+                            <th scope="col" class="matriz__accion">{{ columna.etiqueta }}</th>
+                          }
+                          <th scope="col" class="matriz__otras">Otras acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (fila of grupo.filas; track fila.recurso) {
+                          <tr>
+                            <th scope="row" class="matriz__recurso">{{ fila.nombre }}</th>
+                            @for (celda of fila.celdas; track celda.accion) {
+                              <td class="matriz__accion">
+                                @if (celda.permiso; as permiso) {
+                                  <label class="permiso__etiqueta" [attr.title]="permiso.codigo + ' — ' + permiso.descripcion">
+                                    <input
+                                      type="checkbox"
+                                      [checked]="permiso.checked"
+                                      [disabled]="permiso.bloqueado || saving() || !puedeEditar()"
+                                      [attr.aria-label]="permiso.etiquetaAria"
+                                      [attr.aria-describedby]="'ayuda-' + permiso.id"
+                                      (change)="alternarPermiso(permiso, $any($event.target).checked)"
+                                      (focus)="mostrarAyuda(permiso)"
+                                      (blur)="mostrarAyuda(null)"
+                                      (mouseenter)="mostrarAyuda(permiso)"
+                                      (mouseleave)="mostrarAyuda(null)"
+                                    />
+                                  </label>
+                                  <span class="sr-only" [id]="'ayuda-' + permiso.id">
+                                    {{ permiso.codigo }}. {{ permiso.descripcion }}
+                                    @if (permiso.bloqueado) {
+                                      No se puede quitar: evita dejar el sistema sin administrador.
+                                    }
+                                  </span>
+                                  @if (permiso.bloqueado) {
+                                    <span class="permiso__candado" aria-hidden="true" title="No se puede quitar: evita dejar el sistema sin administrador.">&#128274;</span>
+                                  }
+                                } @else {
+                                  <span class="matriz__vacio" aria-hidden="true">—</span>
+                                  <span class="sr-only">No aplica</span>
+                                }
+                              </td>
+                            }
+                            <td class="matriz__otras">
+                              @for (permiso of fila.otras; track permiso.id) {
+                                <span class="permiso__otra">
+                                  <label class="permiso__etiqueta" [attr.title]="permiso.codigo + ' — ' + permiso.descripcion">
+                                    <input
+                                      type="checkbox"
+                                      [checked]="permiso.checked"
+                                      [disabled]="permiso.bloqueado || saving() || !puedeEditar()"
+                                      [attr.aria-label]="permiso.etiquetaAria"
+                                      [attr.aria-describedby]="'ayuda-' + permiso.id"
+                                      (change)="alternarPermiso(permiso, $any($event.target).checked)"
+                                      (focus)="mostrarAyuda(permiso)"
+                                      (blur)="mostrarAyuda(null)"
+                                      (mouseenter)="mostrarAyuda(permiso)"
+                                      (mouseleave)="mostrarAyuda(null)"
+                                    />
+                                    <span>{{ permiso.nombreAccion }}</span>
+                                  </label>
+                                  <span class="sr-only" [id]="'ayuda-' + permiso.id">
+                                    {{ permiso.codigo }}. {{ permiso.descripcion }}
+                                    @if (permiso.bloqueado) {
+                                      No se puede quitar: evita dejar el sistema sin administrador.
+                                    }
+                                  </span>
+                                  @if (permiso.bloqueado) {
+                                    <span class="permiso__candado" aria-hidden="true" title="No se puede quitar: evita dejar el sistema sin administrador.">&#128274;</span>
+                                  }
+                                </span>
+                              } @empty {
+                                <span class="matriz__vacio" aria-hidden="true">—</span>
+                                <span class="sr-only">No aplica</span>
+                              }
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <p class="grupo__ayuda" aria-hidden="true">
+                    @if (ayuda(); as permiso) {
+                      @if (permiso.modulo === grupo.modulo) {
+                        <code class="permiso__codigo">{{ permiso.codigo }}</code>
+                        <span>{{ permiso.descripcion }}</span>
+                        @if (permiso.bloqueado) {
+                          <span class="permiso__bloqueo">No se puede quitar: evita dejar el sistema sin administrador.</span>
+                        }
+                      }
+                    } @else {
+                      <span>Pase el cursor o enfoque una casilla para ver su código y descripción.</span>
+                    }
+                  </p>
+                </section>
+              } @empty {
+                <dynadrill-empty-state title="Catálogo vacío" description="El backend no devolvió permisos." />
+              }
+            </div>
+          }
+        }
+      </section>
+    </div>
+  }
+</div>

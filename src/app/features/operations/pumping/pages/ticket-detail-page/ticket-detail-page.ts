@@ -247,6 +247,7 @@ export class TicketDetailPage {
   private readonly documentoPdf = inject(DocumentoPdfService);
 
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
+  protected readonly roleCode = computed(() => this.auth.currentUser()?.roleCode ?? '');
   /** Jefe/Operador de Mantenimiento: solo ven el resumen y el card "Mantenimientos", sin pasos ni datos de otros módulos. */
   protected readonly esVistaMantenimiento = computed(() => Object.hasOwn(PUMPING_MANTENIMIENTO_ROLES, this.roleName()));
 
@@ -1512,7 +1513,7 @@ export class TicketDetailPage {
         this.ticket.set(updated);
         this.submitting.set(false);
         const nextRole = PUMPING_STEP_ROLE[nextStep];
-        this.auth.switchRole(nextRole.roleName, nextRole.roleId);
+        this.auth.switchRole(nextRole.roleName, nextRole.roleCode);
         this.notify.success('Aprobado', `Reportes de salida aprobados. Ahora actúa como ${nextRole.roleName}.`);
         this.router.navigate(['..'], { relativeTo: this.route });
       },
@@ -1534,7 +1535,7 @@ export class TicketDetailPage {
         this.ticket.set(updated);
         this.submitting.set(false);
         const nextRole = PUMPING_STEP_ROLE[nextStep];
-        this.auth.switchRole(nextRole.roleName, nextRole.roleId);
+        this.auth.switchRole(nextRole.roleName, nextRole.roleCode);
         this.notify.success('Aprobado', `Reportes de llegada aprobados. Ahora actúa como ${nextRole.roleName}.`);
         this.router.navigate(['..'], { relativeTo: this.route });
       },
@@ -1759,7 +1760,7 @@ export class TicketDetailPage {
         this.ticket.set(updated);
         this.submitting.set(false);
         const nextRole = PUMPING_STEP_ROLE[nextStep];
-        this.auth.switchRole(nextRole.roleName, nextRole.roleId);
+        this.auth.switchRole(nextRole.roleName, nextRole.roleCode);
         this.notify.success('Avanzado', `El ticket avanza a Gerenciamiento de llegada. Ahora actúa como ${nextRole.roleName}.`);
         this.router.navigate(['..'], { relativeTo: this.route });
       },
@@ -1788,7 +1789,7 @@ export class TicketDetailPage {
         this.ticket.set(updated);
         this.submitting.set(false);
         const nextRole = PUMPING_STEP_ROLE[nextStep];
-        this.auth.switchRole(nextRole.roleName, nextRole.roleId);
+        this.auth.switchRole(nextRole.roleName, nextRole.roleCode);
         this.notify.success('Avanzado', `El ticket avanza a En ejecución (Llegada). Ahora actúa como ${nextRole.roleName}.`);
         this.router.navigate(['..'], { relativeTo: this.route });
       },
@@ -2109,8 +2110,8 @@ export class TicketDetailPage {
         // Pumping para cargar ART/PT aunque el paso lo actúe el Operador. Solo si sigue como "Superadmin" se pasa al rol del paso:
         // el backend exige ese rol exacto para avanzar (WorkflowRoleGuard) y respondería 403.
         const eligioRolAMano = this.auth.puedeActuarComo() && this.roleName() !== 'Superadmin';
-        if (expected && !eligioRolAMano && !esRolResponsablePumping(expected.roleName, this.roleName())) {
-          this.auth.switchRole(expected.roleName, expected.roleId);
+        if (expected && !eligioRolAMano && !esRolResponsablePumping(expected.roleCode, this.roleCode())) {
+          this.auth.switchRole(expected.roleName, expected.roleCode);
         }
         this.ticket.set(ticket);
         this.loading.set(false);
@@ -2511,7 +2512,7 @@ export class TicketDetailPage {
         this.ticket.set(updated);
         // Auto-switch role to the one responsible for the next step
         const nextRole = PUMPING_STEP_ROLE[nextStep];
-        this.auth.switchRole(nextRole.roleName, nextRole.roleId);
+        this.auth.switchRole(nextRole.roleName, nextRole.roleCode);
         this.notify.success('Rol cambiado', `Ahora actúa como ${nextRole.roleName} para el paso: ${PUMPING_STEP_LABELS[nextStep]}.`);
         // Navigate back to the ticket list so the user sees the updated state
         this.router.navigate(['..'], { relativeTo: this.route });

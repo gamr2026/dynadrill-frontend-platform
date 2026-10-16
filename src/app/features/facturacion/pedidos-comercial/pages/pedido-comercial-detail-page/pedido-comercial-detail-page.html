@@ -1,0 +1,224 @@
+<div class="detalle">
+  <dynadrill-screen-header
+    eyebrow="FACTURACIÓN — PEDIDO"
+    [title]="titulo()"
+    [subtitle]="pedido()?.cliente?.nombre ?? ''"
+  />
+
+  @if (error(); as e) {
+    <dynadrill-banner variant="critical" [message]="e" />
+    <div><dynadrill-button variant="secondary" (clicked)="volver()">Volver a pedidos</dynadrill-button></div>
+  }
+
+  <dynadrill-spinner mode="overlay" [spinning]="cargando() || ocupado()" tip="Cargando…">
+    @if (pedido(); as p) {
+      <div class="detalle__cuerpo">
+        <section class="detalle__tarjeta detalle__tarjeta--estado">
+          <div class="detalle__estado">
+            <dynadrill-tag [label]="p.estadoNombre" [variant]="tono()" [uppercase]="false" />
+            @if (p.rolResponsable) {
+              <span class="detalle__rol">Responsable: {{ p.rolResponsable }}</span>
+            }
+            <span class="detalle__rol">Versión {{ p.version }}</span>
+          </div>
+
+          @if (anulado() && p.motivoAnulacion) {
+            <dynadrill-banner variant="critical" [message]="'Pedido anulado: ' + p.motivoAnulacion" />
+          }
+          @if (pendienteDeAs2()) {
+            <dynadrill-banner variant="warning" message="Pendiente de AS2: el pedido todavía no está vinculado con un pedido de AS2. El flujo del portal continúa mientras tanto." />
+          }
+
+          <div class="detalle__acciones">
+            @if (puedeAbrir()) {
+              <dynadrill-button (clicked)="abrir()">Abrir pedido</dynadrill-button>
+            }
+            @for (paso of pasos(); track paso.estado) {
+              <dynadrill-button variant="secondary" (clicked)="dar(paso)">{{ paso.nombre }}</dynadrill-button>
+            }
+            @if (puedeEditar()) {
+              <dynadrill-button variant="secondary" (clicked)="editar()">Editar pedido</dynadrill-button>
+            }
+            @if (puedeImportar()) {
+              <dynadrill-button variant="secondary" (clicked)="importarLineas()">Importar líneas de AS2</dynadrill-button>
+            }
+            @if (pendienteDeAs2() && puedeEditar()) {
+              <dynadrill-button variant="secondary" (clicked)="buscarEnAs2()">Vincular con AS2</dynadrill-button>
+            }
+            @if (puedeAsignar()) {
+              <dynadrill-button variant="secondary" (clicked)="asignarAnalista()">
+                {{ p.responsables.analistaFacturacion.nombre ? 'Reasignar analista' : 'Asignar analista' }}
+              </dynadrill-button>
+            }
+            @if (pasoRechazar()) {
+              <dynadrill-button variant="warning" (clicked)="rechazar()">Rechazar (devolver a Ventas)</dynadrill-button>
+            }
+            @if (pasoAnular()) {
+              <dynadrill-button variant="error" (clicked)="anular()">Anular pedido</dynadrill-button>
+            }
+            @if (puedeForzar()) {
+              <dynadrill-button variant="secondary" (clicked)="forzar()">Forzar estado</dynadrill-button>
+            }
+          </div>
+        </section>
+
+        <section class="detalle__tarjeta">
+          <header class="detalle__titulo"><h2>Datos del pedido</h2></header>
+          <dl class="detalle__datos">
+            <div><dt>Código</dt><dd>{{ p.codigo ?? 'Aún sin código' }}</dd></div>
+            <div><dt>Ticket (prefactura)</dt><dd>{{ p.ticketNumero ?? 'Se asigna al abrir el pedido' }}</dd></div>
+            <div><dt>Origen</dt><dd>{{ p.origen === 'as2' ? 'AS2' : 'Portal' }}</dd></div>
+            <div><dt>Cliente</dt><dd>{{ p.cliente.nombre ?? '—' }}</dd></div>
+            <div><dt>RUC</dt><dd>{{ p.cliente.ruc ?? '—' }}</dd></div>
+            <div><dt>Subcliente</dt><dd>{{ p.cliente.subcliente ?? '—' }}</dd></div>
+            <div><dt>Línea de servicio</dt><dd>{{ linea(p) }}</dd></div>
+            <div><dt>Tipo de OT</dt><dd>{{ tipoOt(p) }}</dd></div>
+            <div><dt>Tipos de servicio</dt><dd>{{ tipos(p) }}</dd></div>
+            <div><dt>Subtipos</dt><dd>{{ subtipos(p) }}</dd></div>
+            <div><dt>Contrato</dt><dd>{{ p.numeroContrato ?? '—' }}</dd></div>
+            <div><dt>Inicio del servicio</dt><dd>{{ dia(p.fechaInicioServicio) }}</dd></div>
+            <div><dt>Fin del servicio</dt><dd>{{ dia(p.fechaFinServicio) }}</dd></div>
+          </dl>
+        </section>
+
+        <section class="detalle__tarjeta">
+          <header class="detalle__titulo"><h2>Ubicación</h2></header>
+          <dl class="detalle__datos">
+            <div><dt>Campo</dt><dd>{{ p.ubicacion.campo ?? '—' }}</dd></div>
+            <div><dt>Bloque</dt><dd>{{ p.ubicacion.bloque ?? '—' }}</dd></div>
+            <div><dt>Pozo</dt><dd>{{ p.ubicacion.pozo ?? '—' }}</dd></div>
+            <div><dt>Taladro</dt><dd>{{ taladro(p) }}</dd></div>
+          </dl>
+        </section>
+
+        <section class="detalle__tarjeta">
+          <header class="detalle__titulo"><h2>Responsables y datos administrativos</h2></header>
+          <dl class="detalle__datos">
+            <div><dt>Agente comercial</dt><dd>{{ p.responsables.agenteComercial.nombre ?? '—' }}</dd></div>
+            <div><dt>Técnico HSE</dt><dd>{{ p.responsables.tecnicoHse.nombre ?? '—' }}</dd></div>
+            <div><dt>Representante de campo</dt><dd>{{ p.responsables.representanteCampo.nombre ?? '—' }}</dd></div>
+            <div><dt>Representante de Quito</dt><dd>{{ p.responsables.representanteQuito.nombre ?? '—' }}</dd></div>
+            <div><dt>Analista de facturación</dt><dd>{{ p.responsables.analistaFacturacion.nombre ?? 'Sin analista' }}</dd></div>
+            <div><dt>Bodega</dt><dd>{{ p.administrativo.bodega ?? '—' }}</dd></div>
+            <div><dt>Condición de pago</dt><dd>{{ p.administrativo.condicionPago ?? '—' }}</dd></div>
+            <div><dt>Zona</dt><dd>{{ p.administrativo.zona ?? '—' }}</dd></div>
+            <div><dt>Solicitud</dt><dd>{{ medio(p) }}</dd></div>
+          </dl>
+        </section>
+
+        <section class="detalle__tarjeta">
+          <header class="detalle__titulo"><h2>Ítems del pedido</h2></header>
+          <div class="detalle__tabla">
+            <table>
+              <caption class="sr-only">Ítems del pedido con sus importes</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Código</th>
+                  <th scope="col">Descripción</th>
+                  <th scope="col">Unidad</th>
+                  <th scope="col" class="num">Cantidad</th>
+                  <th scope="col" class="num">Valor unitario</th>
+                  <th scope="col" class="num">Desc. %</th>
+                  <th scope="col" class="num">Neto</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (i of p.items; track i.id) {
+                  <tr>
+                    <td class="codigo">{{ i.codigo }}</td>
+                    <td>{{ i.descripcion }}</td>
+                    <td>{{ i.unidad ?? '—' }}</td>
+                    <td class="num">{{ i.cantidad }}</td>
+                    <td class="num">{{ moneda(i.valorUnitario) }}</td>
+                    <td class="num">{{ i.descuentoPct ?? 0 }}</td>
+                    <td class="num">{{ moneda(i.neto) }}</td>
+                  </tr>
+                } @empty {
+                  <tr><td class="vacio" colspan="7">El pedido todavía no tiene ítems.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <dl class="detalle__totales">
+            <div><dt>Subtotal</dt><dd>{{ moneda(p.totales.subtotal) }}</dd></div>
+            <div><dt>Descuento</dt><dd>{{ moneda(p.totales.descuento) }}</dd></div>
+            <div class="detalle__totales-neto"><dt>Total neto</dt><dd>{{ moneda(p.totales.neto) }}</dd></div>
+          </dl>
+        </section>
+
+        @if (puedeVerGuias()) {
+          <section class="detalle__tarjeta">
+            <header class="detalle__titulo"><h2>Guía de remisión y despacho</h2></header>
+            <app-guias-seccion [pedido]="p" (cambioDePedido)="refrescar()" />
+          </section>
+        }
+
+        @if (puedeVerPrefactura()) {
+          <section class="detalle__tarjeta">
+            <header class="detalle__titulo"><h2>Prefactura</h2></header>
+            <app-prefactura-seccion [pedido]="p" (cambioDePedido)="refrescar()" />
+          </section>
+        }
+
+        @if (puedeVerOrdenes()) {
+          <section class="detalle__tarjeta">
+            <header class="detalle__titulo"><h2>Orden de trabajo y cierre</h2></header>
+            <app-orden-trabajo-seccion [pedido]="p" (cambioDePedido)="refrescar()" />
+          </section>
+        }
+
+        @if (puedeVerOperativos()) {
+          <section class="detalle__tarjeta">
+            <header class="detalle__titulo"><h2>Documentos operativos</h2></header>
+            <app-documentos-operativos [pedidoId]="p.id" [puedeEliminar]="puedeEliminarOperativos()" (cambioDePedido)="refrescar()" />
+          </section>
+        }
+
+        <section class="detalle__tarjeta">
+          <header class="detalle__titulo"><h2>Documentos</h2></header>
+          <app-documentos-pedido [pedidoId]="p.id" [documentos]="p.documentos" [puedeEditar]="puedeAdjuntar()" (cambio)="onDocumentos($event)" />
+        </section>
+
+        <section class="detalle__tarjeta">
+          <header class="detalle__titulo"><h2>Pedido en AS2</h2></header>
+          <dl class="detalle__datos">
+            <div><dt>Número AS2</dt><dd>{{ p.as2.numero ?? 'Sin vincular' }}</dd></div>
+            <div><dt>Estado en AS2</dt><dd>{{ p.as2.estado ?? '—' }}</dd></div>
+            <div><dt>Fecha en AS2</dt><dd>{{ dia(p.as2.fecha) }}</dd></div>
+            <div><dt>Sincronización</dt><dd>{{ sync(p) }}</dd></div>
+            <div><dt>Sincronizado</dt><dd>{{ p.as2.sincronizadoAt ? fechaHora(p.as2.sincronizadoAt) : '—' }}</dd></div>
+            <div><dt>Total (bruto)</dt><dd>{{ moneda(p.as2.total) }}</dd></div>
+            <div><dt>Descuento</dt><dd>{{ moneda(p.as2.descuento) }}</dd></div>
+            <div><dt>Impuesto</dt><dd>{{ moneda(p.as2.impuesto) }}</dd></div>
+            <div class="detalle__destacado"><dt>Total final (total − descuento + impuesto)</dt><dd>{{ moneda(p.as2.totalFinal) }}</dd></div>
+          </dl>
+          @if (p.as2.descripcion) {
+            <p class="detalle__nota">{{ p.as2.descripcion }}</p>
+          }
+        </section>
+
+        <section class="detalle__tarjeta">
+          <header class="detalle__titulo"><h2>Historial de estados</h2></header>
+          <ol class="detalle__linea">
+            @for (h of p.historial; track $index) {
+              <li class="detalle__hito">
+                <span class="detalle__punto detalle__punto--{{ tonoHistorial(h.macroEstado) }}" aria-hidden="true"></span>
+                <div>
+                  <strong>{{ h.nombreEstado }}</strong>
+                  <span class="detalle__meta">
+                    {{ fechaHora(h.fecha) }} · {{ h.actorNombre ?? 'Sistema' }}{{ h.actorRol ? ' (' + h.actorRol + ')' : '' }} · {{ origenCambio(h.origen) }}
+                  </span>
+                  @if (h.motivo) {
+                    <span class="detalle__motivo">Motivo: {{ h.motivo }}</span>
+                  }
+                </div>
+              </li>
+            } @empty {
+              <li class="detalle__vacio">Sin movimientos registrados.</li>
+            }
+          </ol>
+        </section>
+      </div>
+    }
+  </dynadrill-spinner>
+</div>

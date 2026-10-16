@@ -11,11 +11,13 @@ import {
   DynadrillTextComponent,
 } from '@digitec-it-projects/dynadrill-ui';
 import type { DynadrillSelectOption } from '@digitec-it-projects/dynadrill-ui';
+import { AuthService } from '../../../core/services/auth.service';
+import { mensajeError } from '../../roles-permisos/models/roles-permisos.model';
 import { OperatorSpecialty, Role } from '../models/user.model';
 import { RolesService, UsersService } from '../services/users.service';
 
 export interface UserFormDialogData {
-  userId?: number;
+  userId?: string;
 }
 
 const OPERATOR_ROLE_NAME = 'Operador de Mantenimiento';
@@ -52,19 +54,24 @@ export class UserFormDialog {
   private readonly usersService = inject(UsersService);
   private readonly rolesService = inject(RolesService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly auth = inject(AuthService);
   private readonly modalRef = inject(NzModalRef);
   private readonly data = inject<UserFormDialogData>(NZ_MODAL_DATA);
 
   protected readonly isEditMode = this.data.userId != null;
 
   protected readonly loading = signal(this.isEditMode);
+  /** Estado con el que se abrió el usuario: solo inactivar (pasar de activo a `status: false`) exige `identidad.usuarios.inactivar`. */
+  private readonly estadoInicial = signal(true);
+  /** Sin `inactivar` no se puede dejar inactiva una cuenta activa; reactivar solo exige `editar`. */
+  protected readonly estadoBloqueado = computed(() => !this.auth.can('identidad.usuarios.inactivar') && this.estadoInicial());
   protected readonly submitting = signal(false);
   protected readonly roles = signal<Role[]>([]);
   protected readonly roleOptions = computed<DynadrillSelectOption[]>(() =>
     this.roles().map(role => ({ label: role.name, value: role.id })),
   );
   protected readonly specialtyOptions = SPECIALTY_OPTIONS;
-  protected readonly selectedRoleId = signal<number | null>(null);
+  protected readonly selectedRoleId = signal<string | null>(null);
   /** Solo "Operador de Mantenimiento" necesita especialidad — decide a qué tipo de sub-orden puede asignarse. */
   protected readonly isOperatorRole = computed(
     () => this.roles().find(r => r.id === this.selectedRoleId())?.name === OPERATOR_ROLE_NAME,
@@ -77,7 +84,7 @@ export class UserFormDialog {
     password: [''],
     cedula: [''],
     phone: [''],
-    roleId: this.fb.control<number | null>(null, [Validators.required]),
+    roleId: this.fb.control<string | null>(null, [Validators.required]),
     specialty: this.fb.control<OperatorSpecialty | null>(null),
     status: [true],
     // ── Datos de RRHH (campos_empleado.xlsx) — todos opcionales ──
@@ -95,8 +102,10 @@ export class UserFormDialog {
   protected readonly fechaIngreso = signal<Date | null>(null);
 
   constructor() {
+    // Mínimo 8 caracteres (política del backend de identidad): obligatoria al crear, y al editar solo si se escribe una nueva.
+    this.form.controls.password.addValidators(Validators.minLength(8));
     if (!this.isEditMode) {
-      this.form.controls.password.addValidators([Validators.required, Validators.minLength(8)]);
+      this.form.controls.password.addValidators(Validators.required);
     }
 
     this.rolesService.list().subscribe(roles => this.roles.set(roles));
@@ -142,6 +151,7 @@ export class UserFormDialog {
           });
           this.fechaIngreso.set(user.fechaIngreso ? new Date(user.fechaIngreso) : null);
           this.selectedRoleId.set(user.roleId);
+          this.estadoInicial.set(user.status);
           this.loading.set(false);
         },
         error: () => {
@@ -170,7 +180,7 @@ export class UserFormDialog {
   }
 
   updateRole(value: unknown): void {
-    const roleId = typeof value === 'number' ? value : null;
+    const roleId = typeof value === 'string' ? value : null;
     this.form.controls.roleId.setValue(roleId);
     this.selectedRoleId.set(roleId);
     // El validator required/no-required lo maneja el effect() de arriba, reactivo a isOperatorRole().
@@ -185,6 +195,7 @@ export class UserFormDialog {
   }
 
   updateStatus(checked: boolean): void {
+    if (this.estadoBloqueado()) return;
     this.form.controls.status.setValue(checked);
   }
 
@@ -196,7 +207,7 @@ export class UserFormDialog {
 
     this.submitting.set(true);
     const { password, cargasActivas, ...rest } = this.form.getRawValue();
-    const roleId = rest.roleId as number;
+    const roleId = rest.roleId as string;
     const specialty = rest.specialty ?? undefined;
     const fechaIngreso = this.fechaIngreso()?.toISOString();
 
@@ -216,9 +227,9 @@ export class UserFormDialog {
         this.notify.success('Guardado', this.isEditMode ? 'Usuario actualizado.' : 'Usuario creado.');
         this.modalRef.close('saved');
       },
-      error: () => {
+      error: err => {
         this.submitting.set(false);
-        this.notify.error('Error', 'No se pudo guardar el usuario.');
+        this.notify.error('Error', mensajeError(err, 'No se pudo guardar el usuario.'));
       },
     });
   }

@@ -1,0 +1,54 @@
+<dynadrill-spinner mode="overlay" [spinning]="cargando() || ocupado()" tip="Cargando…">
+  <div class="ots">
+    @if (error(); as e) {
+      <dynadrill-banner variant="critical" [message]="e" />
+    }
+    @if (errorAccion(); as e) {
+      <dynadrill-banner variant="warning" [message]="e" />
+    }
+
+    @if (datos(); as d) {
+      @if (pedido().estado === 'facturado') {
+        <dynadrill-banner variant="info" [message]="'Pedido facturado' + (cierre()?.facturaNumero ? ' — factura ' + cierre()?.facturaNumero : '') + (cierre()?.facturadoAt ? ' el ' + dia(cierre()?.facturadoAt) : '') + '.'" />
+      } @else if (paso()) {
+        <div class="ots__paso" role="group" aria-label="Siguiente paso del pedido">
+          <span class="ots__meta">Siguiente paso: <strong>{{ rotulo() }}</strong></span>
+          @if (puedeElPaso()) {
+            <dynadrill-button variant="primary" [disabled]="ocupado()" (clicked)="hacerPaso()">{{ rotulo() }}</dynadrill-button>
+          } @else {
+            <span class="ots__meta">Usted no tiene permiso para este paso.</span>
+          }
+        </div>
+        @if (paso() === 'control_costos' && !d.requiere && pedido().estado === 'ticket_firmado') {
+          <p class="ots__meta" role="note">El contrato de este cliente no exige orden de trabajo: el pedido pasa directo a control de costos.</p>
+        }
+      }
+
+      @if (orden(); as o) {
+        <section class="ots__orden" [attr.aria-label]="'Orden de trabajo ' + o.codigo">
+          <header class="ots__cabecera">
+            <strong>Orden de trabajo {{ o.codigo }}</strong>
+            <dynadrill-tag [label]="o.estado === 'firmada' ? 'Firmada' : 'Generada'" [variant]="o.estado === 'firmada' ? 'success' : 'info'" [uppercase]="false" />
+            <span class="ots__meta">{{ dia(o.fecha) }} · {{ o.ciudad.nombre }}</span>
+          </header>
+          <p class="ots__meta">{{ o.servicio }}</p>
+          <p class="ots__meta">Valor de la OT: <strong>{{ moneda(o.valorOt) }}</strong> · {{ o.items.length }} línea(s) · Representante del cliente: {{ o.representanteCliente.nombre }} ({{ o.representanteCliente.cargo }})</p>
+          @if (o.firmada; as f) {
+            <p class="ots__meta">Firmada el {{ dia(f.at) }}{{ f.archivoNombre ? ' · archivo: ' + f.archivoNombre : '' }}.</p>
+          }
+          <div class="ots__acciones" role="group" [attr.aria-label]="'Acciones de la orden ' + o.codigo">
+            <dynadrill-button variant="secondary" size="small" (clicked)="imprimir()">Ver e imprimir</dynadrill-button>
+            <dynadrill-button variant="secondary" size="small" (clicked)="imprimir(true)">Guardar como PDF</dynadrill-button>
+            @if (o.estado === 'generada' && puedeFirmar()) {
+              <dynadrill-button variant="primary" size="small" (clicked)="marcarFirmada()">Marcar como firmada</dynadrill-button>
+            }
+          </div>
+        </section>
+      } @else if (d.requiere) {
+        <p class="ots__meta" role="status">El contrato de este cliente exige orden de trabajo. Todavía no se ha generado.</p>
+      } @else {
+        <p class="ots__meta" role="status">Este pedido no tiene orden de trabajo{{ d.requiere ? '' : ' (el contrato del cliente no la exige)' }}.</p>
+      }
+    }
+  </div>
+</dynadrill-spinner>

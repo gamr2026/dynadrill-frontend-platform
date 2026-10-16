@@ -57,28 +57,30 @@ export const PUMPING_STEP_LABELS: Record<PumpingStep, string> = {
 };
 
 /**
- * Mapeo de cada paso del ticket al rol responsable y su roleId.
+ * Mapeo de cada paso del ticket al rol responsable: `roleName` (texto de UI) y `roleCode`
+ * (identificador estable del backend — es lo que se pide a `switch-role` y contra lo que se
+ * compara el rol de la sesión; los ids de rol son UUID y no sirven de constante).
  * Usado para cambiar automáticamente de rol en la demo al avanzar el paso.
- * Los pasos del Supervisor son de "Supervisor Pumping" (id 17), nunca del "Supervisor" genérico: ese es de FCR
+ * Los pasos del Supervisor son de "Supervisor Pumping" (`supervisor_pumping`), nunca del "Supervisor" genérico: ese es de FCR
  * y su menú muestra FCR en vez de Pumping/Aprobaciones.
  */
-export const PUMPING_STEP_ROLE: Record<PumpingStep, { roleName: string; roleId: number }> = {
-  revision_inicial: { roleName: 'Jefe de Base', roleId: 4 },
+export const PUMPING_STEP_ROLE: Record<PumpingStep, { roleName: string; roleCode: string }> = {
+  revision_inicial: { roleName: 'Jefe de Base', roleCode: 'jefe_base' },
   // Antes 'Supervisor' — el negocio pasó toda la asignación (Supervisor,
   // operadores, unidades y químicos) al Jefe de Base — ver
   // PLAN-QHSE-PUMPING-NOTIFICACIONES, Fase 1, D1. Solo Pumping (D2).
-  asignacion: { roleName: 'Jefe de Base', roleId: 4 },
-  traslado_salida: { roleName: 'Operador', roleId: 2 },
-  revision_reportes_salida: { roleName: 'Supervisor Pumping', roleId: 17 },
+  asignacion: { roleName: 'Jefe de Base', roleCode: 'jefe_base' },
+  traslado_salida: { roleName: 'Operador', roleCode: 'operador' },
+  revision_reportes_salida: { roleName: 'Supervisor Pumping', roleCode: 'supervisor_pumping' },
   // El Reporte Diario de Actividades (DYN-SGI-RE-047) lo llena el Operador,
   // no el Supervisor — confirmado en el vault (conceptos/Reporte-Job.md) y
   // en la documentación de Facturación (FACT-002, PASOS DEL PROCESO).
-  ejecucion_operativa: { roleName: 'Operador', roleId: 2 },
-  control_retorno: { roleName: 'Supervisor Pumping', roleId: 17 },
-  traslado_llegada: { roleName: 'Operador', roleId: 2 },
-  revision_reportes_llegada: { roleName: 'Supervisor Pumping', roleId: 17 },
-  revision_final: { roleName: 'Supervisor Pumping', roleId: 17 },
-  cierre: { roleName: 'Supervisor Pumping', roleId: 17 },
+  ejecucion_operativa: { roleName: 'Operador', roleCode: 'operador' },
+  control_retorno: { roleName: 'Supervisor Pumping', roleCode: 'supervisor_pumping' },
+  traslado_llegada: { roleName: 'Operador', roleCode: 'operador' },
+  revision_reportes_llegada: { roleName: 'Supervisor Pumping', roleCode: 'supervisor_pumping' },
+  revision_final: { roleName: 'Supervisor Pumping', roleCode: 'supervisor_pumping' },
+  cierre: { roleName: 'Supervisor Pumping', roleCode: 'supervisor_pumping' },
 };
 
 /**
@@ -91,10 +93,10 @@ export const PUMPING_MANTENIMIENTO_ROLES: Readonly<Record<string, string>> = {
   'Operador de Mantenimiento': '/dashboard/mantenimiento/mis-tareas',
 };
 
-/** Compara el rol esperado del paso (ver PUMPING_STEP_ROLE) con el de la sesión — el "Supervisor" genérico ya no cuenta: es de FCR. */
-export function esRolResponsablePumping(expectedRoleName: string | undefined, currentRoleName: string): boolean {
-  if (!expectedRoleName) return false;
-  return expectedRoleName === currentRoleName;
+/** Compara el `roleCode` esperado del paso (ver PUMPING_STEP_ROLE) con el de la sesión — el "Supervisor" genérico ya no cuenta: es de FCR. */
+export function esRolResponsablePumping(expectedRoleCode: string | undefined, currentRoleCode: string): boolean {
+  if (!expectedRoleCode) return false;
+  return expectedRoleCode === currentRoleCode;
 }
 
 // ── Entidades del dominio ──

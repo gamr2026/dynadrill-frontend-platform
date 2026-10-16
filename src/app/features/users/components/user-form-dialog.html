@@ -102,8 +102,14 @@
       <dynadrill-checkbox
         label="Usuario activo (acceso al sistema)"
         [checked]="form.controls.status.value"
+        [disabled]="estadoBloqueado()"
         (checkedChange)="updateStatus($event)"
       />
+      @if (estadoBloqueado()) {
+        <dynadrill-text variant="caption" class="user-form-dialog__nota">
+          No tiene permiso para inactivar usuarios: la cuenta no se puede dejar inactiva desde aquí.
+        </dynadrill-text>
+      }
     </section>
 
     <section class="user-form-dialog__section" aria-labelledby="user-form-empleado">

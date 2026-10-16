@@ -225,7 +225,7 @@ export class PedidosListPage {
           title: `${d.origen === 'fcr' ? 'FCR' : 'Pumping'} cargó ${TIPO_DOCUMENTO_OPERATIVO_LABELS[d.tipo]}`,
           description: `${d.header?.pozo ?? p?.pozo ?? ''} · Pedido ${p?.code ?? d.pedidoId}${d.fecha ? ' · ' + d.fecha : ''}`,
           tone: 'info' as const,
-          link: p ? '/dashboard/facturacion/pedidos/' + p.id : undefined,
+          link: p ? '/dashboard/facturacion/pedidos-demo/' + p.id : undefined,
         };
       });
   });
@@ -283,7 +283,7 @@ export class PedidosListPage {
   }
 
   protected verDetalle(row: Record<string, unknown>): void {
-    this.router.navigate(['/dashboard/facturacion/pedidos', row['id']]);
+    this.router.navigate(['/dashboard/facturacion/pedidos-demo', row['id']]);
   }
 
   /** Ventas y Facturación pueden editar (ver ModuleRoles.pedidos) — solo Ventas gestiona Administrativos, ver NuevoPedidoDialog. */

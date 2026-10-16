@@ -1,0 +1,148 @@
+<dynadrill-spinner mode="overlay" [spinning]="cargando()" tip="Cargando…">
+  <div class="ops">
+    @if (error(); as e) {
+      <dynadrill-banner variant="critical" [message]="e" />
+    }
+
+    @if (avance(); as a) {
+      <section class="ops__bloque" aria-label="Avance documental">
+        <h3>Avance documental</h3>
+        <dynadrill-progress [value]="a.diasConReporteJob" [max]="a.diasEsperados || 1" [showInfo]="false" [statusOverride]="a.completo ? 'success' : 'normal'" />
+        <p class="ops__meta">Reporte Job: {{ a.diasConReporteJob }} de {{ a.diasEsperados }} día(s) ({{ porcentaje() }} %).</p>
+        <ul class="ops__chequeo">
+          @for (p of chequeo(); track p.texto) {
+            <li>
+              <dynadrill-tag [label]="marcaChequeo(p)" [variant]="tonoChequeo(p)" [uppercase]="false" />
+              <span>{{ p.texto }}</span>
+            </li>
+          }
+        </ul>
+        @if (a.completo) {
+          <dynadrill-banner variant="info" message="La documentación del pedido está completa." />
+        } @else if (a.pendientes.length) {
+          <div class="ops__pendientes">
+            <strong>Pendientes</strong>
+            <ul>
+              @for (p of a.pendientes; track p) {
+                <li>{{ p }}</li>
+              }
+            </ul>
+          </div>
+        }
+      </section>
+    }
+
+    @if (!cargando() && !error() && vacio()) {
+      <p class="ops__vacio" role="status">Operaciones todavía no ha enviado documentos para este pedido.</p>
+    }
+
+    @if (reportesJob().length) {
+      <section class="ops__bloque" aria-label="Reportes Job">
+        <h3>Reportes Job ({{ reportesJob().length }})</h3>
+        @for (d of reportesJob(); track d.id) {
+          <details class="ops__doc">
+            <summary>
+              <span class="ops__titulo">{{ dia(d.fecha) }}</span>
+              <span class="ops__resumen">
+                {{ origen(d.origen) }} · {{ d.actividades.length }} actividad(es) · {{ horas(d) }}
+                · Firmado por {{ d.firmadoPor ?? 'sin firma' }}
+              </span>
+            </summary>
+            <div class="ops__detalle">
+              <p class="ops__meta">
+                Ticket {{ d.ticketRef ?? '—' }} · Supervisor: {{ d.supervisor?.nombre ?? '—' }} · Operador: {{ d.operador?.nombre ?? '—' }}
+              </p>
+              <div class="ops__tabla">
+                <table>
+                  <caption class="sr-only">Actividades del Reporte Job del {{ dia(d.fecha) }}</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Horario</th>
+                      <th scope="col" class="num">Duración</th>
+                      <th scope="col">Detalle</th>
+                      <th scope="col">Autor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (x of d.actividades; track x.orden) {
+                      <tr>
+                        <td>{{ x.horaInicio ?? '—' }} – {{ x.horaFin ?? '—' }}</td>
+                        <td class="num">{{ x.duracionHoras ?? '—' }}</td>
+                        <td>{{ x.detalle ?? '—' }}</td>
+                        <td>{{ x.autor ?? '—' }}</td>
+                      </tr>
+                    } @empty {
+                      <tr><td colspan="4" class="vacio">Sin actividades registradas.</td></tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              @if (puedeEliminar()) {
+                <dynadrill-icon-button icon="delete" tooltip="Quitar este Reporte Job" (clicked)="eliminar(d)" />
+              }
+            </div>
+          </details>
+        }
+      </section>
+    }
+
+    @for (d of reportesHtas(); track d.id) {
+      <section class="ops__bloque" aria-label="Reporte de Herramientas">
+        <h3>Reporte de Herramientas</h3>
+        <details class="ops__doc">
+          <summary>
+            <span class="ops__titulo">{{ d.herramientas.length }} herramienta(s)</span>
+            <span class="ops__resumen">{{ origen(d.origen) }} · Firmado por {{ d.firmadoPor ?? 'sin firma' }} · Recibido el {{ dia(d.recibidoAt) }}</span>
+          </summary>
+          <div class="ops__detalle">
+            @if (sinCodigo(d) > 0) {
+              <dynadrill-banner variant="warning" [message]="sinCodigo(d) + ' herramienta(s) no tienen código: no se facturarán sin código.'" />
+            }
+            <div class="ops__tabla">
+              <table>
+                <caption class="sr-only">Herramientas del reporte con sus usos por día</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Herramienta</th>
+                    <th scope="col">Serie</th>
+                    <th scope="col">Código</th>
+                    <th scope="col">Usos por día</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (h of d.herramientas; track h.orden) {
+                    <tr>
+                      <td>{{ h.nombre }}</td>
+                      <td>{{ h.serie ?? '—' }}</td>
+                      <td>
+                        @if (h.codigo) {
+                          {{ h.codigo }}
+                        } @else {
+                          <dynadrill-tag label="Sin código" variant="warning" [uppercase]="false" />
+                        }
+                      </td>
+                      <td>
+                        <ul class="ops__usos">
+                          @for (u of h.usos; track u.fecha) {
+                            <li>{{ dia(u.fecha) }}: {{ uso(u.estado) }}</li>
+                          } @empty {
+                            <li>Sin usos registrados.</li>
+                          }
+                        </ul>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="4" class="vacio">Sin herramientas registradas.</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            @if (puedeEliminar()) {
+              <dynadrill-icon-button icon="delete" tooltip="Quitar este Reporte de Herramientas" (clicked)="eliminar(d)" />
+            }
+          </div>
+        </details>
+      </section>
+    }
+  </div>
+</dynadrill-spinner>

@@ -1,0 +1,158 @@
+@use '../../pc' as pc;
+
+:host {
+  display: block;
+}
+
+.pf {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 48px;
+
+  &__acciones,
+  &__estado {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+  }
+
+  &__meta {
+    font-size: 13px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__bloque {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    h3 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text, #2c2b35);
+    }
+  }
+
+  &__advertencias {
+    padding: 10px 12px;
+    background: #fffbe6;
+    border: 1px solid var(--warning, #faad14);
+    border-left-width: 4px;
+    border-radius: 10px;
+    color: #613400;
+
+    ul {
+      margin: 6px 0 0;
+      padding-left: 18px;
+    }
+  }
+
+  &__tabla {
+    @include pc.tabla-con-scroll;
+
+    table {
+      min-width: 860px;
+    }
+  }
+
+  &__totales {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px 28px;
+    margin: 0;
+
+    div {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+
+    dt {
+      font-size: 12px;
+      color: var(--text-muted, #5c5870);
+    }
+
+    dd {
+      margin: 0;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  &__neto dd {
+    font-size: 18px;
+    color: var(--dynadrill-purple, #662e9b);
+  }
+
+  &__firmas,
+  &__versiones {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__firma {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--surface-muted, #faf9fc);
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: 10px;
+
+    div {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+  }
+
+  &__aviso {
+    margin: 0;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--text, #2c2b35);
+    background: var(--surface-muted, #faf9fc);
+    border-left: 4px solid var(--dynadrill-purple, #662e9b);
+    border-radius: 6px;
+  }
+
+  &__verif {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+  }
+
+  &__firma-acciones {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__versiones li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

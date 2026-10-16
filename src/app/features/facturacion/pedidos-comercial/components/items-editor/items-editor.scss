@@ -1,0 +1,119 @@
+@use '../../pc' as pc;
+
+:host {
+  display: block;
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  &__bloque {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    h3 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text, #2c2b35);
+    }
+  }
+
+  &__ayuda {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted, #5c5870);
+
+    a {
+      margin-left: 6px;
+      color: var(--dynadrill-purple, #662e9b);
+      font-weight: 600;
+    }
+  }
+
+  &__archivo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-muted, #5c5870);
+
+    input {
+      font: inherit;
+      color: var(--text, #2c2b35);
+    }
+  }
+
+  &__errores {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 13px;
+    color: var(--text, #2c2b35);
+    max-height: 140px;
+    overflow-y: auto;
+  }
+
+  &__filtros {
+    @include pc.filtros;
+  }
+
+  &__tabla {
+    @include pc.tabla-con-scroll;
+
+    .campo {
+      min-width: 110px;
+    }
+
+    .error {
+      display: block;
+      font-size: 12px;
+      color: var(--error, #cf1322);
+    }
+  }
+
+  &__paginador {
+    @include pc.paginador;
+  }
+
+  &__totales {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px 32px;
+    margin: 0;
+
+    div {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+
+    dt {
+      font-size: 12px;
+      color: var(--text-muted, #5c5870);
+    }
+
+    dd {
+      margin: 0;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .neto dd {
+      font-size: 18px;
+    }
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

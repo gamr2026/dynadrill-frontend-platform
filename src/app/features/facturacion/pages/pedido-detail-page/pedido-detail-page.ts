@@ -345,7 +345,7 @@ export class PedidoDetailPage {
     // anular, para que el menú "⋮" siempre refleje lo mismo que el toolbar.
     useDetailChrome(
       () => 'Pedido ' + (this.pedido()?.code ?? ''),
-      '/dashboard/facturacion/pedidos',
+      '/dashboard/facturacion/pedidos-demo',
       () => this.pedido()
         ? [
             { label: 'Editar pedido', action: () => this.editarPedido() },

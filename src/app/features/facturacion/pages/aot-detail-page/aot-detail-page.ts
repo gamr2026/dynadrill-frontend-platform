@@ -105,6 +105,6 @@ export class AotDetailPage {
 
   protected irAlPedido(): void {
     const aot = this.aot();
-    if (aot) this.router.navigate(['/dashboard/facturacion/pedidos', aot.pedidoId]);
+    if (aot) this.router.navigate(['/dashboard/facturacion/pedidos-demo', aot.pedidoId]);
   }
 }

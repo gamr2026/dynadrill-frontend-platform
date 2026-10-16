@@ -1,0 +1,161 @@
+<dynadrill-spinner mode="overlay" [spinning]="cargando() || ocupado()" tip="Cargando…">
+  <div class="gs">
+    @if (error(); as e) {
+      <dynadrill-banner variant="critical" [message]="e" />
+    }
+    @if (errorAccion(); as e) {
+      <dynadrill-banner variant="warning" [message]="e" />
+    }
+
+    <div class="gs__acciones" role="group" aria-label="Acciones de la guía y del despacho">
+      @if (puedeEmitir()) {
+        <dynadrill-button variant="primary" [disabled]="ocupado()" (clicked)="emitir()">Emitir guía</dynadrill-button>
+      }
+      @if (puedeSolicitar()) {
+        <dynadrill-button variant="secondary" [disabled]="ocupado()" (clicked)="solicitarDespacho()">Solicitar despacho a Bodega</dynadrill-button>
+      }
+      @if (puedeRealizar()) {
+        <dynadrill-button variant="primary" [disabled]="ocupado()" (clicked)="realizarDespacho()">Registrar despacho realizado</dynadrill-button>
+      }
+    </div>
+
+    @if (despacho(); as d) {
+      @if (d.solicitado) {
+        <p class="gs__meta" role="status">
+          Despacho solicitado el {{ dia(d.solicitado.at) }}{{ d.solicitado.por ? ' por ' + d.solicitado.por : '' }}.
+          @if (d.realizado) {
+            Realizado el {{ dia(d.realizado.at) }}{{ d.realizado.por ? ' por ' + d.realizado.por : '' }}.
+          } @else {
+            Pendiente de Bodega.
+          }
+        </p>
+      }
+    }
+
+    @for (g of vigentes(); track g.id) {
+      <section class="gs__guia" [attr.aria-label]="'Guía ' + g.codigo">
+        <header class="gs__cabecera">
+          <strong>Guía {{ g.codigo }}</strong>
+          <dynadrill-tag [label]="g.firmada ? 'Firmada' : estado(g)" [variant]="tono(g)" [uppercase]="false" />
+          <span class="gs__meta">{{ dia(g.fecha) }} · {{ g.lugarOrigen.nombre }}</span>
+        </header>
+        <p class="gs__meta">
+          Transportista: {{ g.transportista.nombre }} ({{ g.transportista.identificacion }})
+          @if (g.vehiculo?.descripcion) { · {{ g.vehiculo?.descripcion }} }
+          @if (g.vehiculo?.placa) { · Placa {{ g.vehiculo?.placa }} }
+          @if (g.chofer?.nombre) { · Chofer {{ g.chofer?.nombre }} }
+          @if (g.horaSalida) { · Salida {{ g.horaSalida }} }
+          @if (g.horaLlegada) { · Llegada {{ g.horaLlegada }} }
+        </p>
+        <div class="gs__tabla">
+          <table>
+            <caption class="sr-only">Ítems de la guía {{ g.codigo }}</caption>
+            <thead>
+              <tr>
+                <th scope="col">Código</th>
+                <th scope="col">Descripción</th>
+                <th scope="col" class="num">Cantidad</th>
+                <th scope="col">Unidad</th>
+                <th scope="col">Serie</th>
+                <th scope="col">Origen</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (i of g.items; track i.orden) {
+                <tr>
+                  <td class="codigo">{{ i.codigo ?? '—' }}</td>
+                  <td>{{ i.descripcion }}</td>
+                  <td class="num">{{ i.cantidad }}</td>
+                  <td>{{ i.unidad }}</td>
+                  <td>{{ i.serie ?? '—' }}</td>
+                  <td>{{ origen(i.origen) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (g.observaciones) {
+          <p class="gs__meta">Observaciones: {{ g.observaciones }}</p>
+        }
+        @if (g.firmada) {
+          <div class="gs__electronica" aria-live="polite">
+            <strong>Firma manuscrita</strong>
+            @if (manuscrita(g); as m) {
+              <dynadrill-tag [label]="m.texto" [variant]="m.tono" [uppercase]="false" />
+              @if (m.detalle) {
+                <span class="gs__meta">{{ m.detalle }}</span>
+              }
+            }
+            <p class="gs__aviso" role="note">{{ avisoManuscrita }}</p>
+          </div>
+          <div class="gs__electronica" aria-live="polite">
+            <strong>Firma electrónica</strong>
+            @if (!esPdf(g)) {
+              <span class="gs__meta">La firma electrónica solo se valida en archivos PDF.</span>
+            } @else if (g.firmaElectronica; as fe) {
+              @if (firmaElec(g); as v) {
+                <dynadrill-tag [label]="v.texto" [variant]="v.tono" [uppercase]="false" />
+              }
+              @if (fe.resumen) {
+                <span class="gs__meta">{{ fe.resumen }}</span>
+              }
+              <ul class="gs__firmas">
+                @for (f of fe.firmas; track $index) {
+                  <li>
+                    <span>{{ f.firmanteNombre ?? 'Firmante sin nombre' }}{{ f.firmanteIdentificacion ? ' · ' + f.firmanteIdentificacion : '' }}{{ f.emisor ? ' · ' + f.emisor : '' }}</span>
+                    <span class="gs__meta">{{ f.conclusion }}</span>
+                  </li>
+                }
+              </ul>
+              <p class="gs__aviso" role="note">{{ aviso }}</p>
+            } @else if (sinResultado()) {
+              <span class="gs__meta">Sin resultado de la validación. Solo se valida la firma electrónica de archivos PDF; una imagen o un escaneo con firma manual no se valida aquí.</span>
+            } @else {
+              <span class="gs__meta">Validando la firma electrónica…</span>
+            }
+            @if (puedeFirmar()) {
+              <dynadrill-button variant="secondary" size="small" [disabled]="verificando() !== null" (clicked)="volverAValidar(g)">{{ verificando() === g.id ? 'Validando…' : 'Volver a validar' }}</dynadrill-button>
+            }
+          </div>
+        }
+        <div class="gs__acciones" role="group" [attr.aria-label]="'Acciones de la guía ' + g.codigo">
+          <dynadrill-button variant="secondary" size="small" (clicked)="imprimir(g)">Ver e imprimir</dynadrill-button>
+          <dynadrill-button variant="secondary" size="small" (clicked)="imprimir(g, true)">Guardar como PDF</dynadrill-button>
+          @if (g.firmada) {
+            <dynadrill-button variant="secondary" size="small" (clicked)="descargarFirmada(g)">Descargar guía firmada</dynadrill-button>
+          } @else {
+            @if (puedeFirmar()) {
+              <dynadrill-button variant="primary" size="small" (clicked)="accion('firmada', g)">Registrar guía firmada</dynadrill-button>
+            }
+            @if (puedeEmitir()) {
+              <dynadrill-button variant="secondary" size="small" (clicked)="accion('reasignar', g)">Cambiar número</dynadrill-button>
+              <dynadrill-button variant="error" size="small" (clicked)="accion('anular', g)">Anular</dynadrill-button>
+            }
+          }
+        </div>
+      </section>
+    } @empty {
+      @if (!cargando() && !error()) {
+        <p class="gs__meta" role="status">Este pedido todavía no tiene guía de remisión.</p>
+      }
+    }
+
+    @if (anuladas().length) {
+      <section class="gs__bloque" aria-label="Guías anuladas">
+        <h3>Guías anuladas</h3>
+        <ul class="gs__anuladas">
+          @for (g of anuladas(); track g.id) {
+            <li>
+              <dynadrill-tag [label]="estado(g)" [variant]="tono(g)" [uppercase]="false" />
+              <span>{{ g.codigo }} · {{ dia(g.fecha) }}</span>
+              <span class="gs__meta">{{ g.anulacion?.motivo }}</span>
+              @if (puedeEmitir()) {
+                <dynadrill-button variant="secondary" size="small" (clicked)="emitir(g.id)">Emitir reemplazo</dynadrill-button>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  </div>
+</dynadrill-spinner>

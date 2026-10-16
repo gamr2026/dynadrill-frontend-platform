@@ -9,6 +9,7 @@ import { SidebarStateService } from '../sidebar-state.service';
 import { MobileDrawer } from '../mobile-drawer/mobile-drawer';
 import { BottomNav } from '../bottom-nav/bottom-nav';
 import { PageChromeService } from '../page-chrome.service';
+import { AvisosFeederService } from '../../core/services/avisos-feeder.service';
 import { QhseAvisosFeederService } from '../../core/services/qhse-avisos-feeder.service';
 
 @Component({
@@ -39,6 +40,8 @@ export class Shell {
     // con los avisos de QHSE — se inicializa acá (el shell, no una página
     // de QHSE) para que se vea en toda la app.
     inject(QhseAvisosFeederService).start();
+    // Avisos del sistema por rol (pedidos nuevos de Pumping, etc.): la misma campana, desde el módulo de avisos.
+    inject(AvisosFeederService).start();
 
     router.events.pipe(takeUntilDestroyed()).subscribe(e => {
       if (e instanceof NavigationStart) this.navigating.set(true);

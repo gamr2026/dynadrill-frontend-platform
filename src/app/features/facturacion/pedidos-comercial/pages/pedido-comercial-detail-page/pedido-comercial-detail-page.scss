@@ -1,0 +1,142 @@
+@use '../../pc' as pc;
+@use '../../../facturacion-ui' as f;
+
+.detalle {
+  @include f.page;
+
+  &__cuerpo {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  &__tarjeta {
+    @include pc.tarjeta;
+  }
+
+  &__titulo {
+    @include f.card-head;
+  }
+
+  &__estado {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__rol {
+    font-size: 13px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__datos {
+    @include f.defs;
+  }
+
+  &__destacado dd {
+    font-size: 16px;
+    color: var(--dynadrill-purple, #662e9b);
+  }
+
+  &__tabla {
+    @include pc.tabla-con-scroll;
+  }
+
+  &__totales {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px 32px;
+    margin: 0;
+
+    div {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+
+    dt {
+      font-size: 12px;
+      color: var(--text-muted, #5c5870);
+    }
+
+    dd {
+      margin: 0;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  &__totales-neto dd {
+    font-size: 18px;
+  }
+
+  &__nota {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__linea {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__hito {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+
+    div {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+  }
+
+  &__punto {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    margin-top: 4px;
+    border-radius: 50%;
+    background: var(--text-muted, #5c5870);
+
+    &--brand { background: var(--dynadrill-purple, #662e9b); }
+    &--success { background: var(--success, #52c41a); }
+    &--warning { background: var(--warning, #faad14); }
+    &--error { background: var(--error, #ff4d4f); }
+    &--info { background: #1677ff; }
+  }
+
+  &__meta,
+  &__motivo {
+    font-size: 12px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__vacio {
+    color: var(--text-muted, #5c5870);
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

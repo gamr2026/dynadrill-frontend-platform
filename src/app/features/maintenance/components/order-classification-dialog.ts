@@ -15,6 +15,7 @@ import { CreateUnitReportInput, unitReportCode, UnitReport } from '../models/uni
 import { ClassifyTypeAssignment, MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { UnitReportsService } from '../services/unit-reports.service';
 import { RolesService } from '../../users/services/users.service';
+import { conIdLegacy } from '../../users/models/user.model';
 import { AuthService } from '../../../core/services/auth.service';
 
 export interface OrderClassificationDialogData {
@@ -226,7 +227,10 @@ export class OrderClassificationDialog {
   constructor() {
     // GET /api/roles/:code/usuarios — activos por rol, sin pegarle a /api/users (solo Superadmin).
     this.rolesService.usuariosPorRol(OPERATOR_ROLE_CODE).subscribe({
-      next: usuarios => {
+      next: usuariosNuevos => {
+        // TRANSICIÓN (puente de ids): `assignedUserId` / `userId` viajan a la demo (ids numéricos): se ofrecen solo los
+        // operadores con `legacyId` y se envía ese id. Se retira cuando mantenimiento migre al backend nuevo (UUID).
+        const usuarios = conIdLegacy(usuariosNuevos);
         usuarios.forEach(u => this.operatorNames.set(u.id, u.name));
         this.mecanicoOptions.set(usuarios.filter(u => u.specialty === 'Mecánico').map(u => ({ label: u.name, value: u.id })));
         this.instrumentalOptions.set(usuarios.filter(u => u.specialty === 'Instrumental').map(u => ({ label: u.name, value: u.id })));

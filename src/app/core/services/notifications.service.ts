@@ -4,6 +4,8 @@ import type { DynadrillNotificationItem } from '@digitec-it-projects/dynadrill-u
 export interface AppNotificationItem extends DynadrillNotificationItem {
   /** Ruta a la que navegar al hacer clic — la resuelve quien consume la campana (Header), no este servicio. */
   link?: string;
+  /** Se ejecuta al abrir el aviso (antes de navegar): p. ej. marcarlo como leído en el servidor. */
+  alAbrir?: () => void;
 }
 
 /**

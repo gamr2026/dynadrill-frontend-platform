@@ -2,6 +2,8 @@ import { Routes } from '@angular/router';
 import { provideDynadrillCharts } from '@digitec-it-projects/dynadrill-ui';
 import { BarChart } from 'echarts/charts';
 import { roleGuard } from '../../core/guards/role.guard';
+import { permissionGuard } from '../../core/guards/permission.guard';
+import { PERMISOS_PEDIDOS } from './pedidos-comercial/models/pedido-comercial.model';
 
 const FACTURACION_ROLES = ['Facturación', 'Superadmin', 'Jefe de Base'];
 /** Ventas también abre y consulta Pedidos (FACT-001), pero no prefacturas/AOT/reportería. */
@@ -11,14 +13,36 @@ const VENTAS_CATALOGOS_ROLES = ['Superadmin', 'Jefe de Base', 'Ingeniería de Ve
 
 export const facturacionRoutes: Routes = [
   { path: '', redirectTo: 'pedidos', pathMatch: 'full' },
+  // Pedidos del backend nuevo (contenedor comercial): se autorizan por permiso del token, no por rol.
   {
     path: 'pedidos',
+    loadComponent: () => import('./pedidos-comercial/pages/pedidos-comercial-list-page/pedidos-comercial-list-page').then(m => m.PedidosComercialListPage),
+    canActivate: [permissionGuard(PERMISOS_PEDIDOS.ver)],
+  },
+  {
+    path: 'pedidos/nuevo',
+    loadComponent: () => import('./pedidos-comercial/pages/pedido-comercial-form-page/pedido-comercial-form-page').then(m => m.PedidoComercialFormPage),
+    canActivate: [permissionGuard(PERMISOS_PEDIDOS.crear)],
+  },
+  {
+    path: 'pedidos/:id',
+    loadComponent: () => import('./pedidos-comercial/pages/pedido-comercial-detail-page/pedido-comercial-detail-page').then(m => m.PedidoComercialDetailPage),
+    canActivate: [permissionGuard(PERMISOS_PEDIDOS.ver)],
+  },
+  {
+    path: 'pedidos/:id/editar',
+    loadComponent: () => import('./pedidos-comercial/pages/pedido-comercial-form-page/pedido-comercial-form-page').then(m => m.PedidoComercialFormPage),
+    canActivate: [permissionGuard(PERMISOS_PEDIDOS.editar)],
+  },
+  // Pantallas de pedidos de la demo: se conservan solo porque prefactura, AOT y despachos todavía cuelgan de ellas.
+  {
+    path: 'pedidos-demo',
     loadComponent: () => import('./pages/pedidos-list-page/pedidos-list-page').then(m => m.PedidosListPage),
     canActivate: [roleGuard],
     data: { allowedRoles: PEDIDO_ROLES },
   },
   {
-    path: 'pedidos/:id',
+    path: 'pedidos-demo/:id',
     loadComponent: () => import('./pages/pedido-detail-page/pedido-detail-page').then(m => m.PedidoDetailPage),
     canActivate: [roleGuard],
     data: { allowedRoles: PEDIDO_ROLES },

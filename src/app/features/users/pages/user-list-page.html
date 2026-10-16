@@ -2,12 +2,14 @@
   <app-page-header
     eyebrow="Administración"
     title="Usuarios"
-    subtitle="Gestión de cuentas y datos del empleado — Superadmin y Jefe de Base"
+    subtitle="Gestión de cuentas y datos del empleado"
   >
-    <dynadrill-button actions (clicked)="createUser()">
-      <dynadrill-icon name="add" [size]="16" />
-      Nuevo usuario
-    </dynadrill-button>
+    @if (puedeCrear()) {
+      <dynadrill-button actions (clicked)="createUser()">
+        <dynadrill-icon name="add" [size]="16" />
+        Nuevo usuario
+      </dynadrill-button>
+    }
   </app-page-header>
 
   <app-search-field
@@ -56,8 +58,12 @@
 
   <ng-template #actions let-row>
     <div class="dyn-actions-row">
-      <dynadrill-icon-button icon="edit" [tooltip]="'Editar a ' + row.name" (clicked)="editUser(row)" />
-      <dynadrill-icon-button icon="delete" [tooltip]="'Eliminar a ' + row.name" (clicked)="deleteUser(row)" />
+      @if (puedeEditar()) {
+        <dynadrill-icon-button icon="edit" [tooltip]="'Editar a ' + row.name" (clicked)="editUser(row)" />
+      }
+      @if (puedeInactivar()) {
+        <dynadrill-icon-button icon="delete" [tooltip]="'Inactivar a ' + row.name" (clicked)="deleteUser(row)" />
+      }
     </div>
   </ng-template>
 </div>

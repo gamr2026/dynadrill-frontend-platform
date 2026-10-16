@@ -39,6 +39,7 @@ import { parseLocalDateString, toLocalDateString } from '../../../shared/utils';
 import { Prefactura } from '../models/prefactura.model';
 import { ListaPreciosService, PedidoService, PrefacturaService } from '../services/pedido.service';
 import { RolesService } from '../../users/services/users.service';
+import { conIdLegacy } from '../../users/models/user.model';
 import { ArticulosService } from '../../inventario/services/articulos.service';
 import type { Articulo } from '../../inventario/models/articulo.model';
 import {
@@ -951,7 +952,9 @@ export class NuevoPedidoDialog {
       this.actualizarListaCliente(listas);
     });
     this.rolesService.usuariosPorRol('tecnico_hse').subscribe(usuarios => {
-      this.tecnicoHseOptions.set(usuarios.map(u => ({ label: u.name, value: u.id })));
+      // TRANSICIÓN (puente de ids): `tecnicoHseResponsableId` viaja al pedido de la demo (id numérico): se ofrecen solo
+      // los técnicos con `legacyId`. Se retira cuando facturación/pedidos migre al backend nuevo (UUID).
+      this.tecnicoHseOptions.set(conIdLegacy(usuarios).map(u => ({ label: u.name, value: u.id })));
     });
     this.catalogosService.clientes().subscribe(clientes => this.clientesCatalogo.set(clientes));
     this.articulosService.list({ categoria: 'QUIMICA', activo: true }).subscribe({

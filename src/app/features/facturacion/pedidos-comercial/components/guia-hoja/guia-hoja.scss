@@ -1,0 +1,206 @@
+.gh {
+  position: relative;
+  font-size: 9.5px;
+  // marca de agua con el logo, como el talonario preimpreso
+  background-image: url('/brand/dynadrill-logo.svg');
+  background-repeat: no-repeat;
+  background-position: 60% 62%;
+  background-size: 58%;
+  background-color: #fff;
+  isolation: isolate;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  table {
+    margin-top: -1px;
+  }
+
+  &__lateral {
+    position: absolute;
+    top: 50%;
+    right: -6px;
+    margin: 0;
+    font-size: 8px;
+    white-space: nowrap;
+    transform: translateY(-50%) rotate(90deg);
+    transform-origin: center;
+  }
+
+  &__cabecera {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  &__logo {
+    display: block;
+    width: 150px;
+    margin-bottom: 6px;
+  }
+
+  &__direccion {
+    font-size: 7.5px;
+    line-height: 1.35;
+  }
+
+  &__titulo {
+    text-align: right;
+    line-height: 1.35;
+  }
+
+  &__ruc {
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  &__empresa {
+    font-size: 10px;
+  }
+
+  &__nombre {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+
+  &__formato {
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  &__serie {
+    margin-top: 4px;
+    font-size: 11px;
+  }
+
+  &__numero {
+    margin-left: 6px;
+    font-size: 17px;
+    font-weight: 700;
+    color: #d6001c;
+  }
+
+  &__aut {
+    margin-top: 4px;
+    font-size: 9px;
+  }
+
+  &__anulada {
+    margin-top: 6px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #d6001c;
+    letter-spacing: 2px;
+  }
+
+  &__cab td {
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+
+  &__cliente {
+    width: 52%;
+  }
+
+  &__hora {
+    width: 22%;
+  }
+
+  &__abajo {
+    vertical-align: bottom !important;
+  }
+
+  &__origen-transp {
+    display: grid;
+    grid-template-columns: 1fr 1.25fr;
+    margin-top: -1px;
+    border: 1px solid #000;
+  }
+
+  &__origen,
+  &__transp {
+    padding: 6px 8px;
+    font-size: 10px;
+
+    div {
+      margin-bottom: 9px;
+    }
+  }
+
+  &__origen {
+    border-right: 1px solid #000;
+  }
+
+  &__transp-tit {
+    text-align: center;
+  }
+
+  &__veh {
+    display: flex;
+    gap: 24px;
+  }
+
+  &__tabla {
+    th {
+      padding: 4px;
+      text-align: center;
+      font-size: 9.5px;
+    }
+
+    td {
+      height: 26px;
+      vertical-align: middle;
+      font-size: 10px;
+    }
+  }
+
+  &__c-item {
+    width: 6%;
+  }
+
+  &__c-cant {
+    width: 12%;
+  }
+
+  &__c-cod {
+    width: 20%;
+  }
+
+  &__c-uni {
+    width: 14%;
+  }
+
+  &__obs {
+    margin-top: -1px;
+    padding: 6px 8px;
+    border: 1px solid #000;
+    font-size: 9.5px;
+  }
+
+  &__firmas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 90px;
+    margin-top: -1px;
+    padding: 70px 40px 10px;
+    border: 1px solid #000;
+    font-size: 9.5px;
+    line-height: 1.5;
+  }
+
+  &__firma-linea {
+    height: 1px;
+    background: #000;
+  }
+
+  &__firma-tit {
+    text-align: center;
+  }
+}

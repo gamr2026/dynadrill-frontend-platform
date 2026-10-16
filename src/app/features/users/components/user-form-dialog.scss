@@ -34,6 +34,10 @@
     color: var(--error, #ff4d4f);
   }
 
+  &__nota {
+    color: var(--text-muted, #5c5870);
+  }
+
   // En escritorio el título del modal ya encabeza la primera sección (D · Usuarios · Nuevo usuario en Figma).
   &__section-title--mobile {
     display: none;

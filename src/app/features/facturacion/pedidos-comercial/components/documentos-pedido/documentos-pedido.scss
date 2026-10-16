@@ -1,0 +1,62 @@
+:host {
+  display: block;
+}
+
+.docs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  &__lista {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--surface-muted, #faf9fc);
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: 10px;
+  }
+
+  &__datos {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  &__meta,
+  &__vacio {
+    font-size: 12px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__acciones {
+    display: flex;
+    flex: none;
+    gap: 4px;
+  }
+
+  &__subir {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--text-muted, #5c5870);
+
+    input {
+      font: inherit;
+      color: var(--text, #2c2b35);
+    }
+  }
+}

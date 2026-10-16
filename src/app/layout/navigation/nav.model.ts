@@ -38,6 +38,8 @@ export interface NavModule {
   icon: NavIcon;
   link?: string;
   children?: NavEntry[];
+  /** Código de permiso opcional: si se indica, el módulo solo se muestra a quien lo tenga (`AuthService.can`). */
+  permission?: string;
 }
 
 /** Primer link navegable de una entrada (una entrada-grupo navega a su primer hijo). */

@@ -46,22 +46,23 @@ export const FCR_PHASE_LABELS: Record<FcrPhase, string> = {
 /**
  * Rol responsable de actuar en cada fase — usado tanto para el banner
  * "Esperando acción de" como para el auto-switch de rol en la demo
- * (mismo patrón que PUMPING_STEP_ROLE en pumping.model.ts). En sync manual
+ * (mismo patrón que PUMPING_STEP_ROLE en pumping.model.ts). `roleName` es el texto de UI y
+ * `roleCode` el identificador estable del rol en el backend (los ids de rol son UUID). En sync manual
  * con FCR_PHASE_ROLE en dynadrill-backend (workflow-role.maps.ts).
  */
-export const FCR_PHASE_ROLE: Record<FcrPhase, { roleName: string; roleId: number }> = {
-  tipo_operador: { roleName: 'Supervisor', roleId: 1 },
-  inspeccion: { roleName: 'Operador FCR', roleId: 18 },
-  aprobacion_supervisor_operaciones: { roleName: 'Supervisor Operaciones FCR', roleId: 15 },
-  revision_inicial: { roleName: 'Supervisor', roleId: 1 },
-  preparacion_herramientas: { roleName: 'Supervisor', roleId: 1 },
-  asignacion: { roleName: 'Supervisor', roleId: 1 },
-  reunion_operativa: { roleName: 'Supervisor', roleId: 1 },
-  ejecucion_operativa: { roleName: 'Operador FCR', roleId: 18 },
-  revision_reportes: { roleName: 'Supervisor', roleId: 1 },
+export const FCR_PHASE_ROLE: Record<FcrPhase, { roleName: string; roleCode: string }> = {
+  tipo_operador: { roleName: 'Supervisor', roleCode: 'supervisor' },
+  inspeccion: { roleName: 'Operador FCR', roleCode: 'operador_fcr' },
+  aprobacion_supervisor_operaciones: { roleName: 'Supervisor Operaciones FCR', roleCode: 'supervisor_operaciones_fcr' },
+  revision_inicial: { roleName: 'Supervisor', roleCode: 'supervisor' },
+  preparacion_herramientas: { roleName: 'Supervisor', roleCode: 'supervisor' },
+  asignacion: { roleName: 'Supervisor', roleCode: 'supervisor' },
+  reunion_operativa: { roleName: 'Supervisor', roleCode: 'supervisor' },
+  ejecucion_operativa: { roleName: 'Operador FCR', roleCode: 'operador_fcr' },
+  revision_reportes: { roleName: 'Supervisor', roleCode: 'supervisor' },
   // Antes 'Control de Herramientas' (rol eliminado) — Bodega ya cubre el flujo.
-  control_retorno: { roleName: 'Bodeguero', roleId: 11 },
-  cierre: { roleName: 'Supervisor', roleId: 1 },
+  control_retorno: { roleName: 'Bodeguero', roleCode: 'bodeguero' },
+  cierre: { roleName: 'Supervisor', roleCode: 'supervisor' },
 };
 
 // ── Herramientas (FCR-002 / FCR-007) ──

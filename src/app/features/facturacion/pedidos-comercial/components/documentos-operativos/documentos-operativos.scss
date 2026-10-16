@@ -1,0 +1,125 @@
+@use '../../pc' as pc;
+
+:host {
+  display: block;
+}
+
+.ops {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 48px;
+
+  &__bloque {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    h3 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text, #2c2b35);
+    }
+  }
+
+  &__meta,
+  &__vacio {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__chequeo,
+  &__pendientes ul,
+  &__usos {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__chequeo {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+
+  &__pendientes {
+    padding: 10px 12px;
+    background: var(--surface-muted, #faf9fc);
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: 10px;
+
+    ul {
+      margin-top: 6px;
+      padding-left: 18px;
+      list-style: disc;
+    }
+  }
+
+  &__doc {
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: 10px;
+    background: var(--surface, #fff);
+
+    summary {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 4px 12px;
+      padding: 10px 12px;
+      cursor: pointer;
+
+      &:focus-visible {
+        outline: 2px solid var(--dynadrill-purple, #662e9b);
+        outline-offset: 2px;
+      }
+    }
+  }
+
+  &__titulo {
+    font-weight: 600;
+  }
+
+  &__resumen {
+    font-size: 13px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__detalle {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 0 12px 12px;
+  }
+
+  &__tabla {
+    @include pc.tabla-con-scroll;
+
+    table {
+      min-width: 480px;
+    }
+  }
+
+  &__usos {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

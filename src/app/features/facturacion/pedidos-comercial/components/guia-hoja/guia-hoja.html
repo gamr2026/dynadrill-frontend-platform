@@ -1,0 +1,101 @@
+<div class="doc-hoja gh">
+  <p class="gh__lateral" aria-hidden="true">Original: Cliente &nbsp; Copia 1: Emisor &nbsp; Copia 2: Sin valor tributario</p>
+
+  <header class="gh__cabecera">
+    <div class="gh__marca">
+      <img src="/brand/dynadrill-logo.svg" alt="Dynadrill" class="gh__logo" />
+      <div class="gh__direccion">
+        <div><strong>Matriz:</strong> Zona Industrial, vía Coca lago kilómetro 2, Diagonal a Maquiserpe Cía Ltda</div>
+        <div><strong>Sucursal:</strong> NACIONES UNIDAS N37 Y AV AMAZONAS Telf.: (593-2) 2263 300</div>
+        <div>Email: facturacion&#64;dynadrill.com.ec</div>
+        <div>"CONTRIBUYENTE ESPECIAL y el No de Resolución: NAC-GTRRIOC21-0"</div>
+        <div>"AGENTE DE RETENCIÓN y el No. de Resolución NAC-DNCRASC20-00000001"</div>
+      </div>
+    </div>
+
+    <div class="gh__titulo">
+      <div class="gh__ruc">RUC: 1792142350001</div>
+      <div class="gh__empresa">DYNADRILL ECUADOR C. A.</div>
+      <div class="gh__nombre">GUIA DE REMISION</div>
+      <div class="gh__formato">DYN-AFN-RE-013</div>
+      <div class="gh__serie">Serie: {{ serie() }} <span class="gh__numero">{{ numero() }}</span></div>
+      @if (guia().autorizacion.numero) {
+        <div class="gh__aut">
+          <div>Fecha de Autorización: {{ larga(guia().autorizacion.desde) }}</div>
+          <div>Fecha de Caducidad: {{ larga(guia().autorizacion.hasta) }}</div>
+          <div>Número de Autorización: {{ guia().autorizacion.numero }}</div>
+        </div>
+      }
+      @if (guia().estado === 'anulada') {
+        <div class="gh__anulada">ANULADA</div>
+      }
+    </div>
+  </header>
+
+  <table class="gh__cab">
+    <tr>
+      <td class="gh__cliente"><strong>CLIENTE:</strong> {{ guia().clienteNombre }}</td>
+      <td class="gh__ruc-cli"><strong>RUC:</strong> {{ guia().clienteRuc }}</td>
+      <td class="gh__hora"><strong>HORA SALIDA:</strong> {{ guia().horaSalida }}</td>
+    </tr>
+    <tr>
+      <td colspan="2"><strong>SOLICITADO POR:</strong> {{ guia().solicitadoPorNombre }}</td>
+      <td rowspan="2" class="gh__hora gh__abajo"><strong>HORA LLEGADA:</strong> {{ guia().horaLlegada }}</td>
+    </tr>
+    <tr>
+      <td colspan="2"><strong>DESPACHADO POR:</strong> {{ guia().despachadoPorNombre }}</td>
+    </tr>
+  </table>
+
+  <div class="gh__origen-transp">
+    <div class="gh__origen">
+      <div><strong>LUGAR DE ORIGEN:</strong> {{ guia().lugarOrigen.nombre }}</div>
+      <div><strong>CAMPO:</strong> {{ campo() }}</div>
+      <div><strong>POZO:</strong> {{ pozo() }}</div>
+      <div><strong>FECHA:</strong> {{ fecha(guia().fecha) }}</div>
+    </div>
+    <div class="gh__transp">
+      <div class="gh__transp-tit"><strong>DATOS DE LA PERSONA ENCARGADA DEL TRANSPORTE</strong></div>
+      <div><strong>NOMBRE O RAZÓN SOCIAL:</strong> {{ guia().transportista.nombre }}</div>
+      <div><strong>RUC / CEDULA:</strong> {{ guia().transportista.identificacion }}</div>
+      <div class="gh__veh"><span><strong>VEHICULO:</strong> {{ vehiculo() }}</span><span><strong>PLACAS:</strong> {{ guia().vehiculo?.placa }}</span></div>
+    </div>
+  </div>
+
+  <table class="gh__tabla">
+    <colgroup><col class="gh__c-item" /><col class="gh__c-cant" /><col class="gh__c-cod" /><col class="gh__c-uni" /><col /></colgroup>
+    <thead>
+      <tr><th>ITEM</th><th>CANTIDAD</th><th>SERIAL/CODIGO</th><th>UNIDAD DE MEDIDA</th><th>DESCRIPCION</th></tr>
+    </thead>
+    <tbody>
+      @for (it of filas(); track $index) {
+        <tr>
+          <td class="doc-centro">{{ it ? $index + 1 : '' }}</td>
+          <td class="doc-centro">{{ it?.cantidad }}</td>
+          <td class="doc-centro">{{ it?.codigo }}{{ it?.serie ? ' / ' + it?.serie : '' }}</td>
+          <td class="doc-centro">{{ it?.unidad }}</td>
+          <td>{{ it?.descripcion }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  @if (guia().observaciones) {
+    <div class="gh__obs"><strong>OBSERVACIONES:</strong> {{ guia().observaciones }}</div>
+  }
+
+  <!-- Firmas: solo en el PDF -->
+  <div class="gh__firmas">
+    <div class="gh__firma">
+      <div class="gh__firma-linea"></div>
+      <div class="gh__firma-tit"><strong>Entregue Conforme</strong></div>
+    </div>
+    <div class="gh__firma">
+      <div class="gh__firma-linea"></div>
+      <div class="gh__firma-tit"><strong>Recibí Conforme</strong></div>
+      <div>Nombre:</div>
+      <div>Cargo:</div>
+      <div>CI:</div>
+    </div>
+  </div>
+</div>

@@ -328,7 +328,7 @@ export class PrefacturaDetailPage {
 
   protected irAlPedido(): void {
     const p = this.pedido();
-    if (p) this.router.navigate(['/dashboard/facturacion/pedidos', p.id]);
+    if (p) this.router.navigate(['/dashboard/facturacion/pedidos-demo', p.id]);
   }
 
   protected generarAot(): void {

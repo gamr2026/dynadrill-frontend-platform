@@ -1,0 +1,76 @@
+@use '../facturacion-ui' as f;
+
+// Estilos comunes de las pantallas de pedidos (backend comercial). Reutiliza los mixins del módulo Facturación.
+
+@mixin tarjeta {
+  @include f.card;
+}
+
+@mixin tabla-con-scroll {
+  overflow-x: auto;
+
+  table {
+    @include f.table;
+    min-width: 720px;
+  }
+
+  .acciones {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    white-space: nowrap;
+  }
+
+  .vacio {
+    padding: 28px 12px;
+    text-align: center;
+    color: var(--text-muted, #5c5870);
+  }
+
+  .codigo {
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .secundario {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted, #5c5870);
+  }
+}
+
+@mixin filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+
+  > * {
+    flex: 1 1 180px;
+    min-width: 0;
+  }
+
+  .busqueda {
+    flex: 2 1 260px;
+  }
+}
+
+@mixin paginador {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 4px 0;
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  .botones {
+    display: flex;
+    gap: 8px;
+  }
+}

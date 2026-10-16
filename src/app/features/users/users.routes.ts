@@ -1,14 +1,10 @@
 import { Routes } from '@angular/router';
-import { roleGuard } from '../../core/guards/role.guard';
-
-/** Coincide con la visibilidad del link "Usuarios" en sidebar.ts. */
-const USERS_ROLES = ['Superadmin', 'Jefe de Base'];
+import { permissionGuard } from '../../core/guards/permission.guard';
 
 export const usersRoutes: Routes = [
   {
     path: '',
     loadComponent: () => import('./pages/user-list-page').then(m => m.UserListPage),
-    canActivate: [roleGuard],
-    data: { allowedRoles: USERS_ROLES },
+    canActivate: [permissionGuard('identidad.usuarios.ver')],
   },
 ];

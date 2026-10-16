@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { CreateUserInput, Role, UpdateUserInput, User } from '../models/user.model';
+import { CreateUserInput, Role, UpdateUserInput, User, UsuarioPorRol } from '../models/user.model';
 import { environment } from '@env';
 
 @Injectable({ providedIn: 'root' })
@@ -12,7 +12,7 @@ export class UsersService {
     return this.http.get<User[]>(`${environment.apiUrl}/users`);
   }
 
-  get(id: number): Observable<User> {
+  get(id: string): Observable<User> {
     return this.http.get<User>(`${environment.apiUrl}/users/${id}`);
   }
 
@@ -20,12 +20,13 @@ export class UsersService {
     return this.http.post<User>(`${environment.apiUrl}/users`, input);
   }
 
-  update(id: number, input: UpdateUserInput): Observable<User> {
+  update(id: string, input: UpdateUserInput): Observable<User> {
     return this.http.put<User>(`${environment.apiUrl}/users/${id}`, input);
   }
 
-  delete(id: number): Observable<void> {
-    return this.http.delete<void>(`${environment.apiUrl}/users/${id}`);
+  /** El backend no borra: `DELETE /users/:id` desactiva la cuenta (status=false). */
+  delete(id: string): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(`${environment.apiUrl}/users/${id}`);
   }
 }
 
@@ -38,13 +39,11 @@ export class RolesService {
   }
 
   /**
-   * {id, name} de los usuarios activos con un rol (por code). Para los
-   * selects de "responsable/supervisor" — no requiere `GET /api/users`
-   * (Superadmin únicamente).
+   * Usuarios activos con un rol (por code): `{ id (uuid), legacyId, name, specialty }`. Para los
+   * selects de "responsable/supervisor" — no requiere `GET /api/users` (Superadmin únicamente).
+   * Los módulos viejos deben pasar el resultado por `conIdLegacy()` antes de enviar ids a la demo.
    */
-  usuariosPorRol(code: string): Observable<{ id: number; name: string; specialty?: string | null }[]> {
-    return this.http.get<{ id: number; name: string; specialty?: string | null }[]>(
-      `${environment.apiUrl}/roles/${code}/usuarios`,
-    );
+  usuariosPorRol(code: string): Observable<UsuarioPorRol[]> {
+    return this.http.get<UsuarioPorRol[]>(`${environment.apiUrl}/roles/${code}/usuarios`);
   }
 }

@@ -52,13 +52,19 @@ export class LoginPage {
 
     const { email, password } = this.form.getRawValue();
     this.auth.login(email, password).subscribe({
-      next: () => this.router.navigate(['/dashboard']),
+      next: res => this.router.navigate([res.user.mustChangePassword ? '/cambiar-clave' : '/dashboard']),
       error: (err: unknown) => {
         this.submitting.set(false);
         const isAuthError = err instanceof HttpErrorResponse && (err.status === 401 || err.status === 403);
         this.invalidCredentials.set(isAuthError);
+        // 429: el backend limita los intentos de inicio de sesión por origen/cuenta.
+        const tooManyAttempts = err instanceof HttpErrorResponse && err.status === 429;
         this.errorMessage.set(
-          isAuthError ? 'Correo o contraseña incorrectos.' : 'No se pudo conectar con el servidor. Inténtalo de nuevo.',
+          isAuthError
+            ? 'Correo o contraseña incorrectos.'
+            : tooManyAttempts
+              ? 'Demasiados intentos. Espere unos minutos e inténtelo de nuevo.'
+              : 'No se pudo conectar con el servidor. Inténtalo de nuevo.',
         );
       },
     });

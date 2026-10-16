@@ -59,7 +59,7 @@
           <li nz-menu-item (click)="eligiendoUsuario.set(null)">← Roles</li>
           <li nz-menu-divider></li>
           @for (u of e.usuarios; track u.id) {
-            <li nz-menu-item (click)="cambiarRol(e.rol, u.id)">{{ u.name }} <small>({{ e.rol.name }})</small></li>
+            <li nz-menu-item (click)="cambiarRol(e.rol, u)">{{ u.name }} <small>({{ e.rol.name }})</small></li>
           }
         } @else {
           @for (r of roles(); track r.id) {

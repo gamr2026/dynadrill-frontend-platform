@@ -15,7 +15,7 @@
 
   <table class="epi__datos">
     <tr>
-      <td class="epi__lugar"><strong>Lugar:</strong> {{ entrega().lugar }}</td>
+      <td class="epi__lugar"><strong>Lugar:</strong> {{ entrega().lugar?.nombre }}</td>
       <td class="epi__nombre"><strong>Nombre y apellido:</strong> {{ entrega().trabajador.nombre }}@if (entrega().trabajador.cedula) { — C.I. {{ entrega().trabajador.cedula }} }</td>
       <td class="epi__firma-datos"><strong>Firma:</strong></td>
       <td class="epi__cargo"><strong>Cargo:</strong> {{ entrega().trabajador.cargo }}</td>
@@ -52,7 +52,7 @@
           <td>{{ it?.elemento }}</td>
           <td class="doc-centro">{{ it?.cantidad }}</td>
           <td class="doc-centro">{{ it?.talla }}</td>
-          <td class="doc-centro">{{ it ? (it.codigo ?? entrega().trabajador.cedula) : '' }}</td>
+          <td class="doc-centro">{{ it ? entrega().trabajador.cedula : '' }}</td>
           <td class="doc-centro">{{ it?.recibioCapacitacion === true ? 'X' : '' }}</td>
           <td class="doc-centro">{{ it?.recibioCapacitacion === false ? 'X' : '' }}</td>
           <td class="epi__firma">

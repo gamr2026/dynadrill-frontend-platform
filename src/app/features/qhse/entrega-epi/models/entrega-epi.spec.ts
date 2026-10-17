@@ -3,7 +3,7 @@ import { esEditable, mensajeErrorEpi, pendientesDeDespacho, sinCapacitacion, typ
 
 const firma = { usuarioId: 'u', nombre: 'Oscar', at: '2026-11-02T10:00:00Z' };
 const renglon = (recibioCapacitacion: boolean) =>
-  ({ id: 'r', elementoId: 'e', elemento: 'Casco de seguridad', cantidad: 1, talla: null, codigo: null, recibioCapacitacion, observaciones: null, entregadoEl: '2026-11-02' }) satisfies EntregaEpi['renglones'][number];
+  ({ id: 'r', elementoId: 'e', elemento: 'Casco de seguridad', cantidad: 1, tallaId: null, talla: null, recibioCapacitacion, observaciones: null, entregadoEl: '2026-11-02' }) satisfies EntregaEpi['renglones'][number];
 
 describe('entrega de EPI: reglas de pantalla', () => {
   it('los renglones se editan hasta despachar', () => {
@@ -15,12 +15,12 @@ describe('entrega de EPI: reglas de pantalla', () => {
 
   it('dice qué falta para despachar solo cuando está aprobada', () => {
     expect(pendientesDeDespacho({ estado: 'solicitado', lugar: null, renglones: [], firmaTrabajador: null })).toEqual([]);
-    expect(pendientesDeDespacho({ estado: 'aprobado', lugar: ' ', renglones: [], firmaTrabajador: null })).toEqual([
+    expect(pendientesDeDespacho({ estado: 'aprobado', lugar: null, renglones: [], firmaTrabajador: null })).toEqual([
       'indicar el lugar de la entrega',
       'registrar al menos un elemento entregado',
       'registrar la declaración del trabajador',
     ]);
-    expect(pendientesDeDespacho({ estado: 'aprobado', lugar: 'Base Lago Agrio', renglones: [renglon(true)], firmaTrabajador: firma })).toEqual([]);
+    expect(pendientesDeDespacho({ estado: 'aprobado', lugar: { id: 'b', nombre: 'Base Lago Agrio' }, renglones: [renglon(true)], firmaTrabajador: firma })).toEqual([]);
   });
 
   it('detecta los elementos entregados sin capacitación', () => {

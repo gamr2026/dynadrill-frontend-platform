@@ -32,12 +32,26 @@ export interface TicketEpi {
   pedidoCodigo: string;
 }
 
+/** Base o bodega del catálogo donde se entrega el EPI. */
+export interface LugarEpi {
+  id: string;
+  nombre: string;
+}
+
+export type TipoTalla = 'ropa' | 'calzado' | 'guante';
+
+export interface TallaEpi {
+  id: string;
+  tipo: TipoTalla;
+  codigo: string;
+}
+
 export interface EntregaEpiResumen {
   id: string;
   numero: number;
   codigo: string;
   estado: EstadoEpi;
-  lugar: string | null;
+  lugar: LugarEpi | null;
   trabajador: TrabajadorEpi;
   ticket: TicketEpi | null;
   renglones: number;
@@ -51,8 +65,9 @@ export interface RenglonEpi {
   elementoId: string;
   elemento: string;
   cantidad: number;
+  tallaId: string | null;
+  /** Código de la talla del catálogo (M, 42, 9...). */
   talla: string | null;
-  codigo: string | null;
   recibioCapacitacion: boolean;
   observaciones: string | null;
   /** AAAA-MM-DD */
@@ -79,15 +94,16 @@ export interface EntregaEpi extends Omit<EntregaEpiResumen, 'renglones' | 'firma
 export interface ElementoEpi {
   id: string;
   nombre: string;
-  requiereTalla: boolean;
+  codigo: string;
+  /** Tipo de talla que lleva; `null` = no lleva talla. */
+  tipoTalla: TipoTalla | null;
 }
 
 /** Lo que se envía por cada elemento entregado. */
 export interface RenglonEntrada {
   elementoId: string;
   cantidad: number;
-  talla?: string;
-  codigo?: string;
+  tallaId?: string;
   recibioCapacitacion: boolean;
   observaciones?: string;
 }
@@ -104,7 +120,7 @@ export const esEditable = (e: Pick<EntregaEpi, 'estado'>): boolean => e.estado =
 export function pendientesDeDespacho(e: Pick<EntregaEpi, 'estado' | 'lugar' | 'renglones' | 'firmaTrabajador'>): string[] {
   if (e.estado !== 'aprobado') return [];
   const falta: string[] = [];
-  if (!e.lugar?.trim()) falta.push('indicar el lugar de la entrega');
+  if (!e.lugar) falta.push('indicar el lugar de la entrega');
   if (e.renglones.length === 0) falta.push('registrar al menos un elemento entregado');
   if (!e.firmaTrabajador) falta.push('registrar la declaración del trabajador');
   return falta;

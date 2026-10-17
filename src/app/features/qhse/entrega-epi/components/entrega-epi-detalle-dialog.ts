@@ -28,7 +28,9 @@ import {
   type ElementoEpi,
   type EntregaEpi,
   type EstadoEpi,
+  type LugarEpi,
   type RenglonEntrada,
+  type TallaEpi,
 } from '../models/entrega-epi';
 import { EntregaEpiService } from '../services/entrega-epi.service';
 
@@ -41,14 +43,13 @@ const TONO: Record<EstadoEpi, DynadrillTagVariant> = { solicitado: 'warning', ap
 interface Borrador {
   elementoId: string;
   cantidad: string;
-  talla: string;
-  codigo: string;
+  tallaId: string;
   recibioCapacitacion: boolean;
   observaciones: string;
 }
-const BORRADOR_VACIO: Borrador = { elementoId: '', cantidad: '1', talla: '', codigo: '', recibioCapacitacion: false, observaciones: '' };
+const BORRADOR_VACIO: Borrador = { elementoId: '', cantidad: '1', tallaId: '', recibioCapacitacion: false, observaciones: '' };
 
-const clave = (r: RenglonEntrada): string => `${r.elementoId}|${r.cantidad}|${r.talla ?? ''}|${r.codigo ?? ''}|${r.recibioCapacitacion}|${r.observaciones ?? ''}`;
+const clave = (r: RenglonEntrada): string => `${r.elementoId}|${r.cantidad}|${r.tallaId ?? ''}|${r.recibioCapacitacion}|${r.observaciones ?? ''}`;
 
 /**
  * Una entrega de EPI (DYN-SGI-RE-032): quién la recibe (con su cédula y cargo del perfil), los elementos entregados, la
@@ -82,9 +83,9 @@ const clave = (r: RenglonEntrada): string => `${r.elementoId}|${r.cantidad}|${r.
         </dl>
 
         @if (editable()) {
-          <dynadrill-input label="Lugar de la entrega" [value]="lugar()" (valueChange)="lugar.set($event)" />
+          <dynadrill-select label="Base o bodega de la entrega" placeholder="Elija el lugar" [options]="opcionesLugares()" [value]="lugarId()" [searchable]="true" (valueChange)="lugarId.set($any($event))" />
         } @else {
-          <p class="eed__lugar"><strong>Lugar:</strong> {{ e.lugar ?? '—' }}</p>
+          <p class="eed__lugar"><strong>Lugar:</strong> {{ e.lugar?.nombre ?? '—' }}</p>
         }
 
         <dynadrill-text variant="h2">Elementos entregados</dynadrill-text>
@@ -96,7 +97,7 @@ const clave = (r: RenglonEntrada): string => `${r.elementoId}|${r.cantidad}|${r.
               <li>
                 <div>
                   <strong>{{ nombreElemento(r.elementoId) }}</strong>
-                  <span>{{ r.cantidad }} unidad(es){{ r.talla ? ' — talla ' + r.talla : '' }}{{ r.codigo ? ' — ' + r.codigo : '' }}</span>
+                  <span>{{ r.cantidad }} unidad(es){{ r.tallaId ? ' — talla ' + nombreTalla(r.tallaId) : '' }}</span>
                   <span>{{ r.recibioCapacitacion ? 'Con capacitación en uso y manejo' : 'Sin capacitación registrada' }}{{ r.observaciones ? ' — ' + r.observaciones : '' }}</span>
                 </div>
                 @if (editable()) {
@@ -111,8 +112,9 @@ const clave = (r: RenglonEntrada): string => `${r.elementoId}|${r.cantidad}|${r.
           <div class="eed__form">
             <dynadrill-select label="Elemento" placeholder="Elija el elemento" [options]="opcionesElementos()" [value]="borrador().elementoId" [searchable]="true" (valueChange)="cambiar('elementoId', $any($event))" />
             <dynadrill-input label="Cantidad" type="number" [value]="borrador().cantidad" (valueChange)="cambiar('cantidad', $event)" />
-            <dynadrill-input [label]="exigeTalla() ? 'Talla (obligatoria)' : 'Talla (opcional)'" [value]="borrador().talla" (valueChange)="cambiar('talla', $event)" />
-            <dynadrill-input label="Código del artículo (opcional)" [value]="borrador().codigo" (valueChange)="cambiar('codigo', $event)" />
+            @if (tipoTalla()) {
+              <dynadrill-select label="Talla" placeholder="Elija la talla" [options]="opcionesTallas()" [value]="borrador().tallaId" (valueChange)="cambiar('tallaId', $any($event))" />
+            }
             <dynadrill-input label="Observaciones (opcional)" [value]="borrador().observaciones" (valueChange)="cambiar('observaciones', $event)" />
             <dynadrill-checkbox label="Recibió capacitación en uso y manejo del EPI" [checked]="borrador().recibioCapacitacion" (checkedChange)="cambiar('recibioCapacitacion', $event)" />
             <dynadrill-button variant="secondary" size="small" [disabled]="!puedeAgregar()" (clicked)="agregar()">+ Agregar elemento</dynadrill-button>
@@ -189,7 +191,9 @@ export class EntregaEpiDetalleDialog {
   protected readonly error = signal('');
   protected readonly enviando = signal(false);
   protected readonly elementos = signal<ElementoEpi[]>([]);
-  protected readonly lugar = signal('');
+  protected readonly lugarId = signal('');
+  protected readonly lugares = signal<LugarEpi[]>([]);
+  protected readonly tallas = signal<TallaEpi[]>([]);
   protected readonly renglones = signal<RenglonEntrada[]>([]);
   protected readonly borrador = signal<Borrador>({ ...BORRADOR_VACIO });
   /** Algún cambio hecho en esta ventana (para que la bandeja se recargue al cerrar). */
@@ -203,18 +207,21 @@ export class EntregaEpiDetalleDialog {
   });
   protected readonly editable = computed(() => this.esEditableEstado() && this.auth.can(PERMISO_EPI_CREAR));
   protected readonly opcionesElementos = computed<DynadrillSelectOption[]>(() => this.elementos().map(x => ({ value: x.id, label: x.nombre })));
-  protected readonly exigeTalla = computed(() => this.elementos().find(x => x.id === this.borrador().elementoId)?.requiereTalla ?? false);
+  protected readonly opcionesLugares = computed<DynadrillSelectOption[]>(() => this.lugares().map(x => ({ value: x.id, label: x.nombre })));
+  /** Tipo de talla del elemento elegido (`null` = no lleva talla). */
+  protected readonly tipoTalla = computed(() => this.elementos().find(x => x.id === this.borrador().elementoId)?.tipoTalla ?? null);
+  protected readonly opcionesTallas = computed<DynadrillSelectOption[]>(() => this.tallas().filter(t => t.tipo === this.tipoTalla()).map(t => ({ value: t.id, label: t.codigo })));
   protected readonly puedeAgregar = computed(() => {
     const b = this.borrador();
     const cantidad = Number(b.cantidad);
-    return !!b.elementoId && Number.isInteger(cantidad) && cantidad >= 1 && (!this.exigeTalla() || b.talla.trim().length > 0);
+    return !!b.elementoId && Number.isInteger(cantidad) && cantidad >= 1 && (!this.tipoTalla() || b.tallaId.length > 0);
   });
   /** ¿Lo que se ve en pantalla difiere de lo guardado? Si sí, hay que guardar antes de despachar. */
   protected readonly hayCambios = computed(() => {
     const e = this.entrega();
     if (!e) return false;
     const guardados = e.renglones.map(r => clave(this.comoEntrada(r)));
-    return guardados.join(';') !== this.renglones().map(clave).join(';') || (e.lugar ?? '') !== this.lugar().trim();
+    return guardados.join(';') !== this.renglones().map(clave).join(';') || (e.lugar?.id ?? '') !== this.lugarId();
   });
   protected readonly faltantes = computed(() => {
     const e = this.entrega();
@@ -226,10 +233,16 @@ export class EntregaEpiDetalleDialog {
       next: x => this.elementos.set(x),
       error: () => this.notify.error('Error', 'No se pudo cargar el catálogo de elementos de EPI.'),
     });
+    this.servicio.tallas().subscribe({ next: x => this.tallas.set(x), error: () => this.notify.error('Error', 'No se pudo cargar el catálogo de tallas.') });
+    this.servicio.lugares().subscribe({ next: x => this.lugares.set(x), error: () => this.notify.error('Error', 'No se pudo cargar la lista de bases y bodegas.') });
     this.servicio.detalle(this.data.entregaId).subscribe({
       next: e => this.poner(e),
       error: err => this.error.set(mensajeErrorEpi(err, 'No se pudo cargar la entrega.')),
     });
+  }
+
+  protected nombreTalla(id: string): string {
+    return this.tallas().find(t => t.id === id)?.codigo ?? this.entrega()?.renglones.find(r => r.tallaId === id)?.talla ?? '';
   }
 
   protected nombreElemento(id: string): string {
@@ -247,8 +260,7 @@ export class EntregaEpiDetalleDialog {
       elementoId: b.elementoId,
       cantidad: Number(b.cantidad),
       recibioCapacitacion: b.recibioCapacitacion,
-      ...(b.talla.trim() ? { talla: b.talla.trim() } : {}),
-      ...(b.codigo.trim() ? { codigo: b.codigo.trim() } : {}),
+      ...(b.tallaId ? { tallaId: b.tallaId } : {}),
       ...(b.observaciones.trim() ? { observaciones: b.observaciones.trim() } : {}),
     };
     this.renglones.update(l => [...l, r]);
@@ -262,7 +274,7 @@ export class EntregaEpiDetalleDialog {
   protected guardar(): void {
     const e = this.entrega();
     if (!e) return;
-    this.ejecutar(this.servicio.guardarContenido(e.id, { lugar: this.lugar().trim(), renglones: this.renglones() }), 'Cambios guardados.', 'No se pudieron guardar los cambios.');
+    this.ejecutar(this.servicio.guardarContenido(e.id, { ...(this.lugarId() ? { lugarBodegaId: this.lugarId() } : {}), renglones: this.renglones() }), 'Cambios guardados.', 'No se pudieron guardar los cambios.');
   }
 
   protected aprobar(): void {
@@ -308,15 +320,14 @@ export class EntregaEpiDetalleDialog {
       elementoId: r.elementoId,
       cantidad: r.cantidad,
       recibioCapacitacion: r.recibioCapacitacion,
-      ...(r.talla ? { talla: r.talla } : {}),
-      ...(r.codigo ? { codigo: r.codigo } : {}),
+      ...(r.tallaId ? { tallaId: r.tallaId } : {}),
       ...(r.observaciones ? { observaciones: r.observaciones } : {}),
     };
   }
 
   private poner(e: EntregaEpi): void {
     this.entrega.set(e);
-    this.lugar.set(e.lugar ?? '');
+    this.lugarId.set(e.lugar?.id ?? '');
     this.renglones.set(e.renglones.map(r => this.comoEntrada(r)));
   }
 

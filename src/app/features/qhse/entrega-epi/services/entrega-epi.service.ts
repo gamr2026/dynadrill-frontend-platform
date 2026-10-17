@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '@env';
-import type { ElementoEpi, EntregaEpi, EntregaEpiResumen, FiltroEntregasEpi, RenglonEntrada } from '../models/entrega-epi';
+import type { ElementoEpi, EntregaEpi, EntregaEpiResumen, FiltroEntregasEpi, LugarEpi, RenglonEntrada, TallaEpi } from '../models/entrega-epi';
 
 /** Entregas de EPI del contenedor `qhse`. La autoridad de estados y permisos es el backend. */
 @Injectable({ providedIn: 'root' })
@@ -21,15 +21,23 @@ export class EntregaEpiService {
     return this.http.get<ElementoEpi[]>(`${this.base}/elementos`);
   }
 
+  tallas(): Observable<TallaEpi[]> {
+    return this.http.get<TallaEpi[]>(`${this.base}/tallas`);
+  }
+
+  lugares(): Observable<LugarEpi[]> {
+    return this.http.get<LugarEpi[]>(`${this.base}/lugares`);
+  }
+
   detalle(id: string): Observable<EntregaEpi> {
     return this.http.get<EntregaEpi>(`${this.base}/${id}`);
   }
 
-  crear(cuerpo: { trabajadorId: string; lugar?: string; renglones?: RenglonEntrada[] }): Observable<EntregaEpi> {
+  crear(cuerpo: { trabajadorId: string; lugarBodegaId?: string; renglones?: RenglonEntrada[] }): Observable<EntregaEpi> {
     return this.http.post<EntregaEpi>(this.base, cuerpo);
   }
 
-  guardarContenido(id: string, cuerpo: { lugar?: string; renglones: RenglonEntrada[] }): Observable<EntregaEpi> {
+  guardarContenido(id: string, cuerpo: { lugarBodegaId?: string; renglones: RenglonEntrada[] }): Observable<EntregaEpi> {
     return this.http.put<EntregaEpi>(`${this.base}/${id}/contenido`, cuerpo);
   }
 

@@ -118,7 +118,7 @@ export class EntregaEpiListPage {
     const q = this.busqueda().trim().toLowerCase();
     return this.entregas()
       .filter(e => filtro === 'todos' || e.estado === filtro)
-      .filter(e => !q || [e.codigo, e.trabajador.nombre, e.trabajador.cedula ?? '', e.lugar ?? '', e.ticket?.pedidoCodigo ?? '', String(e.ticket?.numero ?? '')].some(v => v.toLowerCase().includes(q)));
+      .filter(e => !q || [e.codigo, e.trabajador.nombre, e.trabajador.cedula ?? '', e.lugar?.nombre ?? '', e.ticket?.pedidoCodigo ?? '', String(e.ticket?.numero ?? '')].some(v => v.toLowerCase().includes(q)));
   });
 
   protected readonly filas = computed(() =>
@@ -128,7 +128,7 @@ export class EntregaEpiListPage {
       trabajador: e.trabajador.nombre,
       cedula: e.trabajador.cedula ?? '—',
       ticket: e.ticket ? `${e.ticket.numero ?? '—'} · ${e.ticket.pedidoCodigo}` : 'Sin ticket',
-      lugar: e.lugar ?? '—',
+      lugar: e.lugar?.nombre ?? '—',
       fecha: this.fechaDe(e.createdAt),
       renglones: e.renglones,
       estadoBadge: { text: ESTADO_EPI_ETIQUETA[e.estado], tone: TONO[e.estado] },

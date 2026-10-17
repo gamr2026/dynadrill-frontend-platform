@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { NzModalRef } from 'ng-zorro-antd/modal';
 import {
   DynadrillButtonComponent,
-  DynadrillInputComponent,
   DynadrillNotificationService,
   DynadrillSelectComponent,
   DynadrillTextComponent,
@@ -10,7 +9,7 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { RolesService } from '../../../users/services/users.service';
 import { forkJoin } from 'rxjs';
-import { mensajeErrorEpi, type EntregaEpi } from '../models/entrega-epi';
+import { mensajeErrorEpi, type EntregaEpi, type LugarEpi } from '../models/entrega-epi';
 import { EntregaEpiService } from '../services/entrega-epi.service';
 
 /** Roles de cuenta que reciben EPI: quienes trabajan en campo. Una entrega a otro rol se registra desde la API. */
@@ -29,13 +28,13 @@ interface Persona {
 @Component({
   selector: 'app-entrega-epi-nueva-dialog',
   host: { class: 'app-dialog-sheet-mobile' },
-  imports: [DynadrillButtonComponent, DynadrillInputComponent, DynadrillSelectComponent, DynadrillTextComponent],
+  imports: [DynadrillButtonComponent, DynadrillSelectComponent, DynadrillTextComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="een">
       <dynadrill-text variant="body">Elija a quién se le entregará el EPI. Los elementos se registran en la entrega.</dynadrill-text>
       <dynadrill-select label="Trabajador" placeholder="Elija una persona" [options]="opciones()" [value]="trabajadorId()" [searchable]="true" (valueChange)="trabajadorId.set($any($event))" />
-      <dynadrill-input label="Lugar de la entrega (opcional)" [value]="lugar()" (valueChange)="lugar.set($event)" />
+      <dynadrill-select label="Base o bodega de la entrega (opcional)" placeholder="Elija el lugar" [options]="opcionesLugares()" [value]="lugarId()" [searchable]="true" (valueChange)="lugarId.set($any($event))" />
     </div>
     <footer class="een__acciones">
       <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
@@ -55,11 +54,14 @@ export class EntregaEpiNuevaDialog {
 
   protected readonly personas = signal<Persona[]>([]);
   protected readonly trabajadorId = signal('');
-  protected readonly lugar = signal('');
+  protected readonly lugarId = signal('');
+  protected readonly lugares = signal<LugarEpi[]>([]);
+  protected readonly opcionesLugares = computed<DynadrillSelectOption[]>(() => this.lugares().map(x => ({ value: x.id, label: x.nombre })));
   protected readonly enviando = signal(false);
   protected readonly opciones = computed<DynadrillSelectOption[]>(() => this.personas().map(p => ({ value: p.id, label: p.name })));
 
   constructor() {
+    this.servicio.lugares().subscribe({ next: x => this.lugares.set(x), error: () => this.notify.error('Error', 'No se pudo cargar la lista de bases y bodegas.') });
     forkJoin(ROLES_CON_EPI.map(r => this.roles.usuariosPorRol(r))).subscribe({
       next: listas => {
         const unicas = new Map<string, Persona>();
@@ -77,7 +79,7 @@ export class EntregaEpiNuevaDialog {
   protected crear(): void {
     if (!this.trabajadorId() || this.enviando()) return;
     this.enviando.set(true);
-    this.servicio.crear({ trabajadorId: this.trabajadorId(), ...(this.lugar().trim() ? { lugar: this.lugar().trim() } : {}) }).subscribe({
+    this.servicio.crear({ trabajadorId: this.trabajadorId(), ...(this.lugarId() ? { lugarBodegaId: this.lugarId() } : {}) }).subscribe({
       next: e => this.modalRef.close(e),
       error: err => {
         this.enviando.set(false);

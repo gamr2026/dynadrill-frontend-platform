@@ -1,0 +1,81 @@
+<dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando unidad…">
+  @if (unidad(); as u) {
+    <app-page-header eyebrow="Flota" [title]="u.codigo + ' · ' + u.nombre" [subtitle]="tipoTexto()">
+      <a actions routerLink="/dashboard/flota/unidades">
+        <dynadrill-button variant="secondary">Volver al listado</dynadrill-button>
+      </a>
+      @if (puedeEditar()) {
+        <dynadrill-button actions variant="secondary" (clicked)="editar()">Editar</dynadrill-button>
+      }
+      @if (puedeInactivar()) {
+        <dynadrill-button actions [variant]="u.activa ? 'error' : 'primary'" (clicked)="cambiarActiva()">
+          {{ u.activa ? 'Dar de baja' : 'Reactivar' }}
+        </dynadrill-button>
+      }
+    </app-page-header>
+
+    @if (!u.activa) {
+      <p class="unidad-detail__baja" role="status">Esta unidad está dada de baja: no recibe lecturas ni mantenimientos nuevos.</p>
+    }
+
+    <section class="unidad-detail__seccion" aria-labelledby="unidad-datos">
+      <h2 id="unidad-datos">Datos de la unidad</h2>
+      <dl class="unidad-detail__datos">
+        @for (d of datos(); track d.etiqueta) {
+          <div class="unidad-detail__dato">
+            <dt>{{ d.etiqueta }}</dt>
+            <dd>{{ d.valor }}</dd>
+          </div>
+        }
+      </dl>
+    </section>
+
+    <section class="unidad-detail__seccion" aria-labelledby="unidad-alertas">
+      <h2 id="unidad-alertas">Mantenimiento preventivo</h2>
+      @if (alertasVista().length) {
+        <ul class="unidad-detail__alertas">
+          @for (a of alertasVista(); track a.descripcion) {
+            <li class="unidad-detail__alerta">
+              <div class="unidad-detail__alerta-cabecera">
+                <strong>{{ a.descripcion }}</strong>
+                <dynadrill-tag [label]="a.etiqueta" [variant]="a.tono" [uppercase]="false" />
+              </div>
+              <dynadrill-progress [value]="a.consumido" [max]="a.intervalo" [showInfo]="false" [statusOverride]="a.estado" />
+              <span class="unidad-detail__alerta-texto">{{ a.texto }}</span>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="unidad-detail__vacio">Esta unidad no tiene alertas de mantenimiento preventivo.</p>
+      }
+      @if (puedePreventivo() && u.activa) {
+        <div class="unidad-detail__acciones">
+          <dynadrill-button variant="secondary" (clicked)="registrarPreventivo()">
+            <dynadrill-icon name="add" [size]="16" />
+            Registrar mantenimiento
+          </dynadrill-button>
+        </div>
+      }
+    </section>
+
+    @if (llevaLecturas()) {
+      <section class="unidad-detail__seccion" aria-labelledby="unidad-lecturas">
+        <h2 id="unidad-lecturas">Historial de lecturas</h2>
+        @if (puedeLeer() && u.activa) {
+          <div class="unidad-detail__acciones">
+            <dynadrill-button variant="secondary" (clicked)="registrarLectura()">
+              <dynadrill-icon name="add" [size]="16" />
+              Registrar lectura
+            </dynadrill-button>
+          </div>
+        }
+        <dynadrill-data-table [columns]="columnasLecturas" [rows]="filasLecturas()" [rowKey]="rowKeyFn" [pageSize]="10" />
+      </section>
+    }
+
+    <section class="unidad-detail__seccion" aria-labelledby="unidad-historial">
+      <h2 id="unidad-historial">Historial de mantenimientos</h2>
+      <dynadrill-data-table [columns]="columnasPreventivos" [rows]="filasPreventivos()" [rowKey]="rowKeyFn" [pageSize]="10" />
+    </section>
+  }
+</dynadrill-spinner>

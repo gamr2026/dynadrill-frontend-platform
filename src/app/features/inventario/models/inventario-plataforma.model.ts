@@ -146,8 +146,10 @@ export interface MovimientoKardex {
   fecha: string;
   observacion: string | null;
   responsable: { id: string; nombre: string };
-  pedidoId: string | null;
+  /** Ticket de Pumping al que salió o del que volvió (salidas y devoluciones de ticket). */
   ticketId: string | null;
+  /** Despacho a bodega que respalda la salida. */
+  despachoId: string | null;
 }
 
 export interface RegistrarMovimientoInput {

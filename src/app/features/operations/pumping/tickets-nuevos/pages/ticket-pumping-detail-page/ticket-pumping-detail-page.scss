@@ -106,3 +106,21 @@
   align-items: center;
   gap: 6px 10px;
 }
+
+.tpd__tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+
+  th,
+  td {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid #ecebf1;
+  }
+
+  th {
+    font-weight: 600;
+    color: #5c5870;
+  }
+}

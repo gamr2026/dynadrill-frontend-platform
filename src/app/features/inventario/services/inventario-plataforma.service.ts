@@ -45,6 +45,11 @@ export class InventarioPlataformaService {
     return this.http.get<RepuestoDisponible[]>(`${this.base}/articulos/repuestos`, { params: new HttpParams().set('q', q) });
   }
 
+  /** Selector de químicos para la asignación de Pumping: solo con existencia, con el saldo por bodega. `q` es opcional. */
+  quimicosDisponibles(q = ''): Observable<RepuestoDisponible[]> {
+    return this.http.get<RepuestoDisponible[]>(`${this.base}/articulos/quimicos`, { params: new HttpParams().set('q', q) });
+  }
+
   articulo(id: string): Observable<ArticuloInventarioDetalle> {
     return this.http.get<ArticuloInventarioDetalle>(`${this.base}/articulos/${id}`);
   }

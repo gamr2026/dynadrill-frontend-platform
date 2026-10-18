@@ -6,6 +6,8 @@ import type {
   AsignacionEntrada,
   ConfirmacionIngreso,
   FiltroTickets,
+  QuimicoEntrada,
+  QuimicosTicket,
   GasIngreso,
   AceptacionOperador,
   IngresoLocacion,
@@ -41,6 +43,27 @@ export class TicketsPumpingService {
 
   avanzar(id: string, hacia: string, motivo?: string): Observable<TicketPumping> {
     return this.http.post<TicketPumping>(`${this.base}/tickets/${id}/avanzar`, motivo?.trim() ? { hacia, motivo: motivo.trim() } : { hacia });
+  }
+
+  // ── Químicos del ticket (el movimiento vive en Inventario; Pumping solo lo pide) ──
+
+  quimicos(id: string): Observable<QuimicosTicket> {
+    return this.http.get<QuimicosTicket>(`${this.base}/tickets/${id}/quimicos`);
+  }
+
+  /** El Operador registra lo usado de un químico (solo en la Ejecución operativa). */
+  consumirQuimico(id: string, articuloId: string, cantidad: number): Observable<QuimicosTicket> {
+    return this.http.post<QuimicosTicket>(`${this.base}/tickets/${id}/quimicos/consumo`, { articuloId, cantidad });
+  }
+
+  /** El Supervisor devuelve a bodega lo que sobró (solo en el Control de retorno). */
+  devolverQuimicos(id: string, lineas: QuimicoEntrada[]): Observable<QuimicosTicket> {
+    return this.http.post<QuimicosTicket>(`${this.base}/tickets/${id}/quimicos/devolucion`, { lineas });
+  }
+
+  /** El Supervisor asignado confirma que el Company Man aprobó el inicio (requisito para salir de la Ejecución operativa). */
+  formalizarEjecucion(id: string): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${this.base}/tickets/${id}/ejecucion/formalizar`, {});
   }
 
   // ── Traslado de salida ──

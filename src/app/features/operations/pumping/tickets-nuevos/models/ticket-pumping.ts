@@ -88,7 +88,86 @@ export interface AsignacionTicket {
 export interface AsignacionEntrada {
   supervisorId: string;
   operadores: { usuarioId: string; vehiculoId: string }[];
+  /** Químicos que salen de bodega a cargo del ticket (opcional). */
+  quimicos?: QuimicoEntrada[];
+  /** Archivo del documento de mezcla (de `archivos`): obligatorio si hay químicos. */
+  documentoMezclaId?: string;
 }
+
+/** Un químico que sale de bodega (o vuelve a ella): de qué bodega y cuánto. */
+export interface QuimicoEntrada {
+  articuloId: string;
+  bodegaId: string;
+  cantidad: number;
+}
+
+/** Fila del formulario de químicos de la asignación (cualquiera puede estar sin elegir todavía). */
+export interface FilaQuimico {
+  articuloId: string | null;
+  bodegaId: string | null;
+  cantidad: number | null;
+}
+
+/** Módulo de `archivos` del documento de mezcla de químicos. */
+export const MODULO_ARCHIVO_MEZCLA = 'ticket_mezcla_documento';
+
+/** Qué falta para asignar los químicos (texto para quien opera); `null` si está completo o no hay químicos. */
+export function validarQuimicos(filas: readonly FilaQuimico[], hayDocumento: boolean): string | null {
+  if (!filas.length) return null;
+  if (filas.some(f => !f.articuloId)) return 'Elija el químico de cada fila.';
+  if (filas.some(f => !f.bodegaId)) return 'Elija la bodega de la que sale cada químico.';
+  if (filas.some(f => !f.cantidad || f.cantidad <= 0)) return 'Indique la cantidad de cada químico.';
+  const repetidos = filas.map(f => `${f.articuloId}|${f.bodegaId}`);
+  if (new Set(repetidos).size !== repetidos.length) return 'Un químico no puede repetirse en la misma bodega: sume las cantidades.';
+  if (!hayDocumento) return 'Adjunte el documento de mezcla: es obligatorio cuando se asignan químicos.';
+  return null;
+}
+
+/** Un químico del ticket: lo que salió de bodega, lo que se usó, lo que volvió y lo que sigue a cargo del ticket (calculado del kardex). */
+export interface QuimicoTicket {
+  articuloId: string;
+  codigo: string;
+  nombre: string;
+  unidad: string;
+  asignada: number;
+  usada: number;
+  devuelta: number;
+  pendiente: number;
+  /** Bodegas de las que salió el químico: a ellas se puede devolver. */
+  bodegas: { bodegaId: string; bodega: string }[];
+}
+
+/** Fila del formulario de consumo o devolución. */
+export interface FilaMovimientoQuimico {
+  articuloId: string;
+  pendiente: number;
+  cantidad: number | null;
+  bodegaId: string | null;
+}
+
+/** Qué falta para registrar el consumo o la devolución (texto para quien opera); `null` si se puede enviar. */
+export function validarMovimientoQuimicos(filas: readonly FilaMovimientoQuimico[], pideBodega: boolean): string | null {
+  const con = filas.filter(f => f.cantidad !== null && f.cantidad !== 0);
+  if (!con.length) return 'Indique la cantidad de al menos un químico.';
+  if (con.some(f => (f.cantidad as number) < 0)) return 'Las cantidades no pueden ser negativas.';
+  if (con.some(f => (f.cantidad as number) > f.pendiente)) return 'No puede pasar de lo que el ticket tiene a su cargo.';
+  if (pideBodega && con.some(f => !f.bodegaId)) return 'Elija la bodega a la que vuelve cada químico.';
+  return null;
+}
+
+export interface DocumentoTicket {
+  id: string;
+  tipo: 'mezcla_quimica';
+  archivoId: string;
+  createdAt: string;
+}
+export interface QuimicosTicket {
+  quimicos: QuimicoTicket[];
+  documentos: DocumentoTicket[];
+}
+
+export const PASO_EJECUCION = 'ejecucion_operativa';
+export const PASO_RETORNO = 'control_retorno';
 
 /** Paso en el que el Jefe de Base asigna al equipo. */
 export const PASO_ASIGNACION = 'asignacion';

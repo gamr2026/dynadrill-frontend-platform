@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PASOS_PUMPING, pendientesDelPaso, validarAsignacion, TONO_MACRO, etiquetaRol, etiquetaRoles, etiquetaTipoServicio, mensajeErrorTicket, nombrePaso } from './ticket-pumping';
+import { PASOS_PUMPING, pendientesDelPaso, validarAsignacion, TONO_MACRO, etiquetaRol, etiquetaRoles, etiquetaTipoServicio, mensajeErrorTicket, nombrePaso, validarMovimientoQuimicos, validarQuimicos } from './ticket-pumping';
 
 describe('tickets de Pumping (modelo)', () => {
   it('escribe los roles con su nombre y deja pasar los desconocidos', () => {
@@ -44,5 +44,40 @@ describe('tickets de Pumping (modelo)', () => {
     const r = (paso: string, estado: 'pendiente' | 'cumplido') => ({ paso, estado }) as never;
     const t = { paso: { codigo: 'traslado_salida' }, requisitos: [r('traslado_salida', 'pendiente'), r('traslado_salida', 'cumplido'), r('revision_reportes_salida', 'pendiente')] } as never;
     expect(pendientesDelPaso(t)).toHaveLength(1);
+  });
+});
+
+describe('validarQuimicos (asignación)', () => {
+  const fila = { articuloId: 'a-1', bodegaId: 'b-1', cantidad: 5 };
+
+  it('sin químicos no pide nada; con químicos pide el documento de mezcla', () => {
+    expect(validarQuimicos([], false)).toBeNull();
+    expect(validarQuimicos([fila], false)).toContain('documento de mezcla');
+    expect(validarQuimicos([fila], true)).toBeNull();
+  });
+
+  it('cada fila necesita químico, bodega y cantidad; no se repite el mismo químico en la misma bodega', () => {
+    expect(validarQuimicos([{ ...fila, articuloId: null }], true)).toContain('químico');
+    expect(validarQuimicos([{ ...fila, bodegaId: null }], true)).toContain('bodega');
+    expect(validarQuimicos([{ ...fila, cantidad: null }], true)).toContain('cantidad');
+    expect(validarQuimicos([{ ...fila, cantidad: 0 }], true)).toContain('cantidad');
+    expect(validarQuimicos([fila, fila], true)).toContain('repetirse');
+    expect(validarQuimicos([fila, { ...fila, bodegaId: 'b-2' }], true)).toBeNull();
+  });
+});
+
+describe('validarMovimientoQuimicos (consumo y devolución)', () => {
+  const fila = { articuloId: 'a-1', pendiente: 4, cantidad: null as number | null, bodegaId: null as string | null };
+
+  it('pide al menos una cantidad y no deja pasar de lo que el ticket tiene a su cargo', () => {
+    expect(validarMovimientoQuimicos([fila], false)).toContain('al menos');
+    expect(validarMovimientoQuimicos([{ ...fila, cantidad: 5 }], false)).toContain('a su cargo');
+    expect(validarMovimientoQuimicos([{ ...fila, cantidad: -1 }], false)).toContain('negativas');
+    expect(validarMovimientoQuimicos([{ ...fila, cantidad: 4 }], false)).toBeNull();
+  });
+
+  it('la devolución exige la bodega de cada químico que se devuelve; las filas sin cantidad no cuentan', () => {
+    expect(validarMovimientoQuimicos([{ ...fila, cantidad: 2 }], true)).toContain('bodega');
+    expect(validarMovimientoQuimicos([{ ...fila, cantidad: 2, bodegaId: 'b-1' }, { ...fila, articuloId: 'a-2' }], true)).toBeNull();
   });
 });

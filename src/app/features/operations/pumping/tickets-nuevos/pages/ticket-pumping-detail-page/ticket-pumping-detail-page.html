@@ -29,6 +29,11 @@
         </div>
 
         @if (t.puedeActuar) {
+          @if (puedeFormalizar()) {
+            <div class="tpd__acciones" role="group" aria-label="Formalización de la ejecución">
+              <dynadrill-button variant="secondary" [disabled]="ocupado()" (clicked)="formalizar()">Formalizar ejecución (el Company Man aprobó el inicio)</dynadrill-button>
+            </div>
+          }
           @if (debeAsignar()) {
             <div class="tpd__acciones" role="group" aria-label="Acciones del paso">
               <dynadrill-button variant="primary" (clicked)="asignar()">Asignar supervisor, operadores y unidades</dynadrill-button>
@@ -122,6 +127,39 @@
               </dd>
             </div>
           </dl>
+        </section>
+      }
+
+      @if (hayQuimicos()) {
+        <section class="tpd__tarjeta" aria-label="Químicos del ticket">
+          <h2>Químicos del ticket</h2>
+          <table class="tpd__tabla">
+            <thead>
+              <tr><th scope="col">Químico</th><th scope="col">Asignado</th><th scope="col">Usado</th><th scope="col">Devuelto</th><th scope="col">A cargo del ticket</th></tr>
+            </thead>
+            <tbody>
+              @for (q of quimicos()!.quimicos; track q.articuloId) {
+                <tr>
+                  <td><strong>{{ q.codigo }}</strong> <span class="tpd__meta">{{ q.nombre }}</span></td>
+                  <td>{{ q.asignada }} {{ q.unidad }}</td>
+                  <td>{{ q.usada }}</td>
+                  <td>{{ q.devuelta }}</td>
+                  <td>{{ q.pendiente }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          @if (quimicos()!.documentos.length) {
+            <p class="tpd__meta">Documento de mezcla adjunto ({{ quimicos()!.documentos.length }}).</p>
+          }
+          <div class="tpd__acciones" role="group" aria-label="Acciones de los químicos">
+            @if (puedeConsumir()) {
+              <dynadrill-button variant="primary" size="small" (clicked)="abrirQuimicos('consumo')">Registrar consumo</dynadrill-button>
+            }
+            @if (puedeDevolver()) {
+              <dynadrill-button variant="primary" size="small" (clicked)="abrirQuimicos('devolucion')">Devolver a bodega</dynadrill-button>
+            }
+          </div>
         </section>
       }
 

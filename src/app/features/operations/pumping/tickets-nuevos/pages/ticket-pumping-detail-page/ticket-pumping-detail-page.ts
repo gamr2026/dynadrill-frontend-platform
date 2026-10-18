@@ -14,12 +14,15 @@ import { MotivoDialog, type MotivoDialogData } from '../../../../../../shared/co
 import { formatoDia } from '../../../../../facturacion/pedidos-comercial/models/pedido-comercial.model';
 import { TicketAsignarDialog, type TicketAsignarDialogData } from '../../components/ticket-asignar-dialog/ticket-asignar-dialog';
 import { TicketIngresoDialog, type TicketIngresoDialogData } from '../../components/ticket-ingreso-dialog/ticket-ingreso-dialog';
+import { TicketQuimicosDialog, type TicketQuimicosDialogData } from '../../components/ticket-quimicos-dialog/ticket-quimicos-dialog';
 import { TicketReporteUnidadDialog, type TicketReporteUnidadDialogData } from '../../components/ticket-reporte-unidad-dialog/ticket-reporte-unidad-dialog';
 import { TicketTerminosDialog, type TicketTerminosDialogData } from '../../components/ticket-terminos-dialog/ticket-terminos-dialog';
 import {
   MODULO_LABELS,
   ORIGEN_REQUISITO_LABELS,
   PASO_ASIGNACION,
+  PASO_EJECUCION,
+  PASO_RETORNO,
   PERMISO_PUENTE_REQUISITOS,
   TONO_MACRO,
   etiquetaRol,
@@ -28,6 +31,7 @@ import {
   mensajeErrorTicket,
   nombrePaso,
   pendientesDelPaso,
+  type QuimicosTicket,
   type RequisitoTicket,
   type SiguientePaso,
   type TicketPumping,
@@ -170,10 +174,70 @@ export class TicketPumpingDetailPage {
     });
   }
 
+  // ── Químicos del ticket (asignado, usado, devuelto y pendiente; el movimiento vive en Inventario) ──
+  protected readonly quimicos = signal<QuimicosTicket | null>(null);
+  protected readonly hayQuimicos = computed(() => (this.quimicos()?.quimicos.length ?? 0) > 0);
+  protected readonly esSupervisorDelTicket = computed(() => {
+    const t = this.ticket();
+    const u = this.yo();
+    return !!t && !!u && (u.roleCode === 'superadmin' || t.asignacion.supervisor?.usuarioId === u.id);
+  });
+  protected readonly esDelEquipo = computed(() => {
+    const t = this.ticket();
+    const u = this.yo();
+    return !!t && !!u && (u.roleCode === 'superadmin' || t.asignacion.operadores.some(o => o.usuarioId === u.id));
+  });
+  /** El Operador del equipo registra el consumo en la Ejecución operativa; el Supervisor del equipo devuelve en el Control de retorno. */
+  protected readonly puedeConsumir = computed(() => this.ticket()?.paso.codigo === PASO_EJECUCION && this.esDelEquipo() && this.pendienteDeQuimicos());
+  protected readonly puedeDevolver = computed(() => this.ticket()?.paso.codigo === PASO_RETORNO && this.esSupervisorDelTicket() && this.pendienteDeQuimicos());
+  private readonly pendienteDeQuimicos = computed(() => (this.quimicos()?.quimicos ?? []).some(q => q.pendiente > 0));
+  /** El Supervisor del equipo formaliza la ejecución (el Company Man aprobó el inicio) en la Ejecución operativa. */
+  protected readonly puedeFormalizar = computed(() => {
+    const t = this.ticket();
+    return !!t && t.paso.codigo === PASO_EJECUCION && this.esSupervisorDelTicket() && t.requisitos.some(r => r.codigo === 'ejecucion_formalizada' && r.estado === 'pendiente');
+  });
+
+  private cargarQuimicos(id: string): void {
+    this.servicio.quimicos(id).subscribe({ next: q => this.quimicos.set(q), error: () => this.quimicos.set(null) });
+  }
+
+  protected abrirQuimicos(modo: 'consumo' | 'devolucion'): void {
+    const t = this.ticket();
+    const q = this.quimicos();
+    if (!t || !q) return;
+    const ref = this.dialog.open<TicketQuimicosDialog, TicketQuimicosDialogData>({
+      title: modo === 'consumo' ? 'Consumo de químicos' : 'Devolver químicos a bodega',
+      content: TicketQuimicosDialog,
+      data: { ticketId: t.id, modo, quimicos: q.quimicos },
+      footer: false,
+      width: '640px',
+    });
+    ref.afterClose.subscribe((nuevo: QuimicosTicket | undefined) => nuevo && this.quimicos.set(nuevo));
+  }
+
+  protected formalizar(): void {
+    const t = this.ticket();
+    if (!t || this.ocupado()) return;
+    this.ocupado.set(true);
+    this.errorAccion.set(null);
+    this.servicio.formalizarEjecucion(t.id).subscribe({
+      next: () => {
+        this.ocupado.set(false);
+        this.notify.success('Ejecución formalizada', 'Quedó registrado que el Company Man aprobó el inicio.');
+        this.recargar();
+      },
+      error: err => {
+        this.ocupado.set(false);
+        this.errorAccion.set(mensajeErrorTicket(err, 'No se pudo formalizar la ejecución.'));
+      },
+    });
+  }
+
   private recargar(): void {
     const t = this.ticket();
     if (!t) return;
     this.servicio.detalle(t.id).subscribe({ next: n => this.ticket.set(n), error: () => undefined });
+    this.cargarQuimicos(t.id);
   }
 
   protected readonly hayAsignacion = computed(() => {
@@ -194,6 +258,7 @@ export class TicketPumpingDetailPage {
       next: t => {
         this.ticket.set(t);
         this.cargando.set(false);
+        this.cargarQuimicos(t.id);
       },
       error: err => {
         this.cargando.set(false);
@@ -231,7 +296,9 @@ export class TicketPumpingDetailPage {
       width: '560px',
     });
     ref.afterClose.subscribe((nuevo: TicketPumping | undefined) => {
-      if (nuevo) this.ticket.set(nuevo);
+      if (!nuevo) return;
+      this.ticket.set(nuevo);
+      this.cargarQuimicos(nuevo.id);
     });
   }
 

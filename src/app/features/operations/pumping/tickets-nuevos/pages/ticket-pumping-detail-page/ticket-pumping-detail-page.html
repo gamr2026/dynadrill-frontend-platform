@@ -84,6 +84,12 @@
                   @if (r.codigo === 'reporte_unidad_salida') {
                     <dynadrill-button variant="secondary" size="small" (clicked)="abrirReporte(r)">{{ enSuPaso(r) && puedeFirmarUnidad(r) ? 'Reporte y firma' : 'Ver reporte' }}</dynadrill-button>
                   }
+                  @if (r.codigo === 'inspeccion_vehiculo_aprobada' && r.vehiculoId) {
+                    <dynadrill-button variant="secondary" size="small" (clicked)="abrirReporte(r)">Ver reporte de salida</dynadrill-button>
+                  }
+                  @if (puedeAprobarInspeccion(r)) {
+                    <dynadrill-button variant="primary" size="small" [disabled]="ocupado()" (clicked)="aprobarInspeccion(r)">Aprobar inspección</dynadrill-button>
+                  }
                   @if (r.codigo === 'reporte_unidad_llegada') {
                     <dynadrill-button variant="secondary" size="small" (clicked)="abrirReporteLlegada(r)">{{ enSuPaso(r) && puedeFirmarUnidad(r) ? 'Reporte y firma de llegada' : 'Ver reporte de llegada' }}</dynadrill-button>
                   }
@@ -135,6 +141,35 @@
               </dd>
             </div>
           </dl>
+        </section>
+      }
+
+      @if (muestraReporteDiario()) {
+        <section class="tpd__tarjeta" aria-label="Reporte diario de actividades">
+          <h2>Reporte diario de actividades</h2>
+          <p class="tpd__meta">El Operador del equipo llena un reporte por día de operación; al completarlo se envía a Facturación como Reporte Job.</p>
+          <ul class="tpd__requisitos">
+            @for (d of reportesDiarios(); track d.fecha) {
+              <li class="tpd__requisito">
+                <div class="tpd__requisito-info">
+                  <strong>{{ dia(d.fecha) }}</strong>
+                  <dynadrill-tag [label]="estadoDia(d.estado)" [variant]="tonoDia(d.estado)" [uppercase]="false" />
+                  <span class="tpd__meta">{{ d.actividades }} actividad(es) · {{ d.totalHoras }} h</span>
+                </div>
+                <div class="tpd__requisito-acciones">
+                  <dynadrill-button variant="secondary" size="small" (clicked)="abrirReporteDiario(d.fecha)">{{ puedeLlenarReporteDiario() && d.estado !== 'corregido' ? 'Abrir y editar' : 'Ver' }}</dynadrill-button>
+                </div>
+              </li>
+            } @empty {
+              <li class="tpd__meta">Todavía no hay reportes diarios.</li>
+            }
+          </ul>
+          @if (puedeLlenarReporteDiario()) {
+            <div class="tpd__acciones" role="group" aria-label="Nuevo día">
+              <label class="tpd__meta">Día <input type="date" [value]="fechaNueva()" (input)="fechaNueva.set($any($event.target).value)" /></label>
+              <dynadrill-button variant="primary" size="small" [disabled]="!fechaNueva()" (clicked)="abrirReporteDiario(fechaNueva(), true)">Llenar reporte de ese día</dynadrill-button>
+            </div>
+          }
         </section>
       }
 

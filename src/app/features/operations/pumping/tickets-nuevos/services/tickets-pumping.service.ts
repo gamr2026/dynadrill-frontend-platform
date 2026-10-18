@@ -7,7 +7,11 @@ import type {
   ConfirmacionIngreso,
   FiltroTickets,
   QuimicoEntrada,
+  ReporteDiario,
+  ReporteDiarioDia,
+  ReporteDiarioEntrada,
   QuimicosTicket,
+  RequisitoTicket,
   GasIngreso,
   AceptacionOperador,
   IngresoLocacion,
@@ -46,6 +50,26 @@ export class TicketsPumpingService {
     return this.http.post<TicketPumping>(`${this.base}/tickets/${id}/avanzar`, motivo?.trim() ? { hacia, motivo: motivo.trim() } : { hacia });
   }
 
+  // ── Reporte Diario de Actividades (Reporte Job) ──
+
+  reportesDiarios(id: string): Observable<ReporteDiarioDia[]> {
+    return this.http.get<ReporteDiarioDia[]>(`${this.base}/tickets/${id}/reportes-diarios`);
+  }
+
+  reporteDiario(id: string, fecha: string): Observable<ReporteDiario> {
+    return this.http.get<ReporteDiario>(`${this.base}/tickets/${id}/reportes-diarios/${fecha}`);
+  }
+
+  /** Guarda el día como borrador: reemplaza sus actividades y tablas (si estaba completado, lo reabre). */
+  guardarReporteDiario(id: string, fecha: string, cuerpo: ReporteDiarioEntrada): Observable<ReporteDiario> {
+    return this.http.put<ReporteDiario>(`${this.base}/tickets/${id}/reportes-diarios/${fecha}`, cuerpo);
+  }
+
+  /** Completa el día y lo envía a Facturación como Reporte Job. */
+  completarReporteDiario(id: string, fecha: string): Observable<ReporteDiario> {
+    return this.http.post<ReporteDiario>(`${this.base}/tickets/${id}/reportes-diarios/${fecha}/completar`, {});
+  }
+
   // ── Químicos del ticket (el movimiento vive en Inventario; Pumping solo lo pide) ──
 
   quimicos(id: string): Observable<QuimicosTicket> {
@@ -65,6 +89,11 @@ export class TicketsPumpingService {
   /** El Supervisor asignado confirma que el Company Man aprobó el inicio (requisito para salir de la Ejecución operativa). */
   formalizarEjecucion(id: string): Observable<{ ok: boolean }> {
     return this.http.post<{ ok: boolean }>(`${this.base}/tickets/${id}/ejecucion/formalizar`, {});
+  }
+
+  /** El Supervisor del equipo aprueba la inspección de una unidad al revisar los reportes de salida. Devuelve los requisitos del ticket. */
+  aprobarInspeccion(id: string, vehiculoId: string): Observable<RequisitoTicket[]> {
+    return this.http.post<RequisitoTicket[]>(`${this.base}/tickets/${id}/revision-salida/inspecciones/${vehiculoId}/aprobar`, {});
   }
 
   // ── Traslado de salida ──

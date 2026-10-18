@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PASOS_PUMPING, pendientesDelPaso, validarAsignacion, TONO_MACRO, etiquetaRol, etiquetaRoles, etiquetaTipoServicio, mensajeErrorTicket, nombrePaso, validarLlegada, validarMovimientoQuimicos, validarQuimicos } from './ticket-pumping';
+import { PASOS_PUMPING, pendientesDelPaso, validarAsignacion, TONO_MACRO, etiquetaRol, etiquetaRoles, etiquetaTipoServicio, mensajeErrorTicket, nombrePaso, duracionHoras, totalHoras, validarLlegada, validarMovimientoQuimicos, validarReporteDiario, validarQuimicos } from './ticket-pumping';
 
 describe('tickets de Pumping (modelo)', () => {
   it('escribe los roles con su nombre y deja pasar los desconocidos', () => {
@@ -96,5 +96,27 @@ describe('validarLlegada (reporte de unidad de llegada)', () => {
     expect(validarLlegada({ ...ok, operacionInterrumpida: true })).toContain('interrumpió');
     expect(validarLlegada({ ...ok, operacionInterrumpida: true, detalleInterrupcion: '  ' })).toContain('interrumpió');
     expect(validarLlegada({ ...ok, operacionInterrumpida: true, detalleInterrupcion: 'Falla de la bomba' })).toBeNull();
+  });
+});
+
+describe('Reporte Diario de Actividades (modelo)', () => {
+  it('calcula la duración de una actividad, también cuando cruza la medianoche', () => {
+    expect(duracionHoras('06:00', '09:30')).toBe(3.5);
+    expect(duracionHoras('22:00', '02:00')).toBe(4);
+    expect(duracionHoras('06:00', '')).toBeNull();
+    expect(duracionHoras('6:00', '09:00')).toBeNull();
+  });
+
+  it('suma las horas del día ignorando las actividades incompletas', () => {
+    expect(totalHoras([{ horaInicio: '06:00', horaFin: '09:30' }, { horaInicio: '22:00', horaFin: '02:00' }, { horaInicio: '', horaFin: '' }])).toBe(7.5);
+    expect(totalHoras([])).toBe(0);
+  });
+
+  it('pide hora de inicio y fin distintas y el detalle de cada actividad, diciendo cuál', () => {
+    const ok = { horaInicio: '06:00', horaFin: '09:00', detalle: 'Armado' };
+    expect(validarReporteDiario([ok])).toBeNull();
+    expect(validarReporteDiario([ok, { ...ok, horaFin: '' }])).toContain('actividad 2');
+    expect(validarReporteDiario([{ ...ok, horaFin: '06:00' }])).toContain('misma hora');
+    expect(validarReporteDiario([{ ...ok, detalle: '  ' }])).toContain('detalle');
   });
 });

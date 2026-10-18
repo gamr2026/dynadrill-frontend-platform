@@ -17,6 +17,7 @@ import { TicketAsignarDialog, type TicketAsignarDialogData } from '../../compone
 import { TicketIngresoDialog, type TicketIngresoDialogData } from '../../components/ticket-ingreso-dialog/ticket-ingreso-dialog';
 import { TicketQuimicosDialog, type TicketQuimicosDialogData } from '../../components/ticket-quimicos-dialog/ticket-quimicos-dialog';
 import { TicketPrefacturaDialog, type TicketPrefacturaDialogData } from '../../components/ticket-prefactura-dialog/ticket-prefactura-dialog';
+import { TicketReporteDiarioDialog, type TicketReporteDiarioDialogData } from '../../components/ticket-reporte-diario-dialog/ticket-reporte-diario-dialog';
 import { TicketReporteLlegadaDialog, type TicketReporteLlegadaDialogData } from '../../components/ticket-reporte-llegada-dialog/ticket-reporte-llegada-dialog';
 import { TicketReporteUnidadDialog, type TicketReporteUnidadDialogData } from '../../components/ticket-reporte-unidad-dialog/ticket-reporte-unidad-dialog';
 import { TicketTerminosDialog, type TicketTerminosDialogData } from '../../components/ticket-terminos-dialog/ticket-terminos-dialog';
@@ -27,6 +28,7 @@ import {
   PASO_EJECUCION,
   PASO_RETORNO,
   PASO_REVISION_FINAL,
+  PASO_REVISION_SALIDA,
   PASO_TRASLADO_LLEGADA,
   PERMISO_PUENTE_REQUISITOS,
   TONO_MACRO,
@@ -36,7 +38,10 @@ import {
   mensajeErrorTicket,
   nombrePaso,
   pendientesDelPaso,
+  ESTADO_REPORTE_DIARIO_LABELS,
+  ESTADO_REPORTE_DIARIO_TONO,
   type QuimicosTicket,
+  type ReporteDiarioDia,
   type RequisitoTicket,
   type SiguientePaso,
   type TicketPumping,
@@ -155,6 +160,28 @@ export class TicketPumpingDetailPage {
     ref.afterClose.subscribe((ok: boolean | undefined) => ok && this.recargar());
   }
 
+  /** El Supervisor del equipo aprueba la inspección de la unidad al revisar los reportes de salida (mientras Flota no publique la suya). */
+  protected puedeAprobarInspeccion(r: RequisitoTicket): boolean {
+    return r.codigo === 'inspeccion_vehiculo_aprobada' && r.estado === 'pendiente' && this.ticket()?.paso.codigo === PASO_REVISION_SALIDA && this.esSupervisorDelTicket();
+  }
+  protected aprobarInspeccion(r: RequisitoTicket): void {
+    const t = this.ticket();
+    if (!t || !r.vehiculoId || this.ocupado()) return;
+    this.ocupado.set(true);
+    this.errorAccion.set(null);
+    this.servicio.aprobarInspeccion(t.id, r.vehiculoId).subscribe({
+      next: () => {
+        this.ocupado.set(false);
+        this.notify.success('Inspección aprobada', `Unidad ${r.para ?? ''}.`);
+        this.recargar();
+      },
+      error: err => {
+        this.ocupado.set(false);
+        this.errorAccion.set(mensajeErrorTicket(err, 'No se pudo aprobar la inspección.'));
+      },
+    });
+  }
+
   /** Reporte de unidad de llegada: lo firma el operador de la unidad en el Traslado de llegada; después se consulta. */
   protected abrirReporteLlegada(r: RequisitoTicket): void {
     const t = this.ticket();
@@ -231,6 +258,47 @@ export class TicketPumpingDetailPage {
     return !!t && t.paso.codigo === PASO_EJECUCION && this.esSupervisorDelTicket() && t.requisitos.some(r => r.codigo === 'ejecucion_formalizada' && r.estado === 'pendiente');
   });
 
+  // ── Reporte Diario de Actividades (Reporte Job) ──
+  protected readonly reportesDiarios = signal<ReporteDiarioDia[]>([]);
+  protected readonly fechaNueva = signal(new Date().toISOString().slice(0, 10));
+  protected readonly estadoDia = (e: ReporteDiarioDia['estado']) => ESTADO_REPORTE_DIARIO_LABELS[e];
+  protected readonly tonoDia = (e: ReporteDiarioDia['estado']) => ESTADO_REPORTE_DIARIO_TONO[e];
+  /** El Operador del equipo llena el reporte diario mientras el ticket está en la Ejecución operativa. */
+  protected readonly puedeLlenarReporteDiario = computed(() => this.ticket()?.paso.codigo === PASO_EJECUCION && this.esDelEquipo());
+  /** Se muestra desde la ejecución: antes no hay nada que reportar. */
+  protected readonly muestraReporteDiario = computed(() => ['ejecucion_operativa', 'control_retorno', 'traslado_llegada', 'revision_reportes_llegada', 'revision_final', 'cierre'].includes(this.ticket()?.paso.codigo ?? ''));
+
+  private cargarReportesDiarios(id: string): void {
+    this.servicio.reportesDiarios(id).subscribe({ next: l => this.reportesDiarios.set(l), error: () => this.reportesDiarios.set([]) });
+  }
+
+  protected abrirReporteDiario(fecha: string, nuevo = false): void {
+    const t = this.ticket();
+    if (!t || !fecha) return;
+    const dia = this.reportesDiarios().find(d => d.fecha === fecha);
+    const ref = this.dialog.open<TicketReporteDiarioDialog, TicketReporteDiarioDialogData>({
+      title: 'Reporte diario de actividades',
+      content: TicketReporteDiarioDialog,
+      data: {
+        ticketId: t.id,
+        fecha,
+        nuevo: nuevo && !dia,
+        soloLectura: !this.puedeLlenarReporteDiario() || dia?.estado === 'corregido',
+        cabecera: {
+          cliente: t.cliente,
+          pozo: t.pozo,
+          campo: t.campo,
+          taladro: t.taladro,
+          contrato: t.numeroContrato,
+          supervisor: t.asignacion.supervisor?.nombre ?? null,
+        },
+      },
+      footer: false,
+      width: '980px',
+    });
+    ref.afterClose.subscribe((hubo: boolean | undefined) => hubo && this.cargarReportesDiarios(t.id));
+  }
+
   private cargarQuimicos(id: string): void {
     this.servicio.quimicos(id).subscribe({ next: q => this.quimicos.set(q), error: () => this.quimicos.set(null) });
   }
@@ -272,6 +340,7 @@ export class TicketPumpingDetailPage {
     if (!t) return;
     this.servicio.detalle(t.id).subscribe({ next: n => this.ticket.set(n), error: () => undefined });
     this.cargarQuimicos(t.id);
+    this.cargarReportesDiarios(t.id);
   }
 
   protected readonly hayAsignacion = computed(() => {
@@ -293,6 +362,7 @@ export class TicketPumpingDetailPage {
         this.ticket.set(t);
         this.cargando.set(false);
         this.cargarQuimicos(t.id);
+        this.cargarReportesDiarios(t.id);
       },
       error: err => {
         this.cargando.set(false);

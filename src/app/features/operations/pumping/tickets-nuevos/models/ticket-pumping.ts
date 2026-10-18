@@ -1,3 +1,5 @@
+import type { ActividadTabla } from '../../../../../shared/models/operativo-docs.model';
+
 /**
  * Tickets de Pumping del contenedor `operaciones` (`/api/operaciones/pumping/tickets`). El ticket nace cuando Ventas abre un
  * pedido de la línea Pumping y lo lleva el Jefe de Base, el Supervisor y el Operador por los pasos del servicio.
@@ -359,6 +361,89 @@ export function validarLlegada(v: { fecha: string; combustible: number | null; o
   if (!v.fecha) return 'Indique la fecha de llegada.';
   if (v.combustible === null || v.combustible < 0) return 'Indique el combustible a la llegada.';
   if (v.operacionInterrumpida && !v.detalleInterrupcion.trim()) return 'Cuente cómo se interrumpió o atrasó la operación.';
+  return null;
+}
+
+export const PASO_REVISION_SALIDA = 'revision_reportes_salida';
+// ── Reporte Diario de Actividades (DYN-SGI-RE-047, el «Reporte Job») ──
+
+export type EstadoReporteDiario = 'borrador' | 'completado' | 'corregido';
+
+/** Un día del ticket en la lista: su estado y sus horas. */
+export interface ReporteDiarioDia {
+  fecha: string;
+  estado: EstadoReporteDiario;
+  actividades: number;
+  totalHoras: number;
+}
+
+export interface ActividadDiaria {
+  horaInicio: string;
+  horaFin: string;
+  /** Calculada por el servidor (si el fin es menor que el inicio, cruza la medianoche). */
+  duracionHoras?: number;
+  detalle: string;
+  autor?: { id: string; nombre: string };
+  tablas: ActividadTabla[];
+}
+
+export interface ReporteDiario {
+  fecha: string;
+  estado: EstadoReporteDiario;
+  representanteCliente: string | null;
+  cargoRepresentante: string | null;
+  tiempoProductivo: number | null;
+  tiempoNoProductivo: number | null;
+  observaciones: string | null;
+  totalHoras: number;
+  completadoAt: string | null;
+  corregidoAt: string | null;
+  actividades: ActividadDiaria[];
+}
+
+/** Cuerpo de `PUT /tickets/:id/reportes-diarios/:fecha` (el servidor reemplaza el día). */
+export interface ReporteDiarioEntrada {
+  actividades: { horaInicio: string; horaFin: string; detalle: string; tablas: ActividadTabla[] }[];
+  representanteCliente?: string;
+  cargoRepresentante?: string;
+  tiempoProductivo?: number;
+  tiempoNoProductivo?: number;
+  observaciones?: string;
+}
+
+export const ESTADO_REPORTE_DIARIO_LABELS: Record<EstadoReporteDiario, string> = {
+  borrador: 'Borrador',
+  completado: 'Completado',
+  corregido: 'Corregido por Facturación',
+};
+export const ESTADO_REPORTE_DIARIO_TONO: Record<EstadoReporteDiario, 'warning' | 'success' | 'info'> = {
+  borrador: 'warning',
+  completado: 'success',
+  corregido: 'info',
+};
+
+/** Horas entre dos horas HH:mm (si el fin es menor que el inicio, cruza la medianoche), con dos decimales; `null` si falta alguna. */
+export function duracionHoras(inicio: string, fin: string): number | null {
+  const ok = /^([01]\d|2[0-3]):[0-5]\d$/;
+  if (!ok.test(inicio) || !ok.test(fin)) return null;
+  const [h1, m1] = inicio.split(':').map(Number);
+  const [h2, m2] = fin.split(':').map(Number);
+  let min = h2 * 60 + m2 - (h1 * 60 + m1);
+  if (min < 0) min += 24 * 60;
+  return Math.round((min / 60) * 100) / 100;
+}
+
+export const totalHoras = (actividades: readonly { horaInicio: string; horaFin: string }[]): number =>
+  Math.round(actividades.reduce((s, a) => s + (duracionHoras(a.horaInicio, a.horaFin) ?? 0), 0) * 100) / 100;
+
+/** Qué falta para guardar el día (texto para quien opera); `null` si se puede enviar. */
+export function validarReporteDiario(actividades: readonly { horaInicio: string; horaFin: string; detalle: string }[]): string | null {
+  for (const [i, a] of actividades.entries()) {
+    const n = i + 1;
+    if (duracionHoras(a.horaInicio, a.horaFin) === null) return `Indique la hora de inicio y de fin de la actividad ${n}.`;
+    if (a.horaInicio === a.horaFin) return `La actividad ${n} no puede empezar y terminar a la misma hora.`;
+    if (!a.detalle.trim()) return `Escriba el detalle de la actividad ${n}.`;
+  }
   return null;
 }
 

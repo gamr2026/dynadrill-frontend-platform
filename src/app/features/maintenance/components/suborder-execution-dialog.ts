@@ -1,15 +1,21 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import {
   DynadrillButtonComponent,
   DynadrillIconComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
+  DynadrillSelectComponent,
+  type DynadrillSelectOption,
   DynadrillTextareaComponent,
   DynadrillTextComponent,
 } from '@digitec-it-projects/dynadrill-ui';
 import { NovedadReadonlyComponent } from '../../../shared/components/novedad-readonly/novedad-readonly';
+import { InventarioPlataformaService } from '../../inventario/services/inventario-plataforma.service';
+import type { RepuestoDisponible } from '../../inventario/models/inventario-plataforma.model';
 import { Repuesto, SubOrder } from '../models/maintenance-order.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 
@@ -26,6 +32,7 @@ export interface SuborderExecutionDialogData {
     DynadrillTextComponent,
     DynadrillTextareaComponent,
     DynadrillInputComponent,
+    DynadrillSelectComponent,
     DynadrillButtonComponent,
     DynadrillIconComponent,
     NovedadReadonlyComponent,
@@ -36,6 +43,7 @@ export interface SuborderExecutionDialogData {
 })
 export class SuborderExecutionDialog {
   private readonly ordersService = inject(MaintenanceOrdersService);
+  private readonly inventario = inject(InventarioPlataformaService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<SuborderExecutionDialog, boolean>);
   protected readonly data = inject<SuborderExecutionDialogData>(NZ_MODAL_DATA);
@@ -50,10 +58,79 @@ export class SuborderExecutionDialog {
   protected readonly wasRejected = this.data.subOrder.status === 'Corrección Solicitada';
   protected readonly isClosed = this.data.subOrder.status === 'Cerrado';
 
+  /** Búsqueda en el catálogo de repuestos de Inventario (solo con 2 letras o más). */
+  protected readonly busqueda = signal('');
+  protected readonly resultados = signal<RepuestoDisponible[]>([]);
+  protected readonly buscando = signal(false);
+  private readonly texto$ = new Subject<string>();
+
+  constructor() {
+    this.texto$
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        switchMap(q => {
+          if (q.length < 2) return of<RepuestoDisponible[]>([]);
+          this.buscando.set(true);
+          return this.inventario.repuestosDisponibles(q);
+        }),
+        takeUntilDestroyed(inject(DestroyRef)),
+      )
+      .subscribe({
+        next: lista => {
+          this.resultados.set(lista);
+          this.buscando.set(false);
+        },
+        error: () => {
+          this.resultados.set([]);
+          this.buscando.set(false);
+          this.notify.error('Error', 'No se pudo consultar el catálogo de repuestos.');
+        },
+      });
+  }
+
+  protected readonly hayCatalogo = computed(() => this.repuestos().some(r => r.articuloId));
+
   protected readonly canSubmit = computed(() =>
     this.diagnostico().trim().length > 0 && this.actividadesCorrectivas().trim().length > 0,
   );
 
+  onBusqueda(valor: string): void {
+    this.busqueda.set(valor);
+    this.texto$.next(valor.trim());
+  }
+
+  /** Agrega el repuesto del catálogo; si ya estaba, suma una unidad (un artículo va una sola vez por sub-orden). */
+  addDelCatalogo(a: RepuestoDisponible): void {
+    this.repuestos.update(list => {
+      const i = list.findIndex(r => r.articuloId === a.id);
+      if (i >= 0) return list.map((r, j) => (j === i ? { ...r, cantidad: r.cantidad + 1 } : r));
+      return [
+        ...list,
+        {
+          articuloId: a.id,
+          numeroParte: a.codigo,
+          descripcion: a.nombre,
+          cantidad: 1,
+          unidad: a.unidad,
+          bodegasDisponibles: a.porBodega,
+          bodegaId: a.porBodega[0]?.bodegaId,
+        },
+      ];
+    });
+    this.busqueda.set('');
+    this.resultados.set([]);
+  }
+
+  protected bodegaOptions(r: Repuesto): DynadrillSelectOption[] {
+    return (r.bodegasDisponibles ?? []).map(b => ({ label: `${b.bodega} (${b.stock} disponibles)`, value: b.bodegaId }));
+  }
+
+  updateBodega(index: number, bodegaId: string): void {
+    this.repuestos.update(list => list.map((r, i) => (i === index ? { ...r, bodegaId } : r)));
+  }
+
+  /** Repuesto que no existe en el catálogo: se escribe el número de parte y la descripción (no mueve stock). */
   addRepuesto(): void {
     this.repuestos.update(list => [...list, { numeroParte: '', cantidad: 1, descripcion: '' }]);
   }
@@ -80,7 +157,7 @@ export class SuborderExecutionDialog {
       diagnostico: this.diagnostico(),
       actividadesCorrectivas: this.actividadesCorrectivas(),
       horasTrabajo: this.horasTrabajo() ? Number(this.horasTrabajo()) : undefined,
-      repuestos: this.repuestos().filter(r => r.descripcion.trim()),
+      repuestos: this.repuestos().filter(r => r.articuloId || r.descripcion.trim()),
       trabajosAdicionales: this.trabajosAdicionales().trim() || undefined,
     };
   }

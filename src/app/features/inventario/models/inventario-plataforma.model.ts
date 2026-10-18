@@ -149,6 +149,17 @@ export interface BodegaInventario {
   nombre: string;
 }
 
+/** Repuesto que ofrece el selector de Mantenimiento: artículo de las categorías de repuestos, con su existencia por bodega. */
+export interface RepuestoDisponible {
+  id: string;
+  codigo: string;
+  nombre: string;
+  unidad: string;
+  stockActual: number;
+  /** Solo las bodegas con existencia. */
+  porBodega: Array<{ bodegaId: string; bodega: string; stock: number }>;
+}
+
 /** Renglón del kardex (inmutable), con el saldo del artículo en esa bodega justo después del movimiento. */
 export interface MovimientoKardex {
   id: string;

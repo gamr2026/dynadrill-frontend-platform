@@ -45,18 +45,66 @@
   <div class="suborder-execution-dialog__section">
     <div class="suborder-execution-dialog__section-header">
       <dynadrill-text variant="caption">Repuestos utilizados</dynadrill-text>
-      <dynadrill-button variant="secondary" size="small" (clicked)="addRepuesto()">+ Agregar</dynadrill-button>
+      <dynadrill-button variant="secondary" size="small" (clicked)="addRepuesto()">+ Sin código en Inventario</dynadrill-button>
     </div>
 
+    <!-- Selector del catálogo de Inventario (repuestos y suministros de mantenimiento) -->
+    <dynadrill-input
+      label="Buscar repuesto en Inventario"
+      placeholder="Escriba el código o el nombre (mínimo 2 letras)"
+      [value]="busqueda()"
+      (valueChange)="onBusqueda($event)"
+    />
+    @if (buscando()) {
+      <dynadrill-text variant="caption">Buscando…</dynadrill-text>
+    } @else if (busqueda().trim().length >= 2 && resultados().length === 0) {
+      <dynadrill-text variant="caption">No hay repuestos con ese texto. Use «Sin código en Inventario» para registrarlo a mano.</dynadrill-text>
+    }
+    @if (resultados().length) {
+      <ul class="suborder-execution-dialog__resultados">
+        @for (a of resultados(); track a.id) {
+          <li>
+            <button type="button" class="suborder-execution-dialog__resultado" (click)="addDelCatalogo(a)">
+              <span class="suborder-execution-dialog__codigo">{{ a.codigo }}</span>
+              <span>{{ a.nombre }}</span>
+              <span class="suborder-execution-dialog__stock">{{ a.stockActual > 0 ? a.stockActual + ' ' + a.unidad + ' en bodega' : 'Sin existencias' }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+
     @for (r of repuestos(); track $index) {
-      <div class="suborder-execution-dialog__repuesto">
-        <dynadrill-input placeholder="N° de parte (código de la pieza)" [value]="r.numeroParte" (valueChange)="updateRepuesto($index, 'numeroParte', $event)" />
-        <dynadrill-input placeholder="Cant." type="number" [value]="r.cantidad.toString()" (valueChange)="updateRepuesto($index, 'cantidad', $event)" />
-        <dynadrill-input placeholder="Descripción" [value]="r.descripcion" (valueChange)="updateRepuesto($index, 'descripcion', $event)" />
-        <dynadrill-button variant="error" size="small" (clicked)="removeRepuesto($index)">
-          <dynadrill-icon name="delete" [size]="14" />
-        </dynadrill-button>
-      </div>
+      @if (r.articuloId) {
+        <div class="suborder-execution-dialog__repuesto suborder-execution-dialog__repuesto--catalogo">
+          <div class="suborder-execution-dialog__etiqueta">
+            <dynadrill-text variant="body">{{ r.numeroParte }}</dynadrill-text>
+            <dynadrill-text variant="caption">{{ r.descripcion }}</dynadrill-text>
+          </div>
+          <dynadrill-select
+            placeholder="Bodega"
+            [options]="bodegaOptions(r)"
+            [value]="r.bodegaId ?? ''"
+            (valueChange)="updateBodega($index, $any($event))"
+          />
+          <dynadrill-input placeholder="Cant." type="number" [value]="r.cantidad.toString()" (valueChange)="updateRepuesto($index, 'cantidad', $event)" />
+          <dynadrill-button variant="error" size="small" (clicked)="removeRepuesto($index)">
+            <dynadrill-icon name="delete" [size]="14" />
+          </dynadrill-button>
+        </div>
+      } @else {
+        <div class="suborder-execution-dialog__repuesto">
+          <dynadrill-input placeholder="N° de parte (código de la pieza)" [value]="r.numeroParte" (valueChange)="updateRepuesto($index, 'numeroParte', $event)" />
+          <dynadrill-input placeholder="Cant." type="number" [value]="r.cantidad.toString()" (valueChange)="updateRepuesto($index, 'cantidad', $event)" />
+          <dynadrill-input placeholder="Descripción" [value]="r.descripcion" (valueChange)="updateRepuesto($index, 'descripcion', $event)" />
+          <dynadrill-button variant="error" size="small" (clicked)="removeRepuesto($index)">
+            <dynadrill-icon name="delete" [size]="14" />
+          </dynadrill-button>
+        </div>
+      }
+    }
+    @if (hayCatalogo()) {
+      <dynadrill-text variant="caption">Los repuestos del catálogo salen de la bodega elegida cuando el Jefe de Mantenimiento aprueba el cierre.</dynadrill-text>
     }
   </div>
 

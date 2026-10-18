@@ -82,4 +82,12 @@ describe('InventarioPlataformaService', () => {
     expect(r.request.body).toEqual({ subcategoriaId: null, costoUnitario: null });
     r.flush({});
   });
+
+  it('busca repuestos para Mantenimiento por el texto escrito', () => {
+    service.repuestosDisponibles('filtro').subscribe();
+    const r = http.expectOne(req => req.url === '/api/operaciones/inventario/articulos/repuestos');
+    expect(r.request.method).toBe('GET');
+    expect(r.request.params.get('q')).toBe('filtro');
+    r.flush([]);
+  });
 });

@@ -15,10 +15,20 @@ export type OrderStatus = 'Pendiente' | 'En Mantenimiento' | 'Requiere cambios' 
 
 export type UnitFinalState = 'Disponible' | 'Con restricciones';
 
+/**
+ * Repuesto usado. Es **del catálogo de Inventario** (`articuloId` + `bodegaId`: al aprobar el cierre sale de bodega por el kardex) o
+ * **de texto** (`numeroParte` + `descripcion`, cuando no existe en el catálogo; no mueve stock). En los del catálogo, `numeroParte` y
+ * `descripcion` son solo la etiqueta que se muestra: el backend nuevo lee el código y el nombre del artículo.
+ */
 export interface Repuesto {
   numeroParte: string;
   cantidad: number;
   descripcion: string;
+  articuloId?: string;
+  bodegaId?: string;
+  /** Bodegas con existencia del artículo, para elegir de cuál sale (solo en pantalla; no se guarda). */
+  bodegasDisponibles?: Array<{ bodegaId: string; bodega: string; stock: number }>;
+  unidad?: string;
 }
 
 export interface SubOrder {

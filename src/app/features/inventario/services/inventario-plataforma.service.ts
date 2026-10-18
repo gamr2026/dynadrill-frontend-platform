@@ -14,6 +14,7 @@ import type {
   MovimientoKardex,
   ParteArticulo,
   ParteArticuloInput,
+  RepuestoDisponible,
   RegistrarMovimientoInput,
   UnidadStockInventario,
 } from '../models/inventario-plataforma.model';
@@ -37,6 +38,11 @@ export class InventarioPlataformaService {
     if (filtro.conStock !== undefined) params = params.set('conStock', String(filtro.conStock));
     if (filtro.quimicos !== undefined) params = params.set('quimicos', String(filtro.quimicos));
     return this.http.get<ArticuloInventario[]>(`${this.base}/articulos`, { params });
+  }
+
+  /** Selector de repuestos de Mantenimiento: busca por código o nombre (desde 2 letras) y trae la existencia por bodega. */
+  repuestosDisponibles(q: string): Observable<RepuestoDisponible[]> {
+    return this.http.get<RepuestoDisponible[]>(`${this.base}/articulos/repuestos`, { params: new HttpParams().set('q', q) });
   }
 
   articulo(id: string): Observable<ArticuloInventarioDetalle> {

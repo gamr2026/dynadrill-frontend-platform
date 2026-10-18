@@ -14,7 +14,9 @@ import {
   mensajeErrorInventario,
   type ArticuloInventario,
   type ArticuloInventarioDetalle,
+  TIPO_TALLA_LABEL,
   type CategoriaInventario,
+  type TipoTallaArticulo,
   type UnidadStockInventario,
 } from '../models/inventario-plataforma.model';
 import { InventarioPlataformaService } from '../services/inventario-plataforma.service';
@@ -76,6 +78,12 @@ export class ArticuloFormDialog {
   protected readonly nota = signal(this.data.articulo?.nota ?? '');
   protected readonly informacionAdicional = signal(this.data.articulo?.informacionAdicional ?? '');
   protected readonly activo = signal(this.data.articulo?.activo ?? true);
+  protected readonly entregaPersonal = signal(this.data.articulo?.entregaPersonal ?? false);
+  protected readonly tipoTalla = signal<TipoTallaArticulo | null>(this.data.articulo?.tipoTalla ?? null);
+  protected readonly tallaOptions: DynadrillSelectOption[] = (Object.keys(TIPO_TALLA_LABEL) as TipoTallaArticulo[]).map(t => ({
+    label: TIPO_TALLA_LABEL[t],
+    value: t,
+  }));
 
   protected readonly submitting = signal(false);
 
@@ -133,6 +141,17 @@ export class ArticuloFormDialog {
     this.subcategoriaId.set(idElegido(value));
   }
 
+  protected onEntregaPersonal(entrega: boolean): void {
+    this.entregaPersonal.set(entrega);
+    // solo lo que se entrega a una persona lleva talla
+    if (!entrega) this.tipoTalla.set(null);
+  }
+
+  protected onTipoTalla(value: DynadrillSelectValue): void {
+    const id = idElegido(value);
+    this.tipoTalla.set(id === null ? null : (id as TipoTallaArticulo));
+  }
+
   protected onUnidad(value: DynadrillSelectValue): void {
     this.unidadStockId.set(idElegido(value));
   }
@@ -151,6 +170,8 @@ export class ArticuloFormDialog {
       nota: this.nota().trim(),
       informacionAdicional: this.informacionAdicional().trim(),
       activo: this.activo(),
+      entregaPersonal: this.entregaPersonal(),
+      tipoTalla: this.entregaPersonal() ? this.tipoTalla() : null,
       // cadena vacía quita el código
       codigos: {
         alterno: this.codigoAlterno().trim(),

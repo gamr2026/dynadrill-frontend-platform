@@ -65,6 +65,23 @@
 
   <dynadrill-checkbox label="Activo" [checked]="activo()" (checkedChange)="activo.set($event)" />
 
+  <div class="articulo-form-dialog__row">
+    <dynadrill-checkbox
+      label="Se entrega a una persona (EPI o ropa de trabajo)"
+      [checked]="entregaPersonal()"
+      (checkedChange)="onEntregaPersonal($event)"
+    />
+    @if (entregaPersonal()) {
+      <dynadrill-select
+        label="Tipo de talla"
+        placeholder="No lleva talla"
+        [options]="tallaOptions"
+        [value]="tipoTalla()"
+        (valueChange)="onTipoTalla($event)"
+      />
+    }
+  </div>
+
   <div class="articulo-form-dialog__actions">
     <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
     <dynadrill-button [disabled]="!canSave() || submitting()" (clicked)="save()">

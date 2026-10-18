@@ -29,6 +29,14 @@ export interface CodigosArticulo {
   barras: string | null;
 }
 
+export type TipoTallaArticulo = 'ropa' | 'calzado' | 'guante';
+
+export const TIPO_TALLA_LABEL: Record<TipoTallaArticulo, string> = {
+  ropa: 'Ropa (XS a XXXL)',
+  calzado: 'Calzado (35 a 46)',
+  guante: 'Guantes (7 a 11)',
+};
+
 export interface ArticuloInventario {
   id: string;
   codigo: string;
@@ -44,6 +52,12 @@ export interface ArticuloInventario {
   costoUnitario: number | null;
   /** % de descuento sugerido a nivel general (no por cliente). */
   descuentoSugerido: number | null;
+  /** Se entrega a una persona (EPI y ropa de trabajo): QHSE lo recibe por evento. */
+  entregaPersonal: boolean;
+  /** Tipo de talla que admite al entregarse; la talla se elige al entregar (no es parte del artículo). */
+  tipoTalla: TipoTallaArticulo | null;
+  /** Códigos de AS2 fusionados en este artículo (tallas que eran productos, duplicados). */
+  equivalencias: Array<{ codigo: string; motivo: 'talla' | 'duplicado' | 'digitacion' }>;
   activo: boolean;
   /** Calculado del kardex: nunca se edita. */
   stockActual: number;
@@ -81,6 +95,9 @@ export interface CrearArticuloInput {
   costoUnitario?: number;
   descuentoSugerido?: number;
   activo?: boolean;
+  entregaPersonal?: boolean;
+  /** `null` quita la talla. Exige `entregaPersonal`. */
+  tipoTalla?: TipoTallaArticulo | null;
   /** Cadena vacía quita el código. */
   codigos?: { alterno?: string; comercial?: string; barras?: string };
 }

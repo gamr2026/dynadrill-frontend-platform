@@ -157,6 +157,16 @@
                   <span class="tpd__meta">{{ d.actividades }} actividad(es) · {{ d.totalHoras }} h</span>
                 </div>
                 <div class="tpd__requisito-acciones">
+                  @for (m of monitoreosDe(d.fecha); track m.id; let ultimo = $last) {
+                    @if (ultimo) {
+                      <dynadrill-button variant="secondary" size="small" (clicked)="descargarMonitoreo(m)">Descargar monitoreo</dynadrill-button>
+                    }
+                  }
+                  @if (puedeLlenarReporteDiario() && d.estado !== 'corregido') {
+                    <label class="tpd__meta">{{ subiendoMonitoreo() === d.fecha ? 'Subiendo…' : monitoreosDe(d.fecha).length ? 'Reemplazar monitoreo' : 'Adjuntar monitoreo' }}
+                      <input type="file" accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx" [disabled]="subiendoMonitoreo() !== null" (change)="alElegirMonitoreo(d.fecha, $event)" />
+                    </label>
+                  }
                   <dynadrill-button variant="secondary" size="small" (clicked)="abrirReporteDiario(d.fecha)">{{ puedeLlenarReporteDiario() && d.estado !== 'corregido' ? 'Abrir y editar' : 'Ver' }}</dynadrill-button>
                 </div>
               </li>
@@ -168,6 +178,35 @@
             <div class="tpd__acciones" role="group" aria-label="Nuevo día">
               <label class="tpd__meta">Día <input type="date" [value]="fechaNueva()" (input)="fechaNueva.set($any($event.target).value)" /></label>
               <dynadrill-button variant="primary" size="small" [disabled]="!fechaNueva()" (clicked)="abrirReporteDiario(fechaNueva(), true)">Llenar reporte de ese día</dynadrill-button>
+            </div>
+          }
+        </section>
+      }
+
+      @if (muestraCambios()) {
+        <section class="tpd__tarjeta" aria-label="Cambios de ítems del pedido">
+          <h2>Cambios de ítems del pedido</h2>
+          <p class="tpd__meta">El equipo propone cómo deben quedar los ítems; el Supervisor del ticket los aprueba y Facturación los aplica con su lista de precios.</p>
+          <ul class="tpd__requisitos">
+            @for (s of cambiosItems(); track s.id) {
+              <li class="tpd__requisito">
+                <div class="tpd__requisito-info">
+                  <dynadrill-tag [label]="estadoCambio(s)" [variant]="tonoCambio(s)" [uppercase]="false" />
+                  <strong>{{ fechaHora(s.solicitadoAt) }}</strong>
+                  <span class="tpd__meta">{{ s.solicitadoPor.nombre }} · {{ s.items.length }} ítem(s) · {{ s.motivo }}</span>
+                  @if (aplicacionCambio(s); as a) { <span class="tpd__meta">· {{ a }}</span> }
+                </div>
+                <div class="tpd__requisito-acciones">
+                  <dynadrill-button [variant]="puedeRevisarCambios() && s.estado === 'pendiente' ? 'primary' : 'secondary'" size="small" (clicked)="verCambio(s)">{{ puedeRevisarCambios() && s.estado === 'pendiente' ? 'Revisar' : 'Ver' }}</dynadrill-button>
+                </div>
+              </li>
+            } @empty {
+              <li class="tpd__meta">Todavía no hay cambios propuestos.</li>
+            }
+          </ul>
+          @if (puedeProponerCambio()) {
+            <div class="tpd__acciones" role="group" aria-label="Proponer un cambio">
+              <dynadrill-button variant="secondary" size="small" (clicked)="proponerCambio()">Proponer un cambio de ítems</dynadrill-button>
             </div>
           }
         </section>
@@ -204,6 +243,10 @@
             }
           </div>
         </section>
+      }
+
+      @if (puedeVerMantenimientos() && hayAsignacion()) {
+        <app-ticket-maintenance-card [ticketId]="t.id" />
       }
 
       <section class="tpd__tarjeta" aria-label="Historial">

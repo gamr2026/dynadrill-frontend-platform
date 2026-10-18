@@ -52,6 +52,11 @@ export class MantenimientoPlataformaService {
     return this.http.get<OrdenApi[]>(`${this.base}/ordenes`, { params });
   }
 
+  /** Las órdenes de las unidades que lleva un ticket de Pumping (la tarjeta «Mantenimientos» del ticket). */
+  ordenesDeTicket(ticketId: string): Observable<OrdenApi[]> {
+    return this.http.get<OrdenApi[]>(`${this.base}/tickets/${ticketId}/ordenes`);
+  }
+
   orden(id: string): Observable<OrdenApi> {
     return this.http.get<OrdenApi>(`${this.base}/ordenes/${id}`);
   }

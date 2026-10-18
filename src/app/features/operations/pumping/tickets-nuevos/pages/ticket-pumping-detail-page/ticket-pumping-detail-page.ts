@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { switchMap } from 'rxjs';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
@@ -10,12 +11,25 @@ import {
   DynadrillTagComponent,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../../../../core/services/auth.service';
+import {
+  ESTADO_SOLICITUD_LABELS,
+  ESTADO_SOLICITUD_TONO,
+  PERMISO_CAMBIOS_APROBAR,
+  PERMISO_CAMBIOS_SOLICITAR,
+  etiquetaAplicacion,
+  type SolicitudCambioItems,
+} from '../../models/cambio-items';
 import { MotivoDialog, type MotivoDialogData } from '../../../../../../shared/components/motivo-dialog/motivo-dialog';
+import { ArchivosService } from '../../../../../facturacion/pedidos-comercial/services/archivos.service';
+import { mensajeErrorArchivo } from '../../../../../facturacion/pedidos-comercial/models/documentos-pedido';
 import { formatoDia } from '../../../../../facturacion/pedidos-comercial/models/pedido-comercial.model';
 import { PERMISO_PREFACTURA_FIRMA_COMPANY_MAN, PERMISO_PREFACTURA_VISTA_TICKET } from '../../../../../facturacion/pedidos-comercial/models/prefactura-comercial';
 import { TicketAsignarDialog, type TicketAsignarDialogData } from '../../components/ticket-asignar-dialog/ticket-asignar-dialog';
+import { TicketCambioItemsDialog, type TicketCambioItemsDialogData } from '../../components/ticket-cambio-items-dialog/ticket-cambio-items-dialog';
+import { TicketCambioItemsRevisarDialog, type TicketCambioItemsRevisarDialogData } from '../../components/ticket-cambio-items-revisar-dialog/ticket-cambio-items-revisar-dialog';
 import { TicketIngresoDialog, type TicketIngresoDialogData } from '../../components/ticket-ingreso-dialog/ticket-ingreso-dialog';
 import { TicketQuimicosDialog, type TicketQuimicosDialogData } from '../../components/ticket-quimicos-dialog/ticket-quimicos-dialog';
+import { TicketMaintenanceCard } from '../../../components/ticket-maintenance-card/ticket-maintenance-card';
 import { TicketPrefacturaDialog, type TicketPrefacturaDialogData } from '../../components/ticket-prefactura-dialog/ticket-prefactura-dialog';
 import { TicketReporteDiarioDialog, type TicketReporteDiarioDialogData } from '../../components/ticket-reporte-diario-dialog/ticket-reporte-diario-dialog';
 import { TicketReporteLlegadaDialog, type TicketReporteLlegadaDialogData } from '../../components/ticket-reporte-llegada-dialog/ticket-reporte-llegada-dialog';
@@ -25,6 +39,7 @@ import {
   MODULO_LABELS,
   ORIGEN_REQUISITO_LABELS,
   PASO_ASIGNACION,
+  MODULO_ARCHIVO_MONITOREO,
   PASO_EJECUCION,
   PASO_RETORNO,
   PASO_REVISION_FINAL,
@@ -40,6 +55,7 @@ import {
   pendientesDelPaso,
   ESTADO_REPORTE_DIARIO_LABELS,
   ESTADO_REPORTE_DIARIO_TONO,
+  type DocumentoDelTicket,
   type QuimicosTicket,
   type ReporteDiarioDia,
   type RequisitoTicket,
@@ -55,7 +71,7 @@ import { TicketsPumpingService } from '../../services/tickets-pumping.service';
  */
 @Component({
   selector: 'app-ticket-pumping-detail-page',
-  imports: [DynadrillBannerComponent, DynadrillButtonComponent, DynadrillScreenHeaderComponent, DynadrillSpinnerComponent, DynadrillTagComponent],
+  imports: [TicketMaintenanceCard, DynadrillBannerComponent, DynadrillButtonComponent, DynadrillScreenHeaderComponent, DynadrillSpinnerComponent, DynadrillTagComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './ticket-pumping-detail-page.html',
   styleUrl: './ticket-pumping-detail-page.scss',
@@ -67,6 +83,7 @@ export class TicketPumpingDetailPage {
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(DynadrillDialogService);
+  private readonly archivos = inject(ArchivosService);
 
   protected readonly cargando = signal(true);
   protected readonly ocupado = signal(false);
@@ -197,6 +214,8 @@ export class TicketPumpingDetailPage {
   }
 
   // ── Prefactura desde el ticket (revisión final) ──
+  /** El mantenimiento no es un paso del flujo: la tarjeta se ve en cualquier estado, a quien puede leer Mantenimiento. */
+  protected readonly puedeVerMantenimientos = computed(() => this.auth.can('mantenimiento.operaciones.ver') || this.auth.can('mantenimiento.ordenes.ver'));
   protected readonly puedeVerPrefactura = computed(() => this.auth.can(PERMISO_PREFACTURA_VISTA_TICKET) && ['revision_final', 'cierre'].includes(this.ticket()?.paso.codigo ?? ''));
   protected abrirPrefactura(): void {
     const t = this.ticket();
@@ -267,6 +286,100 @@ export class TicketPumpingDetailPage {
   protected readonly puedeLlenarReporteDiario = computed(() => this.ticket()?.paso.codigo === PASO_EJECUCION && this.esDelEquipo());
   /** Se muestra desde la ejecución: antes no hay nada que reportar. */
   protected readonly muestraReporteDiario = computed(() => ['ejecucion_operativa', 'control_retorno', 'traslado_llegada', 'revision_reportes_llegada', 'revision_final', 'cierre'].includes(this.ticket()?.paso.codigo ?? ''));
+
+  // ── Cambio de ítems del pedido (propone el Operador, aprueba el Supervisor, aplica Comercial) ──
+  protected readonly cambiosItems = signal<SolicitudCambioItems[]>([]);
+  protected readonly estadoCambio = (s: SolicitudCambioItems) => ESTADO_SOLICITUD_LABELS[s.estado];
+  protected readonly tonoCambio = (s: SolicitudCambioItems) => ESTADO_SOLICITUD_TONO[s.estado];
+  protected readonly aplicacionCambio = etiquetaAplicacion;
+  protected readonly esDelEquipoOSupervisor = computed(() => this.esDelEquipo() || this.esSupervisorDelTicket());
+  /** El equipo del ticket propone cambios mientras el ticket no esté cerrado y no haya otra solicitud esperando al Supervisor. */
+  protected readonly puedeProponerCambio = computed(() => {
+    const t = this.ticket();
+    return !!t && this.hayAsignacion() && t.paso.codigo !== 'cierre' && this.auth.can(PERMISO_CAMBIOS_SOLICITAR) && this.esDelEquipoOSupervisor() && !this.cambiosItems().some(s => s.estado === 'pendiente');
+  });
+  protected readonly puedeRevisarCambios = computed(() => this.auth.can(PERMISO_CAMBIOS_APROBAR) && this.esSupervisorDelTicket());
+  protected readonly muestraCambios = computed(() => this.hayAsignacion() && (this.cambiosItems().length > 0 || this.puedeProponerCambio()));
+
+  private cargarCambiosItems(id: string): void {
+    if (!this.auth.can(PERMISO_CAMBIOS_SOLICITAR) && !this.auth.can(PERMISO_CAMBIOS_APROBAR)) return;
+    this.servicio.cambiosItems(id).subscribe({ next: l => this.cambiosItems.set(l), error: () => this.cambiosItems.set([]) });
+  }
+
+  protected proponerCambio(): void {
+    const t = this.ticket();
+    if (!t) return;
+    const ref = this.dialog.open<TicketCambioItemsDialog, TicketCambioItemsDialogData>({
+      title: 'Proponer un cambio de ítems del pedido',
+      content: TicketCambioItemsDialog,
+      data: { ticketId: t.id, pedidoId: t.pedidoId, pedidoCodigo: t.pedidoCodigo },
+      footer: false,
+      width: '900px',
+    });
+    ref.afterClose.subscribe((s: SolicitudCambioItems | undefined) => s && this.cargarCambiosItems(t.id));
+  }
+
+  protected verCambio(s: SolicitudCambioItems): void {
+    const t = this.ticket();
+    if (!t) return;
+    const ref = this.dialog.open<TicketCambioItemsRevisarDialog, TicketCambioItemsRevisarDialogData>({
+      title: 'Cambio de ítems del pedido',
+      content: TicketCambioItemsRevisarDialog,
+      data: { solicitud: s, pedidoId: t.pedidoId, puedeRevisar: this.puedeRevisarCambios() },
+      footer: false,
+      width: '820px',
+    });
+    ref.afterClose.subscribe((r: SolicitudCambioItems | undefined) => r && this.cargarCambiosItems(t.id));
+  }
+
+  // ── Monitoreo de cada día (documento del ticket) ──
+  protected readonly documentos = signal<DocumentoDelTicket[]>([]);
+  protected readonly subiendoMonitoreo = signal<string | null>(null);
+  /** Los monitoreos de un día (el último es el vigente). */
+  protected monitoreosDe(fecha: string): DocumentoDelTicket[] {
+    return this.documentos().filter(d => d.tipo === 'monitoreo' && d.fecha === fecha);
+  }
+
+  private cargarDocumentos(id: string): void {
+    this.servicio.documentos(id).subscribe({ next: l => this.documentos.set(l), error: () => this.documentos.set([]) });
+  }
+
+  protected alElegirMonitoreo(fecha: string, e: Event): void {
+    const input = e.target as HTMLInputElement;
+    const t = this.ticket();
+    const archivo = input.files?.[0];
+    input.value = '';
+    if (!t || !archivo || this.subiendoMonitoreo()) return;
+    this.subiendoMonitoreo.set(fecha);
+    this.errorAccion.set(null);
+    let subiendo = true;
+    this.archivos
+      .subir(archivo, MODULO_ARCHIVO_MONITOREO)
+      .pipe(
+        switchMap(a => {
+          subiendo = false;
+          return this.servicio.adjuntarMonitoreo(t.id, fecha, a.id);
+        }),
+      )
+      .subscribe({
+        next: l => {
+          this.subiendoMonitoreo.set(null);
+          this.documentos.set(l);
+          this.notify.success('Monitoreo adjuntado', `Día ${fecha}.`);
+        },
+        error: err => {
+          this.subiendoMonitoreo.set(null);
+          this.errorAccion.set(subiendo ? mensajeErrorArchivo(err) : mensajeErrorTicket(err, 'No se pudo adjuntar el monitoreo.'));
+        },
+      });
+  }
+
+  protected descargarMonitoreo(d: DocumentoDelTicket): void {
+    this.archivos.contenido(d.archivoId).subscribe({
+      next: blob => this.archivos.guardarComo(blob, `Monitoreo ${d.fecha ?? ''}`.trim()),
+      error: () => this.errorAccion.set('No se pudo descargar el monitoreo.'),
+    });
+  }
 
   private cargarReportesDiarios(id: string): void {
     this.servicio.reportesDiarios(id).subscribe({ next: l => this.reportesDiarios.set(l), error: () => this.reportesDiarios.set([]) });
@@ -341,6 +454,8 @@ export class TicketPumpingDetailPage {
     this.servicio.detalle(t.id).subscribe({ next: n => this.ticket.set(n), error: () => undefined });
     this.cargarQuimicos(t.id);
     this.cargarReportesDiarios(t.id);
+    this.cargarCambiosItems(t.id);
+    this.cargarDocumentos(t.id);
   }
 
   protected readonly hayAsignacion = computed(() => {
@@ -363,6 +478,8 @@ export class TicketPumpingDetailPage {
         this.cargando.set(false);
         this.cargarQuimicos(t.id);
         this.cargarReportesDiarios(t.id);
+        this.cargarCambiosItems(t.id);
+        this.cargarDocumentos(t.id);
       },
       error: err => {
         this.cargando.set(false);

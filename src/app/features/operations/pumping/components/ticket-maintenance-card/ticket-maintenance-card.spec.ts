@@ -69,7 +69,7 @@ describe('TicketMaintenanceCard', () => {
     subOrders,
   });
 
-  function render(orders: MaintenanceOrderWithSubOrders[], roleName = 'Jefe de Mantenimiento'): HTMLElement {
+  function render(orders: MaintenanceOrderWithSubOrders[], roleName = 'Jefe de Mantenimiento', ticketId?: string): HTMLElement {
     const user = signal<AuthenticatedUser>({
       id: 'u-1',
       legacyId: 1,
@@ -84,13 +84,14 @@ describe('TicketMaintenanceCard', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: { currentUser: user.asReadonly() } },
-        { provide: MaintenanceOrdersService, useValue: { list: () => of(orders) } },
+        { provide: MaintenanceOrdersService, useValue: { list: () => of(orders), listForTicket: (id: string) => of(id === 't-1' ? orders : []) } },
         { provide: UnitReportsService, useValue: { list: () => of([]) } },
         { provide: DynadrillDialogService, useValue: { open: () => undefined } },
       ],
     });
     const fixture = TestBed.createComponent(TicketMaintenanceCard);
-    fixture.componentRef.setInput('unitCode', 'PUM-07');
+    if (ticketId) fixture.componentRef.setInput('ticketId', ticketId);
+    else fixture.componentRef.setInput('unitCode', 'PUM-07');
     fixture.detectChanges();
     return fixture.nativeElement as HTMLElement;
   }
@@ -103,6 +104,16 @@ describe('TicketMaintenanceCard', () => {
     expect(el.querySelectorAll('.ticket-maintenance__item').length).toBe(2);
     expect(el.textContent).not.toContain('R2002-M');
     expect(el.querySelector('.ticket-maintenance__summary')?.textContent).toContain('1 abierto');
+  });
+
+  it('en los pedidos nuevos trae las órdenes de las unidades del ticket, sin filtrar por el código de la unidad', () => {
+    const el = render([order('FLOTA-9', [sub({ id: 's-1', code: 'R2001-M' })]), order('OTRA-1', [sub({ id: 's-2', code: 'R2002-M' })])], 'Jefe de Mantenimiento', 't-1');
+    expect(el.querySelectorAll('.ticket-maintenance__item').length).toBe(2);
+    expect(el.querySelector('.ticket-maintenance__summary')?.textContent).toContain('Unidades del ticket');
+  });
+
+  it('si el ticket no tiene órdenes lo dice sin nombrar una unidad', () => {
+    expect(render([], 'Jefe de Mantenimiento', 't-2').textContent).toContain('las unidades de este ticket');
   });
 
   it('estado vacío cuando la unidad no tiene mantenimientos', () => {

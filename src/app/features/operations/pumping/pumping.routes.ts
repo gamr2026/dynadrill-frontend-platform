@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { roleGuard } from '../../../core/guards/role.guard';
 import { permissionGuard } from '../../../core/guards/permission.guard';
 import { PUMPING_MANTENIMIENTO_ROLES } from './models/pumping.model';
+import { PERMISO_CAMBIOS_APROBAR } from './tickets-nuevos/models/cambio-items';
 import { PERMISO_PUMPING_OPERAR } from './tickets-nuevos/models/ticket-pumping';
 
 /** Roles que pueden abrir tickets de Pumping — también lo usa el detalle del pedido para decidir si muestra "Ir a Pumping". */
@@ -21,6 +22,12 @@ export const pumpingRoutes: Routes = [
     path: 'pedidos',
     loadComponent: () => import('./tickets-nuevos/pages/tickets-pumping-list-page/tickets-pumping-list-page').then(m => m.TicketsPumpingListPage),
     canActivate: [permissionGuard(PERMISO_PUMPING_OPERAR)],
+  },
+  // Bandeja de Aprobaciones del Supervisor (cambios de ítems del pedido); antes de `pedidos/:id` para que no se tome como un id.
+  {
+    path: 'pedidos/aprobaciones',
+    loadComponent: () => import('./tickets-nuevos/pages/aprobaciones-cambios-page/aprobaciones-cambios-page').then(m => m.AprobacionesCambiosPage),
+    canActivate: [permissionGuard(PERMISO_CAMBIOS_APROBAR)],
   },
   {
     path: 'pedidos/:id',

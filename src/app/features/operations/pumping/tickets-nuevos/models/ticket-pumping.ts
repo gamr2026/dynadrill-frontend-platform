@@ -364,6 +364,19 @@ export function validarLlegada(v: { fecha: string; combustible: number | null; o
   return null;
 }
 
+/** Un documento del ticket: la mezcla de químicos (de la asignación) o el monitoreo de un día de operación. */
+export interface DocumentoDelTicket {
+  id: string;
+  tipo: 'mezcla_quimica' | 'monitoreo';
+  /** Día de operación; solo en el monitoreo. */
+  fecha: string | null;
+  archivoId: string;
+  createdAt: string;
+}
+
+/** Módulo de `archivos` del monitoreo de un día de operación. */
+export const MODULO_ARCHIVO_MONITOREO = 'ticket_monitoreo_documento';
+
 export const PASO_REVISION_SALIDA = 'revision_reportes_salida';
 // ── Reporte Diario de Actividades (DYN-SGI-RE-047, el «Reporte Job») ──
 

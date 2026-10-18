@@ -2,9 +2,11 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '@env';
+import type { ItemsParaCambio, ProponerCambioEntrada, SolicitudCambioItems } from '../models/cambio-items';
 import type {
   AsignacionEntrada,
   ConfirmacionIngreso,
+  DocumentoDelTicket,
   FiltroTickets,
   QuimicoEntrada,
   ReporteDiario,
@@ -48,6 +50,45 @@ export class TicketsPumpingService {
 
   avanzar(id: string, hacia: string, motivo?: string): Observable<TicketPumping> {
     return this.http.post<TicketPumping>(`${this.base}/tickets/${id}/avanzar`, motivo?.trim() ? { hacia, motivo: motivo.trim() } : { hacia });
+  }
+
+  // ── Cambio de ítems del pedido (propone el Operador, aprueba el Supervisor, aplica Comercial) ──
+
+  /** Los ítems que el pedido tiene hoy en Comercial y, con `q` (2 letras o más), los elegibles de la lista del cliente (sin precios). */
+  itemsParaCambio(pedidoId: string, q = ''): Observable<ItemsParaCambio> {
+    return this.http.get<ItemsParaCambio>(`${environment.apiUrl}/comercial/pedidos/${pedidoId}/items-para-cambio`, { params: new HttpParams().set('q', q) });
+  }
+
+  cambiosItems(id: string): Observable<SolicitudCambioItems[]> {
+    return this.http.get<SolicitudCambioItems[]>(`${this.base}/tickets/${id}/cambios-items`);
+  }
+
+  proponerCambioItems(id: string, cuerpo: ProponerCambioEntrada): Observable<SolicitudCambioItems> {
+    return this.http.post<SolicitudCambioItems>(`${this.base}/tickets/${id}/cambios-items`, cuerpo);
+  }
+
+  /** Bandeja de Aprobaciones: las pendientes de los tickets que supervisa quien consulta. */
+  cambiosItemsPendientes(): Observable<SolicitudCambioItems[]> {
+    return this.http.get<SolicitudCambioItems[]>(`${this.base}/cambios-items/pendientes`);
+  }
+
+  aprobarCambioItems(solicitudId: string): Observable<SolicitudCambioItems> {
+    return this.http.post<SolicitudCambioItems>(`${this.base}/cambios-items/${solicitudId}/aprobar`, {});
+  }
+
+  rechazarCambioItems(solicitudId: string, motivo?: string): Observable<SolicitudCambioItems> {
+    return this.http.post<SolicitudCambioItems>(`${this.base}/cambios-items/${solicitudId}/rechazar`, motivo?.trim() ? { motivo: motivo.trim() } : {});
+  }
+
+  // ── Documentos del ticket (monitoreo por día) ──
+
+  documentos(id: string): Observable<DocumentoDelTicket[]> {
+    return this.http.get<DocumentoDelTicket[]>(`${this.base}/tickets/${id}/documentos`);
+  }
+
+  /** El Operador del equipo adjunta el monitoreo de un día (el archivo se sube antes a `archivos`). */
+  adjuntarMonitoreo(id: string, fecha: string, archivoId: string): Observable<DocumentoDelTicket[]> {
+    return this.http.post<DocumentoDelTicket[]>(`${this.base}/tickets/${id}/documentos/monitoreo`, { fecha, archivoId });
   }
 
   // ── Reporte Diario de Actividades (Reporte Job) ──

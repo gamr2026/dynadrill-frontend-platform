@@ -75,7 +75,10 @@ export class TicketMaintenanceCard {
   private readonly dialog = inject(DynadrillDialogService);
   private readonly auth = inject(AuthService);
 
-  readonly unitCode = input.required<string>();
+  /** Pedidos del backend nuevo: las órdenes de las unidades de este ticket (la unidad del ticket es un vehículo; la de Mantenimiento, su unidad de Flota). */
+  readonly ticketId = input<string>();
+  /** Pantalla vieja (demo): se filtra por el código de la unidad. */
+  readonly unitCode = input<string>('');
 
   protected readonly loading = signal(true);
   protected readonly error = signal(false);
@@ -86,7 +89,7 @@ export class TicketMaintenanceCard {
     const rol = this.auth.currentUser()?.roleName ?? '';
     const userId = this.auth.currentUser()?.id;
     return this.orders()
-      .filter(order => order.unidad === this.unitCode())
+      .filter(order => !!this.ticketId() || order.unidad === this.unitCode())
       .flatMap(order =>
         order.subOrders.map(sub => ({
           sub,
@@ -141,7 +144,8 @@ export class TicketMaintenanceCard {
   }
 
   private cargar(): void {
-    forkJoin([this.ordersService.list(), this.unitReportsService.list()]).subscribe({
+    const ordenes$ = this.ticketId() ? this.ordersService.listForTicket(this.ticketId() as string) : this.ordersService.list();
+    forkJoin([ordenes$, this.unitReportsService.list()]).subscribe({
       next: ([orders, reports]) => {
         this.orders.set(orders);
         this.unitReports.set(reports);

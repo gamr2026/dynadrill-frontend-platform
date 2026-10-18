@@ -62,6 +62,11 @@ export class MaintenanceOrdersService {
     return this.api.ordenes(filtros).pipe(map(os => os.map(ordenAMaintenanceOrder)));
   }
 
+  /** Las órdenes de las unidades que lleva un ticket de Pumping (no solo las que el ticket originó). */
+  listForTicket(ticketId: string): Observable<MaintenanceOrderWithSubOrders[]> {
+    return this.api.ordenesDeTicket(ticketId).pipe(map(os => os.map(ordenAMaintenanceOrder)));
+  }
+
   get(id: string): Observable<MaintenanceOrderWithSubOrders> {
     return this.api.orden(id).pipe(map(ordenAMaintenanceOrder));
   }

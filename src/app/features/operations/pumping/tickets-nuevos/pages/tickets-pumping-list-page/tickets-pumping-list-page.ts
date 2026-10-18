@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { AuthService } from '../../../../../../core/services/auth.service';
+import { PERMISO_CAMBIOS_APROBAR } from '../../models/cambio-items';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
@@ -43,6 +45,9 @@ import { TicketsPumpingService } from '../../services/tickets-pumping.service';
 export class TicketsPumpingListPage {
   private readonly servicio = inject(TicketsPumpingService);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+  /** El Supervisor ve el acceso a su bandeja de Aprobaciones (cambios de ítems del pedido). */
+  protected readonly puedeAprobar = computed(() => this.auth.can(PERMISO_CAMBIOS_APROBAR));
 
   protected readonly cargando = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -91,4 +96,8 @@ export class TicketsPumpingListPage {
   protected readonly roles = etiquetaRoles;
   protected readonly tipo = etiquetaTipoServicio;
   protected readonly tono = (t: TicketPumpingResumen) => TONO_MACRO[t.paso.macro];
+
+  protected irAAprobaciones(): void {
+    void this.router.navigate(['/modulos/operativo/pumping/pedidos/aprobaciones']);
+  }
 }

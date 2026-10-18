@@ -10,6 +10,9 @@
       <dynadrill-input label="Buscar (ticket, pedido, cliente o pozo)" [value]="busqueda()" (valueChange)="busqueda.set($event)" (keydown.enter)="cargar()" />
       <dynadrill-select label="Paso" placeholder="Todos los pasos" [options]="opcionesPaso" [value]="paso()" (valueChange)="elegirPaso($any($event))" />
       <dynadrill-button variant="secondary" (clicked)="cargar()">Buscar</dynadrill-button>
+      @if (puedeAprobar()) {
+        <dynadrill-button variant="secondary" (clicked)="irAAprobaciones()">Aprobaciones</dynadrill-button>
+      }
       <dynadrill-button variant="secondary" (clicked)="alternarMios()">{{ solicitos() ? 'Ver todos los tickets' : 'Ver solo los que atiende mi rol' }}</dynadrill-button>
     </div>
 

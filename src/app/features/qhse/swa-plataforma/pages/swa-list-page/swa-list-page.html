@@ -1,0 +1,55 @@
+<div class="swa-page">
+  <app-page-header
+    eyebrow="QHSE"
+    title="Stop Work Authority (SWA)"
+    subtitle="HSE-SEGUIMIENTO-003 — una SWA sin cerrar bloquea el servicio detenido"
+  >
+    <div actions>
+      <dynadrill-button (clicked)="activar()">Activar SWA</dynadrill-button>
+    </div>
+  </app-page-header>
+
+  <div class="swa-page__toolbar">
+    <app-qhse-filtros
+      [opciones]="opcionesFiltro()"
+      [selected]="filtroEstado()"
+      (selectedChange)="filtroEstado.set($any($event))"
+    />
+    <dynadrill-input
+      placeholder="Buscar por SWA, peligro, pedido, cliente…"
+      [value]="busqueda()"
+      (valueChange)="busqueda.set($event)"
+    />
+  </div>
+
+  @if (isMobile()) {
+    <app-qhse-registros-movil
+      [items]="itemsMovil()"
+      [loading]="cargando()"
+      vacio="No hay SWA con ese filtro."
+    />
+  } @else {
+    <ng-template #accionesTpl let-row>
+      <div class="swa-page__row-actions">
+        <dynadrill-icon-button
+          icon="eye"
+          tooltip="Abrir"
+          tooltipPlacement="top"
+          (clicked)="abrir(row.id)"
+        />
+      </div>
+    </ng-template>
+
+    <div class="table-scroll dyn-table-card">
+      <dynadrill-data-table
+        [columns]="columnas"
+        [rows]="filas()"
+        [loading]="cargando()"
+        [rowKey]="rowKeyFn"
+        [pageSize]="10"
+        actionsHeader="Acciones"
+        [actionsTemplate]="accionesTpl"
+      />
+    </div>
+  }
+</div>

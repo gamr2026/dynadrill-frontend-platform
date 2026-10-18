@@ -6,6 +6,7 @@ import { permissionGuard } from '../../core/guards/permission.guard';
 import { PERMISO_EPI_VER } from './entrega-epi/models/entrega-epi';
 import { PERMISO_DOCUMENTOS_VER } from './documentos-pedido/models/documento-pedido';
 import { PERMISO_PTW_VER } from './permiso-trabajo/models/permiso-trabajo';
+import { PERMISO_SWA_VER } from './swa-plataforma/models/swa';
 
 /**
  * Fase 1 del módulo QHSE (HSE-PLAN-001 / HSE-SITIO-001): IPERC + PTW.
@@ -97,6 +98,14 @@ export const qhseRoutes: Routes = [
       ),
     canActivate: [roleGuard],
     data: { allowedRoles: HSE_STAFF_ROLES },
+  },
+  {
+    // SWA del backend nuevo (contenedor qhse, `/api/v2/qhse/swa`): se autoriza por permiso del token. El detalle se abre en un diálogo;
+    // la pantalla de la demo (`swa/:id`) queda sin enlaces hasta el Corte.
+    path: 'swa',
+    loadComponent: () =>
+      import('./swa-plataforma/pages/swa-list-page/swa-list-page').then((m) => m.SwaListPage),
+    canActivate: [permissionGuard(PERMISO_SWA_VER)],
   },
   {
     path: 'swa/:id',

@@ -1,0 +1,54 @@
+<div class="docs-page">
+  <app-page-header
+    eyebrow="QHSE"
+    title="Documentos por pedido"
+    subtitle="Formato de recepción, ART (vale 15 días), PT del día y SFI. El Acta de Entrega de Locación la sube el Supervisor desde su ticket"
+  />
+
+  <div class="docs-page__toolbar">
+    <dynadrill-input
+      placeholder="Buscar por pedido o n.º de ticket…"
+      [value]="busqueda()"
+      (valueChange)="busqueda.set($event)"
+    />
+  </div>
+
+  @if (isMobile()) {
+    <app-qhse-registros-movil
+      [items]="itemsMovil()"
+      [loading]="cargando()"
+      vacio="No hay pedidos con tickets conocidos por QHSE."
+    />
+  } @else {
+    <ng-template #accionesTpl let-row>
+      <div class="docs-page__row-actions">
+        <dynadrill-icon-button
+          icon="eye"
+          tooltip="Ver los documentos del pedido"
+          tooltipPlacement="top"
+          (clicked)="ver(row.id, row.codigo)"
+        />
+        @if (puedeCargar()) {
+          <dynadrill-icon-button
+            icon="upload"
+            tooltip="Cargar un documento"
+            tooltipPlacement="top"
+            (clicked)="cargar(row.id, row.codigo)"
+          />
+        }
+      </div>
+    </ng-template>
+
+    <div class="table-scroll dyn-table-card">
+      <dynadrill-data-table
+        [columns]="columnas"
+        [rows]="filas()"
+        [loading]="cargando()"
+        [rowKey]="rowKeyFn"
+        [pageSize]="10"
+        actionsHeader="Acciones"
+        [actionsTemplate]="accionesTpl"
+      />
+    </div>
+  }
+</div>

@@ -97,6 +97,27 @@ export interface RegistrarFirmaRequest {
 }
 
 export const MODULO_ARCHIVO_PREFACTURA = 'prefactura_documento';
+/** Módulo de `archivos` del documento que firma el Company Man y sube el Supervisor desde el ticket. */
+export const MODULO_ARCHIVO_COMPANY_MAN = 'prefactura_company_man';
+
+export const PERMISO_PREFACTURA_VISTA_TICKET = 'comercial.prefacturas.vista_ticket';
+export const PERMISO_PREFACTURA_FIRMA_COMPANY_MAN = 'comercial.prefacturas.firma_company_man';
+
+/** «Ver prefactura» desde el ticket: la vigente, o una preliminar calculada al vuelo (no se guarda), y el avance de la documentación. */
+export interface VistaPrefacturaTicket {
+  preliminar: boolean;
+  prefactura: Pick<Prefactura, 'totales' | 'tasas' | 'items' | 'advertencias'> & Partial<Pick<Prefactura, 'id' | 'estado' | 'ticketNumero' | 'firmas'>>;
+  avance: { completo: boolean; pendientes: string[] };
+}
+
+/** Cuerpo de `POST /pedidos/:pedidoId/prefactura/firma-company-man`: quién firmó, cuándo, y el archivo ya subido. */
+export interface FirmaCompanyManEntrada {
+  nombre: string;
+  cargo?: string;
+  firmadoAt: string;
+  archivoId: string;
+  razonRetraso?: string;
+}
 export const MAX_BYTES_FIRMA = 25 * 1024 * 1024;
 export const MIN_MOTIVO_RECHAZO = 5;
 

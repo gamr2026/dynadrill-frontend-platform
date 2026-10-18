@@ -12,9 +12,12 @@ import {
 import { AuthService } from '../../../../../../core/services/auth.service';
 import { MotivoDialog, type MotivoDialogData } from '../../../../../../shared/components/motivo-dialog/motivo-dialog';
 import { formatoDia } from '../../../../../facturacion/pedidos-comercial/models/pedido-comercial.model';
+import { PERMISO_PREFACTURA_FIRMA_COMPANY_MAN, PERMISO_PREFACTURA_VISTA_TICKET } from '../../../../../facturacion/pedidos-comercial/models/prefactura-comercial';
 import { TicketAsignarDialog, type TicketAsignarDialogData } from '../../components/ticket-asignar-dialog/ticket-asignar-dialog';
 import { TicketIngresoDialog, type TicketIngresoDialogData } from '../../components/ticket-ingreso-dialog/ticket-ingreso-dialog';
 import { TicketQuimicosDialog, type TicketQuimicosDialogData } from '../../components/ticket-quimicos-dialog/ticket-quimicos-dialog';
+import { TicketPrefacturaDialog, type TicketPrefacturaDialogData } from '../../components/ticket-prefactura-dialog/ticket-prefactura-dialog';
+import { TicketReporteLlegadaDialog, type TicketReporteLlegadaDialogData } from '../../components/ticket-reporte-llegada-dialog/ticket-reporte-llegada-dialog';
 import { TicketReporteUnidadDialog, type TicketReporteUnidadDialogData } from '../../components/ticket-reporte-unidad-dialog/ticket-reporte-unidad-dialog';
 import { TicketTerminosDialog, type TicketTerminosDialogData } from '../../components/ticket-terminos-dialog/ticket-terminos-dialog';
 import {
@@ -23,6 +26,8 @@ import {
   PASO_ASIGNACION,
   PASO_EJECUCION,
   PASO_RETORNO,
+  PASO_REVISION_FINAL,
+  PASO_TRASLADO_LLEGADA,
   PERMISO_PUENTE_REQUISITOS,
   TONO_MACRO,
   etiquetaRol,
@@ -150,6 +155,35 @@ export class TicketPumpingDetailPage {
     ref.afterClose.subscribe((ok: boolean | undefined) => ok && this.recargar());
   }
 
+  /** Reporte de unidad de llegada: lo firma el operador de la unidad en el Traslado de llegada; después se consulta. */
+  protected abrirReporteLlegada(r: RequisitoTicket): void {
+    const t = this.ticket();
+    if (!t || !r.vehiculoId) return;
+    const ref = this.dialog.open<TicketReporteLlegadaDialog, TicketReporteLlegadaDialogData>({
+      title: `Reporte de unidad de llegada — ${r.para ?? ''}`,
+      content: TicketReporteLlegadaDialog,
+      data: { ticketId: t.id, vehiculoId: r.vehiculoId, placa: r.para ?? '', soloLectura: t.paso.codigo !== PASO_TRASLADO_LLEGADA || !this.puedeFirmarUnidad(r) },
+      footer: false,
+      width: '900px',
+    });
+    ref.afterClose.subscribe((ok: boolean | undefined) => ok && this.recargar());
+  }
+
+  // ── Prefactura desde el ticket (revisión final) ──
+  protected readonly puedeVerPrefactura = computed(() => this.auth.can(PERMISO_PREFACTURA_VISTA_TICKET) && ['revision_final', 'cierre'].includes(this.ticket()?.paso.codigo ?? ''));
+  protected abrirPrefactura(): void {
+    const t = this.ticket();
+    if (!t) return;
+    const ref = this.dialog.open<TicketPrefacturaDialog, TicketPrefacturaDialogData>({
+      title: 'Prefactura del servicio',
+      content: TicketPrefacturaDialog,
+      data: { pedidoId: t.pedidoId, puedeFirmar: t.paso.codigo === PASO_REVISION_FINAL && this.auth.can(PERMISO_PREFACTURA_FIRMA_COMPANY_MAN) },
+      footer: false,
+      width: '860px',
+    });
+    ref.afterClose.subscribe((firmada: boolean | undefined) => firmada && this.recargar());
+  }
+
   /** PUENTE TEMPORAL: confirma a mano un requisito de un módulo que todavía no existe en el portal nuevo. */
   protected confirmarAMano(r: RequisitoTicket): void {
     const ref = this.dialog.open<MotivoDialog, MotivoDialogData>({
@@ -267,12 +301,27 @@ export class TicketPumpingDetailPage {
     });
   }
 
+  /** Pasa al siguiente paso; si la salida exige motivo (p. ej. rechazar la revisión final), lo pide antes. */
   protected avanzar(s: SiguientePaso): void {
     const t = this.ticket();
     if (!t || this.ocupado()) return;
+    if (!s.requiereMotivo) return this.pasarA(s);
+    const ref = this.dialog.open<MotivoDialog, MotivoDialogData>({
+      title: `Devolver a ${s.nombre}`,
+      content: MotivoDialog,
+      data: { mensaje: `El ticket volverá a "${s.nombre}". Indique el motivo para que quien lo atiende sepa qué corregir.`, label: 'Motivo' },
+      footer: false,
+      width: '480px',
+    });
+    ref.afterClose.subscribe((motivo: string | undefined) => motivo && this.pasarA(s, motivo));
+  }
+
+  private pasarA(s: SiguientePaso, motivo?: string): void {
+    const t = this.ticket();
+    if (!t) return;
     this.ocupado.set(true);
     this.errorAccion.set(null);
-    this.servicio.avanzar(t.id, s.codigo).subscribe({
+    this.servicio.avanzar(t.id, s.codigo, motivo).subscribe({
       next: n => {
         this.ocupado.set(false);
         this.ticket.set(n);

@@ -11,6 +11,7 @@ import type {
   GasIngreso,
   AceptacionOperador,
   IngresoLocacion,
+  LlegadaEntrada,
   ReporteUnidad,
   SalidaEntrada,
   TerminosVigentes,
@@ -102,6 +103,11 @@ export class TicketsPumpingService {
 
   guardarSalida(id: string, vehiculoId: string, cuerpo: SalidaEntrada): Observable<ReporteUnidad> {
     return this.http.put<ReporteUnidad>(`${this.base}/tickets/${id}/reportes-unidad/${vehiculoId}/salida`, cuerpo);
+  }
+
+  /** El operador de la unidad firma su reporte de llegada (solo en el Traslado de llegada). */
+  guardarLlegada(id: string, vehiculoId: string, cuerpo: LlegadaEntrada): Observable<ReporteUnidad> {
+    return this.http.put<ReporteUnidad>(`${this.base}/tickets/${id}/reportes-unidad/${vehiculoId}/llegada`, cuerpo);
   }
 
   /** PUENTE TEMPORAL: confirma a mano un requisito de un módulo que aún no existe (QHSE, Mantenimiento). */

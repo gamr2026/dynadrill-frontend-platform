@@ -314,6 +314,17 @@ export interface ReporteUnidad {
   origen: string | null;
   destino: string | null;
   salida: { fecha: string | null; combustible: number | null; firmadaPor: string | null; firmadaAt: string | null };
+  llegada: {
+    fecha: string | null;
+    combustible: number | null;
+    novedadesMecanica: string | null;
+    novedadesInstrumentacion: string | null;
+    novedadesOperaciones: string | null;
+    unidadLista: boolean | null;
+    operacionInterrumpida: boolean | null;
+    detalleInterrupcion: string | null;
+    firmadaAt: string | null;
+  };
   hubodometros: { eje: string; punto: PuntoHubodometro; salida: number | null; llegada: number | null }[];
   llantas: { posicion: PosicionLlanta; salida: string | null; llegada: string | null }[];
   inspecciones: { itemId: string; seccion: SeccionInspeccion; etiqueta: string; salida: ResultadoInspeccion | null; llegada: ResultadoInspeccion | null }[];
@@ -327,6 +338,34 @@ export interface SalidaEntrada {
   llantas: { posicion: PosicionLlanta; salida: string | null }[];
   inspecciones: { itemId: string; resultado: ResultadoInspeccion }[];
 }
+
+/** Cuerpo de `PUT /tickets/:id/reportes-unidad/:vehiculoId/llegada`: lo que el operador firma al llegar (Traslado de llegada). */
+export interface LlegadaEntrada {
+  fecha: string;
+  combustible: number;
+  hubodometros: { eje: string; punto: PuntoHubodometro; llegada: number | null }[];
+  llantas: { posicion: PosicionLlanta; llegada: string | null }[];
+  inspecciones: { itemId: string; resultado: ResultadoInspeccion }[];
+  novedadesMecanica?: string;
+  novedadesInstrumentacion?: string;
+  novedadesOperaciones?: string;
+  unidadLista: boolean;
+  operacionInterrumpida: boolean;
+  detalleInterrupcion?: string;
+}
+
+/** Qué falta para firmar el reporte de llegada (texto para quien opera); `null` si se puede enviar. */
+export function validarLlegada(v: { fecha: string; combustible: number | null; operacionInterrumpida: boolean; detalleInterrupcion: string }): string | null {
+  if (!v.fecha) return 'Indique la fecha de llegada.';
+  if (v.combustible === null || v.combustible < 0) return 'Indique el combustible a la llegada.';
+  if (v.operacionInterrumpida && !v.detalleInterrupcion.trim()) return 'Cuente cómo se interrumpió o atrasó la operación.';
+  return null;
+}
+
+export const PASO_TRASLADO_LLEGADA = 'traslado_llegada';
+export const PASO_REVISION_LLEGADA = 'revision_reportes_llegada';
+export const PASO_REVISION_FINAL = 'revision_final';
+export const PASO_CIERRE = 'cierre';
 
 export interface FiltroTickets {
   paso?: string;

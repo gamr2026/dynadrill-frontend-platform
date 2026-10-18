@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PASOS_PUMPING, pendientesDelPaso, validarAsignacion, TONO_MACRO, etiquetaRol, etiquetaRoles, etiquetaTipoServicio, mensajeErrorTicket, nombrePaso, validarMovimientoQuimicos, validarQuimicos } from './ticket-pumping';
+import { PASOS_PUMPING, pendientesDelPaso, validarAsignacion, TONO_MACRO, etiquetaRol, etiquetaRoles, etiquetaTipoServicio, mensajeErrorTicket, nombrePaso, validarLlegada, validarMovimientoQuimicos, validarQuimicos } from './ticket-pumping';
 
 describe('tickets de Pumping (modelo)', () => {
   it('escribe los roles con su nombre y deja pasar los desconocidos', () => {
@@ -79,5 +79,22 @@ describe('validarMovimientoQuimicos (consumo y devolución)', () => {
   it('la devolución exige la bodega de cada químico que se devuelve; las filas sin cantidad no cuentan', () => {
     expect(validarMovimientoQuimicos([{ ...fila, cantidad: 2 }], true)).toContain('bodega');
     expect(validarMovimientoQuimicos([{ ...fila, cantidad: 2, bodegaId: 'b-1' }, { ...fila, articuloId: 'a-2' }], true)).toBeNull();
+  });
+});
+
+describe('validarLlegada (reporte de unidad de llegada)', () => {
+  const ok = { fecha: '2026-11-06', combustible: 80, operacionInterrumpida: false, detalleInterrupcion: '' };
+
+  it('pide fecha y combustible', () => {
+    expect(validarLlegada(ok)).toBeNull();
+    expect(validarLlegada({ ...ok, fecha: '' })).toContain('fecha');
+    expect(validarLlegada({ ...ok, combustible: null })).toContain('combustible');
+    expect(validarLlegada({ ...ok, combustible: -1 })).toContain('combustible');
+  });
+
+  it('si la operación se interrumpió, exige contar qué pasó', () => {
+    expect(validarLlegada({ ...ok, operacionInterrumpida: true })).toContain('interrumpió');
+    expect(validarLlegada({ ...ok, operacionInterrumpida: true, detalleInterrupcion: '  ' })).toContain('interrumpió');
+    expect(validarLlegada({ ...ok, operacionInterrumpida: true, detalleInterrupcion: 'Falla de la bomba' })).toBeNull();
   });
 });

@@ -41,9 +41,14 @@
           } @else if (t.siguientes.length) {
             <div class="tpd__acciones" role="group" aria-label="Acciones del paso">
               @for (s of t.siguientes; track s.codigo) {
-                <dynadrill-button variant="primary" [disabled]="ocupado() || pendientes().length > 0" (clicked)="avanzar(s)">Pasar a {{ s.nombre }}</dynadrill-button>
+                <dynadrill-button [variant]="s.requiereMotivo ? 'secondary' : 'primary'" [disabled]="ocupado() || (!s.requiereMotivo && pendientes().length > 0)" (clicked)="avanzar(s)">{{ s.requiereMotivo ? 'Devolver a ' : 'Pasar a ' }}{{ s.nombre }}</dynadrill-button>
               }
             </div>
+            @if (puedeVerPrefactura()) {
+              <div class="tpd__acciones" role="group" aria-label="Prefactura">
+                <dynadrill-button variant="secondary" (clicked)="abrirPrefactura()">Ver prefactura y firma del Company Man</dynadrill-button>
+              </div>
+            }
             @if (pendientes().length) {
               <p class="tpd__meta" role="status">Para pasar falta: {{ pendientes().length }} requisito(s) pendiente(s) (ver más abajo).</p>
             }
@@ -78,6 +83,9 @@
                   }
                   @if (r.codigo === 'reporte_unidad_salida') {
                     <dynadrill-button variant="secondary" size="small" (clicked)="abrirReporte(r)">{{ enSuPaso(r) && puedeFirmarUnidad(r) ? 'Reporte y firma' : 'Ver reporte' }}</dynadrill-button>
+                  }
+                  @if (r.codigo === 'reporte_unidad_llegada') {
+                    <dynadrill-button variant="secondary" size="small" (clicked)="abrirReporteLlegada(r)">{{ enSuPaso(r) && puedeFirmarUnidad(r) ? 'Reporte y firma de llegada' : 'Ver reporte de llegada' }}</dynadrill-button>
                   }
                   @if (r.estado === 'pendiente' && r.modulo !== 'pumping' && puedeConfirmarAMano()) {
                     <dynadrill-button variant="secondary" size="small" (clicked)="confirmarAMano(r)">Confirmar a mano (temporal)</dynadrill-button>

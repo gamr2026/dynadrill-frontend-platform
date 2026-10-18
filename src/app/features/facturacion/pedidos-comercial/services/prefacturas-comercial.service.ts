@@ -2,13 +2,23 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '@env';
-import type { DevueltoA, MedioEnvio, Prefactura, RegistrarFirmaRequest } from '../models/prefactura-comercial';
+import type { DevueltoA, FirmaCompanyManEntrada, MedioEnvio, Prefactura, RegistrarFirmaRequest, VistaPrefacturaTicket } from '../models/prefactura-comercial';
 
 /** Prefacturas del contenedor `comercial`. La autoridad de estados y permisos es el backend. */
 @Injectable({ providedIn: 'root' })
 export class PrefacturasComercialService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}/comercial`;
+
+  /** «Ver prefactura» desde el ticket (permiso `comercial.prefacturas.vista_ticket`): no guarda nada. */
+  vistaDelTicket(pedidoId: string): Observable<VistaPrefacturaTicket> {
+    return this.http.get<VistaPrefacturaTicket>(`${this.base}/pedidos/${pedidoId}/prefactura-vista`);
+  }
+
+  /** El Supervisor sube el documento firmado por el Company Man (antes se sube a `archivos` con `prefactura_company_man`). 422 si falta documentación. */
+  firmarDesdeTicket(pedidoId: string, cuerpo: FirmaCompanyManEntrada): Observable<Prefactura> {
+    return this.http.post<Prefactura>(`${this.base}/pedidos/${pedidoId}/prefactura/firma-company-man`, cuerpo);
+  }
 
   /** Versiones del pedido, la más reciente primero. */
   delPedido(pedidoId: string): Observable<Prefactura[]> {

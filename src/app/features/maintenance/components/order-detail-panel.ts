@@ -16,8 +16,7 @@ import { MaintenanceOrdersService } from '../services/maintenance-orders.service
 import { DeriveToPumpingDialog, DeriveToPumpingDialogData } from './derive-to-pumping-dialog';
 import { ReturnToOperationDialog, ReturnToOperationDialogData } from './return-to-operation-dialog';
 import { RolesService } from '../../users/services/users.service';
-import { conIdLegacy } from '../../users/models/user.model';
-import { AuthService } from '../../../core/services/auth.service';
+import { mensajeDeError } from '../../../shared/utils/mensaje-error.util';
 import { QhseChip } from '../../qhse/shared/components/qhse-chip';
 
 export interface OrderDetailPanelData {
@@ -65,7 +64,6 @@ export class OrderDetailPanel {
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly drawerRef = inject(NzDrawerRef<OrderDetailPanel>);
-  private readonly auth = inject(AuthService);
   private readonly rolesService = inject(RolesService);
   protected readonly data = inject<OrderDetailPanelData>(NZ_DRAWER_DATA);
 
@@ -78,14 +76,14 @@ export class OrderDetailPanel {
   protected readonly isReadyToReturn = computed(() => this.orderStatus() === 'Aceptado');
 
   // ── Edición inline de operador por sub-orden ──
-  protected readonly editingSubId = signal<number | null>(null);
-  protected readonly editingOperatorId = signal<number | null>(null);
+  protected readonly editingSubId = signal<string | null>(null);
+  protected readonly editingOperatorId = signal<string | null>(null);
   protected readonly reassigning = signal(false);
   protected readonly mecanicoOptions = signal<DynadrillSelectOption[]>([]);
   protected readonly instrumentalOptions = signal<DynadrillSelectOption[]>([]);
 
   // ── Revisión inline de cierre (reemplaza el modal SuborderReviewDialog) ──
-  protected readonly rejectingSubId = signal<number | null>(null);
+  protected readonly rejectingSubId = signal<string | null>(null);
   protected readonly rejectionNote = signal('');
   protected readonly reviewing = signal(false);
 
@@ -99,10 +97,7 @@ export class OrderDetailPanel {
   protected readonly statusAccent = STATUS_ACCENT;
 
   constructor() {
-    this.rolesService.usuariosPorRol('operador_mantenimiento').subscribe(usuariosNuevos => {
-      // TRANSICIÓN (puente de ids): `reassignOperator` envía el id a la demo (numérico): solo se ofrecen operadores con
-      // `legacyId`. Se retira cuando mantenimiento migre al backend nuevo (UUID).
-      const usuarios = conIdLegacy(usuariosNuevos);
+    this.rolesService.usuariosPorRol('operador_mantenimiento').subscribe(usuarios => {
       this.mecanicoOptions.set(usuarios.filter(u => u.specialty === 'Mecánico').map(u => ({ label: u.name, value: u.id })));
       this.instrumentalOptions.set(usuarios.filter(u => u.specialty === 'Instrumental').map(u => ({ label: u.name, value: u.id })));
     });
@@ -121,6 +116,10 @@ export class OrderDetailPanel {
     this.editingOperatorId.set(sub.assignedUserId ?? null);
   }
 
+  onOperatorChange(valor: unknown): void {
+    this.editingOperatorId.set(typeof valor === 'string' ? valor : null);
+  }
+
   cancelEditOperator(): void {
     this.editingSubId.set(null);
     this.editingOperatorId.set(null);
@@ -129,20 +128,18 @@ export class OrderDetailPanel {
   saveOperator(sub: SubOrder): void {
     const newId = this.editingOperatorId();
     if (!newId || this.reassigning()) return;
-    const opts = this.operatorOptionsFor(sub);
-    const opt = opts.find(o => o.value === newId);
-    if (!opt) return;
+    if (!this.operatorOptionsFor(sub).some(o => o.value === newId)) return;
     this.reassigning.set(true);
-    this.ordersService.reassignOperator(sub.id, newId, String(opt.label), this.auth.currentUser()?.name ?? '').subscribe({
+    this.ordersService.reassignOperator(sub.id, newId).subscribe({
       next: () => {
         this.editingSubId.set(null);
         this.editingOperatorId.set(null);
         this.reassigning.set(false);
         this.refreshOrder();
       },
-      error: () => {
+      error: e => {
         this.reassigning.set(false);
-        this.notify.error('Error', 'No se pudo reasignar el operador.');
+        this.notify.error('Error', mensajeDeError(e, 'No se pudo reasignar el operador.'));
       },
     });
   }
@@ -164,13 +161,13 @@ export class OrderDetailPanel {
   }
 
   // Punto 2: auto-expandir sub-órdenes "En Revisión de Cierre" al abrir el panel
-  private readonly expandedSubOrders = signal<Set<number>>(
+  private readonly expandedSubOrders = signal<Set<string>>(
     new Set(this.data.order.subOrders
       .filter(s => s.status === 'En Revisión de Cierre')
       .map(s => s.id))
   );
-  isExpanded(subId: number): boolean { return this.expandedSubOrders().has(subId); }
-  toggleExpand(subId: number): void {
+  isExpanded(subId: string): boolean { return this.expandedSubOrders().has(subId); }
+  toggleExpand(subId: string): void {
     this.expandedSubOrders.update(set => {
       const next = new Set(set);
       next.has(subId) ? next.delete(subId) : next.add(subId);
@@ -195,7 +192,7 @@ export class OrderDetailPanel {
   }
 
   // ── Revisión inline ──
-  startRejectMode(subId: number): void {
+  startRejectMode(subId: string): void {
     this.rejectingSubId.set(subId);
     this.rejectionNote.set('');
   }
@@ -214,9 +211,9 @@ export class OrderDetailPanel {
         this.notify.success('Sub-orden cerrada', `${sub.code} quedó cerrada.`);
         this.refreshOrder();
       },
-      error: () => {
+      error: e => {
         this.reviewing.set(false);
-        this.notify.error('Error', 'No se pudo cerrar la sub-orden.');
+        this.notify.error('Error', mensajeDeError(e, 'No se pudo cerrar la sub-orden.'));
       },
     });
   }
@@ -233,9 +230,9 @@ export class OrderDetailPanel {
         this.notify.warning('Corrección solicitada', `${sub.code} regresa al operador.`);
         this.refreshOrder();
       },
-      error: () => {
+      error: e => {
         this.reviewing.set(false);
-        this.notify.error('Error', 'No se pudo enviar la corrección.');
+        this.notify.error('Error', mensajeDeError(e, 'No se pudo enviar la corrección.'));
       },
     });
   }

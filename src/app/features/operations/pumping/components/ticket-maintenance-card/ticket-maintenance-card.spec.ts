@@ -9,8 +9,8 @@ import { UnitReportsService } from '../../../../maintenance/services/unit-report
 import { TicketMaintenanceCard, puedeEjecutar, puedeRevisar } from './ticket-maintenance-card';
 
 const sub = (over: Partial<SubOrder>): SubOrder => ({
-  id: 1,
-  orderId: 10,
+  id: 's-1',
+  orderId: 'o-10',
   code: 'R2001-M',
   type: 'Mecánico',
   status: 'Pendiente',
@@ -19,21 +19,21 @@ const sub = (over: Partial<SubOrder>): SubOrder => ({
 
 describe('puedeEjecutar', () => {
   it('Operador de Mantenimiento ejecuta solo sus Mecánico/Instrumental abiertas', () => {
-    expect(puedeEjecutar(sub({ assignedUserId: 7 }), 'Operador de Mantenimiento', 7)).toBe(true);
-    expect(puedeEjecutar(sub({ assignedUserId: 8 }), 'Operador de Mantenimiento', 7)).toBe(false);
-    // Sin id legacy (usuario nacido en el backend nuevo) no hay sub-órdenes propias: nunca coincide con `undefined`.
+    expect(puedeEjecutar(sub({ assignedUserId: 'u-7' }), 'Operador de Mantenimiento', 'u-7')).toBe(true);
+    expect(puedeEjecutar(sub({ assignedUserId: 'u-8' }), 'Operador de Mantenimiento', 'u-7')).toBe(false);
+    // Sin sesión no hay sub-órdenes propias: nunca coincide con `undefined`.
     expect(puedeEjecutar(sub({}), 'Operador de Mantenimiento', null)).toBe(false);
-    expect(puedeEjecutar(sub({ assignedUserId: 7, status: 'En Revisión de Cierre' }), 'Operador de Mantenimiento', 7)).toBe(false);
+    expect(puedeEjecutar(sub({ assignedUserId: 'u-7', status: 'En Revisión de Cierre' }), 'Operador de Mantenimiento', 'u-7')).toBe(false);
   });
 
   it('Operador de Pumping ejecuta las Operativo ya derivadas', () => {
-    expect(puedeEjecutar(sub({ type: 'Operativo', status: 'Derivado a Pumping' }), 'Operador', 3)).toBe(true);
-    expect(puedeEjecutar(sub({ type: 'Operativo', status: 'Pendiente' }), 'Operador', 3)).toBe(false);
+    expect(puedeEjecutar(sub({ type: 'Operativo', status: 'Derivado a Pumping' }), 'Operador', 'u-3')).toBe(true);
+    expect(puedeEjecutar(sub({ type: 'Operativo', status: 'Pendiente' }), 'Operador', 'u-3')).toBe(false);
   });
 
   it('Supervisor y Jefe no ejecutan', () => {
-    expect(puedeEjecutar(sub({ type: 'Operativo', status: 'Derivado a Pumping' }), 'Supervisor Pumping', 1)).toBe(false);
-    expect(puedeEjecutar(sub({ assignedUserId: 1 }), 'Jefe de Mantenimiento', 1)).toBe(false);
+    expect(puedeEjecutar(sub({ type: 'Operativo', status: 'Derivado a Pumping' }), 'Supervisor Pumping', 'u-1')).toBe(false);
+    expect(puedeEjecutar(sub({ assignedUserId: 'u-1' }), 'Jefe de Mantenimiento', 'u-1')).toBe(false);
   });
 });
 
@@ -58,10 +58,10 @@ describe('puedeRevisar', () => {
 
 describe('TicketMaintenanceCard', () => {
   const order = (unidad: string, subOrders: SubOrder[]): MaintenanceOrderWithSubOrders => ({
-    id: 10,
+    id: 'o-10',
     code: 'R2001',
     unidad,
-    unitReportId: 5,
+    unitReportId: 'r-5',
     origin: 'Pumping',
     sourceModule: 'Pumping',
     createdAt: '2026-10-01T10:00:00.000Z',
@@ -83,7 +83,7 @@ describe('TicketMaintenanceCard', () => {
     });
     TestBed.configureTestingModule({
       providers: [
-        { provide: AuthService, useValue: { currentUser: user.asReadonly(), legacyUserId: () => user().legacyId } },
+        { provide: AuthService, useValue: { currentUser: user.asReadonly() } },
         { provide: MaintenanceOrdersService, useValue: { list: () => of(orders) } },
         { provide: UnitReportsService, useValue: { list: () => of([]) } },
         { provide: DynadrillDialogService, useValue: { open: () => undefined } },
@@ -97,8 +97,8 @@ describe('TicketMaintenanceCard', () => {
 
   it('muestra solo las sub-órdenes de la unidad del ticket, con el resumen', () => {
     const el = render([
-      order('PUM-07', [sub({ id: 1, code: 'R2001-M' }), sub({ id: 2, code: 'R2001-I', type: 'Instrumental', status: 'Cerrado' })]),
-      order('PUM-15', [sub({ id: 3, code: 'R2002-M' })]),
+      order('PUM-07', [sub({ id: 's-1', code: 'R2001-M' }), sub({ id: 's-2', code: 'R2001-I', type: 'Instrumental', status: 'Cerrado' })]),
+      order('PUM-15', [sub({ id: 's-3', code: 'R2002-M' })]),
     ]);
     expect(el.querySelectorAll('.ticket-maintenance__item').length).toBe(2);
     expect(el.textContent).not.toContain('R2002-M');

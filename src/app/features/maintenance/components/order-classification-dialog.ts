@@ -15,8 +15,7 @@ import { CreateUnitReportInput, unitReportCode, UnitReport } from '../models/uni
 import { ClassifyTypeAssignment, MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { UnitReportsService } from '../services/unit-reports.service';
 import { RolesService } from '../../users/services/users.service';
-import { conIdLegacy } from '../../users/models/user.model';
-import { AuthService } from '../../../core/services/auth.service';
+import { mensajeDeError } from '../../../shared/utils/mensaje-error.util';
 
 export interface OrderClassificationDialogData {
   unitReport: UnitReport;
@@ -79,7 +78,6 @@ export class OrderClassificationDialog {
   private readonly ordersService = inject(MaintenanceOrdersService);
   private readonly unitReportsService = inject(UnitReportsService);
   private readonly rolesService = inject(RolesService);
-  private readonly auth = inject(AuthService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<OrderClassificationDialog, boolean>);
   protected readonly data = inject<OrderClassificationDialogData>(NZ_MODAL_DATA);
@@ -177,9 +175,14 @@ export class OrderClassificationDialog {
   }
 
   protected readonly allTypes = ALL_TYPES;
+  /**
+   * Reclasificar las novedades de una categoría a otra editaba el Reporte de Unidad de la demo. En el backend nuevo las novedades se
+   * leen del reporte de su origen (Pumping) y no se copian ni se editan aquí: queda apagado hasta que se decida cómo corregirlas.
+   */
+  protected readonly puedeReclasificarNovedades = false;
   protected readonly canDismiss = computed(() => this.dismissReason().trim().length > 0);
 
-  private readonly operatorNames = new Map<number, string>();
+  private readonly operatorNames = new Map<string, string>();
   protected readonly mecanicoOptions = signal<DynadrillSelectOption[]>([]);
   protected readonly instrumentalOptions = signal<DynadrillSelectOption[]>([]);
 
@@ -190,8 +193,8 @@ export class OrderClassificationDialog {
     ? this.existingSubOrder('Operativo')!.status === 'Derivado a Pumping'
     : true;
 
-  protected readonly mecanicoOperatorId = signal<number | null>(this.originalMecanicoOperatorId);
-  protected readonly instrumentalOperatorId = signal<number | null>(this.originalInstrumentalOperatorId);
+  protected readonly mecanicoOperatorId = signal<string | null>(this.originalMecanicoOperatorId);
+  protected readonly instrumentalOperatorId = signal<string | null>(this.originalInstrumentalOperatorId);
   /** null = sin seleccionar, true = Atendido, false = Pendiente. */
   protected readonly operativoAttended = signal<boolean | null>(
     this.isEditMode ? this.originalOperativoAttended : null,
@@ -227,10 +230,7 @@ export class OrderClassificationDialog {
   constructor() {
     // GET /api/roles/:code/usuarios — activos por rol, sin pegarle a /api/users (solo Superadmin).
     this.rolesService.usuariosPorRol(OPERATOR_ROLE_CODE).subscribe({
-      next: usuariosNuevos => {
-        // TRANSICIÓN (puente de ids): `assignedUserId` / `userId` viajan a la demo (ids numéricos): se ofrecen solo los
-        // operadores con `legacyId` y se envía ese id. Se retira cuando mantenimiento migre al backend nuevo (UUID).
-        const usuarios = conIdLegacy(usuariosNuevos);
+      next: usuarios => {
         usuarios.forEach(u => this.operatorNames.set(u.id, u.name));
         this.mecanicoOptions.set(usuarios.filter(u => u.specialty === 'Mecánico').map(u => ({ label: u.name, value: u.id })));
         this.instrumentalOptions.set(usuarios.filter(u => u.specialty === 'Instrumental').map(u => ({ label: u.name, value: u.id })));
@@ -249,11 +249,11 @@ export class OrderClassificationDialog {
   }
 
   selectMecanicoOperator(value: unknown): void {
-    this.mecanicoOperatorId.set(typeof value === 'number' ? value : null);
+    this.mecanicoOperatorId.set(typeof value === 'string' ? value : null);
   }
 
   selectInstrumentalOperator(value: unknown): void {
-    this.instrumentalOperatorId.set(typeof value === 'number' ? value : null);
+    this.instrumentalOperatorId.set(typeof value === 'string' ? value : null);
   }
 
   setOperativoAttended(attended: boolean): void {
@@ -276,9 +276,9 @@ export class OrderClassificationDialog {
         this.notify.success('Reporte descartado', 'Queda registrado como "No requiere mantenimiento", con el motivo indicado.');
         this.modalRef.close(true);
       },
-      error: () => {
+      error: e => {
         this.submitting.set(false);
-        this.notify.error('Error', 'No se pudo descartar el reporte.');
+        this.notify.error('Error', mensajeDeError(e, 'No se pudo descartar el reporte.'));
       },
     });
   }
@@ -287,7 +287,6 @@ export class OrderClassificationDialog {
     if (!this.canConfirm() || this.submitting()) return;
     this.submitting.set(true);
 
-    const assignedByName = this.auth.currentUser()?.name ?? '';
     const assignments: ClassifyTypeAssignment[] = this.selectedTypes().map(type => {
       if (type === 'Mecánico') {
         const userId = this.mecanicoOperatorId() ?? undefined;
@@ -305,14 +304,10 @@ export class OrderClassificationDialog {
     });
 
     const request$ = this.isEditMode
-      ? this.ordersService.updateClassification(this.data.existingOrder!.id, assignments, assignedByName)
+      ? this.ordersService.updateClassification(this.data.existingOrder!.id, assignments)
       : this.ordersService.classify({
           unitReportId: this.data.unitReport.id,
-          unidad: this.data.unitReport.unidad,
-          origin: 'MAN-001',
-          sourceModule: this.data.unitReport.sourceModule,
           assignments,
-          assignedByName,
         });
 
     request$.subscribe({
@@ -323,9 +318,9 @@ export class OrderClassificationDialog {
         );
         this.modalRef.close(true);
       },
-      error: () => {
+      error: e => {
         this.submitting.set(false);
-        this.notify.error('Error', 'No se pudo guardar la clasificación.');
+        this.notify.error('Error', mensajeDeError(e, 'No se pudo guardar la clasificación.'));
       },
     });
   }

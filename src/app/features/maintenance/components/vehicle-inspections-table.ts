@@ -78,10 +78,10 @@ export class VehicleInspectionsTable {
     if (!vehicleInspectionHasNoCumple(i)) return { key: 'sinNovedad', text: 'Sin novedades', tone: 'success' };
     if (!i.unitReportId) return { key: 'conNovedad', text: 'Con novedades', tone: 'error' };
 
-    const report = this.unitReports().find(r => r.id === i.unitReportId);
+    const report = this.unitReports().find(r => String(r.id) === String(i.unitReportId));
     if (report?.dismissed) return { key: 'noRequiereMantenimiento', text: 'No requiere mantenimiento', tone: 'neutral' };
 
-    const order = this.orders().find(o => o.unitReportId === i.unitReportId);
+    const order = this.orders().find(o => String(o.unitReportId) === String(i.unitReportId));
     if (!order) return { key: 'reportadoSinClasificar', text: 'Reportado — sin clasificar', tone: 'warning' };
     if (order.returnedToOperation) return { key: 'atendida', text: 'Novedad atendida', tone: 'success' };
     return { key: 'enAtencion', text: 'En atención', tone: 'info' };

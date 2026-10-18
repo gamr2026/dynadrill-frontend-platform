@@ -77,10 +77,8 @@ export class MyTasksPage {
   ]);
 
   protected readonly rows = computed(() => {
-    // TRANSICIÓN (puente de ids): `assignedUserId` viene de la demo (id numérico) — se compara con el `legacyId` del usuario.
-    // Se retira cuando mantenimiento migre al backend nuevo (UUID). Sin `legacyId` no hay tareas que mostrar.
-    const userId = this.auth.legacyUserId();
-    if (userId == null) return [];
+    const userId = this.auth.currentUser()?.id;
+    if (!userId) return [];
     return this.orders()
       .flatMap(order => order.subOrders.map(sub => ({ order, sub })))
       .filter(({ sub }) => sub.assignedUserId === userId)
@@ -127,7 +125,8 @@ export class MyTasksPage {
 
   private reload(): void {
     this.loading.set(true);
-    forkJoin({ orders: this.ordersService.list(), unitReports: this.unitReportsService.list() }).subscribe({
+    // Solo las órdenes con una sub-orden asignada a esta cuenta (el backend las filtra).
+    forkJoin({ orders: this.ordersService.list({ asignadaA: this.auth.currentUser()?.id }), unitReports: this.unitReportsService.list() }).subscribe({
       next: ({ orders, unitReports }) => {
         this.orders.set(orders);
         this.unitReports.set(unitReports);

@@ -33,10 +33,9 @@ const EJECUTABLE_OPERATIVO: readonly SubOrderStatus[] = ['Derivado a Pumping', '
 const REVISORES_OPERATIVO: readonly string[] = ['Jefe de Mantenimiento', 'Supervisor Pumping', 'Supervisor'];
 
 /**
- * TRANSICIÓN (puente de ids): `userId` es el id NUMÉRICO (demo) del usuario — `AuthService.legacyUserId` — porque
- * `assignedUserId` viene de la demo. Se retira cuando mantenimiento migre al backend nuevo (UUID).
+ * `userId` es el UUID de la cuenta (`AuthService.currentUser().id`), el mismo que trae `assignedUserId`.
  */
-export function puedeEjecutar(sub: SubOrder, rol: string, userId: number | null | undefined): boolean {
+export function puedeEjecutar(sub: SubOrder, rol: string, userId: string | null | undefined): boolean {
   if (sub.type === 'Operativo') return rol === 'Operador' && EJECUTABLE_OPERATIVO.includes(sub.status);
   return rol === 'Operador de Mantenimiento' && userId != null && sub.assignedUserId === userId && EJECUTABLE_MECANICO_INSTRUMENTAL.includes(sub.status);
 }
@@ -85,7 +84,7 @@ export class TicketMaintenanceCard {
 
   protected readonly filas = computed<FilaMantenimiento[]>(() => {
     const rol = this.auth.currentUser()?.roleName ?? '';
-    const userId = this.auth.legacyUserId();
+    const userId = this.auth.currentUser()?.id;
     return this.orders()
       .filter(order => order.unidad === this.unitCode())
       .flatMap(order =>

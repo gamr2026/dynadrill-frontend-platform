@@ -16,6 +16,7 @@ import {
 import { NovedadReadonlyComponent } from '../../../shared/components/novedad-readonly/novedad-readonly';
 import { InventarioPlataformaService } from '../../inventario/services/inventario-plataforma.service';
 import type { RepuestoDisponible } from '../../inventario/models/inventario-plataforma.model';
+import { mensajeDeError } from '../../../shared/utils/mensaje-error.util';
 import { Repuesto, SubOrder } from '../models/maintenance-order.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 
@@ -65,6 +66,7 @@ export class SuborderExecutionDialog {
   private readonly texto$ = new Subject<string>();
 
   constructor() {
+    this.cargarBodegasDeLoGuardado();
     this.texto$
       .pipe(
         debounceTime(300),
@@ -95,6 +97,22 @@ export class SuborderExecutionDialog {
     this.diagnostico().trim().length > 0 && this.actividadesCorrectivas().trim().length > 0,
   );
 
+  /** Los repuestos ya guardados traen solo su bodega: se consulta la existencia para poder cambiarla. */
+  private cargarBodegasDeLoGuardado(): void {
+    for (const r of this.repuestos().filter(x => x.articuloId)) {
+      this.inventario.repuestosDisponibles(r.numeroParte).subscribe({
+        next: lista => {
+          const a = lista.find(x => x.id === r.articuloId);
+          if (!a) return;
+          const guardada = r.bodegasDisponibles ?? [];
+          const bodegas = [...a.porBodega, ...guardada.filter(g => !a.porBodega.some(b => b.bodegaId === g.bodegaId))];
+          this.repuestos.update(list => list.map(x => (x.articuloId === r.articuloId ? { ...x, bodegasDisponibles: bodegas, unidad: a.unidad } : x)));
+        },
+        error: () => undefined, // sin la existencia se sigue pudiendo guardar con la bodega ya elegida
+      });
+    }
+  }
+
   onBusqueda(valor: string): void {
     this.busqueda.set(valor);
     this.texto$.next(valor.trim());
@@ -123,7 +141,10 @@ export class SuborderExecutionDialog {
   }
 
   protected bodegaOptions(r: Repuesto): DynadrillSelectOption[] {
-    return (r.bodegasDisponibles ?? []).map(b => ({ label: `${b.bodega} (${b.stock} disponibles)`, value: b.bodegaId }));
+    return (r.bodegasDisponibles ?? []).map(b => ({
+      label: b.stock === undefined ? b.bodega : `${b.bodega} (${b.stock} disponibles)`,
+      value: b.bodegaId,
+    }));
   }
 
   updateBodega(index: number, bodegaId: string): void {
@@ -157,7 +178,8 @@ export class SuborderExecutionDialog {
       diagnostico: this.diagnostico(),
       actividadesCorrectivas: this.actividadesCorrectivas(),
       horasTrabajo: this.horasTrabajo() ? Number(this.horasTrabajo()) : undefined,
-      repuestos: this.repuestos().filter(r => r.articuloId || r.descripcion.trim()),
+      // un repuesto de texto necesita su número de parte (el del catálogo ya trae su artículo)
+      repuestos: this.repuestos().filter(r => r.articuloId || r.numeroParte.trim()),
       trabajosAdicionales: this.trabajosAdicionales().trim() || undefined,
     };
   }
@@ -173,9 +195,9 @@ export class SuborderExecutionDialog {
         );
         this.modalRef.close(true);
       },
-      error: () => {
+      error: e => {
         this.submitting.set(false);
-        this.notify.error('Error', 'No se pudo guardar.');
+        this.notify.error('Error', mensajeDeError(e, 'No se pudo guardar.'));
       },
     });
   }
@@ -190,15 +212,15 @@ export class SuborderExecutionDialog {
             this.notify.success('Enviado a revisión', `${this.data.subOrder.code} lista para revisión de cierre.`);
             this.modalRef.close(true);
           },
-          error: () => {
+          error: e => {
             this.submitting.set(false);
-            this.notify.error('Error', 'No se pudo enviar a revisión.');
+            this.notify.error('Error', mensajeDeError(e, 'No se pudo enviar a revisión.'));
           },
         });
       },
-      error: () => {
+      error: e => {
         this.submitting.set(false);
-        this.notify.error('Error', 'No se pudo guardar.');
+        this.notify.error('Error', mensajeDeError(e, 'No se pudo guardar.'));
       },
     });
   }

@@ -11,23 +11,24 @@ export interface ChecklistDualItem {
 export type MaintenanceSourceModule = 'Pumping' | 'FCR' | 'Vehículos' | 'QHSE';
 
 export interface UnitReport {
-  id: number;
+  /** UUID del backend nuevo. */
+  id: string;
   reportNo: string;
   sourceModule: MaintenanceSourceModule;
   pozo: string;
   bloque: string;
   cliente: string;
   base: string;
-  /** FK a Unidad — de acá se lee horómetro/km acumulado para el casillero de horas. */
-  unidadId: number;
+  /** FK a Unidad — de acá se lee horómetro/km acumulado para el casillero de horas. UUID de Flota en el backend nuevo; numérico mientras los productores del reporte (Pumping, FCR) sigan en la demo. */
+  unidadId: string | number;
   /** Denormalizado para mostrar sin resolver la unidad (code o nombre corto). */
   unidad: string;
   /** Cuando este reporte se generó desde una falla detectada en Inspección de Vehículos (DYN-SGI-RE-068). */
-  originVehicleInspectionId?: number;
+  originVehicleInspectionId?: string | number;
   /** Cuando este reporte se generó automáticamente desde el Reporte de Unidad de un ticket de Pumping. */
-  originTicketId?: number;
+  originTicketId?: string | number;
   /** Cuando este reporte se generó desde una inspección QHSE de vehículo-grúa rechazada (HSE-SEGUIMIENTO-001 → HSE-004). */
-  originInspeccionHseId?: number;
+  originInspeccionHseId?: string | number;
   fechaSalida: string;
   fechaLlegada: string;
   horometroSalida?: number;

@@ -54,7 +54,7 @@
                 [options]="operatorOptionsFor(sub)"
                 [value]="editingOperatorId()"
                 [searchable]="true"
-                (valueChange)="editingOperatorId.set($event != null ? +$event : null)"
+                (valueChange)="onOperatorChange($event)"
               />
               <div class="odp__fila-botones">
                 <dynadrill-button variant="secondary" (clicked)="cancelEditOperator()">Cancelar</dynadrill-button>

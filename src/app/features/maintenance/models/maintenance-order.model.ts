@@ -26,18 +26,20 @@ export interface Repuesto {
   descripcion: string;
   articuloId?: string;
   bodegaId?: string;
-  /** Bodegas con existencia del artículo, para elegir de cuál sale (solo en pantalla; no se guarda). */
-  bodegasDisponibles?: Array<{ bodegaId: string; bodega: string; stock: number }>;
+  /** Bodegas entre las que elegir de cuál sale (solo en pantalla; no se guarda). `stock` solo se conoce si se consultó. */
+  bodegasDisponibles?: Array<{ bodegaId: string; bodega: string; stock?: number }>;
   unidad?: string;
 }
 
 export interface SubOrder {
-  id: number;
-  orderId: number;
+  /** UUID del backend nuevo. */
+  id: string;
+  orderId: string;
   code: string;
   type: MaintenanceType;
   /** Solo aplica a tipos Mecánico/Instrumental — Operativo se deriva a Pumping, nunca se asigna. */
-  assignedUserId?: number;
+  /** UUID de la cuenta del operador (identidad). */
+  assignedUserId?: string;
   assignedUserName?: string;
   /** Nombre del Jefe de Mantenimiento que hizo la asignación — para que el operador sepa quién se la mandó. */
   assignedByName?: string;
@@ -67,14 +69,15 @@ export interface SubOrder {
 }
 
 export interface MaintenanceOrder {
-  id: number;
+  /** UUID del backend nuevo. */
+  id: string;
   code: string;
   unidad: string;
-  unitReportId: number;
+  unitReportId: string;
   origin: string;
   sourceModule: MaintenanceSourceModule;
   /** Ticket de Pumping que originó la orden (solo `sourceModule === 'Pumping'`) — para "Ver ticket". */
-  pumpingTicketId?: number;
+  pumpingTicketId?: string | number;
   createdAt: string;
   /** Fin Correctivo — se llena solo cuando la orden ya se devolvió a Operaciones. */
   returnedToOperation: boolean;

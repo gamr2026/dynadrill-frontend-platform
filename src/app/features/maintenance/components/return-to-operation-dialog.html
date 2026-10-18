@@ -101,13 +101,6 @@
     [rows]="3"
   />
 
-  <dynadrill-input
-    label="Responsable de entrega"
-    placeholder="Nombre del responsable"
-    [value]="responsable()"
-    (valueChange)="responsable.set($event)"
-  />
-
   <div class="return-to-operation-dialog__actions">
     <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
     <dynadrill-button [disabled]="!canConfirm() || submitting()" (clicked)="confirm()">

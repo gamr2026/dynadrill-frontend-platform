@@ -4,7 +4,6 @@ import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import {
   DynadrillButtonComponent,
   DynadrillCardComponent,
-  DynadrillInputComponent,
   DynadrillNotificationService,
   DynadrillTagComponent,
   DynadrillTextareaComponent,
@@ -13,7 +12,7 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { MaintenanceOrderWithSubOrders, SubOrderStatus, UnitFinalState } from '../models/maintenance-order.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
-import { AuthService } from '../../../core/services/auth.service';
+import { mensajeDeError } from '../../../shared/utils/mensaje-error.util';
 
 export interface ReturnToOperationDialogData {
   order: MaintenanceOrderWithSubOrders;
@@ -37,7 +36,7 @@ const STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
 @Component({
   selector: 'app-return-to-operation-dialog',
   host: { class: 'app-dialog-fullscreen-mobile' },
-  imports: [CommonModule, DynadrillTextComponent, DynadrillInputComponent, DynadrillTextareaComponent, DynadrillButtonComponent, DynadrillCardComponent, DynadrillTagComponent],
+  imports: [CommonModule, DynadrillTextComponent, DynadrillTextareaComponent, DynadrillButtonComponent, DynadrillCardComponent, DynadrillTagComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './return-to-operation-dialog.html',
   styleUrl: './return-to-operation-dialog.scss',
@@ -46,17 +45,14 @@ export class ReturnToOperationDialog {
   protected readonly statusTone = STATUS_TONE;
   private readonly ordersService = inject(MaintenanceOrdersService);
   private readonly notify = inject(DynadrillNotificationService);
-  private readonly auth = inject(AuthService);
   private readonly modalRef = inject(NzModalRef<ReturnToOperationDialog, boolean>);
   protected readonly data = inject<ReturnToOperationDialogData>(NZ_MODAL_DATA);
 
   protected readonly estadoFinal = signal<UnitFinalState | null>(null);
   protected readonly observaciones = signal('');
-  /** Precargado con el Jefe logueado — casi siempre es quien hace la entrega, pero sigue siendo editable. */
-  protected readonly responsable = signal(this.auth.currentUser()?.name ?? '');
   protected readonly submitting = signal(false);
 
-  protected readonly canConfirm = computed(() => !!this.estadoFinal() && this.responsable().trim().length > 0);
+  protected readonly canConfirm = computed(() => !!this.estadoFinal());
 
   chooseEstado(estado: UnitFinalState): void {
     this.estadoFinal.set(estado);
@@ -69,16 +65,15 @@ export class ReturnToOperationDialog {
       .closeOrder(this.data.order.id, {
         estadoFinal: this.estadoFinal()!,
         observaciones: this.observaciones().trim(),
-        responsable: this.responsable().trim(),
       })
       .subscribe({
         next: () => {
           this.notify.success('Unidad entregada a Operaciones', `${this.data.order.code} — ${this.data.order.unidad} quedó ${this.estadoFinal()}.`);
           this.modalRef.close(true);
         },
-        error: () => {
+        error: e => {
           this.submitting.set(false);
-          this.notify.error('Error', 'No se pudo registrar el retorno a Operaciones.');
+          this.notify.error('Error', mensajeDeError(e, 'No se pudo registrar el retorno a Operaciones.'));
         },
       });
   }

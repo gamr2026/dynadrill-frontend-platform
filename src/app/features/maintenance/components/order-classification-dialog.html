@@ -24,6 +24,7 @@
         <div class="order-classification-dialog__novedad-item">
           <dynadrill-text variant="caption">{{ row.label }}</dynadrill-text>
           <dynadrill-text variant="body">{{ row.texto }}</dynadrill-text>
+          @if (puedeReclasificarNovedades) {
           <dynadrill-select
             class="order-classification-dialog__novedad-reclasificar"
             label="Reclasificar como"
@@ -31,9 +32,10 @@
             [value]="row.cat"
             (valueChange)="reclasificarNovedad(row.cat, $event)"
           />
+          }
         </div>
       }
-      @if (novedadesModificadas()) {
+      @if (puedeReclasificarNovedades && novedadesModificadas()) {
         <div class="order-classification-dialog__novedades-guardar">
           <dynadrill-button size="small" [disabled]="guardandoNovedades()" (clicked)="guardarNovedades()">
             {{ guardandoNovedades() ? 'Guardando…' : 'Guardar cambios en novedades' }}

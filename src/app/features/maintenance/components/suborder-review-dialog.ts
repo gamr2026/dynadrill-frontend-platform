@@ -10,6 +10,7 @@ import {
   DynadrillTextComponent,
 } from '@digitec-it-projects/dynadrill-ui';
 import { NovedadReadonlyComponent } from '../../../shared/components/novedad-readonly/novedad-readonly';
+import { mensajeDeError } from '../../../shared/utils/mensaje-error.util';
 import { SubOrder } from '../models/maintenance-order.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 
@@ -97,10 +98,10 @@ export class SuborderReviewDialog {
         );
         setTimeout(() => this.modalRef.close(true), 900);
       },
-      error: () => {
+      error: e => {
         this.submitting.set(false);
         this.decision.set(null);
-        this.notify.error('Error', 'No se pudo registrar la revisión.');
+        this.notify.error('Error', mensajeDeError(e, 'No se pudo registrar la revisión.'));
       },
     });
   }

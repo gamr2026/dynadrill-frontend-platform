@@ -13,7 +13,9 @@
       @for (r of registros(); track r.id) {
         <dynadrill-card accent="none">
           <div card-title class="historial-dialog__card-title">
-            <dynadrill-text variant="body"><strong>{{ r.fecha }}</strong></dynadrill-text>
+            <dynadrill-text variant="body"
+              ><strong>{{ r.fecha }}</strong></dynadrill-text
+            >
             @if (r.tipoServicio) {
               <dynadrill-tag [label]="'Tipo ' + r.tipoServicio" variant="neutral" />
             }
@@ -21,7 +23,12 @@
           <div card-extra class="historial-dialog__card-extra">
             <dynadrill-tag [label]="r.clase" [variant]="claseTone[r.clase]" />
             @if (r.clase === 'Preventivo') {
-              <dynadrill-icon-button icon="file-pdf" tooltip="Imprimir informe" tooltipPlacement="top" (clicked)="printInforme(r)" />
+              <dynadrill-icon-button
+                icon="file-pdf"
+                tooltip="Imprimir informe"
+                tooltipPlacement="top"
+                (clicked)="printInforme(r)"
+              />
             }
           </div>
 
@@ -32,7 +39,9 @@
             </div>
             <div class="historial-dialog__field">
               <dynadrill-text variant="caption">Ejecutado por</dynadrill-text>
-              <dynadrill-text variant="body">{{ r.ejecutadoPor }}{{ r.proveedor ? ' — ' + r.proveedor : '' }}</dynadrill-text>
+              <dynadrill-text variant="body"
+                >{{ r.ejecutadoPor }}{{ r.proveedor ? ' — ' + r.proveedor : '' }}</dynadrill-text
+              >
             </div>
             @if (r.horometro !== undefined) {
               <div class="historial-dialog__field">

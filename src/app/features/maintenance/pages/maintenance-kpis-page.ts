@@ -19,7 +19,10 @@ import {
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import { DocumentoPdfService } from '../../../shared/documentos';
-import { IndicadoresMantenimientoHoja, type IndicadoresMantenimientoDatos } from '../../../shared/documentos/formatos/indicadores-mantenimiento-hoja';
+import {
+  IndicadoresMantenimientoHoja,
+  type IndicadoresMantenimientoDatos,
+} from '../../../shared/documentos/formatos/indicadores-mantenimiento-hoja';
 import { computeOrderStatus } from '../models/maintenance-order.model';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { KpiStat, type KpiStatTone } from '../../../shared/components/kpi-stat/kpi-stat';
@@ -51,10 +54,14 @@ const TIPO_HEX: Record<string, string> = {
 const ESTADO_HEX = { ok: '#52c41a', alerta: '#ff4d4f' } as const;
 
 /** Leyenda de texto del pastel: "Cumplen — 8 (80%)". El % se saca sobre el total de la propia leyenda. */
-function conPorcentaje(items: { text: string; value: number; color: string }[]): { text: string; color: string }[] {
+function conPorcentaje(
+  items: { text: string; value: number; color: string }[],
+): { text: string; color: string }[] {
   const total = items.reduce((acc, i) => acc + i.value, 0);
-  return items.map(i => ({
-    text: total ? `${i.text} — ${i.value} (${Math.round((i.value / total) * 100)}%)` : `${i.text} — ${i.value}`,
+  return items.map((i) => ({
+    text: total
+      ? `${i.text} — ${i.value} (${Math.round((i.value / total) * 100)}%)`
+      : `${i.text} — ${i.value}`,
     color: i.color,
   }));
 }
@@ -77,7 +84,12 @@ function unidadesPieOptions(
       confine: true,
       extraCssText: 'max-width:240px;white-space:normal;',
       formatter: (params: unknown) => {
-        const p = params as { name: string; value: number; percent: number; data?: { codes?: string[] } };
+        const p = params as {
+          name: string;
+          value: number;
+          percent: number;
+          data?: { codes?: string[] };
+        };
         const codes = p.data?.codes ?? [];
         const detalle = codes.length
           ? `<br/><span style="opacity:.75">${codes.join(', ')}</span>`
@@ -93,7 +105,7 @@ function unidadesPieOptions(
         label: { show: false },
         labelLine: { show: false },
         emphasis: { scale: false },
-        data: segments.map(s => ({
+        data: segments.map((s) => ({
           name: s.name,
           value: s.value,
           itemStyle: { color: s.color },
@@ -109,7 +121,9 @@ function unidadesPieOptions(
  * nativos apagados (la lectura real va en la lista de texto de al lado,
  * el canvas queda aria-hidden), sin agrandar el sector al pasar el mouse.
  */
-function donutOptions(segments: { name: string; value: number; color: string }[]): EChartsCoreOption {
+function donutOptions(
+  segments: { name: string; value: number; color: string }[],
+): EChartsCoreOption {
   return {
     tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
     series: [
@@ -120,7 +134,11 @@ function donutOptions(segments: { name: string; value: number; color: string }[]
         label: { show: false },
         labelLine: { show: false },
         emphasis: { scale: false },
-        data: segments.map(s => ({ name: s.name, value: s.value, itemStyle: { color: s.color } })),
+        data: segments.map((s) => ({
+          name: s.name,
+          value: s.value,
+          itemStyle: { color: s.color },
+        })),
       },
     ],
   };
@@ -175,7 +193,7 @@ export class MaintenanceKpisPage {
 
   protected readonly filteredUnidades = computed(() => {
     const tipo = this.filtroTipo();
-    return tipo ? this.unidades().filter(u => u.tipo === String(tipo)) : this.unidades();
+    return tipo ? this.unidades().filter((u) => u.tipo === String(tipo)) : this.unidades();
   });
 
   // ── Filtro por rango de fechas (sobre la fecha de creación de la orden) ──
@@ -183,7 +201,9 @@ export class MaintenanceKpisPage {
   protected readonly fechaDesde = signal<Date | null>(null);
   protected readonly fechaHasta = signal<Date | null>(null);
 
-  protected readonly hayFiltros = computed(() => !!this.filtroTipo() || !!this.fechaDesde() || !!this.fechaHasta());
+  protected readonly hayFiltros = computed(
+    () => !!this.filtroTipo() || !!this.fechaDesde() || !!this.fechaHasta(),
+  );
 
   protected setFechaDesde(fecha: Date | null): void {
     this.fechaDesde.set(fecha ?? null);
@@ -201,7 +221,10 @@ export class MaintenanceKpisPage {
 
   protected readonly hastaNoPermitido = (fecha: Date): boolean => {
     const desde = this.fechaDesde();
-    return !!desde && fecha.getTime() < new Date(desde.getFullYear(), desde.getMonth(), desde.getDate()).getTime();
+    return (
+      !!desde &&
+      fecha.getTime() < new Date(desde.getFullYear(), desde.getMonth(), desde.getDate()).getTime()
+    );
   };
 
   protected limpiarFiltros(): void {
@@ -215,9 +238,13 @@ export class MaintenanceKpisPage {
     const desde = this.fechaDesde();
     const hasta = this.fechaHasta();
     if (!desde && !hasta) return this.orders();
-    const inicio = desde ? new Date(desde.getFullYear(), desde.getMonth(), desde.getDate()).getTime() : -Infinity;
-    const fin = hasta ? new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate() + 1).getTime() : Infinity;
-    return this.orders().filter(o => {
+    const inicio = desde
+      ? new Date(desde.getFullYear(), desde.getMonth(), desde.getDate()).getTime()
+      : -Infinity;
+    const fin = hasta
+      ? new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate() + 1).getTime()
+      : Infinity;
+    return this.orders().filter((o) => {
       const t = new Date(o.createdAt).getTime();
       return t >= inicio && t < fin;
     });
@@ -226,8 +253,8 @@ export class MaintenanceKpisPage {
   protected readonly filteredOrders = computed(() => {
     const tipo = this.filtroTipo();
     if (!tipo) return this.ordersEnRango();
-    const codes = new Set(this.filteredUnidades().map(u => u.code));
-    return this.ordersEnRango().filter(o => codes.has(o.unidad));
+    const codes = new Set(this.filteredUnidades().map((u) => u.code));
+    return this.ordersEnRango().filter((o) => codes.has(o.unidad));
   });
 
   private static fechaCorta(d: Date): string {
@@ -249,12 +276,12 @@ export class MaintenanceKpisPage {
     return {
       filtros: `${tipo ? 'Tipo de unidad: ' + tipo : 'Todos los tipos de unidad'} · ${rango}`,
       generadoEn: new Date().toLocaleString('es-EC'),
-      kpis: this.kpis().map(k => ({ label: k.label, value: String(k.value) })),
+      kpis: this.kpis().map((k) => ({ label: k.label, value: String(k.value) })),
       cumplimiento: { cumplen: cumplen.length, noCumplen: noCumplen.length },
       disponibilidad: { disponibles: disponibles.length, noDisponibles: noDisponibles.length },
       ordenesPorTipo: this.ordenesPorTipoUnidad(),
       fallasRepetitivas: this.fallasRepetitivas(),
-      ordenes: this.filteredOrders().map(o => ({
+      ordenes: this.filteredOrders().map((o) => ({
         code: o.code,
         unidad: o.unidad,
         fecha: MaintenanceKpisPage.fechaCorta(new Date(o.createdAt)),
@@ -279,11 +306,12 @@ export class MaintenanceKpisPage {
     const libro = XLSX.utils.book_new();
     const agregar = (nombre: string, filas: (string | number)[][], anchos: number[]): void => {
       const hoja = XLSX.utils.aoa_to_sheet(filas);
-      hoja['!cols'] = anchos.map(wch => ({ wch }));
+      hoja['!cols'] = anchos.map((wch) => ({ wch }));
       XLSX.utils.book_append_sheet(libro, hoja, nombre);
     };
 
-    const pct = (parte: number, otra: number): string => (parte + otra ? `${Math.round((parte / (parte + otra)) * 100)} %` : '—');
+    const pct = (parte: number, otra: number): string =>
+      parte + otra ? `${Math.round((parte / (parte + otra)) * 100)} %` : '—';
     agregar(
       'Indicadores',
       [
@@ -292,7 +320,7 @@ export class MaintenanceKpisPage {
         ['Generado', d.generadoEn],
         [],
         ['Indicador', 'Valor'],
-        ...d.kpis.map(k => [k.label, k.value]),
+        ...d.kpis.map((k) => [k.label, k.value]),
       ],
       [34, 40],
     );
@@ -300,18 +328,55 @@ export class MaintenanceKpisPage {
       'Flota',
       [
         ['Clasificación', 'Unidades', '%'],
-        ['Cumplen el plan preventivo', d.cumplimiento.cumplen, pct(d.cumplimiento.cumplen, d.cumplimiento.noCumplen)],
-        ['No cumplen el plan preventivo', d.cumplimiento.noCumplen, pct(d.cumplimiento.noCumplen, d.cumplimiento.cumplen)],
-        ['Disponibles', d.disponibilidad.disponibles, pct(d.disponibilidad.disponibles, d.disponibilidad.noDisponibles)],
-        ['No disponibles', d.disponibilidad.noDisponibles, pct(d.disponibilidad.noDisponibles, d.disponibilidad.disponibles)],
+        [
+          'Cumplen el plan preventivo',
+          d.cumplimiento.cumplen,
+          pct(d.cumplimiento.cumplen, d.cumplimiento.noCumplen),
+        ],
+        [
+          'No cumplen el plan preventivo',
+          d.cumplimiento.noCumplen,
+          pct(d.cumplimiento.noCumplen, d.cumplimiento.cumplen),
+        ],
+        [
+          'Disponibles',
+          d.disponibilidad.disponibles,
+          pct(d.disponibilidad.disponibles, d.disponibilidad.noDisponibles),
+        ],
+        [
+          'No disponibles',
+          d.disponibilidad.noDisponibles,
+          pct(d.disponibilidad.noDisponibles, d.disponibilidad.disponibles),
+        ],
       ],
       [34, 12, 10],
     );
-    agregar('Órdenes por tipo', [['Tipo de unidad', 'Órdenes'], ...d.ordenesPorTipo.map(o => [o.tipo, o.cantidad])], [24, 12]);
-    agregar('Fallas repetitivas', [['Unidad', 'Órdenes correctivas'], ...d.fallasRepetitivas.map(f => [f.unidad, f.cantidad])], [18, 22]);
-    agregar('Órdenes', [['Orden', 'Unidad', 'Fecha', 'Estado'], ...d.ordenes.map(o => [o.code, o.unidad, o.fecha, o.estado])], [16, 16, 14, 22]);
+    agregar(
+      'Órdenes por tipo',
+      [['Tipo de unidad', 'Órdenes'], ...d.ordenesPorTipo.map((o) => [o.tipo, o.cantidad])],
+      [24, 12],
+    );
+    agregar(
+      'Fallas repetitivas',
+      [
+        ['Unidad', 'Órdenes correctivas'],
+        ...d.fallasRepetitivas.map((f) => [f.unidad, f.cantidad]),
+      ],
+      [18, 22],
+    );
+    agregar(
+      'Órdenes',
+      [
+        ['Orden', 'Unidad', 'Fecha', 'Estado'],
+        ...d.ordenes.map((o) => [o.code, o.unidad, o.fecha, o.estado]),
+      ],
+      [16, 16, 14, 22],
+    );
 
-    XLSX.writeFile(libro, `Indicadores de Mantenimiento ${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(
+      libro,
+      `Indicadores de Mantenimiento ${new Date().toISOString().slice(0, 10)}.xlsx`,
+    );
   }
 
   constructor() {
@@ -342,8 +407,8 @@ export class MaintenanceKpisPage {
 
   protected readonly tiempoGeneracionOrden = computed(() => {
     const horas = this.filteredOrders()
-      .map(o => {
-        const report = this.unitReports().find(r => r.id === o.unitReportId);
+      .map((o) => {
+        const report = this.unitReports().find((r) => r.id === o.unitReportId);
         return report ? hoursBetween(report.createdAt, o.createdAt) : null;
       })
       .filter((h): h is number => h !== null && h >= 0);
@@ -351,20 +416,24 @@ export class MaintenanceKpisPage {
   });
 
   protected readonly tiempoDiagnostico = computed(() => {
-    const horas = this.filteredOrders().flatMap(o =>
-      o.subOrders
-        .filter(s => s.ejecucionIniciadaEn)
-        .map(s => hoursBetween(o.createdAt, s.ejecucionIniciadaEn!)),
-    ).filter(h => h >= 0);
+    const horas = this.filteredOrders()
+      .flatMap((o) =>
+        o.subOrders
+          .filter((s) => s.ejecucionIniciadaEn)
+          .map((s) => hoursBetween(o.createdAt, s.ejecucionIniciadaEn!)),
+      )
+      .filter((h) => h >= 0);
     return average(horas);
   });
 
   protected readonly tiempoReparacion = computed(() => {
-    const horas = this.filteredOrders().flatMap(o =>
-      o.subOrders
-        .filter(s => s.ejecucionIniciadaEn && s.ejecucionTerminadaEn)
-        .map(s => hoursBetween(s.ejecucionIniciadaEn!, s.ejecucionTerminadaEn!)),
-    ).filter(h => h >= 0);
+    const horas = this.filteredOrders()
+      .flatMap((o) =>
+        o.subOrders
+          .filter((s) => s.ejecucionIniciadaEn && s.ejecucionTerminadaEn)
+          .map((s) => hoursBetween(s.ejecucionIniciadaEn!, s.ejecucionTerminadaEn!)),
+      )
+      .filter((h) => h >= 0);
     return average(horas);
   });
 
@@ -372,8 +441,8 @@ export class MaintenanceKpisPage {
 
   protected readonly mttrHoras = computed(() => {
     const horas = this.filteredOrders()
-      .filter(o => o.closedAt)
-      .map(o => hoursBetween(o.createdAt, o.closedAt!));
+      .filter((o) => o.closedAt)
+      .map((o) => hoursBetween(o.createdAt, o.closedAt!));
     return average(horas);
   });
 
@@ -400,14 +469,16 @@ export class MaintenanceKpisPage {
     }
     return [...porUnidad.entries()]
       .map(([unidad, cantidad]) => ({ unidad, cantidad }))
-      .filter(r => r.cantidad > 1)
+      .filter((r) => r.cantidad > 1)
       .sort((a, b) => b.cantidad - a.cantidad)
       .slice(0, 5);
   });
 
   // ── De cumplimiento preventivo ──
 
-  protected readonly alertas = computed(() => this.filteredUnidades().flatMap(u => calcularAlertas(u)));
+  protected readonly alertas = computed(() =>
+    this.filteredUnidades().flatMap((u) => calcularAlertas(u)),
+  );
 
   protected readonly alertasGeneradas = computed(() => this.alertas().length);
 
@@ -417,33 +488,45 @@ export class MaintenanceKpisPage {
 
   /** Una unidad "cumple" el plan si ninguna de sus alertas preventivas está vencida (roja). Sin alertas aplicables ⇒ cumple. */
   private cumpleElPlan(u: Unidad): boolean {
-    return !calcularAlertas(u).some(a => a.nivel === 'rojo');
+    return !calcularAlertas(u).some((a) => a.nivel === 'rojo');
   }
 
   protected readonly cumplimientoPorUnidad = computed(() => {
     const unidades = this.filteredUnidades();
     return {
-      cumplen: unidades.filter(u => this.cumpleElPlan(u)),
-      noCumplen: unidades.filter(u => !this.cumpleElPlan(u)),
+      cumplen: unidades.filter((u) => this.cumpleElPlan(u)),
+      noCumplen: unidades.filter((u) => !this.cumpleElPlan(u)),
     };
   });
 
   protected readonly disponibilidadPorUnidad = computed(() => {
     const conOrdenAbierta = new Set(
-      this.filteredOrders().filter(o => !o.returnedToOperation).map(o => o.unidad),
+      this.filteredOrders()
+        .filter((o) => !o.returnedToOperation)
+        .map((o) => o.unidad),
     );
     const unidades = this.filteredUnidades();
     return {
-      disponibles: unidades.filter(u => !conOrdenAbierta.has(u.code)),
-      noDisponibles: unidades.filter(u => conOrdenAbierta.has(u.code)),
+      disponibles: unidades.filter((u) => !conOrdenAbierta.has(u.code)),
+      noDisponibles: unidades.filter((u) => conOrdenAbierta.has(u.code)),
     };
   });
 
   protected readonly cumplimientoPieOptions = computed<EChartsCoreOption>(() => {
     const { cumplen, noCumplen } = this.cumplimientoPorUnidad();
     return unidadesPieOptions([
-      { name: 'Cumplen', value: cumplen.length, color: ESTADO_HEX.ok, codes: cumplen.map(u => u.code) },
-      { name: 'No cumplen', value: noCumplen.length, color: ESTADO_HEX.alerta, codes: noCumplen.map(u => u.code) },
+      {
+        name: 'Cumplen',
+        value: cumplen.length,
+        color: ESTADO_HEX.ok,
+        codes: cumplen.map((u) => u.code),
+      },
+      {
+        name: 'No cumplen',
+        value: noCumplen.length,
+        color: ESTADO_HEX.alerta,
+        codes: noCumplen.map((u) => u.code),
+      },
     ]);
   });
 
@@ -458,8 +541,18 @@ export class MaintenanceKpisPage {
   protected readonly disponibilidadPieOptions = computed<EChartsCoreOption>(() => {
     const { disponibles, noDisponibles } = this.disponibilidadPorUnidad();
     return unidadesPieOptions([
-      { name: 'Disponibles', value: disponibles.length, color: ESTADO_HEX.ok, codes: disponibles.map(u => u.code) },
-      { name: 'No disponibles', value: noDisponibles.length, color: ESTADO_HEX.alerta, codes: noDisponibles.map(u => u.code) },
+      {
+        name: 'Disponibles',
+        value: disponibles.length,
+        color: ESTADO_HEX.ok,
+        codes: disponibles.map((u) => u.code),
+      },
+      {
+        name: 'No disponibles',
+        value: noDisponibles.length,
+        color: ESTADO_HEX.alerta,
+        codes: noDisponibles.map((u) => u.code),
+      },
     ]);
   });
 
@@ -476,18 +569,34 @@ export class MaintenanceKpisPage {
   // ── KPI row + charts ──
 
   /** Tarjetas de color (Figma "D · Indicadores de Mantenimiento"): MTTR en lila, MTBF en verde y alertas en ámbar. */
-  protected readonly kpis = computed<{ label: string; value: string | number; tone: KpiStatTone }[]>(() => [
-    { label: 'Generación de orden (prom.)', value: `${this.tiempoGeneracionOrden().toFixed(1)} h`, tone: 'neutral' },
-    { label: 'Diagnóstico (prom.)', value: `${this.tiempoDiagnostico().toFixed(1)} h`, tone: 'neutral' },
-    { label: 'Reparación (prom.)', value: `${this.tiempoReparacion().toFixed(1)} h`, tone: 'neutral' },
+  protected readonly kpis = computed<
+    { label: string; value: string | number; tone: KpiStatTone }[]
+  >(() => [
+    {
+      label: 'Generación de orden (prom.)',
+      value: `${this.tiempoGeneracionOrden().toFixed(1)} h`,
+      tone: 'neutral',
+    },
+    {
+      label: 'Diagnóstico (prom.)',
+      value: `${this.tiempoDiagnostico().toFixed(1)} h`,
+      tone: 'neutral',
+    },
+    {
+      label: 'Reparación (prom.)',
+      value: `${this.tiempoReparacion().toFixed(1)} h`,
+      tone: 'neutral',
+    },
     { label: 'MTTR', value: `${this.mttrHoras().toFixed(1)} h`, tone: 'brand' },
     { label: 'MTBF', value: `${this.mtbfDias().toFixed(1)} d`, tone: 'success' },
     { label: 'Alertas preventivas generadas', value: this.alertasGeneradas(), tone: 'warning' },
   ]);
 
-  protected readonly fallasChartCategories = computed(() => this.fallasRepetitivas().map(r => r.unidad));
+  protected readonly fallasChartCategories = computed(() =>
+    this.fallasRepetitivas().map((r) => r.unidad),
+  );
   protected readonly fallasChartSeries = computed<DynadrillChartSeries[]>(() => [
-    { name: 'Órdenes', data: this.fallasRepetitivas().map(r => r.cantidad) },
+    { name: 'Órdenes', data: this.fallasRepetitivas().map((r) => r.cantidad) },
   ]);
 
   /**
@@ -497,7 +606,7 @@ export class MaintenanceKpisPage {
    * el filtro de tipo: filtrado dejaría el pastel de un solo color.
    */
   protected readonly ordenesPorTipoUnidad = computed(() => {
-    const tipoPorCode = new Map(this.unidades().map(u => [u.code, u.tipo]));
+    const tipoPorCode = new Map(this.unidades().map((u) => [u.code, u.tipo]));
     const conteo = new Map<string, number>();
     for (const o of this.ordersEnRango()) {
       const tipo = tipoPorCode.get(o.unidad) ?? 'Sin tipo';
@@ -507,15 +616,17 @@ export class MaintenanceKpisPage {
   });
 
   protected readonly ordenesPorTipoDonut = computed<EChartsCoreOption>(() =>
-    donutOptions(this.ordenesPorTipoUnidad().map(s => ({
-      name: s.tipo,
-      value: s.cantidad,
-      color: TIPO_HEX[s.tipo] ?? TIPO_HEX['Sin tipo'],
-    }))),
+    donutOptions(
+      this.ordenesPorTipoUnidad().map((s) => ({
+        name: s.tipo,
+        value: s.cantidad,
+        color: TIPO_HEX[s.tipo] ?? TIPO_HEX['Sin tipo'],
+      })),
+    ),
   );
 
   protected readonly ordenesPorTipoLegend = computed(() =>
-    this.ordenesPorTipoUnidad().map(s => ({
+    this.ordenesPorTipoUnidad().map((s) => ({
       text: `${s.cantidad} ${s.tipo}`,
       color: TIPO_HEX[s.tipo] ?? TIPO_HEX['Sin tipo'],
     })),
@@ -525,15 +636,16 @@ export class MaintenanceKpisPage {
     { key: 'unidad', header: 'Unidad', sortable: true },
     { key: 'cantidad', header: 'N° de órdenes', sortable: true },
   ];
-  protected readonly fallasRowKeyFn = (row: Record<string, unknown>): string => String(row['unidad']);
+  protected readonly fallasRowKeyFn = (row: Record<string, unknown>): string =>
+    String(row['unidad']);
 
   /** Abre la orden más reciente de esta unidad — mismo panel que usa la Bandeja. */
   openUnitOrder(row: Record<string, unknown>): void {
     const unidad = String(row['unidad']);
-    const unitOrders = this.filteredOrders().filter(o => o.unidad === unidad);
+    const unitOrders = this.filteredOrders().filter((o) => o.unidad === unidad);
     const latest = [...unitOrders].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
     if (!latest) return;
-    const unitReport = this.unitReports().find(r => r.id === latest.unitReportId);
+    const unitReport = this.unitReports().find((r) => r.id === latest.unitReportId);
     if (!unitReport) return;
 
     this.drawer.open<OrderDetailPanel, OrderDetailPanelData>({

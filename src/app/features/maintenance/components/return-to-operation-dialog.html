@@ -1,5 +1,4 @@
 <div class="return-to-operation-dialog">
-
   <!-- Cabecera -->
   <div class="return-to-operation-dialog__header">
     <div class="return-to-operation-dialog__row">
@@ -24,9 +23,10 @@
   <div class="return-to-operation-dialog__suborders">
     @for (sub of data.order.subOrders; track sub.id) {
       <dynadrill-card accent="none">
-
         <div card-title class="return-to-operation-dialog__card-title">
-          <dynadrill-text variant="body"><strong>{{ sub.code }}</strong></dynadrill-text>
+          <dynadrill-text variant="body"
+            ><strong>{{ sub.code }}</strong></dynadrill-text
+          >
           <dynadrill-tag [label]="sub.type" variant="neutral" />
         </div>
 
@@ -61,17 +61,23 @@
             <div class="return-to-operation-dialog__row return-to-operation-dialog__row--full">
               <dynadrill-text variant="caption">Repuestos utilizados</dynadrill-text>
               @for (r of sub.repuestos; track r.numeroParte) {
-                <dynadrill-text variant="body">{{ r.numeroParte }} · {{ r.cantidad }} × {{ r.descripcion }}</dynadrill-text>
+                <dynadrill-text variant="body"
+                  >{{ r.numeroParte }} · {{ r.cantidad }} × {{ r.descripcion }}</dynadrill-text
+                >
               }
             </div>
           }
-          @if (!sub.diagnostico && !sub.actividadesCorrectivas && !sub.horasTrabajo && !sub.repuestos?.length) {
+          @if (
+            !sub.diagnostico &&
+            !sub.actividadesCorrectivas &&
+            !sub.horasTrabajo &&
+            !sub.repuestos?.length
+          ) {
             <div class="return-to-operation-dialog__row return-to-operation-dialog__row--full">
               <dynadrill-text variant="caption">Sin trabajos registrados</dynadrill-text>
             </div>
           }
         </div>
-
       </dynadrill-card>
     }
   </div>
@@ -84,10 +90,16 @@
   <div class="return-to-operation-dialog__row">
     <dynadrill-text variant="caption">Estado final de la unidad</dynadrill-text>
     <div class="return-to-operation-dialog__state-options">
-      <dynadrill-button [variant]="estadoFinal() === 'Disponible' ? 'success' : 'secondary'" (clicked)="chooseEstado('Disponible')">
+      <dynadrill-button
+        [variant]="estadoFinal() === 'Disponible' ? 'success' : 'secondary'"
+        (clicked)="chooseEstado('Disponible')"
+      >
         Disponible
       </dynadrill-button>
-      <dynadrill-button [variant]="estadoFinal() === 'Con restricciones' ? 'warning' : 'secondary'" (clicked)="chooseEstado('Con restricciones')">
+      <dynadrill-button
+        [variant]="estadoFinal() === 'Con restricciones' ? 'warning' : 'secondary'"
+        (clicked)="chooseEstado('Con restricciones')"
+      >
         Con restricciones
       </dynadrill-button>
     </div>

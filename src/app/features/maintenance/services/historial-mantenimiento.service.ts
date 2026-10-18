@@ -10,6 +10,8 @@ export class HistorialMantenimientoService {
 
   list(unidadId?: number): Observable<RegistroMantenimiento[]> {
     const params = unidadId !== undefined ? new HttpParams().set('unidadId', unidadId) : undefined;
-    return this.http.get<RegistroMantenimiento[]>(`${environment.apiUrl}/historial-mantenimiento`, { params });
+    return this.http.get<RegistroMantenimiento[]>(`${environment.apiUrl}/historial-mantenimiento`, {
+      params,
+    });
   }
 }

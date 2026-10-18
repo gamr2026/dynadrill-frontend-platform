@@ -31,8 +31,16 @@ import {
 import { FlotaUnidadesService } from '../../services/flota-unidades.service';
 import { formatoNumero } from '../../utils/flota.util';
 
-const TONO: Record<NivelAlertaFlota, DynadrillTagVariant> = { rojo: 'error', amarillo: 'warning', verde: 'success' };
-const ETIQUETA: Record<NivelAlertaFlota, string> = { rojo: 'Vencido', amarillo: 'Próximo', verde: 'Al día' };
+const TONO: Record<NivelAlertaFlota, DynadrillTagVariant> = {
+  rojo: 'error',
+  amarillo: 'warning',
+  verde: 'success',
+};
+const ETIQUETA: Record<NivelAlertaFlota, string> = {
+  rojo: 'Vencido',
+  amarillo: 'Próximo',
+  verde: 'Al día',
+};
 const ORDEN: NivelAlertaFlota[] = ['rojo', 'amarillo', 'verde'];
 
 const TIPO_FILTRO: DynadrillSelectOption[] = [
@@ -98,19 +106,26 @@ export class UnidadesListPage {
   });
 
   protected readonly rows = computed(() =>
-    this.unidades().map(u => {
+    this.unidades().map((u) => {
       const nivel = this.peorNivel().get(u.id);
-      const lectura = u.tipo === 'servicio' ? u.horometro : u.tipo === 'transporte' ? u.odometro : null;
+      const lectura =
+        u.tipo === 'servicio' ? u.horometro : u.tipo === 'transporte' ? u.odometro : null;
       const unidadLectura = u.tipo === 'servicio' ? 'h' : 'km';
       return {
         id: u.id,
         codigo: u.codigo,
         nombre: u.nombre,
-        tipo: u.categoriaPeso ? `${TIPO_UNIDAD_LABEL[u.tipo]} · ${CATEGORIA_PESO_LABEL[u.categoriaPeso]}` : TIPO_UNIDAD_LABEL[u.tipo],
+        tipo: u.categoriaPeso
+          ? `${TIPO_UNIDAD_LABEL[u.tipo]} · ${CATEGORIA_PESO_LABEL[u.categoriaPeso]}`
+          : TIPO_UNIDAD_LABEL[u.tipo],
         placa: u.vehiculo?.placa ?? '—',
         lectura: lectura ? `${formatoNumero(lectura.valor)} ${unidadLectura}` : '—',
-        preventivoBadge: nivel ? { text: ETIQUETA[nivel], tone: TONO[nivel] } : { text: 'Sin datos', tone: 'neutral' as DynadrillTagVariant },
-        estadoBadge: u.activa ? { text: 'Activa', tone: 'success' as DynadrillTagVariant } : { text: 'De baja', tone: 'neutral' as DynadrillTagVariant },
+        preventivoBadge: nivel
+          ? { text: ETIQUETA[nivel], tone: TONO[nivel] }
+          : { text: 'Sin datos', tone: 'neutral' as DynadrillTagVariant },
+        estadoBadge: u.activa
+          ? { text: 'Activa', tone: 'success' as DynadrillTagVariant }
+          : { text: 'De baja', tone: 'neutral' as DynadrillTagVariant },
       };
     }),
   );
@@ -118,13 +133,29 @@ export class UnidadesListPage {
   protected readonly cards = computed(() => {
     const q = this.query().trim().toLocaleLowerCase('es');
     return this.rows()
-      .filter(r => !q || r.codigo.toLocaleLowerCase('es').includes(q) || r.nombre.toLocaleLowerCase('es').includes(q))
-      .map(r => ({
+      .filter(
+        (r) =>
+          !q ||
+          r.codigo.toLocaleLowerCase('es').includes(q) ||
+          r.nombre.toLocaleLowerCase('es').includes(q),
+      )
+      .map((r) => ({
         id: r.id,
         title: `${r.codigo} · ${r.nombre}`,
-        lines: [[r.tipo, r.placa !== '—' ? r.placa : '', r.lectura !== '—' ? r.lectura : ''].filter(Boolean).join(' · ')],
+        lines: [
+          [r.tipo, r.placa !== '—' ? r.placa : '', r.lectura !== '—' ? r.lectura : '']
+            .filter(Boolean)
+            .join(' · '),
+        ],
         tags: [r.preventivoBadge, r.estadoBadge],
-        actions: [{ icon: 'eye', label: `Ver ficha de ${r.codigo}`, primary: true, run: () => this.verFicha(r.id) }] as RecordAction[],
+        actions: [
+          {
+            icon: 'eye',
+            label: `Ver ficha de ${r.codigo}`,
+            primary: true,
+            run: () => this.verFicha(r.id),
+          },
+        ] as RecordAction[],
       }));
   });
 
@@ -139,7 +170,7 @@ export class UnidadesListPage {
     this.flota
       .listar({ tipo: this.tipo() || undefined, activa: this.incluirBajas() ? 'todas' : 'true' })
       .subscribe({
-        next: unidades => {
+        next: (unidades) => {
           this.unidades.set(unidades);
           this.loading.set(false);
         },
@@ -149,7 +180,7 @@ export class UnidadesListPage {
         },
       });
     this.flota.alertas().subscribe({
-      next: a => this.alertas.set(a),
+      next: (a) => this.alertas.set(a),
       error: () => this.alertas.set([]),
     });
   }
@@ -171,7 +202,7 @@ export class UnidadesListPage {
       data: {},
       footer: false,
     });
-    ref.afterClose.subscribe(creada => {
+    ref.afterClose.subscribe((creada) => {
       if (creada) this.recargar();
     });
   }

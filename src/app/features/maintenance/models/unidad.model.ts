@@ -17,11 +17,21 @@ export type UnidadCategoriaPeso = 'Pesado' | 'Liviano';
  * contador de A (ver 2.2 en calcularAlertas y el mock de registro).
  */
 export const TIPOS_SERVICIO = [
-  { tipo: 'A', horas: 250,  tolerancia: 30, descripcion: 'Tipo A — aceites, filtros, inspección visual y pruebas' },
-  { tipo: 'B', horas: 2000, tolerancia: 50, descripcion: 'Tipo B — incluye A + transmisiones, cajas, hidráulico' },
+  {
+    tipo: 'A',
+    horas: 250,
+    tolerancia: 30,
+    descripcion: 'Tipo A — aceites, filtros, inspección visual y pruebas',
+  },
+  {
+    tipo: 'B',
+    horas: 2000,
+    tolerancia: 50,
+    descripcion: 'Tipo B — incluye A + transmisiones, cajas, hidráulico',
+  },
 ] as const;
 
-export type TipoServicio = typeof TIPOS_SERVICIO[number]['tipo'];
+export type TipoServicio = (typeof TIPOS_SERVICIO)[number]['tipo'];
 
 /** Registro del último mantenimiento ejecutado para un tipo de servicio específico (A o B). */
 export interface RegistroPreventivo {
@@ -154,7 +164,10 @@ export type AlertaPreventivaNivel = 'rojo' | 'amarillo' | 'verde';
 
 /** Alerta calculada para una unidad y un intervalo/regla específica. */
 export interface AlertaPreventiva {
-  unidadId: number;
+  /** Número en la demo, UUID en Flota. */
+  unidadId: number | string;
+  /** Tipo de la unidad (lo informa Flota; la demo no lo traía en la alerta). */
+  unidadTipo?: UnidadTipo;
   unidadCode: string;
   unidadNombre: string;
   descripcion: string;
@@ -195,7 +208,8 @@ function nivelAlerta(restante: number, intervalo: number, tolerancia = 0): Alert
 /** Texto del "próximo en" respetando la ventana de tolerancia — "Vencido" solo cuando ya la supera. */
 function proximoEnTexto(restante: number, tolerancia: number, unidad: string): string {
   if (restante > 0) return `${Math.round(restante)} ${unidad}`;
-  if (restante >= -tolerancia) return `En ventana (${Math.round(-restante)} ${unidad} sobre lo previsto)`;
+  if (restante >= -tolerancia)
+    return `En ventana (${Math.round(-restante)} ${unidad} sobre lo previsto)`;
   return 'Vencido';
 }
 
@@ -212,13 +226,14 @@ export function calcularAlertas(u: Unidad): AlertaPreventiva[] {
 
   if (u.tipo === 'Servicio') {
     if (u.horometroActual !== undefined) {
-      const registroA = u.registrosPrev?.find(r => r.tipoServicio === 'A');
-      const registroB = u.registrosPrev?.find(r => r.tipoServicio === 'B');
+      const registroA = u.registrosPrev?.find((r) => r.tipoServicio === 'A');
+      const registroB = u.registrosPrev?.find((r) => r.tipoServicio === 'B');
       for (const svc of TIPOS_SERVICIO) {
         // Un servicio B incluye las actividades de A, así que también resetea su contador.
-        const ultimoEn = svc.tipo === 'A'
-          ? Math.max(registroA?.ultimoEnHoras ?? 0, registroB?.ultimoEnHoras ?? 0)
-          : registroB?.ultimoEnHoras ?? 0;
+        const ultimoEn =
+          svc.tipo === 'A'
+            ? Math.max(registroA?.ultimoEnHoras ?? 0, registroB?.ultimoEnHoras ?? 0)
+            : (registroB?.ultimoEnHoras ?? 0);
         const consumido = u.horometroActual - ultimoEn;
         const restante = svc.horas - consumido;
         alertas.push({
@@ -250,8 +265,8 @@ export function calcularAlertas(u: Unidad): AlertaPreventiva[] {
       const diasTranscurridos = diasDesde(u.fechaUltimoMantenimiento);
       const diasLimite = MESES_SIN_HORAS * 30;
       const restanteDias = diasLimite - diasTranscurridos;
-      const registroA = u.registrosPrev?.find(r => r.tipoServicio === 'A');
-      const registroB = u.registrosPrev?.find(r => r.tipoServicio === 'B');
+      const registroA = u.registrosPrev?.find((r) => r.tipoServicio === 'A');
+      const registroB = u.registrosPrev?.find((r) => r.tipoServicio === 'B');
       const ultimoEnA = Math.max(registroA?.ultimoEnHoras ?? 0, registroB?.ultimoEnHoras ?? 0);
       const horasDesdeUltimo = u.horometroActual === undefined ? 0 : u.horometroActual - ultimoEnA;
       if (horasDesdeUltimo < 250) {
@@ -292,7 +307,11 @@ export function calcularAlertas(u: Unidad): AlertaPreventiva[] {
     });
   }
 
-  if (u.tipo === 'Transporte' && u.kmActual !== undefined && u.kmUltimoMantenimiento !== undefined) {
+  if (
+    u.tipo === 'Transporte' &&
+    u.kmActual !== undefined &&
+    u.kmUltimoMantenimiento !== undefined
+  ) {
     const kmDesdeUltimo = u.kmActual - u.kmUltimoMantenimiento;
     const restanteKm = 5000 - kmDesdeUltimo;
     alertas.push({

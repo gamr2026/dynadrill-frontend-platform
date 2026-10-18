@@ -2,7 +2,13 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '@env';
-import type { AsignacionEntrada, FiltroReportes, OrdenMantenimiento, ReporteRecibido, TipoSuborden } from '../models/mantenimiento-nuevo';
+import type {
+  AsignacionEntrada,
+  FiltroReportes,
+  OrdenMantenimiento,
+  ReporteRecibido,
+  TipoSuborden,
+} from '../models/mantenimiento-nuevo';
 
 /** Mantenimiento del contenedor `operaciones`. La autoridad de estados, códigos y permisos es el backend. */
 @Injectable({ providedIn: 'root' })
@@ -32,7 +38,9 @@ export class MantenimientoNuevoService {
 
   /** MAN-001-A, rama «Requiere mantenimiento»: genera la orden con una sub-orden por tipo. */
   clasificar(id: string, asignaciones: AsignacionEntrada[]): Observable<OrdenMantenimiento> {
-    return this.http.post<OrdenMantenimiento>(`${this.base}/reportes/${id}/clasificar`, { asignaciones });
+    return this.http.post<OrdenMantenimiento>(`${this.base}/reportes/${id}/clasificar`, {
+      asignaciones,
+    });
   }
 
   ordenes(filtro: { estado?: string; q?: string } = {}): Observable<OrdenMantenimiento[]> {
@@ -43,6 +51,8 @@ export class MantenimientoNuevoService {
   }
 
   reclasificar(ordenId: string, asignaciones: AsignacionEntrada[]): Observable<OrdenMantenimiento> {
-    return this.http.put<OrdenMantenimiento>(`${this.base}/ordenes/${ordenId}/clasificacion`, { asignaciones });
+    return this.http.put<OrdenMantenimiento>(`${this.base}/ordenes/${ordenId}/clasificacion`, {
+      asignaciones,
+    });
   }
 }

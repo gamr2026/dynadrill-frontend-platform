@@ -1,7 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { CreateUnidadInput, TipoServicio, Unidad, UpdatePatrimonioInput } from '../models/unidad.model';
+import {
+  CreateUnidadInput,
+  TipoServicio,
+  Unidad,
+  UpdatePatrimonioInput,
+} from '../models/unidad.model';
 import { environment } from '@env';
 
 export interface RegistrarPMInput {
@@ -31,7 +36,10 @@ export class UnidadesService {
   }
 
   registrarMantenimiento(unidadId: number, input: RegistrarPMInput): Observable<Unidad> {
-    return this.http.patch<Unidad>(`${environment.apiUrl}/unidades/${unidadId}/mantenimiento`, input);
+    return this.http.patch<Unidad>(
+      `${environment.apiUrl}/unidades/${unidadId}/mantenimiento`,
+      input,
+    );
   }
 
   /** Módulo Inventario — solo los campos patrimoniales, nunca los operativos. */

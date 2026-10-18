@@ -1,0 +1,328 @@
+<div class="inspeccion-dialog">
+  @if (cargando()) {
+    <p class="inspeccion-dialog__nota" role="status">Cargando…</p>
+  } @else if (modoVer && detalle(); as d) {
+    <!-- ===== Detalle de solo lectura ===== -->
+    <div class="inspeccion-dialog__cabecera">
+      <strong>{{ d.unidad.codigo }} · {{ d.unidad.nombre }}</strong>
+      <dynadrill-tag [label]="estadoTexto[d.estado]" [variant]="tonoEstado[d.estado]" />
+      <span>{{ d.momento === 'salida' ? 'Inspección de salida' : 'Inspección de llegada' }}</span>
+    </div>
+
+    <dl class="inspeccion-dialog__datos">
+      <div>
+        <dt>Fecha</dt>
+        <dd>{{ d.fecha | date: 'dd/MM/yyyy HH:mm' }}</dd>
+      </div>
+      <div>
+        <dt>Conductor</dt>
+        <dd>{{ d.conductor.nombre }}</dd>
+      </div>
+      <div>
+        <dt>Punto de partida</dt>
+        <dd>{{ d.puntoPartida }}</dd>
+      </div>
+      <div>
+        <dt>Destino</dt>
+        <dd>{{ d.destino || '—' }}</dd>
+      </div>
+      <div>
+        <dt>Kilometraje</dt>
+        <dd>{{ kmTexto(d) }}</dd>
+      </div>
+      <div>
+        <dt>Placa</dt>
+        <dd>{{ d.unidad.vehiculo?.placa ?? '—' }}</dd>
+      </div>
+      <div>
+        <dt>Marca / modelo</dt>
+        <dd>{{ descripcionVehiculo(d.unidad.vehiculo) || '—' }}</dd>
+      </div>
+      <div>
+        <dt>Registrada por</dt>
+        <dd>{{ d.registradaPor.nombre }}</dd>
+      </div>
+    </dl>
+
+    @if (d.bloqueaUso) {
+      <p class="inspeccion-dialog__alerta inspeccion-dialog__alerta--error" role="alert">
+        Nota 1 del formato DYN-SGI-RE-068: un ítem que impide usar el vehículo no cumple; la
+        inspección no se puede aprobar.
+      </p>
+    }
+    @if (d.anulada) {
+      <p class="inspeccion-dialog__alerta inspeccion-dialog__alerta--aviso" role="status">
+        Anulada{{ d.anulada.por ? ' por ' + d.anulada.por.nombre : '' }}: {{ d.anulada.motivo }}
+      </p>
+    }
+
+    @for (
+      bloque of [
+        { t: 'Vehículo', l: detalleVehiculo() },
+        { t: 'Equipo', l: detalleEquipo() },
+      ];
+      track bloque.t
+    ) {
+      <h3 class="inspeccion-dialog__seccion">{{ bloque.t }}</h3>
+      <ul class="inspeccion-dialog__lista">
+        @for (r of bloque.l; track r.itemId) {
+          <li [class.is-bad]="r.resultado === 'no_cumple'">
+            <span>{{ r.etiqueta }}</span
+            ><strong>{{ resultadoTexto[r.resultado] }}</strong>
+          </li>
+        }
+      </ul>
+    }
+
+    @if (d.observaciones) {
+      <h3 class="inspeccion-dialog__seccion">Observaciones</h3>
+      <p>{{ d.observaciones }}</p>
+    }
+    @if (d.revisiones.length) {
+      <h3 class="inspeccion-dialog__seccion">Revisión del Supervisor</h3>
+      <ul class="inspeccion-dialog__lista">
+        @for (r of d.revisiones; track r.at) {
+          <li>
+            <span
+              >{{ r.por.nombre }} · {{ r.at | date: 'dd/MM/yyyy HH:mm'
+              }}{{ r.motivo ? ' — ' + r.motivo : '' }}</span
+            >
+            <strong>{{ r.decision === 'aprobada' ? 'Aprobó' : 'Rechazó' }}</strong>
+          </li>
+        }
+      </ul>
+    }
+
+    @if (accionConMotivo()) {
+      <dynadrill-textarea
+        [label]="accionConMotivo() === 'rechazar' ? 'Motivo del rechazo' : 'Motivo de la anulación'"
+        [value]="motivo()"
+        (valueChange)="motivo.set($event)"
+        [rows]="2"
+      />
+    }
+
+    <div class="inspeccion-dialog__acciones">
+      <dynadrill-button variant="secondary" (clicked)="cerrar()">Cerrar</dynadrill-button>
+      <div class="inspeccion-dialog__acciones-der">
+        @if (accionConMotivo()) {
+          <dynadrill-button variant="secondary" (clicked)="accionConMotivo.set(null)"
+            >Volver</dynadrill-button
+          >
+          <dynadrill-button
+            variant="error"
+            [disabled]="!motivoValido() || enviando()"
+            (clicked)="confirmarMotivo()"
+          >
+            {{ accionConMotivo() === 'rechazar' ? 'Confirmar rechazo' : 'Confirmar anulación' }}
+          </dynadrill-button>
+        } @else {
+          @if (puedeAnular()) {
+            <dynadrill-button variant="secondary" (clicked)="pedirMotivo('anular')"
+              >Anular</dynadrill-button
+            >
+          }
+          @if (puedeAprobar()) {
+            <dynadrill-button variant="error" (clicked)="pedirMotivo('rechazar')"
+              >Rechazar</dynadrill-button
+            >
+            <dynadrill-button [disabled]="d.bloqueaUso || enviando()" (clicked)="aprobar()"
+              >Aprobar</dynadrill-button
+            >
+          }
+        }
+      </div>
+    </div>
+  } @else {
+    <!-- ===== Alta paso a paso ===== -->
+    <dynadrill-stepper [steps]="steps" [currentIndex]="paso()" />
+
+    <div class="inspeccion-dialog__cuerpo">
+      @if (paso() === 0) {
+        <div class="inspeccion-dialog__grid">
+          <dynadrill-select
+            label="Unidad"
+            placeholder="Seleccione el vehículo"
+            [options]="unidadOpciones()"
+            [value]="unidadId()"
+            [disabled]="unidadFija"
+            (valueChange)="unidadId.set($any($event))"
+          />
+          <dynadrill-select
+            label="Conductor"
+            placeholder="Seleccione el conductor"
+            [options]="conductorOpciones()"
+            [value]="conductorId()"
+            (valueChange)="conductorId.set($any($event))"
+          />
+          <dynadrill-datetime-picker
+            label="Fecha y hora"
+            [value]="fecha()!"
+            (valueChange)="fecha.set($event)"
+          />
+          <dynadrill-input
+            label="Kilometraje del odómetro (km)"
+            type="number"
+            [value]="km()"
+            (valueChange)="km.set($event)"
+          />
+          <dynadrill-input
+            label="Punto de partida"
+            [value]="puntoPartida()"
+            (valueChange)="puntoPartida.set($event)"
+          />
+          <dynadrill-input
+            label="Destino"
+            [value]="destino()"
+            (valueChange)="destino.set($event)"
+          />
+        </div>
+        @if (unidad(); as u) {
+          <p class="inspeccion-dialog__nota">
+            Vehículo: {{ u.vehiculo?.placa ?? 'sin placa en el catálogo' }}
+            {{ descripcionVehiculo(u.vehiculo) }}. Matrícula hasta
+            {{ formatoFecha(u.documentos.caducidadMatricula) }}, póliza hasta
+            {{ formatoFecha(u.documentos.caducidadPoliza) }}
+            (datos de la unidad: se editan en Flota).
+            @if (u.odometro) {
+              Último kilometraje: {{ u.odometro.valor }} km.
+            }
+          </p>
+        }
+      }
+
+      @if (paso() === 1) {
+        <div class="inspeccion-dialog__barra">
+          <dynadrill-button
+            variant="secondary"
+            size="small"
+            (clicked)="marcarTodos(itemsVehiculo(), 'cumple')"
+            >Marcar todos: Cumple</dynadrill-button
+          >
+        </div>
+        <ng-container
+          [ngTemplateOutlet]="checklist"
+          [ngTemplateOutletContext]="{ lista: itemsVehiculo() }"
+        />
+        @if (cinturonBloquea()) {
+          <p class="inspeccion-dialog__alerta inspeccion-dialog__alerta--error" role="alert">
+            Nota 1 del formato DYN-SGI-RE-068: con este ítem en «No cumple» el vehículo no podrá
+            usarse. Puede guardar la inspección para dejar la falla registrada, pero el Supervisor
+            no podrá aprobarla.
+          </p>
+        }
+      }
+
+      @if (paso() === 2) {
+        <div class="inspeccion-dialog__barra">
+          <dynadrill-button
+            variant="secondary"
+            size="small"
+            (clicked)="marcarTodos(itemsEquipo(), 'cumple')"
+            >Marcar todos: Cumple</dynadrill-button
+          >
+        </div>
+        <ng-container
+          [ngTemplateOutlet]="checklist"
+          [ngTemplateOutletContext]="{ lista: itemsEquipo() }"
+        />
+      }
+
+      @if (paso() === 3) {
+        @if (conductor(); as c) {
+          <ul class="inspeccion-dialog__lista">
+            @for (doc of c.documentos; track doc.tipo.id) {
+              <li [class.is-bad]="doc.estado === 'vencido' || doc.estado === 'faltante'">
+                <span
+                  >{{ doc.tipo.nombre
+                  }}{{ doc.vigenteHasta ? ' · vence ' + formatoFecha(doc.vigenteHasta) : '' }}</span
+                >
+                <dynadrill-tag [label]="etiquetaDoc[doc.estado]" [variant]="tonoDoc[doc.estado]" />
+              </li>
+            }
+          </ul>
+          @if (c.reuneCondiciones) {
+            <p class="inspeccion-dialog__nota">✓ Reúne las condiciones para conducir.</p>
+          } @else {
+            <p class="inspeccion-dialog__alerta inspeccion-dialog__alerta--error" role="alert">
+              {{ c.usuario.nombre }} no reúne las condiciones: hay documentos vencidos o sin
+              registrar. No se puede guardar la inspección hasta que Mantenimiento los actualice o
+              se elija otro conductor.
+            </p>
+          }
+        } @else {
+          <p class="inspeccion-dialog__nota">
+            Seleccione el conductor en el paso «Datos» para ver sus documentos: ya están cargados y
+            no se marcan a mano.
+          </p>
+        }
+        <dynadrill-textarea
+          label="Observaciones"
+          [value]="observaciones()"
+          (valueChange)="observaciones.set($event)"
+          [rows]="2"
+        />
+        @if (motivoNoGuardar()) {
+          <p class="inspeccion-dialog__alerta inspeccion-dialog__alerta--aviso" role="status">
+            {{ motivoNoGuardar() }}
+          </p>
+        }
+      }
+    </div>
+
+    <div class="inspeccion-dialog__acciones">
+      <dynadrill-button variant="secondary" (clicked)="cerrar()">Cancelar</dynadrill-button>
+      <div class="inspeccion-dialog__acciones-der">
+        @if (paso() > 0) {
+          <dynadrill-button variant="secondary" (clicked)="atras()">Atrás</dynadrill-button>
+        }
+        @if (paso() < steps.length - 1) {
+          <dynadrill-button (clicked)="siguiente()">Siguiente</dynadrill-button>
+        } @else {
+          <dynadrill-button [disabled]="!!motivoNoGuardar() || enviando()" (clicked)="guardar()">
+            {{ enviando() ? 'Guardando…' : 'Guardar inspección' }}
+          </dynadrill-button>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+<ng-template #checklist let-lista="lista">
+  <ul class="inspeccion-dialog__checklist">
+    @for (item of lista; track item.id) {
+      <li>
+        <span>{{ item.etiqueta }}</span>
+        <span class="inspeccion-dialog__botones" role="group" [attr.aria-label]="item.etiqueta">
+          <button
+            type="button"
+            class="ok"
+            [class.activo]="resultados()[item.id] === 'cumple'"
+            [attr.aria-pressed]="resultados()[item.id] === 'cumple'"
+            (click)="marcar(item.id, 'cumple')"
+          >
+            ✓ Cumple
+          </button>
+          <button
+            type="button"
+            class="mal"
+            [class.activo]="resultados()[item.id] === 'no_cumple'"
+            [attr.aria-pressed]="resultados()[item.id] === 'no_cumple'"
+            (click)="marcar(item.id, 'no_cumple')"
+          >
+            ✕ No cumple
+          </button>
+          <button
+            type="button"
+            class="na"
+            [class.activo]="resultados()[item.id] === 'no_aplica'"
+            [attr.aria-pressed]="resultados()[item.id] === 'no_aplica'"
+            (click)="marcar(item.id, 'no_aplica')"
+          >
+            N/A
+          </button>
+        </span>
+      </li>
+    }
+  </ul>
+</ng-template>

@@ -10,7 +10,11 @@ import {
   DynadrillTextComponent,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
-import { MaintenanceOrderWithSubOrders, SubOrderStatus, UnitFinalState } from '../models/maintenance-order.model';
+import {
+  MaintenanceOrderWithSubOrders,
+  SubOrderStatus,
+  UnitFinalState,
+} from '../models/maintenance-order.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { mensajeDeError } from '../../../shared/utils/mensaje-error.util';
 
@@ -24,11 +28,11 @@ export interface ReturnToOperationDialogData {
  * devolviendo la unidad a Operaciones/Pumping con su estado final.
  */
 const STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
-  'Pendiente': 'warning',
+  Pendiente: 'warning',
   'En Diagnóstico': 'info',
   'En Ejecución': 'brand',
   'En Revisión de Cierre': 'info',
-  'Cerrado': 'success',
+  Cerrado: 'success',
   'Corrección Solicitada': 'error',
   'Derivado a Pumping': 'neutral',
 };
@@ -36,7 +40,14 @@ const STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
 @Component({
   selector: 'app-return-to-operation-dialog',
   host: { class: 'app-dialog-fullscreen-mobile' },
-  imports: [CommonModule, DynadrillTextComponent, DynadrillTextareaComponent, DynadrillButtonComponent, DynadrillCardComponent, DynadrillTagComponent],
+  imports: [
+    CommonModule,
+    DynadrillTextComponent,
+    DynadrillTextareaComponent,
+    DynadrillButtonComponent,
+    DynadrillCardComponent,
+    DynadrillTagComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './return-to-operation-dialog.html',
   styleUrl: './return-to-operation-dialog.scss',
@@ -68,12 +79,18 @@ export class ReturnToOperationDialog {
       })
       .subscribe({
         next: () => {
-          this.notify.success('Unidad entregada a Operaciones', `${this.data.order.code} — ${this.data.order.unidad} quedó ${this.estadoFinal()}.`);
+          this.notify.success(
+            'Unidad entregada a Operaciones',
+            `${this.data.order.code} — ${this.data.order.unidad} quedó ${this.estadoFinal()}.`,
+          );
           this.modalRef.close(true);
         },
-        error: e => {
+        error: (e) => {
           this.submitting.set(false);
-          this.notify.error('Error', mensajeDeError(e, 'No se pudo registrar el retorno a Operaciones.'));
+          this.notify.error(
+            'Error',
+            mensajeDeError(e, 'No se pudo registrar el retorno a Operaciones.'),
+          );
         },
       });
   }

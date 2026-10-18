@@ -48,7 +48,9 @@
     display: flex;
     gap: 8px;
 
-    > * { flex: none; }
+    > * {
+      flex: none;
+    }
   }
 
   &__actions {
@@ -58,6 +60,8 @@
     border-top: 1px solid var(--border, #e5e4ea);
     padding-top: 16px;
 
-    > * { flex: none; }
+    > * {
+      flex: none;
+    }
   }
 }

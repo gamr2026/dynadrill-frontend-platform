@@ -1,9 +1,18 @@
 <div class="maintenance-list-page">
-  <app-page-header eyebrow="MANTENIMIENTO" title="Mantenimiento" subtitle="Dashboard de órdenes correctivas y preventivas" />
+  <app-page-header
+    eyebrow="MANTENIMIENTO"
+    title="Mantenimiento"
+    subtitle="Dashboard de órdenes correctivas y preventivas"
+  />
 
   <div class="kpi-stat-row" role="list">
     @for (kpi of kpis(); track kpi.label) {
-      <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [caption]="kpi.caption" [tone]="kpi.tone" />
+      <app-kpi-stat
+        [value]="kpi.value"
+        [label]="kpi.label"
+        [caption]="kpi.caption"
+        [tone]="kpi.tone"
+      />
     }
   </div>
 
@@ -15,107 +24,168 @@
 
   <!-- ── TAB CORRECTIVO — hidden en lugar de @if para no destruir/recrear ── -->
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando órdenes…">
-  <div [hidden]="activeTab() !== 0">
-    @if (isMobile()) {
-      <app-qhse-registros-movil [items]="itemsMovil()" [loading]="loading()" vacio="No hay órdenes ni reportes." />
-    } @else {
-      <div class="table-scroll dyn-table-card">
-        <dynadrill-data-table
-          [columns]="columns()"
-          [rows]="rows()"
-          [rowKey]="rowKeyFn"
-          [pageSize]="10"
-          [actionsTemplate]="actionsTpl"
+    <div [hidden]="activeTab() !== 0">
+      @if (isMobile()) {
+        <app-qhse-registros-movil
+          [items]="itemsMovil()"
+          [loading]="loading()"
+          vacio="No hay órdenes ni reportes."
+        />
+      } @else {
+        <div class="table-scroll dyn-table-card">
+          <dynadrill-data-table
+            [columns]="columns()"
+            [rows]="rows()"
+            [rowKey]="rowKeyFn"
+            [pageSize]="10"
+            [actionsTemplate]="actionsTpl"
+          />
+        </div>
+      }
+
+      <ng-template #actionsTpl let-row>
+        <div class="dyn-actions-row">
+          <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewDetail(row)" />
+          @if (row['pumpingTicketId']) {
+            <dynadrill-icon-button
+              icon="project"
+              tooltip="Ver ticket de Pumping"
+              (clicked)="verTicketPumping(row)"
+            />
+          }
+          @if (row['kind'] === 'order') {
+            @if (tieneSubOrden(row, false)) {
+              <dynadrill-icon-button
+                icon="file-text"
+                iconSource="dynadrill"
+                tooltip="Orden de trabajo (PDF)"
+                (clicked)="openOrdenGeneral(row)"
+              />
+            }
+            @if (tieneSubOrden(row, true)) {
+              <dynadrill-icon-button
+                icon="tool"
+                iconSource="dynadrill"
+                tooltip="Orden operativa (PDF)"
+                (clicked)="openOrdenOperativa(row)"
+              />
+            }
+            @if (row['statusBadge']?.['text'] === 'Cerrado') {
+              <dynadrill-icon-button
+                icon="file-pdf"
+                tooltip="Ver informe"
+                (clicked)="openReport(row)"
+              />
+            }
+          }
+        </div>
+      </ng-template>
+    </div>
+
+    <!-- ── TAB PREVENTIVO — hidden en lugar de @if para no destruir/recrear ── -->
+    <div [hidden]="activeTab() !== 1" class="prev-section">
+      <!-- Tarjetas de resumen — clic filtra la lista -->
+      <div class="kpi-stat-row prev-stats" role="list">
+        <app-kpi-stat
+          class="prev-stats__card"
+          tabindex="0"
+          [class.prev-stats__card--active]="filtroNivel() === 'rojo'"
+          [value]="resumenPreventivo().rojo"
+          label="Vencidos"
+          caption="Toca filtrar"
+          tone="error"
+          (click)="toggleFiltroNivel('rojo')"
+          (keydown.enter)="toggleFiltroNivel('rojo')"
+        />
+        <app-kpi-stat
+          class="prev-stats__card"
+          tabindex="0"
+          [class.prev-stats__card--active]="filtroNivel() === 'amarillo'"
+          [value]="resumenPreventivo().amarillo"
+          label="Próximos"
+          caption="En ventana"
+          tone="warning"
+          (click)="toggleFiltroNivel('amarillo')"
+          (keydown.enter)="toggleFiltroNivel('amarillo')"
+        />
+        <app-kpi-stat
+          class="prev-stats__card"
+          tabindex="0"
+          [class.prev-stats__card--active]="filtroNivel() === 'verde'"
+          [value]="resumenPreventivo().verde"
+          label="Al día"
+          caption="Sin acción"
+          tone="success"
+          (click)="toggleFiltroNivel('verde')"
+          (keydown.enter)="toggleFiltroNivel('verde')"
         />
       </div>
-    }
 
-    <ng-template #actionsTpl let-row>
-      <div class="dyn-actions-row">
-        <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewDetail(row)" />
-        @if (row['pumpingTicketId']) {
-          <dynadrill-icon-button icon="project" tooltip="Ver ticket de Pumping" (clicked)="verTicketPumping(row)" />
+      <!-- Toolbar de filtros -->
+      <div class="prev-toolbar">
+        <dynadrill-select
+          class="prev-toolbar__select"
+          label="Tipo de unidad"
+          placeholder="Todos"
+          [options]="tipoOptions"
+          [value]="filtroTipo()"
+          (valueChange)="filtroTipo.set($any($event)); prevPage.set(1)"
+        />
+        @if (filtroNivel() || filtroTipo()) {
+          <dynadrill-button
+            variant="secondary"
+            size="small"
+            (clicked)="filtroNivel.set(null); filtroTipo.set(null); prevPage.set(1)"
+          >
+            Limpiar filtros
+          </dynadrill-button>
         }
-        @if (row['kind'] === 'order') {
-          @if (tieneSubOrden(row, false)) {
-            <dynadrill-icon-button icon="file-text" iconSource="dynadrill" tooltip="Orden de trabajo (PDF)" (clicked)="openOrdenGeneral(row)" />
-          }
-          @if (tieneSubOrden(row, true)) {
-            <dynadrill-icon-button icon="tool" iconSource="dynadrill" tooltip="Orden operativa (PDF)" (clicked)="openOrdenOperativa(row)" />
-          }
-          @if (row['statusBadge']?.['text'] === 'Cerrado') {
-            <dynadrill-icon-button icon="file-pdf" tooltip="Ver informe" (clicked)="openReport(row)" />
-          }
-        }
+        <span class="prev-toolbar__count">{{ alertasFiltradas().length }} registros</span>
       </div>
-    </ng-template>
-  </div>
 
-  <!-- ── TAB PREVENTIVO — hidden en lugar de @if para no destruir/recrear ── -->
-  <div [hidden]="activeTab() !== 1" class="prev-section">
-
-    <!-- Tarjetas de resumen — clic filtra la lista -->
-    <div class="kpi-stat-row prev-stats" role="list">
-      <app-kpi-stat class="prev-stats__card" tabindex="0" [class.prev-stats__card--active]="filtroNivel() === 'rojo'" [value]="resumenPreventivo().rojo" label="Vencidos" caption="Toca filtrar" tone="error" (click)="toggleFiltroNivel('rojo')" (keydown.enter)="toggleFiltroNivel('rojo')" />
-      <app-kpi-stat class="prev-stats__card" tabindex="0" [class.prev-stats__card--active]="filtroNivel() === 'amarillo'" [value]="resumenPreventivo().amarillo" label="Próximos" caption="En ventana" tone="warning" (click)="toggleFiltroNivel('amarillo')" (keydown.enter)="toggleFiltroNivel('amarillo')" />
-      <app-kpi-stat class="prev-stats__card" tabindex="0" [class.prev-stats__card--active]="filtroNivel() === 'verde'" [value]="resumenPreventivo().verde" label="Al día" caption="Sin acción" tone="success" (click)="toggleFiltroNivel('verde')" (keydown.enter)="toggleFiltroNivel('verde')" />
-    </div>
-
-    <!-- Toolbar de filtros -->
-    <div class="prev-toolbar">
-      <dynadrill-select
-        class="prev-toolbar__select"
-        label="Tipo de unidad"
-        placeholder="Todos"
-        [options]="tipoOptions"
-        [value]="filtroTipo()"
-        (valueChange)="filtroTipo.set($any($event)); prevPage.set(1)"
-      />
-      @if (filtroNivel() || filtroTipo()) {
-        <dynadrill-button variant="secondary" size="small" (clicked)="filtroNivel.set(null); filtroTipo.set(null); prevPage.set(1)">
-          Limpiar filtros
-        </dynadrill-button>
-      }
-      <span class="prev-toolbar__count">{{ alertasFiltradas().length }} registros</span>
-    </div>
-
-    @if (isMobile()) {
-      <app-mnt-compact-list [items]="prevItemsMovil()" vacio="No hay mantenimientos preventivos con ese filtro." />
-    } @else {
-      <!--
+      @if (isMobile()) {
+        <app-mnt-compact-list
+          [items]="prevItemsMovil()"
+          vacio="No hay mantenimientos preventivos con ese filtro."
+        />
+      } @else {
+        <!--
         Sin scrollX: nzScroll.x mide el ancho "natural" de cada columna con un renglón oculto y lo fija en px;
         esa medición no esperaba a que dynadrill-button renderizara dentro del actionsTemplate y dejaba la
         columna de acciones en ~15px. Sin scrollX, table-layout vuelve a "auto".
       -->
-      <div class="table-scroll dyn-table-card">
-        <dynadrill-data-table
-          [columns]="prevColumns"
-          [rows]="prevRows()"
-          [rowKey]="prevRowKeyFn"
-          [pageSize]="10"
-          [actionsTemplate]="prevActionsTpl"
-        />
-      </div>
-    }
+        <div class="table-scroll dyn-table-card">
+          <dynadrill-data-table
+            [columns]="prevColumns"
+            [rows]="prevRows()"
+            [rowKey]="prevRowKeyFn"
+            [pageSize]="10"
+            [actionsTemplate]="prevActionsTpl"
+          />
+        </div>
+      }
 
-    <ng-template #prevActionsTpl let-row>
-      <div class="dyn-actions-row">
-        <dynadrill-button size="small" (clicked)="openRegisterPM(row)">Registrar mantenimiento</dynadrill-button>
-        <dynadrill-button variant="secondary" size="small" (clicked)="openHistorial(row)">Ver historial</dynadrill-button>
-      </div>
-    </ng-template>
-  </div>
+      <ng-template #prevActionsTpl let-row>
+        <div class="dyn-actions-row">
+          <dynadrill-button size="small" (clicked)="openRegisterPM(row)"
+            >Registrar mantenimiento</dynadrill-button
+          >
+          <dynadrill-button variant="secondary" size="small" (clicked)="openHistorial(row)"
+            >Ver historial</dynadrill-button
+          >
+        </div>
+      </ng-template>
+    </div>
 
-  <!-- ── TAB INSPECCIONES — solo lectura, visibilidad total (con y sin novedad) ── -->
-  <div [hidden]="activeTab() !== 2">
-    <p class="maintenance-list-page__nota">Solo lectura — las inspecciones las aprueba el Supervisor.</p>
-    <app-vehicle-inspections-table
-      [inspections]="inspections()"
-      [orders]="orders()"
-      [unitReports]="unitReports()"
-      [editable]="false"
-      (view)="viewInspection($event)"
-    />
-  </div>
+    <!-- ── TAB INSPECCIONES — solo lectura, visibilidad total (con y sin novedad) ── -->
+    <div [hidden]="activeTab() !== 2">
+      <p class="maintenance-list-page__nota">
+        Solo lectura — las inspecciones las aprueba el Supervisor.
+      </p>
+      <app-inspecciones-flota-table
+        [inspecciones]="inspecciones()"
+        (view)="viewInspection($event)"
+      />
+    </div>
   </dynadrill-spinner>
 </div>

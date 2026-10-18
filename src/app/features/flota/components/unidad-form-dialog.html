@@ -1,10 +1,21 @@
 <div class="unidad-form">
   <div class="unidad-form__row">
-    <dynadrill-input label="Código" placeholder="Ej: CAM-09" [value]="codigo()" [disabled]="editando" (valueChange)="codigo.set($event)" />
+    <dynadrill-input
+      label="Código"
+      placeholder="Ej: CAM-09"
+      [value]="codigo()"
+      [disabled]="editando"
+      (valueChange)="codigo.set($event)"
+    />
     @if (editando) {
       <dynadrill-input label="Tipo" [value]="tipoTexto" [disabled]="true" />
     } @else {
-      <dynadrill-select label="Tipo" [options]="tipoOpciones" [value]="tipo()" (valueChange)="setTipo($any($event))" />
+      <dynadrill-select
+        label="Tipo"
+        [options]="tipoOpciones"
+        [value]="tipo()"
+        (valueChange)="setTipo($any($event))"
+      />
     }
   </div>
 
@@ -22,8 +33,16 @@
 
   @if (!editando && (esServicio() || esTransporte())) {
     <p class="unidad-form__section-title">Lectura de arranque (opcional)</p>
-    <dynadrill-input [label]="lecturaEtiqueta()" type="number" [value]="lecturaInicial()" (valueChange)="lecturaInicial.set($event)" />
-    <p class="unidad-form__hint">Sin una lectura inicial la unidad no genera alertas de mantenimiento hasta que se registre la primera.</p>
+    <dynadrill-input
+      [label]="lecturaEtiqueta()"
+      type="number"
+      [value]="lecturaInicial()"
+      (valueChange)="lecturaInicial.set($event)"
+    />
+    <p class="unidad-form__hint">
+      Sin una lectura inicial la unidad no genera alertas de mantenimiento hasta que se registre la
+      primera.
+    </p>
   }
 
   <p class="unidad-form__section-title">Mantenimiento y matrícula</p>
@@ -41,15 +60,39 @@
   />
 
   <div class="unidad-form__row">
-    <dynadrill-datetime-picker label="Fecha de matrícula" mode="date" [value]="$any(fechaMatricula())" (valueChange)="fechaMatricula.set($any($event))" />
-    <dynadrill-datetime-picker label="Caducidad de matrícula" mode="date" [value]="$any(caducidadMatricula())" (valueChange)="caducidadMatricula.set($any($event))" />
+    <dynadrill-datetime-picker
+      label="Fecha de matrícula"
+      mode="date"
+      [value]="$any(fechaMatricula())"
+      (valueChange)="fechaMatricula.set($any($event))"
+    />
+    <dynadrill-datetime-picker
+      label="Caducidad de matrícula"
+      mode="date"
+      [value]="$any(caducidadMatricula())"
+      (valueChange)="caducidadMatricula.set($any($event))"
+    />
   </div>
   <div class="unidad-form__row">
-    <dynadrill-datetime-picker label="Caducidad de la póliza" mode="date" [value]="$any(caducidadPoliza())" (valueChange)="caducidadPoliza.set($any($event))" />
-    <dynadrill-datetime-picker label="Vigencia de otro documento" mode="date" [value]="$any(vigenciaOtroDocumento())" (valueChange)="vigenciaOtroDocumento.set($any($event))" />
+    <dynadrill-datetime-picker
+      label="Caducidad de la póliza"
+      mode="date"
+      [value]="$any(caducidadPoliza())"
+      (valueChange)="caducidadPoliza.set($any($event))"
+    />
+    <dynadrill-datetime-picker
+      label="Vigencia de otro documento"
+      mode="date"
+      [value]="$any(vigenciaOtroDocumento())"
+      (valueChange)="vigenciaOtroDocumento.set($any($event))"
+    />
   </div>
 
-  <dynadrill-checkbox label="Unidad predeterminada de su categoría" [checked]="predeterminada()" (checkedChange)="predeterminada.set($event)" />
+  <dynadrill-checkbox
+    label="Unidad predeterminada de su categoría"
+    [checked]="predeterminada()"
+    (checkedChange)="predeterminada.set($event)"
+  />
   <dynadrill-textarea label="Nota" [value]="nota()" (valueChange)="nota.set($event)" [rows]="2" />
 
   <div class="unidad-form__actions">

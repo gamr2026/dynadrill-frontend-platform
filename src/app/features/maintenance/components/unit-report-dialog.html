@@ -4,11 +4,35 @@
   <div class="unit-report-dialog__body">
     @if (currentStep() === 0) {
       <div class="unit-report-dialog__grid">
-        <dynadrill-input label="Reporte N°" placeholder="3104" [value]="reportNo()" (valueChange)="reportNo.set($event)" />
-        <dynadrill-input label="Cliente" placeholder="Petroecuador" [value]="cliente()" (valueChange)="cliente.set($event)" />
-        <dynadrill-select label="Unidad" placeholder="Selecciona la unidad" [options]="unidadOptions()" [value]="unidadId()" (valueChange)="unidadId.set($any($event))" />
-        <dynadrill-datetime-picker label="Fecha Salida" [value]="fechaSalida()!" (valueChange)="fechaSalida.set($event)" />
-        <dynadrill-datetime-picker label="Fecha Llegada" [value]="fechaLlegada()!" (valueChange)="fechaLlegada.set($event)" />
+        <dynadrill-input
+          label="Reporte N°"
+          placeholder="3104"
+          [value]="reportNo()"
+          (valueChange)="reportNo.set($event)"
+        />
+        <dynadrill-input
+          label="Cliente"
+          placeholder="Petroecuador"
+          [value]="cliente()"
+          (valueChange)="cliente.set($event)"
+        />
+        <dynadrill-select
+          label="Unidad"
+          placeholder="Selecciona la unidad"
+          [options]="unidadOptions()"
+          [value]="unidadId()"
+          (valueChange)="unidadId.set($any($event))"
+        />
+        <dynadrill-datetime-picker
+          label="Fecha Salida"
+          [value]="fechaSalida()!"
+          (valueChange)="fechaSalida.set($event)"
+        />
+        <dynadrill-datetime-picker
+          label="Fecha Llegada"
+          [value]="fechaLlegada()!"
+          (valueChange)="fechaLlegada.set($event)"
+        />
       </div>
       <app-ubicacion-selector [mostrarTaladro]="false" (seleccionChange)="ubicacion.set($event)" />
       @if (horasAcumuladasLabel(); as label) {
@@ -21,10 +45,30 @@
 
     @if (currentStep() === 1) {
       <div class="unit-report-dialog__grid">
-        <dynadrill-input label="Horómetro Salida" type="number" [value]="horometroSalida()" (valueChange)="horometroSalida.set($event)" />
-        <dynadrill-input label="Horómetro Llegada" type="number" [value]="horometroLlegada()" (valueChange)="horometroLlegada.set($event)" />
-        <dynadrill-input label="Odómetro Salida" type="number" [value]="odometroSalida()" (valueChange)="odometroSalida.set($event)" />
-        <dynadrill-input label="Odómetro Llegada" type="number" [value]="odometroLlegada()" (valueChange)="odometroLlegada.set($event)" />
+        <dynadrill-input
+          label="Horómetro Salida"
+          type="number"
+          [value]="horometroSalida()"
+          (valueChange)="horometroSalida.set($event)"
+        />
+        <dynadrill-input
+          label="Horómetro Llegada"
+          type="number"
+          [value]="horometroLlegada()"
+          (valueChange)="horometroLlegada.set($event)"
+        />
+        <dynadrill-input
+          label="Odómetro Salida"
+          type="number"
+          [value]="odometroSalida()"
+          (valueChange)="odometroSalida.set($event)"
+        />
+        <dynadrill-input
+          label="Odómetro Llegada"
+          type="number"
+          [value]="odometroLlegada()"
+          (valueChange)="odometroLlegada.set($event)"
+        />
         <dynadrill-input label="Origen" [value]="origen()" (valueChange)="origen.set($event)" />
         <dynadrill-input label="Destino" [value]="destino()" (valueChange)="destino.set($event)" />
       </div>
@@ -37,29 +81,59 @@
     }
 
     @if (currentStep() === 2) {
-      <ng-container [ngTemplateOutlet]="checklist" [ngTemplateOutletContext]="{ $implicit: inspeccionChasis, list: inspeccionChasis }" />
+      <ng-container
+        [ngTemplateOutlet]="checklist"
+        [ngTemplateOutletContext]="{ $implicit: inspeccionChasis, list: inspeccionChasis }"
+      />
     }
     @if (currentStep() === 3) {
-      <ng-container [ngTemplateOutlet]="checklist" [ngTemplateOutletContext]="{ $implicit: inspeccionPlataforma, list: inspeccionPlataforma }" />
+      <ng-container
+        [ngTemplateOutlet]="checklist"
+        [ngTemplateOutletContext]="{ $implicit: inspeccionPlataforma, list: inspeccionPlataforma }"
+      />
     }
     @if (currentStep() === 4) {
-      <ng-container [ngTemplateOutlet]="checklist" [ngTemplateOutletContext]="{ $implicit: inspeccionInstrumentacion, list: inspeccionInstrumentacion }" />
+      <ng-container
+        [ngTemplateOutlet]="checklist"
+        [ngTemplateOutletContext]="{
+          $implicit: inspeccionInstrumentacion,
+          list: inspeccionInstrumentacion,
+        }"
+      />
     }
 
     @if (currentStep() === 5) {
       <div class="unit-report-dialog__stack">
-        <dynadrill-textarea label="Mecánica: problemas acontecidos" [value]="problemasMecanica()" (valueChange)="problemasMecanica.set($event)" [rows]="3" />
+        <dynadrill-textarea
+          label="Mecánica: problemas acontecidos"
+          [value]="problemasMecanica()"
+          (valueChange)="problemasMecanica.set($event)"
+          [rows]="3"
+        />
         <dynadrill-textarea
           label="Instrumentación: problemas acontecidos"
           [value]="problemasInstrumentacion()"
           (valueChange)="problemasInstrumentacion.set($event)"
           [rows]="3"
         />
-        <dynadrill-textarea label="Operaciones: problemas acontecidos" [value]="problemasOperaciones()" (valueChange)="problemasOperaciones.set($event)" [rows]="3" />
+        <dynadrill-textarea
+          label="Operaciones: problemas acontecidos"
+          [value]="problemasOperaciones()"
+          (valueChange)="problemasOperaciones.set($event)"
+          [rows]="3"
+        />
 
-        <dynadrill-checkbox label="¿Algún problema interrumpió/atrasó la operación?" [checked]="interrumpioOperacion()" (checkedChange)="interrumpioOperacion.set($event)" />
+        <dynadrill-checkbox
+          label="¿Algún problema interrumpió/atrasó la operación?"
+          [checked]="interrumpioOperacion()"
+          (checkedChange)="interrumpioOperacion.set($event)"
+        />
         @if (interrumpioOperacion()) {
-          <dynadrill-input label="¿Cuál?" [value]="detalleInterrupcion()" (valueChange)="detalleInterrupcion.set($event)" />
+          <dynadrill-input
+            label="¿Cuál?"
+            [value]="detalleInterrupcion()"
+            (valueChange)="detalleInterrupcion.set($event)"
+          />
         }
         <dynadrill-checkbox
           label="La unidad está lista y operativa para la siguiente operación"
@@ -71,10 +145,26 @@
 
     @if (currentStep() === 6) {
       <div class="unit-report-dialog__grid">
-        <dynadrill-input label="Operador (Salida)" [value]="operadorSalida()" (valueChange)="operadorSalida.set($event)" />
-        <dynadrill-input label="Supervisor de Servicio (Salida)" [value]="supervisorSalida()" (valueChange)="supervisorSalida.set($event)" />
-        <dynadrill-input label="Operador (Llegada)" [value]="operadorLlegada()" (valueChange)="operadorLlegada.set($event)" />
-        <dynadrill-input label="Supervisor de Servicio (Llegada)" [value]="supervisorLlegada()" (valueChange)="supervisorLlegada.set($event)" />
+        <dynadrill-input
+          label="Operador (Salida)"
+          [value]="operadorSalida()"
+          (valueChange)="operadorSalida.set($event)"
+        />
+        <dynadrill-input
+          label="Supervisor de Servicio (Salida)"
+          [value]="supervisorSalida()"
+          (valueChange)="supervisorSalida.set($event)"
+        />
+        <dynadrill-input
+          label="Operador (Llegada)"
+          [value]="operadorLlegada()"
+          (valueChange)="operadorLlegada.set($event)"
+        />
+        <dynadrill-input
+          label="Supervisor de Servicio (Llegada)"
+          [value]="supervisorLlegada()"
+          (valueChange)="supervisorLlegada.set($event)"
+        />
       </div>
     }
   </div>
@@ -88,7 +178,9 @@
       @if (currentStep() < steps.length - 1) {
         <dynadrill-button (clicked)="next()">Siguiente</dynadrill-button>
       } @else {
-        <dynadrill-button [disabled]="submitting() || !canSubmit()" (clicked)="submit()">{{ submitting() ? 'Guardando…' : 'Guardar' }}</dynadrill-button>
+        <dynadrill-button [disabled]="submitting() || !canSubmit()" (clicked)="submit()">{{
+          submitting() ? 'Guardando…' : 'Guardar'
+        }}</dynadrill-button>
       }
     </div>
   </div>
@@ -104,14 +196,22 @@
     @for (item of items(); track item.label; let i = $index) {
       <div class="unit-checklist__row">
         <span class="unit-checklist__label">{{ item.label }}</span>
-        <button type="button" class="unit-checklist__cell" (click)="toggleChecklist(list, i, 'salida')">
+        <button
+          type="button"
+          class="unit-checklist__cell"
+          (click)="toggleChecklist(list, i, 'salida')"
+        >
           @if (item.salida === 'ok') {
             <dynadrill-icon name="check" [size]="16" />
           } @else if (item.salida === 'x') {
             <dynadrill-icon name="close" [size]="16" />
           }
         </button>
-        <button type="button" class="unit-checklist__cell" (click)="toggleChecklist(list, i, 'llegada')">
+        <button
+          type="button"
+          class="unit-checklist__cell"
+          (click)="toggleChecklist(list, i, 'llegada')"
+        >
           @if (item.llegada === 'ok') {
             <dynadrill-icon name="check" [size]="16" />
           } @else if (item.llegada === 'x') {

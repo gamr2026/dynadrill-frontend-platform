@@ -21,7 +21,9 @@ export class FlotaUnidadesService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}/operaciones/flota`;
 
-  listar(filtro: { tipo?: TipoUnidadFlota; q?: string; activa?: 'true' | 'false' | 'todas' } = {}): Observable<UnidadFlota[]> {
+  listar(
+    filtro: { tipo?: TipoUnidadFlota; q?: string; activa?: 'true' | 'false' | 'todas' } = {},
+  ): Observable<UnidadFlota[]> {
     let params = new HttpParams();
     if (filtro.tipo) params = params.set('tipo', filtro.tipo);
     if (filtro.q?.trim()) params = params.set('q', filtro.q.trim());

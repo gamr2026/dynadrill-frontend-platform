@@ -1,5 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, WritableSignal, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  WritableSignal,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import {
   DynadrillButtonComponent,
@@ -59,7 +66,7 @@ export interface VehicleInspectionDialogData {
 }
 
 function toChecklistItems(labels: string[]): VehicleChecklistItem[] {
-  return labels.map(label => ({ label, estado: null }));
+  return labels.map((label) => ({ label, estado: null }));
 }
 
 /** Parsea a Date local, o null si el valor no es una fecha válida (evita Invalid Date que revienta al serializar). */
@@ -106,8 +113,12 @@ export class VehicleInspectionDialog {
   private readonly notify = inject(DynadrillNotificationService);
   private readonly dialogService = inject(DynadrillDialogService);
   private readonly auth = inject(AuthService);
-  private readonly modalRef = inject(NzModalRef<VehicleInspectionDialog, VehicleInspection | undefined>);
-  private readonly data = inject<VehicleInspectionDialogData | null>(NZ_MODAL_DATA, { optional: true });
+  private readonly modalRef = inject(
+    NzModalRef<VehicleInspectionDialog, VehicleInspection | undefined>,
+  );
+  private readonly data = inject<VehicleInspectionDialogData | null>(NZ_MODAL_DATA, {
+    optional: true,
+  });
   // id <= 0 = registro de ejemplo no persistido (ver createMockCompletedInspection en pumping): se prellenar pero se guarda como alta nueva, nunca PUT.
   private readonly existingId = (this.data?.existing?.id ?? 0) > 0 ? this.data!.existing!.id : null;
   protected readonly isEditMode = this.existingId !== null;
@@ -125,7 +136,9 @@ export class VehicleInspectionDialog {
 
   protected readonly unidades = signal<Unidad[]>([]);
   protected readonly unidadOptions = computed<DynadrillSelectOption[]>(() =>
-    this.unidades().filter(u => u.tipo === 'Transporte').map(u => ({ label: `${u.code} — ${u.nombre}`, value: u.id })),
+    this.unidades()
+      .filter((u) => u.tipo === 'Transporte')
+      .map((u) => ({ label: `${u.code} — ${u.nombre}`, value: u.id })),
   );
 
   protected readonly unidadId = signal<number | null>(null);
@@ -159,9 +172,15 @@ export class VehicleInspectionDialog {
   /** Explica de dónde sale la fecha auto-calculada de próximo mantenimiento (o por qué no se pudo calcular). */
   protected readonly proximoMantenimientoLeyenda = signal('');
 
-  protected readonly checklistVehiculo = signal<VehicleChecklistItem[]>(toChecklistItems(VEHICLE_CHECKLIST_VEHICULO));
-  protected readonly checklistEquipo = signal<VehicleChecklistItem[]>(toChecklistItems(VEHICLE_CHECKLIST_EQUIPO));
-  protected readonly seatbeltBlocked = computed(() => vehicleInspectionBlockedBySeatbelt({ checklistVehiculo: this.checklistVehiculo() }));
+  protected readonly checklistVehiculo = signal<VehicleChecklistItem[]>(
+    toChecklistItems(VEHICLE_CHECKLIST_VEHICULO),
+  );
+  protected readonly checklistEquipo = signal<VehicleChecklistItem[]>(
+    toChecklistItems(VEHICLE_CHECKLIST_EQUIPO),
+  );
+  protected readonly seatbeltBlocked = computed(() =>
+    vehicleInspectionBlockedBySeatbelt({ checklistVehiculo: this.checklistVehiculo() }),
+  );
 
   /**
    * FACT del cliente (presentación del módulo, 2026-09-01): los 6
@@ -170,9 +189,11 @@ export class VehicleInspectionDialog {
    * si se puede guardar la inspección.
    */
   protected readonly conductoresPermisos = signal<ConductorPermisos[]>([]);
-  protected readonly conductorOptions = computed<DynadrillSelectOption[]>(() => this.conductoresPermisos().map(c => ({ label: c.nombre, value: c.nombre })));
+  protected readonly conductorOptions = computed<DynadrillSelectOption[]>(() =>
+    this.conductoresPermisos().map((c) => ({ label: c.nombre, value: c.nombre })),
+  );
   protected readonly conductorSeleccionado = computed<ConductorPermisos | null>(
-    () => this.conductoresPermisos().find(c => c.nombre === this.inspeccionadoPor()) ?? null,
+    () => this.conductoresPermisos().find((c) => c.nombre === this.inspeccionadoPor()) ?? null,
   );
   protected readonly reuneCondicionesParaTrabajar = computed(() => {
     const c = this.conductorSeleccionado();
@@ -185,8 +206,8 @@ export class VehicleInspectionDialog {
   /** Conductores alternativos que sí reúnen las condiciones — para sugerir un cambio cuando el elegido no las cumple. */
   protected readonly conductoresSugeridos = computed<DynadrillSelectOption[]>(() =>
     this.conductoresPermisos()
-      .filter(c => c.nombre !== this.inspeccionadoPor() && conductorReuneCondiciones(c))
-      .map(c => ({ label: c.nombre, value: c.nombre })),
+      .filter((c) => c.nombre !== this.inspeccionadoPor() && conductorReuneCondiciones(c))
+      .map((c) => ({ label: c.nombre, value: c.nombre })),
   );
   protected readonly observacionesConductor = signal('');
   protected readonly supervisorNombre = signal(this.data?.supervisorNombre ?? '');
@@ -197,16 +218,24 @@ export class VehicleInspectionDialog {
    * llamada de red falle o tarde.
    */
   protected readonly supervisorOptions = signal<DynadrillSelectOption[]>(
-    this.data?.supervisorNombre ? [{ label: this.data.supervisorNombre, value: this.data.supervisorNombre }] : [],
+    this.data?.supervisorNombre
+      ? [{ label: this.data.supervisorNombre, value: this.data.supervisorNombre }]
+      : [],
   );
 
   /** El wizard permitía avanzar por los pasos de checklist (Vehículo/Equipo) sin marcar ningún ítem — next() solo valida el paso 0. */
   protected readonly checklistCompleto = computed(
-    () => this.checklistVehiculo().every(i => i.estado !== null) && this.checklistEquipo().every(i => i.estado !== null),
+    () =>
+      this.checklistVehiculo().every((i) => i.estado !== null) &&
+      this.checklistEquipo().every((i) => i.estado !== null),
   );
 
   protected readonly puedeGuardar = computed(
-    () => !!this.unidadId() && !!this.conductorSeleccionado() && this.reuneCondicionesParaTrabajar() && this.checklistCompleto(),
+    () =>
+      !!this.unidadId() &&
+      !!this.conductorSeleccionado() &&
+      this.reuneCondicionesParaTrabajar() &&
+      this.checklistCompleto(),
   );
 
   /**
@@ -223,8 +252,8 @@ export class VehicleInspectionDialog {
     if (!this.reuneCondicionesParaTrabajar()) {
       return `${this.conductorSeleccionado()!.nombre} no reúne las condiciones para trabajar — cambia de conductor en el paso "Conductor".`;
     }
-    const faltanVehiculo = this.checklistVehiculo().filter(i => i.estado === null).length;
-    const faltanEquipo = this.checklistEquipo().filter(i => i.estado === null).length;
+    const faltanVehiculo = this.checklistVehiculo().filter((i) => i.estado === null).length;
+    const faltanEquipo = this.checklistEquipo().filter((i) => i.estado === null).length;
     const partes: string[] = [];
     if (faltanVehiculo) partes.push(`${faltanVehiculo} ítem(s) del checklist de Vehículo`);
     if (faltanEquipo) partes.push(`${faltanEquipo} ítem(s) del checklist de Equipo`);
@@ -239,7 +268,7 @@ export class VehicleInspectionDialog {
    */
   protected onUnidadChange(unidadId: number | null): void {
     this.unidadId.set(unidadId);
-    const unidad = this.unidades().find(u => u.id === unidadId);
+    const unidad = this.unidades().find((u) => u.id === unidadId);
     if (!unidad) return;
     if (unidad.marca) this.marca.set(unidad.marca);
     if (unidad.modelo) this.modelo.set(unidad.modelo);
@@ -250,9 +279,11 @@ export class VehicleInspectionDialog {
     // (Inventario) y quedan bloqueados, igual que Marca/Modelo/Placa.
     // Medianoche local para no mostrar un día antes en UTC-5; tolerante a datos malos.
     if (unidad.fechaMatricula) this.fechaMatricula.set(parseFechaSegura(unidad.fechaMatricula));
-    if (unidad.caducidadMatricula) this.caducidadMatricula.set(parseFechaSegura(unidad.caducidadMatricula));
+    if (unidad.caducidadMatricula)
+      this.caducidadMatricula.set(parseFechaSegura(unidad.caducidadMatricula));
     if (unidad.caducidadPoliza) this.caducidadPoliza.set(parseFechaSegura(unidad.caducidadPoliza));
-    if (unidad.vigenciaOtroDocumento) this.vigenciaOtroDocumento.set(parseFechaSegura(unidad.vigenciaOtroDocumento));
+    if (unidad.vigenciaOtroDocumento)
+      this.vigenciaOtroDocumento.set(parseFechaSegura(unidad.vigenciaOtroDocumento));
     // El kilometraje se precarga como sugerencia pero queda EDITABLE (no se
     // bloquea como Marca/Modelo/Placa): es una lectura física del odómetro
     // y `Unidad.kmActual` puede estar desactualizado — el inspector lo
@@ -273,7 +304,12 @@ export class VehicleInspectionDialog {
   private calcularProximoMantenimiento(unidad: Unidad): void {
     if (this.proximoMantenimiento()) return; // no pisa un valor ya cargado (edición)
     const DIAS_INTERVALO = 180;
-    const base = unidad.tipo === 'Servicio' ? unidad.fechaUltimoMantenimiento : unidad.tipo === 'Auxiliar' ? unidad.fechaUltimoMantenimientoAux : undefined;
+    const base =
+      unidad.tipo === 'Servicio'
+        ? unidad.fechaUltimoMantenimiento
+        : unidad.tipo === 'Auxiliar'
+          ? unidad.fechaUltimoMantenimientoAux
+          : undefined;
     if (!base) {
       this.proximoMantenimientoLeyenda.set(
         unidad.tipo === 'Transporte'
@@ -316,19 +352,19 @@ export class VehicleInspectionDialog {
   }
 
   constructor() {
-    this.unidadesService.list().subscribe(unidades => {
+    this.unidadesService.list().subscribe((unidades) => {
       this.unidades.set(unidades);
       // 1) Registro de salida con unidadId que no resuelve (datos de ejemplo): se corrige por código.
       const ex = this.data?.existing;
-      if (ex && !unidades.some(u => u.id === this.unidadId())) {
-        const porCodigo = unidades.find(u => u.code === ex.unidadCode);
+      if (ex && !unidades.some((u) => u.id === this.unidadId())) {
+        const porCodigo = unidades.find((u) => u.code === ex.unidadCode);
         if (porCodigo) this.unidadId.set(porCodigo.id);
       }
       // 2) Inspección de salida: la unidad ya se la asignó el Supervisor —
       //    se precarga (y con lockUnidad, se fija) en vez de pedirla de nuevo.
       const codigoAsignado = this.data?.unidadCodeAsignada;
       if (codigoAsignado && this.unidadId() === null) {
-        const asignada = unidades.find(u => u.code === codigoAsignado);
+        const asignada = unidades.find((u) => u.code === codigoAsignado);
         if (asignada) this.onUnidadChange(asignada.id);
       }
       // 3) Prellenado de llegada (id <= 0): la descripción del vehículo se
@@ -337,20 +373,22 @@ export class VehicleInspectionDialog {
         this.onUnidadChange(this.unidadId());
       }
     });
-    this.inspectionsService.listConductoresPermisos().subscribe(permisos => this.conductoresPermisos.set(permisos));
+    this.inspectionsService
+      .listConductoresPermisos()
+      .subscribe((permisos) => this.conductoresPermisos.set(permisos));
 
     // "Nombre del Supervisor": se precargan los supervisores activos del
     // sistema vía `GET /api/roles/supervisor/usuarios` — un endpoint liviano
     // (id + nombre) accesible a cualquier autenticado, a diferencia de
     // `GET /api/users` que es solo Superadmin.
     this.rolesService.usuariosPorRol(SUPERVISOR_ROLE_CODE).subscribe({
-      next: usuarios => {
-        const nombres = [...new Set(usuarios.map(u => u.name))];
+      next: (usuarios) => {
+        const nombres = [...new Set(usuarios.map((u) => u.name))];
         // Conserva el supervisor preseleccionado aunque no esté en la lista
         // de activos (ej. cambió de rol después de asignarse al ticket).
         const preseleccionado = this.supervisorNombre();
         if (preseleccionado && !nombres.includes(preseleccionado)) nombres.unshift(preseleccionado);
-        this.supervisorOptions.set(nombres.map(n => ({ label: n, value: n })));
+        this.supervisorOptions.set(nombres.map((n) => ({ label: n, value: n })));
       },
       // Si falla, queda al menos el supervisor sembrado desde `data`.
       error: () => {},
@@ -388,28 +426,47 @@ export class VehicleInspectionDialog {
 
   /** Clic principal: cicla vacío → Cumple → No cumple → vacío. N/A queda aparte (ver setNA). */
   cycleEstado(list: WritableSignal<VehicleChecklistItem[]>, index: number): void {
-    const next: Record<'C' | 'NC' | 'NA' | 'none', ChecklistEstado> = { none: 'C', C: 'NC', NC: null, NA: 'C' };
-    list.update(items => items.map((item, i) => (i === index ? { ...item, estado: next[item.estado ?? 'none'] } : item)));
+    const next: Record<'C' | 'NC' | 'NA' | 'none', ChecklistEstado> = {
+      none: 'C',
+      C: 'NC',
+      NC: null,
+      NA: 'C',
+    };
+    list.update((items) =>
+      items.map((item, i) =>
+        i === index ? { ...item, estado: next[item.estado ?? 'none'] } : item,
+      ),
+    );
   }
 
   setNA(list: WritableSignal<VehicleChecklistItem[]>, index: number): void {
-    list.update(items => items.map((item, i) => (i === index ? { ...item, estado: item.estado === 'NA' ? null : 'NA' } : item)));
+    list.update((items) =>
+      items.map((item, i) =>
+        i === index ? { ...item, estado: item.estado === 'NA' ? null : 'NA' } : item,
+      ),
+    );
   }
 
   markAll(list: WritableSignal<VehicleChecklistItem[]>, estado: 'C' | 'NC'): void {
-    list.update(items => items.map(item => ({ ...item, estado })));
+    list.update((items) => items.map((item) => ({ ...item, estado })));
   }
 
   next(): void {
-    if (this.currentStep() === 0 && (!this.unidadId() || !this.fecha() || !this.puntoPartida().trim() || !this.inspeccionadoPor())) {
-      this.notify.error('Falta información', 'Completa Unidad, Fecha, Punto de partida y Conductor antes de continuar.');
+    if (
+      this.currentStep() === 0 &&
+      (!this.unidadId() || !this.fecha() || !this.puntoPartida().trim() || !this.inspeccionadoPor())
+    ) {
+      this.notify.error(
+        'Falta información',
+        'Completa Unidad, Fecha, Punto de partida y Conductor antes de continuar.',
+      );
       return;
     }
-    this.currentStep.update(i => Math.min(i + 1, STEPS.length - 1));
+    this.currentStep.update((i) => Math.min(i + 1, STEPS.length - 1));
   }
 
   back(): void {
-    this.currentStep.update(i => Math.max(i - 1, 0));
+    this.currentStep.update((i) => Math.max(i - 1, 0));
   }
 
   cancel(): void {
@@ -417,7 +474,7 @@ export class VehicleInspectionDialog {
   }
 
   private buildInput(): CreateVehicleInspectionInput {
-    const unidad = this.unidades().find(u => u.id === this.unidadId());
+    const unidad = this.unidades().find((u) => u.id === this.unidadId());
     const conductor = this.conductorSeleccionado();
     return {
       unidadId: this.unidadId()!,
@@ -460,7 +517,7 @@ export class VehicleInspectionDialog {
 
     if (this.isEditMode) {
       this.inspectionsService.update(this.existingId!, input).subscribe({
-        next: inspection => {
+        next: (inspection) => {
           this.notify.success('Guardado', `Inspección de ${inspection.unidadCode} actualizada.`);
           this.modalRef.close(inspection);
         },
@@ -473,7 +530,7 @@ export class VehicleInspectionDialog {
     }
 
     this.inspectionsService.create(input).subscribe({
-      next: async inspection => {
+      next: async (inspection) => {
         this.notify.success('Guardado', `Inspección de ${inspection.unidadCode} registrada.`);
         // Se espera a que termine el flujo del Reporte de Unidad (si aplica)
         // antes de cerrar — así quien reabre la lista ya ve el enlace hecho,
@@ -505,11 +562,15 @@ export class VehicleInspectionDialog {
     const ref = this.dialogService.open<UnitReportDialog, UnitReportDialogData>({
       title: 'Reporte de Unidad',
       content: UnitReportDialog,
-      data: { unidadId: inspection.unidadId, sourceModule: 'Vehículos', originVehicleInspectionId: inspection.id },
+      data: {
+        unidadId: inspection.unidadId,
+        sourceModule: 'Vehículos',
+        originVehicleInspectionId: inspection.id,
+      },
       footer: false,
     });
 
-    await new Promise<void>(resolve => ref.afterClose.subscribe(() => resolve()));
+    await new Promise<void>((resolve) => ref.afterClose.subscribe(() => resolve()));
   }
 
   /** PDF del formato con los nombres del conductor/inspector y del supervisor; la firma se pone sobre el archivo. */
@@ -520,7 +581,8 @@ export class VehicleInspectionDialog {
       titulo: `Inspección de vehículos — ${insp.unidadCode}`,
       component: InspeccionVehiculoHoja,
       inputs: { inspeccion: insp },
-      nombreArchivo: `Inspección de vehículos ${insp.unidadCode} ${insp.fecha?.slice(0, 10) ?? ''}`.trim(),
+      nombreArchivo:
+        `Inspección de vehículos ${insp.unidadCode} ${insp.fecha?.slice(0, 10) ?? ''}`.trim(),
     });
   }
 }

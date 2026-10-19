@@ -10,7 +10,12 @@ import {
   type DynadrillSelectOption,
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
-import { computeOrderStatus, MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../models/maintenance-order.model';
+import {
+  computeOrderStatus,
+  MaintenanceOrderWithSubOrders,
+  SubOrder,
+  SubOrderStatus,
+} from '../models/maintenance-order.model';
 import { UnitReport } from '../models/unit-report.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { DeriveToPumpingDialog, DeriveToPumpingDialogData } from './derive-to-pumping-dialog';
@@ -25,21 +30,24 @@ export interface OrderDetailPanelData {
 }
 
 const STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
-  'Pendiente': 'warning',
+  Pendiente: 'warning',
   'En Diagnóstico': 'info',
   'En Ejecución': 'brand',
   'En Revisión de Cierre': 'info',
-  'Cerrado': 'success',
+  Cerrado: 'success',
   'Corrección Solicitada': 'error',
   'Derivado a Pumping': 'neutral',
 };
 
-const STATUS_ACCENT: Record<SubOrderStatus, 'warning' | 'info' | 'brand' | 'success' | 'error' | 'neutral' | 'none'> = {
-  'Pendiente': 'warning',
+const STATUS_ACCENT: Record<
+  SubOrderStatus,
+  'warning' | 'info' | 'brand' | 'success' | 'error' | 'neutral' | 'none'
+> = {
+  Pendiente: 'warning',
   'En Diagnóstico': 'info',
   'En Ejecución': 'brand',
   'En Revisión de Cierre': 'info',
-  'Cerrado': 'success',
+  Cerrado: 'success',
   'Corrección Solicitada': 'error',
   'Derivado a Pumping': 'neutral',
 };
@@ -92,19 +100,35 @@ export class OrderDetailPanel {
   /** Tono del chip del estado general de la orden. */
   protected readonly orderTone = computed<'success' | 'neutral' | 'error' | 'warning'>(() => {
     const status = this.orderStatus();
-    return status === 'Aceptado' ? 'success' : status === 'Cerrado' ? 'neutral' : status === 'Requiere cambios' ? 'error' : 'warning';
+    return status === 'Aceptado'
+      ? 'success'
+      : status === 'Cerrado'
+        ? 'neutral'
+        : status === 'Requiere cambios'
+          ? 'error'
+          : 'warning';
   });
   protected readonly statusAccent = STATUS_ACCENT;
 
   constructor() {
-    this.rolesService.usuariosPorRol('operador_mantenimiento').subscribe(usuarios => {
-      this.mecanicoOptions.set(usuarios.filter(u => u.specialty === 'Mecánico').map(u => ({ label: u.name, value: u.id })));
-      this.instrumentalOptions.set(usuarios.filter(u => u.specialty === 'Instrumental').map(u => ({ label: u.name, value: u.id })));
+    this.rolesService.usuariosPorRol('operador_mantenimiento').subscribe((usuarios) => {
+      this.mecanicoOptions.set(
+        usuarios
+          .filter((u) => u.specialty === 'Mecánico')
+          .map((u) => ({ label: u.name, value: u.id })),
+      );
+      this.instrumentalOptions.set(
+        usuarios
+          .filter((u) => u.specialty === 'Instrumental')
+          .map((u) => ({ label: u.name, value: u.id })),
+      );
     });
   }
 
   private refreshOrder(): void {
-    this.ordersService.get(this.currentOrder().id).subscribe(updated => this.currentOrder.set(updated));
+    this.ordersService
+      .get(this.currentOrder().id)
+      .subscribe((updated) => this.currentOrder.set(updated));
   }
 
   operatorOptionsFor(sub: SubOrder): DynadrillSelectOption[] {
@@ -128,7 +152,7 @@ export class OrderDetailPanel {
   saveOperator(sub: SubOrder): void {
     const newId = this.editingOperatorId();
     if (!newId || this.reassigning()) return;
-    if (!this.operatorOptionsFor(sub).some(o => o.value === newId)) return;
+    if (!this.operatorOptionsFor(sub).some((o) => o.value === newId)) return;
     this.reassigning.set(true);
     this.ordersService.reassignOperator(sub.id, newId).subscribe({
       next: () => {
@@ -137,7 +161,7 @@ export class OrderDetailPanel {
         this.reassigning.set(false);
         this.refreshOrder();
       },
-      error: e => {
+      error: (e) => {
         this.reassigning.set(false);
         this.notify.error('Error', mensajeDeError(e, 'No se pudo reasignar el operador.'));
       },
@@ -150,25 +174,36 @@ export class OrderDetailPanel {
 
   // Punto 3: excluir "En Revisión de Cierre" — no tiene sentido cambiar operador cuando ya entregó
   canEditOperator(sub: SubOrder): boolean {
-    return sub.type !== 'Operativo'
-      && sub.status !== 'Cerrado'
-      && sub.status !== 'Derivado a Pumping'
-      && sub.status !== 'En Revisión de Cierre';
+    return (
+      sub.type !== 'Operativo' &&
+      sub.status !== 'Cerrado' &&
+      sub.status !== 'Derivado a Pumping' &&
+      sub.status !== 'En Revisión de Cierre'
+    );
   }
 
   hasProgress(sub: SubOrder): boolean {
-    return !!(sub.diagnostico || sub.actividadesCorrectivas || sub.horasTrabajo || sub.repuestos?.length);
+    return !!(
+      sub.diagnostico ||
+      sub.actividadesCorrectivas ||
+      sub.horasTrabajo ||
+      sub.repuestos?.length
+    );
   }
 
   // Punto 2: auto-expandir sub-órdenes "En Revisión de Cierre" al abrir el panel
   private readonly expandedSubOrders = signal<Set<string>>(
-    new Set(this.data.order.subOrders
-      .filter(s => s.status === 'En Revisión de Cierre')
-      .map(s => s.id))
+    new Set(
+      this.data.order.subOrders
+        .filter((s) => s.status === 'En Revisión de Cierre')
+        .map((s) => s.id),
+    ),
   );
-  isExpanded(subId: string): boolean { return this.expandedSubOrders().has(subId); }
+  isExpanded(subId: string): boolean {
+    return this.expandedSubOrders().has(subId);
+  }
   toggleExpand(subId: string): void {
-    this.expandedSubOrders.update(set => {
+    this.expandedSubOrders.update((set) => {
       const next = new Set(set);
       next.has(subId) ? next.delete(subId) : next.add(subId);
       return next;
@@ -188,7 +223,9 @@ export class OrderDetailPanel {
       data: { subOrder: sub },
       footer: false,
     });
-    ref.afterClose.subscribe(changed => { if (changed) this.refreshOrder(); });
+    ref.afterClose.subscribe((changed) => {
+      if (changed) this.refreshOrder();
+    });
   }
 
   // ── Revisión inline ──
@@ -211,7 +248,7 @@ export class OrderDetailPanel {
         this.notify.success('Sub-orden cerrada', `${sub.code} quedó cerrada.`);
         this.refreshOrder();
       },
-      error: e => {
+      error: (e) => {
         this.reviewing.set(false);
         this.notify.error('Error', mensajeDeError(e, 'No se pudo cerrar la sub-orden.'));
       },
@@ -230,7 +267,7 @@ export class OrderDetailPanel {
         this.notify.warning('Corrección solicitada', `${sub.code} regresa al operador.`);
         this.refreshOrder();
       },
-      error: e => {
+      error: (e) => {
         this.reviewing.set(false);
         this.notify.error('Error', mensajeDeError(e, 'No se pudo enviar la corrección.'));
       },
@@ -244,6 +281,8 @@ export class OrderDetailPanel {
       data: { order: this.currentOrder() },
       footer: false,
     });
-    ref.afterClose.subscribe(changed => { if (changed) this.drawerRef.close(); });
+    ref.afterClose.subscribe((changed) => {
+      if (changed) this.drawerRef.close();
+    });
   }
 }

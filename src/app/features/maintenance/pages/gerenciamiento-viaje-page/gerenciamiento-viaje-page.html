@@ -4,7 +4,11 @@
   subtitle="DYN-SGI-RE-049 — BAJO lo autoriza el Supervisor de Pumping, MEDIO/ALTO el Jefe de Base"
 />
 
-<app-qhse-filtros [opciones]="opcionesFiltro" [selected]="filtro()" (selectedChange)="filtro.set($any($event))" />
+<app-qhse-filtros
+  [opciones]="opcionesFiltro"
+  [selected]="filtro()"
+  (selectedChange)="filtro.set($any($event))"
+/>
 
 <div class="kpi-stat-row" role="list">
   @for (kpi of kpis(); track kpi.label) {
@@ -13,18 +17,39 @@
 </div>
 
 @if (!puedeGestionarCualquierNivel()) {
-  <p class="gerenciamiento-viaje-page__aviso" role="note">Como Supervisor de Pumping solo puedes autorizar viajes de riesgo BAJO.</p>
+  <p class="gerenciamiento-viaje-page__aviso" role="note">
+    Como Supervisor de Pumping solo puedes autorizar viajes de riesgo BAJO.
+  </p>
 }
 
 @if (isMobile()) {
-  <app-mnt-compact-list [items]="itemsMovil()" [loading]="loading()" vacio="No hay gerenciamientos de viaje con ese filtro." />
+  <app-mnt-compact-list
+    [items]="itemsMovil()"
+    [loading]="loading()"
+    vacio="No hay gerenciamientos de viaje con ese filtro."
+  />
 } @else {
   <ng-template #actionsTpl let-row>
     <div class="gerenciamiento-viaje-page__row-actions">
-      <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="verDetalle(row)" />
+      <dynadrill-icon-button
+        icon="eye"
+        tooltip="Ver detalle"
+        tooltipPlacement="top"
+        (clicked)="verDetalle(row)"
+      />
       @if (row.gv.estado === 'pendiente' && row.puedeGestionar) {
-        <dynadrill-icon-button icon="check" tooltip="Autorizar" tooltipPlacement="top" (clicked)="aprobar(row)" />
-        <dynadrill-icon-button icon="close" tooltip="Rechazar" tooltipPlacement="top" (clicked)="rechazar(row)" />
+        <dynadrill-icon-button
+          icon="check"
+          tooltip="Autorizar"
+          tooltipPlacement="top"
+          (clicked)="aprobar(row)"
+        />
+        <dynadrill-icon-button
+          icon="close"
+          tooltip="Rechazar"
+          tooltipPlacement="top"
+          (clicked)="rechazar(row)"
+        />
       }
     </div>
   </ng-template>

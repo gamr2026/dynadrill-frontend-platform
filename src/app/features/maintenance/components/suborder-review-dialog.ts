@@ -50,7 +50,9 @@ export class SuborderReviewDialog {
   protected readonly submitting = signal(false);
   protected readonly correctionNote = signal('');
 
-  protected readonly showCorrectionForm = computed(() => this.decision() === 'rejected' && !this.submitting());
+  protected readonly showCorrectionForm = computed(
+    () => this.decision() === 'rejected' && !this.submitting(),
+  );
   protected readonly canConfirmRejection = computed(() => this.correctionNote().trim().length > 0);
 
   /**
@@ -61,7 +63,9 @@ export class SuborderReviewDialog {
    * reportado). Solo "En Revisión de Cierre" significa que el operador ya
    * terminó y la mandó a revisar — antes de eso no hay nada que aprobar.
    */
-  protected readonly puedeRevisar = computed(() => this.data.subOrder.status === 'En Revisión de Cierre');
+  protected readonly puedeRevisar = computed(
+    () => this.data.subOrder.status === 'En Revisión de Cierre',
+  );
 
   /**
    * Distingue "todavía no llegó a revisión" de "ya se resolvió" — antes
@@ -72,7 +76,9 @@ export class SuborderReviewDialog {
    * estaba aprobado.
    */
   protected readonly yaResuelto = computed(
-    () => this.data.subOrder.status === 'Cerrado' || this.data.subOrder.status === 'Corrección Solicitada',
+    () =>
+      this.data.subOrder.status === 'Cerrado' ||
+      this.data.subOrder.status === 'Corrección Solicitada',
   );
 
   decide(decision: DynadrillApprovalDecision): void {
@@ -94,11 +100,13 @@ export class SuborderReviewDialog {
       next: () => {
         this.notify.success(
           decision === 'approved' ? 'Sub-orden cerrada' : 'Corrección solicitada',
-          decision === 'approved' ? `${this.data.subOrder.code} quedó cerrada/aprobada.` : `${this.data.subOrder.code} regresa al operador.`,
+          decision === 'approved'
+            ? `${this.data.subOrder.code} quedó cerrada/aprobada.`
+            : `${this.data.subOrder.code} regresa al operador.`,
         );
         setTimeout(() => this.modalRef.close(true), 900);
       },
-      error: e => {
+      error: (e) => {
         this.submitting.set(false);
         this.decision.set(null);
         this.notify.error('Error', mensajeDeError(e, 'No se pudo registrar la revisión.'));

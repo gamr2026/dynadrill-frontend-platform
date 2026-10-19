@@ -35,7 +35,13 @@ const CLASE_TONE: Record<RegistroMantenimiento['clase'], DynadrillTagVariant> = 
   selector: 'app-historial-dialog',
   /** Bottom sheet en móvil (Overlay/BottomSheet en Figma) — ver styles.scss. */
   host: { class: 'app-dialog-sheet-mobile' },
-  imports: [DynadrillTextComponent, DynadrillTagComponent, DynadrillCardComponent, DynadrillSpinnerComponent, DynadrillIconButtonComponent],
+  imports: [
+    DynadrillTextComponent,
+    DynadrillTagComponent,
+    DynadrillCardComponent,
+    DynadrillSpinnerComponent,
+    DynadrillIconButtonComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './historial-dialog.html',
   styleUrl: './historial-dialog.scss',
@@ -53,16 +59,19 @@ export class HistorialDialog {
   constructor() {
     const flotaId = this.data.unidadFlotaId;
     if (flotaId) {
-      forkJoin({ unidad: this.flota.obtener(flotaId), preventivos: this.flota.preventivos(flotaId) }).subscribe({
+      forkJoin({
+        unidad: this.flota.obtener(flotaId),
+        preventivos: this.flota.preventivos(flotaId),
+      }).subscribe({
         next: ({ unidad, preventivos }) => {
-          this.registros.set(preventivos.map(p => registroDesdePreventivo(p, unidad)));
+          this.registros.set(preventivos.map((p) => registroDesdePreventivo(p, unidad)));
           this.loading.set(false);
         },
         error: () => this.loading.set(false),
       });
       return;
     }
-    this.historialService.list(Number(this.data.unidadId)).subscribe(registros => {
+    this.historialService.list(Number(this.data.unidadId)).subscribe((registros) => {
       this.registros.set(registros);
       this.loading.set(false);
     });

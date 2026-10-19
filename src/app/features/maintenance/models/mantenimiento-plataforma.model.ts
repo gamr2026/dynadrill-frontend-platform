@@ -16,7 +16,8 @@ export type EstadoSubordenApi =
   | 'correccion_solicitada'
   | 'cerrado'
   | 'derivado_a_pumping';
-export type EstadoOrdenApi = 'pendiente' | 'en_mantenimiento' | 'requiere_cambios' | 'aceptada' | 'cerrada';
+export type EstadoOrdenApi =
+  'pendiente' | 'en_mantenimiento' | 'requiere_cambios' | 'aceptada' | 'cerrada';
 
 export interface PersonaApi {
   id: string;
@@ -97,7 +98,12 @@ export interface OrdenApi {
   unidad: { id: string; codigo: string; nombre: string; tipo: string };
   ticket: { id: string; numero: number } | null;
   creadaAt: string;
-  retorno: { at: string; por: string | null; estadoFinal: 'disponible' | 'con_restricciones' | null; observaciones: string | null } | null;
+  retorno: {
+    at: string;
+    por: string | null;
+    estadoFinal: 'disponible' | 'con_restricciones' | null;
+    observaciones: string | null;
+  } | null;
   subordenes: SubordenApi[];
 }
 

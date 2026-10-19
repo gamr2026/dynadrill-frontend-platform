@@ -62,11 +62,23 @@ export interface UnitReport {
   createdAt: string;
 }
 
-export type CreateUnitReportInput = Omit<UnitReport, 'id' | 'createdAt' | 'dismissed' | 'dismissReason'>;
+export type CreateUnitReportInput = Omit<
+  UnitReport,
+  'id' | 'createdAt' | 'dismissed' | 'dismissReason'
+>;
 
 /** ¿El reporte trae alguna novedad que amerite disparar una orden de mantenimiento? */
-export function unitReportHasNovedades(report: Pick<UnitReport, 'problemasMecanica' | 'problemasInstrumentacion' | 'problemasOperaciones'>): boolean {
-  return !!(report.problemasMecanica.trim() || report.problemasInstrumentacion.trim() || report.problemasOperaciones.trim());
+export function unitReportHasNovedades(
+  report: Pick<
+    UnitReport,
+    'problemasMecanica' | 'problemasInstrumentacion' | 'problemasOperaciones'
+  >,
+): boolean {
+  return !!(
+    report.problemasMecanica.trim() ||
+    report.problemasInstrumentacion.trim() ||
+    report.problemasOperaciones.trim()
+  );
 }
 
 /** Código legible del Reporte de Unidad — mismo formato en toda la pantalla donde se muestre. */

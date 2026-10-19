@@ -1,7 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ConductorPermisos, CreateVehicleInspectionInput, VehicleInspection } from '../models/vehicle-inspection.model';
+import {
+  ConductorPermisos,
+  CreateVehicleInspectionInput,
+  VehicleInspection,
+} from '../models/vehicle-inspection.model';
 import { environment } from '@env';
 
 @Injectable({ providedIn: 'root' })
@@ -22,11 +26,17 @@ export class VehicleInspectionsService {
   }
 
   update(id: number, input: CreateVehicleInspectionInput): Observable<VehicleInspection> {
-    return this.http.put<VehicleInspection>(`${environment.apiUrl}/vehicle-inspections/${id}`, input);
+    return this.http.put<VehicleInspection>(
+      `${environment.apiUrl}/vehicle-inspections/${id}`,
+      input,
+    );
   }
 
   /** Firma del Supervisor (Plan 2026, 5.3). */
   approve(id: number, supervisorName: string): Observable<VehicleInspection> {
-    return this.http.patch<VehicleInspection>(`${environment.apiUrl}/vehicle-inspections/${id}/approve`, { supervisorName });
+    return this.http.patch<VehicleInspection>(
+      `${environment.apiUrl}/vehicle-inspections/${id}/approve`,
+      { supervisorName },
+    );
   }
 }

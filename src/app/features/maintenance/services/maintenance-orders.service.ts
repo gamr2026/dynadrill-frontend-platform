@@ -39,12 +39,19 @@ export interface CloseOrderInput {
   observaciones: string;
 }
 
-const ESTADO_FINAL_API = { Disponible: 'disponible', 'Con restricciones': 'con_restricciones' } as const;
+const ESTADO_FINAL_API = {
+  Disponible: 'disponible',
+  'Con restricciones': 'con_restricciones',
+} as const;
 
 /** Lo que pide la clasificación → lo que recibe el backend. */
 function aAsignacionApi(a: ClassifyTypeAssignment): AsignacionApi {
   if (a.type === 'Operativo') {
-    return { tipo: 'operativo', derivar: a.operativoAttended ?? true, notaDerivacion: a.operativoDeriveNote ?? null };
+    return {
+      tipo: 'operativo',
+      derivar: a.operativoAttended ?? true,
+      notaDerivacion: a.operativoDeriveNote ?? null,
+    };
   }
   return { tipo: tipoDeSubordenApi(a.type), usuarioId: a.userId ?? null };
 }
@@ -59,12 +66,12 @@ export class MaintenanceOrdersService {
 
   /** `asignadaA` (UUID): solo las órdenes con una sub-orden asignada a esa cuenta, para «Mis tareas». */
   list(filtros: { asignadaA?: string } = {}): Observable<MaintenanceOrderWithSubOrders[]> {
-    return this.api.ordenes(filtros).pipe(map(os => os.map(ordenAMaintenanceOrder)));
+    return this.api.ordenes(filtros).pipe(map((os) => os.map(ordenAMaintenanceOrder)));
   }
 
   /** Las órdenes de las unidades que lleva un ticket de Pumping (no solo las que el ticket originó). */
   listForTicket(ticketId: string): Observable<MaintenanceOrderWithSubOrders[]> {
-    return this.api.ordenesDeTicket(ticketId).pipe(map(os => os.map(ordenAMaintenanceOrder)));
+    return this.api.ordenesDeTicket(ticketId).pipe(map((os) => os.map(ordenAMaintenanceOrder)));
   }
 
   get(id: string): Observable<MaintenanceOrderWithSubOrders> {
@@ -73,7 +80,9 @@ export class MaintenanceOrdersService {
 
   /** MAN-001-A: crea la orden + una sub-orden por cada tipo seleccionado. */
   classify(input: ClassifyOrderInput): Observable<MaintenanceOrderWithSubOrders> {
-    return this.api.clasificar(input.unitReportId, input.assignments.map(aAsignacionApi)).pipe(map(ordenAMaintenanceOrder));
+    return this.api
+      .clasificar(input.unitReportId, input.assignments.map(aAsignacionApi))
+      .pipe(map(ordenAMaintenanceOrder));
   }
 
   /**
@@ -81,8 +90,13 @@ export class MaintenanceOrdersService {
    * reasignar el operador/estado Operativo de una sub-orden ya existente. Las sub-órdenes Cerradas se conservan intactas aunque su
    * tipo se destilde (no se pierde trabajo ya aprobado).
    */
-  updateClassification(orderId: string, assignments: ClassifyTypeAssignment[]): Observable<MaintenanceOrderWithSubOrders> {
-    return this.api.reclasificar(orderId, assignments.map(aAsignacionApi)).pipe(map(ordenAMaintenanceOrder));
+  updateClassification(
+    orderId: string,
+    assignments: ClassifyTypeAssignment[],
+  ): Observable<MaintenanceOrderWithSubOrders> {
+    return this.api
+      .reclasificar(orderId, assignments.map(aAsignacionApi))
+      .pipe(map(ordenAMaintenanceOrder));
   }
 
   /**
@@ -91,7 +105,13 @@ export class MaintenanceOrdersService {
    */
   updateSubOrder(
     id: string,
-    input: { diagnostico?: string; actividadesCorrectivas?: string; horasTrabajo?: number; repuestos?: Repuesto[]; trabajosAdicionales?: string },
+    input: {
+      diagnostico?: string;
+      actividadesCorrectivas?: string;
+      horasTrabajo?: number;
+      repuestos?: Repuesto[];
+      trabajosAdicionales?: string;
+    },
   ): Observable<SubOrder> {
     return this.api.guardarAvance(id, avanceAApi(input)).pipe(map(subordenASubOrder));
   }
@@ -102,20 +122,30 @@ export class MaintenanceOrdersService {
   }
 
   /** MAN-001-C: aprueba (cierra, y los repuestos del catálogo salen de bodega) o rechaza (vuelve a "Corrección Solicitada", con motivo). */
-  reviewSubOrder(id: string, decision: 'approved' | 'rejected', correctionNote?: string): Observable<SubOrder> {
+  reviewSubOrder(
+    id: string,
+    decision: 'approved' | 'rejected',
+    correctionNote?: string,
+  ): Observable<SubOrder> {
     const request$ =
-      decision === 'approved' ? this.api.aprobarCierre(id) : this.api.solicitarCorreccion(id, correctionNote ?? '');
+      decision === 'approved'
+        ? this.api.aprobarCierre(id)
+        : this.api.solicitarCorreccion(id, correctionNote ?? '');
     return request$.pipe(map(subordenASubOrder));
   }
 
   /** Fin Correctivo: cierra la orden padre y la devuelve a Operaciones (quién la devuelve lo registra el backend: la cuenta que actúa). */
   closeOrder(orderId: string, input: CloseOrderInput): Observable<MaintenanceOrderWithSubOrders> {
-    return this.api.retornar(orderId, ESTADO_FINAL_API[input.estadoFinal], input.observaciones.trim() || null).pipe(map(ordenAMaintenanceOrder));
+    return this.api
+      .retornar(orderId, ESTADO_FINAL_API[input.estadoFinal], input.observaciones.trim() || null)
+      .pipe(map(ordenAMaintenanceOrder));
   }
 
   /** El Jefe deriva una sub-orden Operativo a Pumping — sale del flujo de Mantenimiento. */
   deriveToOperations(subOrderId: string, note: string): Observable<SubOrder> {
-    return this.cambiarClasificacion(subOrderId, { Operativo: { derivar: true, notaDerivacion: note } });
+    return this.cambiarClasificacion(subOrderId, {
+      Operativo: { derivar: true, notaDerivacion: note },
+    });
   }
 
   /** Reasigna el operador de una sub-orden sin cambiar su tipo ni estado. */
@@ -133,13 +163,21 @@ export class MaintenanceOrdersService {
     nuevoOperadorId?: string,
   ): Observable<SubOrder> {
     return this.api.suborden(subOrderId).pipe(
-      switchMap(sub => this.get(sub.ordenId)),
-      switchMap(orden => {
-        const objetivo = orden.subOrders.find(s => s.id === subOrderId);
-        const porTipo = nuevoOperadorId && objetivo ? { [objetivo.type]: { usuarioId: nuevoOperadorId } } : (cambios ?? {});
-        return this.api.reclasificar(orden.id, asignacionesDeOrden(orden, porTipo)).pipe(
-          map(o => ordenAMaintenanceOrder(o).subOrders.find(s => s.id === subOrderId) as SubOrder),
-        );
+      switchMap((sub) => this.get(sub.ordenId)),
+      switchMap((orden) => {
+        const objetivo = orden.subOrders.find((s) => s.id === subOrderId);
+        const porTipo =
+          nuevoOperadorId && objetivo
+            ? { [objetivo.type]: { usuarioId: nuevoOperadorId } }
+            : (cambios ?? {});
+        return this.api
+          .reclasificar(orden.id, asignacionesDeOrden(orden, porTipo))
+          .pipe(
+            map(
+              (o) =>
+                ordenAMaintenanceOrder(o).subOrders.find((s) => s.id === subOrderId) as SubOrder,
+            ),
+          );
       }),
     );
   }

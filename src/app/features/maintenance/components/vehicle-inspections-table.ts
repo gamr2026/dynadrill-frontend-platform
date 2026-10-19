@@ -7,15 +7,28 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { injectNarrowViewport } from '../../../core/utils/narrow-viewport.util';
 import { MntCompactList, type MntCompactItem } from './mnt-compact-card';
-import { VehicleInspection, vehicleInspectionHasNoCumple } from '../models/vehicle-inspection.model';
+import {
+  VehicleInspection,
+  vehicleInspectionHasNoCumple,
+} from '../models/vehicle-inspection.model';
 import { MaintenanceOrderWithSubOrders } from '../models/maintenance-order.model';
 import { UnitReport } from '../models/unit-report.model';
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return new Date(iso).toLocaleDateString('es-EC', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 }
 
-type InspectionStateKey = 'sinNovedad' | 'conNovedad' | 'reportadoSinClasificar' | 'noRequiereMantenimiento' | 'enAtencion' | 'atendida';
+type InspectionStateKey =
+  | 'sinNovedad'
+  | 'conNovedad'
+  | 'reportadoSinClasificar'
+  | 'noRequiereMantenimiento'
+  | 'enAtencion'
+  | 'atendida';
 
 interface InspectionState {
   key: InspectionStateKey;
@@ -28,7 +41,11 @@ interface InspectionState {
  * (todavía no descartó ni clasificó la novedad) — así nunca se pisa una
  * decisión ya tomada.
  */
-const EDITABLE_STATES: InspectionStateKey[] = ['sinNovedad', 'conNovedad', 'reportadoSinClasificar'];
+const EDITABLE_STATES: InspectionStateKey[] = [
+  'sinNovedad',
+  'conNovedad',
+  'reportadoSinClasificar',
+];
 
 /**
  * Tabla de inspecciones, compartida entre la vista de Pumping (con
@@ -75,20 +92,24 @@ export class VehicleInspectionsTable {
    * resuelva el problema.
    */
   private estadoFor(i: VehicleInspection): InspectionState {
-    if (!vehicleInspectionHasNoCumple(i)) return { key: 'sinNovedad', text: 'Sin novedades', tone: 'success' };
+    if (!vehicleInspectionHasNoCumple(i))
+      return { key: 'sinNovedad', text: 'Sin novedades', tone: 'success' };
     if (!i.unitReportId) return { key: 'conNovedad', text: 'Con novedades', tone: 'error' };
 
-    const report = this.unitReports().find(r => String(r.id) === String(i.unitReportId));
-    if (report?.dismissed) return { key: 'noRequiereMantenimiento', text: 'No requiere mantenimiento', tone: 'neutral' };
+    const report = this.unitReports().find((r) => String(r.id) === String(i.unitReportId));
+    if (report?.dismissed)
+      return { key: 'noRequiereMantenimiento', text: 'No requiere mantenimiento', tone: 'neutral' };
 
-    const order = this.orders().find(o => String(o.unitReportId) === String(i.unitReportId));
-    if (!order) return { key: 'reportadoSinClasificar', text: 'Reportado — sin clasificar', tone: 'warning' };
-    if (order.returnedToOperation) return { key: 'atendida', text: 'Novedad atendida', tone: 'success' };
+    const order = this.orders().find((o) => String(o.unitReportId) === String(i.unitReportId));
+    if (!order)
+      return { key: 'reportadoSinClasificar', text: 'Reportado — sin clasificar', tone: 'warning' };
+    if (order.returnedToOperation)
+      return { key: 'atendida', text: 'Novedad atendida', tone: 'success' };
     return { key: 'enAtencion', text: 'En atención', tone: 'info' };
   }
 
   protected readonly rows = computed(() =>
-    this.inspections().map(i => {
+    this.inspections().map((i) => {
       const estado = this.estadoFor(i);
       return {
         id: i.id,
@@ -109,18 +130,25 @@ export class VehicleInspectionsTable {
 
   /** Tarjetas en móvil (Figma "M · Bandeja · Inspecciones"): ver detalle con el ojo; editar/aprobar si corresponde. */
   protected readonly itemsMovil = computed<MntCompactItem[]>(() =>
-    this.rows().map(r => ({
+    this.rows().map((r) => ({
       id: r['id'] as number,
       title: `INS-${String(r['id']).padStart(4, '0')} · ${r['unidadCode']}`,
       lines: [`${r['fecha']} · ${r['inspeccionadoPor']}`, `${r['puntoPartida']} → ${r['destino']}`],
       chips: [
-        r['estadoBadge'] as { text: string; tone: 'success' | 'warning' | 'error' | 'info' | 'neutral' },
+        r['estadoBadge'] as {
+          text: string;
+          tone: 'success' | 'warning' | 'error' | 'info' | 'neutral';
+        },
         r['aprobacionBadge'] as { text: string; tone: 'success' | 'warning' },
       ],
       actions: [
         { icon: 'eye', label: 'Ver detalle', run: () => this.onView(r) },
-        ...(r['canEdit'] ? [{ icon: 'edit', label: 'Editar inspección', run: () => this.onEdit(r) }] : []),
-        ...(r['canApprove'] ? [{ icon: 'check', label: 'Aprobar inspección', run: () => this.onApprove(r) }] : []),
+        ...(r['canEdit']
+          ? [{ icon: 'edit', label: 'Editar inspección', run: () => this.onEdit(r) }]
+          : []),
+        ...(r['canApprove']
+          ? [{ icon: 'check', label: 'Aprobar inspección', run: () => this.onApprove(r) }]
+          : []),
       ],
     })),
   );
@@ -128,17 +156,17 @@ export class VehicleInspectionsTable {
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   protected onView(row: Record<string, unknown>): void {
-    const inspection = this.inspections().find(i => i.id === row['id']);
+    const inspection = this.inspections().find((i) => i.id === row['id']);
     if (inspection) this.view.emit(inspection);
   }
 
   protected onEdit(row: Record<string, unknown>): void {
-    const inspection = this.inspections().find(i => i.id === row['id']);
+    const inspection = this.inspections().find((i) => i.id === row['id']);
     if (inspection) this.edit.emit(inspection);
   }
 
   protected onApprove(row: Record<string, unknown>): void {
-    const inspection = this.inspections().find(i => i.id === row['id']);
+    const inspection = this.inspections().find((i) => i.id === row['id']);
     if (inspection) this.approve.emit(inspection);
   }
 }

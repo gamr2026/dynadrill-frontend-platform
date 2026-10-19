@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import {
@@ -21,10 +29,20 @@ import { AuthService } from '../../../core/services/auth.service';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { KpiStat, type KpiStatTone } from '../../../shared/components/kpi-stat/kpi-stat';
 import { injectNarrowViewport } from '../../../core/utils/narrow-viewport.util';
-import { QhseRegistrosMovil, type RegistroMovil } from '../../qhse/shared/components/qhse-registros-movil';
+import {
+  QhseRegistrosMovil,
+  type RegistroMovil,
+} from '../../qhse/shared/components/qhse-registros-movil';
 import { MntCompactList, type MntCompactItem } from '../components/mnt-compact-card';
-import { AppNotificationItem, NotificationsService } from '../../../core/services/notifications.service';
-import { computeOrderStatus, MaintenanceOrderWithSubOrders, OrderStatus } from '../models/maintenance-order.model';
+import {
+  AppNotificationItem,
+  NotificationsService,
+} from '../../../core/services/notifications.service';
+import {
+  computeOrderStatus,
+  MaintenanceOrderWithSubOrders,
+  OrderStatus,
+} from '../models/maintenance-order.model';
 import { unitReportCode, unitReportHasNovedades, UnitReport } from '../models/unit-report.model';
 import { AlertaPreventiva, AlertaPreventivaNivel } from '../models/unidad.model';
 import { alertaDesdeFlota } from '../models/flota-mantenimiento.mapper';
@@ -32,13 +50,22 @@ import type { AlertaPreventivaFlota } from '../../flota/models/unidad-flota.mode
 import type { ConductorEstado, InspeccionResumen } from '../../flota/models/inspeccion-flota.model';
 import { FlotaUnidadesService } from '../../flota/services/flota-unidades.service';
 import { FlotaInspeccionesService } from '../../flota/services/flota-inspecciones.service';
-import { PreventivoDialog, type PreventivoDialogData } from '../../flota/components/preventivo-dialog';
-import { InspeccionVehiculoDialog, type InspeccionVehiculoDialogData } from '../../flota/components/inspeccion-vehiculo-dialog';
+import {
+  PreventivoDialog,
+  type PreventivoDialogData,
+} from '../../flota/components/preventivo-dialog';
+import {
+  InspeccionVehiculoDialog,
+  type InspeccionVehiculoDialogData,
+} from '../../flota/components/inspeccion-vehiculo-dialog';
 import { InspeccionesFlotaTable } from '../../flota/components/inspecciones-flota-table';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { UnitReportsService } from '../services/unit-reports.service';
 import { OrderDetailPanel, OrderDetailPanelData } from '../components/order-detail-panel';
-import { OrderClassificationDialog, OrderClassificationDialogData } from '../components/order-classification-dialog';
+import {
+  OrderClassificationDialog,
+  OrderClassificationDialogData,
+} from '../components/order-classification-dialog';
 import { DocumentoPdfService } from '../../../shared/documentos';
 import { InformeMantenimientoHoja } from '../../../shared/documentos/formatos/informe-mantenimiento-hoja';
 import { OrdenMantenimientoGeneralHoja } from '../../../shared/documentos/formatos/orden-mantenimiento-general-hoja';
@@ -61,7 +88,19 @@ const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
 
 @Component({
   selector: 'app-maintenance-list-page',
-  imports: [DynadrillButtonComponent, DynadrillIconButtonComponent, DynadrillDataTableComponent, PageHeader, KpiStat, QhseRegistrosMovil, MntCompactList, DynadrillSelectComponent, DynadrillSpinnerComponent, DynadrillTabsComponent, InspeccionesFlotaTable],
+  imports: [
+    DynadrillButtonComponent,
+    DynadrillIconButtonComponent,
+    DynadrillDataTableComponent,
+    PageHeader,
+    KpiStat,
+    QhseRegistrosMovil,
+    MntCompactList,
+    DynadrillSelectComponent,
+    DynadrillSpinnerComponent,
+    DynadrillTabsComponent,
+    InspeccionesFlotaTable,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './maintenance-list-page.html',
   styleUrl: './maintenance-list-page.scss',
@@ -90,7 +129,9 @@ export class MaintenanceListPage {
   protected readonly conductores = signal<ConductorEstado[]>([]);
 
   protected readonly alertas = computed<AlertaPreventiva[]>(() =>
-    this.alertasFlota().map(alertaDesdeFlota).sort((a, b) => a.restante - b.restante)
+    this.alertasFlota()
+      .map(alertaDesdeFlota)
+      .sort((a, b) => a.restante - b.restante),
   );
 
   protected readonly activeTab = signal(0);
@@ -116,9 +157,9 @@ export class MaintenanceListPage {
   protected readonly resumenPreventivo = computed(() => {
     const all = this.alertas();
     return {
-      rojo:    all.filter(a => a.nivel === 'rojo').length,
-      amarillo: all.filter(a => a.nivel === 'amarillo').length,
-      verde:   all.filter(a => a.nivel === 'verde').length,
+      rojo: all.filter((a) => a.nivel === 'rojo').length,
+      amarillo: all.filter((a) => a.nivel === 'amarillo').length,
+      verde: all.filter((a) => a.nivel === 'verde').length,
     };
   });
 
@@ -158,7 +199,7 @@ export class MaintenanceListPage {
   ];
 
   protected readonly prevRows = computed(() =>
-    this.alertasFiltradas().map(a => ({
+    this.alertasFiltradas().map((a) => ({
       id: `${a.unidadId}-${a.descripcion}`,
       unidadCode: a.unidadCode,
       descripcion: a.descripcion,
@@ -181,7 +222,9 @@ export class MaintenanceListPage {
       size: 'large',
       footer: false,
     });
-    ref.afterClose.subscribe(cambio => { if (cambio) this.reload(); });
+    ref.afterClose.subscribe((cambio) => {
+      if (cambio) this.reload();
+    });
   }
 
   /** Historial de una unidad — accesible desde cualquier alerta de Preventivo que le pertenezca. */
@@ -190,7 +233,12 @@ export class MaintenanceListPage {
     this.dialogService.open<HistorialDialog, HistorialDialogData>({
       title: 'Historial de mantenimiento',
       content: HistorialDialog,
-      data: { unidadId: alerta.unidadId, unidadFlotaId: String(alerta.unidadId), unidadCode: alerta.unidadCode, unidadNombre: alerta.unidadNombre },
+      data: {
+        unidadId: alerta.unidadId,
+        unidadFlotaId: String(alerta.unidadId),
+        unidadCode: alerta.unidadCode,
+        unidadNombre: alerta.unidadNombre,
+      },
       footer: false,
       width: '640px',
     });
@@ -200,8 +248,8 @@ export class MaintenanceListPage {
     let list = this.alertas();
     const nivel = this.filtroNivel();
     const tipo = this.filtroTipo();
-    if (nivel) list = list.filter(a => a.nivel === nivel);
-    if (tipo) list = list.filter(a => a.unidadTipo === String(tipo));
+    if (nivel) list = list.filter((a) => a.nivel === nivel);
+    if (tipo) list = list.filter((a) => a.unidadTipo === String(tipo));
     const key = this.sortKey();
     const dir = this.sortDir() === 'asc' ? 1 : -1;
     return [...list].sort((a, b) => {
@@ -222,7 +270,7 @@ export class MaintenanceListPage {
   );
 
   toggleFiltroNivel(nivel: AlertaPreventivaNivel): void {
-    this.filtroNivel.update(current => current === nivel ? null : nivel);
+    this.filtroNivel.update((current) => (current === nivel ? null : nivel));
     this.prevPage.set(1);
   }
 
@@ -235,7 +283,7 @@ export class MaintenanceListPage {
 
   toggleSort(key: keyof AlertaPreventiva): void {
     if (this.sortKey() === key) {
-      this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc');
+      this.sortDir.update((d) => (d === 'asc' ? 'desc' : 'asc'));
     } else {
       this.sortKey.set(key);
       this.sortDir.set('asc');
@@ -274,30 +322,33 @@ export class MaintenanceListPage {
    * consultarlo, no que el registro simplemente desaparezca.
    */
   protected readonly rows = computed(() => {
-    const classifiedReportIds = new Set(this.orders().map(o => o.unitReportId));
+    const classifiedReportIds = new Set(this.orders().map((o) => o.unitReportId));
     const reportRows = this.unitReports()
-      .filter(r => unitReportHasNovedades(r) && !classifiedReportIds.has(r.id))
-      .map(r => ({
+      .filter((r) => unitReportHasNovedades(r) && !classifiedReportIds.has(r.id))
+      .map((r) => ({
         kind: 'pending' as const,
         id: `report-${r.id}`,
         reportId: r.id,
         code: unitReportCode(r.reportNo),
         unidad: r.unidad,
         fecha: formatDate(r.createdAt),
-        tipo: [
-          r.problemasMecanica.trim() ? 'Mecánico' : '',
-          r.problemasInstrumentacion.trim() ? 'Instrumental' : '',
-          r.problemasOperaciones.trim() ? 'Operativo' : '',
-        ].filter(Boolean).join(' · ') || '—',
+        tipo:
+          [
+            r.problemasMecanica.trim() ? 'Mecánico' : '',
+            r.problemasInstrumentacion.trim() ? 'Instrumental' : '',
+            r.problemasOperaciones.trim() ? 'Operativo' : '',
+          ]
+            .filter(Boolean)
+            .join(' · ') || '—',
         origin: r.sourceModule,
         statusBadge: r.dismissed
           ? { text: 'No requiere mantenimiento', tone: 'neutral' as DynadrillTagVariant }
           : { text: 'Pendiente de clasificar', tone: 'warning' as DynadrillTagVariant },
       }));
 
-    const orderRows = this.orders().map(order => {
+    const orderRows = this.orders().map((order) => {
       const status = computeOrderStatus(order, order.subOrders);
-      const tipos = [...new Set(order.subOrders.map(s => s.type))].join(' · ');
+      const tipos = [...new Set(order.subOrders.map((s) => s.type))].join(' · ');
       return {
         kind: 'order' as const,
         id: `order-${order.id}`,
@@ -316,14 +367,28 @@ export class MaintenanceListPage {
   });
 
   /** Tarjetas de color (Figma): pendiente en ámbar, activas en lila, derivadas en neutro y cerradas en verde. */
-  protected readonly kpis = computed<{ label: string; value: number; caption: string; tone: KpiStatTone }[]>(() => {
-    const pendientes = this.unitReports().filter(r => unitReportHasNovedades(r) && !r.dismissed && !this.orders().some(o => o.unitReportId === r.id)).length;
+  protected readonly kpis = computed<
+    { label: string; value: number; caption: string; tone: KpiStatTone }[]
+  >(() => {
+    const pendientes = this.unitReports().filter(
+      (r) =>
+        unitReportHasNovedades(r) &&
+        !r.dismissed &&
+        !this.orders().some((o) => o.unitReportId === r.id),
+    ).length;
     const allOrders = this.orders();
-    const activas = allOrders.filter(o => !o.returnedToOperation).length;
-    const derivadas = allOrders.filter(o => o.subOrders.some(s => s.status === 'Derivado a Pumping')).length;
-    const cerradas = allOrders.filter(o => o.returnedToOperation).length;
+    const activas = allOrders.filter((o) => !o.returnedToOperation).length;
+    const derivadas = allOrders.filter((o) =>
+      o.subOrders.some((s) => s.status === 'Derivado a Pumping'),
+    ).length;
+    const cerradas = allOrders.filter((o) => o.returnedToOperation).length;
     return [
-      { label: 'Pendiente de clasificar', value: pendientes, caption: 'Reportes nuevos', tone: 'warning' },
+      {
+        label: 'Pendiente de clasificar',
+        value: pendientes,
+        caption: 'Reportes nuevos',
+        tone: 'warning',
+      },
       { label: 'Órdenes activas', value: activas, caption: 'En curso', tone: 'brand' },
       { label: 'Derivadas a Pumping', value: derivadas, caption: 'Operativo', tone: 'neutral' },
       { label: 'Cerradas', value: cerradas, caption: 'Este mes', tone: 'success' },
@@ -332,13 +397,14 @@ export class MaintenanceListPage {
 
   /** Tarjetas de la bandeja Correctivo en móvil (Figma "M · Bandeja · Correctivo"). */
   protected readonly itemsMovil = computed<RegistroMovil[]>(() =>
-    this.rows().map(r => {
+    this.rows().map((r) => {
       const cerrada = r.statusBadge.text === 'Cerrado';
       return {
         id: r.id,
         eyebrow: r.code,
         title: r.unidad,
-        subtitle: r.kind === 'pending' ? `Reporte de unidad · ${r.origin}` : `${r.tipo} · ${r.origin}`,
+        subtitle:
+          r.kind === 'pending' ? `Reporte de unidad · ${r.origin}` : `${r.tipo} · ${r.origin}`,
         status: r.statusBadge,
         fields: [
           { label: 'Fecha', value: r.fecha },
@@ -347,10 +413,21 @@ export class MaintenanceListPage {
         ],
         actions: [
           cerrada && r.kind === 'order'
-            ? { icon: 'file-text', label: 'Ver informe', primary: true, run: () => this.openReport(r) }
+            ? {
+                icon: 'file-text',
+                label: 'Ver informe',
+                primary: true,
+                run: () => this.openReport(r),
+              }
             : { icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(r) },
           ...(r.kind === 'order' && r.pumpingTicketId
-            ? [{ icon: 'project', label: 'Ver ticket de Pumping', run: () => this.verTicketPumping(r) }]
+            ? [
+                {
+                  icon: 'project',
+                  label: 'Ver ticket de Pumping',
+                  run: () => this.verTicketPumping(r),
+                },
+              ]
             : []),
         ],
       };
@@ -359,7 +436,7 @@ export class MaintenanceListPage {
 
   /** Filas del Preventivo en móvil (Figma "M · Preventivo"): registrar mantenimiento (✓) e historial (reloj). */
   protected readonly prevItemsMovil = computed<MntCompactItem[]>(() =>
-    this.prevRows().map(r => ({
+    this.prevRows().map((r) => ({
       id: r.id,
       title: `${r.unidadCode} · ${r.descripcion}`,
       lines: [`Actual ${r.actualLabel} · Próximo en ${r.proximoEn}`],
@@ -381,7 +458,7 @@ export class MaintenanceListPage {
   protected readonly notificationItems = computed<AppNotificationItem[]>(() => {
     const items: AppNotificationItem[] = [];
 
-    for (const a of this.alertas().filter(a => a.nivel === 'rojo')) {
+    for (const a of this.alertas().filter((a) => a.nivel === 'rojo')) {
       items.push({
         id: `prev-${a.unidadId}-${a.descripcion}`,
         title: `${a.unidadCode} — mantenimiento vencido`,
@@ -391,7 +468,12 @@ export class MaintenanceListPage {
       });
     }
 
-    for (const r of this.unitReports().filter(r => unitReportHasNovedades(r) && !r.dismissed && !this.orders().some(o => o.unitReportId === r.id))) {
+    for (const r of this.unitReports().filter(
+      (r) =>
+        unitReportHasNovedades(r) &&
+        !r.dismissed &&
+        !this.orders().some((o) => o.unitReportId === r.id),
+    )) {
       items.push({
         id: `report-${r.id}`,
         title: `Reporte ${unitReportCode(r.reportNo)} sin clasificar`,
@@ -402,7 +484,7 @@ export class MaintenanceListPage {
     }
 
     for (const o of this.orders()) {
-      for (const s of o.subOrders.filter(s => s.status === 'En Revisión de Cierre')) {
+      for (const s of o.subOrders.filter((s) => s.status === 'En Revisión de Cierre')) {
         items.push({
           id: `subrev-${s.id}`,
           title: `${s.code} en revisión de cierre`,
@@ -415,7 +497,7 @@ export class MaintenanceListPage {
 
     // Documentos de los conductores por vencer: avisan por la campana sin que nadie tenga que abrir una inspección.
     for (const c of this.conductores()) {
-      for (const d of c.documentos.filter(d => d.estado === 'por_vencer')) {
+      for (const d of c.documentos.filter((d) => d.estado === 'por_vencer')) {
         items.push({
           id: `permiso-${c.usuario.id}-${d.tipo.codigo}`,
           title: `${c.usuario.nombre} — ${d.tipo.nombre} por vencer`,
@@ -472,19 +554,23 @@ export class MaintenanceListPage {
 
   viewDetail(row: Record<string, unknown>): void {
     const isOrder = row['kind'] === 'order';
-    const order = isOrder ? this.orders().find(o => o.id === row['orderId']) : undefined;
+    const order = isOrder ? this.orders().find((o) => o.id === row['orderId']) : undefined;
     const unitReport = isOrder
-      ? this.unitReports().find(r => r.id === order!.unitReportId)!
-      : this.unitReports().find(r => r.id === row['reportId'])!;
+      ? this.unitReports().find((r) => r.id === order!.unitReportId)!
+      : this.unitReports().find((r) => r.id === row['reportId'])!;
 
     if (!isOrder) {
-      const ref = this.dialogService.open<OrderClassificationDialog, OrderClassificationDialogData>({
-        title: `Reporte ${unitReportCode(unitReport.reportNo)} — ${unitReport.unidad}`,
-        content: OrderClassificationDialog,
-        data: { unitReport },
-        footer: false,
+      const ref = this.dialogService.open<OrderClassificationDialog, OrderClassificationDialogData>(
+        {
+          title: `Reporte ${unitReportCode(unitReport.reportNo)} — ${unitReport.unidad}`,
+          content: OrderClassificationDialog,
+          data: { unitReport },
+          footer: false,
+        },
+      );
+      ref.afterClose.subscribe((changed) => {
+        if (changed) this.reload();
       });
-      ref.afterClose.subscribe(changed => { if (changed) this.reload(); });
       return;
     }
 
@@ -500,7 +586,7 @@ export class MaintenanceListPage {
   openRegisterPM(row: Record<string, unknown>): void {
     const alerta = row['_alerta'] as AlertaPreventiva;
     this.flotaUnidades.obtener(String(alerta.unidadId)).subscribe({
-      next: unidad => {
+      next: (unidad) => {
         const ref = this.dialogService.open<PreventivoDialog, PreventivoDialogData>({
           title: `Registrar mantenimiento — ${alerta.unidadCode}`,
           content: PreventivoDialog,
@@ -516,9 +602,9 @@ export class MaintenanceListPage {
   private readonly documentoPdf = inject(DocumentoPdfService);
 
   openReport(row: Record<string, unknown>): void {
-    const order = this.orders().find(o => o.id === row['orderId']);
+    const order = this.orders().find((o) => o.id === row['orderId']);
     if (!order) return;
-    const unitReport = this.unitReports().find(r => r.id === order.unitReportId)!;
+    const unitReport = this.unitReports().find((r) => r.id === order.unitReportId)!;
     this.documentoPdf.abrir({
       titulo: `Informe DYN-MNT-RE-008 — ${order.code}`,
       component: InformeMantenimientoHoja,
@@ -529,9 +615,9 @@ export class MaintenanceListPage {
 
   /** Orden de trabajo — Mantenimiento general (sub-órdenes Mecánico / Instrumental). */
   openOrdenGeneral(row: Record<string, unknown>): void {
-    const order = this.orders().find(o => o.id === row['orderId']);
+    const order = this.orders().find((o) => o.id === row['orderId']);
     if (!order) return;
-    const unitReport = this.unitReports().find(r => r.id === order.unitReportId)!;
+    const unitReport = this.unitReports().find((r) => r.id === order.unitReportId)!;
     this.documentoPdf.abrir({
       titulo: `Orden de trabajo — ${order.code}`,
       component: OrdenMantenimientoGeneralHoja,
@@ -542,9 +628,9 @@ export class MaintenanceListPage {
 
   /** Orden de mantenimiento operativo (sub-órdenes de tipo Operativo). */
   openOrdenOperativa(row: Record<string, unknown>): void {
-    const order = this.orders().find(o => o.id === row['orderId']);
+    const order = this.orders().find((o) => o.id === row['orderId']);
     if (!order) return;
-    const unitReport = this.unitReports().find(r => r.id === order.unitReportId)!;
+    const unitReport = this.unitReports().find((r) => r.id === order.unitReportId)!;
     this.documentoPdf.abrir({
       titulo: `Orden de mantenimiento operativo — ${order.code}`,
       component: OrdenMantenimientoOperativoHoja,
@@ -554,7 +640,7 @@ export class MaintenanceListPage {
   }
 
   tieneSubOrden(row: Record<string, unknown>, operativa: boolean): boolean {
-    const order = this.orders().find(o => o.id === row['orderId']);
-    return !!order?.subOrders.some(s => (s.type === 'Operativo') === operativa);
+    const order = this.orders().find((o) => o.id === row['orderId']);
+    return !!order?.subOrders.some((s) => (s.type === 'Operativo') === operativa);
   }
 }

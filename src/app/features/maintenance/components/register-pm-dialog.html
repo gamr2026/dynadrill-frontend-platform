@@ -1,10 +1,11 @@
 <div class="register-pm-dialog">
-
   <!-- Resumen de la alerta -->
   <div class="register-pm-dialog__header">
     <div class="register-pm-dialog__row">
       <dynadrill-text variant="caption">Unidad</dynadrill-text>
-      <dynadrill-text variant="body">{{ alerta.unidadCode }} — {{ alerta.unidadNombre }}</dynadrill-text>
+      <dynadrill-text variant="body"
+        >{{ alerta.unidadCode }} — {{ alerta.unidadNombre }}</dynadrill-text
+      >
     </div>
     <div class="register-pm-dialog__row">
       <dynadrill-text variant="caption">Estado actual</dynadrill-text>
@@ -77,7 +78,9 @@
   }
 
   <!-- Checklist de fábrica: obligatorio siempre, sea Interno o Tercero — es el manual propio de cada marca de unidad, no algo que reemplace el informe del proveedor. -->
-  <dynadrill-text variant="caption">Checklist de fábrica — según el manual del fabricante de esta unidad</dynadrill-text>
+  <dynadrill-text variant="caption"
+    >Checklist de fábrica — según el manual del fabricante de esta unidad</dynadrill-text
+  >
   <dynadrill-upload-zone
     [state]="checklistFabricante() ? 'uploaded' : 'idle'"
     [fileName]="checklistFabricante()?.name ?? ''"

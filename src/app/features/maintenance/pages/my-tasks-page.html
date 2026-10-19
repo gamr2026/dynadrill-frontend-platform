@@ -1,9 +1,17 @@
 <div class="my-tasks-page">
-  <app-page-header eyebrow="MANTENIMIENTO" title="Mantenimiento" subtitle="Sub-órdenes asignadas — diagnóstico y ejecución" />
+  <app-page-header
+    eyebrow="MANTENIMIENTO"
+    title="Mantenimiento"
+    subtitle="Sub-órdenes asignadas — diagnóstico y ejecución"
+  />
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando tareas…">
     @if (isMobile()) {
-      <app-qhse-registros-movil [items]="itemsMovil()" [loading]="loading()" vacio="No tienes sub-órdenes asignadas." />
+      <app-qhse-registros-movil
+        [items]="itemsMovil()"
+        [loading]="loading()"
+        vacio="No tienes sub-órdenes asignadas."
+      />
     } @else {
       <div class="table-scroll dyn-table-card">
         <dynadrill-data-table
@@ -18,12 +26,20 @@
 
   <ng-template #actionsTpl let-row>
     <div class="dyn-actions-row">
-      <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(row)">Ver detalle</dynadrill-button>
+      <dynadrill-button variant="secondary" size="small" (clicked)="viewDetail(row)"
+        >Ver detalle</dynadrill-button
+      >
       @if (isActionable(row)) {
-        <dynadrill-button size="small" (clicked)="openExecution(row)">Diagnosticar / Ejecutar</dynadrill-button>
+        <dynadrill-button size="small" (clicked)="openExecution(row)"
+          >Diagnosticar / Ejecutar</dynadrill-button
+        >
       }
       @if (row['pumpingTicketId']) {
-        <dynadrill-icon-button icon="project" tooltip="Ver ticket de Pumping" (clicked)="verTicketPumping(row)" />
+        <dynadrill-icon-button
+          icon="project"
+          tooltip="Ver ticket de Pumping"
+          (clicked)="verTicketPumping(row)"
+        />
       }
     </div>
   </ng-template>

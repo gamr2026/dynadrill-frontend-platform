@@ -1,4 +1,11 @@
-import type { MaintenanceOrderWithSubOrders, MaintenanceType, Repuesto, SubOrder, SubOrderStatus, UnitFinalState } from './maintenance-order.model';
+import type {
+  MaintenanceOrderWithSubOrders,
+  MaintenanceType,
+  Repuesto,
+  SubOrder,
+  SubOrderStatus,
+  UnitFinalState,
+} from './maintenance-order.model';
 import type { MaintenanceSourceModule, UnitReport } from './unit-report.model';
 import type {
   AsignacionApi,
@@ -23,7 +30,9 @@ const TIPO: Record<TipoSubordenApi, MaintenanceType> = {
   instrumental: 'Instrumental',
   operativo: 'Operativo',
 };
-const TIPO_API = Object.fromEntries(Object.entries(TIPO).map(([codigo, nombre]) => [nombre, codigo])) as Record<MaintenanceType, TipoSubordenApi>;
+const TIPO_API = Object.fromEntries(
+  Object.entries(TIPO).map(([codigo, nombre]) => [nombre, codigo]),
+) as Record<MaintenanceType, TipoSubordenApi>;
 
 const ESTADO: Record<EstadoSubordenApi, SubOrderStatus> = {
   pendiente: 'Pendiente',
@@ -42,14 +51,18 @@ const ORIGEN: Record<OrigenReporteApi, MaintenanceSourceModule> = {
   qhse: 'QHSE',
 };
 
-const ESTADO_FINAL: Record<string, UnitFinalState> = { disponible: 'Disponible', con_restricciones: 'Con restricciones' };
+const ESTADO_FINAL: Record<string, UnitFinalState> = {
+  disponible: 'Disponible',
+  con_restricciones: 'Con restricciones',
+};
 
 export const tipoDeSubordenApi = (tipo: MaintenanceType): TipoSubordenApi => TIPO_API[tipo];
 
 const texto = (v: string | null | undefined): string => v ?? '';
 
 /** Código del reporte sin la «R»: las pantallas la agregan con `unitReportCode()`. */
-const numeroDeReporte = (codigo: string): string => (codigo.startsWith('R') ? codigo.slice(1) : codigo);
+const numeroDeReporte = (codigo: string): string =>
+  codigo.startsWith('R') ? codigo.slice(1) : codigo;
 
 export function reporteAUnitReport(r: ReporteApi): UnitReport {
   const n = r.novedades;
@@ -99,13 +112,21 @@ export function repuestoApiARepuesto(r: RepuestoApi): Repuesto {
       bodegasDisponibles: [{ bodegaId: r.bodega.id, bodega: r.bodega.nombre }],
     };
   }
-  return { numeroParte: texto(r.numeroParte), descripcion: texto(r.descripcion), cantidad: r.cantidad };
+  return {
+    numeroParte: texto(r.numeroParte),
+    descripcion: texto(r.descripcion),
+    cantidad: r.cantidad,
+  };
 }
 
 /** Repuesto de la pantalla → entrada del backend: del catálogo (artículo + bodega) o de texto (número de parte). */
 export function repuestoARepuestoEntrada(r: Repuesto): RepuestoEntradaApi {
   if (r.articuloId) return { articuloId: r.articuloId, bodegaId: r.bodegaId, cantidad: r.cantidad };
-  return { numeroParte: r.numeroParte.trim(), descripcion: r.descripcion.trim() || null, cantidad: r.cantidad };
+  return {
+    numeroParte: r.numeroParte.trim(),
+    descripcion: r.descripcion.trim() || null,
+    cantidad: r.cantidad,
+  };
 }
 
 export function subordenASubOrder(s: SubordenApi): SubOrder {
@@ -175,11 +196,15 @@ export function asignacionesDeOrden(
   cambios: Partial<Record<MaintenanceType, Partial<AsignacionApi>>>,
 ): AsignacionApi[] {
   return orden.subOrders
-    .filter(s => s.status !== 'Cerrado')
-    .map(s => {
+    .filter((s) => s.status !== 'Cerrado')
+    .map((s) => {
       const base: AsignacionApi =
         s.type === 'Operativo'
-          ? { tipo: 'operativo', derivar: s.status === 'Derivado a Pumping', notaDerivacion: s.deriveNote ?? null }
+          ? {
+              tipo: 'operativo',
+              derivar: s.status === 'Derivado a Pumping',
+              notaDerivacion: s.deriveNote ?? null,
+            }
           : { tipo: tipoDeSubordenApi(s.type), usuarioId: s.assignedUserId ?? null };
       return { ...base, ...cambios[s.type] };
     });

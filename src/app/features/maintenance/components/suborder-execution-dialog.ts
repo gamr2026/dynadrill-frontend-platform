@@ -1,5 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
@@ -50,9 +57,13 @@ export class SuborderExecutionDialog {
   protected readonly data = inject<SuborderExecutionDialogData>(NZ_MODAL_DATA);
 
   protected readonly diagnostico = signal(this.data.subOrder.diagnostico ?? '');
-  protected readonly actividadesCorrectivas = signal(this.data.subOrder.actividadesCorrectivas ?? '');
+  protected readonly actividadesCorrectivas = signal(
+    this.data.subOrder.actividadesCorrectivas ?? '',
+  );
   protected readonly horasTrabajo = signal(this.data.subOrder.horasTrabajo?.toString() ?? '');
-  protected readonly repuestos = signal<Repuesto[]>(this.data.subOrder.repuestos ? [...this.data.subOrder.repuestos] : []);
+  protected readonly repuestos = signal<Repuesto[]>(
+    this.data.subOrder.repuestos ? [...this.data.subOrder.repuestos] : [],
+  );
   protected readonly trabajosAdicionales = signal(this.data.subOrder.trabajosAdicionales ?? '');
   protected readonly submitting = signal(false);
 
@@ -71,7 +82,7 @@ export class SuborderExecutionDialog {
       .pipe(
         debounceTime(300),
         distinctUntilChanged(),
-        switchMap(q => {
+        switchMap((q) => {
           if (q.length < 2) return of<RepuestoDisponible[]>([]);
           this.buscando.set(true);
           return this.inventario.repuestosDisponibles(q);
@@ -79,7 +90,7 @@ export class SuborderExecutionDialog {
         takeUntilDestroyed(inject(DestroyRef)),
       )
       .subscribe({
-        next: lista => {
+        next: (lista) => {
           this.resultados.set(lista);
           this.buscando.set(false);
         },
@@ -91,22 +102,31 @@ export class SuborderExecutionDialog {
       });
   }
 
-  protected readonly hayCatalogo = computed(() => this.repuestos().some(r => r.articuloId));
+  protected readonly hayCatalogo = computed(() => this.repuestos().some((r) => r.articuloId));
 
-  protected readonly canSubmit = computed(() =>
-    this.diagnostico().trim().length > 0 && this.actividadesCorrectivas().trim().length > 0,
+  protected readonly canSubmit = computed(
+    () => this.diagnostico().trim().length > 0 && this.actividadesCorrectivas().trim().length > 0,
   );
 
   /** Los repuestos ya guardados traen solo su bodega: se consulta la existencia para poder cambiarla. */
   private cargarBodegasDeLoGuardado(): void {
-    for (const r of this.repuestos().filter(x => x.articuloId)) {
+    for (const r of this.repuestos().filter((x) => x.articuloId)) {
       this.inventario.repuestosDisponibles(r.numeroParte).subscribe({
-        next: lista => {
-          const a = lista.find(x => x.id === r.articuloId);
+        next: (lista) => {
+          const a = lista.find((x) => x.id === r.articuloId);
           if (!a) return;
           const guardada = r.bodegasDisponibles ?? [];
-          const bodegas = [...a.porBodega, ...guardada.filter(g => !a.porBodega.some(b => b.bodegaId === g.bodegaId))];
-          this.repuestos.update(list => list.map(x => (x.articuloId === r.articuloId ? { ...x, bodegasDisponibles: bodegas, unidad: a.unidad } : x)));
+          const bodegas = [
+            ...a.porBodega,
+            ...guardada.filter((g) => !a.porBodega.some((b) => b.bodegaId === g.bodegaId)),
+          ];
+          this.repuestos.update((list) =>
+            list.map((x) =>
+              x.articuloId === r.articuloId
+                ? { ...x, bodegasDisponibles: bodegas, unidad: a.unidad }
+                : x,
+            ),
+          );
         },
         error: () => undefined, // sin la existencia se sigue pudiendo guardar con la bodega ya elegida
       });
@@ -120,8 +140,8 @@ export class SuborderExecutionDialog {
 
   /** Agrega el repuesto del catálogo; si ya estaba, suma una unidad (un artículo va una sola vez por sub-orden). */
   addDelCatalogo(a: RepuestoDisponible): void {
-    this.repuestos.update(list => {
-      const i = list.findIndex(r => r.articuloId === a.id);
+    this.repuestos.update((list) => {
+      const i = list.findIndex((r) => r.articuloId === a.id);
       if (i >= 0) return list.map((r, j) => (j === i ? { ...r, cantidad: r.cantidad + 1 } : r));
       return [
         ...list,
@@ -141,27 +161,27 @@ export class SuborderExecutionDialog {
   }
 
   protected bodegaOptions(r: Repuesto): DynadrillSelectOption[] {
-    return (r.bodegasDisponibles ?? []).map(b => ({
+    return (r.bodegasDisponibles ?? []).map((b) => ({
       label: b.stock === undefined ? b.bodega : `${b.bodega} (${b.stock} disponibles)`,
       value: b.bodegaId,
     }));
   }
 
   updateBodega(index: number, bodegaId: string): void {
-    this.repuestos.update(list => list.map((r, i) => (i === index ? { ...r, bodegaId } : r)));
+    this.repuestos.update((list) => list.map((r, i) => (i === index ? { ...r, bodegaId } : r)));
   }
 
   /** Repuesto que no existe en el catálogo: se escribe el número de parte y la descripción (no mueve stock). */
   addRepuesto(): void {
-    this.repuestos.update(list => [...list, { numeroParte: '', cantidad: 1, descripcion: '' }]);
+    this.repuestos.update((list) => [...list, { numeroParte: '', cantidad: 1, descripcion: '' }]);
   }
 
   removeRepuesto(index: number): void {
-    this.repuestos.update(list => list.filter((_, i) => i !== index));
+    this.repuestos.update((list) => list.filter((_, i) => i !== index));
   }
 
   updateRepuesto(index: number, field: keyof Repuesto, value: string): void {
-    this.repuestos.update(list =>
+    this.repuestos.update((list) =>
       list.map((r, i) => {
         if (i !== index) return r;
         if (field !== 'cantidad') return { ...r, [field]: value };
@@ -179,7 +199,7 @@ export class SuborderExecutionDialog {
       actividadesCorrectivas: this.actividadesCorrectivas(),
       horasTrabajo: this.horasTrabajo() ? Number(this.horasTrabajo()) : undefined,
       // un repuesto de texto necesita su número de parte (el del catálogo ya trae su artículo)
-      repuestos: this.repuestos().filter(r => r.articuloId || r.numeroParte.trim()),
+      repuestos: this.repuestos().filter((r) => r.articuloId || r.numeroParte.trim()),
       trabajosAdicionales: this.trabajosAdicionales().trim() || undefined,
     };
   }
@@ -191,11 +211,13 @@ export class SuborderExecutionDialog {
       next: () => {
         this.notify.success(
           this.isClosed ? 'Cambios guardados' : 'Avance guardado',
-          this.isClosed ? `${this.data.subOrder.code} corregida.` : `${this.data.subOrder.code} en ejecución.`,
+          this.isClosed
+            ? `${this.data.subOrder.code} corregida.`
+            : `${this.data.subOrder.code} en ejecución.`,
         );
         this.modalRef.close(true);
       },
-      error: e => {
+      error: (e) => {
         this.submitting.set(false);
         this.notify.error('Error', mensajeDeError(e, 'No se pudo guardar.'));
       },
@@ -209,16 +231,19 @@ export class SuborderExecutionDialog {
       next: () => {
         this.ordersService.submitSubOrderForReview(this.data.subOrder.id).subscribe({
           next: () => {
-            this.notify.success('Enviado a revisión', `${this.data.subOrder.code} lista para revisión de cierre.`);
+            this.notify.success(
+              'Enviado a revisión',
+              `${this.data.subOrder.code} lista para revisión de cierre.`,
+            );
             this.modalRef.close(true);
           },
-          error: e => {
+          error: (e) => {
             this.submitting.set(false);
             this.notify.error('Error', mensajeDeError(e, 'No se pudo enviar a revisión.'));
           },
         });
       },
-      error: e => {
+      error: (e) => {
         this.submitting.set(false);
         this.notify.error('Error', mensajeDeError(e, 'No se pudo guardar.'));
       },

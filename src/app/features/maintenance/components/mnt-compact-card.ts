@@ -48,7 +48,13 @@ export interface MntCompactItem {
           </div>
           <div class="fila__acciones">
             @for (a of item.actions; track a.label) {
-              <dynadrill-icon-button [icon]="$any(a.icon)" iconSource="dynadrill" [tooltip]="a.label" tooltipPlacement="top" (clicked)="a.run()" />
+              <dynadrill-icon-button
+                [icon]="$any(a.icon)"
+                iconSource="dynadrill"
+                [tooltip]="a.label"
+                tooltipPlacement="top"
+                (clicked)="a.run()"
+              />
             }
           </div>
         </li>

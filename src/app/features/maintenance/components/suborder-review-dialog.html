@@ -1,28 +1,43 @@
 <div class="suborder-review-dialog">
   <div class="suborder-review-dialog__row">
     <dynadrill-text variant="caption">Sub-orden</dynadrill-text>
-    <dynadrill-text variant="body">{{ data.subOrder.code }} · Tipo: {{ data.subOrder.type }}</dynadrill-text>
+    <dynadrill-text variant="body"
+      >{{ data.subOrder.code }} · Tipo: {{ data.subOrder.type }}</dynadrill-text
+    >
   </div>
 
-  <app-novedad-readonly label="Novedad reportada por el operador (Reporte de Unidad)" [content]="data.novedadOriginal" />
+  <app-novedad-readonly
+    label="Novedad reportada por el operador (Reporte de Unidad)"
+    [content]="data.novedadOriginal"
+  />
 
   <div class="suborder-review-dialog__row">
-    <dynadrill-text variant="caption">Diagnóstico técnico (enviado por el técnico asignado)</dynadrill-text>
+    <dynadrill-text variant="caption"
+      >Diagnóstico técnico (enviado por el técnico asignado)</dynadrill-text
+    >
     <dynadrill-text variant="body">{{ data.subOrder.diagnostico || '—' }}</dynadrill-text>
   </div>
 
   <div class="suborder-review-dialog__row">
-    <dynadrill-text variant="caption">Actividades correctivas (enviado por el técnico asignado)</dynadrill-text>
-    <dynadrill-text variant="body">{{ data.subOrder.actividadesCorrectivas || '—' }}</dynadrill-text>
+    <dynadrill-text variant="caption"
+      >Actividades correctivas (enviado por el técnico asignado)</dynadrill-text
+    >
+    <dynadrill-text variant="body">{{
+      data.subOrder.actividadesCorrectivas || '—'
+    }}</dynadrill-text>
   </div>
 
   @if (yaResuelto()) {
-    <dynadrill-text variant="body" class="suborder-review-dialog__pending-warning suborder-review-dialog__pending-warning--resuelto">
+    <dynadrill-text
+      variant="body"
+      class="suborder-review-dialog__pending-warning suborder-review-dialog__pending-warning--resuelto"
+    >
       ✓ Esta sub-orden ya fue revisada — estado actual: {{ data.subOrder.status }}.
     </dynadrill-text>
   } @else if (!puedeRevisar()) {
     <dynadrill-text variant="body" class="suborder-review-dialog__pending-warning">
-      ⚠ El técnico asignado todavía no envió el diagnóstico ni lo mandó a revisión (estado actual: {{ data.subOrder.status }}) — no hay nada que aprobar todavía.
+      ⚠ El técnico asignado todavía no envió el diagnóstico ni lo mandó a revisión (estado actual:
+      {{ data.subOrder.status }}) — no hay nada que aprobar todavía.
     </dynadrill-text>
   } @else {
     <dynadrill-approval-actions
@@ -42,7 +57,9 @@
         (valueChange)="correctionNote.set($event)"
         [rows]="3"
       />
-      <dynadrill-button [disabled]="!canConfirmRejection()" (clicked)="confirmRejection()">Confirmar corrección solicitada</dynadrill-button>
+      <dynadrill-button [disabled]="!canConfirmRejection()" (clicked)="confirmRejection()"
+        >Confirmar corrección solicitada</dynadrill-button
+      >
     </div>
   }
 </div>

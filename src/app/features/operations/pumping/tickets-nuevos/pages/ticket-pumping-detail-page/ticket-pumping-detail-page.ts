@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { switchMap } from 'rxjs';
@@ -19,26 +20,69 @@ import {
   etiquetaAplicacion,
   type SolicitudCambioItems,
 } from '../../models/cambio-items';
-import { MotivoDialog, type MotivoDialogData } from '../../../../../../shared/components/motivo-dialog/motivo-dialog';
+import {
+  MotivoDialog,
+  type MotivoDialogData,
+} from '../../../../../../shared/components/motivo-dialog/motivo-dialog';
 import { ArchivosService } from '../../../../../facturacion/pedidos-comercial/services/archivos.service';
 import { mensajeErrorArchivo } from '../../../../../facturacion/pedidos-comercial/models/documentos-pedido';
-import { formatoDia } from '../../../../../facturacion/pedidos-comercial/models/pedido-comercial.model';
-import { PERMISO_PREFACTURA_FIRMA_COMPANY_MAN, PERMISO_PREFACTURA_VISTA_TICKET } from '../../../../../facturacion/pedidos-comercial/models/prefactura-comercial';
-import { TicketAsignarDialog, type TicketAsignarDialogData } from '../../components/ticket-asignar-dialog/ticket-asignar-dialog';
-import { TicketCambioItemsDialog, type TicketCambioItemsDialogData } from '../../components/ticket-cambio-items-dialog/ticket-cambio-items-dialog';
-import { TicketCambioItemsRevisarDialog, type TicketCambioItemsRevisarDialogData } from '../../components/ticket-cambio-items-revisar-dialog/ticket-cambio-items-revisar-dialog';
-import { TicketIngresoDialog, type TicketIngresoDialogData } from '../../components/ticket-ingreso-dialog/ticket-ingreso-dialog';
-import { TicketQuimicosDialog, type TicketQuimicosDialogData } from '../../components/ticket-quimicos-dialog/ticket-quimicos-dialog';
+import {
+  formatoDia,
+  formatoMoneda,
+  type PedidoDetalle,
+} from '../../../../../facturacion/pedidos-comercial/models/pedido-comercial.model';
+import { PedidosComercialService } from '../../../../../facturacion/pedidos-comercial/services/pedidos-comercial.service';
+import { TicketProgress } from '../../../../shared/ticket-progress/ticket-progress';
+import {
+  PERMISO_PREFACTURA_FIRMA_COMPANY_MAN,
+  PERMISO_PREFACTURA_VISTA_TICKET,
+} from '../../../../../facturacion/pedidos-comercial/models/prefactura-comercial';
+import {
+  TicketAsignarDialog,
+  type TicketAsignarDialogData,
+} from '../../components/ticket-asignar-dialog/ticket-asignar-dialog';
+import {
+  TicketCambioItemsDialog,
+  type TicketCambioItemsDialogData,
+} from '../../components/ticket-cambio-items-dialog/ticket-cambio-items-dialog';
+import {
+  TicketCambioItemsRevisarDialog,
+  type TicketCambioItemsRevisarDialogData,
+} from '../../components/ticket-cambio-items-revisar-dialog/ticket-cambio-items-revisar-dialog';
+import {
+  TicketIngresoDialog,
+  type TicketIngresoDialogData,
+} from '../../components/ticket-ingreso-dialog/ticket-ingreso-dialog';
+import {
+  TicketQuimicosDialog,
+  type TicketQuimicosDialogData,
+} from '../../components/ticket-quimicos-dialog/ticket-quimicos-dialog';
 import { TicketMaintenanceCard } from '../../../components/ticket-maintenance-card/ticket-maintenance-card';
-import { TicketPrefacturaDialog, type TicketPrefacturaDialogData } from '../../components/ticket-prefactura-dialog/ticket-prefactura-dialog';
-import { TicketReporteDiarioDialog, type TicketReporteDiarioDialogData } from '../../components/ticket-reporte-diario-dialog/ticket-reporte-diario-dialog';
-import { TicketReporteLlegadaDialog, type TicketReporteLlegadaDialogData } from '../../components/ticket-reporte-llegada-dialog/ticket-reporte-llegada-dialog';
-import { TicketReporteUnidadDialog, type TicketReporteUnidadDialogData } from '../../components/ticket-reporte-unidad-dialog/ticket-reporte-unidad-dialog';
-import { TicketTerminosDialog, type TicketTerminosDialogData } from '../../components/ticket-terminos-dialog/ticket-terminos-dialog';
+import {
+  TicketPrefacturaDialog,
+  type TicketPrefacturaDialogData,
+} from '../../components/ticket-prefactura-dialog/ticket-prefactura-dialog';
+import {
+  TicketReporteDiarioDialog,
+  type TicketReporteDiarioDialogData,
+} from '../../components/ticket-reporte-diario-dialog/ticket-reporte-diario-dialog';
+import {
+  TicketReporteLlegadaDialog,
+  type TicketReporteLlegadaDialogData,
+} from '../../components/ticket-reporte-llegada-dialog/ticket-reporte-llegada-dialog';
+import {
+  TicketReporteUnidadDialog,
+  type TicketReporteUnidadDialogData,
+} from '../../components/ticket-reporte-unidad-dialog/ticket-reporte-unidad-dialog';
+import {
+  TicketTerminosDialog,
+  type TicketTerminosDialogData,
+} from '../../components/ticket-terminos-dialog/ticket-terminos-dialog';
 import {
   MODULO_LABELS,
   ORIGEN_REQUISITO_LABELS,
   PASO_ASIGNACION,
+  PASOS_PUMPING,
   MODULO_ARCHIVO_MONITOREO,
   PASO_EJECUCION,
   PASO_RETORNO,
@@ -71,7 +115,16 @@ import { TicketsPumpingService } from '../../services/tickets-pumping.service';
  */
 @Component({
   selector: 'app-ticket-pumping-detail-page',
-  imports: [TicketMaintenanceCard, DynadrillBannerComponent, DynadrillButtonComponent, DynadrillScreenHeaderComponent, DynadrillSpinnerComponent, DynadrillTagComponent],
+  imports: [
+    NgTemplateOutlet,
+    TicketMaintenanceCard,
+    TicketProgress,
+    DynadrillBannerComponent,
+    DynadrillButtonComponent,
+    DynadrillScreenHeaderComponent,
+    DynadrillSpinnerComponent,
+    DynadrillTagComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './ticket-pumping-detail-page.html',
   styleUrl: './ticket-pumping-detail-page.scss',
@@ -84,6 +137,36 @@ export class TicketPumpingDetailPage {
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly archivos = inject(ArchivosService);
+  private readonly pedidos = inject(PedidosComercialService);
+
+  protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
+
+  // ── "Avance del ticket": los 10 pasos del servicio en vertical (mismo componente que la demo) ──
+  protected readonly etiquetasPasos = PASOS_PUMPING.map((p) => p.nombre);
+  protected readonly indicePaso = computed(() => {
+    const i = PASOS_PUMPING.findIndex((p) => p.codigo === this.ticket()?.paso.codigo);
+    return i < 0 ? 0 : i;
+  });
+
+  /** El pedido tal como lo cotizó Ventas (ítems estimados); solo lo ve quien puede leer pedidos de Facturación. */
+  protected readonly pedido = signal<PedidoDetalle | null>(null);
+  protected readonly moneda = formatoMoneda;
+  protected readonly cambioPendiente = computed(
+    () => this.cambiosItems().find((s) => s.estado === 'pendiente') ?? null,
+  );
+
+  private cargarPedido(pedidoId: string): void {
+    if (!this.puedeVerPedido()) return;
+    this.pedidos
+      .detalle(pedidoId)
+      .subscribe({ next: (p) => this.pedido.set(p), error: () => this.pedido.set(null) });
+  }
+
+  protected irACambios(): void {
+    document
+      .getElementById('cambios-items')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   protected readonly cargando = signal(true);
   protected readonly ocupado = signal(false);
@@ -93,24 +176,36 @@ export class TicketPumpingDetailPage {
 
   /** Quien además puede ver el pedido en Facturación tiene el enlace al pedido. */
   protected readonly puedeVerPedido = computed(() => this.auth.can('comercial.pedidos.ver'));
-  protected readonly tipos = computed(() => (this.ticket()?.tiposServicio ?? []).map(etiquetaTipoServicio));
+  protected readonly tipos = computed(() =>
+    (this.ticket()?.tiposServicio ?? []).map(etiquetaTipoServicio),
+  );
   /** El paso de Asignación no avanza con un botón: se completa asignando al equipo. */
   protected readonly debeAsignar = computed(() => {
     const t = this.ticket();
     return !!t && t.puedeActuar && t.paso.codigo === PASO_ASIGNACION;
   });
-  protected readonly fueraDeAlcance = computed(() => {
-    const t = this.ticket();
-    return !!t && t.puedeActuar && t.siguientes.length === 0 && !this.debeAsignar();
-  });
+  /** Salidas que avanzan el ticket (las que piden motivo lo devuelven a un paso anterior). */
+  protected readonly siguientesAdelante = computed(() =>
+    (this.ticket()?.siguientes ?? []).filter((s) => !s.requiereMotivo),
+  );
   // ── Traslado de salida: lo que se exige para salir del paso ──
   private readonly yo = computed(() => this.auth.currentUser());
   protected readonly puedeConfirmarAMano = computed(() => this.auth.can(PERMISO_PUENTE_REQUISITOS));
   /** Los requisitos del paso actual (los que hay que cumplir para salir de él) y los ya cumplidos de pasos anteriores. */
   protected readonly requisitosVisibles = computed(() => {
     const t = this.ticket();
-    return t ? t.requisitos.filter(r => r.paso === t.paso.codigo || r.estado === 'cumplido') : [];
+    return t ? t.requisitos.filter((r) => r.paso === t.paso.codigo || r.estado === 'cumplido') : [];
   });
+  /** Los requisitos se muestran en la tarjeta del módulo que los atiende, como la demo separa los documentos de QHSE de los formularios del paso. */
+  protected readonly requisitosQhse = computed(() =>
+    this.requisitosVisibles().filter((r) => r.modulo === 'qhse'),
+  );
+  protected readonly requisitosFlota = computed(() =>
+    this.requisitosVisibles().filter((r) => r.modulo === 'flota'),
+  );
+  protected readonly requisitosPumping = computed(() =>
+    this.requisitosVisibles().filter((r) => r.modulo === 'pumping'),
+  );
   protected readonly pendientes = computed(() => {
     const t = this.ticket();
     return t ? pendientesDelPaso(t) : [];
@@ -127,16 +222,26 @@ export class TicketPumpingDetailPage {
   protected puedeFirmarUnidad(r: RequisitoTicket): boolean {
     const t = this.ticket();
     if (!t || !r.vehiculoId) return false;
-    return this.yo()?.roleCode === 'superadmin' || t.asignacion.operadores.some(o => o.vehiculoId === r.vehiculoId && o.usuarioId === this.yo()?.id);
+    return (
+      this.yo()?.roleCode === 'superadmin' ||
+      t.asignacion.operadores.some(
+        (o) => o.vehiculoId === r.vehiculoId && o.usuarioId === this.yo()?.id,
+      )
+    );
   }
   protected puedeLlenarEquipo(): boolean {
     const t = this.ticket();
     const u = this.yo();
     if (!t || !u) return false;
-    return ['superadmin', 'jefe_base'].includes(u.roleCode) || t.asignacion.supervisor?.usuarioId === u.id || t.asignacion.operadores.some(o => o.usuarioId === u.id);
+    return (
+      ['superadmin', 'jefe_base'].includes(u.roleCode) ||
+      t.asignacion.supervisor?.usuarioId === u.id ||
+      t.asignacion.operadores.some((o) => o.usuarioId === u.id)
+    );
   }
   protected readonly modulo = (r: RequisitoTicket) => MODULO_LABELS[r.modulo];
-  protected readonly origenRequisito = (r: RequisitoTicket) => (r.origen ? ORIGEN_REQUISITO_LABELS[r.origen] : '');
+  protected readonly origenRequisito = (r: RequisitoTicket) =>
+    r.origen ? ORIGEN_REQUISITO_LABELS[r.origen] : '';
 
   protected abrirTerminos(): void {
     const t = this.ticket();
@@ -157,7 +262,10 @@ export class TicketPumpingDetailPage {
     const ref = this.dialog.open<TicketIngresoDialog, TicketIngresoDialogData>({
       title: 'Checklist de ingreso a locación',
       content: TicketIngresoDialog,
-      data: { ticketId: t.id, soloLectura: t.paso.codigo !== 'ejecucion_operativa' || !this.puedeLlenarEquipo() },
+      data: {
+        ticketId: t.id,
+        soloLectura: t.paso.codigo !== 'ejecucion_operativa' || !this.puedeLlenarEquipo(),
+      },
       footer: false,
       width: '720px',
     });
@@ -170,7 +278,12 @@ export class TicketPumpingDetailPage {
     const ref = this.dialog.open<TicketReporteUnidadDialog, TicketReporteUnidadDialogData>({
       title: `Reporte de unidad de salida — ${r.para ?? ''}`,
       content: TicketReporteUnidadDialog,
-      data: { ticketId: t.id, vehiculoId: r.vehiculoId, placa: r.para ?? '', soloLectura: t.paso.codigo !== 'traslado_salida' || !this.puedeFirmarUnidad(r) },
+      data: {
+        ticketId: t.id,
+        vehiculoId: r.vehiculoId,
+        placa: r.para ?? '',
+        soloLectura: t.paso.codigo !== 'traslado_salida' || !this.puedeFirmarUnidad(r),
+      },
       footer: false,
       width: '900px',
     });
@@ -179,7 +292,12 @@ export class TicketPumpingDetailPage {
 
   /** El Supervisor del equipo aprueba la inspección de la unidad al revisar los reportes de salida (mientras Flota no publique la suya). */
   protected puedeAprobarInspeccion(r: RequisitoTicket): boolean {
-    return r.codigo === 'inspeccion_vehiculo_aprobada' && r.estado === 'pendiente' && this.ticket()?.paso.codigo === PASO_REVISION_SALIDA && this.esSupervisorDelTicket();
+    return (
+      r.codigo === 'inspeccion_vehiculo_aprobada' &&
+      r.estado === 'pendiente' &&
+      this.ticket()?.paso.codigo === PASO_REVISION_SALIDA &&
+      this.esSupervisorDelTicket()
+    );
   }
   protected aprobarInspeccion(r: RequisitoTicket): void {
     const t = this.ticket();
@@ -192,7 +310,7 @@ export class TicketPumpingDetailPage {
         this.notify.success('Inspección aprobada', `Unidad ${r.para ?? ''}.`);
         this.recargar();
       },
-      error: err => {
+      error: (err) => {
         this.ocupado.set(false);
         this.errorAccion.set(mensajeErrorTicket(err, 'No se pudo aprobar la inspección.'));
       },
@@ -206,7 +324,12 @@ export class TicketPumpingDetailPage {
     const ref = this.dialog.open<TicketReporteLlegadaDialog, TicketReporteLlegadaDialogData>({
       title: `Reporte de unidad de llegada — ${r.para ?? ''}`,
       content: TicketReporteLlegadaDialog,
-      data: { ticketId: t.id, vehiculoId: r.vehiculoId, placa: r.para ?? '', soloLectura: t.paso.codigo !== PASO_TRASLADO_LLEGADA || !this.puedeFirmarUnidad(r) },
+      data: {
+        ticketId: t.id,
+        vehiculoId: r.vehiculoId,
+        placa: r.para ?? '',
+        soloLectura: t.paso.codigo !== PASO_TRASLADO_LLEGADA || !this.puedeFirmarUnidad(r),
+      },
       footer: false,
       width: '900px',
     });
@@ -215,15 +338,27 @@ export class TicketPumpingDetailPage {
 
   // ── Prefactura desde el ticket (revisión final) ──
   /** El mantenimiento no es un paso del flujo: la tarjeta se ve en cualquier estado, a quien puede leer Mantenimiento. */
-  protected readonly puedeVerMantenimientos = computed(() => this.auth.can('mantenimiento.operaciones.ver') || this.auth.can('mantenimiento.ordenes.ver'));
-  protected readonly puedeVerPrefactura = computed(() => this.auth.can(PERMISO_PREFACTURA_VISTA_TICKET) && ['revision_final', 'cierre'].includes(this.ticket()?.paso.codigo ?? ''));
+  protected readonly puedeVerMantenimientos = computed(
+    () =>
+      this.auth.can('mantenimiento.operaciones.ver') || this.auth.can('mantenimiento.ordenes.ver'),
+  );
+  protected readonly puedeVerPrefactura = computed(
+    () =>
+      this.auth.can(PERMISO_PREFACTURA_VISTA_TICKET) &&
+      ['revision_final', 'cierre'].includes(this.ticket()?.paso.codigo ?? ''),
+  );
   protected abrirPrefactura(): void {
     const t = this.ticket();
     if (!t) return;
     const ref = this.dialog.open<TicketPrefacturaDialog, TicketPrefacturaDialogData>({
       title: 'Prefactura del servicio',
       content: TicketPrefacturaDialog,
-      data: { pedidoId: t.pedidoId, puedeFirmar: t.paso.codigo === PASO_REVISION_FINAL && this.auth.can(PERMISO_PREFACTURA_FIRMA_COMPANY_MAN) },
+      data: {
+        pedidoId: t.pedidoId,
+        puedeFirmar:
+          t.paso.codigo === PASO_REVISION_FINAL &&
+          this.auth.can(PERMISO_PREFACTURA_FIRMA_COMPANY_MAN),
+      },
       footer: false,
       width: '860px',
     });
@@ -249,7 +384,11 @@ export class TicketPumpingDetailPage {
           this.notify.success('Requisito confirmado', 'Quedó registrado como confirmado a mano.');
           this.recargar();
         },
-        error: err => this.notify.error('No se pudo confirmar', mensajeErrorTicket(err, 'No se pudo confirmar el requisito.')),
+        error: (err) =>
+          this.notify.error(
+            'No se pudo confirmar',
+            mensajeErrorTicket(err, 'No se pudo confirmar el requisito.'),
+          ),
       });
     });
   }
@@ -260,21 +399,44 @@ export class TicketPumpingDetailPage {
   protected readonly esSupervisorDelTicket = computed(() => {
     const t = this.ticket();
     const u = this.yo();
-    return !!t && !!u && (u.roleCode === 'superadmin' || t.asignacion.supervisor?.usuarioId === u.id);
+    return (
+      !!t && !!u && (u.roleCode === 'superadmin' || t.asignacion.supervisor?.usuarioId === u.id)
+    );
   });
   protected readonly esDelEquipo = computed(() => {
     const t = this.ticket();
     const u = this.yo();
-    return !!t && !!u && (u.roleCode === 'superadmin' || t.asignacion.operadores.some(o => o.usuarioId === u.id));
+    return (
+      !!t &&
+      !!u &&
+      (u.roleCode === 'superadmin' || t.asignacion.operadores.some((o) => o.usuarioId === u.id))
+    );
   });
   /** El Operador del equipo registra el consumo en la Ejecución operativa; el Supervisor del equipo devuelve en el Control de retorno. */
-  protected readonly puedeConsumir = computed(() => this.ticket()?.paso.codigo === PASO_EJECUCION && this.esDelEquipo() && this.pendienteDeQuimicos());
-  protected readonly puedeDevolver = computed(() => this.ticket()?.paso.codigo === PASO_RETORNO && this.esSupervisorDelTicket() && this.pendienteDeQuimicos());
-  private readonly pendienteDeQuimicos = computed(() => (this.quimicos()?.quimicos ?? []).some(q => q.pendiente > 0));
+  protected readonly puedeConsumir = computed(
+    () =>
+      this.ticket()?.paso.codigo === PASO_EJECUCION &&
+      this.esDelEquipo() &&
+      this.pendienteDeQuimicos(),
+  );
+  protected readonly puedeDevolver = computed(
+    () =>
+      this.ticket()?.paso.codigo === PASO_RETORNO &&
+      this.esSupervisorDelTicket() &&
+      this.pendienteDeQuimicos(),
+  );
+  private readonly pendienteDeQuimicos = computed(() =>
+    (this.quimicos()?.quimicos ?? []).some((q) => q.pendiente > 0),
+  );
   /** El Supervisor del equipo formaliza la ejecución (el Company Man aprobó el inicio) en la Ejecución operativa. */
   protected readonly puedeFormalizar = computed(() => {
     const t = this.ticket();
-    return !!t && t.paso.codigo === PASO_EJECUCION && this.esSupervisorDelTicket() && t.requisitos.some(r => r.codigo === 'ejecucion_formalizada' && r.estado === 'pendiente');
+    return (
+      !!t &&
+      t.paso.codigo === PASO_EJECUCION &&
+      this.esSupervisorDelTicket() &&
+      t.requisitos.some((r) => r.codigo === 'ejecucion_formalizada' && r.estado === 'pendiente')
+    );
   });
 
   // ── Reporte Diario de Actividades (Reporte Job) ──
@@ -283,27 +445,54 @@ export class TicketPumpingDetailPage {
   protected readonly estadoDia = (e: ReporteDiarioDia['estado']) => ESTADO_REPORTE_DIARIO_LABELS[e];
   protected readonly tonoDia = (e: ReporteDiarioDia['estado']) => ESTADO_REPORTE_DIARIO_TONO[e];
   /** El Operador del equipo llena el reporte diario mientras el ticket está en la Ejecución operativa. */
-  protected readonly puedeLlenarReporteDiario = computed(() => this.ticket()?.paso.codigo === PASO_EJECUCION && this.esDelEquipo());
+  protected readonly puedeLlenarReporteDiario = computed(
+    () => this.ticket()?.paso.codigo === PASO_EJECUCION && this.esDelEquipo(),
+  );
   /** Se muestra desde la ejecución: antes no hay nada que reportar. */
-  protected readonly muestraReporteDiario = computed(() => ['ejecucion_operativa', 'control_retorno', 'traslado_llegada', 'revision_reportes_llegada', 'revision_final', 'cierre'].includes(this.ticket()?.paso.codigo ?? ''));
+  protected readonly muestraReporteDiario = computed(() =>
+    [
+      'ejecucion_operativa',
+      'control_retorno',
+      'traslado_llegada',
+      'revision_reportes_llegada',
+      'revision_final',
+      'cierre',
+    ].includes(this.ticket()?.paso.codigo ?? ''),
+  );
 
   // ── Cambio de ítems del pedido (propone el Operador, aprueba el Supervisor, aplica Comercial) ──
   protected readonly cambiosItems = signal<SolicitudCambioItems[]>([]);
   protected readonly estadoCambio = (s: SolicitudCambioItems) => ESTADO_SOLICITUD_LABELS[s.estado];
   protected readonly tonoCambio = (s: SolicitudCambioItems) => ESTADO_SOLICITUD_TONO[s.estado];
   protected readonly aplicacionCambio = etiquetaAplicacion;
-  protected readonly esDelEquipoOSupervisor = computed(() => this.esDelEquipo() || this.esSupervisorDelTicket());
+  protected readonly esDelEquipoOSupervisor = computed(
+    () => this.esDelEquipo() || this.esSupervisorDelTicket(),
+  );
   /** El equipo del ticket propone cambios mientras el ticket no esté cerrado y no haya otra solicitud esperando al Supervisor. */
   protected readonly puedeProponerCambio = computed(() => {
     const t = this.ticket();
-    return !!t && this.hayAsignacion() && t.paso.codigo !== 'cierre' && this.auth.can(PERMISO_CAMBIOS_SOLICITAR) && this.esDelEquipoOSupervisor() && !this.cambiosItems().some(s => s.estado === 'pendiente');
+    return (
+      !!t &&
+      this.hayAsignacion() &&
+      t.paso.codigo !== 'cierre' &&
+      this.auth.can(PERMISO_CAMBIOS_SOLICITAR) &&
+      this.esDelEquipoOSupervisor() &&
+      !this.cambiosItems().some((s) => s.estado === 'pendiente')
+    );
   });
-  protected readonly puedeRevisarCambios = computed(() => this.auth.can(PERMISO_CAMBIOS_APROBAR) && this.esSupervisorDelTicket());
-  protected readonly muestraCambios = computed(() => this.hayAsignacion() && (this.cambiosItems().length > 0 || this.puedeProponerCambio()));
+  protected readonly puedeRevisarCambios = computed(
+    () => this.auth.can(PERMISO_CAMBIOS_APROBAR) && this.esSupervisorDelTicket(),
+  );
+  protected readonly muestraCambios = computed(
+    () => this.hayAsignacion() && (this.cambiosItems().length > 0 || this.puedeProponerCambio()),
+  );
 
   private cargarCambiosItems(id: string): void {
-    if (!this.auth.can(PERMISO_CAMBIOS_SOLICITAR) && !this.auth.can(PERMISO_CAMBIOS_APROBAR)) return;
-    this.servicio.cambiosItems(id).subscribe({ next: l => this.cambiosItems.set(l), error: () => this.cambiosItems.set([]) });
+    if (!this.auth.can(PERMISO_CAMBIOS_SOLICITAR) && !this.auth.can(PERMISO_CAMBIOS_APROBAR))
+      return;
+    this.servicio
+      .cambiosItems(id)
+      .subscribe({ next: (l) => this.cambiosItems.set(l), error: () => this.cambiosItems.set([]) });
   }
 
   protected proponerCambio(): void {
@@ -316,20 +505,27 @@ export class TicketPumpingDetailPage {
       footer: false,
       width: '900px',
     });
-    ref.afterClose.subscribe((s: SolicitudCambioItems | undefined) => s && this.cargarCambiosItems(t.id));
+    ref.afterClose.subscribe(
+      (s: SolicitudCambioItems | undefined) => s && this.cargarCambiosItems(t.id),
+    );
   }
 
   protected verCambio(s: SolicitudCambioItems): void {
     const t = this.ticket();
     if (!t) return;
-    const ref = this.dialog.open<TicketCambioItemsRevisarDialog, TicketCambioItemsRevisarDialogData>({
+    const ref = this.dialog.open<
+      TicketCambioItemsRevisarDialog,
+      TicketCambioItemsRevisarDialogData
+    >({
       title: 'Cambio de ítems del pedido',
       content: TicketCambioItemsRevisarDialog,
       data: { solicitud: s, pedidoId: t.pedidoId, puedeRevisar: this.puedeRevisarCambios() },
       footer: false,
       width: '820px',
     });
-    ref.afterClose.subscribe((r: SolicitudCambioItems | undefined) => r && this.cargarCambiosItems(t.id));
+    ref.afterClose.subscribe(
+      (r: SolicitudCambioItems | undefined) => r && this.cargarCambiosItems(t.id),
+    );
   }
 
   // ── Monitoreo de cada día (documento del ticket) ──
@@ -337,11 +533,13 @@ export class TicketPumpingDetailPage {
   protected readonly subiendoMonitoreo = signal<string | null>(null);
   /** Los monitoreos de un día (el último es el vigente). */
   protected monitoreosDe(fecha: string): DocumentoDelTicket[] {
-    return this.documentos().filter(d => d.tipo === 'monitoreo' && d.fecha === fecha);
+    return this.documentos().filter((d) => d.tipo === 'monitoreo' && d.fecha === fecha);
   }
 
   private cargarDocumentos(id: string): void {
-    this.servicio.documentos(id).subscribe({ next: l => this.documentos.set(l), error: () => this.documentos.set([]) });
+    this.servicio
+      .documentos(id)
+      .subscribe({ next: (l) => this.documentos.set(l), error: () => this.documentos.set([]) });
   }
 
   protected alElegirMonitoreo(fecha: string, e: Event): void {
@@ -356,39 +554,48 @@ export class TicketPumpingDetailPage {
     this.archivos
       .subir(archivo, MODULO_ARCHIVO_MONITOREO)
       .pipe(
-        switchMap(a => {
+        switchMap((a) => {
           subiendo = false;
           return this.servicio.adjuntarMonitoreo(t.id, fecha, a.id);
         }),
       )
       .subscribe({
-        next: l => {
+        next: (l) => {
           this.subiendoMonitoreo.set(null);
           this.documentos.set(l);
           this.notify.success('Monitoreo adjuntado', `Día ${fecha}.`);
         },
-        error: err => {
+        error: (err) => {
           this.subiendoMonitoreo.set(null);
-          this.errorAccion.set(subiendo ? mensajeErrorArchivo(err) : mensajeErrorTicket(err, 'No se pudo adjuntar el monitoreo.'));
+          this.errorAccion.set(
+            subiendo
+              ? mensajeErrorArchivo(err)
+              : mensajeErrorTicket(err, 'No se pudo adjuntar el monitoreo.'),
+          );
         },
       });
   }
 
   protected descargarMonitoreo(d: DocumentoDelTicket): void {
     this.archivos.contenido(d.archivoId).subscribe({
-      next: blob => this.archivos.guardarComo(blob, `Monitoreo ${d.fecha ?? ''}`.trim()),
+      next: (blob) => this.archivos.guardarComo(blob, `Monitoreo ${d.fecha ?? ''}`.trim()),
       error: () => this.errorAccion.set('No se pudo descargar el monitoreo.'),
     });
   }
 
   private cargarReportesDiarios(id: string): void {
-    this.servicio.reportesDiarios(id).subscribe({ next: l => this.reportesDiarios.set(l), error: () => this.reportesDiarios.set([]) });
+    this.servicio
+      .reportesDiarios(id)
+      .subscribe({
+        next: (l) => this.reportesDiarios.set(l),
+        error: () => this.reportesDiarios.set([]),
+      });
   }
 
   protected abrirReporteDiario(fecha: string, nuevo = false): void {
     const t = this.ticket();
     if (!t || !fecha) return;
-    const dia = this.reportesDiarios().find(d => d.fecha === fecha);
+    const dia = this.reportesDiarios().find((d) => d.fecha === fecha);
     const ref = this.dialog.open<TicketReporteDiarioDialog, TicketReporteDiarioDialogData>({
       title: 'Reporte diario de actividades',
       content: TicketReporteDiarioDialog,
@@ -409,11 +616,15 @@ export class TicketPumpingDetailPage {
       footer: false,
       width: '980px',
     });
-    ref.afterClose.subscribe((hubo: boolean | undefined) => hubo && this.cargarReportesDiarios(t.id));
+    ref.afterClose.subscribe(
+      (hubo: boolean | undefined) => hubo && this.cargarReportesDiarios(t.id),
+    );
   }
 
   private cargarQuimicos(id: string): void {
-    this.servicio.quimicos(id).subscribe({ next: q => this.quimicos.set(q), error: () => this.quimicos.set(null) });
+    this.servicio
+      .quimicos(id)
+      .subscribe({ next: (q) => this.quimicos.set(q), error: () => this.quimicos.set(null) });
   }
 
   protected abrirQuimicos(modo: 'consumo' | 'devolucion'): void {
@@ -427,7 +638,9 @@ export class TicketPumpingDetailPage {
       footer: false,
       width: '640px',
     });
-    ref.afterClose.subscribe((nuevo: QuimicosTicket | undefined) => nuevo && this.quimicos.set(nuevo));
+    ref.afterClose.subscribe(
+      (nuevo: QuimicosTicket | undefined) => nuevo && this.quimicos.set(nuevo),
+    );
   }
 
   protected formalizar(): void {
@@ -438,10 +651,13 @@ export class TicketPumpingDetailPage {
     this.servicio.formalizarEjecucion(t.id).subscribe({
       next: () => {
         this.ocupado.set(false);
-        this.notify.success('Ejecución formalizada', 'Quedó registrado que el Company Man aprobó el inicio.');
+        this.notify.success(
+          'Ejecución formalizada',
+          'Quedó registrado que el Company Man aprobó el inicio.',
+        );
         this.recargar();
       },
-      error: err => {
+      error: (err) => {
         this.ocupado.set(false);
         this.errorAccion.set(mensajeErrorTicket(err, 'No se pudo formalizar la ejecución.'));
       },
@@ -451,7 +667,9 @@ export class TicketPumpingDetailPage {
   private recargar(): void {
     const t = this.ticket();
     if (!t) return;
-    this.servicio.detalle(t.id).subscribe({ next: n => this.ticket.set(n), error: () => undefined });
+    this.servicio
+      .detalle(t.id)
+      .subscribe({ next: (n) => this.ticket.set(n), error: () => undefined });
     this.cargarQuimicos(t.id);
     this.cargarReportesDiarios(t.id);
     this.cargarCambiosItems(t.id);
@@ -473,15 +691,16 @@ export class TicketPumpingDetailPage {
     this.cargando.set(true);
     this.error.set(null);
     this.servicio.detalle(id).subscribe({
-      next: t => {
+      next: (t) => {
         this.ticket.set(t);
         this.cargando.set(false);
         this.cargarQuimicos(t.id);
         this.cargarReportesDiarios(t.id);
         this.cargarCambiosItems(t.id);
         this.cargarDocumentos(t.id);
+        this.cargarPedido(t.pedidoId);
       },
-      error: err => {
+      error: (err) => {
         this.cargando.set(false);
         this.error.set(mensajeErrorTicket(err, 'No se pudo cargar el ticket. Intente de nuevo.'));
       },
@@ -496,7 +715,10 @@ export class TicketPumpingDetailPage {
     const ref = this.dialog.open<MotivoDialog, MotivoDialogData>({
       title: `Devolver a ${s.nombre}`,
       content: MotivoDialog,
-      data: { mensaje: `El ticket volverá a "${s.nombre}". Indique el motivo para que quien lo atiende sepa qué corregir.`, label: 'Motivo' },
+      data: {
+        mensaje: `El ticket volverá a "${s.nombre}". Indique el motivo para que quien lo atiende sepa qué corregir.`,
+        label: 'Motivo',
+      },
       footer: false,
       width: '480px',
     });
@@ -509,14 +731,16 @@ export class TicketPumpingDetailPage {
     this.ocupado.set(true);
     this.errorAccion.set(null);
     this.servicio.avanzar(t.id, s.codigo, motivo).subscribe({
-      next: n => {
+      next: (n) => {
         this.ocupado.set(false);
         this.ticket.set(n);
         this.notify.success(`Pasó a ${s.nombre}`);
       },
-      error: err => {
+      error: (err) => {
         this.ocupado.set(false);
-        this.errorAccion.set(mensajeErrorTicket(err, 'No se pudo pasar al siguiente paso. Intente de nuevo.'));
+        this.errorAccion.set(
+          mensajeErrorTicket(err, 'No se pudo pasar al siguiente paso. Intente de nuevo.'),
+        );
       },
     });
   }
@@ -527,7 +751,11 @@ export class TicketPumpingDetailPage {
     const ref = this.dialog.open<TicketAsignarDialog, TicketAsignarDialogData>({
       title: 'Asignar el equipo del servicio',
       content: TicketAsignarDialog,
-      data: { ticketId: t.id, titulo: `Pedido ${t.pedidoCodigo} · Ticket ${t.ticketNumero ?? 's/n'}`, actual: t.asignacion },
+      data: {
+        ticketId: t.id,
+        titulo: `Pedido ${t.pedidoCodigo} · Ticket ${t.ticketNumero ?? 's/n'}`,
+        actual: t.asignacion,
+      },
       footer: false,
       width: '560px',
     });
@@ -554,6 +782,8 @@ export class TicketPumpingDetailPage {
   protected readonly tono = (t: TicketPumping) => TONO_MACRO[t.paso.macro];
   protected readonly fechaHora = (iso: string) => {
     const d = new Date(iso);
-    return isNaN(d.getTime()) ? iso : `${formatoDia(iso)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    return isNaN(d.getTime())
+      ? iso
+      : `${formatoDia(iso)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   };
 }

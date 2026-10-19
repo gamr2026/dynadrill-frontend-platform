@@ -74,6 +74,11 @@ describe('NavigationService', () => {
     ]);
   });
 
+  it('Gerenciamiento de viaje sale con cualquiera de sus tres permisos', () => {
+    const service = setup('Supervisor Pumping', '/dashboard', ['flota.viajes.aprobar']);
+    expect(links(service, 'flota')).toEqual(['/dashboard/flota/viajes']);
+  });
+
   it('Superadmin ve todos los módulos, en el orden de Figma', () => {
     const service = setup('Superadmin', '/dashboard', ['identidad.usuarios.ver']);
     expect(keys(service)).toEqual([

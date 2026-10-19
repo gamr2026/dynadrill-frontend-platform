@@ -27,6 +27,17 @@ export const flotaRoutes: Routes = [
     canActivate: [permissionGuard('flota.conductores.ver')],
   },
   {
+    path: 'viajes',
+    loadComponent: () => import('./pages/viajes-page/viajes-page').then((m) => m.ViajesPage),
+    canActivate: [
+      permissionGuard(
+        'flota.viajes.solicitar',
+        'flota.viajes.aprobar',
+        'flota.viajes.autorizar_mayor',
+      ),
+    ],
+  },
+  {
     path: 'unidades/:id',
     loadComponent: () =>
       import('./pages/unidad-detail-page/unidad-detail-page').then((m) => m.UnidadDetailPage),

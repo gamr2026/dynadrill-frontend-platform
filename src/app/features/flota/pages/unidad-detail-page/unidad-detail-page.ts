@@ -212,12 +212,10 @@ export class UnidadDetailPage {
           this.flota
             .lecturas(id)
             .subscribe({ next: (l) => this.lecturas.set(l), error: () => this.lecturas.set([]) });
-        this.flota
-          .preventivos(id)
-          .subscribe({
-            next: (p) => this.preventivos.set(p),
-            error: () => this.preventivos.set([]),
-          });
+        this.flota.preventivos(id).subscribe({
+          next: (p) => this.preventivos.set(p),
+          error: () => this.preventivos.set([]),
+        });
         this.flota.alertas().subscribe({
           next: (a) => this.alertas.set(a.filter((x) => x.unidad.id === id)),
           error: () => this.alertas.set([]),

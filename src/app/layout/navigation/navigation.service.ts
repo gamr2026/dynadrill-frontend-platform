@@ -111,6 +111,7 @@ const QHSE_CHILDREN: NavEntry[] = [
     link: '/dashboard/qhse/eventos-criticos',
     children: [
       { label: 'STOP', link: '/dashboard/qhse/stop' },
+      { label: 'Stop Work Authority', link: '/dashboard/qhse/swa' },
       { label: 'Incidentes y Emergencias', link: '/dashboard/qhse/eventos' },
     ],
   },
@@ -201,6 +202,17 @@ const MODULOS_POR_PERMISO: NavModule[] = [
         icon: 'users',
         link: '/dashboard/flota/conductores',
         permission: 'flota.conductores.ver',
+      },
+      {
+        label: 'Gerenciamiento de viaje',
+        shortLabel: 'Viajes',
+        icon: 'route',
+        link: '/dashboard/flota/viajes',
+        anyPermission: [
+          'flota.viajes.solicitar',
+          'flota.viajes.aprobar',
+          'flota.viajes.autorizar_mayor',
+        ],
       },
     ],
   },
@@ -316,8 +328,12 @@ export class NavigationService {
   /** Módulos con `permission` propio, o cuyos destinos traen cada uno el suyo (se muestran los permitidos). */
   private readonly modulosPorPermiso = computed<NavModule[]>(() =>
     MODULOS_POR_PERMISO.flatMap((m) => {
-      if (m.children?.some((c) => c.permission)) {
-        const children = m.children.filter((c) => !c.permission || this.auth.can(c.permission));
+      if (m.children?.some((c) => c.permission || c.anyPermission)) {
+        const children = m.children.filter((c) =>
+          c.anyPermission
+            ? c.anyPermission.some((p) => this.auth.can(p))
+            : !c.permission || this.auth.can(c.permission),
+        );
         return children.length ? [{ ...m, children }] : [];
       }
       return m.permission && this.auth.can(m.permission) ? [m] : [];

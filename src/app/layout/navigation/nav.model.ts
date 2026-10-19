@@ -27,6 +27,8 @@ export interface NavEntry {
   children?: NavEntry[];
   /** Permiso opcional: en un módulo «por permiso» el destino solo se muestra a quien lo tenga. */
   permission?: string;
+  /** Alternativa a `permission`: basta con uno de estos permisos. */
+  anyPermission?: string[];
 }
 
 /**

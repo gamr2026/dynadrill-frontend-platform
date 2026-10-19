@@ -195,12 +195,10 @@ export class InspeccionVehiculoDialog {
       });
       return;
     }
-    this.api
-      .items()
-      .subscribe({
-        next: (i) => this.items.set(i),
-        error: () => this.notify.error('Error', 'No se pudo cargar el formato.'),
-      });
+    this.api.items().subscribe({
+      next: (i) => this.items.set(i),
+      error: () => this.notify.error('Error', 'No se pudo cargar el formato.'),
+    });
     this.api.conductores().subscribe((c) => {
       this.conductores.set(c);
       const operador = this.data.caso?.operador.id;

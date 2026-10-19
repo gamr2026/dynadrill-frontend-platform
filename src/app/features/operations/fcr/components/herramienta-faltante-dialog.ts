@@ -28,23 +28,35 @@ const REASON_OPTIONS: DynadrillSelectOption[] = Object.entries(MISSING_TOOL_REAS
   selector: 'app-herramienta-faltante-dialog',
   /** Bottom sheet en móvil (Overlay/BottomSheet en Figma) — ver styles.scss. */
   host: { class: 'app-dialog-sheet-mobile' },
-  imports: [DynadrillTextComponent, DynadrillSelectComponent, DynadrillTextareaComponent, DynadrillButtonComponent],
+  imports: [
+    DynadrillTextComponent,
+    DynadrillSelectComponent,
+    DynadrillTextareaComponent,
+    DynadrillButtonComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './herramienta-faltante-dialog.html',
   styleUrl: './herramienta-faltante-dialog.scss',
 })
 export class HerramientaFaltanteDialog {
-  private readonly modalRef = inject(NzModalRef<HerramientaFaltanteDialog, HerramientaFaltanteDialogResult | undefined>);
+  private readonly modalRef = inject(
+    NzModalRef<HerramientaFaltanteDialog, HerramientaFaltanteDialogResult | undefined>,
+  );
   protected readonly data = inject<HerramientaFaltanteDialogData>(NZ_MODAL_DATA);
 
-  protected readonly toolOptions: DynadrillSelectOption[] = this.data.tools.map(t => ({ label: t.name, value: t.id }));
+  protected readonly toolOptions: DynadrillSelectOption[] = this.data.tools.map((t) => ({
+    label: t.name,
+    value: t.id,
+  }));
   protected readonly reasonOptions = REASON_OPTIONS;
 
   protected readonly selectedToolId = signal<number | null>(null);
   protected readonly selectedReason = signal<MissingToolReason | null>(null);
   protected readonly notes = signal('');
 
-  protected readonly canRegister = computed(() => this.selectedToolId() !== null && this.selectedReason() !== null);
+  protected readonly canRegister = computed(
+    () => this.selectedToolId() !== null && this.selectedReason() !== null,
+  );
 
   protected onToolChange(value: unknown): void {
     this.selectedToolId.set(value as number);

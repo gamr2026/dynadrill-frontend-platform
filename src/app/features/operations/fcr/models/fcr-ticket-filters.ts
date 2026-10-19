@@ -1,4 +1,8 @@
-import { actividadesPendientes, ptwFirmadoOk, sinEventoCritico } from '../../shared/ticket-qhse.util';
+import {
+  actividadesPendientes,
+  ptwFirmadoOk,
+  sinEventoCritico,
+} from '../../shared/ticket-qhse.util';
 import { FCR_PHASE_LABELS, type FcrPhase, type FcrTicket, type TipoOt } from './fcr.model';
 import { FCR_TICKET_RELATION_LABELS, fcrTicketRelation, type FcrTicketRelation } from './fcr-flow';
 
@@ -73,13 +77,14 @@ const includesText = (value: string | undefined, needle: string): boolean =>
   !needle || (value ?? '').toLowerCase().includes(needle.trim().toLowerCase());
 
 /** Un criterio de lista vacío no filtra — cualquier valor pasa. */
-const inList = <T>(list: readonly T[], value: T): boolean => list.length === 0 || list.includes(value);
+const inList = <T>(list: readonly T[], value: T): boolean =>
+  list.length === 0 || list.includes(value);
 
 function matchesTiempo(t: FcrTicket, tiempos: readonly FcrTiempoEnEtapa[]): boolean {
   if (tiempos.length === 0) return true;
   const ms = t.timelineResumen?.tiempoEnFaseActualMs;
   if (ms === undefined) return false;
-  return tiempos.some(bucket => {
+  return tiempos.some((bucket) => {
     switch (bucket) {
       case 'menos_1d':
         return ms < DIA_MS;
@@ -95,7 +100,7 @@ function matchesTiempo(t: FcrTicket, tiempos: readonly FcrTiempoEnEtapa[]): bool
 
 function matchesAlertas(t: FcrTicket, alertas: readonly FcrAlertaQhse[]): boolean {
   if (alertas.length === 0) return true;
-  return alertas.some(alerta => {
+  return alertas.some((alerta) => {
     switch (alerta) {
       case 'ptw_pendiente':
         return !ptwFirmadoOk(t.qhse);
@@ -119,11 +124,16 @@ function matchesFecha(t: FcrTicket, desde: string | null, hasta: string | null):
 }
 
 /** Criterios combinados con Y; dentro de un mismo criterio de lista, con O. */
-export function applyFcrFilters(tickets: readonly FcrTicket[], f: FcrTicketFilters, roleName: string): FcrTicket[] {
+export function applyFcrFilters(
+  tickets: readonly FcrTicket[],
+  f: FcrTicketFilters,
+  roleName: string,
+): FcrTicket[] {
   const texto = f.texto.trim().toLowerCase();
   return tickets.filter(
-    t =>
-      (!texto || [t.code, t.wellName, t.clientName].some(v => (v ?? '').toLowerCase().includes(texto))) &&
+    (t) =>
+      (!texto ||
+        [t.code, t.wellName, t.clientName].some((v) => (v ?? '').toLowerCase().includes(texto))) &&
       (!f.codigo || includesText(t.code, f.codigo) || includesText(t.pedidoCode, f.codigo)) &&
       inList(f.tipos, t.tipoOt ?? 'venta') &&
       inList(f.fases, t.currentPhase) &&
@@ -148,25 +158,56 @@ export interface FcrFilterChip {
 }
 
 const joinLabels = <T extends string>(values: readonly T[], labels?: Record<T, string>): string =>
-  values.map(v => labels?.[v] ?? v).join(', ');
+  values.map((v) => labels?.[v] ?? v).join(', ');
 
 /** Chips de los criterios del panel (la barra de búsqueda se muestra aparte, en su propio campo). */
 export function fcrActiveFilterChips(f: FcrTicketFilters): FcrFilterChip[] {
   const chips: FcrFilterChip[] = [];
-  const add = (id: string, label: string, clear: (x: FcrTicketFilters) => FcrTicketFilters) => chips.push({ id, label, clear });
-  if (f.codigo) add('codigo', `Código: ${f.codigo}`, x => ({ ...x, codigo: '' }));
-  if (f.tipos.length) add('tipos', `Tipo: ${joinLabels(f.tipos, FCR_TIPO_OT_LABELS)}`, x => ({ ...x, tipos: [] }));
-  if (f.fases.length) add('fases', `Etapa: ${joinLabels(f.fases, FCR_PHASE_LABELS)}`, x => ({ ...x, fases: [] }));
-  if (f.clientes.length) add('clientes', `Cliente: ${joinLabels(f.clientes)}`, x => ({ ...x, clientes: [] }));
-  if (f.pozo) add('pozo', `Pozo: ${f.pozo}`, x => ({ ...x, pozo: '' }));
-  if (f.supervisores.length) add('supervisores', `Supervisor: ${joinLabels(f.supervisores)}`, x => ({ ...x, supervisores: [] }));
-  if (f.operadores.length) add('operadores', `Operador: ${joinLabels(f.operadores)}`, x => ({ ...x, operadores: [] }));
-  if (f.unidades.length) add('unidades', `Unidad: ${joinLabels(f.unidades)}`, x => ({ ...x, unidades: [] }));
-  if (f.desde || f.hasta) add('fecha', `Fecha: ${f.desde ?? '…'} → ${f.hasta ?? '…'}`, x => ({ ...x, desde: null, hasta: null }));
-  if (f.tiempos.length) add('tiempos', `En la etapa: ${joinLabels(f.tiempos, FCR_TIEMPO_LABELS)}`, x => ({ ...x, tiempos: [] }));
-  if (f.relaciones.length) add('relaciones', `Relación: ${joinLabels(f.relaciones, FCR_TICKET_RELATION_LABELS)}`, x => ({ ...x, relaciones: [] }));
-  if (f.alertas.length) add('alertas', `QHSE: ${joinLabels(f.alertas, FCR_ALERTA_LABELS)}`, x => ({ ...x, alertas: [] }));
-  if (f.estado !== FCR_EMPTY_FILTERS.estado) add('estado', `Estado: ${FCR_ESTADO_LABELS[f.estado]}`, x => ({ ...x, estado: FCR_EMPTY_FILTERS.estado }));
+  const add = (id: string, label: string, clear: (x: FcrTicketFilters) => FcrTicketFilters) =>
+    chips.push({ id, label, clear });
+  if (f.codigo) add('codigo', `Código: ${f.codigo}`, (x) => ({ ...x, codigo: '' }));
+  if (f.tipos.length)
+    add('tipos', `Tipo: ${joinLabels(f.tipos, FCR_TIPO_OT_LABELS)}`, (x) => ({ ...x, tipos: [] }));
+  if (f.fases.length)
+    add('fases', `Etapa: ${joinLabels(f.fases, FCR_PHASE_LABELS)}`, (x) => ({ ...x, fases: [] }));
+  if (f.clientes.length)
+    add('clientes', `Cliente: ${joinLabels(f.clientes)}`, (x) => ({ ...x, clientes: [] }));
+  if (f.pozo) add('pozo', `Pozo: ${f.pozo}`, (x) => ({ ...x, pozo: '' }));
+  if (f.supervisores.length)
+    add('supervisores', `Supervisor: ${joinLabels(f.supervisores)}`, (x) => ({
+      ...x,
+      supervisores: [],
+    }));
+  if (f.operadores.length)
+    add('operadores', `Operador: ${joinLabels(f.operadores)}`, (x) => ({ ...x, operadores: [] }));
+  if (f.unidades.length)
+    add('unidades', `Unidad: ${joinLabels(f.unidades)}`, (x) => ({ ...x, unidades: [] }));
+  if (f.desde || f.hasta)
+    add('fecha', `Fecha: ${f.desde ?? '…'} → ${f.hasta ?? '…'}`, (x) => ({
+      ...x,
+      desde: null,
+      hasta: null,
+    }));
+  if (f.tiempos.length)
+    add('tiempos', `En la etapa: ${joinLabels(f.tiempos, FCR_TIEMPO_LABELS)}`, (x) => ({
+      ...x,
+      tiempos: [],
+    }));
+  if (f.relaciones.length)
+    add('relaciones', `Relación: ${joinLabels(f.relaciones, FCR_TICKET_RELATION_LABELS)}`, (x) => ({
+      ...x,
+      relaciones: [],
+    }));
+  if (f.alertas.length)
+    add('alertas', `QHSE: ${joinLabels(f.alertas, FCR_ALERTA_LABELS)}`, (x) => ({
+      ...x,
+      alertas: [],
+    }));
+  if (f.estado !== FCR_EMPTY_FILTERS.estado)
+    add('estado', `Estado: ${FCR_ESTADO_LABELS[f.estado]}`, (x) => ({
+      ...x,
+      estado: FCR_EMPTY_FILTERS.estado,
+    }));
   return chips;
 }
 
@@ -179,13 +220,15 @@ export interface FcrFilterOptions {
 }
 
 const distinctSorted = (values: readonly (string | undefined)[]): string[] =>
-  [...new Set(values.filter((v): v is string => !!v?.trim()))].sort((a, b) => a.localeCompare(b, 'es'));
+  [...new Set(values.filter((v): v is string => !!v?.trim()))].sort((a, b) =>
+    a.localeCompare(b, 'es'),
+  );
 
 export function fcrFilterOptions(tickets: readonly FcrTicket[]): FcrFilterOptions {
   return {
-    clientes: distinctSorted(tickets.map(t => t.clientName)),
-    supervisores: distinctSorted(tickets.map(t => t.assignedSupervisor)),
-    operadores: distinctSorted(tickets.map(t => t.assignedOperator)),
-    unidades: distinctSorted(tickets.map(t => t.unitCode)),
+    clientes: distinctSorted(tickets.map((t) => t.clientName)),
+    supervisores: distinctSorted(tickets.map((t) => t.assignedSupervisor)),
+    operadores: distinctSorted(tickets.map((t) => t.assignedOperator)),
+    unidades: distinctSorted(tickets.map((t) => t.unitCode)),
   };
 }

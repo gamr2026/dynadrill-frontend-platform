@@ -1,5 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { DynadrillIconButtonComponent, DynadrillTagComponent } from '@digitec-it-projects/dynadrill-ui';
+import {
+  DynadrillIconButtonComponent,
+  DynadrillTagComponent,
+} from '@digitec-it-projects/dynadrill-ui';
 import type { FcrTicket } from '../../models/fcr.model';
 import { FCR_STAGE_COLORS } from '../../models/fcr-stage-colors';
 import { FCR_TIPO_OT_LABELS } from '../../models/fcr-ticket-filters';
@@ -20,7 +23,10 @@ import { FCR_TIPO_OT_LABELS } from '../../models/fcr-ticket-filters';
       <div class="card__body">
         <header class="card__head">
           <span class="card__code">{{ ticket().code }}</span>
-          <dynadrill-tag [label]="tipoLabel()" [variant]="ticket().tipoOt === 'servicio' ? 'brand' : 'neutral'" />
+          <dynadrill-tag
+            [label]="tipoLabel()"
+            [variant]="ticket().tipoOt === 'servicio' ? 'brand' : 'neutral'"
+          />
         </header>
         <p class="card__well">{{ ticket().wellName }}</p>
         <p class="card__client" [title]="ticket().clientName">{{ ticket().clientName }}</p>
@@ -29,7 +35,12 @@ import { FCR_TIPO_OT_LABELS } from '../../models/fcr-ticket-filters';
         <div class="card__secondary">
           <dynadrill-icon-button icon="info-circle" tooltip="Resumen" (clicked)="summary.emit()" />
           <span class="card__sep" aria-hidden="true"></span>
-          <dynadrill-icon-button icon="clock" iconSource="dynadrill" tooltip="Historial y aprobaciones" (clicked)="history.emit()" />
+          <dynadrill-icon-button
+            icon="clock"
+            iconSource="dynadrill"
+            tooltip="Historial y aprobaciones"
+            (clicked)="history.emit()"
+          />
         </div>
         <span class="card__sep" aria-hidden="true"></span>
         <dynadrill-icon-button
@@ -54,5 +65,7 @@ export class FcrKanbanCard {
   readonly open = output<void>();
 
   protected readonly accent = computed(() => FCR_STAGE_COLORS[this.ticket().currentPhase].accent);
-  protected readonly tipoLabel = computed(() => FCR_TIPO_OT_LABELS[this.ticket().tipoOt ?? 'venta']);
+  protected readonly tipoLabel = computed(
+    () => FCR_TIPO_OT_LABELS[this.ticket().tipoOt ?? 'venta'],
+  );
 }

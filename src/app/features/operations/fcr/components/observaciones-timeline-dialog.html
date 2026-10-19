@@ -12,7 +12,9 @@
       }
     </div>
   } @else {
-    <dynadrill-text variant="caption">Todavía no hay observaciones registradas en este ticket.</dynadrill-text>
+    <dynadrill-text variant="caption"
+      >Todavía no hay observaciones registradas en este ticket.</dynadrill-text
+    >
   }
 
   <dynadrill-textarea
@@ -26,5 +28,7 @@
 
 <footer class="fcr-dialog__actions">
   <dynadrill-button variant="secondary" (clicked)="cerrar()">Cerrar</dynadrill-button>
-  <dynadrill-button variant="primary" [disabled]="!canSend()" (clicked)="agregar()">Agregar observación</dynadrill-button>
+  <dynadrill-button variant="primary" [disabled]="!canSend()" (clicked)="agregar()"
+    >Agregar observación</dynadrill-button
+  >
 </footer>

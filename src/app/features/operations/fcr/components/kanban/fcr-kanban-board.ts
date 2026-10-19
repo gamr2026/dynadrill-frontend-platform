@@ -13,7 +13,10 @@ import {
   viewChild,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { DynadrillIconButtonComponent, DynadrillTagComponent } from '@digitec-it-projects/dynadrill-ui';
+import {
+  DynadrillIconButtonComponent,
+  DynadrillTagComponent,
+} from '@digitec-it-projects/dynadrill-ui';
 import { FCR_PHASE_LABELS, type FcrPhase, type FcrTicket } from '../../models/fcr.model';
 import {
   FCR_BOARD_PAGE_SIZE,
@@ -98,7 +101,7 @@ export class FcrKanbanBoard {
   private readonly allColumns = computed<Omit<BoardColumn, 'pageItems'>[]>(() => {
     const mine = this.myPhases();
     const role = this.roleName();
-    return fcrBoardPhases(role, this.soloMisEtapas()).map(phase => ({
+    return fcrBoardPhases(role, this.soloMisEtapas()).map((phase) => ({
       phase,
       label: FCR_PHASE_LABELS[phase],
       shortLabel: SHORT_LABELS[phase] ?? FCR_PHASE_LABELS[phase],
@@ -106,14 +109,17 @@ export class FcrKanbanBoard {
       mine: mine.has(phase),
       serviceOnly: FCR_SERVICE_ONLY_PHASES.has(phase),
       items: this.tickets()
-        .filter(t => t.currentPhase === phase)
-        .map(ticket => ({ ticket, turno: fcrTicketRelation(ticket, role) === 'turno' })),
+        .filter((t) => t.currentPhase === phase)
+        .map((ticket) => ({ ticket, turno: fcrTicketRelation(ticket, role) === 'turno' })),
     }));
   });
 
   protected readonly columns = computed<BoardColumn[]>(() => {
     const start = (this.page() - 1) * FCR_BOARD_PAGE_SIZE;
-    return this.allColumns().map(c => ({ ...c, pageItems: c.items.slice(start, start + FCR_BOARD_PAGE_SIZE) }));
+    return this.allColumns().map((c) => ({
+      ...c,
+      pageItems: c.items.slice(start, start + FCR_BOARD_PAGE_SIZE),
+    }));
   });
 
   /** Tickets en etapas anteriores que todavía van a pasar por una etapa del rol — para planificar. */
@@ -121,11 +127,18 @@ export class FcrKanbanBoard {
     const role = this.roleName();
     const counts = new Map<FcrPhase, number>();
     for (const t of this.tickets()) {
-      if (fcrTicketRelation(t, role) === 'proxima') counts.set(t.currentPhase, (counts.get(t.currentPhase) ?? 0) + 1);
+      if (fcrTicketRelation(t, role) === 'proxima')
+        counts.set(t.currentPhase, (counts.get(t.currentPhase) ?? 0) + 1);
     }
-    return FCR_BOARD_PHASES.filter(p => counts.has(p)).map(phase => ({ phase, label: FCR_PHASE_LABELS[phase], count: counts.get(phase) ?? 0 }));
+    return FCR_BOARD_PHASES.filter((p) => counts.has(p)).map((phase) => ({
+      phase,
+      label: FCR_PHASE_LABELS[phase],
+      count: counts.get(phase) ?? 0,
+    }));
   });
-  protected readonly upcomingTotal = computed(() => this.upcoming().reduce((sum, g) => sum + g.count, 0));
+  protected readonly upcomingTotal = computed(() =>
+    this.upcoming().reduce((sum, g) => sum + g.count, 0),
+  );
 
   // ── Móvil: una etapa a la vez ──
 
@@ -134,20 +147,27 @@ export class FcrKanbanBoard {
   protected readonly activeIndex = computed(() => {
     const cols = this.columns();
     const selected = this.selectedPhase();
-    const byUser = cols.findIndex(c => c.phase === selected);
+    const byUser = cols.findIndex((c) => c.phase === selected);
     if (byUser >= 0) return byUser;
     // Por defecto: la primera etapa del rol con trabajo; si no, la primera con tickets.
-    const mineWithWork = cols.findIndex(c => c.mine && c.items.length > 0);
+    const mineWithWork = cols.findIndex((c) => c.mine && c.items.length > 0);
     if (mineWithWork >= 0) return mineWithWork;
-    return Math.max(0, cols.findIndex(c => c.items.length > 0));
+    return Math.max(
+      0,
+      cols.findIndex((c) => c.items.length > 0),
+    );
   });
   /** `undefined` solo si no hay columnas (p. ej. "Mis etapas" con un rol sin etapas en FCR). */
-  protected readonly activeColumn = computed<BoardColumn | undefined>(() => this.columns()[this.activeIndex()]);
+  protected readonly activeColumn = computed<BoardColumn | undefined>(
+    () => this.columns()[this.activeIndex()],
+  );
 
   protected select(phase: FcrPhase): void {
     this.selectedPhase.set(phase);
     requestAnimationFrame(() =>
-      this.host.nativeElement.querySelector('.tab--active')?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }),
+      this.host.nativeElement
+        .querySelector('.tab--active')
+        ?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }),
     );
   }
 
@@ -199,6 +219,9 @@ export class FcrKanbanBoard {
   }
 
   protected scrollColumns(direction: 1 | -1): void {
-    this.boardRef()?.nativeElement.scrollBy({ left: direction * COLUMN_STEP_PX, behavior: 'smooth' });
+    this.boardRef()?.nativeElement.scrollBy({
+      left: direction * COLUMN_STEP_PX,
+      behavior: 'smooth',
+    });
   }
 }

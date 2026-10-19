@@ -11,7 +11,10 @@ export interface FcrHistoryPanelData {
   ticket: FcrTicket;
 }
 
-const STATE_TAG: Record<FcrHistoryState, { label: string; variant: 'success' | 'warning' | 'neutral' }> = {
+const STATE_TAG: Record<
+  FcrHistoryState,
+  { label: string; variant: 'success' | 'warning' | 'neutral' }
+> = {
   done: { label: 'Aprobada', variant: 'success' },
   current: { label: 'En curso', variant: 'warning' },
   pending: { label: 'Pendiente', variant: 'neutral' },
@@ -27,7 +30,11 @@ const STATE_TAG: Record<FcrHistoryState, { label: string; variant: 'success' | '
       <p class="history__sub">{{ t.wellName }} • {{ t.clientName }}</p>
       <ol class="history__list">
         @for (s of stages; track s.phase; let last = $last) {
-          <li class="history__item" [class]="'history__item--' + s.state" [style.--fcr-stage-accent]="accent(s.phase)">
+          <li
+            class="history__item"
+            [class]="'history__item--' + s.state"
+            [style.--fcr-stage-accent]="accent(s.phase)"
+          >
             <span class="history__rail" aria-hidden="true">
               <span class="history__dot"></span>
               @if (!last) {
@@ -37,22 +44,33 @@ const STATE_TAG: Record<FcrHistoryState, { label: string; variant: 'success' | '
             <div class="history__content">
               <div class="history__row">
                 <strong>{{ s.label }}</strong>
-                <dynadrill-tag [label]="stateTag[s.state].label" [variant]="stateTag[s.state].variant" />
+                <dynadrill-tag
+                  [label]="stateTag[s.state].label"
+                  [variant]="stateTag[s.state].variant"
+                />
               </div>
               @if (s.inicio) {
                 <span class="history__meta">
-                  {{ s.inicio | date: 'dd/MM/yyyy HH:mm' }} → {{ s.fin ? (s.fin | date: 'dd/MM/yyyy HH:mm') : 'en curso' }}
-                  @if (s.duracionMs !== undefined) { · {{ s.duracionMs | duracion }} }
+                  {{ s.inicio | date: 'dd/MM/yyyy HH:mm' }} →
+                  {{ s.fin ? (s.fin | date: 'dd/MM/yyyy HH:mm') : 'en curso' }}
+                  @if (s.duracionMs !== undefined) {
+                    · {{ s.duracionMs | duracion }}
+                  }
                 </span>
               }
               @if (s.actor) {
                 <span class="history__meta">Responsable: {{ s.actor }}</span>
               }
               @if (s.aprobacion; as a) {
-                <span class="history__approval">✓ Aprobado por {{ a.approvedBy }} ({{ a.approvedByRole }}) · {{ a.date | date: 'dd/MM/yyyy HH:mm' }}</span>
+                <span class="history__approval"
+                  >✓ Aprobado por {{ a.approvedBy }} ({{ a.approvedByRole }}) ·
+                  {{ a.date | date: 'dd/MM/yyyy HH:mm' }}</span
+                >
               }
               @for (o of s.observaciones; track o.id) {
-                <span class="history__meta">Observación de {{ o.author }} ({{ o.role }}): {{ o.message }}</span>
+                <span class="history__meta"
+                  >Observación de {{ o.author }} ({{ o.role }}): {{ o.message }}</span
+                >
               }
             </div>
           </li>

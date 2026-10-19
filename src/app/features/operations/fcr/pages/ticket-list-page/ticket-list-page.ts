@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -32,13 +40,19 @@ import {
 } from '../../models/fcr-ticket-filters';
 import { FcrService } from '../../services/fcr.service';
 import { FcrKanbanBoard } from '../../components/kanban/fcr-kanban-board';
-import { FcrTicketFiltersPanel, type FcrFiltersPanelData } from '../../components/kanban/fcr-ticket-filters-panel';
+import {
+  FcrTicketFiltersPanel,
+  type FcrFiltersPanelData,
+} from '../../components/kanban/fcr-ticket-filters-panel';
 import {
   FcrTicketSummaryPanel,
   type FcrSummaryPanelData,
   type FcrSummaryPanelResult,
 } from '../../components/kanban/fcr-ticket-summary-panel';
-import { FcrTicketHistoryPanel, type FcrHistoryPanelData } from '../../components/kanban/fcr-ticket-history-panel';
+import {
+  FcrTicketHistoryPanel,
+  type FcrHistoryPanelData,
+} from '../../components/kanban/fcr-ticket-history-panel';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { MACRO_ESTADO_TONE } from '../../../../../shared/index';
 import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
@@ -114,24 +128,32 @@ export class FcrTicketListPage {
   protected readonly vista = signal<Vista>('Tablero');
 
   protected readonly filters = signal<FcrTicketFilters>(FCR_EMPTY_FILTERS);
-  protected readonly filteredTickets = computed(() => applyFcrFilters(this.tickets(), this.filters(), this.roleName()));
+  protected readonly filteredTickets = computed(() =>
+    applyFcrFilters(this.tickets(), this.filters(), this.roleName()),
+  );
   protected readonly activeChips = computed(() => fcrActiveFilterChips(this.filters()));
   protected readonly filtersTooltip = computed(() => {
     const n = this.activeChips().length;
     return n === 0 ? 'Filtros' : `Filtros (${n} ${n === 1 ? 'activo' : 'activos'})`;
   });
-  protected readonly hasActiveFilters = computed(() => this.activeChips().length > 0 || !!this.filters().texto.trim());
+  protected readonly hasActiveFilters = computed(
+    () => this.activeChips().length > 0 || !!this.filters().texto.trim(),
+  );
 
   /** "Mis etapas" del tablero — columnas solo de las etapas del rol + resumen de lo que llega. */
   protected readonly soloMisEtapas = signal(false);
   private readonly myPhases = computed(() => fcrRolePhases(this.roleName()));
   protected readonly etapaOptions = computed(() => {
     const all = this.filteredTickets();
-    const mine = all.filter(t => this.myPhases().has(t.currentPhase)).length;
+    const mine = all.filter((t) => this.myPhases().has(t.currentPhase)).length;
     return [`Todas las etapas · ${all.length}`, `Mis etapas · ${mine}`];
   });
-  protected readonly etapaSelected = computed(() => [this.etapaOptions()[this.soloMisEtapas() ? 1 : 0]]);
-  protected readonly hasMyPhases = computed(() => FCR_BOARD_PHASES.some(p => this.myPhases().has(p)));
+  protected readonly etapaSelected = computed(() => [
+    this.etapaOptions()[this.soloMisEtapas() ? 1 : 0],
+  ]);
+  protected readonly hasMyPhases = computed(() =>
+    FCR_BOARD_PHASES.some((p) => this.myPhases().has(p)),
+  );
 
   /**
    * Paginación del tablero (4 tickets por columna y página, todas las columnas
@@ -139,7 +161,12 @@ export class FcrTicketListPage {
    * índice del largo de la columna más larga: esa etapa marca el total de páginas.
    */
   private readonly longestColumn = computed(() =>
-    Array.from({ length: fcrLongestColumn(this.filteredTickets(), fcrBoardPhases(this.roleName(), this.soloMisEtapas())) }),
+    Array.from({
+      length: fcrLongestColumn(
+        this.filteredTickets(),
+        fcrBoardPhases(this.roleName(), this.soloMisEtapas()),
+      ),
+    }),
   );
   protected readonly boardPagination = createPagination(this.longestColumn, FCR_BOARD_PAGE_SIZE);
 
@@ -169,7 +196,7 @@ export class FcrTicketListPage {
   ];
 
   protected readonly rows = computed(() =>
-    this.matchesFilter(this.filteredTickets(), this.activeFilter()).map(t => ({
+    this.matchesFilter(this.filteredTickets(), this.activeFilter()).map((t) => ({
       id: t.id,
       code: t.code,
       clientName: t.clientName,
@@ -182,7 +209,9 @@ export class FcrTicketListPage {
         text: PHASE_BADGES[t.currentPhase].text,
         tone: MACRO_ESTADO_TONE[t.timelineResumen?.macroEstadoActual ?? 'pendiente'],
       },
-      actions: [{ icon: 'eye', label: 'Ver ticket', run: () => this.viewDetail({ id: t.id }) }] as RecordAction[],
+      actions: [
+        { icon: 'eye', label: 'Ver ticket', run: () => this.viewDetail({ id: t.id }) },
+      ] as RecordAction[],
     })),
   );
 
@@ -196,16 +225,18 @@ export class FcrTicketListPage {
       untracked(() => this.boardPagination.reset());
     });
     this.reload();
-    this.router.events.pipe(
-      filter(e => e instanceof NavigationEnd),
-      takeUntilDestroyed(),
-    ).subscribe(() => this.reload());
+    this.router.events
+      .pipe(
+        filter((e) => e instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => this.reload());
   }
 
   private reload(): void {
     this.loading.set(true);
     this.fcrService.listTickets().subscribe({
-      next: tickets => {
+      next: (tickets) => {
         this.tickets.set(tickets);
         this.loading.set(false);
       },
@@ -219,13 +250,19 @@ export class FcrTicketListPage {
         return tickets;
       case 'Pendiente de mí':
         // Misma regla que el banner del detalle (sub-pasos de Revisión inicial y Preparación incluidos).
-        return tickets.filter(t => t.status !== 'cerrado' && fcrResponsibleRole(t) === this.roleName());
+        return tickets.filter(
+          (t) => t.status !== 'cerrado' && fcrResponsibleRole(t) === this.roleName(),
+        );
       case 'En Bodega':
-        return tickets.filter(t => t.currentPhase === 'preparacion_herramientas' && t.tools.some(tool => tool.status === 'en_preparacion'));
+        return tickets.filter(
+          (t) =>
+            t.currentPhase === 'preparacion_herramientas' &&
+            t.tools.some((tool) => tool.status === 'en_preparacion'),
+        );
       case 'En campo':
-        return tickets.filter(t => t.currentPhase === 'ejecucion_operativa');
+        return tickets.filter((t) => t.currentPhase === 'ejecucion_operativa');
       case 'Cerrados':
-        return tickets.filter(t => t.status === 'cerrado');
+        return tickets.filter((t) => t.status === 'cerrado');
     }
   }
 
@@ -239,7 +276,7 @@ export class FcrTicketListPage {
   }
 
   protected setTexto(texto: string): void {
-    this.filters.update(f => ({ ...f, texto }));
+    this.filters.update((f) => ({ ...f, texto }));
   }
 
   protected clearChip(chip: FcrFilterChip): void {

@@ -24,7 +24,9 @@
     background: var(--surface, #fff);
     border-top: 1px solid var(--border, #e5e4ea);
 
-    ::ng-deep .ant-btn { width: 100%; }
+    ::ng-deep .ant-btn {
+      width: 100%;
+    }
   }
 }
 

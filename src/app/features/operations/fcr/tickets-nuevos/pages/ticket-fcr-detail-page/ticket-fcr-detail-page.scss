@@ -1,0 +1,126 @@
+:host {
+  display: block;
+}
+
+.tpd {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  &__acciones-cabecera,
+  &__acciones,
+  &__paso,
+  &__tipos {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+  }
+
+  &__tarjeta {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #ecebf1);
+    border-radius: 14px;
+
+    h2 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text, #2c2b35);
+    }
+  }
+
+  &__meta {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__datos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px 24px;
+    margin: 0;
+
+    dt {
+      font-size: 12px;
+      color: var(--text-muted, #5c5870);
+    }
+
+    dd {
+      margin: 2px 0 0;
+      font-size: 14px;
+    }
+  }
+
+  &__historial {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding-left: 18px;
+    font-size: 13px;
+
+    li {
+      display: flex;
+      flex-direction: column;
+    }
+  }
+}
+
+.tpd__requisitos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tpd__requisito {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f2f7;
+}
+
+.tpd__requisito-info,
+.tpd__requisito-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.tpd__tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+
+  th,
+  td {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid #ecebf1;
+  }
+
+  th {
+    font-weight: 600;
+    color: #5c5870;
+  }
+}

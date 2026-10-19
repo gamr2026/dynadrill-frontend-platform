@@ -2,7 +2,12 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '@env';
-import type { ClaseOperativa, CodigoClienteFcr, GuardarConfiguracionCodigoInput, KitItem } from '../models/fcr-configuracion-codigos';
+import type {
+  ClaseOperativa,
+  CodigoClienteFcr,
+  GuardarConfiguracionCodigoInput,
+  KitItem,
+} from '../models/fcr-configuracion-codigos';
 
 /** Respuesta del `PUT`: la fila guardada (sin los datos de la Lista de Precios). */
 export interface ConfiguracionCodigoGuardada {
@@ -21,7 +26,9 @@ export class FcrConfiguracionCodigosService {
 
   /** Códigos de las listas activas del cliente (sin precios) con su configuración, más las huérfanas. */
   codigosDeCliente(clienteId: number): Observable<CodigoClienteFcr[]> {
-    return this.http.get<CodigoClienteFcr[]>(this.base, { params: new HttpParams().set('clienteId', clienteId) });
+    return this.http.get<CodigoClienteFcr[]>(this.base, {
+      params: new HttpParams().set('clienteId', clienteId),
+    });
   }
 
   guardar(input: GuardarConfiguracionCodigoInput): Observable<ConfiguracionCodigoGuardada> {

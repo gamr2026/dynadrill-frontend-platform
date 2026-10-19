@@ -7,7 +7,12 @@ import {
   type OperativoToolUsageEntry,
   type ToolDailyStatus,
 } from '../../../../shared/models/operativo-docs.model';
-import type { TipoCompletacion, TipoOperador, TipoPicker, TipoTrabajo } from './fcr-catalogos.model';
+import type {
+  TipoCompletacion,
+  TipoOperador,
+  TipoPicker,
+  TipoTrabajo,
+} from './fcr-catalogos.model';
 
 /** Decide qué entrada de FcrPhase usa este ticket — lo elige Ventas al crear el Pedido, no editable desde FCR. */
 export type TipoOt = 'venta' | 'servicio';
@@ -53,7 +58,10 @@ export const FCR_PHASE_LABELS: Record<FcrPhase, string> = {
 export const FCR_PHASE_ROLE: Record<FcrPhase, { roleName: string; roleCode: string }> = {
   tipo_operador: { roleName: 'Supervisor', roleCode: 'supervisor' },
   inspeccion: { roleName: 'Operador FCR', roleCode: 'operador_fcr' },
-  aprobacion_supervisor_operaciones: { roleName: 'Supervisor Operaciones FCR', roleCode: 'supervisor_operaciones_fcr' },
+  aprobacion_supervisor_operaciones: {
+    roleName: 'Supervisor Operaciones FCR',
+    roleCode: 'supervisor_operaciones_fcr',
+  },
   revision_inicial: { roleName: 'Supervisor', roleCode: 'supervisor' },
   preparacion_herramientas: { roleName: 'Supervisor', roleCode: 'supervisor' },
   asignacion: { roleName: 'Supervisor', roleCode: 'supervisor' },
@@ -67,7 +75,8 @@ export const FCR_PHASE_ROLE: Record<FcrPhase, { roleName: string; roleCode: stri
 
 // ── Herramientas (FCR-002 / FCR-007) ──
 
-export type FcrToolStatus = 'seleccionada' | 'en_preparacion' | 'recibida' | 'devuelta' | 'faltante';
+export type FcrToolStatus =
+  'seleccionada' | 'en_preparacion' | 'recibida' | 'devuelta' | 'faltante';
 
 export const FCR_TOOL_STATUS_LABELS: Record<FcrToolStatus, string> = {
   seleccionada: 'Seleccionada',
@@ -150,7 +159,10 @@ export const FCR_TOOL_ESTADO_LABELS: Record<FcrToolEstado, string> = {
  * importarlo acá para no acoplar el modelo a la UI (estructuralmente
  * compatible igual).
  */
-export const FCR_TOOL_ESTADO_VARIANT: Record<FcrToolEstado, 'brand' | 'neutral' | 'success' | 'warning' | 'error' | 'info'> = {
+export const FCR_TOOL_ESTADO_VARIANT: Record<
+  FcrToolEstado,
+  'brand' | 'neutral' | 'success' | 'warning' | 'error' | 'info'
+> = {
   pendiente_solicitud: 'neutral',
   pendiente_bodega: 'info',
   novedad_bodega: 'error',
@@ -251,7 +263,8 @@ export interface MovilizacionPedido {
 }
 
 /** Por qué la precarga no pudo traer (todas) las herramientas de una línea — espejo de `PrecargaFcrService` del backend. */
-export type MotivoAvisoPrecarga = 'pedido_sin_cliente' | 'sin_configurar' | 'kit_vacio' | 'articulo_inactivo' | 'cantidad_excedida';
+export type MotivoAvisoPrecarga =
+  'pedido_sin_cliente' | 'sin_configurar' | 'kit_vacio' | 'articulo_inactivo' | 'cantidad_excedida';
 
 export interface AvisoPrecarga {
   motivo: MotivoAvisoPrecarga;

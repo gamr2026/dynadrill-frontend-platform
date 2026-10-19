@@ -1,6 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
-import { DynadrillBannerComponent, DynadrillButtonComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
+import {
+  DynadrillBannerComponent,
+  DynadrillButtonComponent,
+  DynadrillTextComponent,
+} from '@digitec-it-projects/dynadrill-ui';
 
 interface SummaryItem {
   label: string;
@@ -29,7 +33,9 @@ export interface CierreTicketDialogResult {
   styleUrl: './cierre-ticket-dialog.scss',
 })
 export class CierreTicketDialog {
-  private readonly modalRef = inject(NzModalRef<CierreTicketDialog, CierreTicketDialogResult | undefined>);
+  private readonly modalRef = inject(
+    NzModalRef<CierreTicketDialog, CierreTicketDialogResult | undefined>,
+  );
   protected readonly data = inject<CierreTicketDialogData>(NZ_MODAL_DATA);
 
   protected readonly summaryItems: SummaryItem[] = [

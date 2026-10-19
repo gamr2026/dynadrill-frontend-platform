@@ -1,0 +1,80 @@
+:host {
+  display: block;
+}
+
+.tf {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__tarjeta {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #ecebf1);
+    border-radius: 14px;
+  }
+
+  &__filtros {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+
+    dynadrill-input {
+      flex: 1 1 260px;
+    }
+
+    dynadrill-select {
+      flex: 0 1 260px;
+    }
+  }
+
+  &__tabla {
+    overflow-x: auto;
+
+    table {
+      width: 100%;
+      min-width: 860px;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      padding: 10px 8px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--border, #ecebf1);
+    }
+
+    th {
+      font-weight: 600;
+      color: var(--text-muted, #5c5870);
+    }
+
+    .codigo {
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .secundario {
+      display: block;
+      font-size: 12px;
+      color: var(--text-muted, #5c5870);
+    }
+
+    .acciones {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .vacio {
+      padding: 28px 12px;
+      text-align: center;
+      color: var(--text-muted, #5c5870);
+    }
+  }
+}

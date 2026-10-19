@@ -11,7 +11,10 @@ export type FcrToolInspectionParteResultado = 'ok' | 'defectuoso' | '';
 /** 'dynadrill' | 'proveedor_externo' — quién inspeccionó/reparó la herramienta. */
 export type FcrToolInspectionResponsable = 'dynadrill' | 'proveedor_externo' | '';
 
-export const FCR_TOOL_INSPECTION_RESPONSABLE_LABELS: Record<Exclude<FcrToolInspectionResponsable, ''>, string> = {
+export const FCR_TOOL_INSPECTION_RESPONSABLE_LABELS: Record<
+  Exclude<FcrToolInspectionResponsable, ''>,
+  string
+> = {
   dynadrill: 'Dynadrill',
   proveedor_externo: 'Proveedor externo',
 };
@@ -19,7 +22,11 @@ export const FCR_TOOL_INSPECTION_RESPONSABLE_LABELS: Record<Exclude<FcrToolInspe
 /** Firma NO es un canvas dibujado — checkbox de confirmación + usuario logueado + fecha (mismo patrón que `FirmaActaDialog`). */
 export type FcrToolInspectionFirmaRol = 'reparadoPor' | 'revisadoPor' | 'liberadoQhse';
 
-export const FCR_TOOL_INSPECTION_FIRMA_ROLES: FcrToolInspectionFirmaRol[] = ['reparadoPor', 'revisadoPor', 'liberadoQhse'];
+export const FCR_TOOL_INSPECTION_FIRMA_ROLES: FcrToolInspectionFirmaRol[] = [
+  'reparadoPor',
+  'revisadoPor',
+  'liberadoQhse',
+];
 
 export const FCR_TOOL_INSPECTION_FIRMA_LABELS: Record<FcrToolInspectionFirmaRol, string> = {
   reparadoPor: 'Reparado por',
@@ -38,14 +45,19 @@ export const FCR_TOOL_INSPECTION_FIRMA_LABELS: Record<FcrToolInspectionFirmaRol,
  * genérico — NO el `Supervisor Operaciones FCR` que aprueba el checklist
  * completo en la fase siguiente.
  */
-export const FCR_TOOL_INSPECTION_FIRMA_ROLES_REQUERIDOS: Record<FcrToolInspectionFirmaRol, readonly string[]> = {
+export const FCR_TOOL_INSPECTION_FIRMA_ROLES_REQUERIDOS: Record<
+  FcrToolInspectionFirmaRol,
+  readonly string[]
+> = {
   reparadoPor: ['Operador FCR'],
   revisadoPor: ['Supervisor'],
   liberadoQhse: ['Técnico HSE', 'Coordinador HSE', 'Gerente HSE'],
 };
 
 /** Firma que debe estar hecha ANTES de poder firmar esta — `reparadoPor` no tiene predecesora. Espejo del backend. */
-export const FCR_TOOL_INSPECTION_FIRMA_ROL_ANTERIOR: Partial<Record<FcrToolInspectionFirmaRol, FcrToolInspectionFirmaRol>> = {
+export const FCR_TOOL_INSPECTION_FIRMA_ROL_ANTERIOR: Partial<
+  Record<FcrToolInspectionFirmaRol, FcrToolInspectionFirmaRol>
+> = {
   revisadoPor: 'reparadoPor',
   liberadoQhse: 'revisadoPor',
 };

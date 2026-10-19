@@ -17,7 +17,8 @@ export const CLASE_OPERATIVA_LABELS: Record<ClaseOperativa, string> = {
 
 export const CLASE_OPERATIVA_DESCRIPCIONES: Record<ClaseOperativa, string> = {
   herramienta: 'Se pide a Bodega: el ticket nace con las herramientas de su kit.',
-  servicio: 'No genera nada en el ticket (personal, renta, Lump Sum…). La movilización se marca en el Pedido.',
+  servicio:
+    'No genera nada en el ticket (personal, renta, Lump Sum…). La movilización se marca en el Pedido.',
 };
 
 export interface KitItem {
@@ -48,9 +49,17 @@ export interface GuardarConfiguracionCodigoInput {
 
 export type FiltroCodigos = 'todos' | 'sin_configurar' | ClaseOperativa | 'huerfanos';
 
-export function filtrarCodigos(filas: CodigoClienteFcr[], filtro: FiltroCodigos, busqueda: string): CodigoClienteFcr[] {
+export function filtrarCodigos(
+  filas: CodigoClienteFcr[],
+  filtro: FiltroCodigos,
+  busqueda: string,
+): CodigoClienteFcr[] {
   const q = busqueda.trim().toLowerCase();
-  return filas.filter(f => cumpleFiltro(f, filtro) && (!q || f.codigo.toLowerCase().includes(q) || f.descripcion.toLowerCase().includes(q)));
+  return filas.filter(
+    (f) =>
+      cumpleFiltro(f, filtro) &&
+      (!q || f.codigo.toLowerCase().includes(q) || f.descripcion.toLowerCase().includes(q)),
+  );
 }
 
 function cumpleFiltro(fila: CodigoClienteFcr, filtro: FiltroCodigos): boolean {
@@ -68,7 +77,12 @@ function cumpleFiltro(fila: CodigoClienteFcr, filtro: FiltroCodigos): boolean {
 
 /** "Casing scraper 7" ×1 · Cepillo ×2" — `nombres` es el catálogo activo de HERRAMIENTAS por id. */
 export function resumenKit(kit: KitItem[], nombres: ReadonlyMap<number, string>): string {
-  return kit.map(k => `${nombres.get(k.articuloId) ?? `Artículo #${k.articuloId} (inactivo)`} ×${k.cantidad}`).join(' · ');
+  return kit
+    .map(
+      (k) =>
+        `${nombres.get(k.articuloId) ?? `Artículo #${k.articuloId} (inactivo)`} ×${k.cantidad}`,
+    )
+    .join(' · ');
 }
 
 /** Fila del editor de kit mientras se edita: la herramienta puede no estar elegida todavía. */
@@ -79,9 +93,11 @@ export interface KitItemBorrador {
 
 /** Mismas reglas que valida el backend, para avisar antes de guardar. `null` = válido. */
 export function errorDelKit(kit: KitItemBorrador[]): string | null {
-  if (kit.some(k => k.articuloId === null)) return 'Elija la herramienta de cada fila.';
-  if (kit.some(k => !Number.isInteger(k.cantidad) || k.cantidad < 1)) return 'La cantidad debe ser un número entero de 1 o más.';
-  const ids = kit.map(k => k.articuloId);
-  if (new Set(ids).size !== ids.length) return 'Una herramienta aparece dos veces: use una sola fila con la cantidad total.';
+  if (kit.some((k) => k.articuloId === null)) return 'Elija la herramienta de cada fila.';
+  if (kit.some((k) => !Number.isInteger(k.cantidad) || k.cantidad < 1))
+    return 'La cantidad debe ser un número entero de 1 o más.';
+  const ids = kit.map((k) => k.articuloId);
+  if (new Set(ids).size !== ids.length)
+    return 'Una herramienta aparece dos veces: use una sola fila con la cantidad total.';
   return null;
 }

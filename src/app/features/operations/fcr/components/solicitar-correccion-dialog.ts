@@ -21,13 +21,20 @@ export interface SolicitarCorreccionDialogResult {
   selector: 'app-solicitar-correccion-dialog',
   /** Bottom sheet en móvil (Overlay/BottomSheet en Figma) — ver styles.scss. */
   host: { class: 'app-dialog-sheet-mobile' },
-  imports: [DynadrillTextComponent, DynadrillTagComponent, DynadrillTextareaComponent, DynadrillButtonComponent],
+  imports: [
+    DynadrillTextComponent,
+    DynadrillTagComponent,
+    DynadrillTextareaComponent,
+    DynadrillButtonComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './solicitar-correccion-dialog.html',
   styleUrl: './solicitar-correccion-dialog.scss',
 })
 export class SolicitarCorreccionDialog {
-  private readonly modalRef = inject(NzModalRef<SolicitarCorreccionDialog, SolicitarCorreccionDialogResult | undefined>);
+  private readonly modalRef = inject(
+    NzModalRef<SolicitarCorreccionDialog, SolicitarCorreccionDialogResult | undefined>,
+  );
   protected readonly data = inject<SolicitarCorreccionDialogData>(NZ_MODAL_DATA);
 
   protected readonly versionLabel = `Versión V${this.data.proposalVersion}`;

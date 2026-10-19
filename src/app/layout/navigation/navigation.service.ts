@@ -9,24 +9,70 @@ import { NavEntry, NavModule, allLinks } from './nav.model';
 
 const PUMPING: NavEntry = { label: 'Pumping', icon: 'gauge', link: '/modulos/operativo/pumping' };
 /** Pedidos que Ventas abre en la línea Pumping: cada uno llega como ticket al rol de su paso (contenedor operaciones). */
-const PEDIDOS_PUMPING: NavEntry = { label: 'Pedidos de Pumping', shortLabel: 'Pedidos', icon: 'list', link: '/modulos/operativo/pumping/pedidos' };
-const APROBACIONES: NavEntry = { label: 'Aprobaciones', icon: 'check', link: '/modulos/operativo/pumping/aprobaciones' };
+const PEDIDOS_PUMPING: NavEntry = {
+  label: 'Pedidos de Pumping',
+  shortLabel: 'Pedidos',
+  icon: 'list',
+  link: '/modulos/operativo/pumping/pedidos',
+};
+const APROBACIONES: NavEntry = {
+  label: 'Aprobaciones',
+  icon: 'check',
+  link: '/modulos/operativo/pumping/aprobaciones',
+};
 const FCR: NavEntry = { label: 'FCR', icon: 'tool', link: '/modulos/operativo/fcr' };
+/** Pedidos que Ventas abre en la línea FCR: cada uno llega como ticket al rol de su paso (contenedor operaciones). */
+const PEDIDOS_FCR: NavEntry = {
+  label: 'Pedidos de FCR',
+  shortLabel: 'Pedidos',
+  icon: 'list',
+  link: '/modulos/operativo/fcr/pedidos',
+};
 /** Kits y clase de cada código por cliente para la precarga de herramientas — ver FCR_CONFIGURACION_CODIGOS_ROLES. */
-const FCR_CODIGOS: NavEntry = { label: 'Códigos por cliente', shortLabel: 'Códigos', icon: 'clipboard', link: '/modulos/operativo/fcr/configuracion-codigos' };
+const FCR_CODIGOS: NavEntry = {
+  label: 'Códigos por cliente',
+  shortLabel: 'Códigos',
+  icon: 'clipboard',
+  link: '/modulos/operativo/fcr/configuracion-codigos',
+};
 
-const BANDEJA_MANTENIMIENTO: NavEntry = { label: 'Bandeja', icon: 'list', link: '/dashboard/mantenimiento' };
-const INDICADORES_MANTENIMIENTO: NavEntry = { label: 'Indicadores', icon: 'chart', link: '/dashboard/mantenimiento/kpis' };
-const MIS_TAREAS: NavEntry = { label: 'Mis tareas', icon: 'list', link: '/dashboard/mantenimiento/mis-tareas' };
-const MANTENIMIENTO_OPERATIVO: NavEntry = { label: 'Mantenimiento', icon: 'tool', link: '/dashboard/mantenimiento/operativo' };
+const BANDEJA_MANTENIMIENTO: NavEntry = {
+  label: 'Bandeja',
+  icon: 'list',
+  link: '/dashboard/mantenimiento',
+};
+const INDICADORES_MANTENIMIENTO: NavEntry = {
+  label: 'Indicadores',
+  icon: 'chart',
+  link: '/dashboard/mantenimiento/kpis',
+};
+const MIS_TAREAS: NavEntry = {
+  label: 'Mis tareas',
+  icon: 'list',
+  link: '/dashboard/mantenimiento/mis-tareas',
+};
+const MANTENIMIENTO_OPERATIVO: NavEntry = {
+  label: 'Mantenimiento',
+  icon: 'tool',
+  link: '/dashboard/mantenimiento/operativo',
+};
 /** Solo Jefe de Base/Superadmin/Supervisor Pumping autorizan (ver ModuleRoles.gerenciamientoViajeApprove en el backend) — Jefe de Mantenimiento no entra. */
-const GERENCIAMIENTO_VIAJE: NavEntry = { label: 'Gerenciamiento de Viaje', icon: 'route', link: '/dashboard/mantenimiento/gerenciamiento-viaje' };
+const GERENCIAMIENTO_VIAJE: NavEntry = {
+  label: 'Gerenciamiento de Viaje',
+  icon: 'route',
+  link: '/dashboard/mantenimiento/gerenciamiento-viaje',
+};
 /** Portal del Conductor — solo su propio Gerenciamiento de Viaje. */
 
 const INVENTARIO_CHILDREN: NavEntry[] = [
   { label: 'Artículos', icon: 'box', link: '/dashboard/inventario/articulos' },
   { label: 'Vehículos', icon: 'truck', link: '/dashboard/inventario/vehiculos' },
-  { label: 'Despachos a Facturación', shortLabel: 'Despachos', icon: 'send', link: '/dashboard/inventario/despachos' },
+  {
+    label: 'Despachos a Facturación',
+    shortLabel: 'Despachos',
+    icon: 'send',
+    link: '/dashboard/inventario/despachos',
+  },
 ];
 
 /**
@@ -72,6 +118,7 @@ const QHSE_CHILDREN: NavEntry[] = [
     link: '/dashboard/qhse/eventos-criticos',
     children: [
       { label: 'STOP', link: '/dashboard/qhse/stop' },
+      { label: 'Stop Work Authority', link: '/dashboard/qhse/swa' },
       { label: 'Incidentes y Emergencias', link: '/dashboard/qhse/eventos' },
     ],
   },
@@ -89,17 +136,46 @@ const FACTURACION_CHILDREN: NavEntry[] = [
  * gestionarlos (Ventas + admins, ver ModuleRoles.personasWrite en el
  * backend). A Facturación no se le muestra: el roleGuard lo rebotaría igual.
  */
-const CATALOGOS: NavEntry = { label: 'Catálogos', icon: 'users', link: '/dashboard/facturacion/catalogos' };
+const CATALOGOS: NavEntry = {
+  label: 'Catálogos',
+  icon: 'users',
+  link: '/dashboard/facturacion/catalogos',
+};
 
 // ── Módulos ──
 
 const INICIO: NavModule = { key: 'inicio', label: 'Inicio', icon: 'home', link: '/dashboard' };
 
-const operaciones = (...children: NavEntry[]): NavModule => ({ key: 'operaciones', label: 'Operaciones', icon: 'modules', children });
-const mantenimiento = (...children: NavEntry[]): NavModule => ({ key: 'mantenimiento', label: 'Mantenimiento', icon: 'tool', children });
-const qhse = (): NavModule => ({ key: 'qhse', label: 'QHSE', icon: 'shield', children: QHSE_CHILDREN });
-const inventario = (): NavModule => ({ key: 'inventario', label: 'Inventario', icon: 'box', children: INVENTARIO_CHILDREN });
-const facturacion = (...children: NavEntry[]): NavModule => ({ key: 'facturacion', label: 'Facturación', icon: 'file-text', children });
+const operaciones = (...children: NavEntry[]): NavModule => ({
+  key: 'operaciones',
+  label: 'Operaciones',
+  icon: 'modules',
+  children,
+});
+const mantenimiento = (...children: NavEntry[]): NavModule => ({
+  key: 'mantenimiento',
+  label: 'Mantenimiento',
+  icon: 'tool',
+  children,
+});
+const qhse = (): NavModule => ({
+  key: 'qhse',
+  label: 'QHSE',
+  icon: 'shield',
+  children: QHSE_CHILDREN,
+});
+const inventario = (): NavModule => ({
+  key: 'inventario',
+  label: 'Inventario',
+  icon: 'box',
+  children: INVENTARIO_CHILDREN,
+});
+const facturacion = (...children: NavEntry[]): NavModule => ({
+  key: 'facturacion',
+  label: 'Facturación',
+  icon: 'file-text',
+  children,
+});
 const USUARIOS: NavModule = {
   key: 'usuarios',
   label: 'Usuarios',
@@ -110,8 +186,51 @@ const USUARIOS: NavModule = {
 
 /** Módulos que se muestran por permiso (no por nombre de rol). */
 const MODULOS_POR_PERMISO: NavModule[] = [
+  // Flota: cada destino se muestra por su propio permiso; el módulo aparece si hay al menos uno.
+  {
+    key: 'flota',
+    label: 'Flota',
+    icon: 'truck',
+    children: [
+      {
+        label: 'Unidades',
+        icon: 'truck',
+        link: '/dashboard/flota/unidades',
+        permission: 'flota.unidades.ver',
+      },
+      {
+        label: 'Inspecciones',
+        icon: 'clipboard',
+        link: '/dashboard/flota/inspecciones',
+        permission: 'flota.inspecciones.ver',
+      },
+      {
+        label: 'Conductores',
+        icon: 'users',
+        link: '/dashboard/flota/conductores',
+        permission: 'flota.conductores.ver',
+      },
+      {
+        label: 'Gerenciamiento de viaje',
+        shortLabel: 'Viajes',
+        icon: 'route',
+        link: '/dashboard/flota/viajes',
+        anyPermission: [
+          'flota.viajes.solicitar',
+          'flota.viajes.aprobar',
+          'flota.viajes.autorizar_mayor',
+        ],
+      },
+    ],
+  },
   USUARIOS,
-  { key: 'roles-permisos', label: 'Roles y permisos', icon: 'shield', link: '/roles-permisos', permission: 'identidad.roles.ver' },
+  {
+    key: 'roles-permisos',
+    label: 'Roles y permisos',
+    icon: 'shield',
+    link: '/roles-permisos',
+    permission: 'identidad.roles.ver',
+  },
 ];
 
 /**
@@ -126,7 +245,7 @@ export class NavigationService {
   private readonly url = toSignal(
     this.router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd),
-      map(e => e.urlAfterRedirects),
+      map((e) => e.urlAfterRedirects),
     ),
     { initialValue: this.router.url },
   );
@@ -144,12 +263,16 @@ export class NavigationService {
         return [INICIO, mantenimiento(MIS_TAREAS)];
       // operador@dynadrill.com — solo Pumping (nunca FCR, eso es de "Operador FCR") + su Mantenimiento operativo.
       case 'Operador':
-        return [INICIO, operaciones(PUMPING, PEDIDOS_PUMPING), mantenimiento(MANTENIMIENTO_OPERATIVO)];
+        return [
+          INICIO,
+          operaciones(PUMPING, PEDIDOS_PUMPING),
+          mantenimiento(MANTENIMIENTO_OPERATIVO),
+        ];
       // Solo FCR: Pumping y Aprobaciones son del rol "Supervisor Pumping".
       case 'Supervisor':
       case 'Operador FCR':
       case 'Supervisor Operaciones FCR':
-        return [INICIO, operaciones(FCR)];
+        return [INICIO, operaciones(FCR, PEDIDOS_FCR)];
       // Cuenta exclusiva de FCR (ventas.fcr@dynadrill.com) — sin Facturación, a pedido del cliente no deben cruzarse.
       // Arma los kits de herramientas por cliente (Códigos por cliente).
       case 'Ingeniería de Ventas FCR':
@@ -160,18 +283,24 @@ export class NavigationService {
       case 'Jefe de Mantenimiento':
         return [INICIO, mantenimiento(BANDEJA_MANTENIMIENTO, INDICADORES_MANTENIMIENTO)];
       case 'Bodeguero':
-        return [INICIO, operaciones(FCR), inventario()];
+        return [INICIO, operaciones(FCR, PEDIDOS_FCR), inventario()];
       // Cuenta de Facturación (ventas@dynadrill.com) — sin FCR.
       case 'Ingeniería de Ventas':
-        return [INICIO, facturacion({ label: 'Pedidos', icon: 'list', link: '/dashboard/facturacion/pedidos' }, CATALOGOS)];
+        return [
+          INICIO,
+          facturacion(
+            { label: 'Pedidos', icon: 'list', link: '/dashboard/facturacion/pedidos' },
+            CATALOGOS,
+          ),
+        ];
       // QHSE firma "Liberado por QHSE" en el checklist de inspección por herramienta de FCR — sin FCR no encontraría el ticket.
       case 'Técnico HSE':
       case 'Coordinador HSE':
-        return [INICIO, operaciones(FCR), qhse()];
+        return [INICIO, operaciones(FCR, PEDIDOS_FCR), qhse()];
       // Gerente HSE: lo mismo que Técnico/Coordinador HSE, más la bandeja de Gerenciamiento de Viaje
       // (autoriza los de riesgo MEDIO/ALTO junto con el Jefe de Base).
       case 'Gerente HSE':
-        return [INICIO, operaciones(FCR), qhse(), mantenimiento(GERENCIAMIENTO_VIAJE)];
+        return [INICIO, operaciones(FCR, PEDIDOS_FCR), qhse(), mantenimiento(GERENCIAMIENTO_VIAJE)];
       case 'Facturación':
         return [INICIO, facturacion(...FACTURACION_CHILDREN)];
       // A nivel de backend "Jefe de Base" sigue con acceso total (ver ADMIN_ROLE_CODES) — a pedido del cliente, en la UI solo ve Pumping.
@@ -181,7 +310,7 @@ export class NavigationService {
       case 'Superadmin':
         return [
           INICIO,
-          operaciones(PUMPING, PEDIDOS_PUMPING, FCR, FCR_CODIGOS),
+          operaciones(PUMPING, PEDIDOS_PUMPING, FCR, PEDIDOS_FCR, FCR_CODIGOS),
           mantenimiento(BANDEJA_MANTENIMIENTO, INDICADORES_MANTENIMIENTO, GERENCIAMIENTO_VIAJE),
           qhse(),
           inventario(),
@@ -198,7 +327,25 @@ export class NavigationService {
    * Módulos del rol más los que se habilitan por permiso (`permission`), sin importar el rol: se agregan al final
    * solo si la sesión tiene ese permiso. Es la base para ir migrando la navegación de roles a permisos.
    */
-  readonly modules = computed<NavModule[]>(() => [...this.modulosPorRol(), ...MODULOS_POR_PERMISO.filter(m => m.permission && this.auth.can(m.permission))]);
+  readonly modules = computed<NavModule[]>(() => [
+    ...this.modulosPorRol(),
+    ...this.modulosPorPermiso(),
+  ]);
+
+  /** Módulos con `permission` propio, o cuyos destinos traen cada uno el suyo (se muestran los permitidos). */
+  private readonly modulosPorPermiso = computed<NavModule[]>(() =>
+    MODULOS_POR_PERMISO.flatMap((m) => {
+      if (m.children?.some((c) => c.permission || c.anyPermission)) {
+        const children = m.children.filter((c) =>
+          c.anyPermission
+            ? c.anyPermission.some((p) => this.auth.can(p))
+            : !c.permission || this.auth.can(c.permission),
+        );
+        return children.length ? [{ ...m, children }] : [];
+      }
+      return m.permission && this.auth.can(m.permission) ? [m] : [];
+    }),
+  );
 
   /** Módulo al que pertenece la URL actual — el link más largo que la contiene gana (Inicio solo con coincidencia exacta). */
   readonly activeModule = computed<NavModule>(() => {
@@ -206,7 +353,8 @@ export class NavigationService {
     let best: { module: NavModule; length: number } | null = null;
     for (const module of this.modules()) {
       for (const link of allLinks(module)) {
-        const matches = module === INICIO ? path === link : path === link || path.startsWith(link + '/');
+        const matches =
+          module === INICIO ? path === link : path === link || path.startsWith(link + '/');
         if (matches && (!best || link.length > best.length)) best = { module, length: link.length };
       }
     }
@@ -218,7 +366,7 @@ export class NavigationService {
     const path = this.url().split(/[?#]/)[0];
     const links = allLinks(entry);
     const longestInModule = allLinks(this.activeModule())
-      .filter(link => path === link || path.startsWith(link + '/'))
+      .filter((link) => path === link || path.startsWith(link + '/'))
       .sort((a, b) => b.length - a.length)[0];
     return longestInModule !== undefined && links.includes(longestInModule);
   }

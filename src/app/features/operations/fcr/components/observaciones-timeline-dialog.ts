@@ -1,6 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
-import { DynadrillButtonComponent, DynadrillTextComponent, DynadrillTextareaComponent } from '@digitec-it-projects/dynadrill-ui';
+import {
+  DynadrillButtonComponent,
+  DynadrillTextComponent,
+  DynadrillTextareaComponent,
+} from '@digitec-it-projects/dynadrill-ui';
 import type { FcrObservation } from '../models/fcr.model';
 
 export interface ObservacionesTimelineDialogData {
@@ -29,7 +33,9 @@ export interface ObservacionesTimelineDialogResult {
   styleUrl: './observaciones-timeline-dialog.scss',
 })
 export class ObservacionesTimelineDialog {
-  private readonly modalRef = inject(NzModalRef<ObservacionesTimelineDialog, ObservacionesTimelineDialogResult | undefined>);
+  private readonly modalRef = inject(
+    NzModalRef<ObservacionesTimelineDialog, ObservacionesTimelineDialogResult | undefined>,
+  );
   protected readonly data = inject<ObservacionesTimelineDialogData>(NZ_MODAL_DATA);
 
   protected readonly message = signal('');

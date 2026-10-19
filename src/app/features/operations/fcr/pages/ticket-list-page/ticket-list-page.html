@@ -5,8 +5,18 @@
   [roleTag]="roleName()"
 >
   <div actions class="fcr-list__vista" role="group" aria-label="Vista">
-    <dynadrill-icon-button icon="project" tooltip="Vista tablero" [active]="vista() === 'Tablero'" (clicked)="vista.set('Tablero')" />
-    <dynadrill-icon-button icon="table" tooltip="Vista tabla" [active]="vista() === 'Tabla'" (clicked)="vista.set('Tabla')" />
+    <dynadrill-icon-button
+      icon="project"
+      tooltip="Vista tablero"
+      [active]="vista() === 'Tablero'"
+      (clicked)="vista.set('Tablero')"
+    />
+    <dynadrill-icon-button
+      icon="table"
+      tooltip="Vista tabla"
+      [active]="vista() === 'Tabla'"
+      (clicked)="vista.set('Tabla')"
+    />
   </div>
 </app-page-header>
 
@@ -19,7 +29,12 @@
     (valueChange)="setTexto($event)"
   />
   <span class="fcr-list__filters">
-    <dynadrill-icon-button icon="filter" [tooltip]="filtersTooltip()" [active]="activeChips().length > 0" (clicked)="openFilters()" />
+    <dynadrill-icon-button
+      icon="filter"
+      [tooltip]="filtersTooltip()"
+      [active]="activeChips().length > 0"
+      (clicked)="openFilters()"
+    />
     @if (activeChips().length > 0) {
       <span class="fcr-list__badge" aria-hidden="true">{{ activeChips().length }}</span>
     }
@@ -34,7 +49,12 @@
     />
   }
   @if (vista() === 'Tablero' && !loading()) {
-    <app-list-pager class="fcr-list__pager" [pagination]="boardPagination" [numbered]="true" label="Páginas del tablero" />
+    <app-list-pager
+      class="fcr-list__pager"
+      [pagination]="boardPagination"
+      [numbered]="true"
+      label="Páginas del tablero"
+    />
   }
 </div>
 
@@ -42,7 +62,12 @@
   <div class="fcr-list__active" role="status">
     <strong>{{ filteredTickets().length }} de {{ tickets().length }} tickets</strong>
     @for (chip of activeChips(); track chip.id) {
-      <button type="button" class="fcr-list__chip" [attr.aria-label]="'Quitar filtro ' + chip.label" (click)="clearChip(chip)">
+      <button
+        type="button"
+        class="fcr-list__chip"
+        [attr.aria-label]="'Quitar filtro ' + chip.label"
+        (click)="clearChip(chip)"
+      >
         {{ chip.label }} <span aria-hidden="true">×</span>
       </button>
     }
@@ -103,7 +128,11 @@
             [title]="row.wellName"
             [subtitle]="row.clientName + ' • ' + row.tipoOtBadge.text"
             [status]="row.statusBadge"
-            [fields]="[{ label: 'Cliente', value: row.clientName }, { label: 'Tipo', value: row.tipoOtBadge.text }, { label: 'Fase', value: row.phase }]"
+            [fields]="[
+              { label: 'Cliente', value: row.clientName },
+              { label: 'Tipo', value: row.tipoOtBadge.text },
+              { label: 'Fase', value: row.phase },
+            ]"
             [actions]="row.actions"
           />
         </li>

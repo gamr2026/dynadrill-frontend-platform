@@ -6,14 +6,18 @@
 />
 
 <div class="fcr-detail__top-actions">
-  <dynadrill-button class="fcr-detail__back" variant="secondary" size="small" (clicked)="goBack()">← Volver a Tickets</dynadrill-button>
+  <dynadrill-button class="fcr-detail__back" variant="secondary" size="small" (clicked)="goBack()"
+    >← Volver a Tickets</dynadrill-button
+  >
   @if (ticket(); as t) {
     <dynadrill-button variant="secondary" size="small" (clicked)="openObservaciones()">
       Observaciones ({{ t.observations.length }})
     </dynadrill-button>
   }
   @if (puedeVerPrefactura()) {
-    <dynadrill-button variant="secondary" size="small" (clicked)="verPrefactura()">Ver prefactura</dynadrill-button>
+    <dynadrill-button variant="secondary" size="small" (clicked)="verPrefactura()"
+      >Ver prefactura</dynadrill-button
+    >
   }
 </div>
 
@@ -33,268 +37,2161 @@
     <dynadrill-skeleton variant="block" height="220px" />
   </div>
 } @else if (ticket()) {
-
   <div class="dyn-detail-layout">
-  <app-ticket-progress
-    class="dyn-detail-layout__aside"
-    [labels]="phaseLabels()"
-    [currentIndex]="progressIndex()"
-    [selectedIndex]="selectedPhaseIndex()"
-    [tramos]="ticket()!.timelineResumen?.tramos"
-    [responsableRolActual]="ticket()!.timelineResumen?.responsableRolActual ?? null"
-    (select)="seleccionarFase($event)"
-  />
-  <div class="dyn-detail-layout__main">
+    <app-ticket-progress
+      class="dyn-detail-layout__aside"
+      [labels]="phaseLabels()"
+      [currentIndex]="progressIndex()"
+      [selectedIndex]="selectedPhaseIndex()"
+      [tramos]="ticket()!.timelineResumen?.tramos"
+      [responsableRolActual]="ticket()!.timelineResumen?.responsableRolActual ?? null"
+      (select)="seleccionarFase($event)"
+    />
+    <div class="dyn-detail-layout__main">
+      <dynadrill-banner
+        [variant]="isMyTurn() ? 'warning' : 'info'"
+        [message]="bannerAccionEsperada()"
+      />
 
-  <dynadrill-banner
-    [variant]="isMyTurn() ? 'warning' : 'info'"
-    [message]="bannerAccionEsperada()"
-  />
+      <app-ticket-qhse-banner [vinculo]="qhseVinculo()" [canView]="puedeVerQhse()" />
 
-  <app-ticket-qhse-banner [vinculo]="qhseVinculo()" [canView]="puedeVerQhse()" />
+      <!-- Documentos QHSE (Formato de Recepción / ART / PT / SFI) — mismo circuito que Pumping: el Supervisor sube ART y PT del día; QHSE sube el resto. -->
+      @if (documentosQhse(); as dq) {
+        <section class="fcr-detail__section">
+          <dynadrill-text variant="h2">Documentos QHSE</dynadrill-text>
 
-  <!-- Documentos QHSE (Formato de Recepción / ART / PT / SFI) — mismo circuito que Pumping: el Supervisor sube ART y PT del día; QHSE sube el resto. -->
-  @if (documentosQhse(); as dq) {
-    <section class="fcr-detail__section">
-      <dynadrill-text variant="h2">Documentos QHSE</dynadrill-text>
-
-      <ul class="qhse-docs">
-        <li class="qhse-doc">
-          <div class="qhse-doc__text">
-            <strong class="qhse-doc__name">Formato de Recepción</strong>
-            <span class="qhse-doc__meta">{{ dq.formatoRecepcion ? 'Cargado por QHSE' : 'Pendiente de QHSE' }}</span>
-            <dynadrill-tag [label]="dq.formatoRecepcion ? 'Cargado' : 'Pendiente'" [variant]="dq.formatoRecepcion ? 'success' : 'warning'" />
-          </div>
-          @if (dq.formatoRecepcion) {
-            <button type="button" class="qhse-doc__btn" aria-label="Descargar Formato de Recepción" title="Descargar" (click)="descargarDocumentoQhse('qhse_formato_recepcion', 'vigente')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
-          }
-        </li>
-
-        <li class="qhse-doc">
-          <div class="qhse-doc__text">
-            <strong class="qhse-doc__name">SFI</strong>
-            <span class="qhse-doc__meta">{{ dq.sfi ? 'Cargado por QHSE' : 'Pendiente de QHSE' }}</span>
-            <dynadrill-tag [label]="dq.sfi ? 'Cargado' : 'Pendiente'" [variant]="dq.sfi ? 'success' : 'warning'" />
-          </div>
-          @if (dq.sfi) {
-            <button type="button" class="qhse-doc__btn" aria-label="Descargar SFI" title="Descargar" (click)="descargarDocumentoQhse('qhse_sfi', 'vigente')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
-          }
-        </li>
-
-        <li class="qhse-doc">
-          <div class="qhse-doc__text">
-            <strong class="qhse-doc__name">ART</strong>
-            <span class="qhse-doc__meta">
-              @if (dq.artVigente === true) {
-                Vigente hasta {{ dq.artVigenciaHasta | date: 'dd/MM/yyyy' }}
-                @if (dq.artVenceEnDias !== null && dq.artVenceEnDias <= 3) {
-                  · vence en {{ dq.artVenceEnDias }} día(s)
-                }
-              } @else if (dq.artVigente === false) {
-                Vencido desde {{ dq.artVigenciaHasta | date: 'dd/MM/yyyy' }} — sube uno nuevo (vigencia de 15 días)
-              } @else {
-                Sin ART cargado
-              }
-            </span>
-            <dynadrill-tag
-              [label]="dq.artVigente === true ? 'Cargado' : dq.artVigente === false ? 'Vencido' : 'Pendiente'"
-              [variant]="dq.artVigente === true ? 'success' : dq.artVigente === false ? 'error' : 'warning'"
-            />
-          </div>
-          @if (dq.artVigente === true) {
-            <button type="button" class="qhse-doc__btn" aria-label="Descargar ART" title="Descargar" (click)="descargarDocumentoQhse('qhse_art', dq.artFechaEmision!)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
-          }
-          @if (puedeSubirQhseEnCurso()) {
-            <button type="button" class="qhse-doc__btn" aria-label="Subir ART" title="Subir ART" [attr.aria-expanded]="subidaArtAbierta()" (click)="subidaArtAbierta.set(!subidaArtAbierta())"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m17 8-5-5-5 5" /><path d="M12 3v12" /></svg></button>
-          }
-        </li>
-
-        @if (subidaArtAbierta() && puedeSubirQhseEnCurso()) {
-          <li class="qhse-doc-upload">
-            <dynadrill-datetime-picker mode="date" label="Fecha de emisión del ART" [value]="artFechaEmision()!" (valueChange)="artFechaEmision.set($event)" />
-            <dynadrill-upload-zone
-              [state]="artArchivo() ? 'uploaded' : 'idle'"
-              [fileName]="artArchivo()?.name ?? ''"
-              (fileSelected)="onArtArchivoSeleccionado($event)"
-            />
-            <dynadrill-button variant="secondary" size="small" [disabled]="!artArchivo() || documentosQhseSubmitting()" (clicked)="subirArtQhse()">Subir ART</dynadrill-button>
-          </li>
-        }
-
-        <li class="qhse-doc">
-          <div class="qhse-doc__text">
-            <strong class="qhse-doc__name">PT del día</strong>
-            <span class="qhse-doc__meta">
-              @if (!dq.ptwAbierto && !dq.ptwCerradoHoy) {
-                QHSE aún no abrió el PTW del día
-              } @else if (dq.ptDeHoy) {
-                PTW {{ (dq.ptwAbierto ?? dq.ptwCerradoHoy)!.code }}{{ dq.ptwAbierto ? '' : ' (cerrado)' }}
-              } @else if (!dq.ptwAbierto) {
-                PTW {{ dq.ptwCerradoHoy!.code }} cerrado sin PT cargado
-              } @else {
-                PTW {{ dq.ptwAbierto.code }} abierto — falta subir el PT de hoy
-              }
-            </span>
-            <dynadrill-tag [label]="dq.ptDeHoy ? 'Cargado' : 'Pendiente'" [variant]="dq.ptDeHoy ? 'success' : 'warning'" />
-          </div>
-          @if ((dq.ptwAbierto ?? dq.ptwCerradoHoy) && dq.ptDeHoy) {
-            <button type="button" class="qhse-doc__btn" aria-label="Descargar PT del día" title="Descargar" (click)="descargarDocumentoQhse('qhse_pt', (dq.ptwAbierto ?? dq.ptwCerradoHoy)!.code)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
-          }
-          @if (dq.ptwAbierto && !dq.ptDeHoy && puedeSubirQhseEnCurso()) {
-            <button type="button" class="qhse-doc__btn" aria-label="Subir PT del día" title="Subir PT" [attr.aria-expanded]="subidaPtAbierta()" (click)="subidaPtAbierta.set(!subidaPtAbierta())"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m17 8-5-5-5 5" /><path d="M12 3v12" /></svg></button>
-          }
-        </li>
-
-        @if (subidaPtAbierta() && dq.ptwAbierto && !dq.ptDeHoy && puedeSubirQhseEnCurso()) {
-          <li class="qhse-doc-upload">
-            <dynadrill-upload-zone
-              [state]="ptArchivo() ? 'uploaded' : 'idle'"
-              [fileName]="ptArchivo()?.name ?? ''"
-              (fileSelected)="onPtArchivoSeleccionado($event)"
-            />
-            <dynadrill-button variant="secondary" size="small" [disabled]="!ptArchivo() || documentosQhseSubmitting()" (clicked)="subirPtQhse()">Subir PT de hoy</dynadrill-button>
-          </li>
-        }
-        <li class="qhse-doc">
-          <div class="qhse-doc__text">
-            <strong class="qhse-doc__name">Acta de Entrega de Locación</strong>
-            <span class="qhse-doc__meta">{{ dq.formatoEntrega ? 'Cargada por el Supervisor' : 'Pendiente — se carga al finalizar el ticket (DYN-PMP-RE-027)' }}</span>
-            <dynadrill-tag [label]="dq.formatoEntrega ? 'Cargado' : 'Pendiente'" [variant]="dq.formatoEntrega ? 'success' : 'warning'" />
-          </div>
-          @if (dq.formatoEntrega) {
-            <button type="button" class="qhse-doc__btn" aria-label="Descargar Acta de Entrega" title="Descargar" (click)="descargarDocumentoQhse('qhse_formato_entrega', 'vigente')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg></button>
-          }
-          @if (puedeSubirQhse()) {
-            <button type="button" class="qhse-doc__btn" aria-label="Subir Acta de Entrega" title="Subir Acta de Entrega" [attr.aria-expanded]="subidaEntregaAbierta()" (click)="subidaEntregaAbierta.set(!subidaEntregaAbierta())"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m17 8-5-5-5 5" /><path d="M12 3v12" /></svg></button>
-          }
-        </li>
-
-        @if (subidaEntregaAbierta() && (puedeSubirQhse())) {
-          <li class="qhse-doc-upload">
-            <dynadrill-upload-zone
-              [state]="entregaArchivo() ? 'uploaded' : 'idle'"
-              [fileName]="entregaArchivo()?.name ?? ''"
-              (fileSelected)="onEntregaArchivoSeleccionado($event)"
-            />
-            <dynadrill-button variant="secondary" size="small" [disabled]="!entregaArchivo() || documentosQhseSubmitting()" (clicked)="subirEntregaQhse()">Subir Acta de Entrega</dynadrill-button>
-          </li>
-        }
-      </ul>
-    </section>
-  }
-
-  <dynadrill-context-card
-    class="dyn-context-card--cliente-fila"
-    variant="card"
-    icon="file-text"
-    [title]="ticket()!.code"
-    subtitle="Ticket de Servicio FCR"
-    [tags]="contextCardTags()"
-    [groups]="contextCardGroups()"
-    footerNote="Historial de fases con actor y fecha registrado"
-    [footerId]="ticket()!.code"
-    [footerStatus]="contextCardFooterStatus()"
-  />
-
-  @if (previousPhaseApproval(); as approval) {
-    <dynadrill-text variant="caption">
-      Fase anterior aprobada por {{ approval.approvedBy }} ({{ approval.approvedByRole }}) el {{ formatDate(approval.date) }}
-    </dynadrill-text>
-  }
-
-  @for (phase of phaseKeys().slice(0, currentPhaseIndex() + 1); track phase) {
-    @let esActual = phase === currentPhase() && !ticketCerrado();
-    <section class="fcr-detail__phase-block" [class.fcr-detail__phase-block--historial]="!esActual">
-    @switch (phase) {
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- FASE: Tipo de Operador (entrada SERVICIOS)  -->
-    <!-- ═══════════════════════════════════════════ -->
-    @case ('tipo_operador') {
-      <section class="fcr-detail__section">
-        <div class="fcr-detail__section-header">
-          <div class="fcr-detail__section-title">
-            <dynadrill-icon name="users" [size]="20" />
-            <dynadrill-text variant="h2">Tipo de operador</dynadrill-text>
-          </div>
-        </div>
-        @if (esActual) {
-          <dynadrill-text variant="caption">Selecciona al operador que realizará el trabajo — el tipo se fija automáticamente según su especialidad.</dynadrill-text>
-
-          <dynadrill-select
-            label="Filtrar por tipo"
-            placeholder="Todos"
-            [options]="mecanicoFiltroOptions"
-            [value]="mecanicoFiltro()"
-            (valueChange)="onMecanicoFiltroChange($event)"
-          />
-
-          <div class="fcr-detail__table-scroll">
-            <table class="fcr-detail__table fcr-detail__table--seleccionable">
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Tipo</th>
-                  <th>Disponibilidad</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (op of mecanicoFilasVisibles(); track op.name) {
-                  <tr
-                    [class.fcr-detail__row--selected]="operadorMecanicoSeleccionado() === op.name"
-                    [class.fcr-detail__row--disabled]="!op.disponible"
-                    (click)="seleccionarOperadorMecanico(op)"
+          <ul class="qhse-docs">
+            <li class="qhse-doc">
+              <div class="qhse-doc__text">
+                <strong class="qhse-doc__name">Formato de Recepción</strong>
+                <span class="qhse-doc__meta">{{
+                  dq.formatoRecepcion ? 'Cargado por QHSE' : 'Pendiente de QHSE'
+                }}</span>
+                <dynadrill-tag
+                  [label]="dq.formatoRecepcion ? 'Cargado' : 'Pendiente'"
+                  [variant]="dq.formatoRecepcion ? 'success' : 'warning'"
+                />
+              </div>
+              @if (dq.formatoRecepcion) {
+                <button
+                  type="button"
+                  class="qhse-doc__btn"
+                  aria-label="Descargar Formato de Recepción"
+                  title="Descargar"
+                  (click)="descargarDocumentoQhse('qhse_formato_recepcion', 'vigente')"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
                   >
-                    <td>
-                      @if (operadorMecanicoSeleccionado() === op.name) { <dynadrill-icon name="check" [size]="14" /> }
-                      {{ op.name }}
-                    </td>
-                    <td>{{ tipoOperadorLabels[op.tipo] }}</td>
-                    <td>{{ op.disponible ? 'Disponible' : 'Ocupado' }}</td>
-                  </tr>
-                } @empty {
-                  <tr><td colspan="3">No hay operadores para este filtro.</td></tr>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="m7 10 5 5 5-5" />
+                    <path d="M12 15V3" />
+                  </svg>
+                </button>
+              }
+            </li>
+
+            <li class="qhse-doc">
+              <div class="qhse-doc__text">
+                <strong class="qhse-doc__name">SFI</strong>
+                <span class="qhse-doc__meta">{{
+                  dq.sfi ? 'Cargado por QHSE' : 'Pendiente de QHSE'
+                }}</span>
+                <dynadrill-tag
+                  [label]="dq.sfi ? 'Cargado' : 'Pendiente'"
+                  [variant]="dq.sfi ? 'success' : 'warning'"
+                />
+              </div>
+              @if (dq.sfi) {
+                <button
+                  type="button"
+                  class="qhse-doc__btn"
+                  aria-label="Descargar SFI"
+                  title="Descargar"
+                  (click)="descargarDocumentoQhse('qhse_sfi', 'vigente')"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="m7 10 5 5 5-5" />
+                    <path d="M12 15V3" />
+                  </svg>
+                </button>
+              }
+            </li>
+
+            <li class="qhse-doc">
+              <div class="qhse-doc__text">
+                <strong class="qhse-doc__name">ART</strong>
+                <span class="qhse-doc__meta">
+                  @if (dq.artVigente === true) {
+                    Vigente hasta {{ dq.artVigenciaHasta | date: 'dd/MM/yyyy' }}
+                    @if (dq.artVenceEnDias !== null && dq.artVenceEnDias <= 3) {
+                      · vence en {{ dq.artVenceEnDias }} día(s)
+                    }
+                  } @else if (dq.artVigente === false) {
+                    Vencido desde {{ dq.artVigenciaHasta | date: 'dd/MM/yyyy' }} — sube uno nuevo
+                    (vigencia de 15 días)
+                  } @else {
+                    Sin ART cargado
+                  }
+                </span>
+                <dynadrill-tag
+                  [label]="
+                    dq.artVigente === true
+                      ? 'Cargado'
+                      : dq.artVigente === false
+                        ? 'Vencido'
+                        : 'Pendiente'
+                  "
+                  [variant]="
+                    dq.artVigente === true
+                      ? 'success'
+                      : dq.artVigente === false
+                        ? 'error'
+                        : 'warning'
+                  "
+                />
+              </div>
+              @if (dq.artVigente === true) {
+                <button
+                  type="button"
+                  class="qhse-doc__btn"
+                  aria-label="Descargar ART"
+                  title="Descargar"
+                  (click)="descargarDocumentoQhse('qhse_art', dq.artFechaEmision!)"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="m7 10 5 5 5-5" />
+                    <path d="M12 15V3" />
+                  </svg>
+                </button>
+              }
+              @if (puedeSubirQhseEnCurso()) {
+                <button
+                  type="button"
+                  class="qhse-doc__btn"
+                  aria-label="Subir ART"
+                  title="Subir ART"
+                  [attr.aria-expanded]="subidaArtAbierta()"
+                  (click)="subidaArtAbierta.set(!subidaArtAbierta())"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="m17 8-5-5-5 5" />
+                    <path d="M12 3v12" />
+                  </svg>
+                </button>
+              }
+            </li>
+
+            @if (subidaArtAbierta() && puedeSubirQhseEnCurso()) {
+              <li class="qhse-doc-upload">
+                <dynadrill-datetime-picker
+                  mode="date"
+                  label="Fecha de emisión del ART"
+                  [value]="artFechaEmision()!"
+                  (valueChange)="artFechaEmision.set($event)"
+                />
+                <dynadrill-upload-zone
+                  [state]="artArchivo() ? 'uploaded' : 'idle'"
+                  [fileName]="artArchivo()?.name ?? ''"
+                  (fileSelected)="onArtArchivoSeleccionado($event)"
+                />
+                <dynadrill-button
+                  variant="secondary"
+                  size="small"
+                  [disabled]="!artArchivo() || documentosQhseSubmitting()"
+                  (clicked)="subirArtQhse()"
+                  >Subir ART</dynadrill-button
+                >
+              </li>
+            }
+
+            <li class="qhse-doc">
+              <div class="qhse-doc__text">
+                <strong class="qhse-doc__name">PT del día</strong>
+                <span class="qhse-doc__meta">
+                  @if (!dq.ptwAbierto && !dq.ptwCerradoHoy) {
+                    QHSE aún no abrió el PTW del día
+                  } @else if (dq.ptDeHoy) {
+                    PTW {{ (dq.ptwAbierto ?? dq.ptwCerradoHoy)!.code
+                    }}{{ dq.ptwAbierto ? '' : ' (cerrado)' }}
+                  } @else if (!dq.ptwAbierto) {
+                    PTW {{ dq.ptwCerradoHoy!.code }} cerrado sin PT cargado
+                  } @else {
+                    PTW {{ dq.ptwAbierto.code }} abierto — falta subir el PT de hoy
+                  }
+                </span>
+                <dynadrill-tag
+                  [label]="dq.ptDeHoy ? 'Cargado' : 'Pendiente'"
+                  [variant]="dq.ptDeHoy ? 'success' : 'warning'"
+                />
+              </div>
+              @if ((dq.ptwAbierto ?? dq.ptwCerradoHoy) && dq.ptDeHoy) {
+                <button
+                  type="button"
+                  class="qhse-doc__btn"
+                  aria-label="Descargar PT del día"
+                  title="Descargar"
+                  (click)="
+                    descargarDocumentoQhse('qhse_pt', (dq.ptwAbierto ?? dq.ptwCerradoHoy)!.code)
+                  "
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="m7 10 5 5 5-5" />
+                    <path d="M12 15V3" />
+                  </svg>
+                </button>
+              }
+              @if (dq.ptwAbierto && !dq.ptDeHoy && puedeSubirQhseEnCurso()) {
+                <button
+                  type="button"
+                  class="qhse-doc__btn"
+                  aria-label="Subir PT del día"
+                  title="Subir PT"
+                  [attr.aria-expanded]="subidaPtAbierta()"
+                  (click)="subidaPtAbierta.set(!subidaPtAbierta())"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="m17 8-5-5-5 5" />
+                    <path d="M12 3v12" />
+                  </svg>
+                </button>
+              }
+            </li>
+
+            @if (subidaPtAbierta() && dq.ptwAbierto && !dq.ptDeHoy && puedeSubirQhseEnCurso()) {
+              <li class="qhse-doc-upload">
+                <dynadrill-upload-zone
+                  [state]="ptArchivo() ? 'uploaded' : 'idle'"
+                  [fileName]="ptArchivo()?.name ?? ''"
+                  (fileSelected)="onPtArchivoSeleccionado($event)"
+                />
+                <dynadrill-button
+                  variant="secondary"
+                  size="small"
+                  [disabled]="!ptArchivo() || documentosQhseSubmitting()"
+                  (clicked)="subirPtQhse()"
+                  >Subir PT de hoy</dynadrill-button
+                >
+              </li>
+            }
+            <li class="qhse-doc">
+              <div class="qhse-doc__text">
+                <strong class="qhse-doc__name">Acta de Entrega de Locación</strong>
+                <span class="qhse-doc__meta">{{
+                  dq.formatoEntrega
+                    ? 'Cargada por el Supervisor'
+                    : 'Pendiente — se carga al finalizar el ticket (DYN-PMP-RE-027)'
+                }}</span>
+                <dynadrill-tag
+                  [label]="dq.formatoEntrega ? 'Cargado' : 'Pendiente'"
+                  [variant]="dq.formatoEntrega ? 'success' : 'warning'"
+                />
+              </div>
+              @if (dq.formatoEntrega) {
+                <button
+                  type="button"
+                  class="qhse-doc__btn"
+                  aria-label="Descargar Acta de Entrega"
+                  title="Descargar"
+                  (click)="descargarDocumentoQhse('qhse_formato_entrega', 'vigente')"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="m7 10 5 5 5-5" />
+                    <path d="M12 15V3" />
+                  </svg>
+                </button>
+              }
+              @if (puedeSubirQhse()) {
+                <button
+                  type="button"
+                  class="qhse-doc__btn"
+                  aria-label="Subir Acta de Entrega"
+                  title="Subir Acta de Entrega"
+                  [attr.aria-expanded]="subidaEntregaAbierta()"
+                  (click)="subidaEntregaAbierta.set(!subidaEntregaAbierta())"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="m17 8-5-5-5 5" />
+                    <path d="M12 3v12" />
+                  </svg>
+                </button>
+              }
+            </li>
+
+            @if (subidaEntregaAbierta() && puedeSubirQhse()) {
+              <li class="qhse-doc-upload">
+                <dynadrill-upload-zone
+                  [state]="entregaArchivo() ? 'uploaded' : 'idle'"
+                  [fileName]="entregaArchivo()?.name ?? ''"
+                  (fileSelected)="onEntregaArchivoSeleccionado($event)"
+                />
+                <dynadrill-button
+                  variant="secondary"
+                  size="small"
+                  [disabled]="!entregaArchivo() || documentosQhseSubmitting()"
+                  (clicked)="subirEntregaQhse()"
+                  >Subir Acta de Entrega</dynadrill-button
+                >
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      <dynadrill-context-card
+        class="dyn-context-card--cliente-fila"
+        variant="card"
+        icon="file-text"
+        [title]="ticket()!.code"
+        subtitle="Ticket de Servicio FCR"
+        [tags]="contextCardTags()"
+        [groups]="contextCardGroups()"
+        footerNote="Historial de fases con actor y fecha registrado"
+        [footerId]="ticket()!.code"
+        [footerStatus]="contextCardFooterStatus()"
+      />
+
+      @if (previousPhaseApproval(); as approval) {
+        <dynadrill-text variant="caption">
+          Fase anterior aprobada por {{ approval.approvedBy }} ({{ approval.approvedByRole }}) el
+          {{ formatDate(approval.date) }}
+        </dynadrill-text>
+      }
+
+      @for (phase of phaseKeys().slice(0, currentPhaseIndex() + 1); track phase) {
+        @let esActual = phase === currentPhase() && !ticketCerrado();
+        <section
+          class="fcr-detail__phase-block"
+          [class.fcr-detail__phase-block--historial]="!esActual"
+        >
+          @switch (phase) {
+            <!-- ═══════════════════════════════════════════ -->
+            <!-- FASE: Tipo de Operador (entrada SERVICIOS)  -->
+            <!-- ═══════════════════════════════════════════ -->
+            @case ('tipo_operador') {
+              <section class="fcr-detail__section">
+                <div class="fcr-detail__section-header">
+                  <div class="fcr-detail__section-title">
+                    <dynadrill-icon name="users" [size]="20" />
+                    <dynadrill-text variant="h2">Tipo de operador</dynadrill-text>
+                  </div>
+                </div>
+                @if (esActual) {
+                  <dynadrill-text variant="caption"
+                    >Selecciona al operador que realizará el trabajo — el tipo se fija
+                    automáticamente según su especialidad.</dynadrill-text
+                  >
+
+                  <dynadrill-select
+                    label="Filtrar por tipo"
+                    placeholder="Todos"
+                    [options]="mecanicoFiltroOptions"
+                    [value]="mecanicoFiltro()"
+                    (valueChange)="onMecanicoFiltroChange($event)"
+                  />
+
+                  <div class="fcr-detail__table-scroll">
+                    <table class="fcr-detail__table fcr-detail__table--seleccionable">
+                      <thead>
+                        <tr>
+                          <th>Nombre</th>
+                          <th>Tipo</th>
+                          <th>Disponibilidad</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (op of mecanicoFilasVisibles(); track op.name) {
+                          <tr
+                            [class.fcr-detail__row--selected]="
+                              operadorMecanicoSeleccionado() === op.name
+                            "
+                            [class.fcr-detail__row--disabled]="!op.disponible"
+                            (click)="seleccionarOperadorMecanico(op)"
+                          >
+                            <td>
+                              @if (operadorMecanicoSeleccionado() === op.name) {
+                                <dynadrill-icon name="check" [size]="14" />
+                              }
+                              {{ op.name }}
+                            </td>
+                            <td>{{ tipoOperadorLabels[op.tipo] }}</td>
+                            <td>{{ op.disponible ? 'Disponible' : 'Ocupado' }}</td>
+                          </tr>
+                        } @empty {
+                          <tr>
+                            <td colspan="3">No hay operadores para este filtro.</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+
+                  @if (isMyTurn() && esActual) {
+                    <footer class="fcr-detail__actions">
+                      <dynadrill-button
+                        variant="primary"
+                        [disabled]="!tipoOperadorSeleccionado() || !operadorMecanicoSeleccionado()"
+                        (clicked)="confirmTipoOperador()"
+                        >Continuar a Formulario de Inspección</dynadrill-button
+                      >
+                    </footer>
+                  }
+                } @else {
+                  <dynadrill-text variant="body">
+                    Tipo de operador:
+                    <strong>{{
+                      ticket()!.tipoOperador ? tipoOperadorLabels[ticket()!.tipoOperador!] : '—'
+                    }}</strong>
+                    — Asignado: <strong>{{ ticket()!.assignedMechanicOperator || '—' }}</strong>
+                  </dynadrill-text>
                 }
-              </tbody>
-            </table>
-          </div>
+              </section>
+            }
 
-          @if (isMyTurn() && esActual) {
-            <footer class="fcr-detail__actions">
-              <dynadrill-button
-                variant="primary"
-                [disabled]="!tipoOperadorSeleccionado() || !operadorMecanicoSeleccionado()"
-                (clicked)="confirmTipoOperador()"
-              >Continuar a Formulario de Inspección</dynadrill-button>
-            </footer>
+            <!-- ═══════════════════════════════════════════ -->
+            <!-- FASE: Formulario de Inspección (SERVICIOS)  -->
+            <!-- ═══════════════════════════════════════════ -->
+            @case ('inspeccion') {
+              <section class="fcr-detail__section">
+                <div class="fcr-detail__section-header">
+                  <div class="fcr-detail__section-title">
+                    <dynadrill-icon name="file-text" [size]="20" />
+                    <dynadrill-text variant="h2">Formulario de inspección</dynadrill-text>
+                  </div>
+                </div>
+                <dynadrill-text variant="caption"
+                  >Completa el checklist de cada herramienta y adjunta los 3 documentos requeridos
+                  antes de enviar a Supervisor.</dynadrill-text
+                >
+
+                <dynadrill-text variant="subtitle">Herramientas a inspeccionar</dynadrill-text>
+                <div class="fcr-detail__table-scroll">
+                  <table class="fcr-detail__table">
+                    <thead>
+                      <tr>
+                        <th>Herramienta</th>
+                        <th>Checklist</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (tool of ticket()!.tools; track tool.id) {
+                        <tr>
+                          <td>{{ tool.name }}</td>
+                          <td>
+                            @if (toolInspectionEstado(tool.id); as estado) {
+                              <dynadrill-tag
+                                [label]="estado"
+                                [variant]="estado === 'enviado' ? 'success' : 'warning'"
+                              />
+                            } @else {
+                              <dynadrill-tag label="Sin iniciar" variant="warning" />
+                            }
+                          </td>
+                          <td>
+                            @if (tool.articuloId) {
+                              <dynadrill-button
+                                variant="secondary"
+                                size="small"
+                                (clicked)="openChecklistHerramienta(tool)"
+                                >{{ toolChecklistButtonLabel(tool.id) }}</dynadrill-button
+                              >
+                            } @else {
+                              <dynadrill-text variant="caption"
+                                >Sin artículo de inventario vinculado — no se puede completar el
+                                checklist.</dynadrill-text
+                              >
+                            }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+
+                @if (esActual && documentosServicioPendientes().length > 0) {
+                  <dynadrill-button
+                    variant="secondary"
+                    size="small"
+                    [disabled]="simulandoCargaDocumentos()"
+                    (clicked)="simularCargaRapidaDocumentos()"
+                  >
+                    Carga rápida (simular)
+                  </dynadrill-button>
+                }
+
+                <div class="fcr-detail__inspection">
+                  <dynadrill-text variant="subtitle"
+                    >Formulario de inspección externo</dynadrill-text
+                  >
+                  @if (ticket()!.formularioInspeccionExternoUploaded) {
+                    <div class="fcr-detail__doc-row">
+                      <dynadrill-icon name="file-text" [size]="20" />
+                      <dynadrill-text variant="body">{{
+                        ticket()!.formularioInspeccionExternoNombreArchivo
+                      }}</dynadrill-text>
+                      <dynadrill-icon-button
+                        icon="eye"
+                        tooltip="Ver documento"
+                        (clicked)="previsualizarDocumento('formularioInspeccionExterno')"
+                      />
+                      @if (esActual) {
+                        <dynadrill-icon-button
+                          icon="delete"
+                          tooltip="Quitar archivo"
+                          (clicked)="onEliminarInspeccionServicio('formularioExterno')"
+                        />
+                      }
+                    </div>
+                  } @else if (esActual) {
+                    <dynadrill-upload-zone
+                      [state]="formularioExternoUploadState()"
+                      (fileSelected)="onSubirInspeccionServicio('formularioExterno', $event)"
+                    />
+                  } @else {
+                    <dynadrill-text variant="caption"
+                      >Formulario de inspección externo — no subido.</dynadrill-text
+                    >
+                  }
+                </div>
+
+                <div class="fcr-detail__inspection">
+                  <dynadrill-text variant="subtitle">Formato de dimensionamiento</dynadrill-text>
+                  @if (ticket()!.formatoDimensionamientoServicioUploaded) {
+                    <div class="fcr-detail__doc-row">
+                      <dynadrill-icon name="file-text" [size]="20" />
+                      <dynadrill-text variant="body">{{
+                        ticket()!.formatoDimensionamientoServicioNombreArchivo
+                      }}</dynadrill-text>
+                      <dynadrill-icon-button
+                        icon="eye"
+                        tooltip="Ver documento"
+                        (clicked)="previsualizarDocumento('formatoDimensionamientoServicio')"
+                      />
+                      @if (esActual) {
+                        <dynadrill-icon-button
+                          icon="delete"
+                          tooltip="Quitar archivo"
+                          (clicked)="onEliminarInspeccionServicio('dimensionamiento')"
+                        />
+                      }
+                    </div>
+                  } @else if (esActual) {
+                    <dynadrill-upload-zone
+                      [state]="dimensionamientoServicioUploadState()"
+                      (fileSelected)="onSubirInspeccionServicio('dimensionamiento', $event)"
+                    />
+                  } @else {
+                    <dynadrill-text variant="caption"
+                      >Formato de dimensionamiento — no subido.</dynadrill-text
+                    >
+                  }
+                </div>
+
+                <div class="fcr-detail__inspection">
+                  <dynadrill-text variant="subtitle">Formato de Dureza</dynadrill-text>
+                  @if (ticket()!.formatoDurezaServicioUploaded) {
+                    <div class="fcr-detail__doc-row">
+                      <dynadrill-icon name="file-text" [size]="20" />
+                      <dynadrill-text variant="body">{{
+                        ticket()!.formatoDurezaServicioNombreArchivo
+                      }}</dynadrill-text>
+                      <dynadrill-icon-button
+                        icon="eye"
+                        tooltip="Ver documento"
+                        (clicked)="previsualizarDocumento('formatoDurezaServicio')"
+                      />
+                      @if (esActual) {
+                        <dynadrill-icon-button
+                          icon="delete"
+                          tooltip="Quitar archivo"
+                          (clicked)="onEliminarInspeccionServicio('dureza')"
+                        />
+                      }
+                    </div>
+                  } @else if (esActual) {
+                    <dynadrill-upload-zone
+                      [state]="durezaServicioUploadState()"
+                      (fileSelected)="onSubirInspeccionServicio('dureza', $event)"
+                    />
+                  } @else {
+                    <dynadrill-text variant="caption"
+                      >Formato de Dureza — no subido.</dynadrill-text
+                    >
+                  }
+                </div>
+
+                @if (esActual && !allChecklistsEnviados()) {
+                  <dynadrill-banner
+                    variant="warning"
+                    [message]="
+                      'Falta enviar el checklist de inspección de: ' +
+                      checklistsPendientesNombres().join(', ')
+                    "
+                  />
+                }
+
+                @if (esActual && isMyTurn()) {
+                  <footer class="fcr-detail__actions">
+                    <dynadrill-button
+                      variant="primary"
+                      [disabled]="!puedeEnviarInspeccionServicio()"
+                      (clicked)="confirmEnviarInspeccionServicio()"
+                      >Enviar a Supervisor</dynadrill-button
+                    >
+                  </footer>
+                }
+              </section>
+            }
+
+            <!-- ═══════════════════════════════════════════════════ -->
+            <!-- FASE: Aprobación de Supervisor de Operaciones       -->
+            <!-- ═══════════════════════════════════════════════════ -->
+            @case ('aprobacion_supervisor_operaciones') {
+              @if (esActual) {
+                <section class="fcr-detail__section">
+                  <div class="fcr-detail__section-header">
+                    <div class="fcr-detail__section-title">
+                      <dynadrill-icon name="check" [size]="20" />
+                      <dynadrill-text variant="h2"
+                        >Aprobación de Supervisor de Operaciones</dynadrill-text
+                      >
+                    </div>
+                  </div>
+                  <dynadrill-text variant="caption"
+                    >Revisa los documentos de inspección antes de aprobar o
+                    rechazar.</dynadrill-text
+                  >
+
+                  @if (ticket()!.observations.length > 0) {
+                    <div class="fcr-detail__observations">
+                      @for (obs of ticket()!.observations; track obs.id) {
+                        <div class="fcr-detail__observation">
+                          <strong>{{ obs.author }} · {{ obs.role }}</strong>
+                          <span class="fcr-detail__observation-date">{{ obs.date }}</span>
+                          <p>{{ obs.message }}</p>
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  @if (isMyTurn()) {
+                    <dynadrill-approval-actions
+                      [decision]="inspeccionDecision()"
+                      consequenceApprove="El ticket continúa a Asignación de Operador."
+                      consequenceReject="Se notifica al Operador para corregir la inspección."
+                      (decisionChange)="onInspeccionDecisionChange($event)"
+                    />
+
+                    @if (inspeccionDecision() === 'rejected') {
+                      <dynadrill-textarea
+                        label="Observaciones para el Operador"
+                        placeholder="Detalle qué debe corregirse…"
+                        [rows]="3"
+                        [value]="inspeccionRejectionNote()"
+                        (valueChange)="inspeccionRejectionNote.set($event)"
+                      />
+                      <dynadrill-button
+                        variant="primary"
+                        [disabled]="!inspeccionRejectionNote().trim()"
+                        (clicked)="confirmInspeccionRejection()"
+                        >Enviar corrección</dynadrill-button
+                      >
+                    }
+                  }
+                </section>
+              } @else if (phase === primeraFaseTriada()) {
+                <ng-container [ngTemplateOutlet]="resumenTriadaTabla" />
+              }
+            }
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!-- FASE: Validación                            -->
+            <!-- ═══════════════════════════════════════════ -->
+            @case ('revision_inicial') {
+              <section class="fcr-detail__section">
+                <div class="fcr-detail__section-header">
+                  <div class="fcr-detail__section-title">
+                    <dynadrill-icon name="file-text" [size]="20" />
+                    <dynadrill-text variant="h2"
+                      >Validación de la información técnica</dynadrill-text
+                    >
+                  </div>
+                </div>
+                <dynadrill-text variant="caption">
+                  Propuesta V{{ ticket()!.proposalVersion }} — revise información, propuesta técnica
+                  y apartado de herramientas antes de aprobar.
+                </dynadrill-text>
+
+                @if (pedido(); as p) {
+                  <div class="dyn-pedido-card">
+                    <div class="dyn-pedido-card__header">
+                      <div class="dyn-pedido-card__title">
+                        <dynadrill-icon name="box" [size]="22" />
+                        <dynadrill-text variant="subtitle">Pedido {{ p.code }}</dynadrill-text>
+                      </div>
+                      <div class="dyn-pedido-card__tags">
+                        @for (label of pedidoTipoServicioLabels(); track label) {
+                          <dynadrill-tag [label]="label" variant="info" />
+                        }
+                      </div>
+                    </div>
+
+                    <app-pedido-datos [pedido]="p" />
+
+                    <div class="dyn-pedido-card__items">
+                      <dynadrill-text variant="caption" class="dyn-pedido-card__items-label"
+                        >Ítems estimados</dynadrill-text
+                      >
+                      <app-pedido-items [items]="pedidoItems()" />
+                    </div>
+                  </div>
+                } @else {
+                  <dynadrill-text variant="caption"
+                    >Este ticket no tiene un Pedido de Facturación vinculado.</dynadrill-text
+                  >
+                }
+
+                @if (ticket()!.observations.length > 0) {
+                  <div class="fcr-detail__observations">
+                    @for (obs of ticket()!.observations; track obs.id) {
+                      <div class="fcr-detail__observation">
+                        <strong>{{ obs.author }} · {{ obs.role }}</strong>
+                        <span class="fcr-detail__observation-date">{{ obs.date }}</span>
+                        <p>{{ obs.message }}</p>
+                      </div>
+                    }
+                  </div>
+                }
+
+                @if (esActual && isMyTurn() && roleName() === 'Ingeniería de Ventas FCR') {
+                  <footer class="fcr-detail__actions">
+                    <dynadrill-button variant="primary" (clicked)="resolveCorrection()"
+                      >Reenviar a Supervisor</dynadrill-button
+                    >
+                  </footer>
+                } @else if (esActual && isMyTurn()) {
+                  <footer class="fcr-detail__actions">
+                    <dynadrill-button variant="secondary" (clicked)="openSolicitarCorreccion()"
+                      >Solicitar corrección</dynadrill-button
+                    >
+                    <dynadrill-button variant="primary" (clicked)="approveValidation()"
+                      >Aprobar información</dynadrill-button
+                    >
+                  </footer>
+                }
+              </section>
+            }
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!-- FASE: Preparación de Herramientas           -->
+            <!-- ═══════════════════════════════════════════ -->
+            @case ('preparacion_herramientas') {
+              <section class="fcr-detail__section">
+                <div class="fcr-detail__section-header">
+                  <div class="fcr-detail__section-title">
+                    <dynadrill-icon name="tool" [size]="20" />
+                    <dynadrill-text variant="h2">Preparación de Herramientas</dynadrill-text>
+                  </div>
+                </div>
+                <dynadrill-text variant="caption">
+                  Precargadas de los kits del Pedido (Códigos por cliente) · Solicitud del
+                  Supervisor → Bodega → Recepción del Supervisor · Mecánico se completa solo, más
+                  adelante (checklist de inspección)
+                </dynadrill-text>
+
+                @if (pedido(); as p) {
+                  <div class="fcr-detail__pedido-reference">
+                    <dynadrill-icon name="file-text" [size]="16" />
+                    <div class="fcr-detail__pedido-reference-body">
+                      <div class="fcr-detail__pedido-reference-head">
+                        <dynadrill-text variant="caption"
+                          >Actividades según el Pedido {{ p.code }}:</dynadrill-text
+                        >
+                        @if (
+                          esActual && roleName() === 'Supervisor' && !ticket()!.toolListConfirmed
+                        ) {
+                          <dynadrill-icon-button
+                            icon="reload"
+                            tooltip="Recargar herramientas desde el Pedido"
+                            (clicked)="recargarDesdePedido()"
+                          />
+                        }
+                      </div>
+                      @let actividades = actividadesPedido();
+                      @if (actividades.herramientas.length) {
+                        <h3 class="fcr-detail__pedido-reference-title">
+                          Herramientas · se solicitan a Bodega
+                        </h3>
+                        <ul class="fcr-detail__pedido-reference-list">
+                          @for (h of actividades.herramientas; track $index) {
+                            <li class="fcr-detail__actividad">
+                              <span
+                                ><strong>{{ h.item.codigo }}</strong> — {{ h.item.descripcion }} ({{
+                                  h.item.cantidad
+                                }}
+                                {{ h.item.unidad }})</span
+                              >
+                              <dynadrill-tag
+                                [label]="h.cantidadHerramientas + ' herramienta(s)'"
+                                variant="success"
+                              />
+                              @if (h.aviso) {
+                                <dynadrill-tag [label]="etiquetaAviso[h.aviso]" variant="warning" />
+                              }
+                            </li>
+                          }
+                        </ul>
+                      }
+                      @if (actividades.movilizaciones.length) {
+                        <h3 class="fcr-detail__pedido-reference-title">
+                          Movilización · informativa, no requiere acción
+                        </h3>
+                        <ul class="fcr-detail__pedido-reference-list">
+                          @for (m of actividades.movilizaciones; track $index) {
+                            <li>
+                              <strong>{{ m.codigo }}</strong> — {{ m.descripcion }} ({{
+                                m.cantidad
+                              }}
+                              {{ m.unidad }})
+                            </li>
+                          }
+                        </ul>
+                      }
+                      @if (actividades.otros.length) {
+                        <h3 class="fcr-detail__pedido-reference-title">
+                          Otros servicios del Pedido
+                        </h3>
+                        <ul class="fcr-detail__pedido-reference-list">
+                          @for (o of actividades.otros; track $index) {
+                            <li class="fcr-detail__actividad">
+                              <span
+                                ><strong>{{ o.item.codigo }}</strong> — {{ o.item.descripcion }} ({{
+                                  o.item.cantidad
+                                }}
+                                {{ o.item.unidad }})</span
+                              >
+                              @if (o.aviso) {
+                                <dynadrill-tag [label]="etiquetaAviso[o.aviso]" variant="warning" />
+                              }
+                            </li>
+                          }
+                        </ul>
+                      }
+                      @if (!pedidoItems().length) {
+                        <p class="fcr-detail__pedido-reference-list">
+                          Sin ítems estimados registrados en el Pedido.
+                        </p>
+                      }
+                    </div>
+                  </div>
+                }
+
+                @if (notaPrecarga(); as nota) {
+                  <dynadrill-banner variant="warning" [message]="nota" />
+                }
+
+                <div class="fcr-detail__table-scroll">
+                  <table class="fcr-detail__table">
+                    <thead>
+                      <tr>
+                        <th>Herramienta</th>
+                        <th>Estado</th>
+                        <th>Bodega</th>
+                        <th>Recepción</th>
+                        <th>Mecánico</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (tool of originalTools(); track tool.id) {
+                        <ng-container
+                          [ngTemplateOutlet]="toolRow"
+                          [ngTemplateOutletContext]="{ $implicit: tool }"
+                        />
+                      }
+                    </tbody>
+                  </table>
+                </div>
+
+                @if (lateTools().length > 0) {
+                  <dynadrill-text variant="caption"
+                    >Agregadas después — el resto del proceso ya había avanzado cuando se
+                    sumaron</dynadrill-text
+                  >
+                  <div class="fcr-detail__table-scroll">
+                    <table class="fcr-detail__table">
+                      <thead>
+                        <tr>
+                          <th>Herramienta</th>
+                          <th>Estado</th>
+                          <th>Bodega</th>
+                          <th>Recepción</th>
+                          <th>Mecánico</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (tool of lateTools(); track tool.id) {
+                          <ng-container
+                            [ngTemplateOutlet]="toolRow"
+                            [ngTemplateOutletContext]="{ $implicit: tool }"
+                          />
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+
+                <ng-template #toolRow let-tool>
+                  <tr>
+                    <td>
+                      {{ tool.name }}
+                      @if (tool.stockDisponible !== undefined && tool.stockDisponible <= 0) {
+                        <dynadrill-text variant="caption" class="fcr-detail__stock-warning"
+                          >⚠ Sin stock en Inventario</dynadrill-text
+                        >
+                      }
+                    </td>
+                    <td>
+                      <dynadrill-tag
+                        [label]="estadoTag(tool).label"
+                        [variant]="estadoTag(tool).variant"
+                      />
+                    </td>
+
+                    <td class="fcr-detail__check-cell">
+                      @if (tool.bodega?.marcado) {
+                        <dynadrill-tag
+                          [label]="tool.bodega.novedad ? 'Con novedad' : 'OK'"
+                          [variant]="tool.bodega.novedad ? 'warning' : 'success'"
+                        />
+                        @if (tool.bodega.novedad) {
+                          <dynadrill-text variant="caption">{{
+                            tool.bodega.novedad
+                          }}</dynadrill-text>
+                        }
+                        @if (esActual && roleName() === 'Bodeguero') {
+                          <dynadrill-icon-button
+                            icon="edit"
+                            tooltip="Corregir"
+                            (clicked)="clearBodegaCheck(tool.id)"
+                          />
+                        }
+                      } @else if (esActual && roleName() === 'Bodeguero' && tool.sentToBodega) {
+                        @if (novedadDraftToolId() === tool.id) {
+                          <dynadrill-textarea
+                            label=""
+                            placeholder="Detalle la novedad…"
+                            [rows]="2"
+                            [value]="novedadDraftText()"
+                            (valueChange)="novedadDraftText.set($event)"
+                          />
+                          <div class="fcr-detail__check-actions">
+                            <dynadrill-button
+                              variant="secondary"
+                              size="small"
+                              (clicked)="toggleNovedadDraft(tool.id)"
+                              >Cancelar</dynadrill-button
+                            >
+                            <dynadrill-button
+                              variant="primary"
+                              size="small"
+                              [disabled]="!novedadDraftText().trim()"
+                              (clicked)="marcarBodega(tool.id, novedadDraftText())"
+                              >Guardar</dynadrill-button
+                            >
+                          </div>
+                        } @else {
+                          <div class="fcr-detail__check-actions">
+                            <dynadrill-button
+                              variant="primary"
+                              size="small"
+                              (clicked)="marcarBodega(tool.id)"
+                              >OK</dynadrill-button
+                            >
+                            <dynadrill-button
+                              variant="secondary"
+                              size="small"
+                              (clicked)="toggleNovedadDraft(tool.id)"
+                              >Con novedad</dynadrill-button
+                            >
+                          </div>
+                        }
+                      } @else if (
+                        esActual &&
+                        roleName() === 'Supervisor' &&
+                        tool.status === 'seleccionada' &&
+                        !tool.sentToBodega
+                      ) {
+                        <dynadrill-button
+                          variant="primary"
+                          size="small"
+                          (clicked)="sendToolToBodega(tool.id)"
+                          >Solicitar a Bodega</dynadrill-button
+                        >
+                      } @else {
+                        —
+                      }
+                    </td>
+
+                    <td class="fcr-detail__check-cell">
+                      @if (tool.recepcion?.marcado) {
+                        <dynadrill-tag
+                          [label]="tool.recepcion.novedad ? 'Con novedad' : 'OK'"
+                          [variant]="tool.recepcion.novedad ? 'warning' : 'success'"
+                        />
+                        @if (tool.recepcion.novedad) {
+                          <dynadrill-text variant="caption">{{
+                            tool.recepcion.novedad
+                          }}</dynadrill-text>
+                        }
+                        @if (esActual && roleName() === 'Supervisor') {
+                          <dynadrill-icon-button
+                            icon="edit"
+                            tooltip="Corregir"
+                            (clicked)="clearRecepcionCheck(tool.id)"
+                          />
+                        }
+                      } @else if (
+                        esActual && roleName() === 'Supervisor' && tool.sentToSupervisor
+                      ) {
+                        @if (novedadDraftToolId() === tool.id) {
+                          <dynadrill-textarea
+                            label=""
+                            placeholder="Detalle la novedad…"
+                            [rows]="2"
+                            [value]="novedadDraftText()"
+                            (valueChange)="novedadDraftText.set($event)"
+                          />
+                          <div class="fcr-detail__check-actions">
+                            <dynadrill-button
+                              variant="secondary"
+                              size="small"
+                              (clicked)="toggleNovedadDraft(tool.id)"
+                              >Cancelar</dynadrill-button
+                            >
+                            <dynadrill-button
+                              variant="primary"
+                              size="small"
+                              [disabled]="!novedadDraftText().trim()"
+                              (clicked)="marcarRecepcion(tool.id, novedadDraftText())"
+                              >Guardar</dynadrill-button
+                            >
+                          </div>
+                        } @else {
+                          <div class="fcr-detail__check-actions">
+                            <dynadrill-button
+                              variant="primary"
+                              size="small"
+                              (clicked)="marcarRecepcion(tool.id)"
+                              >OK</dynadrill-button
+                            >
+                            <dynadrill-button
+                              variant="secondary"
+                              size="small"
+                              (clicked)="toggleNovedadDraft(tool.id)"
+                              >Con novedad</dynadrill-button
+                            >
+                          </div>
+                        }
+                      } @else if (
+                        esActual &&
+                        roleName() === 'Bodeguero' &&
+                        tool.bodega?.marcado &&
+                        !tool.bodega?.novedad &&
+                        !tool.sentToSupervisor
+                      ) {
+                        <dynadrill-button
+                          variant="primary"
+                          size="small"
+                          (clicked)="sendToolToSupervisor(tool.id)"
+                          >Enviar al Supervisor</dynadrill-button
+                        >
+                      } @else {
+                        —
+                      }
+                    </td>
+
+                    <td class="fcr-detail__check-cell">
+                      <dynadrill-tag
+                        [label]="mecanicoInfo(tool).label"
+                        [variant]="mecanicoInfo(tool).variant"
+                      />
+                      @if (mecanicoInfo(tool).novedad) {
+                        <dynadrill-text variant="caption">{{
+                          mecanicoInfo(tool).novedad
+                        }}</dynadrill-text>
+                      }
+                    </td>
+
+                    <td>
+                      @if (
+                        esActual &&
+                        roleName() === 'Supervisor' &&
+                        tool.origen === 'manual' &&
+                        tool.status === 'seleccionada' &&
+                        !tool.sentToBodega
+                      ) {
+                        <dynadrill-icon-button
+                          class="fcr-detail__tool-delete"
+                          icon="delete"
+                          tooltip="Quitar herramienta"
+                          (clicked)="removeTool(tool.id)"
+                        />
+                      }
+                    </td>
+                  </tr>
+                </ng-template>
+
+                @if (esActual && roleName() === 'Supervisor' && !ticket()!.toolListConfirmed) {
+                  <div class="fcr-detail__add-tool">
+                    <dynadrill-select
+                      label="Agregar herramienta adicional (excepción — sustituir una dañada o algo que el Pedido no contempló)"
+                      placeholder="Buscar por nombre…"
+                      [searchable]="true"
+                      [options]="availableToAdd()"
+                      [value]="toolToAdd()"
+                      (valueChange)="onToolToAddChange($event)"
+                    />
+                    <dynadrill-button
+                      variant="secondary"
+                      [disabled]="!toolToAdd()"
+                      (clicked)="addTool()"
+                      >+ Agregar</dynadrill-button
+                    >
+                  </div>
+                }
+
+                @if (esActual && roleName() === 'Supervisor' && canConfirmToolList()) {
+                  <footer class="fcr-detail__actions">
+                    <dynadrill-button variant="primary" (clicked)="confirmToolListComplete()"
+                      >Enviar a documento de inspección</dynadrill-button
+                    >
+                  </footer>
+                }
+
+                @if (ticket()!.tipoOt === 'servicio') {
+                  <!--
+            SERVICIOS: acá termina la preparación de herramientas — no hay
+            documento de inspección real en esta fase (eso ahora se hace por
+            herramienta, más adelante, en 'inspeccion'). El tronco continúa
+            en 'tipo_operador' (operador mecánico que repara e inspecciona),
+            no en 'asignacion'.
+          -->
+                  @if (esActual && roleName() === 'Supervisor' && ticket()!.toolListConfirmed) {
+                    <footer class="fcr-detail__actions">
+                      <dynadrill-button
+                        variant="primary"
+                        (clicked)="
+                          confirmAndAdvance(
+                            'tipo_operador',
+                            'Continuar a Tipo de Operador',
+                            'La preparación de herramientas quedará cerrada. Continúa la reparación e inspección de las herramientas.'
+                          )
+                        "
+                        >Continuar a Tipo de Operador</dynadrill-button
+                      >
+                    </footer>
+                  }
+                } @else {
+                  @if (ticket()!.toolListConfirmed) {
+                    <div class="fcr-detail__inspection">
+                      <div class="fcr-detail__inspection-header">
+                        <dynadrill-text variant="subtitle">Documento de inspección</dynadrill-text>
+                        @if (
+                          esActual &&
+                          roleName() === 'Supervisor' &&
+                          !ticket()!.inspectionDocumentUploaded
+                        ) {
+                          <dynadrill-button
+                            variant="secondary"
+                            size="small"
+                            (clicked)="reopenToolList()"
+                            >Reabrir lista de herramientas</dynadrill-button
+                          >
+                        }
+                      </div>
+                      @if (ticket()!.inspectionDocumentUploaded) {
+                        <div class="fcr-detail__doc-row">
+                          <dynadrill-icon name="file-text" [size]="20" />
+                          <dynadrill-text variant="body">{{
+                            ticket()!.inspectionDocumentNombreArchivo
+                          }}</dynadrill-text>
+                          <dynadrill-icon-button
+                            icon="eye"
+                            tooltip="Ver documento"
+                            (clicked)="previsualizarDocumento('inspectionDocument')"
+                          />
+                        </div>
+                      } @else if (esActual && roleName() === 'Supervisor') {
+                        <dynadrill-upload-zone
+                          [state]="inspectionUploadState()"
+                          (fileSelected)="onInspectionUploaded($event)"
+                        />
+                      } @else {
+                        <dynadrill-text variant="caption"
+                          >Documento de inspección — no subido.</dynadrill-text
+                        >
+                      }
+                    </div>
+
+                    <div class="fcr-detail__inspection">
+                      <dynadrill-text variant="subtitle">Registro de dureza</dynadrill-text>
+                      @if (ticket()!.registroDurezaUploaded) {
+                        <div class="fcr-detail__doc-row">
+                          <dynadrill-icon name="file-text" [size]="20" />
+                          <dynadrill-text variant="body">{{
+                            ticket()!.registroDurezaNombreArchivo
+                          }}</dynadrill-text>
+                          <dynadrill-icon-button
+                            icon="eye"
+                            tooltip="Ver documento"
+                            (clicked)="previsualizarDocumento('registroDureza')"
+                          />
+                          @if (esActual && roleName() === 'Supervisor') {
+                            <dynadrill-icon-button
+                              icon="delete"
+                              tooltip="Quitar archivo"
+                              (clicked)="onEliminarRegistroDureza()"
+                            />
+                          }
+                        </div>
+                      } @else if (esActual && roleName() === 'Supervisor') {
+                        <dynadrill-upload-zone
+                          [state]="durezaUploadState()"
+                          (fileSelected)="onRegistroDurezaUploaded($event)"
+                        />
+                      } @else {
+                        <dynadrill-text variant="caption"
+                          >Registro de dureza — no subido.</dynadrill-text
+                        >
+                      }
+                    </div>
+                    <div class="fcr-detail__inspection">
+                      <dynadrill-text variant="subtitle">Registro firmado de QAQC</dynadrill-text>
+                      @if (ticket()!.registroQaqcUploaded) {
+                        <div class="fcr-detail__doc-row">
+                          <dynadrill-icon name="file-text" [size]="20" />
+                          <dynadrill-text variant="body">{{
+                            ticket()!.registroQaqcNombreArchivo
+                          }}</dynadrill-text>
+                          <dynadrill-icon-button
+                            icon="eye"
+                            tooltip="Ver documento"
+                            (clicked)="previsualizarDocumento('registroQaqc')"
+                          />
+                          @if (esActual && roleName() === 'Supervisor') {
+                            <dynadrill-icon-button
+                              icon="delete"
+                              tooltip="Quitar archivo"
+                              (clicked)="onEliminarRegistroQaqc()"
+                            />
+                          }
+                        </div>
+                      } @else if (esActual && roleName() === 'Supervisor') {
+                        <dynadrill-upload-zone
+                          [state]="qaqcUploadState()"
+                          (fileSelected)="onRegistroQaqcUploaded($event)"
+                        />
+                      } @else {
+                        <dynadrill-text variant="caption"
+                          >Registro firmado de QAQC — no subido.</dynadrill-text
+                        >
+                      }
+                    </div>
+                  }
+
+                  @if (esActual && ticket()!.reviewGuideGenerated) {
+                    @if (!coberturaOk()) {
+                      <dynadrill-text variant="caption">
+                        No se puede asignar operador: la Matriz IPERC del servicio tiene actividades
+                        que HSE aún no aprobó.
+                      </dynadrill-text>
+                    }
+                    <footer class="fcr-detail__actions">
+                      <dynadrill-button
+                        variant="primary"
+                        [disabled]="!coberturaOk()"
+                        (clicked)="
+                          confirmAndAdvance(
+                            'asignacion',
+                            'Continuar a Asignación de Operador',
+                            'La preparación de herramientas quedará cerrada y ya no podrá corregirse. ¿Continuar?'
+                          )
+                        "
+                        >Continuar a Asignación de Operador</dynadrill-button
+                      >
+                    </footer>
+                  }
+                }
+              </section>
+            }
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!-- FASE: Asignación de Operador                -->
+            <!-- ═══════════════════════════════════════════ -->
+            @case ('asignacion') {
+              @if (esActual) {
+                <section class="fcr-detail__section">
+                  <div class="fcr-detail__section-header">
+                    <div class="fcr-detail__section-title">
+                      <dynadrill-icon name="users" [size]="20" />
+                      <dynadrill-text variant="h2">Asignación de Operador</dynadrill-text>
+                    </div>
+                  </div>
+
+                  @if (ticket()!.assignedOperator) {
+                    <dynadrill-text variant="body"
+                      >Operador asignado:
+                      <strong>{{ ticket()!.assignedOperator }}</strong></dynadrill-text
+                    >
+                    <footer class="fcr-detail__actions">
+                      @if (isMyTurn()) {
+                        <dynadrill-button variant="secondary" (clicked)="openAsignarOperador()"
+                          >Reasignar operador</dynadrill-button
+                        >
+                      }
+                      <dynadrill-button
+                        variant="primary"
+                        (clicked)="
+                          confirmAndAdvance(
+                            'reunion_operativa',
+                            'Continuar a Reunión Operativa',
+                            'La asignación de operador quedará cerrada. ¿Continuar?'
+                          )
+                        "
+                        >Continuar a Reunión Operativa</dynadrill-button
+                      >
+                    </footer>
+                  } @else if (isMyTurn()) {
+                    <dynadrill-button variant="primary" (clicked)="openAsignarOperador()"
+                      >Asignar operador</dynadrill-button
+                    >
+                  }
+                </section>
+              } @else if (phase === primeraFaseTriada()) {
+                <ng-container [ngTemplateOutlet]="resumenTriadaTabla" />
+              }
+            }
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!-- FASE: Reunión Operativa                     -->
+            <!-- ═══════════════════════════════════════════ -->
+            @case ('reunion_operativa') {
+              @if (esActual) {
+                <section class="fcr-detail__section">
+                  <div class="fcr-detail__section-header">
+                    <div class="fcr-detail__section-title">
+                      <dynadrill-icon name="calendar" [size]="20" />
+                      <dynadrill-text variant="h2"
+                        >Reunión Operativa y Firma de Acta</dynadrill-text
+                      >
+                    </div>
+                  </div>
+
+                  @if (ticket()!.operationalActaSigned) {
+                    <dynadrill-text variant="body"
+                      >Acta firmada — reunión del
+                      {{ formatDate(ticket()!.operationalMeetingDate) }}.</dynadrill-text
+                    >
+                    @if (!ptwFirmadoOk()) {
+                      <dynadrill-text variant="caption">
+                        @if (!coberturaOk()) {
+                          No se puede pasar a Ejecución de Campo: la Matriz IPERC del servicio tiene
+                          actividades sin aprobar.
+                        } @else if (qhseVinculo()?.ptw; as ptw) {
+                          No se puede pasar a Ejecución de Campo: el PTW {{ ptw.code }} aún no tiene
+                          los documentos validados por QHSE (HSE-SITIO-001).
+                        } @else {
+                          No se puede pasar a Ejecución de Campo: todavía no se abrió el PTW /
+                          Recibimiento de Sitio en QHSE.
+                        }
+                      </dynadrill-text>
+                    }
+                    <footer class="fcr-detail__actions">
+                      <dynadrill-button
+                        variant="primary"
+                        [disabled]="!ptwFirmadoOk()"
+                        (clicked)="
+                          confirmAndAdvance(
+                            'ejecucion_operativa',
+                            'Continuar a Ejecución de Campo',
+                            'La reunión operativa quedará cerrada. ¿Continuar?'
+                          )
+                        "
+                        >Continuar a Ejecución de Campo</dynadrill-button
+                      >
+                    </footer>
+                  } @else if (isMyTurn()) {
+                    <dynadrill-button variant="primary" (clicked)="firmarActa()"
+                      >Registrar reunión y firmar acta</dynadrill-button
+                    >
+                  }
+                </section>
+              } @else if (phase === primeraFaseTriada()) {
+                <ng-container [ngTemplateOutlet]="resumenTriadaTabla" />
+              }
+            }
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!-- FASE: Ejecución de Campo                    -->
+            <!-- ═══════════════════════════════════════════ -->
+            @case ('ejecucion_operativa') {
+              <section class="fcr-detail__section">
+                <div class="fcr-detail__section-header">
+                  <div class="fcr-detail__section-title">
+                    <dynadrill-icon name="clock" [size]="20" />
+                    <dynadrill-text variant="h2">Ejecución del Trabajo FCR</dynadrill-text>
+                  </div>
+                </div>
+                <dynadrill-text variant="caption"
+                  >Bitácora horaria y uso de herramientas — alimentan el Reporte de Trabajo y el
+                  Reporte de Herramientas al finalizar.</dynadrill-text
+                >
+                @if (hayRangoServicio()) {
+                  <dynadrill-banner
+                    variant="info"
+                    [message]="
+                      'Servicio del Pedido: ' +
+                      textoRangoServicio() +
+                      '. Las actividades y el uso de herramientas se registran dentro de estas fechas.'
+                    "
+                  />
+                }
+
+                @if (ticket()!.workReportUploaded) {
+                  <dynadrill-text variant="body"
+                    >Reportes de campo subidos, pendientes de revisión del
+                    Supervisor.</dynadrill-text
+                  >
+                } @else {
+                  @if (isMyTurn() && esActual) {
+                    <div class="fcr-detail__log-form">
+                      <dynadrill-text variant="subtitle"
+                        >Carga masiva de actividades</dynadrill-text
+                      >
+                      <dynadrill-text variant="caption"
+                        >Descarga la plantilla, complétala con las jornadas del período y súbela
+                        para registrarlas todas de una vez.</dynadrill-text
+                      >
+                      <div class="fcr-detail__log-form-row">
+                        <dynadrill-button
+                          variant="secondary"
+                          size="small"
+                          (clicked)="descargarPlantillaActividades()"
+                          >Descargar plantilla</dynadrill-button
+                        >
+                        <dynadrill-upload-zone (fileSelected)="onActividadesFileSelected($event)" />
+                      </div>
+                    </div>
+
+                    <div class="fcr-detail__log-form">
+                      <dynadrill-text variant="subtitle">Registrar actividad</dynadrill-text>
+                      <!-- La fecha va en su propia fila: dentro de la fila de horas (flex: 1 por hijo) dejaba los selects de HH/MM demasiado angostos. -->
+                      <div class="fcr-detail__log-form-row">
+                        <div class="fcr-detail__date-field">
+                          <dynadrill-datetime-picker
+                            label="Fecha"
+                            [value]="activityDate()"
+                            [disabledDate]="diaFueraDelServicio"
+                            (valueChange)="onActivityDateChange($event)"
+                          />
+                          @if (activityFueraDelServicio()) {
+                            <dynadrill-text
+                              variant="caption"
+                              class="fcr-detail__stock-warning"
+                              role="alert"
+                              >⚠ La fecha debe estar dentro del servicio del Pedido ({{
+                                textoRangoServicio()
+                              }}).</dynadrill-text
+                            >
+                          }
+                        </div>
+                      </div>
+                      <div class="fcr-detail__log-form-row">
+                        <div class="fcr-detail__time-field">
+                          <dynadrill-text variant="caption">Hora inicio</dynadrill-text>
+                          <div class="fcr-detail__time-field-row">
+                            <dynadrill-select
+                              placeholder="HH"
+                              [options]="hourOptions"
+                              [value]="activityStartHour()"
+                              (valueChange)="onActivityStartHourChange($any($event))"
+                            />
+                            <dynadrill-select
+                              placeholder="MM"
+                              [options]="minuteOptions"
+                              [value]="activityStartMinute()"
+                              (valueChange)="onActivityStartMinuteChange($any($event))"
+                            />
+                          </div>
+                        </div>
+                        <div class="fcr-detail__time-field">
+                          <dynadrill-text variant="caption">Hora fin</dynadrill-text>
+                          <div class="fcr-detail__time-field-row">
+                            <dynadrill-select
+                              placeholder="HH"
+                              [options]="hourOptions"
+                              [value]="activityEndHour()"
+                              (valueChange)="onActivityEndHourChange($any($event))"
+                            />
+                            <dynadrill-select
+                              placeholder="MM"
+                              [options]="minuteOptions"
+                              [value]="activityEndMinute()"
+                              (valueChange)="onActivityEndMinuteChange($any($event))"
+                            />
+                          </div>
+                        </div>
+                        <div class="fcr-detail__log-duration">
+                          <dynadrill-text variant="caption">Duración calculada</dynadrill-text>
+                          <dynadrill-text variant="body">{{
+                            activityDuration() !== null ? activityDuration() + ' h' : '—'
+                          }}</dynadrill-text>
+                        </div>
+                      </div>
+                      <dynadrill-textarea
+                        label="Detalle de la actividad"
+                        placeholder="Describa la actividad realizada…"
+                        [rows]="2"
+                        [value]="activityDetail()"
+                        (valueChange)="activityDetail.set($event)"
+                      />
+                      <dynadrill-button
+                        variant="secondary"
+                        size="small"
+                        [disabled]="!canAddActivity()"
+                        (clicked)="addActivityLogEntry()"
+                        >+ Agregar actividad</dynadrill-button
+                      >
+                    </div>
+                  }
+
+                  @if (bitacoraDias().length > 0) {
+                    <div class="fcr-detail__table-scroll">
+                      <table class="fcr-detail__table fcr-detail__table--por-dia">
+                        <caption class="fcr-detail__sr-only">
+                          Bitácora de actividades agrupada por día, con su estado de envío a
+                          Facturación
+                        </caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">Inicio</th>
+                            <th scope="col">Fin</th>
+                            <th scope="col">Horas</th>
+                            <th scope="col">Detalle</th>
+                            <th scope="col"><span class="fcr-detail__sr-only">Acciones</span></th>
+                          </tr>
+                        </thead>
+                        @for (dia of bitacoraDias(); track dia.fecha) {
+                          <tbody>
+                            <tr class="fcr-detail__day-row">
+                              <th scope="rowgroup" colspan="2">{{ fechaDia(dia.fecha) }}</th>
+                              <td>{{ dia.totalHoras }} h</td>
+                              <td>
+                                @switch (estadoDia(dia.envio)) {
+                                  @case ('corregido_facturacion') {
+                                    <span
+                                      class="fcr-detail__day-status fcr-detail__day-status--corregido"
+                                    >
+                                      <dynadrill-icon name="edit" [size]="14" />
+                                      Corregido por Facturación ·
+                                      {{ fechaHoraEnvio(dia.envio!.modificadoAt) }}
+                                    </span>
+                                  }
+                                  @case ('enviado') {
+                                    <span
+                                      class="fcr-detail__day-status fcr-detail__day-status--enviado"
+                                    >
+                                      <dynadrill-icon name="success" [size]="14" />
+                                      Enviado a Facturación ·
+                                      {{ fechaHoraEnvio(dia.envio!.enviadoAt) }}
+                                    </span>
+                                  }
+                                  @default {
+                                    <span class="fcr-detail__day-status">
+                                      <dynadrill-icon name="clock" [size]="14" />
+                                      Pendiente de envío
+                                    </span>
+                                  }
+                                }
+                              </td>
+                              <td>
+                                @if (isMyTurn() && esActual && !dia.envio && ticket()!.pedidoCode) {
+                                  <dynadrill-icon-button
+                                    icon="send"
+                                    [tooltip]="'Enviar ' + fechaDia(dia.fecha) + ' a Facturación'"
+                                    (clicked)="enviarDiaBitacora(dia)"
+                                  />
+                                }
+                              </td>
+                            </tr>
+                            @for (entry of dia.actividades; track entry.id) {
+                              <tr>
+                                <td>{{ entry.startTime }}</td>
+                                <td>{{ entry.endTime }}</td>
+                                <td>{{ entry.durationHours }}</td>
+                                <td>{{ entry.detail }}</td>
+                                <td>
+                                  @if (isMyTurn() && esActual) {
+                                    <dynadrill-icon-button
+                                      class="fcr-detail__tool-delete"
+                                      icon="delete"
+                                      tooltip="Quitar actividad"
+                                      (clicked)="removeActivityLogEntry(entry.id)"
+                                    />
+                                  }
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        }
+                      </table>
+                    </div>
+                  }
+
+                  @if (isMyTurn() && esActual) {
+                    <div class="fcr-detail__log-form">
+                      <dynadrill-text variant="subtitle"
+                        >Registrar uso de herramienta</dynadrill-text
+                      >
+                      <div class="fcr-detail__log-form-row">
+                        <dynadrill-select
+                          label="Herramienta"
+                          placeholder="Seleccionar…"
+                          [options]="usageToolOptions()"
+                          [value]="usageToolId()"
+                          (valueChange)="onUsageToolChange($event)"
+                        />
+                        <div class="fcr-detail__date-field">
+                          <dynadrill-datetime-picker
+                            label="Fecha"
+                            [value]="usageDate()"
+                            [disabledDate]="diaFueraDelServicio"
+                            (valueChange)="onUsageDateChange($event)"
+                          />
+                          @if (usageFueraDelServicio()) {
+                            <dynadrill-text
+                              variant="caption"
+                              class="fcr-detail__stock-warning"
+                              role="alert"
+                              >⚠ La fecha debe estar dentro del servicio del Pedido ({{
+                                textoRangoServicio()
+                              }}).</dynadrill-text
+                            >
+                          }
+                        </div>
+                        <dynadrill-select
+                          label="Estado del día"
+                          placeholder="Seleccionar…"
+                          [options]="usageStatusOptions"
+                          [value]="usageStatus()"
+                          (valueChange)="onUsageStatusChange($event)"
+                        />
+                      </div>
+                      <div class="fcr-detail__log-form-row">
+                        @if (ticket()!.tipoOt === 'servicio') {
+                          <dynadrill-select
+                            label="Tipo de trabajo"
+                            placeholder="Selecciona"
+                            [options]="tipoTrabajoOptions"
+                            [value]="usageTipoTrabajo()"
+                            (valueChange)="usageTipoTrabajo.set($any($event))"
+                          />
+                        } @else {
+                          <dynadrill-select
+                            label="Tipo de completación"
+                            placeholder="Selecciona"
+                            [options]="tipoCompletacionOptions"
+                            [value]="usageTipoCompletacion()"
+                            (valueChange)="usageTipoCompletacion.set($any($event))"
+                          />
+                        }
+                        <dynadrill-select
+                          label="Tipo de picker"
+                          placeholder="Selecciona"
+                          [options]="tipoPickerOptions"
+                          [value]="usageTipoPicker()"
+                          (valueChange)="usageTipoPicker.set($any($event))"
+                        />
+                        <dynadrill-input
+                          label="Presión"
+                          type="number"
+                          placeholder="0"
+                          [value]="usagePresion()"
+                          (valueChange)="usagePresion.set($event)"
+                        />
+                        <dynadrill-input
+                          label="Peso"
+                          type="number"
+                          placeholder="0"
+                          [value]="usagePeso()"
+                          (valueChange)="usagePeso.set($event)"
+                        />
+                      </div>
+                      <dynadrill-textarea
+                        label="Observación (solo si hay novedad)"
+                        placeholder="Detalle cualquier novedad durante el uso…"
+                        [rows]="2"
+                        [value]="usageObservacion()"
+                        (valueChange)="usageObservacion.set($event)"
+                      />
+                      <dynadrill-button
+                        variant="secondary"
+                        size="small"
+                        [disabled]="!canAddToolUsage()"
+                        (clicked)="addToolUsageEntry()"
+                        >+ Registrar uso</dynadrill-button
+                      >
+                    </div>
+                  }
+
+                  @if (sortedToolUsageLog().length > 0) {
+                    <div class="fcr-detail__table-scroll">
+                      <table class="fcr-detail__table">
+                        <thead>
+                          <tr>
+                            <th>Herramienta</th>
+                            <th>Estado</th>
+                            <th>
+                              {{
+                                ticket()!.tipoOt === 'servicio'
+                                  ? 'Tipo de trabajo'
+                                  : 'Tipo de completación'
+                              }}
+                            </th>
+                            <th>Picker</th>
+                            <th>Presión</th>
+                            <th>Peso</th>
+                            <th>Observación</th>
+                            <th></th>
+                          </tr>
+                        </thead>
+                        @for (dia of toolUsagePorDia(); track dia.fecha) {
+                          <tbody>
+                            <tr class="fcr-detail__day-row">
+                              <th scope="rowgroup" colspan="8">{{ fechaDia(dia.fecha) }}</th>
+                            </tr>
+                            @for (entry of dia.items; track entry.id) {
+                              <tr>
+                                <td>{{ entry.toolName }}</td>
+                                <td>{{ toolDailyStatusLabel(entry.status) }}</td>
+                                <td>
+                                  {{
+                                    entry.tipoTrabajo
+                                      ? tipoTrabajoLabel(entry.tipoTrabajo)
+                                      : entry.tipoCompletacion
+                                        ? tipoCompletacionLabel(entry.tipoCompletacion)
+                                        : '—'
+                                  }}
+                                </td>
+                                <td>{{ entry.tipoPicker ?? '—' }}</td>
+                                <td>{{ entry.presion ?? '—' }}</td>
+                                <td>{{ entry.peso ?? '—' }}</td>
+                                <td>{{ entry.observacion ?? '—' }}</td>
+                                <td>
+                                  @if (isMyTurn() && esActual) {
+                                    <dynadrill-icon-button
+                                      class="fcr-detail__tool-delete"
+                                      icon="delete"
+                                      tooltip="Quitar registro"
+                                      (clicked)="removeToolUsageEntry(entry.id)"
+                                    />
+                                  }
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        }
+                      </table>
+                    </div>
+                  }
+
+                  @if (isMyTurn() && esActual) {
+                    <dynadrill-button
+                      variant="secondary"
+                      size="small"
+                      (clicked)="togglePickerUsageListConfirmed()"
+                    >
+                      {{
+                        ticket()!.pickerUsageListConfirmed
+                          ? 'Reabrir listado'
+                          : 'Declarar listado completo'
+                      }}
+                    </dynadrill-button>
+                  }
+
+                  @if (isMyTurn() && esActual) {
+                    <footer class="fcr-detail__actions">
+                      <dynadrill-button
+                        variant="primary"
+                        [disabled]="
+                          sortedActivityLog().length === 0 || !ticket()!.pickerUsageListConfirmed
+                        "
+                        (clicked)="submitFieldReports()"
+                        >Finalizar ejecución y subir reportes</dynadrill-button
+                      >
+                    </footer>
+                    @if (sortedActivityLog().length === 0) {
+                      <dynadrill-text variant="caption"
+                        >Registre al menos una actividad en la bitácora antes de
+                        finalizar.</dynadrill-text
+                      >
+                    } @else if (!ticket()!.pickerUsageListConfirmed) {
+                      <dynadrill-text variant="caption"
+                        >Declare el listado completo antes de finalizar.</dynadrill-text
+                      >
+                    }
+                  }
+                }
+              </section>
+            }
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!-- FASE: Revisión de Reportes                  -->
+            <!-- ═══════════════════════════════════════════ -->
+            @case ('revision_reportes') {
+              <section class="fcr-detail__section">
+                <div class="fcr-detail__section-header">
+                  <div class="fcr-detail__section-title">
+                    <dynadrill-icon name="file-text" [size]="20" />
+                    <dynadrill-text variant="h2">Revisión de Reportes</dynadrill-text>
+                  </div>
+                </div>
+                <dynadrill-text variant="caption"
+                  >Documentos subidos por el Operador</dynadrill-text
+                >
+
+                <div class="fcr-detail__review-grid">
+                  <div class="fcr-detail__docs">
+                    <dynadrill-text variant="subtitle">Documentos</dynadrill-text>
+                    @if (ticket()!.workReportUploaded) {
+                      <div class="fcr-detail__doc-row">
+                        <dynadrill-icon name="file-text" [size]="16" />
+                        <dynadrill-text variant="body">Reporte de trabajo</dynadrill-text>
+                        <dynadrill-button
+                          variant="secondary"
+                          size="small"
+                          (clicked)="openReporteJob()"
+                          >Ver PDF</dynadrill-button
+                        >
+                      </div>
+                    }
+                    @if (ticket()!.toolReportUploaded) {
+                      <div class="fcr-detail__doc-row">
+                        <dynadrill-icon name="file-text" [size]="16" />
+                        <dynadrill-text variant="body">Reporte de herramientas</dynadrill-text>
+                        <dynadrill-button
+                          variant="secondary"
+                          size="small"
+                          (clicked)="openReporteHerramientas()"
+                          >Ver PDF</dynadrill-button
+                        >
+                      </div>
+                    }
+                  </div>
+
+                  @if (ticket()!.observations.length > 0) {
+                    <div class="fcr-detail__observations">
+                      <dynadrill-text variant="subtitle">Historial de observaciones</dynadrill-text>
+                      @for (obs of ticket()!.observations; track obs.id) {
+                        <div class="fcr-detail__observation">
+                          <strong>{{ obs.author }} · {{ obs.role }}</strong>
+                          <span class="fcr-detail__observation-date">{{ obs.date }}</span>
+                          <p>{{ obs.message }}</p>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+
+                @if (isMyTurn() && esActual) {
+                  <dynadrill-approval-actions
+                    [decision]="reportsDecision()"
+                    consequenceApprove="El ticket continúa a Control de Retorno de Herramientas."
+                    consequenceReject="Se notifica al Operador para corregir los reportes."
+                    (decisionChange)="onReportsDecisionChange($event)"
+                  />
+
+                  @if (reportsDecision() === 'rejected') {
+                    <dynadrill-textarea
+                      label="Observaciones para el Operador"
+                      placeholder="Detalle qué debe corregirse…"
+                      [rows]="3"
+                      [value]="rejectionNote()"
+                      (valueChange)="rejectionNote.set($event)"
+                    />
+                    <dynadrill-button
+                      variant="primary"
+                      [disabled]="!rejectionNote().trim()"
+                      (clicked)="confirmRejection()"
+                      >Enviar corrección</dynadrill-button
+                    >
+                  }
+                }
+              </section>
+            }
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!-- FASE: Control de Retorno                    -->
+            <!-- ═══════════════════════════════════════════ -->
+            @case ('control_retorno') {
+              <section class="fcr-detail__section">
+                <div class="fcr-detail__section-header">
+                  <div class="fcr-detail__section-title">
+                    <dynadrill-icon name="box" [size]="20" />
+                    <dynadrill-text variant="h2">Control de Retorno de Herramientas</dynadrill-text>
+                  </div>
+                </div>
+                <dynadrill-text variant="caption"
+                  >Conciliación contra la Guía de Movimiento Local de Envío y
+                  Retorno</dynadrill-text
+                >
+
+                <div class="fcr-detail__table-scroll">
+                  <table class="fcr-detail__table">
+                    <thead>
+                      <tr>
+                        <th>Herramienta</th>
+                        <th>Estado</th>
+                        <th>Motivo si falta</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (tool of ticket()!.tools; track tool.id) {
+                        <tr>
+                          <td>{{ tool.name }}</td>
+                          <td>
+                            <dynadrill-tag
+                              [label]="toolStatusLabel(tool.status)"
+                              [variant]="
+                                tool.status === 'devuelta'
+                                  ? 'success'
+                                  : tool.status === 'faltante'
+                                    ? 'warning'
+                                    : 'neutral'
+                              "
+                            />
+                          </td>
+                          <td>{{ tool.missingReason ?? '—' }}</td>
+                          <td>
+                            @if (esActual && isMyTurn() && tool.status === 'recibida') {
+                              <dynadrill-button
+                                variant="secondary"
+                                size="small"
+                                (clicked)="markToolReturned(tool.id)"
+                                >Devuelta</dynadrill-button
+                              >
+                            }
+                            @if (
+                              esActual &&
+                              roleName() === 'Bodeguero' &&
+                              tool.status === 'faltante' &&
+                              !ticket()!.bodegaExitGuideGenerated &&
+                              tool.missingReason?.startsWith('Venta de herramienta complementaria')
+                            ) {
+                              <dynadrill-button
+                                variant="secondary"
+                                size="small"
+                                (clicked)="openGuiaSalidaBodega(tool)"
+                                >Generar Guía de Salida</dynadrill-button
+                              >
+                            }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+
+                @if (esActual && isMyTurn() && pendingReturnTools().length > 0) {
+                  <dynadrill-button variant="secondary" (clicked)="openHerramientaFaltante()"
+                    >Registrar herramienta faltante</dynadrill-button
+                  >
+                }
+
+                @if (esActual && isMyTurn() && toolReturnControlComplete()) {
+                  <footer class="fcr-detail__actions">
+                    <dynadrill-button
+                      variant="primary"
+                      (clicked)="
+                        confirmAndAdvance(
+                          'cierre',
+                          'Continuar a Cierre',
+                          'El control de retorno de herramientas quedará cerrado. ¿Continuar?'
+                        )
+                      "
+                      >Continuar a Cierre</dynadrill-button
+                    >
+                  </footer>
+                }
+              </section>
+            }
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!-- FASE: Cierre                                -->
+            <!-- ═══════════════════════════════════════════ -->
+            @case ('cierre') {
+              <section class="fcr-detail__section">
+                <div class="fcr-detail__section-header">
+                  <div class="fcr-detail__section-title">
+                    <dynadrill-icon name="success" [size]="20" />
+                    <dynadrill-text variant="h2">Cierre de Ticket y Encuesta</dynadrill-text>
+                  </div>
+                </div>
+                <dynadrill-text variant="caption"
+                  >Exporte el resumen del ticket o descargue la encuesta de
+                  satisfacción.</dynadrill-text
+                >
+
+                <!-- Solo exportables: el detalle (checklists, documentos, herramientas, observaciones) ya está en cada fase y en el PDF del resumen. -->
+                <footer class="fcr-detail__actions">
+                  <dynadrill-button variant="secondary" (clicked)="openReporteCierre()"
+                    >Exportar resumen a PDF</dynadrill-button
+                  >
+                  <dynadrill-button variant="secondary" (clicked)="descargarEncuesta()"
+                    >Descargar encuesta de satisfacción (PDF)</dynadrill-button
+                  >
+                </footer>
+
+                @if (puedeVerPrefactura() && esActual) {
+                  <app-ticket-prefactura-firma linea="fcr" [ticketId]="ticket()!.id" />
+                }
+
+                @if (ticket()!.surveySent) {
+                  <dynadrill-banner
+                    variant="info"
+                    message="Ticket cerrado. Encuesta de satisfacción enviada al cliente."
+                  />
+                } @else if (isMyTurn() && esActual) {
+                  @if (faltaActaEntrega()) {
+                    <dynadrill-banner
+                      variant="warning"
+                      message="Carga el Acta de Entrega de Locación (DYN-PMP-RE-027) firmada por el cliente en «Documentos QHSE» antes de cerrar el ticket."
+                    />
+                  }
+                  <dynadrill-button variant="success" (clicked)="openCierreTicket()"
+                    >Cerrar ticket</dynadrill-button
+                  >
+                }
+              </section>
+            }
           }
-        } @else {
-          <dynadrill-text variant="body">
-            Tipo de operador: <strong>{{ ticket()!.tipoOperador ? tipoOperadorLabels[ticket()!.tipoOperador!] : '—' }}</strong>
-            — Asignado: <strong>{{ ticket()!.assignedMechanicOperator || '—' }}</strong>
-          </dynadrill-text>
-        }
-      </section>
-    }
+        </section>
+      }
 
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- FASE: Formulario de Inspección (SERVICIOS)  -->
-    <!-- ═══════════════════════════════════════════ -->
-    @case ('inspeccion') {
-      <section class="fcr-detail__section">
-        <div class="fcr-detail__section-header">
-          <div class="fcr-detail__section-title">
-            <dynadrill-icon name="file-text" [size]="20" />
-            <dynadrill-text variant="h2">Formulario de inspección</dynadrill-text>
-          </div>
-        </div>
-        <dynadrill-text variant="caption">Completa el checklist de cada herramienta y adjunta los 3 documentos requeridos antes de enviar a Supervisor.</dynadrill-text>
-
-        <dynadrill-text variant="subtitle">Herramientas a inspeccionar</dynadrill-text>
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <!-- Checklists + documentos de inspección (SERVICIOS) — solo    -->
+      <!-- lectura, reusado en aprobacion_supervisor_operaciones (para -->
+      <!-- que el Supervisor FCR revise antes de aprobar) y en         -->
+      <!-- asignacion (info de referencia para el operador de -->
+      <!-- campo asignado).                                            -->
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <ng-template #checklistDocumentosReadOnly>
+        <dynadrill-text variant="subtitle">Checklists de inspección por herramienta</dynadrill-text>
         <div class="fcr-detail__table-scroll">
           <table class="fcr-detail__table">
             <thead>
-              <tr><th>Herramienta</th><th>Checklist</th><th></th></tr>
+              <tr>
+                <th>Herramienta</th>
+                <th>Checklist</th>
+                <th></th>
+              </tr>
             </thead>
             <tbody>
               @for (tool of ticket()!.tools; track tool.id) {
@@ -302,16 +2199,22 @@
                   <td>{{ tool.name }}</td>
                   <td>
                     @if (toolInspectionEstado(tool.id); as estado) {
-                      <dynadrill-tag [label]="estado" [variant]="estado === 'enviado' ? 'success' : 'warning'" />
+                      <dynadrill-tag
+                        [label]="estado"
+                        [variant]="estado === 'enviado' ? 'success' : 'warning'"
+                      />
                     } @else {
                       <dynadrill-tag label="Sin iniciar" variant="warning" />
                     }
                   </td>
                   <td>
                     @if (tool.articuloId) {
-                      <dynadrill-button variant="secondary" size="small" (clicked)="openChecklistHerramienta(tool)">{{ toolChecklistButtonLabel(tool.id) }}</dynadrill-button>
-                    } @else {
-                      <dynadrill-text variant="caption">Sin artículo de inventario vinculado — no se puede completar el checklist.</dynadrill-text>
+                      <dynadrill-button
+                        variant="secondary"
+                        size="small"
+                        (clicked)="openChecklistHerramienta(tool)"
+                        >{{ toolChecklistButtonLabel(tool.id) }}</dynadrill-button
+                      >
                     }
                   </td>
                 </tr>
@@ -320,1032 +2223,100 @@
           </table>
         </div>
 
-        @if (esActual && documentosServicioPendientes().length > 0) {
-          <dynadrill-button variant="secondary" size="small" [disabled]="simulandoCargaDocumentos()" (clicked)="simularCargaRapidaDocumentos()">
-            Carga rápida (simular)
-          </dynadrill-button>
-        }
-
-        <div class="fcr-detail__inspection">
-          <dynadrill-text variant="subtitle">Formulario de inspección externo</dynadrill-text>
+        <dynadrill-text variant="subtitle">Documentos de inspección</dynadrill-text>
+        <div class="fcr-detail__docs">
           @if (ticket()!.formularioInspeccionExternoUploaded) {
             <div class="fcr-detail__doc-row">
-              <dynadrill-icon name="file-text" [size]="20" />
-              <dynadrill-text variant="body">{{ ticket()!.formularioInspeccionExternoNombreArchivo }}</dynadrill-text>
-              <dynadrill-icon-button icon="eye" tooltip="Ver documento" (clicked)="previsualizarDocumento('formularioInspeccionExterno')" />
-              @if (esActual) {
-                <dynadrill-icon-button icon="delete" tooltip="Quitar archivo" (clicked)="onEliminarInspeccionServicio('formularioExterno')" />
-              }
+              <dynadrill-icon name="file-text" [size]="16" />
+              <dynadrill-text variant="body">{{
+                ticket()!.formularioInspeccionExternoNombreArchivo
+              }}</dynadrill-text>
+              <dynadrill-icon-button
+                icon="eye"
+                tooltip="Ver documento"
+                (clicked)="previsualizarDocumento('formularioInspeccionExterno')"
+              />
             </div>
-          } @else if (esActual) {
-            <dynadrill-upload-zone [state]="formularioExternoUploadState()" (fileSelected)="onSubirInspeccionServicio('formularioExterno', $event)" />
           } @else {
-            <dynadrill-text variant="caption">Formulario de inspección externo — no subido.</dynadrill-text>
+            <dynadrill-text variant="caption"
+              >Formulario de inspección externo — no subido.</dynadrill-text
+            >
           }
-        </div>
-
-        <div class="fcr-detail__inspection">
-          <dynadrill-text variant="subtitle">Formato de dimensionamiento</dynadrill-text>
           @if (ticket()!.formatoDimensionamientoServicioUploaded) {
             <div class="fcr-detail__doc-row">
-              <dynadrill-icon name="file-text" [size]="20" />
-              <dynadrill-text variant="body">{{ ticket()!.formatoDimensionamientoServicioNombreArchivo }}</dynadrill-text>
-              <dynadrill-icon-button icon="eye" tooltip="Ver documento" (clicked)="previsualizarDocumento('formatoDimensionamientoServicio')" />
-              @if (esActual) {
-                <dynadrill-icon-button icon="delete" tooltip="Quitar archivo" (clicked)="onEliminarInspeccionServicio('dimensionamiento')" />
-              }
+              <dynadrill-icon name="file-text" [size]="16" />
+              <dynadrill-text variant="body">{{
+                ticket()!.formatoDimensionamientoServicioNombreArchivo
+              }}</dynadrill-text>
+              <dynadrill-icon-button
+                icon="eye"
+                tooltip="Ver documento"
+                (clicked)="previsualizarDocumento('formatoDimensionamientoServicio')"
+              />
             </div>
-          } @else if (esActual) {
-            <dynadrill-upload-zone [state]="dimensionamientoServicioUploadState()" (fileSelected)="onSubirInspeccionServicio('dimensionamiento', $event)" />
           } @else {
-            <dynadrill-text variant="caption">Formato de dimensionamiento — no subido.</dynadrill-text>
+            <dynadrill-text variant="caption"
+              >Formato de dimensionamiento — no subido.</dynadrill-text
+            >
           }
-        </div>
-
-        <div class="fcr-detail__inspection">
-          <dynadrill-text variant="subtitle">Formato de Dureza</dynadrill-text>
           @if (ticket()!.formatoDurezaServicioUploaded) {
             <div class="fcr-detail__doc-row">
-              <dynadrill-icon name="file-text" [size]="20" />
-              <dynadrill-text variant="body">{{ ticket()!.formatoDurezaServicioNombreArchivo }}</dynadrill-text>
-              <dynadrill-icon-button icon="eye" tooltip="Ver documento" (clicked)="previsualizarDocumento('formatoDurezaServicio')" />
-              @if (esActual) {
-                <dynadrill-icon-button icon="delete" tooltip="Quitar archivo" (clicked)="onEliminarInspeccionServicio('dureza')" />
-              }
+              <dynadrill-icon name="file-text" [size]="16" />
+              <dynadrill-text variant="body">{{
+                ticket()!.formatoDurezaServicioNombreArchivo
+              }}</dynadrill-text>
+              <dynadrill-icon-button
+                icon="eye"
+                tooltip="Ver documento"
+                (clicked)="previsualizarDocumento('formatoDurezaServicio')"
+              />
             </div>
-          } @else if (esActual) {
-            <dynadrill-upload-zone [state]="durezaServicioUploadState()" (fileSelected)="onSubirInspeccionServicio('dureza', $event)" />
           } @else {
             <dynadrill-text variant="caption">Formato de Dureza — no subido.</dynadrill-text>
           }
         </div>
+      </ng-template>
 
-        @if (esActual && !allChecklistsEnviados()) {
-          <dynadrill-banner variant="warning" [message]="'Falta enviar el checklist de inspección de: ' + checklistsPendientesNombres().join(', ')" />
-        }
-
-        @if (esActual && isMyTurn()) {
-          <footer class="fcr-detail__actions">
-            <dynadrill-button variant="primary" [disabled]="!puedeEnviarInspeccionServicio()" (clicked)="confirmEnviarInspeccionServicio()">Enviar a Supervisor</dynadrill-button>
-          </footer>
-        }
-      </section>
-    }
-
-    <!-- ═══════════════════════════════════════════════════ -->
-    <!-- FASE: Aprobación de Supervisor de Operaciones       -->
-    <!-- ═══════════════════════════════════════════════════ -->
-    @case ('aprobacion_supervisor_operaciones') {
-      @if (esActual) {
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <!-- Resumen compacto de Aprobación / Asignación / Reunión — se   -->
+      <!-- muestra una sola vez, en la posición de la primera de las 3  -->
+      <!-- fases que ya haya quedado atrás (ver `primeraFaseTriada`).   -->
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <ng-template #resumenTriadaTabla>
         <section class="fcr-detail__section">
           <div class="fcr-detail__section-header">
             <div class="fcr-detail__section-title">
               <dynadrill-icon name="check" [size]="20" />
-              <dynadrill-text variant="h2">Aprobación de Supervisor de Operaciones</dynadrill-text>
+              <dynadrill-text variant="h2"
+                >Aprobación, Asignación y Reunión Operativa</dynadrill-text
+              >
             </div>
           </div>
-          <dynadrill-text variant="caption">Revisa los documentos de inspección antes de aprobar o rechazar.</dynadrill-text>
-
-          @if (ticket()!.observations.length > 0) {
-            <div class="fcr-detail__observations">
-              @for (obs of ticket()!.observations; track obs.id) {
-                <div class="fcr-detail__observation">
-                  <strong>{{ obs.author }} · {{ obs.role }}</strong>
-                  <span class="fcr-detail__observation-date">{{ obs.date }}</span>
-                  <p>{{ obs.message }}</p>
-                </div>
-              }
-            </div>
-          }
-
-          @if (isMyTurn()) {
-            <dynadrill-approval-actions
-              [decision]="inspeccionDecision()"
-              consequenceApprove="El ticket continúa a Asignación de Operador."
-              consequenceReject="Se notifica al Operador para corregir la inspección."
-              (decisionChange)="onInspeccionDecisionChange($event)"
-            />
-
-            @if (inspeccionDecision() === 'rejected') {
-              <dynadrill-textarea
-                label="Observaciones para el Operador"
-                placeholder="Detalle qué debe corregirse…"
-                [rows]="3"
-                [value]="inspeccionRejectionNote()"
-                (valueChange)="inspeccionRejectionNote.set($event)"
-              />
-              <dynadrill-button variant="primary" [disabled]="!inspeccionRejectionNote().trim()" (clicked)="confirmInspeccionRejection()">Enviar corrección</dynadrill-button>
-            }
-          }
-        </section>
-      } @else if (phase === primeraFaseTriada()) {
-        <ng-container [ngTemplateOutlet]="resumenTriadaTabla" />
-      }
-    }
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- FASE: Validación                            -->
-    <!-- ═══════════════════════════════════════════ -->
-    @case ('revision_inicial') {
-      <section class="fcr-detail__section">
-        <div class="fcr-detail__section-header">
-          <div class="fcr-detail__section-title">
-            <dynadrill-icon name="file-text" [size]="20" />
-            <dynadrill-text variant="h2">Validación de la información técnica</dynadrill-text>
-          </div>
-        </div>
-        <dynadrill-text variant="caption">
-          Propuesta V{{ ticket()!.proposalVersion }} — revise información, propuesta técnica y apartado de herramientas antes de aprobar.
-        </dynadrill-text>
-
-        @if (pedido(); as p) {
-          <div class="dyn-pedido-card">
-            <div class="dyn-pedido-card__header">
-              <div class="dyn-pedido-card__title">
-                <dynadrill-icon name="box" [size]="22" />
-                <dynadrill-text variant="subtitle">Pedido {{ p.code }}</dynadrill-text>
-              </div>
-              <div class="dyn-pedido-card__tags">
-                @for (label of pedidoTipoServicioLabels(); track label) {
-                  <dynadrill-tag [label]="label" variant="info" />
-                }
-              </div>
-            </div>
-
-            <app-pedido-datos [pedido]="p" />
-
-            <div class="dyn-pedido-card__items">
-              <dynadrill-text variant="caption" class="dyn-pedido-card__items-label">Ítems estimados</dynadrill-text>
-              <app-pedido-items [items]="pedidoItems()" />
-            </div>
-          </div>
-        } @else {
-          <dynadrill-text variant="caption">Este ticket no tiene un Pedido de Facturación vinculado.</dynadrill-text>
-        }
-
-        @if (ticket()!.observations.length > 0) {
-          <div class="fcr-detail__observations">
-            @for (obs of ticket()!.observations; track obs.id) {
-              <div class="fcr-detail__observation">
-                <strong>{{ obs.author }} · {{ obs.role }}</strong>
-                <span class="fcr-detail__observation-date">{{ obs.date }}</span>
-                <p>{{ obs.message }}</p>
-              </div>
-            }
-          </div>
-        }
-
-        @if (esActual && isMyTurn() && roleName() === 'Ingeniería de Ventas FCR') {
-          <footer class="fcr-detail__actions">
-            <dynadrill-button variant="primary" (clicked)="resolveCorrection()">Reenviar a Supervisor</dynadrill-button>
-          </footer>
-        } @else if (esActual && isMyTurn()) {
-          <footer class="fcr-detail__actions">
-            <dynadrill-button variant="secondary" (clicked)="openSolicitarCorreccion()">Solicitar corrección</dynadrill-button>
-            <dynadrill-button variant="primary" (clicked)="approveValidation()">Aprobar información</dynadrill-button>
-          </footer>
-        }
-      </section>
-    }
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- FASE: Preparación de Herramientas           -->
-    <!-- ═══════════════════════════════════════════ -->
-    @case ('preparacion_herramientas') {
-      <section class="fcr-detail__section">
-        <div class="fcr-detail__section-header">
-          <div class="fcr-detail__section-title">
-            <dynadrill-icon name="tool" [size]="20" />
-            <dynadrill-text variant="h2">Preparación de Herramientas</dynadrill-text>
-          </div>
-        </div>
-        <dynadrill-text variant="caption">
-          Precargadas de los kits del Pedido (Códigos por cliente) · Solicitud del Supervisor → Bodega → Recepción del Supervisor · Mecánico se completa solo, más adelante (checklist de inspección)
-        </dynadrill-text>
-
-        @if (pedido(); as p) {
-          <div class="fcr-detail__pedido-reference">
-            <dynadrill-icon name="file-text" [size]="16" />
-            <div class="fcr-detail__pedido-reference-body">
-              <div class="fcr-detail__pedido-reference-head">
-                <dynadrill-text variant="caption">Actividades según el Pedido {{ p.code }}:</dynadrill-text>
-                @if (esActual && roleName() === 'Supervisor' && !ticket()!.toolListConfirmed) {
-                  <dynadrill-icon-button icon="reload" tooltip="Recargar herramientas desde el Pedido" (clicked)="recargarDesdePedido()" />
-                }
-              </div>
-              @let actividades = actividadesPedido();
-              @if (actividades.herramientas.length) {
-                <h3 class="fcr-detail__pedido-reference-title">Herramientas · se solicitan a Bodega</h3>
-                <ul class="fcr-detail__pedido-reference-list">
-                  @for (h of actividades.herramientas; track $index) {
-                    <li class="fcr-detail__actividad">
-                      <span><strong>{{ h.item.codigo }}</strong> — {{ h.item.descripcion }} ({{ h.item.cantidad }} {{ h.item.unidad }})</span>
-                      <dynadrill-tag [label]="h.cantidadHerramientas + ' herramienta(s)'" variant="success" />
-                      @if (h.aviso) {
-                        <dynadrill-tag [label]="etiquetaAviso[h.aviso]" variant="warning" />
-                      }
-                    </li>
-                  }
-                </ul>
-              }
-              @if (actividades.movilizaciones.length) {
-                <h3 class="fcr-detail__pedido-reference-title">Movilización · informativa, no requiere acción</h3>
-                <ul class="fcr-detail__pedido-reference-list">
-                  @for (m of actividades.movilizaciones; track $index) {
-                    <li><strong>{{ m.codigo }}</strong> — {{ m.descripcion }} ({{ m.cantidad }} {{ m.unidad }})</li>
-                  }
-                </ul>
-              }
-              @if (actividades.otros.length) {
-                <h3 class="fcr-detail__pedido-reference-title">Otros servicios del Pedido</h3>
-                <ul class="fcr-detail__pedido-reference-list">
-                  @for (o of actividades.otros; track $index) {
-                    <li class="fcr-detail__actividad">
-                      <span><strong>{{ o.item.codigo }}</strong> — {{ o.item.descripcion }} ({{ o.item.cantidad }} {{ o.item.unidad }})</span>
-                      @if (o.aviso) {
-                        <dynadrill-tag [label]="etiquetaAviso[o.aviso]" variant="warning" />
-                      }
-                    </li>
-                  }
-                </ul>
-              }
-              @if (!pedidoItems().length) {
-                <p class="fcr-detail__pedido-reference-list">Sin ítems estimados registrados en el Pedido.</p>
-              }
-            </div>
-          </div>
-        }
-
-        @if (notaPrecarga(); as nota) {
-          <dynadrill-banner variant="warning" [message]="nota" />
-        }
-
-        <div class="fcr-detail__table-scroll">
-          <table class="fcr-detail__table">
-            <thead>
-              <tr><th>Herramienta</th><th>Estado</th><th>Bodega</th><th>Recepción</th><th>Mecánico</th><th></th></tr>
-            </thead>
-            <tbody>
-              @for (tool of originalTools(); track tool.id) {
-                <ng-container [ngTemplateOutlet]="toolRow" [ngTemplateOutletContext]="{ $implicit: tool }" />
-              }
-            </tbody>
-          </table>
-        </div>
-
-        @if (lateTools().length > 0) {
-          <dynadrill-text variant="caption">Agregadas después — el resto del proceso ya había avanzado cuando se sumaron</dynadrill-text>
           <div class="fcr-detail__table-scroll">
             <table class="fcr-detail__table">
               <thead>
-                <tr><th>Herramienta</th><th>Estado</th><th>Bodega</th><th>Recepción</th><th>Mecánico</th><th></th></tr>
+                <tr>
+                  <th>Paso</th>
+                  <th>Estado</th>
+                </tr>
               </thead>
               <tbody>
-                @for (tool of lateTools(); track tool.id) {
-                  <ng-container [ngTemplateOutlet]="toolRow" [ngTemplateOutletContext]="{ $implicit: tool }" />
+                @for (row of resumenTriada(); track row.label) {
+                  <tr>
+                    <td>{{ row.label }}</td>
+                    <td><dynadrill-tag [label]="row.estado" [variant]="row.variant" /></td>
+                  </tr>
                 }
               </tbody>
             </table>
           </div>
-        }
-
-        <ng-template #toolRow let-tool>
-          <tr>
-            <td>
-              {{ tool.name }}
-              @if (tool.stockDisponible !== undefined && tool.stockDisponible <= 0) {
-                <dynadrill-text variant="caption" class="fcr-detail__stock-warning">⚠ Sin stock en Inventario</dynadrill-text>
-              }
-            </td>
-            <td><dynadrill-tag [label]="estadoTag(tool).label" [variant]="estadoTag(tool).variant" /></td>
-
-            <td class="fcr-detail__check-cell">
-              @if (tool.bodega?.marcado) {
-                <dynadrill-tag [label]="tool.bodega.novedad ? 'Con novedad' : 'OK'" [variant]="tool.bodega.novedad ? 'warning' : 'success'" />
-                @if (tool.bodega.novedad) { <dynadrill-text variant="caption">{{ tool.bodega.novedad }}</dynadrill-text> }
-                @if (esActual && roleName() === 'Bodeguero') {
-                  <dynadrill-icon-button icon="edit" tooltip="Corregir" (clicked)="clearBodegaCheck(tool.id)" />
-                }
-              } @else if (esActual && roleName() === 'Bodeguero' && tool.sentToBodega) {
-                @if (novedadDraftToolId() === tool.id) {
-                  <dynadrill-textarea label="" placeholder="Detalle la novedad…" [rows]="2" [value]="novedadDraftText()" (valueChange)="novedadDraftText.set($event)" />
-                  <div class="fcr-detail__check-actions">
-                    <dynadrill-button variant="secondary" size="small" (clicked)="toggleNovedadDraft(tool.id)">Cancelar</dynadrill-button>
-                    <dynadrill-button variant="primary" size="small" [disabled]="!novedadDraftText().trim()" (clicked)="marcarBodega(tool.id, novedadDraftText())">Guardar</dynadrill-button>
-                  </div>
-                } @else {
-                  <div class="fcr-detail__check-actions">
-                    <dynadrill-button variant="primary" size="small" (clicked)="marcarBodega(tool.id)">OK</dynadrill-button>
-                    <dynadrill-button variant="secondary" size="small" (clicked)="toggleNovedadDraft(tool.id)">Con novedad</dynadrill-button>
-                  </div>
-                }
-              } @else if (esActual && roleName() === 'Supervisor' && tool.status === 'seleccionada' && !tool.sentToBodega) {
-                <dynadrill-button variant="primary" size="small" (clicked)="sendToolToBodega(tool.id)">Solicitar a Bodega</dynadrill-button>
-              } @else { — }
-            </td>
-
-            <td class="fcr-detail__check-cell">
-              @if (tool.recepcion?.marcado) {
-                <dynadrill-tag [label]="tool.recepcion.novedad ? 'Con novedad' : 'OK'" [variant]="tool.recepcion.novedad ? 'warning' : 'success'" />
-                @if (tool.recepcion.novedad) { <dynadrill-text variant="caption">{{ tool.recepcion.novedad }}</dynadrill-text> }
-                @if (esActual && roleName() === 'Supervisor') {
-                  <dynadrill-icon-button icon="edit" tooltip="Corregir" (clicked)="clearRecepcionCheck(tool.id)" />
-                }
-              } @else if (esActual && roleName() === 'Supervisor' && tool.sentToSupervisor) {
-                @if (novedadDraftToolId() === tool.id) {
-                  <dynadrill-textarea label="" placeholder="Detalle la novedad…" [rows]="2" [value]="novedadDraftText()" (valueChange)="novedadDraftText.set($event)" />
-                  <div class="fcr-detail__check-actions">
-                    <dynadrill-button variant="secondary" size="small" (clicked)="toggleNovedadDraft(tool.id)">Cancelar</dynadrill-button>
-                    <dynadrill-button variant="primary" size="small" [disabled]="!novedadDraftText().trim()" (clicked)="marcarRecepcion(tool.id, novedadDraftText())">Guardar</dynadrill-button>
-                  </div>
-                } @else {
-                  <div class="fcr-detail__check-actions">
-                    <dynadrill-button variant="primary" size="small" (clicked)="marcarRecepcion(tool.id)">OK</dynadrill-button>
-                    <dynadrill-button variant="secondary" size="small" (clicked)="toggleNovedadDraft(tool.id)">Con novedad</dynadrill-button>
-                  </div>
-                }
-              } @else if (esActual && roleName() === 'Bodeguero' && tool.bodega?.marcado && !tool.bodega?.novedad && !tool.sentToSupervisor) {
-                <dynadrill-button variant="primary" size="small" (clicked)="sendToolToSupervisor(tool.id)">Enviar al Supervisor</dynadrill-button>
-              } @else { — }
-            </td>
-
-            <td class="fcr-detail__check-cell">
-              <dynadrill-tag [label]="mecanicoInfo(tool).label" [variant]="mecanicoInfo(tool).variant" />
-              @if (mecanicoInfo(tool).novedad) { <dynadrill-text variant="caption">{{ mecanicoInfo(tool).novedad }}</dynadrill-text> }
-            </td>
-
-            <td>
-              @if (esActual && roleName() === 'Supervisor' && tool.origen === 'manual' && tool.status === 'seleccionada' && !tool.sentToBodega) {
-                <dynadrill-icon-button class="fcr-detail__tool-delete" icon="delete" tooltip="Quitar herramienta" (clicked)="removeTool(tool.id)" />
-              }
-            </td>
-          </tr>
-        </ng-template>
-
-        @if (esActual && roleName() === 'Supervisor' && !ticket()!.toolListConfirmed) {
-          <div class="fcr-detail__add-tool">
-            <dynadrill-select
-              label="Agregar herramienta adicional (excepción — sustituir una dañada o algo que el Pedido no contempló)"
-              placeholder="Buscar por nombre…"
-              [searchable]="true"
-              [options]="availableToAdd()"
-              [value]="toolToAdd()"
-              (valueChange)="onToolToAddChange($event)"
-            />
-            <dynadrill-button variant="secondary" [disabled]="!toolToAdd()" (clicked)="addTool()">+ Agregar</dynadrill-button>
-          </div>
-        }
-
-        @if (esActual && roleName() === 'Supervisor' && canConfirmToolList()) {
-          <footer class="fcr-detail__actions">
-            <dynadrill-button variant="primary" (clicked)="confirmToolListComplete()">Enviar a documento de inspección</dynadrill-button>
-          </footer>
-        }
-
-        @if (ticket()!.tipoOt === 'servicio') {
-          <!--
-            SERVICIOS: acá termina la preparación de herramientas — no hay
-            documento de inspección real en esta fase (eso ahora se hace por
-            herramienta, más adelante, en 'inspeccion'). El tronco continúa
-            en 'tipo_operador' (operador mecánico que repara e inspecciona),
-            no en 'asignacion'.
-          -->
-          @if (esActual && roleName() === 'Supervisor' && ticket()!.toolListConfirmed) {
-            <footer class="fcr-detail__actions">
-              <dynadrill-button
-                variant="primary"
-                (clicked)="confirmAndAdvance('tipo_operador', 'Continuar a Tipo de Operador', 'La preparación de herramientas quedará cerrada. Continúa la reparación e inspección de las herramientas.')"
-              >Continuar a Tipo de Operador</dynadrill-button>
-            </footer>
-          }
-        } @else {
-          @if (ticket()!.toolListConfirmed) {
-            <div class="fcr-detail__inspection">
-              <div class="fcr-detail__inspection-header">
-                <dynadrill-text variant="subtitle">Documento de inspección</dynadrill-text>
-                @if (esActual && roleName() === 'Supervisor' && !ticket()!.inspectionDocumentUploaded) {
-                  <dynadrill-button variant="secondary" size="small" (clicked)="reopenToolList()">Reabrir lista de herramientas</dynadrill-button>
-                }
-              </div>
-              @if (ticket()!.inspectionDocumentUploaded) {
-                <div class="fcr-detail__doc-row">
-                  <dynadrill-icon name="file-text" [size]="20" />
-                  <dynadrill-text variant="body">{{ ticket()!.inspectionDocumentNombreArchivo }}</dynadrill-text>
-                  <dynadrill-icon-button icon="eye" tooltip="Ver documento" (clicked)="previsualizarDocumento('inspectionDocument')" />
-                </div>
-              } @else if (esActual && roleName() === 'Supervisor') {
-                <dynadrill-upload-zone [state]="inspectionUploadState()" (fileSelected)="onInspectionUploaded($event)" />
-              } @else {
-                <dynadrill-text variant="caption">Documento de inspección — no subido.</dynadrill-text>
-              }
-            </div>
-
-            <div class="fcr-detail__inspection">
-              <dynadrill-text variant="subtitle">Registro de dureza</dynadrill-text>
-              @if (ticket()!.registroDurezaUploaded) {
-                <div class="fcr-detail__doc-row">
-                  <dynadrill-icon name="file-text" [size]="20" />
-                  <dynadrill-text variant="body">{{ ticket()!.registroDurezaNombreArchivo }}</dynadrill-text>
-                  <dynadrill-icon-button icon="eye" tooltip="Ver documento" (clicked)="previsualizarDocumento('registroDureza')" />
-                  @if (esActual && roleName() === 'Supervisor') {
-                    <dynadrill-icon-button icon="delete" tooltip="Quitar archivo" (clicked)="onEliminarRegistroDureza()" />
-                  }
-                </div>
-              } @else if (esActual && roleName() === 'Supervisor') {
-                <dynadrill-upload-zone [state]="durezaUploadState()" (fileSelected)="onRegistroDurezaUploaded($event)" />
-              } @else {
-                <dynadrill-text variant="caption">Registro de dureza — no subido.</dynadrill-text>
-              }
-            </div>
-            <div class="fcr-detail__inspection">
-              <dynadrill-text variant="subtitle">Registro firmado de QAQC</dynadrill-text>
-              @if (ticket()!.registroQaqcUploaded) {
-                <div class="fcr-detail__doc-row">
-                  <dynadrill-icon name="file-text" [size]="20" />
-                  <dynadrill-text variant="body">{{ ticket()!.registroQaqcNombreArchivo }}</dynadrill-text>
-                  <dynadrill-icon-button icon="eye" tooltip="Ver documento" (clicked)="previsualizarDocumento('registroQaqc')" />
-                  @if (esActual && roleName() === 'Supervisor') {
-                    <dynadrill-icon-button icon="delete" tooltip="Quitar archivo" (clicked)="onEliminarRegistroQaqc()" />
-                  }
-                </div>
-              } @else if (esActual && roleName() === 'Supervisor') {
-                <dynadrill-upload-zone [state]="qaqcUploadState()" (fileSelected)="onRegistroQaqcUploaded($event)" />
-              } @else {
-                <dynadrill-text variant="caption">Registro firmado de QAQC — no subido.</dynadrill-text>
-              }
-            </div>
-          }
-
-          @if (esActual && ticket()!.reviewGuideGenerated) {
-            @if (!coberturaOk()) {
-              <dynadrill-text variant="caption">
-                No se puede asignar operador: la Matriz IPERC del servicio tiene actividades que HSE aún no aprobó.
-              </dynadrill-text>
-            }
-            <footer class="fcr-detail__actions">
-              <dynadrill-button
-                variant="primary"
-                [disabled]="!coberturaOk()"
-                (clicked)="confirmAndAdvance('asignacion', 'Continuar a Asignación de Operador', 'La preparación de herramientas quedará cerrada y ya no podrá corregirse. ¿Continuar?')"
-              >Continuar a Asignación de Operador</dynadrill-button>
-            </footer>
-          }
-        }
-      </section>
-    }
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- FASE: Asignación de Operador                -->
-    <!-- ═══════════════════════════════════════════ -->
-    @case ('asignacion') {
-      @if (esActual) {
-        <section class="fcr-detail__section">
-          <div class="fcr-detail__section-header">
-            <div class="fcr-detail__section-title">
-              <dynadrill-icon name="users" [size]="20" />
-              <dynadrill-text variant="h2">Asignación de Operador</dynadrill-text>
-            </div>
-          </div>
-
-          @if (ticket()!.assignedOperator) {
-            <dynadrill-text variant="body">Operador asignado: <strong>{{ ticket()!.assignedOperator }}</strong></dynadrill-text>
-            <footer class="fcr-detail__actions">
-              @if (isMyTurn()) {
-                <dynadrill-button variant="secondary" (clicked)="openAsignarOperador()">Reasignar operador</dynadrill-button>
-              }
-              <dynadrill-button
-                variant="primary"
-                (clicked)="confirmAndAdvance('reunion_operativa', 'Continuar a Reunión Operativa', 'La asignación de operador quedará cerrada. ¿Continuar?')"
-              >Continuar a Reunión Operativa</dynadrill-button>
-            </footer>
-          } @else if (isMyTurn()) {
-            <dynadrill-button variant="primary" (clicked)="openAsignarOperador()">Asignar operador</dynadrill-button>
-          }
         </section>
-      } @else if (phase === primeraFaseTriada()) {
-        <ng-container [ngTemplateOutlet]="resumenTriadaTabla" />
-      }
-    }
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- FASE: Reunión Operativa                     -->
-    <!-- ═══════════════════════════════════════════ -->
-    @case ('reunion_operativa') {
-      @if (esActual) {
-        <section class="fcr-detail__section">
-          <div class="fcr-detail__section-header">
-            <div class="fcr-detail__section-title">
-              <dynadrill-icon name="calendar" [size]="20" />
-              <dynadrill-text variant="h2">Reunión Operativa y Firma de Acta</dynadrill-text>
-            </div>
-          </div>
-
-          @if (ticket()!.operationalActaSigned) {
-            <dynadrill-text variant="body">Acta firmada — reunión del {{ formatDate(ticket()!.operationalMeetingDate) }}.</dynadrill-text>
-            @if (!ptwFirmadoOk()) {
-              <dynadrill-text variant="caption">
-                @if (!coberturaOk()) {
-                  No se puede pasar a Ejecución de Campo: la Matriz IPERC del servicio tiene actividades sin aprobar.
-                } @else if (qhseVinculo()?.ptw; as ptw) {
-                  No se puede pasar a Ejecución de Campo: el PTW {{ ptw.code }} aún no tiene los documentos validados por QHSE (HSE-SITIO-001).
-                } @else {
-                  No se puede pasar a Ejecución de Campo: todavía no se abrió el PTW / Recibimiento de Sitio en QHSE.
-                }
-              </dynadrill-text>
-            }
-            <footer class="fcr-detail__actions">
-              <dynadrill-button
-                variant="primary"
-                [disabled]="!ptwFirmadoOk()"
-                (clicked)="confirmAndAdvance('ejecucion_operativa', 'Continuar a Ejecución de Campo', 'La reunión operativa quedará cerrada. ¿Continuar?')"
-              >Continuar a Ejecución de Campo</dynadrill-button>
-            </footer>
-          } @else if (isMyTurn()) {
-            <dynadrill-button variant="primary" (clicked)="firmarActa()">Registrar reunión y firmar acta</dynadrill-button>
-          }
-        </section>
-      } @else if (phase === primeraFaseTriada()) {
-        <ng-container [ngTemplateOutlet]="resumenTriadaTabla" />
-      }
-    }
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- FASE: Ejecución de Campo                    -->
-    <!-- ═══════════════════════════════════════════ -->
-    @case ('ejecucion_operativa') {
-      <section class="fcr-detail__section">
-        <div class="fcr-detail__section-header">
-          <div class="fcr-detail__section-title">
-            <dynadrill-icon name="clock" [size]="20" />
-            <dynadrill-text variant="h2">Ejecución del Trabajo FCR</dynadrill-text>
-          </div>
-        </div>
-        <dynadrill-text variant="caption">Bitácora horaria y uso de herramientas — alimentan el Reporte de Trabajo y el Reporte de Herramientas al finalizar.</dynadrill-text>
-        @if (hayRangoServicio()) {
-          <dynadrill-banner variant="info" [message]="'Servicio del Pedido: ' + textoRangoServicio() + '. Las actividades y el uso de herramientas se registran dentro de estas fechas.'" />
-        }
-
-        @if (ticket()!.workReportUploaded) {
-          <dynadrill-text variant="body">Reportes de campo subidos, pendientes de revisión del Supervisor.</dynadrill-text>
-        } @else {
-          @if (isMyTurn() && esActual) {
-            <div class="fcr-detail__log-form">
-              <dynadrill-text variant="subtitle">Carga masiva de actividades</dynadrill-text>
-              <dynadrill-text variant="caption">Descarga la plantilla, complétala con las jornadas del período y súbela para registrarlas todas de una vez.</dynadrill-text>
-              <div class="fcr-detail__log-form-row">
-                <dynadrill-button variant="secondary" size="small" (clicked)="descargarPlantillaActividades()">Descargar plantilla</dynadrill-button>
-                <dynadrill-upload-zone (fileSelected)="onActividadesFileSelected($event)" />
-              </div>
-            </div>
-
-            <div class="fcr-detail__log-form">
-              <dynadrill-text variant="subtitle">Registrar actividad</dynadrill-text>
-              <!-- La fecha va en su propia fila: dentro de la fila de horas (flex: 1 por hijo) dejaba los selects de HH/MM demasiado angostos. -->
-              <div class="fcr-detail__log-form-row">
-                <div class="fcr-detail__date-field">
-                  <dynadrill-datetime-picker label="Fecha" [value]="activityDate()" [disabledDate]="diaFueraDelServicio" (valueChange)="onActivityDateChange($event)" />
-                  @if (activityFueraDelServicio()) {
-                    <dynadrill-text variant="caption" class="fcr-detail__stock-warning" role="alert">⚠ La fecha debe estar dentro del servicio del Pedido ({{ textoRangoServicio() }}).</dynadrill-text>
-                  }
-                </div>
-              </div>
-              <div class="fcr-detail__log-form-row">
-                <div class="fcr-detail__time-field">
-                  <dynadrill-text variant="caption">Hora inicio</dynadrill-text>
-                  <div class="fcr-detail__time-field-row">
-                    <dynadrill-select placeholder="HH" [options]="hourOptions" [value]="activityStartHour()" (valueChange)="onActivityStartHourChange($any($event))" />
-                    <dynadrill-select placeholder="MM" [options]="minuteOptions" [value]="activityStartMinute()" (valueChange)="onActivityStartMinuteChange($any($event))" />
-                  </div>
-                </div>
-                <div class="fcr-detail__time-field">
-                  <dynadrill-text variant="caption">Hora fin</dynadrill-text>
-                  <div class="fcr-detail__time-field-row">
-                    <dynadrill-select placeholder="HH" [options]="hourOptions" [value]="activityEndHour()" (valueChange)="onActivityEndHourChange($any($event))" />
-                    <dynadrill-select placeholder="MM" [options]="minuteOptions" [value]="activityEndMinute()" (valueChange)="onActivityEndMinuteChange($any($event))" />
-                  </div>
-                </div>
-                <div class="fcr-detail__log-duration">
-                  <dynadrill-text variant="caption">Duración calculada</dynadrill-text>
-                  <dynadrill-text variant="body">{{ activityDuration() !== null ? activityDuration() + ' h' : '—' }}</dynadrill-text>
-                </div>
-              </div>
-              <dynadrill-textarea
-                label="Detalle de la actividad"
-                placeholder="Describa la actividad realizada…"
-                [rows]="2"
-                [value]="activityDetail()"
-                (valueChange)="activityDetail.set($event)"
-              />
-              <dynadrill-button variant="secondary" size="small" [disabled]="!canAddActivity()" (clicked)="addActivityLogEntry()">+ Agregar actividad</dynadrill-button>
-            </div>
-          }
-
-          @if (bitacoraDias().length > 0) {
-            <div class="fcr-detail__table-scroll">
-              <table class="fcr-detail__table fcr-detail__table--por-dia">
-                <caption class="fcr-detail__sr-only">Bitácora de actividades agrupada por día, con su estado de envío a Facturación</caption>
-                <thead><tr><th scope="col">Inicio</th><th scope="col">Fin</th><th scope="col">Horas</th><th scope="col">Detalle</th><th scope="col"><span class="fcr-detail__sr-only">Acciones</span></th></tr></thead>
-                @for (dia of bitacoraDias(); track dia.fecha) {
-                  <tbody>
-                    <tr class="fcr-detail__day-row">
-                      <th scope="rowgroup" colspan="2">{{ fechaDia(dia.fecha) }}</th>
-                      <td>{{ dia.totalHoras }} h</td>
-                      <td>
-                        @switch (estadoDia(dia.envio)) {
-                          @case ('corregido_facturacion') {
-                            <span class="fcr-detail__day-status fcr-detail__day-status--corregido">
-                              <dynadrill-icon name="edit" [size]="14" />
-                              Corregido por Facturación · {{ fechaHoraEnvio(dia.envio!.modificadoAt) }}
-                            </span>
-                          }
-                          @case ('enviado') {
-                            <span class="fcr-detail__day-status fcr-detail__day-status--enviado">
-                              <dynadrill-icon name="success" [size]="14" />
-                              Enviado a Facturación · {{ fechaHoraEnvio(dia.envio!.enviadoAt) }}
-                            </span>
-                          }
-                          @default {
-                            <span class="fcr-detail__day-status">
-                              <dynadrill-icon name="clock" [size]="14" />
-                              Pendiente de envío
-                            </span>
-                          }
-                        }
-                      </td>
-                      <td>
-                        @if (isMyTurn() && esActual && !dia.envio && ticket()!.pedidoCode) {
-                          <dynadrill-icon-button icon="send" [tooltip]="'Enviar ' + fechaDia(dia.fecha) + ' a Facturación'" (clicked)="enviarDiaBitacora(dia)" />
-                        }
-                      </td>
-                    </tr>
-                    @for (entry of dia.actividades; track entry.id) {
-                      <tr>
-                        <td>{{ entry.startTime }}</td>
-                        <td>{{ entry.endTime }}</td>
-                        <td>{{ entry.durationHours }}</td>
-                        <td>{{ entry.detail }}</td>
-                        <td>
-                          @if (isMyTurn() && esActual) {
-                            <dynadrill-icon-button class="fcr-detail__tool-delete" icon="delete" tooltip="Quitar actividad" (clicked)="removeActivityLogEntry(entry.id)" />
-                          }
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                }
-              </table>
-            </div>
-          }
-
-          @if (isMyTurn() && esActual) {
-            <div class="fcr-detail__log-form">
-              <dynadrill-text variant="subtitle">Registrar uso de herramienta</dynadrill-text>
-              <div class="fcr-detail__log-form-row">
-                <dynadrill-select label="Herramienta" placeholder="Seleccionar…" [options]="usageToolOptions()" [value]="usageToolId()" (valueChange)="onUsageToolChange($event)" />
-                <div class="fcr-detail__date-field">
-                  <dynadrill-datetime-picker label="Fecha" [value]="usageDate()" [disabledDate]="diaFueraDelServicio" (valueChange)="onUsageDateChange($event)" />
-                  @if (usageFueraDelServicio()) {
-                    <dynadrill-text variant="caption" class="fcr-detail__stock-warning" role="alert">⚠ La fecha debe estar dentro del servicio del Pedido ({{ textoRangoServicio() }}).</dynadrill-text>
-                  }
-                </div>
-                <dynadrill-select label="Estado del día" placeholder="Seleccionar…" [options]="usageStatusOptions" [value]="usageStatus()" (valueChange)="onUsageStatusChange($event)" />
-              </div>
-              <div class="fcr-detail__log-form-row">
-                @if (ticket()!.tipoOt === 'servicio') {
-                  <dynadrill-select label="Tipo de trabajo" placeholder="Selecciona" [options]="tipoTrabajoOptions" [value]="usageTipoTrabajo()" (valueChange)="usageTipoTrabajo.set($any($event))" />
-                } @else {
-                  <dynadrill-select label="Tipo de completación" placeholder="Selecciona" [options]="tipoCompletacionOptions" [value]="usageTipoCompletacion()" (valueChange)="usageTipoCompletacion.set($any($event))" />
-                }
-                <dynadrill-select label="Tipo de picker" placeholder="Selecciona" [options]="tipoPickerOptions" [value]="usageTipoPicker()" (valueChange)="usageTipoPicker.set($any($event))" />
-                <dynadrill-input label="Presión" type="number" placeholder="0" [value]="usagePresion()" (valueChange)="usagePresion.set($event)" />
-                <dynadrill-input label="Peso" type="number" placeholder="0" [value]="usagePeso()" (valueChange)="usagePeso.set($event)" />
-              </div>
-              <dynadrill-textarea
-                label="Observación (solo si hay novedad)"
-                placeholder="Detalle cualquier novedad durante el uso…"
-                [rows]="2"
-                [value]="usageObservacion()"
-                (valueChange)="usageObservacion.set($event)"
-              />
-              <dynadrill-button variant="secondary" size="small" [disabled]="!canAddToolUsage()" (clicked)="addToolUsageEntry()">+ Registrar uso</dynadrill-button>
-            </div>
-          }
-
-          @if (sortedToolUsageLog().length > 0) {
-            <div class="fcr-detail__table-scroll">
-              <table class="fcr-detail__table">
-                <thead>
-                  <tr>
-                    <th>Herramienta</th><th>Estado</th>
-                    <th>{{ ticket()!.tipoOt === 'servicio' ? 'Tipo de trabajo' : 'Tipo de completación' }}</th>
-                    <th>Picker</th><th>Presión</th><th>Peso</th><th>Observación</th><th></th>
-                  </tr>
-                </thead>
-                @for (dia of toolUsagePorDia(); track dia.fecha) {
-                <tbody>
-                  <tr class="fcr-detail__day-row">
-                    <th scope="rowgroup" colspan="8">{{ fechaDia(dia.fecha) }}</th>
-                  </tr>
-                  @for (entry of dia.items; track entry.id) {
-                    <tr>
-                      <td>{{ entry.toolName }}</td>
-                      <td>{{ toolDailyStatusLabel(entry.status) }}</td>
-                      <td>{{ entry.tipoTrabajo ? tipoTrabajoLabel(entry.tipoTrabajo) : entry.tipoCompletacion ? tipoCompletacionLabel(entry.tipoCompletacion) : '—' }}</td>
-                      <td>{{ entry.tipoPicker ?? '—' }}</td>
-                      <td>{{ entry.presion ?? '—' }}</td>
-                      <td>{{ entry.peso ?? '—' }}</td>
-                      <td>{{ entry.observacion ?? '—' }}</td>
-                      <td>
-                        @if (isMyTurn() && esActual) {
-                          <dynadrill-icon-button class="fcr-detail__tool-delete" icon="delete" tooltip="Quitar registro" (clicked)="removeToolUsageEntry(entry.id)" />
-                        }
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-                }
-              </table>
-            </div>
-          }
-
-          @if (isMyTurn() && esActual) {
-            <dynadrill-button variant="secondary" size="small" (clicked)="togglePickerUsageListConfirmed()">
-              {{ ticket()!.pickerUsageListConfirmed ? 'Reabrir listado' : 'Declarar listado completo' }}
-            </dynadrill-button>
-          }
-
-          @if (isMyTurn() && esActual) {
-            <footer class="fcr-detail__actions">
-              <dynadrill-button variant="primary" [disabled]="sortedActivityLog().length === 0 || !ticket()!.pickerUsageListConfirmed" (clicked)="submitFieldReports()">Finalizar ejecución y subir reportes</dynadrill-button>
-            </footer>
-            @if (sortedActivityLog().length === 0) {
-              <dynadrill-text variant="caption">Registre al menos una actividad en la bitácora antes de finalizar.</dynadrill-text>
-            } @else if (!ticket()!.pickerUsageListConfirmed) {
-              <dynadrill-text variant="caption">Declare el listado completo antes de finalizar.</dynadrill-text>
-            }
-          }
-        }
-      </section>
-    }
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- FASE: Revisión de Reportes                  -->
-    <!-- ═══════════════════════════════════════════ -->
-    @case ('revision_reportes') {
-      <section class="fcr-detail__section">
-        <div class="fcr-detail__section-header">
-          <div class="fcr-detail__section-title">
-            <dynadrill-icon name="file-text" [size]="20" />
-            <dynadrill-text variant="h2">Revisión de Reportes</dynadrill-text>
-          </div>
-        </div>
-        <dynadrill-text variant="caption">Documentos subidos por el Operador</dynadrill-text>
-
-        <div class="fcr-detail__review-grid">
-          <div class="fcr-detail__docs">
-            <dynadrill-text variant="subtitle">Documentos</dynadrill-text>
-            @if (ticket()!.workReportUploaded) {
-              <div class="fcr-detail__doc-row">
-                <dynadrill-icon name="file-text" [size]="16" />
-                <dynadrill-text variant="body">Reporte de trabajo</dynadrill-text>
-                <dynadrill-button variant="secondary" size="small" (clicked)="openReporteJob()">Ver PDF</dynadrill-button>
-              </div>
-            }
-            @if (ticket()!.toolReportUploaded) {
-              <div class="fcr-detail__doc-row">
-                <dynadrill-icon name="file-text" [size]="16" />
-                <dynadrill-text variant="body">Reporte de herramientas</dynadrill-text>
-                <dynadrill-button variant="secondary" size="small" (clicked)="openReporteHerramientas()">Ver PDF</dynadrill-button>
-              </div>
-            }
-          </div>
-
-          @if (ticket()!.observations.length > 0) {
-            <div class="fcr-detail__observations">
-              <dynadrill-text variant="subtitle">Historial de observaciones</dynadrill-text>
-              @for (obs of ticket()!.observations; track obs.id) {
-                <div class="fcr-detail__observation">
-                  <strong>{{ obs.author }} · {{ obs.role }}</strong>
-                  <span class="fcr-detail__observation-date">{{ obs.date }}</span>
-                  <p>{{ obs.message }}</p>
-                </div>
-              }
-            </div>
-          }
-        </div>
-
-        @if (isMyTurn() && esActual) {
-          <dynadrill-approval-actions
-            [decision]="reportsDecision()"
-            consequenceApprove="El ticket continúa a Control de Retorno de Herramientas."
-            consequenceReject="Se notifica al Operador para corregir los reportes."
-            (decisionChange)="onReportsDecisionChange($event)"
-          />
-
-          @if (reportsDecision() === 'rejected') {
-            <dynadrill-textarea
-              label="Observaciones para el Operador"
-              placeholder="Detalle qué debe corregirse…"
-              [rows]="3"
-              [value]="rejectionNote()"
-              (valueChange)="rejectionNote.set($event)"
-            />
-            <dynadrill-button variant="primary" [disabled]="!rejectionNote().trim()" (clicked)="confirmRejection()">Enviar corrección</dynadrill-button>
-          }
-        }
-      </section>
-    }
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- FASE: Control de Retorno                    -->
-    <!-- ═══════════════════════════════════════════ -->
-    @case ('control_retorno') {
-      <section class="fcr-detail__section">
-        <div class="fcr-detail__section-header">
-          <div class="fcr-detail__section-title">
-            <dynadrill-icon name="box" [size]="20" />
-            <dynadrill-text variant="h2">Control de Retorno de Herramientas</dynadrill-text>
-          </div>
-        </div>
-        <dynadrill-text variant="caption">Conciliación contra la Guía de Movimiento Local de Envío y Retorno</dynadrill-text>
-
-        <div class="fcr-detail__table-scroll">
-          <table class="fcr-detail__table">
-            <thead>
-              <tr><th>Herramienta</th><th>Estado</th><th>Motivo si falta</th><th></th></tr>
-            </thead>
-            <tbody>
-              @for (tool of ticket()!.tools; track tool.id) {
-                <tr>
-                  <td>{{ tool.name }}</td>
-                  <td><dynadrill-tag [label]="toolStatusLabel(tool.status)" [variant]="tool.status === 'devuelta' ? 'success' : (tool.status === 'faltante' ? 'warning' : 'neutral')" /></td>
-                  <td>{{ tool.missingReason ?? '—' }}</td>
-                  <td>
-                    @if (esActual && isMyTurn() && tool.status === 'recibida') {
-                      <dynadrill-button variant="secondary" size="small" (clicked)="markToolReturned(tool.id)">Devuelta</dynadrill-button>
-                    }
-                    @if (esActual && roleName() === 'Bodeguero' && tool.status === 'faltante' && !ticket()!.bodegaExitGuideGenerated && tool.missingReason?.startsWith('Venta de herramienta complementaria')) {
-                      <dynadrill-button variant="secondary" size="small" (clicked)="openGuiaSalidaBodega(tool)">Generar Guía de Salida</dynadrill-button>
-                    }
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-
-        @if (esActual && isMyTurn() && pendingReturnTools().length > 0) {
-          <dynadrill-button variant="secondary" (clicked)="openHerramientaFaltante()">Registrar herramienta faltante</dynadrill-button>
-        }
-
-        @if (esActual && isMyTurn() && toolReturnControlComplete()) {
-          <footer class="fcr-detail__actions">
-            <dynadrill-button
-              variant="primary"
-              (clicked)="confirmAndAdvance('cierre', 'Continuar a Cierre', 'El control de retorno de herramientas quedará cerrado. ¿Continuar?')"
-            >Continuar a Cierre</dynadrill-button>
-          </footer>
-        }
-      </section>
-    }
-
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- FASE: Cierre                                -->
-    <!-- ═══════════════════════════════════════════ -->
-    @case ('cierre') {
-      <section class="fcr-detail__section">
-        <div class="fcr-detail__section-header">
-          <div class="fcr-detail__section-title">
-            <dynadrill-icon name="success" [size]="20" />
-            <dynadrill-text variant="h2">Cierre de Ticket y Encuesta</dynadrill-text>
-          </div>
-        </div>
-        <dynadrill-text variant="caption">Exporte el resumen del ticket o descargue la encuesta de satisfacción.</dynadrill-text>
-
-        <!-- Solo exportables: el detalle (checklists, documentos, herramientas, observaciones) ya está en cada fase y en el PDF del resumen. -->
-        <footer class="fcr-detail__actions">
-          <dynadrill-button variant="secondary" (clicked)="openReporteCierre()">Exportar resumen a PDF</dynadrill-button>
-          <dynadrill-button variant="secondary" (clicked)="descargarEncuesta()">Descargar encuesta de satisfacción (PDF)</dynadrill-button>
-        </footer>
-
-        @if (puedeVerPrefactura() && esActual) {
-          <app-ticket-prefactura-firma linea="fcr" [ticketId]="ticket()!.id" />
-        }
-
-        @if (ticket()!.surveySent) {
-          <dynadrill-banner variant="info" message="Ticket cerrado. Encuesta de satisfacción enviada al cliente." />
-        } @else if (isMyTurn() && esActual) {
-          @if (faltaActaEntrega()) {
-            <dynadrill-banner variant="warning" message="Carga el Acta de Entrega de Locación (DYN-PMP-RE-027) firmada por el cliente en «Documentos QHSE» antes de cerrar el ticket." />
-          }
-          <dynadrill-button variant="success" (clicked)="openCierreTicket()">Cerrar ticket</dynadrill-button>
-        }
-      </section>
-    }
-    }
-    </section>
-  }
-
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- Checklists + documentos de inspección (SERVICIOS) — solo    -->
-  <!-- lectura, reusado en aprobacion_supervisor_operaciones (para -->
-  <!-- que el Supervisor FCR revise antes de aprobar) y en         -->
-  <!-- asignacion (info de referencia para el operador de -->
-  <!-- campo asignado).                                            -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <ng-template #checklistDocumentosReadOnly>
-    <dynadrill-text variant="subtitle">Checklists de inspección por herramienta</dynadrill-text>
-    <div class="fcr-detail__table-scroll">
-      <table class="fcr-detail__table">
-        <thead>
-          <tr><th>Herramienta</th><th>Checklist</th><th></th></tr>
-        </thead>
-        <tbody>
-          @for (tool of ticket()!.tools; track tool.id) {
-            <tr>
-              <td>{{ tool.name }}</td>
-              <td>
-                @if (toolInspectionEstado(tool.id); as estado) {
-                  <dynadrill-tag [label]="estado" [variant]="estado === 'enviado' ? 'success' : 'warning'" />
-                } @else {
-                  <dynadrill-tag label="Sin iniciar" variant="warning" />
-                }
-              </td>
-              <td>
-                @if (tool.articuloId) {
-                  <dynadrill-button variant="secondary" size="small" (clicked)="openChecklistHerramienta(tool)">{{ toolChecklistButtonLabel(tool.id) }}</dynadrill-button>
-                }
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
+      </ng-template>
     </div>
-
-    <dynadrill-text variant="subtitle">Documentos de inspección</dynadrill-text>
-    <div class="fcr-detail__docs">
-      @if (ticket()!.formularioInspeccionExternoUploaded) {
-        <div class="fcr-detail__doc-row">
-          <dynadrill-icon name="file-text" [size]="16" />
-          <dynadrill-text variant="body">{{ ticket()!.formularioInspeccionExternoNombreArchivo }}</dynadrill-text>
-          <dynadrill-icon-button icon="eye" tooltip="Ver documento" (clicked)="previsualizarDocumento('formularioInspeccionExterno')" />
-        </div>
-      } @else {
-        <dynadrill-text variant="caption">Formulario de inspección externo — no subido.</dynadrill-text>
-      }
-      @if (ticket()!.formatoDimensionamientoServicioUploaded) {
-        <div class="fcr-detail__doc-row">
-          <dynadrill-icon name="file-text" [size]="16" />
-          <dynadrill-text variant="body">{{ ticket()!.formatoDimensionamientoServicioNombreArchivo }}</dynadrill-text>
-          <dynadrill-icon-button icon="eye" tooltip="Ver documento" (clicked)="previsualizarDocumento('formatoDimensionamientoServicio')" />
-        </div>
-      } @else {
-        <dynadrill-text variant="caption">Formato de dimensionamiento — no subido.</dynadrill-text>
-      }
-      @if (ticket()!.formatoDurezaServicioUploaded) {
-        <div class="fcr-detail__doc-row">
-          <dynadrill-icon name="file-text" [size]="16" />
-          <dynadrill-text variant="body">{{ ticket()!.formatoDurezaServicioNombreArchivo }}</dynadrill-text>
-          <dynadrill-icon-button icon="eye" tooltip="Ver documento" (clicked)="previsualizarDocumento('formatoDurezaServicio')" />
-        </div>
-      } @else {
-        <dynadrill-text variant="caption">Formato de Dureza — no subido.</dynadrill-text>
-      }
-    </div>
-  </ng-template>
-
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- Resumen compacto de Aprobación / Asignación / Reunión — se   -->
-  <!-- muestra una sola vez, en la posición de la primera de las 3  -->
-  <!-- fases que ya haya quedado atrás (ver `primeraFaseTriada`).   -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <ng-template #resumenTriadaTabla>
-    <section class="fcr-detail__section">
-      <div class="fcr-detail__section-header">
-        <div class="fcr-detail__section-title">
-          <dynadrill-icon name="check" [size]="20" />
-          <dynadrill-text variant="h2">Aprobación, Asignación y Reunión Operativa</dynadrill-text>
-        </div>
-      </div>
-      <div class="fcr-detail__table-scroll">
-        <table class="fcr-detail__table">
-          <thead>
-            <tr><th>Paso</th><th>Estado</th></tr>
-          </thead>
-          <tbody>
-            @for (row of resumenTriada(); track row.label) {
-              <tr>
-                <td>{{ row.label }}</td>
-                <td><dynadrill-tag [label]="row.estado" [variant]="row.variant" /></td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </ng-template>
-  </div>
   </div>
 } @else {
-  <dynadrill-banner variant="critical" message="No se pudo cargar el ticket. Verifique la conexión e inténtelo de nuevo." />
+  <dynadrill-banner
+    variant="critical"
+    message="No se pudo cargar el ticket. Verifique la conexión e inténtelo de nuevo."
+  />
 }

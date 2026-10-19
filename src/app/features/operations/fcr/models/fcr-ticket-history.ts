@@ -1,4 +1,10 @@
-import { FCR_PHASE_LABELS, type FcrObservation, type FcrPhase, type FcrPhaseApproval, type FcrTicket } from './fcr.model';
+import {
+  FCR_PHASE_LABELS,
+  type FcrObservation,
+  type FcrPhase,
+  type FcrPhaseApproval,
+  type FcrTicket,
+} from './fcr.model';
 import { fcrPhaseKeys } from './fcr-flow';
 
 export type FcrHistoryState = 'done' | 'current' | 'pending';
@@ -29,9 +35,14 @@ export function buildFcrHistory(t: FcrTicket): FcrHistoryStage[] {
   const closed = t.status === 'cerrado';
   const tramos = t.timelineResumen?.tramos ?? [];
   return keys.map((phase, i) => {
-    const tramo = tramos.filter(x => x.fase === phase).at(-1);
+    const tramo = tramos.filter((x) => x.fase === phase).at(-1);
     const next = keys[i + 1];
-    const state: FcrHistoryState = i < currentIndex || (closed && i === currentIndex) ? 'done' : i === currentIndex ? 'current' : 'pending';
+    const state: FcrHistoryState =
+      i < currentIndex || (closed && i === currentIndex)
+        ? 'done'
+        : i === currentIndex
+          ? 'current'
+          : 'pending';
     return {
       phase,
       label: FCR_PHASE_LABELS[phase],
@@ -40,7 +51,7 @@ export function buildFcrHistory(t: FcrTicket): FcrHistoryStage[] {
       fin: tramo?.fin,
       duracionMs: tramo?.duracionMs,
       actor: tramo?.actorNombre ?? tramo?.actorRolLabel,
-      aprobacion: next ? t.phaseHistory.filter(p => p.phase === next).at(-1) : undefined,
+      aprobacion: next ? t.phaseHistory.filter((p) => p.phase === next).at(-1) : undefined,
       observaciones: phase === 'revision_inicial' ? t.observations : [],
     };
   });

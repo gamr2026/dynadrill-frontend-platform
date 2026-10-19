@@ -27,7 +27,9 @@
 </div>
 
 @if (!clienteId()) {
-  <p class="cfg-codigos__hint" role="status">Elija un cliente para ver los códigos de su Lista de Precios.</p>
+  <p class="cfg-codigos__hint" role="status">
+    Elija un cliente para ver los códigos de su Lista de Precios.
+  </p>
 } @else if (codigos.error()) {
   <dynadrill-banner variant="critical" message="No se pudieron cargar los códigos del cliente." />
 } @else {
@@ -41,14 +43,25 @@
       (selectedChange)="onFiltroChange($event)"
     />
     @if (sinConfigurar() > 0) {
-      <p class="cfg-codigos__hint" role="status">{{ sinConfigurar() }} código(s) sin configurar: los tickets nuevos los tratan como servicio.</p>
+      <p class="cfg-codigos__hint" role="status">
+        {{ sinConfigurar() }} código(s) sin configurar: los tickets nuevos los tratan como servicio.
+      </p>
     }
 
     <div class="cfg-codigos__table-scroll">
       <table class="cfg-codigos__table">
-        <caption class="cfg-codigos__sr-only">Códigos de la Lista de Precios del cliente y su configuración en FCR</caption>
+        <caption class="cfg-codigos__sr-only">
+          Códigos de la Lista de Precios del cliente y su configuración en FCR
+        </caption>
         <thead>
-          <tr><th scope="col">Código</th><th scope="col">Descripción</th><th scope="col">Unidad</th><th scope="col">Clase</th><th scope="col">Kit</th><th scope="col"><span class="cfg-codigos__sr-only">Acciones</span></th></tr>
+          <tr>
+            <th scope="col">Código</th>
+            <th scope="col">Descripción</th>
+            <th scope="col">Unidad</th>
+            <th scope="col">Clase</th>
+            <th scope="col">Kit</th>
+            <th scope="col"><span class="cfg-codigos__sr-only">Acciones</span></th>
+          </tr>
         </thead>
         <tbody>
           @for (fila of pagination.pageItems(); track fila.codigo) {
@@ -63,7 +76,10 @@
               <td>{{ fila.unidad || '—' }}</td>
               <td>
                 @if (fila.clase) {
-                  <dynadrill-tag [label]="claseLabels[fila.clase]" [variant]="fila.clase === 'herramienta' ? 'info' : 'neutral'" />
+                  <dynadrill-tag
+                    [label]="claseLabels[fila.clase]"
+                    [variant]="fila.clase === 'herramienta' ? 'info' : 'neutral'"
+                  />
                 } @else {
                   <dynadrill-tag label="Sin configurar" variant="warning" />
                 }
@@ -75,12 +91,23 @@
                   } @else {
                     <dynadrill-tag label="Sin kit" variant="warning" />
                   }
-                } @else { — }
+                } @else {
+                  —
+                }
               </td>
               <td class="cfg-codigos__actions">
-                <dynadrill-icon-button icon="settings" iconSource="dynadrill" [tooltip]="'Configurar ' + fila.codigo" (clicked)="configurar(fila)" />
+                <dynadrill-icon-button
+                  icon="settings"
+                  iconSource="dynadrill"
+                  [tooltip]="'Configurar ' + fila.codigo"
+                  (clicked)="configurar(fila)"
+                />
                 @if (fila.id !== null) {
-                  <dynadrill-icon-button icon="delete" [tooltip]="'Quitar configuración de ' + fila.codigo" (clicked)="quitarConfiguracion(fila)" />
+                  <dynadrill-icon-button
+                    icon="delete"
+                    [tooltip]="'Quitar configuración de ' + fila.codigo"
+                    (clicked)="quitarConfiguracion(fila)"
+                  />
                 }
               </td>
             </tr>
@@ -95,6 +122,10 @@
       </table>
     </div>
 
-    <app-list-pager [pagination]="pagination" summaryLabel="códigos" label="Paginación de códigos" />
+    <app-list-pager
+      [pagination]="pagination"
+      summaryLabel="códigos"
+      label="Paginación de códigos"
+    />
   </dynadrill-spinner>
 }

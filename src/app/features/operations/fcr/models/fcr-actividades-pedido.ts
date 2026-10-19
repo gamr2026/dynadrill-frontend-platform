@@ -39,20 +39,29 @@ export function agruparActividadesDelPedido(
   avisos: AvisoPrecarga[],
 ): ActividadesDelPedido {
   const porLinea = new Map<string, number>();
-  for (const t of tools) if (t.codigoPedido) porLinea.set(t.codigoPedido, (porLinea.get(t.codigoPedido) ?? 0) + 1);
-  const avisoPorLinea = new Map(avisos.filter(a => a.codigo).map(a => [a.codigo!, a.motivo]));
+  for (const t of tools)
+    if (t.codigoPedido) porLinea.set(t.codigoPedido, (porLinea.get(t.codigoPedido) ?? 0) + 1);
+  const avisoPorLinea = new Map(avisos.filter((a) => a.codigo).map((a) => [a.codigo!, a.motivo]));
 
   const movilizaciones =
     movilizacionesTicket ??
-    items.filter(i => i.esMovilizacion).map(i => ({ codigo: i.codigo, descripcion: i.descripcion, cantidad: i.cantidad, unidad: i.unidad }));
-  const codigosDeMovilizacion = new Set(movilizaciones.map(m => m.codigo));
+    items
+      .filter((i) => i.esMovilizacion)
+      .map((i) => ({
+        codigo: i.codigo,
+        descripcion: i.descripcion,
+        cantidad: i.cantidad,
+        unidad: i.unidad,
+      }));
+  const codigosDeMovilizacion = new Set(movilizaciones.map((m) => m.codigo));
 
   const resultado: ActividadesDelPedido = { herramientas: [], movilizaciones, otros: [] };
   for (const item of items) {
     if (codigosDeMovilizacion.has(item.codigo)) continue;
     const aviso = avisoPorLinea.get(item.codigo) ?? null;
     const cantidadHerramientas = porLinea.get(item.codigo) ?? 0;
-    if (cantidadHerramientas > 0) resultado.herramientas.push({ item, cantidadHerramientas, aviso });
+    if (cantidadHerramientas > 0)
+      resultado.herramientas.push({ item, cantidadHerramientas, aviso });
     else resultado.otros.push({ item, aviso });
   }
   return resultado;
@@ -60,10 +69,10 @@ export function agruparActividadesDelPedido(
 
 /** Una sola nota con qué hacer, en vez de repetir cada línea: el detalle ya va junto a la línea. */
 export function notaPrecarga(avisos: AvisoPrecarga[]): string | null {
-  if (avisos.some(a => a.motivo === 'pedido_sin_cliente')) {
+  if (avisos.some((a) => a.motivo === 'pedido_sin_cliente')) {
     return 'El Pedido no tiene un cliente del catálogo: no se pudieron precargar herramientas. Agréguelas a mano.';
   }
-  const lineas = new Set(avisos.filter(a => a.codigo).map(a => a.codigo)).size;
+  const lineas = new Set(avisos.filter((a) => a.codigo).map((a) => a.codigo)).size;
   if (!lineas) return null;
   return `${lineas} línea(s) del Pedido no trajeron todas sus herramientas. Si llevan, agréguelas a mano o configure su código en "Códigos por cliente" y recargue.`;
 }

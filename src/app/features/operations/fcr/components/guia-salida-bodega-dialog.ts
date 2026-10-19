@@ -22,13 +22,20 @@ export interface GuiaSalidaBodegaDialogResult {
   selector: 'app-guia-salida-bodega-dialog',
   /** Bottom sheet en móvil (Overlay/BottomSheet en Figma) — ver styles.scss. */
   host: { class: 'app-dialog-sheet-mobile' },
-  imports: [DynadrillTextComponent, DynadrillBannerComponent, DynadrillContextCardComponent, DynadrillButtonComponent],
+  imports: [
+    DynadrillTextComponent,
+    DynadrillBannerComponent,
+    DynadrillContextCardComponent,
+    DynadrillButtonComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './guia-salida-bodega-dialog.html',
   styleUrl: './guia-salida-bodega-dialog.scss',
 })
 export class GuiaSalidaBodegaDialog {
-  private readonly modalRef = inject(NzModalRef<GuiaSalidaBodegaDialog, GuiaSalidaBodegaDialogResult | undefined>);
+  private readonly modalRef = inject(
+    NzModalRef<GuiaSalidaBodegaDialog, GuiaSalidaBodegaDialogResult | undefined>,
+  );
   protected readonly data = inject<GuiaSalidaBodegaDialogData>(NZ_MODAL_DATA);
 
   protected readonly summaryItems: DynadrillContextCardItem[] = [

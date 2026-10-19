@@ -83,7 +83,15 @@ const MAX_PLANTILLA_PARTES_BYTES = 5 * 1024 * 1024;
 function normalizeResultado(raw: string): FcrToolInspectionParteResultado | null {
   const v = raw.trim().toLowerCase();
   if (v === 'ok' || v === 'bien' || v === 'bueno') return 'ok';
-  if (v === 'defectuoso' || v === 'defecto' || v === 'no ok' || v === 'nok' || v === 'x' || v === 'malo') return 'defectuoso';
+  if (
+    v === 'defectuoso' ||
+    v === 'defecto' ||
+    v === 'no ok' ||
+    v === 'nok' ||
+    v === 'x' ||
+    v === 'malo'
+  )
+    return 'defectuoso';
   return null;
 }
 
@@ -131,7 +139,9 @@ import { ChecklistHerramientaHoja } from '../../../../shared/documentos/formatos
   styleUrl: './checklist-herramienta-dialog.scss',
 })
 export class ChecklistHerramientaDialog {
-  private readonly modalRef = inject(NzModalRef<ChecklistHerramientaDialog, ChecklistHerramientaDialogResult | undefined>);
+  private readonly modalRef = inject(
+    NzModalRef<ChecklistHerramientaDialog, ChecklistHerramientaDialogResult | undefined>,
+  );
   protected readonly data = inject<ChecklistHerramientaDialogData>(NZ_MODAL_DATA);
   private readonly toolInspecciones = inject(FcrToolInspeccionesService);
   private readonly auth = inject(AuthService);
@@ -163,36 +173,54 @@ export class ChecklistHerramientaDialog {
   protected readonly partes = signal<FcrToolInspectionParte[]>([]);
 
   /** Estado de las 3 firmas tal como lo devolvió el backend — nunca un checkbox/nombre local. */
-  protected readonly firmas = signal<Partial<Record<FcrToolInspectionFirmaRol, FcrToolInspectionFirma>>>({});
+  protected readonly firmas = signal<
+    Partial<Record<FcrToolInspectionFirmaRol, FcrToolInspectionFirma>>
+  >({});
   /** Rol de la firma con una llamada en curso — evita doble-click mientras se persiste. */
   protected readonly firmando = signal<FcrToolInspectionFirmaRol | null>(null);
 
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
 
-  protected readonly yaEnviado = computed(() => this.estado() === 'enviado' || this.estado() === 'aprobado');
+  protected readonly yaEnviado = computed(
+    () => this.estado() === 'enviado' || this.estado() === 'aprobado',
+  );
   /** "Reparado por" certifica los datos y las partes tal como quedaron — a partir de ahí nadie más (Revisado por, Liberado QHSE) puede editarlos, solo firmar. */
-  protected readonly formularioBloqueado = computed(() => this.yaEnviado() || !!this.firmas()['reparadoPor']?.firmado);
+  protected readonly formularioBloqueado = computed(
+    () => this.yaEnviado() || !!this.firmas()['reparadoPor']?.firmado,
+  );
 
   /** Indicador para el operador de campo: la herramienta ya quedó reparada (mecánico firmó su parte) y cuándo. No es un nuevo estado de `FcrToolStatus`, solo deriva de la firma ya persistida. */
   protected readonly reparada = computed(() => !!this.firmas()['reparadoPor']?.firmado);
-  protected readonly fechaReparadaTexto = computed(() => this.firmas()['reparadoPor']?.fecha ?? null);
+  protected readonly fechaReparadaTexto = computed(
+    () => this.firmas()['reparadoPor']?.fecha ?? null,
+  );
 
   /** Las 3 firmas ya persistidas en el backend — no un checkbox marcado localmente. */
   protected readonly canEnviar = computed(
-    () => !this.yaEnviado() && FCR_TOOL_INSPECTION_FIRMA_ROLES.every(rol => !!this.firmas()[rol]?.firmado),
+    () =>
+      !this.yaEnviado() &&
+      FCR_TOOL_INSPECTION_FIRMA_ROLES.every((rol) => !!this.firmas()[rol]?.firmado),
   );
 
   constructor() {
-    this.toolInspecciones.iniciar(this.data.ticketId, this.data.toolId, this.data.articuloId, this.data.cliente, this.data.pozo).subscribe({
-      next: inspection => {
-        this.aplicarInspection(inspection);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.notify.error('Error', 'No se pudo abrir el checklist de esta herramienta.');
-        this.modalRef.close(undefined);
-      },
-    });
+    this.toolInspecciones
+      .iniciar(
+        this.data.ticketId,
+        this.data.toolId,
+        this.data.articuloId,
+        this.data.cliente,
+        this.data.pozo,
+      )
+      .subscribe({
+        next: (inspection) => {
+          this.aplicarInspection(inspection);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.notify.error('Error', 'No se pudo abrir el checklist de esta herramienta.');
+          this.modalRef.close(undefined);
+        },
+      });
   }
 
   private aplicarInspection(inspection: FcrToolInspection): void {
@@ -257,7 +285,9 @@ export class ChecklistHerramientaDialog {
   protected readonly nuevaParteCodigo = signal('');
   protected readonly nuevaParteCantidad = signal('1');
   protected readonly agregandoParte = signal(false);
-  protected readonly puedeAgregarParte = computed(() => this.nuevaParteDescripcion().trim().length > 0 && !this.agregandoParte());
+  protected readonly puedeAgregarParte = computed(
+    () => this.nuevaParteDescripcion().trim().length > 0 && !this.agregandoParte(),
+  );
 
   /** Se guarda en la base al instante; los resultados que ya se marcaron en pantalla no se tocan (solo se suma la fila nueva). */
   protected async agregarParte(): Promise<void> {
@@ -273,8 +303,11 @@ export class ChecklistHerramientaDialog {
           cantidadEsperada: Number.isInteger(cantidad) && cantidad > 0 ? cantidad : 1,
         }),
       );
-      const conocidas = new Set(this.partes().map(p => p.id));
-      this.partes.update(rows => [...rows, ...inspeccion.partes.filter(p => !conocidas.has(p.id))]);
+      const conocidas = new Set(this.partes().map((p) => p.id));
+      this.partes.update((rows) => [
+        ...rows,
+        ...inspeccion.partes.filter((p) => !conocidas.has(p.id)),
+      ]);
       this.nuevaParteDescripcion.set('');
       this.nuevaParteCodigo.set('');
       this.nuevaParteCantidad.set('1');
@@ -299,9 +332,14 @@ export class ChecklistHerramientaDialog {
     this.agregandoParte.set(true);
     try {
       for (const parte of ejemplo) {
-        const inspeccion = await firstValueFrom(this.toolInspecciones.agregarParte(this.data.ticketId, inspectionId, parte));
-        const conocidas = new Set(this.partes().map(p => p.id));
-        this.partes.update(rows => [...rows, ...inspeccion.partes.filter(p => !conocidas.has(p.id))]);
+        const inspeccion = await firstValueFrom(
+          this.toolInspecciones.agregarParte(this.data.ticketId, inspectionId, parte),
+        );
+        const conocidas = new Set(this.partes().map((p) => p.id));
+        this.partes.update((rows) => [
+          ...rows,
+          ...inspeccion.partes.filter((p) => !conocidas.has(p.id)),
+        ]);
       }
     } catch {
       this.notify.error('Error', 'No se pudieron agregar las partes de ejemplo.');
@@ -314,15 +352,17 @@ export class ChecklistHerramientaDialog {
     const inspectionId = this.inspectionId();
     if (!inspectionId || !parte.manual) return;
     try {
-      await firstValueFrom(this.toolInspecciones.quitarParte(this.data.ticketId, inspectionId, parte.id));
-      this.partes.update(rows => rows.filter(p => p.id !== parte.id));
+      await firstValueFrom(
+        this.toolInspecciones.quitarParte(this.data.ticketId, inspectionId, parte.id),
+      );
+      this.partes.update((rows) => rows.filter((p) => p.id !== parte.id));
     } catch {
       this.notify.error('Error', 'No se pudo quitar la parte.');
     }
   }
 
   protected updateParte(id: number, patch: Partial<FcrToolInspectionParte>): void {
-    this.partes.update(rows => rows.map(row => (row.id === id ? { ...row, ...patch } : row)));
+    this.partes.update((rows) => rows.map((row) => (row.id === id ? { ...row, ...patch } : row)));
   }
 
   /**
@@ -332,7 +372,15 @@ export class ChecklistHerramientaDialog {
    * acción), y el operador solo corrige a mano las excepciones.
    */
   protected marcarTodoOk(): void {
-    this.partes.update(rows => rows.map(row => ({ ...row, visualResultado: 'ok', endResultado: 'ok', cambioCantidad: 0, accion: 'Ninguna' })));
+    this.partes.update((rows) =>
+      rows.map((row) => ({
+        ...row,
+        visualResultado: 'ok',
+        endResultado: 'ok',
+        cambioCantidad: 0,
+        accion: 'Ninguna',
+      })),
+    );
   }
 
   /**
@@ -344,13 +392,37 @@ export class ChecklistHerramientaDialog {
    * sin señal) y volver a subirla.
    */
   protected descargarPlantillaPartes(): void {
-    const encabezado = ['ITEM', 'CANTIDAD', 'CODIGO', 'DESCRIPCION', 'VISUAL', 'END', 'CANTIDAD', '', 'ACCION'];
-    const filas = this.partes().map(parte => [parte.item, parte.cantidadEsperada, parte.codigo, parte.descripcion, '', '', '', '', '']);
+    const encabezado = [
+      'ITEM',
+      'CANTIDAD',
+      'CODIGO',
+      'DESCRIPCION',
+      'VISUAL',
+      'END',
+      'CANTIDAD',
+      '',
+      'ACCION',
+    ];
+    const filas = this.partes().map((parte) => [
+      parte.item,
+      parte.cantidadEsperada,
+      parte.codigo,
+      parte.descripcion,
+      '',
+      '',
+      '',
+      '',
+      '',
+    ]);
     const hoja = XLSX.utils.aoa_to_sheet([encabezado, ...filas]);
     const libro = XLSX.utils.book_new();
-    const nombreHoja = this.data.toolName.replace(/[:\\/?*[\]]/g, ' ').slice(0, 31) || 'Herramienta';
+    const nombreHoja =
+      this.data.toolName.replace(/[:\\/?*[\]]/g, ' ').slice(0, 31) || 'Herramienta';
     XLSX.utils.book_append_sheet(libro, hoja, nombreHoja);
-    XLSX.writeFile(libro, `plantilla-inspeccion-${this.data.toolName.replace(/[\\/:*?"<>|]/g, ' ')}.xlsx`);
+    XLSX.writeFile(
+      libro,
+      `plantilla-inspeccion-${this.data.toolName.replace(/[\\/:*?"<>|]/g, ' ')}.xlsx`,
+    );
   }
 
   /**
@@ -366,23 +438,35 @@ export class ChecklistHerramientaDialog {
   protected onCargarPlantillaPartes(file: NzUploadFile): void {
     const archivo = (file.originFileObj as File | undefined) ?? (file as unknown as File);
     if (!archivo || typeof archivo.size !== 'number') {
-      this.notify.error('Archivo no reconocido', 'No se pudo leer el archivo seleccionado. Probá de nuevo.');
+      this.notify.error(
+        'Archivo no reconocido',
+        'No se pudo leer el archivo seleccionado. Probá de nuevo.',
+      );
       return;
     }
     if (archivo.size > MAX_PLANTILLA_PARTES_BYTES) {
-      this.notify.error('Archivo demasiado grande', 'El archivo supera el máximo permitido de 5MB.');
+      this.notify.error(
+        'Archivo demasiado grande',
+        'El archivo supera el máximo permitido de 5MB.',
+      );
       return;
     }
 
     const reader = new FileReader();
-    reader.onload = evento => {
+    reader.onload = (evento) => {
       try {
         const datos = new Uint8Array(evento.target!.result as ArrayBuffer);
         const libro = XLSX.read(datos, { type: 'array' });
         const hoja = libro.Sheets[libro.SheetNames[0]];
-        const filas = XLSX.utils.sheet_to_json<unknown[]>(hoja, { header: 1, defval: '', raw: false });
+        const filas = XLSX.utils.sheet_to_json<unknown[]>(hoja, {
+          header: 1,
+          defval: '',
+          raw: false,
+        });
 
-        const idxCabecera = filas.findIndex(f => (f[0] ?? '').toString().trim().toUpperCase() === 'ITEM');
+        const idxCabecera = filas.findIndex(
+          (f) => (f[0] ?? '').toString().trim().toUpperCase() === 'ITEM',
+        );
         if (idxCabecera === -1) {
           this.notify.error(
             'Plantilla no reconocida',
@@ -391,7 +475,7 @@ export class ChecklistHerramientaDialog {
           return;
         }
 
-        const porCodigo = new Map(this.partes().map(p => [p.codigo.trim().toUpperCase(), p]));
+        const porCodigo = new Map(this.partes().map((p) => [p.codigo.trim().toUpperCase(), p]));
         let actualizadas = 0;
         let sinCoincidencia = 0;
 
@@ -430,10 +514,15 @@ export class ChecklistHerramientaDialog {
         this.notify.success(
           'Plantilla cargada',
           `${actualizadas} parte(s) actualizada(s) desde el archivo.` +
-            (sinCoincidencia > 0 ? ` ${sinCoincidencia} fila(s) no coincidieron con ninguna parte de esta herramienta.` : ''),
+            (sinCoincidencia > 0
+              ? ` ${sinCoincidencia} fila(s) no coincidieron con ninguna parte de esta herramienta.`
+              : ''),
         );
       } catch {
-        this.notify.error('Error al leer el archivo', 'No se pudo procesar el Excel. Verificá que no esté dañado.');
+        this.notify.error(
+          'Error al leer el archivo',
+          'No se pudo procesar el Excel. Verificá que no esté dañado.',
+        );
       }
     };
     reader.readAsArrayBuffer(archivo);
@@ -477,7 +566,7 @@ export class ChecklistHerramientaDialog {
     );
 
     await Promise.all(
-      this.partes().map(parte =>
+      this.partes().map((parte) =>
         firstValueFrom(
           this.toolInspecciones.guardarParte(ticketId, inspectionId, parte.id, {
             visualResultado: parte.visualResultado,
@@ -524,9 +613,12 @@ export class ChecklistHerramientaDialog {
     if (!this.inspeccionadoPor()) faltantes.push('Inspeccionado por');
     if (!this.reparadoPor().trim()) faltantes.push('Operador mecánico (Reparado por)');
     const parteIncompleta = this.partes().some(
-      p => !p.visualResultado || !p.endResultado || p.cambioCantidad === null || !p.accion.trim(),
+      (p) => !p.visualResultado || !p.endResultado || p.cambioCantidad === null || !p.accion.trim(),
     );
-    if (parteIncompleta) faltantes.push('Resultado visual, resultado final, cambio de cantidad y acción de cada parte');
+    if (parteIncompleta)
+      faltantes.push(
+        'Resultado visual, resultado final, cambio de cantidad y acción de cada parte',
+      );
     return faltantes;
   }
 
@@ -536,7 +628,10 @@ export class ChecklistHerramientaDialog {
     if (rol === 'reparadoPor') {
       const faltantes = this.camposFaltantes();
       if (faltantes.length > 0) {
-        this.notify.error('Faltan datos por completar', `Antes de confirmar "Reparado por": ${faltantes.join(', ')}.`);
+        this.notify.error(
+          'Faltan datos por completar',
+          `Antes de confirmar "Reparado por": ${faltantes.join(', ')}.`,
+        );
         return;
       }
     }
@@ -545,7 +640,12 @@ export class ChecklistHerramientaDialog {
       rol === 'reparadoPor'
         ? `Vas a confirmar "Reparado por" como ${nombre}. Esto certifica los datos y las partes tal como quedaron — a partir de acá se bloquean para edición, solo faltarán las confirmaciones restantes.`
         : `Vas a confirmar "${this.firmaLabels[rol]}" como ${nombre}. No se puede deshacer.`;
-    const ok = await this.dialog.confirm({ title: 'Confirmar firma', content: contenido, okText: 'Firmar', cancelText: 'Cancelar' });
+    const ok = await this.dialog.confirm({
+      title: 'Confirmar firma',
+      content: contenido,
+      okText: 'Firmar',
+      cancelText: 'Cancelar',
+    });
     if (!ok) return;
     void this.firmar(rol);
   }
@@ -568,11 +668,19 @@ export class ChecklistHerramientaDialog {
     this.firmando.set(rol);
     try {
       if (!this.formularioBloqueado()) await this.persistirCambios();
-      const actualizado = await firstValueFrom(this.toolInspecciones.firmar(ticketId, inspectionId, rol, todayIso()));
+      const actualizado = await firstValueFrom(
+        this.toolInspecciones.firmar(ticketId, inspectionId, rol, todayIso()),
+      );
       this.aplicarInspection(actualizado);
-      this.notify.success('Firma registrada', `"${FCR_TOOL_INSPECTION_FIRMA_LABELS[rol]}" quedó firmado.`);
+      this.notify.success(
+        'Firma registrada',
+        `"${FCR_TOOL_INSPECTION_FIRMA_LABELS[rol]}" quedó firmado.`,
+      );
     } catch {
-      this.notify.error('Error', 'No se pudo registrar la firma. Verifica tu rol e inténtalo de nuevo.');
+      this.notify.error(
+        'Error',
+        'No se pudo registrar la firma. Verifica tu rol e inténtalo de nuevo.',
+      );
     } finally {
       this.firmando.set(null);
     }
@@ -596,7 +704,10 @@ export class ChecklistHerramientaDialog {
       this.notify.success('Checklist enviado', 'El checklist de esta herramienta quedó enviado.');
       this.modalRef.close({ inspection: enviado });
     } catch {
-      this.notify.error('Error', 'No se pudo enviar el checklist. Verifica los datos e inténtalo de nuevo.');
+      this.notify.error(
+        'Error',
+        'No se pudo enviar el checklist. Verifica los datos e inténtalo de nuevo.',
+      );
       this.saving.set(false);
     }
   }

@@ -2,9 +2,19 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import type { DocumentosQhseTicket } from '../../pumping/services/pumping.service';
 import { Observable } from 'rxjs';
-import { FcrPhase, FcrTicket, type FcrToolDailyStatus, type FcrToolStatus } from '../models/fcr.model';
+import {
+  FcrPhase,
+  FcrTicket,
+  type FcrToolDailyStatus,
+  type FcrToolStatus,
+} from '../models/fcr.model';
 import { environment } from '@env';
-import type { TipoCompletacion, TipoOperador, TipoPicker, TipoTrabajo } from '../models/fcr-catalogos.model';
+import type {
+  TipoCompletacion,
+  TipoOperador,
+  TipoPicker,
+  TipoTrabajo,
+} from '../models/fcr-catalogos.model';
 
 /**
  * Los 6 campos de FCR con subida real de archivo (fcr-adjuntos-reales) —
@@ -33,17 +43,35 @@ export class FcrService {
     return this.http.get<FcrTicket>(`${this.baseUrl}/tickets/${id}`);
   }
 
-  advancePhase(ticketId: number, phase: FcrPhase, approvedBy: string, approvedByRole: string): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/advance`, { phase, approvedBy, approvedByRole });
+  advancePhase(
+    ticketId: number,
+    phase: FcrPhase,
+    approvedBy: string,
+    approvedByRole: string,
+  ): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/advance`, {
+      phase,
+      approvedBy,
+      approvedByRole,
+    });
   }
 
   requestCorrection(ticketId: number, observations: string): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/request-correction`, { observations });
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/request-correction`, {
+      observations,
+    });
   }
 
   /** Ingeniería de Ventas FCR devuelve el turno al Supervisor tras aplicar la corrección solicitada. */
-  resolveCorrection(ticketId: number, resolvedBy: string, observation: string): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/resolve-correction`, { resolvedBy, observation });
+  resolveCorrection(
+    ticketId: number,
+    resolvedBy: string,
+    observation: string,
+  ): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/resolve-correction`, {
+      resolvedBy,
+      observation,
+    });
   }
 
   /**
@@ -63,52 +91,81 @@ export class FcrService {
 
   /** Vuelve a precargar las herramientas de los kits del Pedido — conserva las manuales y las ya enviadas a Bodega (specs/fcr-precarga-herramientas). */
   recargarDesdePedido(ticketId: number): Observable<FcrTicket> {
-    return this.http.post<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/recargar-desde-pedido`, {});
+    return this.http.post<FcrTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/recargar-desde-pedido`,
+      {},
+    );
   }
 
   /** Supervisor solicita a Bodega, herramienta por herramienta — botón embebido en la fila. */
   sendToolToBodega(ticketId: number, toolId: number): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/send-to-bodega`, {});
+    return this.http.patch<FcrTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/send-to-bodega`,
+      {},
+    );
   }
 
   /** Bodega marca una herramienta preparada (o con novedad). */
   setBodegaCheck(ticketId: number, toolId: number, novedad?: string): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/bodega-check`, { novedad });
+    return this.http.patch<FcrTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/bodega-check`,
+      { novedad },
+    );
   }
 
   /** Corrige (deshace) el check de Bodega de una sola herramienta — no afecta a las demás ni a envíos ya hechos de otros pasos. */
   clearBodegaCheck(ticketId: number, toolId: number): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/bodega-check/clear`, {});
+    return this.http.patch<FcrTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/bodega-check/clear`,
+      {},
+    );
   }
 
   /** Simétrico: Bodega envía formalmente al Supervisor una herramienta ya preparada. */
   sendToolToSupervisor(ticketId: number, toolId: number): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/send-to-supervisor`, {});
+    return this.http.patch<FcrTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/send-to-supervisor`,
+      {},
+    );
   }
 
   /** Supervisor recibe (o marca novedad en) una herramienta ya preparada por Bodega. */
   setRecepcionCheck(ticketId: number, toolId: number, novedad?: string): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/recepcion-check`, { novedad });
+    return this.http.patch<FcrTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/recepcion-check`,
+      { novedad },
+    );
   }
 
   /** Corrige (deshace) el check de Recepción de una sola herramienta. */
   clearRecepcionCheck(ticketId: number, toolId: number): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/recepcion-check/clear`, {});
+    return this.http.patch<FcrTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/recepcion-check/clear`,
+      {},
+    );
   }
 
   /** Genérico — usado solo en Control de Retorno (`markToolReturned` → 'devuelta'), fuera de Preparación de Herramientas. */
   setToolStatus(ticketId: number, toolId: number, status: FcrToolStatus): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/status`, { status });
+    return this.http.patch<FcrTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/status`,
+      { status },
+    );
   }
 
   /** Observación libre, agregable en cualquier fase — ver `ObservacionesTimelineDialog`. */
   addObservation(ticketId: number, message: string, role: string): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/observations`, { message, role });
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/observations`, {
+      message,
+      role,
+    });
   }
 
   /** RN-FCR-005 / SP7: declara si quedan o no herramientas por agregar antes de habilitar el documento de inspección. */
   setToolListConfirmed(ticketId: number, confirmed: boolean): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/confirm-list`, { confirmed });
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/confirm-list`, {
+      confirmed,
+    });
   }
 
   /**
@@ -118,29 +175,48 @@ export class FcrService {
    * sube aparte con `subirDocumento(ticketId, 'inspectionDocument', file)`.
    */
   markInspectionUploaded(ticketId: number): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/inspection-document`, {});
+    return this.http.patch<FcrTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/inspection-document`,
+      {},
+    );
   }
 
   assignOperator(ticketId: number, operatorName: string): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/assign-operator`, { operatorName });
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/assign-operator`, {
+      operatorName,
+    });
   }
 
   // ── Entrada SERVICIOS ──
 
   setTipoOperador(ticketId: number, tipoOperador: TipoOperador): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tipo-operador`, { tipoOperador });
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tipo-operador`, {
+      tipoOperador,
+    });
   }
 
   assignMechanicOperator(ticketId: number, operatorName: string): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/assign-mechanic-operator`, { operatorName });
+    return this.http.patch<FcrTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/assign-mechanic-operator`,
+      { operatorName },
+    );
   }
 
-  reviewInspeccion(ticketId: number, decision: 'approved' | 'rejected', observation?: string): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/review-inspeccion`, { decision, observation });
+  reviewInspeccion(
+    ticketId: number,
+    decision: 'approved' | 'rejected',
+    observation?: string,
+  ): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/review-inspeccion`, {
+      decision,
+      observation,
+    });
   }
 
   confirmActa(ticketId: number, meetingDate: string): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/confirm-acta`, { meetingDate });
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/confirm-acta`, {
+      meetingDate,
+    });
   }
 
   submitReports(ticketId: number): Observable<FcrTicket> {
@@ -148,25 +224,40 @@ export class FcrService {
   }
 
   /** La duración se calcula en el servidor a partir de startTime/endTime — nunca se recibe capturada a mano. */
-  addActivityLogEntry(ticketId: number, entry: { date: string; startTime: string; endTime: string; detail: string; author: string }): Observable<FcrTicket> {
+  addActivityLogEntry(
+    ticketId: number,
+    entry: { date: string; startTime: string; endTime: string; detail: string; author: string },
+  ): Observable<FcrTicket> {
     return this.http.post<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/activity-log`, entry);
   }
 
   removeActivityLogEntry(ticketId: number, entryId: number): Observable<FcrTicket> {
-    return this.http.delete<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/activity-log/${entryId}`);
+    return this.http.delete<FcrTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/activity-log/${entryId}`,
+    );
   }
 
   /** Envío diario: genera en el Pedido el Reporte Job de esa fecha (`fecha` = 'YYYY-MM-DD'). */
   enviarDiaBitacora(ticketId: number, fecha: string): Observable<FcrTicket> {
-    return this.http.post<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/activity-log/dias/${fecha}/enviar`, {});
+    return this.http.post<FcrTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/activity-log/dias/${fecha}/enviar`,
+      {},
+    );
   }
 
   /**
    * Corrección de un día: reemplaza todas sus actividades en la bitácora del ticket (fuente única).
    * La usan el Operador y Facturación; si el día ya fue enviado, el backend regenera su Reporte Job.
    */
-  reemplazarDiaBitacora(ticketId: number, fecha: string, actividades: { startTime: string; endTime: string; detail: string }[]): Observable<FcrTicket> {
-    return this.http.put<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/activity-log/dias/${fecha}`, { actividades });
+  reemplazarDiaBitacora(
+    ticketId: number,
+    fecha: string,
+    actividades: { startTime: string; endTime: string; detail: string }[],
+  ): Observable<FcrTicket> {
+    return this.http.put<FcrTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/activity-log/dias/${fecha}`,
+      { actividades },
+    );
   }
 
   /**
@@ -195,20 +286,36 @@ export class FcrService {
     return this.http.delete<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tool-usage/${entryId}`);
   }
 
-  reviewReports(ticketId: number, decision: 'approved' | 'rejected', observation?: string): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/review-reports`, { decision, observation });
+  reviewReports(
+    ticketId: number,
+    decision: 'approved' | 'rejected',
+    observation?: string,
+  ): Observable<FcrTicket> {
+    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/review-reports`, {
+      decision,
+      observation,
+    });
   }
 
   confirmPickerUsageList(ticketId: number, confirmed: boolean): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/confirm-picker-usage-list`, { confirmed });
+    return this.http.patch<FcrTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/confirm-picker-usage-list`,
+      { confirmed },
+    );
   }
 
   registerMissingTool(ticketId: number, toolId: number, reason: string): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/missing`, { reason });
+    return this.http.patch<FcrTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/missing`,
+      { reason },
+    );
   }
 
   generateBodegaExitGuide(ticketId: number, toolId: number): Observable<FcrTicket> {
-    return this.http.patch<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/bodega-exit-guide`, {});
+    return this.http.patch<FcrTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/tools/${toolId}/bodega-exit-guide`,
+      {},
+    );
   }
 
   closeTicket(ticketId: number): Observable<FcrTicket> {
@@ -221,7 +328,10 @@ export class FcrService {
   subirDocumento(ticketId: number, campo: CampoDocumentoFcr, file: File): Observable<FcrTicket> {
     const formData = new FormData();
     formData.append('file', file);
-    return this.http.post<FcrTicket>(`${this.baseUrl}/tickets/${ticketId}/documentos/${campo}`, formData);
+    return this.http.post<FcrTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/documentos/${campo}`,
+      formData,
+    );
   }
 
   eliminarDocumento(ticketId: number, campo: CampoDocumentoFcr): Observable<FcrTicket> {
@@ -235,13 +345,17 @@ export class FcrService {
    * al endpoint no llevaría el token y el backend respondería 401.
    */
   descargarDocumento(ticketId: number, campo: CampoDocumentoFcr): Observable<Blob> {
-    return this.http.get(`${this.baseUrl}/tickets/${ticketId}/documentos/${campo}`, { responseType: 'blob' });
+    return this.http.get(`${this.baseUrl}/tickets/${ticketId}/documentos/${campo}`, {
+      responseType: 'blob',
+    });
   }
 
   // ── Documentos QHSE del pedido del ticket (ART / PT los sube el Supervisor) ──
 
   documentosQhse(ticketId: number): Observable<DocumentosQhseTicket> {
-    return this.http.get<DocumentosQhseTicket>(`${this.baseUrl}/tickets/${ticketId}/documentos-qhse`);
+    return this.http.get<DocumentosQhseTicket>(
+      `${this.baseUrl}/tickets/${ticketId}/documentos-qhse`,
+    );
   }
 
   subirArtQhse(ticketId: number, fechaEmision: string, archivo: File): Observable<unknown> {
@@ -254,7 +368,10 @@ export class FcrService {
   subirPtQhse(ticketId: number, ptwCode: string, archivo: File): Observable<unknown> {
     const form = new FormData();
     form.append('file', archivo);
-    return this.http.post(`${this.baseUrl}/tickets/${ticketId}/documentos-qhse/pt/${encodeURIComponent(ptwCode)}`, form);
+    return this.http.post(
+      `${this.baseUrl}/tickets/${ticketId}/documentos-qhse/pt/${encodeURIComponent(ptwCode)}`,
+      form,
+    );
   }
 
   subirEntregaQhse(ticketId: number, archivo: File): Observable<unknown> {
@@ -264,8 +381,11 @@ export class FcrService {
   }
 
   descargarDocumentoQhse(ticketId: number, tipo: string, referencia: string): Observable<Blob> {
-    return this.http.get(`${this.baseUrl}/tickets/${ticketId}/documentos-qhse/${tipo}/${encodeURIComponent(referencia)}`, {
-      responseType: 'blob',
-    });
+    return this.http.get(
+      `${this.baseUrl}/tickets/${ticketId}/documentos-qhse/${tipo}/${encodeURIComponent(referencia)}`,
+      {
+        responseType: 'blob',
+      },
+    );
   }
 }

@@ -1,6 +1,4 @@
 import { Routes } from '@angular/router';
-import { provideDynadrillCharts } from '@digitec-it-projects/dynadrill-ui';
-import { BarChart } from 'echarts/charts';
 import { roleGuard } from '../../core/guards/role.guard';
 import { permissionGuard } from '../../core/guards/permission.guard';
 import { PERMISO_EPI_VER } from './entrega-epi/models/entrega-epi';
@@ -8,6 +6,8 @@ import { PERMISO_DOCUMENTOS_VER } from './documentos-pedido/models/documento-ped
 import { PERMISO_PTW_VER } from './permiso-trabajo/models/permiso-trabajo';
 import { PERMISO_SWA_VER } from './swa-plataforma/models/swa';
 import { PERMISO_IPERC_VER } from './iperc-maestra/models/iperc';
+import { PERMISO_STOP_VER } from './stop-plataforma/models/stop';
+import { PERMISO_INSPECCIONES_VER } from './inspecciones-plataforma/models/inspeccion';
 
 /**
  * Fase 1 del módulo QHSE (HSE-PLAN-001 / HSE-SITIO-001): IPERC + PTW.
@@ -75,23 +75,22 @@ export const qhseRoutes: Routes = [
     canActivate: [permissionGuard(PERMISO_PTW_VER)],
   },
   {
+    // Inspecciones de campo del backend nuevo (contenedor qhse, `/api/v2/qhse/inspecciones`): se autoriza por permiso del token. La
+    // pantalla de la demo (`./inspecciones`) queda sin ruta hasta el Corte.
     path: 'inspecciones',
     loadComponent: () =>
-      import('./inspecciones/pages/inspeccion-list-page/inspeccion-list-page').then(
-        (m) => m.InspeccionListPage,
+      import('./inspecciones-plataforma/pages/inspecciones-page/inspecciones-page').then(
+        (m) => m.InspeccionesPage,
       ),
-    canActivate: [roleGuard],
-    data: { allowedRoles: HSE_STAFF_ROLES },
+    canActivate: [permissionGuard(PERMISO_INSPECCIONES_VER)],
   },
   {
+    // Tarjetas STOP del backend nuevo (`/api/v2/qhse/stop`): por permiso del token. El Pareto se dibuja con barras propias (sin ECharts);
+    // la pantalla de la demo (`./stop`) queda sin ruta hasta el Corte.
     path: 'stop',
     loadComponent: () =>
-      import('./stop/pages/stop-list-page/stop-list-page').then((m) => m.StopListPage),
-    canActivate: [roleGuard],
-    data: { allowedRoles: HSE_STAFF_ROLES },
-    // Igual que Indicadores de Mantenimiento: ECharts solo se paga en esta
-    // ruta (Pareto de tendencias STOP), no en el bundle inicial.
-    providers: [provideDynadrillCharts([BarChart])],
+      import('./stop-plataforma/pages/stop-list-page/stop-list-page').then((m) => m.StopListPage),
+    canActivate: [permissionGuard(PERMISO_STOP_VER)],
   },
   {
     path: 'eventos',

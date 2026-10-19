@@ -1,0 +1,73 @@
+<div class="insp-page">
+  <app-page-header
+    eyebrow="QHSE"
+    title="Inspecciones de campo"
+    subtitle="HSE-SEGUIMIENTO-001 — eslinga de cable, detector de gas y vehículo-grúa; un criterio que falla deja el equipo en cuarentena"
+  >
+    <div actions>
+      <dynadrill-button (clicked)="nueva()">+ Nueva inspección</dynadrill-button>
+    </div>
+  </app-page-header>
+
+  <div class="kpi-stat-row" role="list">
+    @for (kpi of kpis(); track kpi.label) {
+      <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
+    }
+  </div>
+
+  <dynadrill-tabs
+    [tabs]="tabs"
+    [activeIndex]="tabActiva()"
+    (activeIndexChange)="tabActiva.set($event)"
+  />
+
+  <div class="insp-page__toolbar">
+    <dynadrill-input
+      placeholder="Buscar por equipo, tipo o inspector…"
+      [value]="busqueda()"
+      (valueChange)="busqueda.set($event)"
+    />
+  </div>
+
+  @if (isMobile() && tabActiva() === 0) {
+    <app-qhse-registros-movil
+      [items]="itemsMovil()"
+      [loading]="cargando()"
+      vacio="Aún no hay equipos inspeccionados."
+    />
+  } @else {
+    <ng-template #accionesTpl let-row>
+      <div class="insp-page__row-actions">
+        <dynadrill-icon-button
+          icon="eye"
+          tooltip="Abrir la inspección"
+          tooltipPlacement="top"
+          (clicked)="abrir(row.id)"
+        />
+      </div>
+    </ng-template>
+    <div class="table-scroll dyn-table-card">
+      @if (tabActiva() === 0) {
+        <dynadrill-data-table
+          [columns]="columnasEquipos"
+          [rows]="filasEquipos()"
+          [loading]="cargando()"
+          [rowKey]="rowKeyFn"
+          [pageSize]="10"
+          actionsHeader="Acciones"
+          [actionsTemplate]="accionesTpl"
+        />
+      } @else {
+        <dynadrill-data-table
+          [columns]="columnasHistorial"
+          [rows]="filasHistorial()"
+          [loading]="cargando()"
+          [rowKey]="rowKeyFn"
+          [pageSize]="10"
+          actionsHeader="Acciones"
+          [actionsTemplate]="accionesTpl"
+        />
+      }
+    </div>
+  }
+</div>

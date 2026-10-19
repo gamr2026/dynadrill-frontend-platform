@@ -1,0 +1,63 @@
+.stop-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  &__pareto {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    h3 {
+      margin: 0 0 4px;
+      font-size: 14px;
+    }
+  }
+
+  &__barra {
+    display: grid;
+    grid-template-columns: minmax(140px, 260px) 1fr 36px;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+
+  &__barra-pista {
+    height: 10px;
+    background: #f0eef7;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  &__barra-relleno {
+    display: block;
+    height: 100%;
+    background: #6d4fc2;
+    border-radius: 999px;
+  }
+
+  &__barra-valor {
+    text-align: right;
+    font-weight: 600;
+  }
+
+  // Sin flex-wrap: con wrap, las acciones se apilan en celdas angostas (mismo criterio que el resto de tablas QHSE).
+  &__row-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
+}

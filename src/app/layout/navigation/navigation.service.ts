@@ -7,18 +7,22 @@ import { NavEntry, NavModule, allLinks } from './nav.model';
 
 // ── Destinos ──
 
-const PUMPING: NavEntry = { label: 'Pumping', icon: 'gauge', link: '/modulos/operativo/pumping' };
 /** Pedidos que Ventas abre en la línea Pumping: cada uno llega como ticket al rol de su paso (contenedor operaciones). */
-const PEDIDOS_PUMPING: NavEntry = {
-  label: 'Pedidos de Pumping',
-  shortLabel: 'Pedidos',
-  icon: 'list',
+const PUMPING: NavEntry = {
+  label: 'Pumping',
+  icon: 'gauge',
   link: '/modulos/operativo/pumping/pedidos',
+};
+/** El Conductor sigue en la lista de tareas anterior hasta que su portal pase al backend nuevo. */
+const PUMPING_CONDUCTOR: NavEntry = {
+  label: 'Pumping',
+  icon: 'gauge',
+  link: '/modulos/operativo/pumping',
 };
 const APROBACIONES: NavEntry = {
   label: 'Aprobaciones',
   icon: 'check',
-  link: '/modulos/operativo/pumping/aprobaciones',
+  link: '/modulos/operativo/pumping/pedidos/aprobaciones',
 };
 const FCR: NavEntry = { label: 'FCR', icon: 'tool', link: '/modulos/operativo/fcr' };
 /** Pedidos que Ventas abre en la línea FCR: cada uno llega como ticket al rol de su paso (contenedor operaciones). */
@@ -263,11 +267,7 @@ export class NavigationService {
         return [INICIO, mantenimiento(MIS_TAREAS)];
       // operador@dynadrill.com — solo Pumping (nunca FCR, eso es de "Operador FCR") + su Mantenimiento operativo.
       case 'Operador':
-        return [
-          INICIO,
-          operaciones(PUMPING, PEDIDOS_PUMPING),
-          mantenimiento(MANTENIMIENTO_OPERATIVO),
-        ];
+        return [INICIO, operaciones(PUMPING), mantenimiento(MANTENIMIENTO_OPERATIVO)];
       // Solo FCR: Pumping y Aprobaciones son del rol "Supervisor Pumping".
       case 'Supervisor':
       case 'Operador FCR':
@@ -279,7 +279,7 @@ export class NavigationService {
         return [INICIO, operaciones(FCR, FCR_CODIGOS)];
       // Acotado a Pumping y su bandeja de Aprobaciones (nunca FCR). También autoriza Gerenciamiento de Viaje de riesgo BAJO (DYN-SGI-RE-049).
       case 'Supervisor Pumping':
-        return [INICIO, operaciones(PUMPING, PEDIDOS_PUMPING, APROBACIONES, GERENCIAMIENTO_VIAJE)];
+        return [INICIO, operaciones(PUMPING, APROBACIONES, GERENCIAMIENTO_VIAJE)];
       case 'Jefe de Mantenimiento':
         return [INICIO, mantenimiento(BANDEJA_MANTENIMIENTO, INDICADORES_MANTENIMIENTO)];
       case 'Bodeguero':
@@ -305,19 +305,19 @@ export class NavigationService {
         return [INICIO, facturacion(...FACTURACION_CHILDREN)];
       // A nivel de backend "Jefe de Base" sigue con acceso total (ver ADMIN_ROLE_CODES) — a pedido del cliente, en la UI solo ve Pumping.
       case 'Jefe de Base':
-        return [INICIO, operaciones(PUMPING, PEDIDOS_PUMPING, GERENCIAMIENTO_VIAJE)];
+        return [INICIO, operaciones(PUMPING, GERENCIAMIENTO_VIAJE)];
       // Único caso con acceso completo a los módulos por rol (Usuarios se habilita por permiso, ver MODULOS_POR_PERMISO).
       case 'Superadmin':
         return [
           INICIO,
-          operaciones(PUMPING, PEDIDOS_PUMPING, FCR, PEDIDOS_FCR, FCR_CODIGOS),
+          operaciones(PUMPING, FCR, PEDIDOS_FCR, FCR_CODIGOS),
           mantenimiento(BANDEJA_MANTENIMIENTO, INDICADORES_MANTENIMIENTO, GERENCIAMIENTO_VIAJE),
           qhse(),
           inventario(),
           facturacion(...FACTURACION_CHILDREN, CATALOGOS),
         ];
       case 'Conductor':
-        return [INICIO, operaciones(PUMPING)];
+        return [INICIO, operaciones(PUMPING_CONDUCTOR)];
       default:
         return [INICIO];
     }

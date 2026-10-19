@@ -1,8 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { NzModalRef } from 'ng-zorro-antd/modal';
-import { DynadrillButtonComponent, DynadrillDialogService, DynadrillIconComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
-import { StopCardDialog } from '../../stop/components/stop-card-dialog';
-import { SwaActivationDialog } from '../../swa/components/swa-activation-dialog';
+import {
+  DynadrillButtonComponent,
+  DynadrillDialogService,
+  DynadrillIconComponent,
+  DynadrillTextComponent,
+} from '@digitec-it-projects/dynadrill-ui';
+import { StopRegistrarDialog } from '../../stop-plataforma/components/stop-registrar-dialog';
+import { SwaActivarDialog } from '../../swa-plataforma/components/swa-activar-dialog';
 import { DesechoDialog } from '../../desechos/components/desecho-dialog';
 import { DerrameAlertDialog } from '../../derrames/components/derrame-alert-dialog';
 
@@ -33,21 +38,39 @@ export class ReportarDialog {
 
   protected reportarStop(): void {
     this.modalRef.close();
-    this.dialogService.open<StopCardDialog>({ title: 'Tarjeta STOP — HSE-SEGUIMIENTO-002', content: StopCardDialog, footer: false });
+    this.dialogService.open<StopRegistrarDialog>({
+      title: 'Tarjeta STOP — HSE-SEGUIMIENTO-002',
+      content: StopRegistrarDialog,
+      footer: false,
+      width: '760px',
+    });
   }
 
   protected reportarSwa(): void {
     this.modalRef.close();
-    this.dialogService.open<SwaActivationDialog>({ title: 'Stop Work Authority — HSE-SEGUIMIENTO-003', content: SwaActivationDialog, footer: false });
+    this.dialogService.open<SwaActivarDialog>({
+      title: 'Stop Work Authority — HSE-SEGUIMIENTO-003',
+      content: SwaActivarDialog,
+      footer: false,
+      width: '560px',
+    });
   }
 
   protected reportarDesecho(): void {
     this.modalRef.close();
-    this.dialogService.open<DesechoDialog>({ title: 'Registrar desecho — HSE-AMBIENTAL-001', content: DesechoDialog, footer: false });
+    this.dialogService.open<DesechoDialog>({
+      title: 'Registrar desecho — HSE-AMBIENTAL-001',
+      content: DesechoDialog,
+      footer: false,
+    });
   }
 
   protected reportarDerrame(): void {
     this.modalRef.close();
-    this.dialogService.open<DerrameAlertDialog>({ title: 'Alerta de derrame — HSE-AMBIENTAL-002', content: DerrameAlertDialog, footer: false });
+    this.dialogService.open<DerrameAlertDialog>({
+      title: 'Alerta de derrame — HSE-AMBIENTAL-002',
+      content: DerrameAlertDialog,
+      footer: false,
+    });
   }
 }

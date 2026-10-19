@@ -1,0 +1,78 @@
+<div class="stop-page">
+  <app-page-header
+    eyebrow="QHSE"
+    title="Tarjetas STOP"
+    subtitle="DYN-SGI-RE-008 — observaciones de actos y condiciones; QHSE las deriva o resuelve"
+  >
+    <div actions>
+      <dynadrill-button (clicked)="nueva()">+ Nueva tarjeta</dynadrill-button>
+    </div>
+  </app-page-header>
+
+  <div class="kpi-stat-row" role="list">
+    @for (kpi of kpis(); track kpi.label) {
+      <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
+    }
+  </div>
+
+  @if (pareto().length) {
+    <section class="stop-page__pareto dyn-table-card">
+      <h3>
+        Tendencias — ítems inseguros por subcategoría ({{ tendencias()?.desde | date: 'MM/yyyy' }} a
+        {{ tendencias()?.hasta | date: 'MM/yyyy' }})
+      </h3>
+      @for (f of pareto(); track f.subcategoria) {
+        <div class="stop-page__barra">
+          <span class="stop-page__barra-nombre">{{ f.subcategoria }}</span>
+          <span class="stop-page__barra-pista"
+            ><span class="stop-page__barra-relleno" [style.width.%]="f.pct"></span
+          ></span>
+          <span class="stop-page__barra-valor">{{ f.inseguros }}</span>
+        </div>
+      }
+    </section>
+  }
+
+  <div class="stop-page__toolbar">
+    <app-qhse-filtros
+      [opciones]="opcionesFiltro()"
+      [selected]="filtroEstado()"
+      (selectedChange)="filtroEstado.set($any($event))"
+    />
+    <dynadrill-input
+      placeholder="Buscar por tarjeta, observador, lugar…"
+      [value]="busqueda()"
+      (valueChange)="busqueda.set($event)"
+    />
+  </div>
+
+  @if (isMobile()) {
+    <app-qhse-registros-movil
+      [items]="itemsMovil()"
+      [loading]="cargando()"
+      vacio="No hay tarjetas STOP con ese filtro."
+    />
+  } @else {
+    <ng-template #accionesTpl let-row>
+      <div class="stop-page__row-actions">
+        <dynadrill-icon-button
+          icon="eye"
+          tooltip="Abrir"
+          tooltipPlacement="top"
+          (clicked)="abrir(row.id)"
+        />
+      </div>
+    </ng-template>
+    <div class="table-scroll dyn-table-card">
+      <dynadrill-data-table
+        [columns]="columnas"
+        [rows]="filas()"
+        [loading]="cargando()"
+        [rowKey]="rowKeyFn"
+        [pageSize]="10"
+        actionsHeader="Acciones"
+        [actionsTemplate]="accionesTpl"
+      />
+    </div>
+  }
+</div>

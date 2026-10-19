@@ -1,80 +1,33 @@
 :host {
   display: block;
+  padding: 1.5rem;
 }
 
-.tp {
+// Mismo patrón que la lista de Pumping de la demo, la de FCR y la de Mantenimiento: el overflow-x queda contenido en el
+// wrapper en vez de usar scrollX de nz-table (su auto-medición de columnas no es confiable con contenido dentro del
+// actionsTemplate).
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ticket-cards {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
 
-  &__tarjeta {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    padding: 16px;
-    background: var(--surface, #fff);
-    border: 1px solid var(--border, #ecebf1);
-    border-radius: 14px;
+  &__empty {
+    padding: 24px 0;
+    color: var(--text-muted, #5c5870);
+    text-align: center;
   }
+}
 
-  &__filtros {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 12px;
-
-    dynadrill-input {
-      flex: 1 1 260px;
-    }
-
-    dynadrill-select {
-      flex: 0 1 260px;
-    }
-  }
-
-  &__tabla {
-    overflow-x: auto;
-
-    table {
-      width: 100%;
-      min-width: 860px;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-
-    th,
-    td {
-      padding: 10px 8px;
-      text-align: left;
-      vertical-align: top;
-      border-bottom: 1px solid var(--border, #ecebf1);
-    }
-
-    th {
-      font-weight: 600;
-      color: var(--text-muted, #5c5870);
-    }
-
-    .codigo {
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    .secundario {
-      display: block;
-      font-size: 12px;
-      color: var(--text-muted, #5c5870);
-    }
-
-    .acciones {
-      text-align: right;
-      white-space: nowrap;
-    }
-
-    .vacio {
-      padding: 28px 12px;
-      text-align: center;
-      color: var(--text-muted, #5c5870);
-    }
+@media (max-width: 840px) {
+  :host {
+    padding: 0;
   }
 }

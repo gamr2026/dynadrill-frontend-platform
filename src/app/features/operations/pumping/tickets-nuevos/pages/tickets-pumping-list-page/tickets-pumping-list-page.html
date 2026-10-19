@@ -1,73 +1,82 @@
-<div class="tp">
-  <dynadrill-screen-header
-    eyebrow="PUMPING"
-    title="Pedidos de Pumping"
-    subtitle="Cada pedido que Ventas abre en la línea llega aquí como ticket de servicio y lo atiende el rol de su paso"
-  />
+<app-page-header
+  eyebrow="PUM-01"
+  title="Pedidos Pumping"
+  subtitle="Dashboard de propuestas y pedidos activos"
+  [roleTag]="roleName()"
+/>
 
-  <section class="tp__tarjeta">
-    <div class="tp__filtros" role="search" aria-label="Filtros de la bandeja">
-      <dynadrill-input label="Buscar (ticket, pedido, cliente o pozo)" [value]="busqueda()" (valueChange)="busqueda.set($event)" (keydown.enter)="cargar()" />
-      <dynadrill-select label="Paso" placeholder="Todos los pasos" [options]="opcionesPaso" [value]="paso()" (valueChange)="elegirPaso($any($event))" />
-      <dynadrill-button variant="secondary" (clicked)="cargar()">Buscar</dynadrill-button>
-      @if (puedeAprobar()) {
-        <dynadrill-button variant="secondary" (clicked)="irAAprobaciones()">Aprobaciones</dynadrill-button>
-      }
-      <dynadrill-button variant="secondary" (clicked)="alternarMios()">{{ solicitos() ? 'Ver todos los tickets' : 'Ver solo los que atiende mi rol' }}</dynadrill-button>
-    </div>
+@if (error()) {
+  <dynadrill-banner variant="critical" [message]="error()!" />
+}
 
-    @if (error(); as e) {
-      <dynadrill-banner variant="critical" [message]="e" />
-    }
-
-    <dynadrill-spinner mode="overlay" [spinning]="cargando()" tip="Cargando…">
-      <div class="tp__tabla">
-        <table>
-          <caption class="sr-only">Tickets de Pumping</caption>
-          <thead>
-            <tr>
-              <th scope="col">Ticket</th>
-              <th scope="col">Pedido</th>
-              <th scope="col">Cliente y ubicación</th>
-              <th scope="col">Servicio</th>
-              <th scope="col">Inicio</th>
-              <th scope="col">Paso</th>
-              <th scope="col"><span class="sr-only">Acciones</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (t of tickets(); track t.id) {
-              <tr>
-                <td class="codigo">{{ t.ticketNumero ?? '—' }}</td>
-                <td>{{ t.pedidoCodigo }}</td>
-                <td>
-                  {{ t.cliente ?? '—' }}
-                  <span class="secundario">{{ t.campo ?? '—' }} · Pozo {{ t.pozo ?? '—' }} · {{ t.taladro ?? 'Sin taladro' }}</span>
-                </td>
-                <td>
-                  @for (s of t.tiposServicio; track s) {
-                    <dynadrill-tag [label]="tipo(s)" variant="neutral" [uppercase]="false" />
-                  }
-                </td>
-                <td>{{ dia(t.fechaInicioServicio) }}</td>
-                <td>
-                  <dynadrill-tag [label]="t.paso.nombre" [variant]="tono(t)" [uppercase]="false" />
-                  <span class="secundario">Atiende: {{ roles(t.paso.roles) }}</span>
-                </td>
-                <td class="acciones"><dynadrill-button variant="secondary" size="small" (clicked)="abrir(t)">Abrir</dynadrill-button></td>
-              </tr>
-            } @empty {
-              @if (vacio()) {
-                <tr>
-                  <td class="vacio" colspan="7">
-                    {{ solicitos() ? 'No hay tickets esperando a su rol.' : 'No hay tickets de Pumping.' }}
-                  </td>
-                </tr>
-              }
-            }
-          </tbody>
-        </table>
-      </div>
-    </dynadrill-spinner>
-  </section>
+<div class="kpi-stat-row" role="list">
+  @for (kpi of kpis(); track kpi.label) {
+    <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
+  }
 </div>
+
+<dynadrill-tabs
+  [tabs]="tabs()"
+  [activeIndex]="activeTabIndex()"
+  (activeIndexChange)="onTabChange($event)"
+/>
+
+<ng-template #actionsTpl let-row>
+  <div class="dyn-actions-row">
+    @for (action of row['actions']; track action.label) {
+      <dynadrill-icon-button
+        [icon]="action.icon"
+        [tooltip]="action.label"
+        (clicked)="action.run()"
+      />
+    }
+  </div>
+</ng-template>
+
+@if (isMobile()) {
+  <ul class="ticket-cards" [attr.aria-busy]="cargando()">
+    @for (row of isInProcessTab() ? inProcessRows() : approvedRows(); track row.id) {
+      <li>
+        <app-record-card
+          [eyebrow]="row.code"
+          [title]="row.wellName"
+          [subtitle]="row.clientName + ' • ' + row.serviceTypeLabel"
+          [status]="row.statusBadge"
+          [fields]="[
+            { label: 'Cliente', value: row.clientName },
+            { label: 'Tipo', value: row.serviceTypeLabel },
+          ]"
+          [actions]="row.actions"
+        />
+      </li>
+    } @empty {
+      @if (!cargando()) {
+        <li class="ticket-cards__empty">No hay pedidos en esta pestaña.</li>
+      }
+    }
+  </ul>
+} @else if (isInProcessTab()) {
+  <div class="table-scroll dyn-table-card">
+    <dynadrill-data-table
+      [columns]="columns"
+      [rows]="inProcessRows()"
+      [loading]="cargando()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="10"
+      actionsHeader="Acciones"
+      [actionsTemplate]="actionsTpl"
+    />
+  </div>
+} @else {
+  <div class="table-scroll">
+    <dynadrill-data-table
+      [columns]="columns"
+      [rows]="approvedRows()"
+      [loading]="cargando()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="10"
+      actionsHeader="Acciones"
+      [actionsTemplate]="actionsTpl"
+    />
+  </div>
+}

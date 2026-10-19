@@ -1,42 +1,49 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { AuthService } from '../../../../../../core/services/auth.service';
-import { PERMISO_CAMBIOS_APROBAR } from '../../models/cambio-items';
 import {
   DynadrillBannerComponent,
-  DynadrillButtonComponent,
-  DynadrillInputComponent,
-  DynadrillScreenHeaderComponent,
-  DynadrillSelectComponent,
-  DynadrillSpinnerComponent,
-  DynadrillTagComponent,
-  type DynadrillSelectOption,
+  DynadrillDataTableColumn,
+  DynadrillDataTableComponent,
+  DynadrillIconButtonComponent,
+  DynadrillTabsComponent,
+  type DynadrillTab,
 } from '@digitec-it-projects/dynadrill-ui';
-import { formatoDia } from '../../../../../facturacion/pedidos-comercial/models/pedido-comercial.model';
+import { AuthService } from '../../../../../../core/services/auth.service';
+import { injectNarrowViewport } from '../../../../../../core/utils/narrow-viewport.util';
+import { KpiStat, KpiStatTone } from '../../../../../../shared/components/kpi-stat/kpi-stat';
+import { PageHeader } from '../../../../../../shared/components/page-header/page-header';
+import {
+  RecordAction,
+  RecordCard,
+} from '../../../../../../shared/components/record-card/record-card';
 import {
   PASOS_PUMPING,
   TONO_MACRO,
-  etiquetaRoles,
   etiquetaTipoServicio,
   mensajeErrorTicket,
   type TicketPumpingResumen,
 } from '../../models/ticket-pumping';
 import { TicketsPumpingService } from '../../services/tickets-pumping.service';
 
+/** El ticket termina en el paso `cierre`: es lo que la demo llama "Pedidos Aprobados". */
+const PASO_FINAL = 'cierre';
+
+const STEP_FILTERS = PASOS_PUMPING.map((p) => ({ text: p.nombre, value: p.nombre }));
+
 /**
- * Bandeja de los pedidos de Pumping: cada pedido que Ventas abre en la línea llega aquí como ticket. Por defecto muestra
- * todos los pedidos, como la demo; se puede filtrar a lo que espera a su rol (el Jefe de Base ve lo que está en "Revisión inicial").
+ * Pedidos de Pumping: mismo diseño que la demo (indicadores, pestañas "En proceso" / "Aprobados" y tabla), pero con los datos
+ * y las reglas del contenedor `operaciones`. Cada pedido que Ventas abre en la línea llega aquí como ticket.
  */
 @Component({
   selector: 'app-tickets-pumping-list-page',
   imports: [
     DynadrillBannerComponent,
-    DynadrillButtonComponent,
-    DynadrillInputComponent,
-    DynadrillScreenHeaderComponent,
-    DynadrillSelectComponent,
-    DynadrillSpinnerComponent,
-    DynadrillTagComponent,
+    DynadrillDataTableComponent,
+    DynadrillIconButtonComponent,
+    DynadrillTabsComponent,
+    KpiStat,
+    PageHeader,
+    RecordCard,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './tickets-pumping-list-page.html',
@@ -46,67 +53,102 @@ export class TicketsPumpingListPage {
   private readonly servicio = inject(TicketsPumpingService);
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
-  /** El Supervisor ve el acceso a su bandeja de Aprobaciones (cambios de ítems del pedido). */
-  protected readonly puedeAprobar = computed(() => this.auth.can(PERMISO_CAMBIOS_APROBAR));
+
+  protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
+  /** Móvil: tarjetas en vez de la tabla. */
+  protected readonly isMobile = injectNarrowViewport();
 
   protected readonly cargando = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly tickets = signal<TicketPumpingResumen[]>([]);
-  protected readonly solicitos = signal(false);
-  protected readonly paso = signal<string | null>(null);
-  protected readonly busqueda = signal('');
 
-  protected readonly opcionesPaso: DynadrillSelectOption[] = PASOS_PUMPING.map((p) => ({
-    label: p.nombre,
-    value: p.codigo,
-  }));
-  protected readonly vacio = computed(
-    () => !this.cargando() && !this.error() && this.tickets().length === 0,
+  protected readonly activeTabIndex = signal(0);
+  protected readonly isInProcessTab = computed(() => this.activeTabIndex() === 0);
+
+  private readonly enProceso = computed(() =>
+    this.tickets().filter((t) => t.paso.codigo !== PASO_FINAL),
   );
+  private readonly aprobados = computed(() =>
+    this.tickets().filter((t) => t.paso.codigo === PASO_FINAL),
+  );
+
+  protected readonly tabs = computed<DynadrillTab[]>(() =>
+    this.isMobile()
+      ? [
+          { label: `En Proceso (${this.enProceso().length})` },
+          { label: `Aprobados (${this.aprobados().length})` },
+        ]
+      : [
+          { label: `Pedidos en Proceso (${this.enProceso().length})` },
+          { label: `Pedidos Aprobados (${this.aprobados().length})` },
+        ],
+  );
+
+  protected readonly kpis = computed<{ label: string; value: number; tone: KpiStatTone }[]>(() => {
+    const enProceso = this.enProceso();
+    const enPaso = (codigo: string) => enProceso.filter((t) => t.paso.codigo === codigo).length;
+    return [
+      { label: 'Total pedidos', value: this.tickets().length, tone: 'neutral' },
+      { label: 'Revisión inicial', value: enPaso('revision_inicial'), tone: 'warning' },
+      { label: 'Traslado de salida', value: enPaso('traslado_salida'), tone: 'brand' },
+      { label: 'Revisión final', value: enPaso('revision_final'), tone: 'warning' },
+      { label: 'Aprobados', value: this.aprobados().length, tone: 'success' },
+    ];
+  });
+
+  protected readonly columns: DynadrillDataTableColumn[] = [
+    { key: 'code', header: 'Código', sortable: true, searchable: true },
+    { key: 'wellName', header: 'Pozo', sortable: true, searchable: true },
+    { key: 'clientName', header: 'Cliente', searchable: true },
+    { key: 'serviceType', header: 'Tipo', type: 'badge' },
+    { key: 'statusBadge', header: 'Estado', type: 'badge', filters: STEP_FILTERS },
+  ];
+
+  protected readonly inProcessRows = computed(() => this.enProceso().map((t) => this.fila(t)));
+  protected readonly approvedRows = computed(() => this.aprobados().map((t) => this.fila(t)));
+
+  protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   constructor() {
     queueMicrotask(() => this.cargar());
   }
 
-  protected cargar(): void {
+  private fila(t: TicketPumpingResumen) {
+    const tipos = t.tiposServicio.map(etiquetaTipoServicio).join(', ');
+    return {
+      id: t.id,
+      code: t.ticketNumero !== null ? String(t.ticketNumero) : t.pedidoCodigo,
+      wellName: t.pozo ?? '—',
+      clientName: t.cliente ?? '—',
+      serviceType: tipos ? { text: tipos, tone: 'brand' as const } : null,
+      statusBadge: { text: t.paso.nombre, tone: TONO_MACRO[t.paso.macro] },
+      serviceTypeLabel: tipos || '—',
+      actions: [
+        { icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.abrir(t) },
+      ] as RecordAction[],
+    };
+  }
+
+  private cargar(): void {
     this.cargando.set(true);
     this.error.set(null);
-    this.servicio
-      .listar({ mios: this.solicitos(), paso: this.paso() ?? undefined, q: this.busqueda() })
-      .subscribe({
-        next: (t) => {
-          this.tickets.set(t);
-          this.cargando.set(false);
-        },
-        error: (err) => {
-          this.cargando.set(false);
-          this.error.set(
-            mensajeErrorTicket(err, 'No se pudo cargar la bandeja. Intente de nuevo.'),
-          );
-        },
-      });
+    this.servicio.listar().subscribe({
+      next: (t) => {
+        this.tickets.set(t);
+        this.cargando.set(false);
+      },
+      error: (err) => {
+        this.cargando.set(false);
+        this.error.set(mensajeErrorTicket(err, 'No se pudo cargar la bandeja. Intente de nuevo.'));
+      },
+    });
   }
 
-  protected alternarMios(): void {
-    this.solicitos.update((v) => !v);
-    this.cargar();
+  protected onTabChange(index: number): void {
+    this.activeTabIndex.set(index);
   }
 
-  protected elegirPaso(v: string | null): void {
-    this.paso.set(v);
-    this.cargar();
-  }
-
-  protected abrir(t: TicketPumpingResumen): void {
+  private abrir(t: TicketPumpingResumen): void {
     void this.router.navigate(['/modulos/operativo/pumping/pedidos', t.id]);
-  }
-
-  protected readonly dia = formatoDia;
-  protected readonly roles = etiquetaRoles;
-  protected readonly tipo = etiquetaTipoServicio;
-  protected readonly tono = (t: TicketPumpingResumen) => TONO_MACRO[t.paso.macro];
-
-  protected irAAprobaciones(): void {
-    void this.router.navigate(['/modulos/operativo/pumping/pedidos/aprobaciones']);
   }
 }

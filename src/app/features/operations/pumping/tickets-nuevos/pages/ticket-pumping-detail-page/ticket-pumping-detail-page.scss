@@ -97,8 +97,67 @@
   }
 
   &__ficha-pie {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
     padding-top: 10px;
     border-top: 1px solid var(--border, #ecebf1);
+  }
+
+  &__ficha-id {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  // Datos del pedido en celdas con borde, como la demo (ubicación ocupa dos columnas).
+  &__datos--rejilla {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    border: 1px solid var(--border, #ecebf1);
+    border-radius: 6px;
+
+    > div {
+      padding: 8px 12px;
+      border-right: 1px solid var(--border, #ecebf1);
+      border-bottom: 1px solid var(--border, #ecebf1);
+    }
+  }
+
+  &__dato--doble {
+    grid-column: span 2;
+  }
+
+  // Documentos QHSE: una fila por documento (nombre, detalle y estado; descarga a la derecha).
+  &__docs {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__doc {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    padding: 12px 0;
+    border-top: 1px solid var(--border, #ecebf1);
+
+    &:first-child {
+      border-top: 0;
+    }
+  }
+
+  &__doc-texto {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 
   &__meta {

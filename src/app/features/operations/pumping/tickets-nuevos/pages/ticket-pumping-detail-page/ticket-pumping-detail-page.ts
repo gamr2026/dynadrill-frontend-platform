@@ -34,6 +34,13 @@ import {
 import { PedidosComercialService } from '../../../../../facturacion/pedidos-comercial/services/pedidos-comercial.service';
 import { TicketProgress } from '../../../../shared/ticket-progress/ticket-progress';
 import {
+  PERMISO_DOCUMENTOS_VER,
+  insigniaArt,
+  type DocumentoVigente,
+  type PedidoDocumental,
+} from '../../../../../qhse/documentos-pedido/models/documento-pedido';
+import { DocumentosPedidoService } from '../../../../../qhse/documentos-pedido/services/documentos-pedido.service';
+import {
   PERMISO_PREFACTURA_FIRMA_COMPANY_MAN,
   PERMISO_PREFACTURA_VISTA_TICKET,
 } from '../../../../../facturacion/pedidos-comercial/models/prefactura-comercial';
@@ -138,6 +145,45 @@ export class TicketPumpingDetailPage {
   private readonly dialog = inject(DynadrillDialogService);
   private readonly archivos = inject(ArchivosService);
   private readonly pedidos = inject(PedidosComercialService);
+  private readonly docsQhse = inject(DocumentosPedidoService);
+
+  // ── Documentos QHSE del pedido (formato de recepción, SFI, ART, PT del día y Acta): los carga QHSE, aquí se consultan ──
+  protected readonly puedeVerDocsQhse = computed(() => this.auth.can(PERMISO_DOCUMENTOS_VER));
+  protected readonly documentosQhse = signal<PedidoDocumental | null>(null);
+  protected readonly artInsignia = computed(() => {
+    const art = this.documentosQhse()?.art ?? null;
+    return art ? insigniaArt(art) : ({ text: 'Pendiente', tone: 'warning' } as const);
+  });
+  /** Una fila por operador asignado: sale de los requisitos de términos y condiciones del ticket. */
+  protected readonly terminosPorOperador = computed(() =>
+    (this.ticket()?.requisitos ?? []).filter((r) => r.codigo === 'terminos_aceptados'),
+  );
+  protected readonly terminosAceptados = computed(
+    () =>
+      this.terminosPorOperador().length > 0 &&
+      this.terminosPorOperador().every((r) => r.estado === 'cumplido'),
+  );
+
+  private cargarDocumentosQhse(t: TicketPumping): void {
+    if (!this.puedeVerDocsQhse()) return;
+    this.docsQhse.pedidos(t.pedidoCodigo).subscribe({
+      next: (l) => this.documentosQhse.set(l.find((p) => p.pedidoId === t.pedidoId) ?? null),
+      error: () => this.documentosQhse.set(null),
+    });
+  }
+
+  protected descargarDocQhse(d: DocumentoVigente | null, nombre: string): void {
+    if (!d) return;
+    this.docsQhse.abrir(d.archivoId).subscribe({
+      next: (blob) => this.archivos.guardarComo(blob, nombre),
+      error: () => this.errorAccion.set('No se pudo descargar el documento.'),
+    });
+  }
+
+  protected readonly numero = (v: number): string =>
+    v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  protected readonly cantidad = (v: number): string =>
+    v.toLocaleString('en-US', { maximumFractionDigits: 3 });
 
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
 
@@ -584,12 +630,10 @@ export class TicketPumpingDetailPage {
   }
 
   private cargarReportesDiarios(id: string): void {
-    this.servicio
-      .reportesDiarios(id)
-      .subscribe({
-        next: (l) => this.reportesDiarios.set(l),
-        error: () => this.reportesDiarios.set([]),
-      });
+    this.servicio.reportesDiarios(id).subscribe({
+      next: (l) => this.reportesDiarios.set(l),
+      error: () => this.reportesDiarios.set([]),
+    });
   }
 
   protected abrirReporteDiario(fecha: string, nuevo = false): void {
@@ -674,6 +718,7 @@ export class TicketPumpingDetailPage {
     this.cargarReportesDiarios(t.id);
     this.cargarCambiosItems(t.id);
     this.cargarDocumentos(t.id);
+    this.cargarDocumentosQhse(t);
   }
 
   protected readonly hayAsignacion = computed(() => {
@@ -699,6 +744,7 @@ export class TicketPumpingDetailPage {
         this.cargarCambiosItems(t.id);
         this.cargarDocumentos(t.id);
         this.cargarPedido(t.pedidoId);
+        this.cargarDocumentosQhse(t);
       },
       error: (err) => {
         this.cargando.set(false);

@@ -131,9 +131,146 @@
             </li>
           </ng-template>
 
-          @if (requisitosQhse().length) {
+          @if (puedeVerDocsQhse()) {
             <section class="tpd__tarjeta" aria-label="Documentos QHSE">
               <h2>Documentos QHSE</h2>
+              <ul class="tpd__docs">
+                <li class="tpd__doc">
+                  <div class="tpd__doc-texto">
+                    <strong>Formato de Recepción</strong>
+                    <span class="tpd__meta">{{
+                      documentosQhse()?.formatoRecepcion ? 'Cargado por QHSE' : 'Pendiente de QHSE'
+                    }}</span>
+                    <dynadrill-tag
+                      [label]="documentosQhse()?.formatoRecepcion ? 'Cargado' : 'Pendiente'"
+                      [variant]="documentosQhse()?.formatoRecepcion ? 'success' : 'warning'"
+                      [uppercase]="false"
+                    />
+                  </div>
+                  @if (documentosQhse()?.formatoRecepcion; as d) {
+                    <dynadrill-button
+                      variant="secondary"
+                      size="small"
+                      (clicked)="descargarDocQhse(d, 'Formato de recepción')"
+                      >Descargar</dynadrill-button
+                    >
+                  }
+                </li>
+                <li class="tpd__doc">
+                  <div class="tpd__doc-texto">
+                    <strong>SFI</strong>
+                    <span class="tpd__meta">{{
+                      documentosQhse()?.sfi ? 'Cargado por QHSE' : 'Pendiente de QHSE'
+                    }}</span>
+                    <dynadrill-tag
+                      [label]="documentosQhse()?.sfi ? 'Cargado' : 'Pendiente'"
+                      [variant]="documentosQhse()?.sfi ? 'success' : 'warning'"
+                      [uppercase]="false"
+                    />
+                  </div>
+                  @if (documentosQhse()?.sfi; as d) {
+                    <dynadrill-button
+                      variant="secondary"
+                      size="small"
+                      (clicked)="descargarDocQhse(d, 'SFI')"
+                      >Descargar</dynadrill-button
+                    >
+                  }
+                </li>
+                <li class="tpd__doc">
+                  <div class="tpd__doc-texto">
+                    <strong>ART</strong>
+                    <span class="tpd__meta">{{
+                      documentosQhse()?.art
+                        ? 'Vigente hasta ' + dia(documentosQhse()?.art?.vigenteHasta)
+                        : 'Sin ART cargado'
+                    }}</span>
+                    <dynadrill-tag
+                      [label]="artInsignia().text"
+                      [variant]="artInsignia().tone"
+                      [uppercase]="false"
+                    />
+                  </div>
+                  @if (documentosQhse()?.art; as d) {
+                    <dynadrill-button
+                      variant="secondary"
+                      size="small"
+                      (clicked)="descargarDocQhse(d, 'ART')"
+                      >Descargar</dynadrill-button
+                    >
+                  }
+                </li>
+                <li class="tpd__doc">
+                  <div class="tpd__doc-texto">
+                    <strong>PT del día</strong>
+                    <span class="tpd__meta">{{
+                      documentosQhse()?.ptHoy
+                        ? 'Cargado por QHSE'
+                        : 'QHSE aún no cargó el PT de hoy'
+                    }}</span>
+                    <dynadrill-tag
+                      [label]="documentosQhse()?.ptHoy ? 'Cargado' : 'Pendiente'"
+                      [variant]="documentosQhse()?.ptHoy ? 'success' : 'warning'"
+                      [uppercase]="false"
+                    />
+                  </div>
+                  @if (documentosQhse()?.ptHoy; as d) {
+                    <dynadrill-button
+                      variant="secondary"
+                      size="small"
+                      (clicked)="descargarDocQhse(d, 'PT del día')"
+                      >Descargar</dynadrill-button
+                    >
+                  }
+                </li>
+                <li class="tpd__doc">
+                  <div class="tpd__doc-texto">
+                    <strong>Acta de Entrega de Locación</strong>
+                    <span class="tpd__meta">{{
+                      documentosQhse()?.actaEntrega
+                        ? 'Cargada por el Supervisor'
+                        : 'Pendiente — se carga al finalizar el ticket (DYN-PMP-RE-027)'
+                    }}</span>
+                    <dynadrill-tag
+                      [label]="documentosQhse()?.actaEntrega ? 'Cargado' : 'Pendiente'"
+                      [variant]="documentosQhse()?.actaEntrega ? 'success' : 'warning'"
+                      [uppercase]="false"
+                    />
+                  </div>
+                  @if (documentosQhse()?.actaEntrega; as d) {
+                    <dynadrill-button
+                      variant="secondary"
+                      size="small"
+                      (clicked)="descargarDocQhse(d, 'Acta de entrega de locación')"
+                      >Descargar</dynadrill-button
+                    >
+                  }
+                </li>
+                <li class="tpd__doc">
+                  <div class="tpd__doc-texto">
+                    <strong>Términos y condiciones de uso de equipos</strong>
+                    <span class="tpd__meta">
+                      @for (r of terminosPorOperador(); track r.id; let ultimo = $last) {
+                        {{ r.para }}: {{ r.estado === 'cumplido' ? 'aceptado' : 'pendiente'
+                        }}{{ ultimo ? '' : ' · ' }}
+                      } @empty {
+                        Sin operadores asignados
+                      }
+                    </span>
+                    <dynadrill-tag
+                      [label]="terminosAceptados() ? 'Aceptado' : 'Pendiente'"
+                      [variant]="terminosAceptados() ? 'success' : 'warning'"
+                      [uppercase]="false"
+                    />
+                  </div>
+                </li>
+              </ul>
+            </section>
+          }
+
+          @if (requisitosQhse().length) {
+            <section class="tpd__tarjeta" aria-label="Requisitos de QHSE">
+              <h2>Requisitos de QHSE</h2>
               <ul class="tpd__requisitos">
                 @for (r of requisitosQhse(); track r.id) {
                   <ng-container
@@ -225,9 +362,13 @@
                   </div>
                 }
               </dl>
-              <p class="tpd__meta tpd__ficha-pie">
-                Historial de fases con actor y fecha registrado · ID: {{ t.pedidoCodigo }}
-              </p>
+              <div class="tpd__ficha-pie">
+                <span class="tpd__meta">Historial de fases con actor y fecha registrado</span>
+                <span class="tpd__ficha-id">
+                  <span class="tpd__meta">ID: {{ t.pedidoCodigo }}</span>
+                  <dynadrill-tag label="Activo" variant="success" [uppercase]="false" />
+                </span>
+              </div>
             </div>
           </section>
 
@@ -242,8 +383,8 @@
                     }
                   </div>
                 </div>
-                <dl class="tpd__datos">
-                  <div>
+                <dl class="tpd__datos tpd__datos--rejilla">
+                  <div class="tpd__dato--doble">
                     <dt>Ubicación</dt>
                     <dd>
                       {{ p.ubicacion.campo ?? '—' }} · Bloque {{ p.ubicacion.bloque ?? '—' }} · Pozo
@@ -296,9 +437,9 @@
                           </td>
                           <td>{{ i.descripcion }}</td>
                           <td>{{ i.unidad ?? '' }}</td>
-                          <td class="tpd__num">{{ i.cantidad }}</td>
-                          <td class="tpd__num">{{ moneda(i.valorUnitario) }}</td>
-                          <td class="tpd__num">{{ moneda(i.neto) }}</td>
+                          <td class="tpd__num">{{ cantidad(i.cantidad) }}</td>
+                          <td class="tpd__num">{{ numero(i.valorUnitario) }}</td>
+                          <td class="tpd__num">{{ numero(i.neto) }}</td>
                         </tr>
                       }
                     </tbody>
@@ -306,7 +447,7 @@
                       <tr>
                         <td colspan="5"><strong>Total estimado</strong></td>
                         <td class="tpd__num">
-                          <strong>{{ moneda(p.totales.neto) }}</strong>
+                          <strong>{{ numero(p.totales.neto) }}</strong>
                         </td>
                       </tr>
                     </tfoot>

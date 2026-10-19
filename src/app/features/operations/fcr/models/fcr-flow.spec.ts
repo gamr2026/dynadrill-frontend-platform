@@ -21,7 +21,12 @@ function ticket(overrides: Partial<FcrTicket> = {}): FcrTicket {
   } as FcrTicket;
 }
 
-const tool = (overrides: Partial<FcrTool>): FcrTool => ({ id: 1, name: 'Llave', status: 'seleccionada', ...overrides });
+const tool = (overrides: Partial<FcrTool>): FcrTool => ({
+  id: 1,
+  name: 'Llave',
+  status: 'seleccionada',
+  ...overrides,
+});
 
 describe('fcr-flow', () => {
   it('usa el flujo de servicio solo para tipoOt servicio', () => {
@@ -32,16 +37,27 @@ describe('fcr-flow', () => {
 
   describe('fcrResponsibleRole', () => {
     it('le pasa el turno a Ingeniería de Ventas cuando el Supervisor pidió corrección', () => {
-      const t = ticket({ observations: [{ id: 1, author: 'Ana', role: 'Supervisor', date: '', message: 'Corregir' }] });
+      const t = ticket({
+        observations: [{ id: 1, author: 'Ana', role: 'Supervisor', date: '', message: 'Corregir' }],
+      });
       expect(fcrResponsibleRole(t)).toBe('Ingeniería de Ventas FCR');
     });
 
     it('alterna Supervisor ↔ Bodeguero en Preparación de herramientas', () => {
       const phase: FcrPhase = 'preparacion_herramientas';
-      expect(fcrResponsibleRole(ticket({ currentPhase: phase, tools: [tool({ sentToBodega: false })] }))).toBe('Supervisor');
-      expect(fcrResponsibleRole(ticket({ currentPhase: phase, tools: [tool({ sentToBodega: true })] }))).toBe('Bodeguero');
       expect(
-        fcrResponsibleRole(ticket({ currentPhase: phase, tools: [tool({ status: 'en_preparacion', sentToSupervisor: true })] })),
+        fcrResponsibleRole(ticket({ currentPhase: phase, tools: [tool({ sentToBodega: false })] })),
+      ).toBe('Supervisor');
+      expect(
+        fcrResponsibleRole(ticket({ currentPhase: phase, tools: [tool({ sentToBodega: true })] })),
+      ).toBe('Bodeguero');
+      expect(
+        fcrResponsibleRole(
+          ticket({
+            currentPhase: phase,
+            tools: [tool({ status: 'en_preparacion', sentToSupervisor: true })],
+          }),
+        ),
       ).toBe('Supervisor');
     });
 
@@ -59,16 +75,27 @@ describe('fcr-flow', () => {
 
   describe('fcrTicketRelation', () => {
     it('es "turno" cuando le toca al rol', () => {
-      expect(fcrTicketRelation(ticket({ currentPhase: 'control_retorno' }), 'Bodeguero')).toBe('turno');
+      expect(fcrTicketRelation(ticket({ currentPhase: 'control_retorno' }), 'Bodeguero')).toBe(
+        'turno',
+      );
     });
 
     it('es "proxima" cuando el ticket todavía pasará por una etapa del rol', () => {
-      expect(fcrTicketRelation(ticket({ currentPhase: 'asignacion' }), 'Bodeguero')).toBe('proxima');
+      expect(fcrTicketRelation(ticket({ currentPhase: 'asignacion' }), 'Bodeguero')).toBe(
+        'proxima',
+      );
     });
 
     it('es "seguimiento" cuando ya no le toca o el ticket está cerrado', () => {
-      expect(fcrTicketRelation(ticket({ currentPhase: 'cierre' }), 'Bodeguero')).toBe('seguimiento');
-      expect(fcrTicketRelation(ticket({ currentPhase: 'control_retorno', status: 'cerrado' }), 'Bodeguero')).toBe('seguimiento');
+      expect(fcrTicketRelation(ticket({ currentPhase: 'cierre' }), 'Bodeguero')).toBe(
+        'seguimiento',
+      );
+      expect(
+        fcrTicketRelation(
+          ticket({ currentPhase: 'control_retorno', status: 'cerrado' }),
+          'Bodeguero',
+        ),
+      ).toBe('seguimiento');
     });
   });
 });

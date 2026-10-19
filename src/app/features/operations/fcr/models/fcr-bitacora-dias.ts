@@ -9,7 +9,10 @@ export interface FcrBitacoraDia {
   envio: FcrDiaBitacoraEnviado | null;
 }
 
-export function agruparBitacoraPorDia(log: FcrActivityLogEntry[], enviados: FcrDiaBitacoraEnviado[]): FcrBitacoraDia[] {
+export function agruparBitacoraPorDia(
+  log: FcrActivityLogEntry[],
+  enviados: FcrDiaBitacoraEnviado[],
+): FcrBitacoraDia[] {
   const porFecha = new Map<string, FcrActivityLogEntry[]>();
   for (const e of log) porFecha.set(e.date, [...(porFecha.get(e.date) ?? []), e]);
 
@@ -19,7 +22,7 @@ export function agruparBitacoraPorDia(log: FcrActivityLogEntry[], enviados: FcrD
       fecha,
       actividades: [...actividades].sort((a, b) => a.startTime.localeCompare(b.startTime)),
       totalHoras: Math.round(actividades.reduce((sum, e) => sum + e.durationHours, 0) * 100) / 100,
-      envio: enviados.find(d => d.fecha === fecha) ?? null,
+      envio: enviados.find((d) => d.fecha === fecha) ?? null,
     }));
 }
 
@@ -50,8 +53,12 @@ export function fechaSugeridaEnServicio(hoy: string, rango: RangoServicio): stri
 }
 
 /** Agrupa registros por día (`date`), en orden de fecha y sin cambiar el orden dentro del día — mismo criterio que la bitácora. */
-export function agruparPorFecha<T extends { date: string }>(items: T[]): { fecha: string; items: T[] }[] {
+export function agruparPorFecha<T extends { date: string }>(
+  items: T[],
+): { fecha: string; items: T[] }[] {
   const porFecha = new Map<string, T[]>();
   for (const item of items) porFecha.set(item.date, [...(porFecha.get(item.date) ?? []), item]);
-  return [...porFecha.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([fecha, items]) => ({ fecha, items }));
+  return [...porFecha.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([fecha, items]) => ({ fecha, items }));
 }

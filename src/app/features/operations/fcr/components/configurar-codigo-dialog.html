@@ -1,27 +1,45 @@
 <div class="cfg-codigo">
   <dynadrill-text variant="body">
     <strong>{{ fila.codigo }}</strong>
-    @if (fila.descripcion) { — {{ fila.descripcion }} ({{ fila.unidad }}) }
+    @if (fila.descripcion) {
+      — {{ fila.descripcion }} ({{ fila.unidad }})
+    }
   </dynadrill-text>
 
   <div class="cfg-codigo__field">
-    <dynadrill-select label="Clase" placeholder="Seleccionar…" [options]="claseOptions" [value]="clase()" (valueChange)="onClaseChange($event)" />
+    <dynadrill-select
+      label="Clase"
+      placeholder="Seleccionar…"
+      [options]="claseOptions"
+      [value]="clase()"
+      (valueChange)="onClaseChange($event)"
+    />
     @if (descripcionClase()) {
       <dynadrill-text variant="caption">{{ descripcionClase() }}</dynadrill-text>
     }
     @if (descartaKit()) {
-      <dynadrill-text variant="caption" class="cfg-codigo__warning">⚠ Al guardar se descarta el kit de este código.</dynadrill-text>
+      <dynadrill-text variant="caption" class="cfg-codigo__warning"
+        >⚠ Al guardar se descarta el kit de este código.</dynadrill-text
+      >
     }
   </div>
 
   @if (esHerramienta()) {
     <section class="cfg-codigo__kit" aria-labelledby="cfg-codigo-kit-title">
       <div class="cfg-codigo__kit-head">
-        <h3 id="cfg-codigo-kit-title" class="cfg-codigo__kit-title">Kit (herramientas por juego)</h3>
-        <dynadrill-icon-button icon="add" iconSource="dynadrill" tooltip="Agregar herramienta" (clicked)="agregarFila()" />
+        <h3 id="cfg-codigo-kit-title" class="cfg-codigo__kit-title">
+          Kit (herramientas por juego)
+        </h3>
+        <dynadrill-icon-button
+          icon="add"
+          iconSource="dynadrill"
+          tooltip="Agregar herramienta"
+          (clicked)="agregarFila()"
+        />
       </div>
       <dynadrill-text variant="caption">
-        Se pide un juego por cada unidad cotizada en el Pedido; si la unidad es de tiempo (día, hora, semana, mes), un solo juego.
+        Se pide un juego por cada unidad cotizada en el Pedido; si la unidad es de tiempo (día,
+        hora, semana, mes), un solo juego.
       </dynadrill-text>
 
       <ul class="cfg-codigo__rows">
@@ -36,13 +54,24 @@
               [value]="item.articuloId"
               (valueChange)="onHerramientaChange(i, $event)"
             />
-            <dynadrill-input class="cfg-codigo__qty" label="Cantidad" type="number" [value]="item.cantidad" (valueChange)="onCantidadChange(i, $event)" />
-            <dynadrill-icon-button icon="delete" [tooltip]="'Quitar herramienta ' + (i + 1)" (clicked)="quitarFila(i)" />
+            <dynadrill-input
+              class="cfg-codigo__qty"
+              label="Cantidad"
+              type="number"
+              [value]="item.cantidad"
+              (valueChange)="onCantidadChange(i, $event)"
+            />
+            <dynadrill-icon-button
+              icon="delete"
+              [tooltip]="'Quitar herramienta ' + (i + 1)"
+              (clicked)="quitarFila(i)"
+            />
           </li>
         } @empty {
           <li>
             <dynadrill-text variant="caption" class="cfg-codigo__warning">
-              ⚠ Sin kit: el ticket mostrará un aviso y el Supervisor tendrá que agregar las herramientas a mano.
+              ⚠ Sin kit: el ticket mostrará un aviso y el Supervisor tendrá que agregar las
+              herramientas a mano.
             </dynadrill-text>
           </li>
         }
@@ -56,6 +85,8 @@
 
   <div class="cfg-codigo__actions">
     <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
-    <dynadrill-button variant="primary" [disabled]="!clase() || guardando()" (clicked)="guardar()">Guardar</dynadrill-button>
+    <dynadrill-button variant="primary" [disabled]="!clase() || guardando()" (clicked)="guardar()"
+      >Guardar</dynadrill-button
+    >
   </div>
 </div>

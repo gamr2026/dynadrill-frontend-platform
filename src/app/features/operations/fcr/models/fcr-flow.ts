@@ -68,10 +68,19 @@ export function fcrResponsibleRole(t: FcrTicket): string {
     return last.role === 'Supervisor' ? 'Ingeniería de Ventas FCR' : 'Supervisor';
   }
   if (t.currentPhase === 'preparacion_herramientas') {
-    if (t.tools.some(tool => tool.status === 'seleccionada' && !tool.sentToBodega)) return 'Supervisor';
-    if (t.tools.some(tool => tool.status === 'seleccionada' && tool.sentToBodega)) return 'Bodeguero';
-    if (t.tools.some(tool => tool.status === 'en_preparacion' && !tool.sentToSupervisor)) return 'Bodeguero';
-    if (t.tools.some(tool => tool.status === 'en_preparacion' && tool.sentToSupervisor && !tool.recepcion?.marcado)) return 'Supervisor';
+    if (t.tools.some((tool) => tool.status === 'seleccionada' && !tool.sentToBodega))
+      return 'Supervisor';
+    if (t.tools.some((tool) => tool.status === 'seleccionada' && tool.sentToBodega))
+      return 'Bodeguero';
+    if (t.tools.some((tool) => tool.status === 'en_preparacion' && !tool.sentToSupervisor))
+      return 'Bodeguero';
+    if (
+      t.tools.some(
+        (tool) =>
+          tool.status === 'en_preparacion' && tool.sentToSupervisor && !tool.recepcion?.marcado,
+      )
+    )
+      return 'Supervisor';
   }
   return FCR_PHASE_ROLE[t.currentPhase].roleName;
 }
@@ -91,7 +100,9 @@ const FCR_PHASE_SECONDARY_ROLES: Partial<Record<FcrPhase, readonly string[]>> = 
 export function fcrRolePhases(roleName: string): ReadonlySet<FcrPhase> {
   return new Set(
     FCR_BOARD_PHASES.filter(
-      phase => FCR_PHASE_ROLE[phase].roleName === roleName || (FCR_PHASE_SECONDARY_ROLES[phase] ?? []).includes(roleName),
+      (phase) =>
+        FCR_PHASE_ROLE[phase].roleName === roleName ||
+        (FCR_PHASE_SECONDARY_ROLES[phase] ?? []).includes(roleName),
     ),
   );
 }
@@ -116,7 +127,7 @@ export function fcrTicketRelation(t: FcrTicket, roleName: string): FcrTicketRela
   const keys = fcrPhaseKeys(t.tipoOt);
   const mine = fcrRolePhases(roleName);
   const upcoming = keys.slice(keys.indexOf(t.currentPhase) + 1);
-  return upcoming.some(phase => mine.has(phase)) ? 'proxima' : 'seguimiento';
+  return upcoming.some((phase) => mine.has(phase)) ? 'proxima' : 'seguimiento';
 }
 
 /** Tickets por columna y por página del tablero — todas las columnas avanzan juntas. */
@@ -126,10 +137,16 @@ export const FCR_BOARD_PAGE_SIZE = 4;
 export function fcrBoardPhases(roleName: string, soloMisEtapas: boolean): readonly FcrPhase[] {
   if (!soloMisEtapas) return FCR_BOARD_PHASES;
   const mine = fcrRolePhases(roleName);
-  return FCR_BOARD_PHASES.filter(phase => mine.has(phase));
+  return FCR_BOARD_PHASES.filter((phase) => mine.has(phase));
 }
 
 /** Tickets de la etapa con más tickets — marca el total de páginas del tablero. */
-export function fcrLongestColumn(tickets: readonly FcrTicket[], phases: readonly FcrPhase[]): number {
-  return Math.max(0, ...phases.map(phase => tickets.filter(t => t.currentPhase === phase).length));
+export function fcrLongestColumn(
+  tickets: readonly FcrTicket[],
+  phases: readonly FcrPhase[],
+): number {
+  return Math.max(
+    0,
+    ...phases.map((phase) => tickets.filter((t) => t.currentPhase === phase).length),
+  );
 }

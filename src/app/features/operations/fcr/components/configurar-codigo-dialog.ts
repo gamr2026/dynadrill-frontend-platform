@@ -20,7 +20,10 @@ import {
   type KitItem,
   type KitItemBorrador,
 } from '../models/fcr-configuracion-codigos';
-import { FcrConfiguracionCodigosService, type ConfiguracionCodigoGuardada } from '../services/fcr-configuracion-codigos.service';
+import {
+  FcrConfiguracionCodigosService,
+  type ConfiguracionCodigoGuardada,
+} from '../services/fcr-configuracion-codigos.service';
 
 export interface ConfigurarCodigoDialogData {
   clienteId: number;
@@ -37,14 +40,22 @@ export interface ConfigurarCodigoDialogData {
 @Component({
   selector: 'app-configurar-codigo-dialog',
   host: { class: 'app-dialog-sheet-mobile' },
-  imports: [DynadrillSelectComponent, DynadrillInputComponent, DynadrillButtonComponent, DynadrillIconButtonComponent, DynadrillTextComponent],
+  imports: [
+    DynadrillSelectComponent,
+    DynadrillInputComponent,
+    DynadrillButtonComponent,
+    DynadrillIconButtonComponent,
+    DynadrillTextComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './configurar-codigo-dialog.html',
   styleUrl: './configurar-codigo-dialog.scss',
 })
 export class ConfigurarCodigoDialog {
   private readonly data = inject<ConfigurarCodigoDialogData>(NZ_MODAL_DATA);
-  private readonly modalRef = inject(NzModalRef<ConfigurarCodigoDialog, ConfiguracionCodigoGuardada | undefined>);
+  private readonly modalRef = inject(
+    NzModalRef<ConfigurarCodigoDialog, ConfiguracionCodigoGuardada | undefined>,
+  );
   private readonly service = inject(FcrConfiguracionCodigosService);
   private readonly notify = inject(DynadrillNotificationService);
 
@@ -53,13 +64,19 @@ export class ConfigurarCodigoDialog {
   protected readonly herramientas: DynadrillSelectOption[] = [
     ...this.data.herramientas,
     ...this.fila.kit
-      .filter(k => !this.data.herramientas.some(h => h.value === k.articuloId))
-      .map(k => ({ label: `Artículo #${k.articuloId} (dado de baja — reemplácelo)`, value: k.articuloId })),
+      .filter((k) => !this.data.herramientas.some((h) => h.value === k.articuloId))
+      .map((k) => ({
+        label: `Artículo #${k.articuloId} (dado de baja — reemplácelo)`,
+        value: k.articuloId,
+      })),
   ];
-  protected readonly claseOptions: DynadrillSelectOption[] = CLASES_OPERATIVAS.map(c => ({ label: CLASE_OPERATIVA_LABELS[c], value: c }));
+  protected readonly claseOptions: DynadrillSelectOption[] = CLASES_OPERATIVAS.map((c) => ({
+    label: CLASE_OPERATIVA_LABELS[c],
+    value: c,
+  }));
 
   protected readonly clase = signal<ClaseOperativa | null>(this.fila.clase);
-  protected readonly kit = signal<KitItemBorrador[]>(this.fila.kit.map(k => ({ ...k })));
+  protected readonly kit = signal<KitItemBorrador[]>(this.fila.kit.map((k) => ({ ...k })));
   protected readonly guardando = signal(false);
   /** Los errores del kit se muestran recién después del primer intento de guardar, no mientras se completa la fila. */
   private readonly intentoGuardar = signal(false);
@@ -70,20 +87,26 @@ export class ConfigurarCodigoDialog {
     return c ? CLASE_OPERATIVA_DESCRIPCIONES[c] : '';
   });
   /** El kit guardado se pierde si la clase deja de ser herramienta — se avisa en vez de pedir confirmación. */
-  protected readonly descartaKit = computed(() => !this.esHerramienta() && this.fila.kit.length > 0);
-  private readonly errorKit = computed(() => (this.esHerramienta() ? errorDelKit(this.kit()) : null));
-  protected readonly errorVisible = computed(() => (this.intentoGuardar() ? this.errorKit() : null));
+  protected readonly descartaKit = computed(
+    () => !this.esHerramienta() && this.fila.kit.length > 0,
+  );
+  private readonly errorKit = computed(() =>
+    this.esHerramienta() ? errorDelKit(this.kit()) : null,
+  );
+  protected readonly errorVisible = computed(() =>
+    this.intentoGuardar() ? this.errorKit() : null,
+  );
 
   protected onClaseChange(value: unknown): void {
     this.clase.set(value as ClaseOperativa | null);
   }
 
   protected agregarFila(): void {
-    this.kit.update(k => [...k, { articuloId: null, cantidad: 1 }]);
+    this.kit.update((k) => [...k, { articuloId: null, cantidad: 1 }]);
   }
 
   protected quitarFila(index: number): void {
-    this.kit.update(k => k.filter((_, i) => i !== index));
+    this.kit.update((k) => k.filter((_, i) => i !== index));
   }
 
   protected onHerramientaChange(index: number, value: unknown): void {
@@ -95,7 +118,7 @@ export class ConfigurarCodigoDialog {
   }
 
   private actualizarFila(index: number, cambio: Partial<KitItemBorrador>): void {
-    this.kit.update(k => k.map((fila, i) => (i === index ? { ...fila, ...cambio } : fila)));
+    this.kit.update((k) => k.map((fila, i) => (i === index ? { ...fila, ...cambio } : fila)));
   }
 
   protected cancelar(): void {
@@ -116,7 +139,7 @@ export class ConfigurarCodigoDialog {
         kit: clase === 'herramienta' ? (this.kit() as KitItem[]) : undefined,
       })
       .subscribe({
-        next: guardada => this.modalRef.close(guardada),
+        next: (guardada) => this.modalRef.close(guardada),
         error: (err: HttpErrorResponse) => {
           this.guardando.set(false);
           this.notify.error('No se pudo guardar', err.error?.message ?? 'Intente de nuevo.');

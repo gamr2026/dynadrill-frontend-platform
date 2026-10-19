@@ -1,0 +1,248 @@
+<div class="tpd">
+  <div class="tpd__cabecera">
+    <dynadrill-screen-header
+      eyebrow="FCR"
+      [title]="ticket() ? 'Ticket ' + (ticket()?.ticketNumero ?? 's/n') : 'Ticket de FCR'"
+      [subtitle]="ticket() ? 'Pedido ' + ticket()?.pedidoCodigo : ''"
+    />
+    <div class="tpd__acciones-cabecera">
+      <dynadrill-button variant="secondary" (clicked)="volver()"
+        >Volver a la bandeja</dynadrill-button
+      >
+      @if (puedeVerPedido() && ticket()) {
+        <dynadrill-button variant="secondary" (clicked)="verPedido()"
+          >Ver pedido en Facturación</dynadrill-button
+        >
+      }
+    </div>
+  </div>
+
+  <dynadrill-spinner mode="overlay" [spinning]="cargando() || ocupado()" tip="Cargando…">
+    @if (error(); as e) {
+      <dynadrill-banner variant="critical" [message]="e" />
+    }
+    @if (errorAccion(); as e) {
+      <dynadrill-banner variant="warning" [message]="e" />
+    }
+
+    @if (ticket(); as t) {
+      <section class="tpd__tarjeta" aria-label="Paso actual">
+        <div class="tpd__paso">
+          <dynadrill-tag [label]="t.paso.nombre" [variant]="tono(t)" [uppercase]="false" />
+          <dynadrill-tag [label]="tipoOt(t)" variant="info" [uppercase]="false" />
+          <span class="tpd__meta">Lo atiende: {{ roles(t.paso.roles) }}</span>
+        </div>
+
+        @if (t.puedeActuar) {
+          <div class="tpd__acciones" role="group" aria-label="Acciones del paso">
+            @if (debeDefinirTipo()) {
+              <dynadrill-button variant="primary" (clicked)="definirTipo()">{{
+                t.tipoOperador
+                  ? 'Cambiar tipo de operador'
+                  : 'Definir tipo de operador y operador que inspecciona'
+              }}</dynadrill-button>
+            }
+            @if (debeAsignar()) {
+              <dynadrill-button variant="primary" (clicked)="asignar()"
+                >Asignar operadores y unidades</dynadrill-button
+              >
+            }
+            @if (debeFirmarActa()) {
+              <dynadrill-button variant="primary" (clicked)="firmarActa()">{{
+                acta()
+                  ? 'Acta registrada el ' + dia(acta()?.fecha)
+                  : 'Registrar acta de reunión operativa'
+              }}</dynadrill-button>
+            }
+            @if (enRevisionReportes()) {
+              <dynadrill-button
+                variant="primary"
+                [disabled]="ocupado()"
+                (clicked)="aprobarReportes()"
+                >Aprobar los reportes</dynadrill-button
+              >
+              <dynadrill-button
+                variant="secondary"
+                [disabled]="ocupado()"
+                (clicked)="rechazarReportes()"
+                >Devolver con motivo</dynadrill-button
+              >
+            }
+            @for (s of siguientesGenericos(); track s.codigo) {
+              <dynadrill-button
+                [variant]="s.requiereMotivo ? 'secondary' : 'primary'"
+                [disabled]="ocupado() || (!s.requiereMotivo && pendientes().length > 0)"
+                (clicked)="avanzar(s)"
+                >{{ s.requiereMotivo ? 'Devolver a ' : 'Pasar a ' }}{{ s.nombre }}</dynadrill-button
+              >
+            }
+            @if (puedeVerPrefactura()) {
+              <dynadrill-button variant="secondary" (clicked)="abrirPrefactura()"
+                >Ver prefactura</dynadrill-button
+              >
+            }
+          </div>
+          @if (pendientes().length) {
+            <p class="tpd__meta" role="status">
+              Para pasar falta: {{ pendientes().length }} requisito(s) pendiente(s) (ver más abajo).
+            </p>
+          }
+        } @else {
+          <p class="tpd__meta" role="status">Este paso lo atiende {{ roles(t.paso.roles) }}.</p>
+        }
+      </section>
+
+      @if (t.requisitos.length) {
+        <section class="tpd__tarjeta" aria-label="Requisitos del ticket">
+          <h2>Requisitos para avanzar</h2>
+          <ul class="tpd__requisitos">
+            @for (r of requisitosVisibles(); track r.id) {
+              <li class="tpd__requisito">
+                <div class="tpd__requisito-info">
+                  <dynadrill-tag
+                    [label]="r.estado === 'cumplido' ? 'Cumplido' : 'Pendiente'"
+                    [variant]="r.estado === 'cumplido' ? 'success' : 'warning'"
+                    [uppercase]="false"
+                  />
+                  <strong>{{ r.nombre }}</strong>
+                  @if (r.para) {
+                    <span class="tpd__meta">· {{ r.para }}</span>
+                  }
+                  <span class="tpd__meta">({{ modulo(r) }})</span>
+                  @if (r.estado === 'cumplido' && r.origen) {
+                    <span class="tpd__meta">· {{ origenRequisito(r) }}</span>
+                  }
+                  @if (r.motivo) {
+                    <span class="tpd__meta">· “{{ r.motivo }}”</span>
+                  }
+                </div>
+                <div class="tpd__requisito-acciones">
+                  @if (r.estado === 'pendiente' && r.modulo !== 'fcr' && puedeConfirmarAMano()) {
+                    <dynadrill-button variant="secondary" size="small" (clicked)="confirmarAMano(r)"
+                      >Confirmar a mano (temporal)</dynadrill-button
+                    >
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      <section class="tpd__tarjeta" aria-label="Datos del pedido">
+        <h2>Pedido {{ t.pedidoCodigo }}</h2>
+        <div class="tpd__tipos">
+          @for (s of tipos(); track s) {
+            <dynadrill-tag [label]="s" variant="info" [uppercase]="false" />
+          }
+        </div>
+        <dl class="tpd__datos">
+          <div>
+            <dt>Cliente</dt>
+            <dd>{{ t.cliente ?? '—' }}{{ t.clienteRuc ? ' · ' + t.clienteRuc : '' }}</dd>
+          </div>
+          <div>
+            <dt>Ubicación</dt>
+            <dd>{{ t.campo ?? '—' }} · Bloque {{ t.bloque ?? '—' }} · Pozo {{ t.pozo ?? '—' }}</dd>
+          </div>
+          <div>
+            <dt>Taladro</dt>
+            <dd>{{ t.taladro ?? 'Sin taladro' }}</dd>
+          </div>
+          <div>
+            <dt>Contrato</dt>
+            <dd>{{ t.numeroContrato ?? '—' }}</dd>
+          </div>
+          <div>
+            <dt>Servicio</dt>
+            <dd>{{ dia(t.fechaInicioServicio) }} → {{ dia(t.fechaFinServicio) }}</dd>
+          </div>
+          @if (t.tipoOperador) {
+            <div>
+              <dt>Tipo de operador</dt>
+              <dd>
+                {{ t.tipoOperador.nombre }}{{ t.inspector ? ' · ' + t.inspector.nombre : '' }}
+              </dd>
+            </div>
+          }
+          @if (t.as2Numero) {
+            <div>
+              <dt>Pedido en AS2</dt>
+              <dd>{{ t.as2Numero }}</dd>
+            </div>
+          }
+        </dl>
+      </section>
+
+      @if (hayAsignacion()) {
+        <section class="tpd__tarjeta" aria-label="Equipo asignado">
+          <h2>Equipo asignado</h2>
+          <dl class="tpd__datos">
+            <div>
+              <dt>Supervisor</dt>
+              <dd>{{ t.asignacion.supervisor?.nombre ?? '—' }}</dd>
+            </div>
+            <div>
+              <dt>Operadores</dt>
+              <dd>
+                @for (o of t.asignacion.operadores; track o.usuarioId; let ultimo = $last) {
+                  {{ o.nombre }}{{ o.placa ? ' (' + o.placa + ')' : '' }}{{ ultimo ? '' : ', ' }}
+                }
+              </dd>
+            </div>
+            <div>
+              <dt>Unidades</dt>
+              <dd>
+                @for (u of t.asignacion.unidades; track u.vehiculoId; let ultimo = $last) {
+                  {{ u.placa }}{{ u.descripcion ? ' (' + u.descripcion + ')' : ''
+                  }}{{ ultimo ? '' : ', ' }}
+                }
+              </dd>
+            </div>
+          </dl>
+        </section>
+      }
+
+      @if (verHerramientas()) {
+        <app-ticket-fcr-herramientas-panel [ticket]="t" (cambio)="recargar()" />
+      }
+      @if (verInspecciones()) {
+        <app-ticket-fcr-inspecciones-panel [ticket]="t" (cambio)="recargar()" />
+      }
+      @if (verDocumentos()) {
+        <app-ticket-fcr-documentos-panel [ticket]="t" />
+      }
+      @if (verEjecucion()) {
+        <app-ticket-fcr-ejecucion-panel [ticket]="t" (cambio)="recargar()" />
+      }
+      @if (verRetorno()) {
+        <app-ticket-fcr-retorno-panel [ticket]="t" (cambio)="recargar()" />
+      }
+      @if (verActaEntrega()) {
+        <app-acta-entrega-carga [ticketId]="t.id" />
+      }
+
+      <section class="tpd__tarjeta" aria-label="Historial">
+        <h2>Historial del ticket</h2>
+        <ol class="tpd__historial">
+          @for (h of t.historial; track $index) {
+            <li>
+              <strong>{{ paso(h.pasoNuevo) }}</strong>
+              <span class="tpd__meta">
+                {{ fechaHora(h.at) }}
+                @if (h.actor) {
+                  · {{ h.actor.nombre }}{{ h.actor.rol ? ' (' + rol(h.actor.rol) + ')' : '' }}
+                } @else {
+                  · Sistema
+                }
+                @if (h.motivo) {
+                  · {{ h.motivo }}
+                }
+              </span>
+            </li>
+          }
+        </ol>
+      </section>
+    }
+  </dynadrill-spinner>
+</div>

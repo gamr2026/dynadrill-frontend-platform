@@ -2,13 +2,23 @@
   <div class="panel__body">
     <fieldset class="section">
       <legend>Código de ticket</legend>
-      <dynadrill-input label="Código" placeholder="FCR-… o PED-…" [value]="draft().codigo" (valueChange)="setCodigo($event)" />
+      <dynadrill-input
+        label="Código"
+        placeholder="FCR-… o PED-…"
+        [value]="draft().codigo"
+        (valueChange)="setCodigo($event)"
+      />
       <p class="section__hint">También acepta el código de pedido (PED-…).</p>
     </fieldset>
 
     <fieldset class="section">
       <legend>Tipo de OT</legend>
-      <dynadrill-chip-group [options]="tipoOptions" mode="multiple" [selected]="tipoSelected()" (selectedChange)="setTipos($event)" />
+      <dynadrill-chip-group
+        [options]="tipoOptions"
+        mode="multiple"
+        [selected]="tipoSelected()"
+        (selectedChange)="setTipos($event)"
+      />
     </fieldset>
 
     <fieldset class="section">
@@ -23,8 +33,12 @@
         (valueChange)="setFases($event)"
       />
       <div class="section__shortcuts">
-        <dynadrill-button variant="secondary" size="small" (clicked)="soloMisEtapas()">Solo mis etapas</dynadrill-button>
-        <dynadrill-button variant="secondary" size="small" (clicked)="soloServicio()">Solo Servicio</dynadrill-button>
+        <dynadrill-button variant="secondary" size="small" (clicked)="soloMisEtapas()"
+          >Solo mis etapas</dynadrill-button
+        >
+        <dynadrill-button variant="secondary" size="small" (clicked)="soloServicio()"
+          >Solo Servicio</dynadrill-button
+        >
       </div>
     </fieldset>
 
@@ -32,51 +46,115 @@
       <fieldset class="section">
         <legend>Cliente</legend>
         @for (c of clientes; track c) {
-          <dynadrill-checkbox [label]="c" [checked]="draft().clientes.includes(c)" (checkedChange)="toggleIn('clientes', c, $event)" />
+          <dynadrill-checkbox
+            [label]="c"
+            [checked]="draft().clientes.includes(c)"
+            (checkedChange)="toggleIn('clientes', c, $event)"
+          />
         }
       </fieldset>
     }
 
     <fieldset class="section">
       <legend>Ubicación</legend>
-      <dynadrill-input label="Pozo" placeholder="Buscar pozo…" [value]="draft().pozo" (valueChange)="setPozo($event)" />
+      <dynadrill-input
+        label="Pozo"
+        placeholder="Buscar pozo…"
+        [value]="draft().pozo"
+        (valueChange)="setPozo($event)"
+      />
     </fieldset>
 
     <fieldset class="section">
       <legend>Responsables</legend>
-      <dynadrill-select label="Supervisor asignado" placeholder="Todos" [options]="supervisorOptions" [multiple]="true" [searchable]="true" [value]="draft().supervisores" (valueChange)="setSupervisores($event)" />
-      <dynadrill-select label="Operador asignado" placeholder="Todos" [options]="operadorOptions" [multiple]="true" [searchable]="true" [value]="draft().operadores" (valueChange)="setOperadores($event)" />
-      <dynadrill-select label="Unidad" placeholder="Todas las unidades" [options]="unidadOptions" [multiple]="true" [searchable]="true" [value]="draft().unidades" (valueChange)="setUnidades($event)" />
+      <dynadrill-select
+        label="Supervisor asignado"
+        placeholder="Todos"
+        [options]="supervisorOptions"
+        [multiple]="true"
+        [searchable]="true"
+        [value]="draft().supervisores"
+        (valueChange)="setSupervisores($event)"
+      />
+      <dynadrill-select
+        label="Operador asignado"
+        placeholder="Todos"
+        [options]="operadorOptions"
+        [multiple]="true"
+        [searchable]="true"
+        [value]="draft().operadores"
+        (valueChange)="setOperadores($event)"
+      />
+      <dynadrill-select
+        label="Unidad"
+        placeholder="Todas las unidades"
+        [options]="unidadOptions"
+        [multiple]="true"
+        [searchable]="true"
+        [value]="draft().unidades"
+        (valueChange)="setUnidades($event)"
+      />
     </fieldset>
 
     <fieldset class="section">
       <legend>Fecha estimada</legend>
       <div class="section__range">
-        <dynadrill-datetime-picker mode="date" label="Desde" placeholder="dd/mm/aaaa" [value]="desdeDate()!" (valueChange)="setDesde($event)" />
-        <dynadrill-datetime-picker mode="date" label="Hasta" placeholder="dd/mm/aaaa" [value]="hastaDate()!" (valueChange)="setHasta($event)" />
+        <dynadrill-datetime-picker
+          mode="date"
+          label="Desde"
+          placeholder="dd/mm/aaaa"
+          [value]="desdeDate()!"
+          (valueChange)="setDesde($event)"
+        />
+        <dynadrill-datetime-picker
+          mode="date"
+          label="Hasta"
+          placeholder="dd/mm/aaaa"
+          [value]="hastaDate()!"
+          (valueChange)="setHasta($event)"
+        />
       </div>
     </fieldset>
 
     <fieldset class="section">
       <legend>Tiempo en la etapa</legend>
-      <dynadrill-chip-group [options]="tiempoOptions" mode="multiple" [selected]="tiempoSelected()" (selectedChange)="setTiempos($event)" />
+      <dynadrill-chip-group
+        [options]="tiempoOptions"
+        mode="multiple"
+        [selected]="tiempoSelected()"
+        (selectedChange)="setTiempos($event)"
+      />
     </fieldset>
 
     <fieldset class="section">
       <legend>Mi relación</legend>
-      <dynadrill-chip-group [options]="relacionOptions" mode="multiple" [selected]="relacionSelected()" (selectedChange)="setRelaciones($event)" />
+      <dynadrill-chip-group
+        [options]="relacionOptions"
+        mode="multiple"
+        [selected]="relacionSelected()"
+        (selectedChange)="setRelaciones($event)"
+      />
     </fieldset>
 
     <fieldset class="section">
       <legend>Alertas QHSE</legend>
       @for (a of alertas; track a[0]) {
-        <dynadrill-checkbox [label]="a[1]" [checked]="draft().alertas.includes(a[0])" (checkedChange)="toggleIn('alertas', a[0], $event)" />
+        <dynadrill-checkbox
+          [label]="a[1]"
+          [checked]="draft().alertas.includes(a[0])"
+          (checkedChange)="toggleIn('alertas', a[0], $event)"
+        />
       }
     </fieldset>
 
     <fieldset class="section">
       <legend>Estado</legend>
-      <dynadrill-chip-group [options]="estadoOptions" mode="single" [selected]="estadoSelected()" (selectedChange)="setEstado($event)" />
+      <dynadrill-chip-group
+        [options]="estadoOptions"
+        mode="single"
+        [selected]="estadoSelected()"
+        (selectedChange)="setEstado($event)"
+      />
     </fieldset>
   </div>
 

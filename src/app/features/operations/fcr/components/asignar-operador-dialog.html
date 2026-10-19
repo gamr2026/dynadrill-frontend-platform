@@ -21,11 +21,18 @@
     (valueChange)="onOperatorChange($event)"
   />
 
-  <dynadrill-spinner mode="overlay" [spinning]="loadingOperators()" tip="Buscando disponibilidad de personal…">
+  <dynadrill-spinner
+    mode="overlay"
+    [spinning]="loadingOperators()"
+    tip="Buscando disponibilidad de personal…"
+  >
     <div class="asignar-operador__availability">
       <dynadrill-text variant="caption">Disponibilidad para el rango elegido</dynadrill-text>
       @for (a of availability(); track a.name) {
-        <div class="asignar-operador__availability-row" [class.asignar-operador__availability-row--unavailable]="!a.available">
+        <div
+          class="asignar-operador__availability-row"
+          [class.asignar-operador__availability-row--unavailable]="!a.available"
+        >
           <dynadrill-icon [name]="a.available ? 'check' : 'close'" [size]="14" />
           <span>{{ a.name }} — {{ a.detail }}</span>
         </div>
@@ -36,5 +43,7 @@
 
 <footer class="fcr-dialog__actions">
   <dynadrill-button variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
-  <dynadrill-button variant="primary" [disabled]="!canAssign()" (clicked)="assign()">Asignar</dynadrill-button>
+  <dynadrill-button variant="primary" [disabled]="!canAssign()" (clicked)="assign()"
+    >Asignar</dynadrill-button
+  >
 </footer>

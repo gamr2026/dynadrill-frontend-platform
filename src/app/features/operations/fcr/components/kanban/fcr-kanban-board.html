@@ -21,10 +21,15 @@
         <h3>Llegan pronto a tus etapas</h3>
         <span class="upcoming__count">{{ upcomingTotal() }}</span>
       </header>
-      <p class="upcoming__hint">Tickets que todavía están en etapas anteriores. Úsalo para planificar.</p>
+      <p class="upcoming__hint">
+        Tickets que todavía están en etapas anteriores. Úsalo para planificar.
+      </p>
       <ul class="upcoming__list">
         @for (g of upcoming(); track g.phase) {
-          <li><span>{{ g.label }}</span><strong>{{ g.count }}</strong></li>
+          <li>
+            <span>{{ g.label }}</span
+            ><strong>{{ g.count }}</strong>
+          </li>
         }
       </ul>
     </section>
@@ -42,7 +47,12 @@
         (clicked)="scrollColumns(-1)"
       />
     }
-    <div #board class="board" [class.board--compact]="soloMisEtapas()" (scroll)="updateScrollState()">
+    <div
+      #board
+      class="board"
+      [class.board--compact]="soloMisEtapas()"
+      (scroll)="updateScrollState()"
+    >
       @if (soloMisEtapas()) {
         <ng-container [ngTemplateOutlet]="upcomingCard" />
       }
@@ -62,7 +72,10 @@
           } @else if (col.serviceOnly) {
             <span class="column__meta">Solo Servicio</span>
           }
-          <ng-container [ngTemplateOutlet]="cardList" [ngTemplateOutletContext]="{ $implicit: col }" />
+          <ng-container
+            [ngTemplateOutlet]="cardList"
+            [ngTemplateOutletContext]="{ $implicit: col }"
+          />
         </section>
       }
     </div>
@@ -108,7 +121,11 @@
       (touchstart)="onTouchStart($event)"
       (touchend)="onTouchEnd($event)"
     >
-      <header class="column__head column__head--nav" [style.background]="col.accent" [style.color]="col.onAccent">
+      <header
+        class="column__head column__head--nav"
+        [style.background]="col.accent"
+        [style.color]="col.onAccent"
+      >
         <dynadrill-icon-button
           icon="chevron-left"
           iconSource="dynadrill"
@@ -128,7 +145,8 @@
       </header>
       <div class="column__meta-row">
         <span class="column__meta">
-          Etapa {{ activeIndex() + 1 }} de {{ columns().length }}{{ col.serviceOnly ? ' · Solo Servicio' : '' }}
+          Etapa {{ activeIndex() + 1 }} de {{ columns().length
+          }}{{ col.serviceOnly ? ' · Solo Servicio' : '' }}
         </span>
         @if (col.mine) {
           <dynadrill-tag label="Tu etapa" variant="brand" />
@@ -139,7 +157,11 @@
 
     <div class="dots" aria-hidden="true">
       @for (c of columns(); track c.phase; let i = $index) {
-        <span class="dots__dot" [class.dots__dot--on]="i === activeIndex()" [style.background]="c.accent"></span>
+        <span
+          class="dots__dot"
+          [class.dots__dot--on]="i === activeIndex()"
+          [style.background]="c.accent"
+        ></span>
       }
     </div>
   }

@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import { NzDatePickerModule } from 'ng-zorro-antd/date-picker';
@@ -48,7 +55,13 @@ const OPERATOR_SCHEDULE: OperatorSchedule[] = [
   { name: 'R. Chávez', busyRanges: [{ start: '2026-08-01', end: '2026-12-31' }] },
   { name: 'E. Guerrero', busyRanges: [{ start: '2026-09-08', end: '2026-09-11' }] },
   { name: 'P. Vera', busyRanges: [] },
-  { name: 'A. Torres', busyRanges: [{ start: '2026-09-01', end: '2026-09-03' }, { start: '2026-09-20', end: '2026-09-25' }] },
+  {
+    name: 'A. Torres',
+    busyRanges: [
+      { start: '2026-09-01', end: '2026-09-03' },
+      { start: '2026-09-20', end: '2026-09-25' },
+    ],
+  },
 ];
 
 /** Simula la latencia de una búsqueda real de disponibilidad contra un roster/calendario de personal. */
@@ -82,13 +95,23 @@ function formatShort(iso: string): string {
   // datetime-picker es de una sola fecha) — excepción puntual, mismo
   // criterio que dynadrill-icon/dynadrill-timer para lo que la librería
   // aún no cubre.
-  imports: [DynadrillTextComponent, DynadrillSelectComponent, DynadrillIconComponent, DynadrillSpinnerComponent, DynadrillButtonComponent, FormsModule, NzDatePickerModule],
+  imports: [
+    DynadrillTextComponent,
+    DynadrillSelectComponent,
+    DynadrillIconComponent,
+    DynadrillSpinnerComponent,
+    DynadrillButtonComponent,
+    FormsModule,
+    NzDatePickerModule,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './asignar-operador-dialog.html',
   styleUrl: './asignar-operador-dialog.scss',
 })
 export class AsignarOperadorDialog {
-  private readonly modalRef = inject(NzModalRef<AsignarOperadorDialog, AsignarOperadorDialogResult | undefined>);
+  private readonly modalRef = inject(
+    NzModalRef<AsignarOperadorDialog, AsignarOperadorDialogResult | undefined>,
+  );
   protected readonly data = inject<AsignarOperadorDialogData>(NZ_MODAL_DATA);
 
   /**
@@ -129,7 +152,7 @@ export class AsignarOperadorDialog {
   }
 
   protected readonly operatorOptions = computed<DynadrillSelectOption[]>(() =>
-    this.availability().map(a => ({
+    this.availability().map((a) => ({
       label: `${a.name} — ${a.detail}`,
       value: a.name,
       icon: a.available ? 'check' : 'close',
@@ -139,7 +162,7 @@ export class AsignarOperadorDialog {
   protected readonly canAssign = computed(() => {
     const selected = this.selectedOperator();
     if (!selected || this.loadingOperators()) return false;
-    return this.availability().find(a => a.name === selected)?.available ?? false;
+    return this.availability().find((a) => a.name === selected)?.available ?? false;
   });
 
   /**
@@ -154,7 +177,9 @@ export class AsignarOperadorDialog {
     const start = toIso(this.rangeStart());
     const end = toIso(this.rangeEnd());
     this.pendingFetch = setTimeout(() => {
-      this.availability.set(OPERATOR_SCHEDULE.map(op => this.describeAvailability(op, start, end)));
+      this.availability.set(
+        OPERATOR_SCHEDULE.map((op) => this.describeAvailability(op, start, end)),
+      );
       this.loadingOperators.set(false);
     }, SIMULATED_FETCH_DELAY_MS);
   }
@@ -166,18 +191,34 @@ export class AsignarOperadorDialog {
    * (estaba ocupado y se libera antes de que termine), para que el
    * Supervisor entienda POR QUÉ alguien no califica y pueda ajustar fechas.
    */
-  private describeAvailability(op: OperatorSchedule, rangeStart: string, rangeEnd: string): OperatorAvailability {
-    const busy = op.busyRanges.find(r => r.start <= rangeEnd && r.end >= rangeStart);
+  private describeAvailability(
+    op: OperatorSchedule,
+    rangeStart: string,
+    rangeEnd: string,
+  ): OperatorAvailability {
+    const busy = op.busyRanges.find((r) => r.start <= rangeEnd && r.end >= rangeStart);
     if (!busy) return { name: op.name, available: true, detail: 'Disponible todo el rango' };
 
     const coversFullRange = busy.start <= rangeStart && busy.end >= rangeEnd;
     if (coversFullRange) {
-      return { name: op.name, available: false, detail: `Ocupado todo el rango (hasta ${formatShort(busy.end)})` };
+      return {
+        name: op.name,
+        available: false,
+        detail: `Ocupado todo el rango (hasta ${formatShort(busy.end)})`,
+      };
     }
     if (busy.start > rangeStart) {
-      return { name: op.name, available: false, detail: `Disponible al inicio, sale del rango el ${formatShort(busy.start)}` };
+      return {
+        name: op.name,
+        available: false,
+        detail: `Disponible al inicio, sale del rango el ${formatShort(busy.start)}`,
+      };
     }
-    return { name: op.name, available: false, detail: `Ocupado al inicio, se incorpora el ${formatShort(addDaysIso(busy.end, 1))}` };
+    return {
+      name: op.name,
+      available: false,
+      detail: `Ocupado al inicio, se incorpora el ${formatShort(addDaysIso(busy.end, 1))}`,
+    };
   }
 
   protected onDateRangeChange(value: (Date | null)[] | null): void {

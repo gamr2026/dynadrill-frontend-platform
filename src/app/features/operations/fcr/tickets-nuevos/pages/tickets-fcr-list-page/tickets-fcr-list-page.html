@@ -1,0 +1,99 @@
+<div class="tf">
+  <dynadrill-screen-header
+    eyebrow="FCR"
+    title="Pedidos de FCR"
+    subtitle="Cada pedido de la línea FCR llega aquí como ticket, por la entrada de venta o de servicios, y lo atiende el rol de su paso"
+  />
+
+  <section class="tf__tarjeta">
+    <div class="tf__filtros" role="search" aria-label="Filtros de la bandeja">
+      <dynadrill-input
+        label="Buscar (ticket, pedido, cliente o pozo)"
+        [value]="busqueda()"
+        (valueChange)="busqueda.set($event)"
+        (keydown.enter)="cargar()"
+      />
+      <dynadrill-select
+        label="Paso"
+        placeholder="Todos los pasos"
+        [options]="opcionesPaso"
+        [value]="paso()"
+        (valueChange)="elegirPaso($any($event))"
+      />
+      <dynadrill-button variant="secondary" (clicked)="cargar()">Buscar</dynadrill-button>
+      <dynadrill-button variant="secondary" (clicked)="alternarMios()">{{
+        solicitos() ? 'Ver todos los tickets' : 'Ver solo los que atiende mi rol'
+      }}</dynadrill-button>
+    </div>
+
+    @if (error(); as e) {
+      <dynadrill-banner variant="critical" [message]="e" />
+    }
+
+    <dynadrill-spinner mode="overlay" [spinning]="cargando()" tip="Cargando…">
+      <div class="tf__tabla">
+        <table>
+          <caption class="sr-only">
+            Tickets de FCR
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Ticket</th>
+              <th scope="col">Pedido</th>
+              <th scope="col">Cliente y ubicación</th>
+              <th scope="col">Tipo de OT</th>
+              <th scope="col">Inicio</th>
+              <th scope="col">Paso</th>
+              <th scope="col"><span class="sr-only">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of tickets(); track t.id) {
+              <tr>
+                <td class="codigo">{{ t.ticketNumero ?? '—' }}</td>
+                <td>{{ t.pedidoCodigo }}</td>
+                <td>
+                  {{ t.cliente ?? '—' }}
+                  <span class="secundario"
+                    >{{ t.campo ?? '—' }} · Pozo {{ t.pozo ?? '—' }} ·
+                    {{ t.taladro ?? 'Sin taladro' }}</span
+                  >
+                </td>
+                <td>
+                  <dynadrill-tag
+                    [label]="tipoOt(t)"
+                    [variant]="t.tipoOt === 'servicio' ? 'info' : 'neutral'"
+                    [uppercase]="false"
+                  />
+                  @for (s of t.tiposServicio; track s) {
+                    <span class="secundario">{{ tipo(s) }}</span>
+                  }
+                </td>
+                <td>{{ dia(t.fechaInicioServicio) }}</td>
+                <td>
+                  <dynadrill-tag [label]="t.paso.nombre" [variant]="tono(t)" [uppercase]="false" />
+                  <span class="secundario">Atiende: {{ roles(t.paso.roles) }}</span>
+                </td>
+                <td class="acciones">
+                  <dynadrill-button variant="secondary" size="small" (clicked)="abrir(t)"
+                    >Abrir</dynadrill-button
+                  >
+                </td>
+              </tr>
+            } @empty {
+              @if (vacio()) {
+                <tr>
+                  <td class="vacio" colspan="7">
+                    {{
+                      solicitos() ? 'No hay tickets esperando a su rol.' : 'No hay tickets de FCR.'
+                    }}
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </dynadrill-spinner>
+  </section>
+</div>

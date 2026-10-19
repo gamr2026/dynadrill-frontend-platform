@@ -27,8 +27,14 @@ import {
   type CodigoClienteFcr,
   type FiltroCodigos,
 } from '../../models/fcr-configuracion-codigos';
-import { FcrConfiguracionCodigosService, type ConfiguracionCodigoGuardada } from '../../services/fcr-configuracion-codigos.service';
-import { ConfigurarCodigoDialog, type ConfigurarCodigoDialogData } from '../../components/configurar-codigo-dialog';
+import {
+  FcrConfiguracionCodigosService,
+  type ConfiguracionCodigoGuardada,
+} from '../../services/fcr-configuracion-codigos.service';
+import {
+  ConfigurarCodigoDialog,
+  type ConfigurarCodigoDialogData,
+} from '../../components/configurar-codigo-dialog';
 
 /** Una Lista de Precios puede pasar de mil códigos. */
 const CODIGOS_POR_PAGINA = 25;
@@ -81,13 +87,17 @@ export class FcrConfiguracionCodigosPage {
   protected readonly clienteOptions = toSignal(
     inject(CatalogosService)
       .clientes()
-      .pipe(map((clientes): DynadrillSelectOption[] => clientes.filter(c => c.activo).map(c => ({ label: c.nombreComercial, value: c.id })))),
+      .pipe(
+        map((clientes): DynadrillSelectOption[] =>
+          clientes.filter((c) => c.activo).map((c) => ({ label: c.nombreComercial, value: c.id })),
+        ),
+      ),
     { initialValue: [] },
   );
 
   protected readonly clienteId = toSignal(
     this.route.queryParamMap.pipe(
-      map(params => {
+      map((params) => {
         const id = Number(params.get('cliente'));
         return Number.isInteger(id) && id > 0 ? id : null;
       }),
@@ -100,7 +110,11 @@ export class FcrConfiguracionCodigosPage {
     this.filtro.set('todos');
     this.busqueda.set('');
     this.pagination.reset();
-    this.router.navigate([], { relativeTo: this.route, queryParams: { cliente: value ?? null }, replaceUrl: true });
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { cliente: value ?? null },
+      replaceUrl: true,
+    });
   }
 
   // ── Códigos del cliente ──
@@ -108,24 +122,29 @@ export class FcrConfiguracionCodigosPage {
   /** Cancela la petición anterior si se cambia de cliente antes de que responda. */
   protected readonly codigos = rxResource({
     params: () => this.clienteId(),
-    stream: ({ params: clienteId }) => (clienteId ? this.service.codigosDeCliente(clienteId) : of([] as CodigoClienteFcr[])),
+    stream: ({ params: clienteId }) =>
+      clienteId ? this.service.codigosDeCliente(clienteId) : of([] as CodigoClienteFcr[]),
   });
 
   private readonly filas = computed(() => (this.codigos.hasValue() ? this.codigos.value() : []));
-  protected readonly hayHuerfanos = computed(() => this.filas().some(f => !f.enListaPrecios));
-  protected readonly sinConfigurar = computed(() => this.filas().filter(f => f.clase === null).length);
+  protected readonly hayHuerfanos = computed(() => this.filas().some((f) => !f.enListaPrecios));
+  protected readonly sinConfigurar = computed(
+    () => this.filas().filter((f) => f.clase === null).length,
+  );
 
   // ── Búsqueda y filtro ──
 
   protected readonly busqueda = signal('');
   private readonly filtro = signal<FiltroCodigos>('todos');
   protected readonly filtroLabels = computed(() =>
-    FILTROS.filter(f => f.value !== 'huerfanos' || this.hayHuerfanos()).map(f => f.label),
+    FILTROS.filter((f) => f.value !== 'huerfanos' || this.hayHuerfanos()).map((f) => f.label),
   );
-  protected readonly filtroSeleccionado = computed(() => [FILTROS.find(f => f.value === this.filtro())!.label]);
+  protected readonly filtroSeleccionado = computed(() => [
+    FILTROS.find((f) => f.value === this.filtro())!.label,
+  ]);
 
   protected onFiltroChange(selected: string[]): void {
-    this.filtro.set(FILTROS.find(f => f.label === selected[0])?.value ?? 'todos');
+    this.filtro.set(FILTROS.find((f) => f.label === selected[0])?.value ?? 'todos');
     this.pagination.reset();
   }
 
@@ -134,24 +153,34 @@ export class FcrConfiguracionCodigosPage {
     this.pagination.reset();
   }
 
-  protected readonly filtradas = computed(() => filtrarCodigos(this.filas(), this.filtro(), this.busqueda()));
+  protected readonly filtradas = computed(() =>
+    filtrarCodigos(this.filas(), this.filtro(), this.busqueda()),
+  );
   protected readonly pagination = createPagination(this.filtradas, CODIGOS_POR_PAGINA);
   protected readonly mensajeVacio = computed(() => {
     if (this.codigos.isLoading()) return 'Cargando…';
-    return this.filas().length ? 'Ningún código coincide con el filtro.' : 'Este cliente no tiene una Lista de Precios activa.';
+    return this.filas().length
+      ? 'Ningún código coincide con el filtro.'
+      : 'Este cliente no tiene una Lista de Precios activa.';
   });
 
   // ── Catálogo de herramientas (nombres del kit y opciones del diálogo) ──
 
-  private readonly herramientas = toSignal(inject(ArticulosService).list({ categoria: 'HERRAMIENTAS', activo: true }), {
-    initialValue: [],
-  });
-  private readonly herramientaOptions = computed<DynadrillSelectOption[]>(() =>
-    this.herramientas().map(a => ({ label: `${a.codigo} — ${a.nombre}`, value: a.id })),
+  private readonly herramientas = toSignal(
+    inject(ArticulosService).list({ categoria: 'HERRAMIENTAS', activo: true }),
+    {
+      initialValue: [],
+    },
   );
-  private readonly nombresHerramientas = computed(() => new Map(this.herramientas().map(a => [a.id, a.nombre])));
+  private readonly herramientaOptions = computed<DynadrillSelectOption[]>(() =>
+    this.herramientas().map((a) => ({ label: `${a.codigo} — ${a.nombre}`, value: a.id })),
+  );
+  private readonly nombresHerramientas = computed(
+    () => new Map(this.herramientas().map((a) => [a.id, a.nombre])),
+  );
 
-  protected readonly resumenKit = (fila: CodigoClienteFcr): string => resumenKit(fila.kit, this.nombresHerramientas());
+  protected readonly resumenKit = (fila: CodigoClienteFcr): string =>
+    resumenKit(fila.kit, this.nombresHerramientas());
 
   // ── Acciones ──
 
@@ -167,7 +196,10 @@ export class FcrConfiguracionCodigosPage {
       })
       .afterClose.subscribe((guardada: ConfiguracionCodigoGuardada | undefined) => {
         if (!guardada) return;
-        this.notify.success('Código configurado', `${fila.codigo}: ${CLASE_OPERATIVA_LABELS[guardada.clase]}.`);
+        this.notify.success(
+          'Código configurado',
+          `${fila.codigo}: ${CLASE_OPERATIVA_LABELS[guardada.clase]}.`,
+        );
         this.codigos.reload();
       });
   }

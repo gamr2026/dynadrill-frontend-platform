@@ -6,23 +6,59 @@
     <dynadrill-skeleton variant="block" height="320px" />
   } @else {
     @if (yaEnviado()) {
-      <dynadrill-banner variant="info" message="Este checklist ya fue enviado — queda de solo lectura." />
+      <dynadrill-banner
+        variant="info"
+        message="Este checklist ya fue enviado — queda de solo lectura."
+      />
     } @else if (formularioBloqueado()) {
-      <dynadrill-banner variant="info" message="'Reparado por' ya confirmó — los datos y las partes quedan bloqueados. Solo faltan las confirmaciones restantes." />
+      <dynadrill-banner
+        variant="info"
+        message="'Reparado por' ya confirmó — los datos y las partes quedan bloqueados. Solo faltan las confirmaciones restantes."
+      />
     }
 
     @if (reparada()) {
-      <dynadrill-banner variant="info" [message]="'Herramienta reparada' + (fechaReparadaTexto() ? (' el ' + (fechaReparadaTexto() | date: 'dd/MM/yyyy HH:mm')) : '')" />
+      <dynadrill-banner
+        variant="info"
+        [message]="
+          'Herramienta reparada' +
+          (fechaReparadaTexto() ? ' el ' + (fechaReparadaTexto() | date: 'dd/MM/yyyy HH:mm') : '')
+        "
+      />
     }
 
     <fieldset class="checklist-dialog__section" [disabled]="formularioBloqueado()">
       <legend><dynadrill-text variant="h2">Datos generales</dynadrill-text></legend>
 
       <div class="checklist-dialog__grid">
-        <dynadrill-input label="Cliente" placeholder="Cliente del pedido" [value]="cliente()" [disabled]="true" (valueChange)="cliente.set($event)" />
-        <dynadrill-input label="Pozo" placeholder="Pozo del pedido" [value]="pozo()" [disabled]="true" (valueChange)="pozo.set($event)" />
-        <dynadrill-input label="Descripción de la herramienta" placeholder="Descripción de la herramienta" [value]="descripcionHerramienta()" [disabled]="true" (valueChange)="descripcionHerramienta.set($event)" />
-        <dynadrill-input label="N° de serie" placeholder="N° de serie de la herramienta" [value]="numeroSerie()" [disabled]="true" (valueChange)="numeroSerie.set($event)" />
+        <dynadrill-input
+          label="Cliente"
+          placeholder="Cliente del pedido"
+          [value]="cliente()"
+          [disabled]="true"
+          (valueChange)="cliente.set($event)"
+        />
+        <dynadrill-input
+          label="Pozo"
+          placeholder="Pozo del pedido"
+          [value]="pozo()"
+          [disabled]="true"
+          (valueChange)="pozo.set($event)"
+        />
+        <dynadrill-input
+          label="Descripción de la herramienta"
+          placeholder="Descripción de la herramienta"
+          [value]="descripcionHerramienta()"
+          [disabled]="true"
+          (valueChange)="descripcionHerramienta.set($event)"
+        />
+        <dynadrill-input
+          label="N° de serie"
+          placeholder="N° de serie de la herramienta"
+          [value]="numeroSerie()"
+          [disabled]="true"
+          (valueChange)="numeroSerie.set($event)"
+        />
 
         <dynadrill-datetime-picker
           label="Fecha de inspección"
@@ -53,8 +89,17 @@
           [value]="inspeccionadoPor()"
           (valueChange)="inspeccionadoPor.set($any($event ?? ''))"
         />
-        <dynadrill-input label="Operador mecánico (Reparado por)" [value]="reparadoPor()" [disabled]="true" (valueChange)="reparadoPor.set($event)" />
-        <dynadrill-input label="Operador de campo asignado" [value]="data.operadorCampoAsignado || 'Sin asignar'" [disabled]="true" />
+        <dynadrill-input
+          label="Operador mecánico (Reparado por)"
+          [value]="reparadoPor()"
+          [disabled]="true"
+          (valueChange)="reparadoPor.set($event)"
+        />
+        <dynadrill-input
+          label="Operador de campo asignado"
+          [value]="data.operadorCampoAsignado || 'Sin asignar'"
+          [disabled]="true"
+        />
       </div>
     </fieldset>
 
@@ -62,23 +107,32 @@
       <legend><dynadrill-text variant="h2">Partes de la herramienta</dynadrill-text></legend>
 
       <div class="checklist-dialog__bulk-actions">
-        <dynadrill-button variant="secondary" size="small" (clicked)="marcarTodoOk()">Marcar todo OK</dynadrill-button>
-        <dynadrill-text variant="caption">Marca todas las partes como OK y después corrija a mano las que estén defectuosas.</dynadrill-text>
+        <dynadrill-button variant="secondary" size="small" (clicked)="marcarTodoOk()"
+          >Marcar todo OK</dynadrill-button
+        >
+        <dynadrill-text variant="caption"
+          >Marca todas las partes como OK y después corrija a mano las que estén
+          defectuosas.</dynadrill-text
+        >
       </div>
 
       <div class="checklist-dialog__bulk-actions">
-        <dynadrill-button variant="secondary" size="small" (clicked)="descargarPlantillaPartes()">Descargar plantilla</dynadrill-button>
+        <dynadrill-button variant="secondary" size="small" (clicked)="descargarPlantillaPartes()"
+          >Descargar plantilla</dynadrill-button
+        >
         <dynadrill-text variant="caption">
-          Descarga la plantilla "Inspección y reparación de herramientas" con Item/Cantidad/Código/Descripción ya
-          precargados desde esta herramienta, para llenar Visual/End/Cambio · Cantidad/Acción fuera de línea.
+          Descarga la plantilla "Inspección y reparación de herramientas" con
+          Item/Cantidad/Código/Descripción ya precargados desde esta herramienta, para llenar
+          Visual/End/Cambio · Cantidad/Acción fuera de línea.
         </dynadrill-text>
       </div>
 
       <div class="checklist-dialog__bulk-actions">
         <dynadrill-upload-zone state="idle" (fileSelected)="onCargarPlantillaPartes($event)" />
         <dynadrill-text variant="caption">
-          Cargá la plantilla "Inspección y reparación de herramientas" ya llena (Excel) para precargar Visual, End,
-          Cambio · Cantidad y Acción — se empareja por código, el resto de la tabla no cambia.
+          Cargá la plantilla "Inspección y reparación de herramientas" ya llena (Excel) para
+          precargar Visual, End, Cambio · Cantidad y Acción — se empareja por código, el resto de la
+          tabla no cambia.
         </dynadrill-text>
       </div>
 
@@ -105,25 +159,53 @@
                 <td data-label="Descripción">{{ parte.descripcion }}</td>
                 <td data-label="Cant. esperada">{{ parte.cantidadEsperada }}</td>
                 <td data-label="Visual">
-                  <div class="checklist-dialog__radio-group" role="radiogroup" [attr.aria-label]="'Visual — ' + parte.descripcion">
+                  <div
+                    class="checklist-dialog__radio-group"
+                    role="radiogroup"
+                    [attr.aria-label]="'Visual — ' + parte.descripcion"
+                  >
                     <label class="checklist-dialog__radio">
-                      <input type="radio" [name]="'visual-' + parte.id" [checked]="parte.visualResultado === 'ok'" (change)="onVisualChange(parte.id, 'ok')" />
+                      <input
+                        type="radio"
+                        [name]="'visual-' + parte.id"
+                        [checked]="parte.visualResultado === 'ok'"
+                        (change)="onVisualChange(parte.id, 'ok')"
+                      />
                       OK
                     </label>
                     <label class="checklist-dialog__radio checklist-dialog__radio--defectuoso">
-                      <input type="radio" [name]="'visual-' + parte.id" [checked]="parte.visualResultado === 'defectuoso'" (change)="onVisualChange(parte.id, 'defectuoso')" />
+                      <input
+                        type="radio"
+                        [name]="'visual-' + parte.id"
+                        [checked]="parte.visualResultado === 'defectuoso'"
+                        (change)="onVisualChange(parte.id, 'defectuoso')"
+                      />
                       Defectuoso
                     </label>
                   </div>
                 </td>
                 <td data-label="End">
-                  <div class="checklist-dialog__radio-group" role="radiogroup" [attr.aria-label]="'End — ' + parte.descripcion">
+                  <div
+                    class="checklist-dialog__radio-group"
+                    role="radiogroup"
+                    [attr.aria-label]="'End — ' + parte.descripcion"
+                  >
                     <label class="checklist-dialog__radio">
-                      <input type="radio" [name]="'end-' + parte.id" [checked]="parte.endResultado === 'ok'" (change)="onEndChange(parte.id, 'ok')" />
+                      <input
+                        type="radio"
+                        [name]="'end-' + parte.id"
+                        [checked]="parte.endResultado === 'ok'"
+                        (change)="onEndChange(parte.id, 'ok')"
+                      />
                       OK
                     </label>
                     <label class="checklist-dialog__radio checklist-dialog__radio--defectuoso">
-                      <input type="radio" [name]="'end-' + parte.id" [checked]="parte.endResultado === 'defectuoso'" (change)="onEndChange(parte.id, 'defectuoso')" />
+                      <input
+                        type="radio"
+                        [name]="'end-' + parte.id"
+                        [checked]="parte.endResultado === 'defectuoso'"
+                        (change)="onEndChange(parte.id, 'defectuoso')"
+                      />
                       Defectuoso
                     </label>
                   </div>
@@ -137,11 +219,19 @@
                   />
                 </td>
                 <td data-label="Acción">
-                  <dynadrill-input placeholder="Acción tomada" [value]="parte.accion" (valueChange)="onAccionChange(parte.id, $event)" />
+                  <dynadrill-input
+                    placeholder="Acción tomada"
+                    [value]="parte.accion"
+                    (valueChange)="onAccionChange(parte.id, $event)"
+                  />
                 </td>
                 <td>
                   @if (parte.manual) {
-                    <dynadrill-icon-button icon="delete" tooltip="Quitar parte agregada" (clicked)="quitarParte(parte)" />
+                    <dynadrill-icon-button
+                      icon="delete"
+                      tooltip="Quitar parte agregada"
+                      (clicked)="quitarParte(parte)"
+                    />
                   }
                 </td>
               </tr>
@@ -156,14 +246,39 @@
           message="Esta herramienta no tiene partes cargadas. Agrega las que la componen: se guardan al momento y quedan como lista de partes para las próximas inspecciones."
         />
         <div class="checklist-dialog__ejemplo">
-          <dynadrill-button variant="secondary" [disabled]="agregandoParte()" (clicked)="agregarPartesEjemplo()">Agregar partes de ejemplo</dynadrill-button>
+          <dynadrill-button
+            variant="secondary"
+            [disabled]="agregandoParte()"
+            (clicked)="agregarPartesEjemplo()"
+            >Agregar partes de ejemplo</dynadrill-button
+          >
         </div>
       }
       <div class="checklist-dialog__nueva-parte" role="group" aria-label="Agregar parte">
-        <dynadrill-input label="Parte (mini herramienta) *" placeholder="Ej. O-ring, fishing neck…" [value]="nuevaParteDescripcion()" (valueChange)="nuevaParteDescripcion.set($event)" />
-        <dynadrill-input label="N.º de parte" placeholder="Opcional" [value]="nuevaParteCodigo()" (valueChange)="nuevaParteCodigo.set($event)" />
-        <dynadrill-input label="Cant." type="number" [value]="nuevaParteCantidad()" (valueChange)="nuevaParteCantidad.set($event)" />
-        <dynadrill-button variant="secondary" [disabled]="!puedeAgregarParte()" (clicked)="agregarParte()">+ Agregar parte</dynadrill-button>
+        <dynadrill-input
+          label="Parte (mini herramienta) *"
+          placeholder="Ej. O-ring, fishing neck…"
+          [value]="nuevaParteDescripcion()"
+          (valueChange)="nuevaParteDescripcion.set($event)"
+        />
+        <dynadrill-input
+          label="N.º de parte"
+          placeholder="Opcional"
+          [value]="nuevaParteCodigo()"
+          (valueChange)="nuevaParteCodigo.set($event)"
+        />
+        <dynadrill-input
+          label="Cant."
+          type="number"
+          [value]="nuevaParteCantidad()"
+          (valueChange)="nuevaParteCantidad.set($event)"
+        />
+        <dynadrill-button
+          variant="secondary"
+          [disabled]="!puedeAgregarParte()"
+          (clicked)="agregarParte()"
+          >+ Agregar parte</dynadrill-button
+        >
       </div>
 
       <dynadrill-textarea
@@ -176,13 +291,17 @@
 
       @if (!formularioBloqueado()) {
         <footer class="checklist-dialog__actions">
-          <dynadrill-button variant="secondary" [disabled]="saving()" (clicked)="guardarBorrador()">Guardar borrador</dynadrill-button>
+          <dynadrill-button variant="secondary" [disabled]="saving()" (clicked)="guardarBorrador()"
+            >Guardar borrador</dynadrill-button
+          >
         </footer>
       }
     </fieldset>
 
     <fieldset class="checklist-dialog__section" [disabled]="yaEnviado()">
-      <legend><dynadrill-text variant="h2">Confirmaciones de los responsables</dynadrill-text></legend>
+      <legend>
+        <dynadrill-text variant="h2">Confirmaciones de los responsables</dynadrill-text>
+      </legend>
 
       @for (rol of firmaRoles; track rol) {
         <div class="checklist-dialog__firma" [title]="motivoDeshabilitado(rol)">
@@ -193,16 +312,23 @@
             (checkedChange)="onFirmaChange(rol, $event)"
           />
           @if (firmas()[rol]?.firmado) {
-            <dynadrill-text variant="caption">Confirmado por {{ firmas()[rol]?.nombre }}</dynadrill-text>
+            <dynadrill-text variant="caption"
+              >Confirmado por {{ firmas()[rol]?.nombre }}</dynadrill-text
+            >
           } @else if (motivoDeshabilitado(rol)) {
             <dynadrill-text variant="caption">{{ motivoDeshabilitado(rol) }}</dynadrill-text>
           } @else {
-            <dynadrill-text variant="caption">Rol requerido: {{ rolRequeridoTexto(rol) }}</dynadrill-text>
+            <dynadrill-text variant="caption"
+              >Rol requerido: {{ rolRequeridoTexto(rol) }}</dynadrill-text
+            >
           }
         </div>
       }
 
-      <dynadrill-banner variant="info" message="Cada confirmación se registra apenas la tildas — quien la deja debe tener el rol correspondiente y las anteriores ya confirmadas. Al enviar, el checklist queda de solo lectura." />
+      <dynadrill-banner
+        variant="info"
+        message="Cada confirmación se registra apenas la tildas — quien la deja debe tener el rol correspondiente y las anteriores ya confirmadas. Al enviar, el checklist queda de solo lectura."
+      />
     </fieldset>
   }
 </section>
@@ -213,6 +339,11 @@
     <dynadrill-button variant="secondary" (clicked)="verPdf()">Ver PDF</dynadrill-button>
   }
   @if (!loading() && !yaEnviado() && tieneRolParaFirmar('liberadoQhse')) {
-    <dynadrill-button variant="primary" [disabled]="!canEnviar() || saving()" (clicked)="enviarChecklist()">Enviar checklist</dynadrill-button>
+    <dynadrill-button
+      variant="primary"
+      [disabled]="!canEnviar() || saving()"
+      (clicked)="enviarChecklist()"
+      >Enviar checklist</dynadrill-button
+    >
   }
 </footer>

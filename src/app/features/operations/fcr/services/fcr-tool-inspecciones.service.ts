@@ -25,15 +25,38 @@ export class FcrToolInspeccionesService {
    * devuelve el existente sin reiniciarlo. `cliente`/`pozo` (del ticket) solo
    * se usan para precargar la primera creación.
    */
-  iniciar(ticketId: number, toolId: number, articuloId: number, cliente?: string, pozo?: string): Observable<FcrToolInspection> {
-    return this.http.post<FcrToolInspection>(`${this.baseUrl}/${ticketId}/tool-inspections`, { toolId, articuloId, cliente, pozo });
+  iniciar(
+    ticketId: number,
+    toolId: number,
+    articuloId: number,
+    cliente?: string,
+    pozo?: string,
+  ): Observable<FcrToolInspection> {
+    return this.http.post<FcrToolInspection>(`${this.baseUrl}/${ticketId}/tool-inspections`, {
+      toolId,
+      articuloId,
+      cliente,
+      pozo,
+    });
   }
 
-  guardarHeader(ticketId: number, inspectionId: number, header: FcrToolInspectionHeaderInput): Observable<FcrToolInspection> {
-    return this.http.patch<FcrToolInspection>(`${this.baseUrl}/${ticketId}/tool-inspections/${inspectionId}/header`, header);
+  guardarHeader(
+    ticketId: number,
+    inspectionId: number,
+    header: FcrToolInspectionHeaderInput,
+  ): Observable<FcrToolInspection> {
+    return this.http.patch<FcrToolInspection>(
+      `${this.baseUrl}/${ticketId}/tool-inspections/${inspectionId}/header`,
+      header,
+    );
   }
 
-  guardarParte(ticketId: number, inspectionId: number, parteId: number, cambios: FcrToolInspectionParteInput): Observable<FcrToolInspection> {
+  guardarParte(
+    ticketId: number,
+    inspectionId: number,
+    parteId: number,
+    cambios: FcrToolInspectionParteInput,
+  ): Observable<FcrToolInspection> {
     return this.http.patch<FcrToolInspection>(
       `${this.baseUrl}/${ticketId}/tool-inspections/${inspectionId}/partes/${parteId}`,
       cambios,
@@ -41,23 +64,47 @@ export class FcrToolInspeccionesService {
   }
 
   /** La herramienta no trae partes (o falta una): se agrega al instante, queda guardada en la base. */
-  agregarParte(ticketId: number, inspectionId: number, parte: FcrToolInspectionParteNueva): Observable<FcrToolInspection> {
-    return this.http.post<FcrToolInspection>(`${this.baseUrl}/${ticketId}/tool-inspections/${inspectionId}/partes`, parte);
+  agregarParte(
+    ticketId: number,
+    inspectionId: number,
+    parte: FcrToolInspectionParteNueva,
+  ): Observable<FcrToolInspection> {
+    return this.http.post<FcrToolInspection>(
+      `${this.baseUrl}/${ticketId}/tool-inspections/${inspectionId}/partes`,
+      parte,
+    );
   }
 
   /** Solo las agregadas a mano. */
-  quitarParte(ticketId: number, inspectionId: number, parteId: number): Observable<FcrToolInspection> {
-    return this.http.delete<FcrToolInspection>(`${this.baseUrl}/${ticketId}/tool-inspections/${inspectionId}/partes/${parteId}`);
+  quitarParte(
+    ticketId: number,
+    inspectionId: number,
+    parteId: number,
+  ): Observable<FcrToolInspection> {
+    return this.http.delete<FcrToolInspection>(
+      `${this.baseUrl}/${ticketId}/tool-inspections/${inspectionId}/partes/${parteId}`,
+    );
   }
 
   /** El nombre de quien firma ya NO se manda — lo resuelve el backend del usuario autenticado. */
-  firmar(ticketId: number, inspectionId: number, rol: FcrToolInspectionFirmaRol, fecha: string): Observable<FcrToolInspection> {
-    return this.http.patch<FcrToolInspection>(`${this.baseUrl}/${ticketId}/tool-inspections/${inspectionId}/firmas/${rol}`, {
-      fecha,
-    });
+  firmar(
+    ticketId: number,
+    inspectionId: number,
+    rol: FcrToolInspectionFirmaRol,
+    fecha: string,
+  ): Observable<FcrToolInspection> {
+    return this.http.patch<FcrToolInspection>(
+      `${this.baseUrl}/${ticketId}/tool-inspections/${inspectionId}/firmas/${rol}`,
+      {
+        fecha,
+      },
+    );
   }
 
   enviar(ticketId: number, inspectionId: number): Observable<FcrToolInspection> {
-    return this.http.patch<FcrToolInspection>(`${this.baseUrl}/${ticketId}/tool-inspections/${inspectionId}/enviar`, {});
+    return this.http.patch<FcrToolInspection>(
+      `${this.baseUrl}/${ticketId}/tool-inspections/${inspectionId}/enviar`,
+      {},
+    );
   }
 }

@@ -35,7 +35,10 @@ import { PedidosComercialService } from '../../../../../facturacion/pedidos-come
 import { TicketProgress } from '../../../../shared/ticket-progress/ticket-progress';
 import type { TimelineTramo } from '../../../../../../shared/models/timeline.model';
 import {
+  PERMISO_ACTA_ENTREGA_CARGAR,
+  PERMISO_DOCUMENTOS_GESTIONAR,
   PERMISO_DOCUMENTOS_VER,
+  exigeMotivoSuplencia,
   insigniaArt,
   type DocumentoVigente,
   type PedidoDocumental,
@@ -178,6 +181,65 @@ export class TicketPumpingDetailPage {
     this.docsQhse.abrir(d.archivoId).subscribe({
       next: (blob) => this.archivos.guardarComo(blob, nombre),
       error: () => this.errorAccion.set('No se pudo descargar el documento.'),
+    });
+  }
+
+  // ── Cargar ART, PT y Acta desde el ticket (el backend decide quién: documentos.gestionar para ART/PT; acta_entrega.cargar para el Acta) ──
+  protected readonly puedeCargarArtPt = computed(() => this.auth.can(PERMISO_DOCUMENTOS_GESTIONAR));
+  protected readonly puedeCargarActa = computed(() => this.auth.can(PERMISO_ACTA_ENTREGA_CARGAR));
+  /** Qué documento tiene abierto el formulario de carga (solo uno a la vez). */
+  protected readonly cargaAbierta = signal<'art' | 'pt' | 'acta' | null>(null);
+  protected readonly archivoDoc = signal<File | null>(null);
+  protected readonly fechaArt = signal(new Date().toISOString().slice(0, 10));
+  protected readonly motivoSuplencia = signal('');
+  protected readonly cargandoDoc = signal(false);
+  /** Quien sube el Acta sin ser el supervisor asignado debe decir por qué el asignado no pudo. */
+  protected readonly pideMotivoSuplencia = computed(() =>
+    exigeMotivoSuplencia(
+      this.ticket()?.asignacion.supervisor?.usuarioId ?? null,
+      this.auth.currentUser()?.id,
+    ),
+  );
+
+  protected alternarCarga(doc: 'art' | 'pt' | 'acta'): void {
+    this.cargaAbierta.set(this.cargaAbierta() === doc ? null : doc);
+    this.archivoDoc.set(null);
+    this.motivoSuplencia.set('');
+  }
+
+  protected alElegirDoc(e: Event): void {
+    const input = e.target as HTMLInputElement;
+    this.archivoDoc.set(input.files?.[0] ?? null);
+  }
+
+  protected subirDoc(): void {
+    const t = this.ticket();
+    const doc = this.cargaAbierta();
+    const archivo = this.archivoDoc();
+    if (!t || !doc || !archivo || this.cargandoDoc()) return;
+    this.cargandoDoc.set(true);
+    this.errorAccion.set(null);
+    const peticion =
+      doc === 'acta'
+        ? this.docsQhse.cargarActa(t.id, archivo, { motivoSuplencia: this.motivoSuplencia() })
+        : this.docsQhse.cargar(archivo, {
+            pedidoId: t.pedidoId,
+            ticketId: t.id,
+            tipo: doc,
+            ...(doc === 'art' ? { fecha: this.fechaArt() } : {}),
+          });
+    peticion.subscribe({
+      next: () => {
+        this.cargandoDoc.set(false);
+        this.cargaAbierta.set(null);
+        this.archivoDoc.set(null);
+        this.notify.success('Documento cargado', 'Quedó registrado en QHSE.');
+        this.cargarDocumentosQhse(t);
+      },
+      error: (err) => {
+        this.cargandoDoc.set(false);
+        this.errorAccion.set(mensajeErrorTicket(err, 'No se pudo cargar el documento.'));
+      },
     });
   }
 

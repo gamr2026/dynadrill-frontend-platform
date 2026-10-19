@@ -203,7 +203,40 @@
                       >Descargar</dynadrill-button
                     >
                   }
+                  @if (puedeCargarArtPt()) {
+                    <dynadrill-button
+                      variant="secondary"
+                      size="small"
+                      (clicked)="alternarCarga('art')"
+                      >{{
+                        documentosQhse()?.art ? 'Subir uno nuevo' : 'Subir ART'
+                      }}</dynadrill-button
+                    >
+                  }
                 </li>
+                @if (cargaAbierta() === 'art') {
+                  <li class="tpd__doc-carga">
+                    <label class="tpd__meta"
+                      >Fecha de emisión del ART
+                      <input
+                        type="date"
+                        [value]="fechaArt()"
+                        (input)="fechaArt.set($any($event.target).value)"
+                    /></label>
+                    <input
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      (change)="alElegirDoc($event)"
+                    />
+                    <dynadrill-button
+                      variant="primary"
+                      size="small"
+                      [disabled]="!archivoDoc() || !fechaArt() || cargandoDoc()"
+                      (clicked)="subirDoc()"
+                      >Subir ART</dynadrill-button
+                    >
+                  </li>
+                }
                 <li class="tpd__doc">
                   <div class="tpd__doc-texto">
                     <strong>PT del día</strong>
@@ -226,7 +259,31 @@
                       >Descargar</dynadrill-button
                     >
                   }
+                  @if (puedeCargarArtPt() && !documentosQhse()?.ptHoy) {
+                    <dynadrill-button
+                      variant="secondary"
+                      size="small"
+                      (clicked)="alternarCarga('pt')"
+                      >Subir PT del día</dynadrill-button
+                    >
+                  }
                 </li>
+                @if (cargaAbierta() === 'pt') {
+                  <li class="tpd__doc-carga">
+                    <input
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      (change)="alElegirDoc($event)"
+                    />
+                    <dynadrill-button
+                      variant="primary"
+                      size="small"
+                      [disabled]="!archivoDoc() || cargandoDoc()"
+                      (clicked)="subirDoc()"
+                      >Subir PT</dynadrill-button
+                    >
+                  </li>
+                }
                 <li class="tpd__doc">
                   <div class="tpd__doc-texto">
                     <strong>Acta de Entrega de Locación</strong>
@@ -249,7 +306,46 @@
                       >Descargar</dynadrill-button
                     >
                   }
+                  @if (puedeCargarActa()) {
+                    <dynadrill-button
+                      variant="secondary"
+                      size="small"
+                      (clicked)="alternarCarga('acta')"
+                      >{{
+                        documentosQhse()?.actaEntrega ? 'Subir una nueva' : 'Subir Acta'
+                      }}</dynadrill-button
+                    >
+                  }
                 </li>
+                @if (cargaAbierta() === 'acta') {
+                  <li class="tpd__doc-carga">
+                    <input
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      (change)="alElegirDoc($event)"
+                    />
+                    @if (pideMotivoSuplencia()) {
+                      <label class="tpd__meta"
+                        >El Acta la sube el supervisor asignado: indique por qué no pudo
+                        <input
+                          type="text"
+                          [value]="motivoSuplencia()"
+                          (input)="motivoSuplencia.set($any($event.target).value)"
+                      /></label>
+                    }
+                    <dynadrill-button
+                      variant="primary"
+                      size="small"
+                      [disabled]="
+                        !archivoDoc() ||
+                        (pideMotivoSuplencia() && !motivoSuplencia().trim()) ||
+                        cargandoDoc()
+                      "
+                      (clicked)="subirDoc()"
+                      >Subir Acta</dynadrill-button
+                    >
+                  </li>
+                }
                 <li class="tpd__doc">
                   <div class="tpd__doc-texto">
                     <strong>Términos y condiciones de uso de equipos</strong>
@@ -258,7 +354,11 @@
                         {{ r.para }}: {{ r.estado === 'cumplido' ? 'aceptado' : 'pendiente'
                         }}{{ ultimo ? '' : ' · ' }}
                       } @empty {
-                        Sin operadores asignados
+                        @for (o of t.asignacion.operadores; track o.usuarioId; let ultimo = $last) {
+                          {{ o.nombre }}: pendiente{{ ultimo ? '' : ' · ' }}
+                        } @empty {
+                          Sin operadores asignados
+                        }
                       }
                     </span>
                     <dynadrill-tag

@@ -160,6 +160,24 @@
     gap: 4px;
   }
 
+  // Formulario de carga que se abre bajo el documento (fecha o motivo, archivo y botón).
+  &__doc-carga {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    margin-bottom: 12px;
+    padding: 12px;
+    background: #f7f6fa;
+    border-radius: 8px;
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+  }
+
   &__meta {
     margin: 0;
     font-size: 13px;

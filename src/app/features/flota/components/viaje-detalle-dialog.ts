@@ -19,6 +19,9 @@ import {
   type ViajeDetalle,
 } from '../models/viaje-flota.model';
 import { FlotaViajesService } from '../services/flota-viajes.service';
+import { DocumentoPdfService } from '../../../shared/documentos';
+import { GerenciamientoViajeHoja } from '../../../shared/documentos/formatos/gerenciamiento-viaje-hoja';
+import { hojaDeViaje } from '../models/hojas.mapper';
 import { formatoFecha, mensajeDeError } from '../utils/flota.util';
 
 export interface ViajeDetalleDialogData {
@@ -159,7 +162,10 @@ export const TONO_ESTADO_VIAJE: Record<EstadoViaje, DynadrillTagVariant> = {
           />
         }
         <div class="viaje-detalle__acciones">
-          <dynadrill-button variant="secondary" (clicked)="cerrar()">Cerrar</dynadrill-button>
+          <div class="viaje-detalle__acciones-der">
+            <dynadrill-button variant="secondary" (clicked)="cerrar()">Cerrar</dynadrill-button>
+            <dynadrill-button variant="secondary" (clicked)="verPdf()">Ver PDF</dynadrill-button>
+          </div>
           <div class="viaje-detalle__acciones-der">
             @if (v.puedeDecidir) {
               @if (rechazando()) {
@@ -262,6 +268,7 @@ export const TONO_ESTADO_VIAJE: Record<EstadoViaje, DynadrillTagVariant> = {
 })
 export class ViajeDetalleDialog {
   private readonly api = inject(FlotaViajesService);
+  private readonly documentoPdf = inject(DocumentoPdfService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<ViajeDetalleDialog, boolean>);
   private readonly data = inject<ViajeDetalleDialogData>(NZ_MODAL_DATA);
@@ -289,6 +296,22 @@ export class ViajeDetalleDialog {
         );
         this.modalRef.close(false);
       },
+    });
+  }
+
+  /** Formato DYN-SGI-RE-049 con el cuestionario completo (el catálogo trae las tres casillas de cada pregunta). */
+  protected verPdf(): void {
+    const v = this.viaje();
+    if (!v) return;
+    this.api.preguntas().subscribe({
+      next: (preguntas) =>
+        this.documentoPdf.abrir({
+          titulo: `Gerenciamiento de viaje — ${v.codigo}`,
+          component: GerenciamientoViajeHoja,
+          inputs: { gv: hojaDeViaje(v, preguntas) },
+          nombreArchivo: `Gerenciamiento de viaje ${v.codigo}`,
+        }),
+      error: () => this.notify.error('Error', 'No se pudo preparar el formato.'),
     });
   }
 

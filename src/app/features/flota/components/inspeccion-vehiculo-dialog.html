@@ -103,7 +103,10 @@
     }
 
     <div class="inspeccion-dialog__acciones">
-      <dynadrill-button variant="secondary" (clicked)="cerrar()">Cerrar</dynadrill-button>
+      <div class="inspeccion-dialog__acciones-izq">
+        <dynadrill-button variant="secondary" (clicked)="cerrar()">Cerrar</dynadrill-button>
+        <dynadrill-button variant="secondary" (clicked)="verPdf()">Ver PDF</dynadrill-button>
+      </div>
       <div class="inspeccion-dialog__acciones-der">
         @if (accionConMotivo()) {
           <dynadrill-button variant="secondary" (clicked)="accionConMotivo.set(null)"

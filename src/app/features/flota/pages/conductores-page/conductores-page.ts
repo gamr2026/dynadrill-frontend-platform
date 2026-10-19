@@ -12,6 +12,10 @@ import {
   PermisoConductorDialog,
   type PermisoConductorDialogData,
 } from '../../components/permiso-conductor-dialog';
+import {
+  PermisosConductorDialog,
+  type PermisosConductorDialogData,
+} from '../../components/permisos-conductor-dialog';
 import type { ConductorEstado } from '../../models/inspeccion-flota.model';
 import { FlotaInspeccionesService } from '../../services/flota-inspecciones.service';
 import { formatoFecha } from '../../utils/flota.util';
@@ -43,6 +47,9 @@ import { formatoFecha } from '../../utils/flota.util';
     </dynadrill-spinner>
     <ng-template #acciones let-row>
       <div class="dyn-actions-row">
+        <dynadrill-button variant="secondary" size="small" (clicked)="verDocumentos(row['id'])"
+          >Ver documentos</dynadrill-button
+        >
         @if (puedeGestionar()) {
           <dynadrill-button variant="secondary" size="small" (clicked)="registrar(row['id'])"
             >Registrar documento</dynadrill-button
@@ -105,6 +112,19 @@ export class ConductoresPage {
       },
       error: () => this.cargando.set(false),
     });
+  }
+
+  protected verDocumentos(usuarioId: string): void {
+    const conductor = this.conductores().find((c) => c.usuario.id === usuarioId);
+    if (!conductor) return;
+    this.dialog
+      .open<PermisosConductorDialog, PermisosConductorDialogData>({
+        title: 'Documentos del conductor',
+        content: PermisosConductorDialog,
+        data: { conductor },
+        footer: false,
+      })
+      .afterClose.subscribe((r) => r && this.recargar());
   }
 
   protected registrar(usuarioId: string): void {

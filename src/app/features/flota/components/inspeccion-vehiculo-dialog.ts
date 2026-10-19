@@ -15,6 +15,9 @@ import {
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../core/services/auth.service';
+import { DocumentoPdfService } from '../../../shared/documentos';
+import { InspeccionVehiculoHoja } from '../../../shared/documentos/formatos/inspeccion-vehiculo-hoja';
+import { hojaDeInspeccion } from '../models/hojas.mapper';
 import {
   ESTADO_DOCUMENTO_LABEL,
   ESTADO_INSPECCION_LABEL,
@@ -83,6 +86,7 @@ const RESULTADO_TEXTO: Record<ResultadoChecklist, string> = {
 })
 export class InspeccionVehiculoDialog {
   private readonly api = inject(FlotaInspeccionesService);
+  private readonly documentoPdf = inject(DocumentoPdfService);
   private readonly unidadesApi = inject(FlotaUnidadesService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
@@ -341,6 +345,18 @@ export class InspeccionVehiculoDialog {
     v: { marca: string | null; modelo: string | null; anio: number | null } | null,
   ): string {
     return v ? [v.marca, v.modelo, v.anio].filter((x) => x !== null && x !== '').join(' ') : '';
+  }
+
+  /** Formato DYN-SGI-RE-068 con los datos de esta inspección; la firma se pone sobre el PDF. */
+  protected verPdf(): void {
+    const d = this.detalle();
+    if (!d) return;
+    this.documentoPdf.abrir({
+      titulo: `Inspección de vehículos — ${d.unidad.codigo}`,
+      component: InspeccionVehiculoHoja,
+      inputs: { inspeccion: hojaDeInspeccion(d) },
+      nombreArchivo: `Inspección de vehículos ${d.unidad.codigo} ${d.fecha.slice(0, 10)}`,
+    });
   }
 
   protected kmTexto(d: InspeccionDetalle): string {

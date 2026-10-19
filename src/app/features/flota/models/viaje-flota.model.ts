@@ -85,6 +85,7 @@ export interface ViajeDetalle {
   codigo: string;
   tipo: TipoViaje;
   ticketId: string | null;
+  ticketNumero: number | null;
   fecha: string;
   motivo: string;
   conductor: { id: string; nombre: string };

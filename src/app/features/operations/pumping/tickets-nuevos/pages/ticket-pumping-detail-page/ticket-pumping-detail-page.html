@@ -404,6 +404,21 @@
                       <span class="tpd__meta">{{ i.texto }}</span>
                       <dynadrill-tag [label]="i.etiqueta" [variant]="i.tono" [uppercase]="false" />
                     </div>
+                    @if (i.requisito.estado === 'pendiente') {
+                      @if (puedeRealizarInspeccion(i.requisito.vehiculoId)) {
+                        <dynadrill-button
+                          variant="primary"
+                          size="small"
+                          (clicked)="realizarInspeccion(i.requisito.vehiculoId)"
+                          >Realizar inspección</dynadrill-button
+                        >
+                      } @else if (!casoDeUnidad(i.requisito.vehiculoId)) {
+                        <span class="tpd__meta"
+                          >Esta unidad no está registrada en Flota como unidad de transporte: no se
+                          puede inspeccionar desde aquí.</span
+                        >
+                      }
+                    }
                     @if (i.requisito.estado === 'pendiente' && puedeConfirmarAMano()) {
                       <dynadrill-button
                         variant="secondary"
@@ -471,7 +486,7 @@
                       <th scope="col">Operador</th>
                       <th scope="col">Cargo/Rol</th>
                       <th scope="col">Unidad asignada</th>
-                      <th scope="col" class="tpd__num">Reporte</th>
+                      <th scope="col" class="tpd__num">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -481,6 +496,14 @@
                         <td>{{ cargoDe(o.usuarioId) }}</td>
                         <td>{{ o.placa ?? '—' }}</td>
                         <td class="tpd__num">
+                          @if (puedeRealizarInspeccion(o.vehiculoId)) {
+                            <dynadrill-button
+                              variant="primary"
+                              size="small"
+                              (clicked)="realizarInspeccion(o.vehiculoId)"
+                              >Realizar inspección</dynadrill-button
+                            >
+                          }
                           @if (o.vehiculoId && o.vehiculoId !== unidadParaFirmar()?.vehiculoId) {
                             <dynadrill-button
                               variant="secondary"

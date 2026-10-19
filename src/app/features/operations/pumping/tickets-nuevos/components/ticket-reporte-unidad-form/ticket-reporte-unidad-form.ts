@@ -445,7 +445,8 @@ export class TicketReporteUnidadForm {
   /** El reporte quedó firmado: la página recarga el ticket. */
   readonly firmado = output<void>();
 
-  protected readonly secciones = SECCIONES_INSPECCION;
+  /** En la salida solo se inspecciona el Chasis (como la demo); motor, equipo e instrumentación son de la llegada. */
+  protected readonly secciones = SECCIONES_INSPECCION.filter((s) => s.seccion === 'chasis');
   protected readonly llantas = POSICIONES_LLANTA;
   protected readonly reporte = signal<ReporteUnidad | null>(null);
   readonly enviando = signal(false);

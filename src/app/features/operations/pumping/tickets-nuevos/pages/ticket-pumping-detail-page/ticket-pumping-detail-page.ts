@@ -63,6 +63,12 @@ import {
   TicketEpiDialog,
   type TicketEpiDialogData,
 } from '../../components/ticket-epi-dialog/ticket-epi-dialog';
+import {
+  InspeccionVehiculoDialog,
+  type InspeccionVehiculoDialogData,
+} from '../../../../../flota/components/inspeccion-vehiculo-dialog';
+import type { CasoInspeccion } from '../../../../../flota/models/inspeccion-flota.model';
+import { FlotaInspeccionesService } from '../../../../../flota/services/flota-inspecciones.service';
 import { TicketReporteUnidadForm } from '../../components/ticket-reporte-unidad-form/ticket-reporte-unidad-form';
 import { DocumentosPedidoService } from '../../../../../qhse/documentos-pedido/services/documentos-pedido.service';
 import {
@@ -247,7 +253,50 @@ export class TicketPumpingDetailPage {
       this.notify.success('Solicitud registrada', 'QHSE la revisará y la despachará.');
       this.cargarEpi(t.id);
       this.cargarTerminos(t.id);
+      this.cargarCasosFlota(t.id);
     });
+  }
+
+  // ── Inspección de vehículos (la hace el Operador con el formato de Flota; al registrarla Flota avisa y el requisito se cumple solo) ──
+  private readonly flotaInspecciones = inject(FlotaInspeccionesService);
+  protected readonly casosFlota = signal<CasoInspeccion[]>([]);
+  protected readonly puedeInspeccionar = computed(() => this.auth.can('flota.inspecciones.crear'));
+  /** El caso de inspección de una unidad del ticket; no existe si la unidad no está registrada en Flota como unidad de transporte. */
+  protected casoDeUnidad(vehiculoId: string | null): CasoInspeccion | null {
+    return vehiculoId
+      ? (this.casosFlota().find((c) => c.unidad.vehiculo?.id === vehiculoId) ?? null)
+      : null;
+  }
+  /** ¿Puedo hacer yo la inspección de salida de esta unidad? (su operador, o Superadmin) */
+  protected puedeRealizarInspeccion(vehiculoId: string | null): boolean {
+    const c = this.casoDeUnidad(vehiculoId);
+    const u = this.yo();
+    return (
+      !!c &&
+      !!u &&
+      this.puedeInspeccionar() &&
+      c.estado === 'pendiente' &&
+      (c.operador.id === u.id || u.roleCode === 'superadmin')
+    );
+  }
+  protected realizarInspeccion(vehiculoId: string | null): void {
+    const caso = this.casoDeUnidad(vehiculoId);
+    if (!caso) return;
+    this.dialog
+      .open<InspeccionVehiculoDialog, InspeccionVehiculoDialogData>({
+        title: `Inspección de salida — ${caso.unidad.codigo}`,
+        content: InspeccionVehiculoDialog,
+        data: { caso, momento: 'salida' },
+        size: 'large',
+        footer: false,
+      })
+      .afterClose.subscribe((r) => r && this.recargar());
+  }
+  private cargarCasosFlota(ticketId: string): void {
+    if (!this.auth.can('flota.inspecciones.ver')) return;
+    this.flotaInspecciones
+      .casos(ticketId)
+      .subscribe({ next: (l) => this.casosFlota.set(l), error: () => this.casosFlota.set([]) });
   }
 
   // ── Traslado de salida: lo que hace el operador (inspección, EPI, reporte de unidad), como en la demo ──
@@ -337,12 +386,10 @@ export class TicketPumpingDetailPage {
     return usuarioId === this.yo()?.id;
   }
   private cargarTerminos(ticketId: string): void {
-    this.servicio
-      .terminos(ticketId)
-      .subscribe({
-        next: (l) => this.terminosOperadores.set(l),
-        error: () => this.terminosOperadores.set([]),
-      });
+    this.servicio.terminos(ticketId).subscribe({
+      next: (l) => this.terminosOperadores.set(l),
+      error: () => this.terminosOperadores.set([]),
+    });
   }
   protected cargoDe(usuarioId: string): string {
     return this.epiOperadores().find((o) => o.usuarioId === usuarioId)?.cargo ?? 'Operador';
@@ -424,6 +471,7 @@ export class TicketPumpingDetailPage {
         this.cargarDocumentosQhse(t);
         this.cargarEpi(t.id);
         this.cargarTerminos(t.id);
+        this.cargarCasosFlota(t.id);
       },
       error: (err) => {
         this.cargandoDoc.set(false);
@@ -999,6 +1047,7 @@ export class TicketPumpingDetailPage {
     this.cargarDocumentosQhse(t);
     this.cargarEpi(t.id);
     this.cargarTerminos(t.id);
+    this.cargarCasosFlota(t.id);
   }
 
   protected readonly hayAsignacion = computed(() => {
@@ -1027,6 +1076,7 @@ export class TicketPumpingDetailPage {
         this.cargarDocumentosQhse(t);
         this.cargarEpi(t.id);
         this.cargarTerminos(t.id);
+        this.cargarCasosFlota(t.id);
       },
       error: (err) => {
         this.cargando.set(false);

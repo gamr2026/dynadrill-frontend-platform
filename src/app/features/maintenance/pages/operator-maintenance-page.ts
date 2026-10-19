@@ -1,12 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  DestroyRef,
-  effect,
-  inject,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import {
   DynadrillButtonComponent,
@@ -20,31 +12,15 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { injectNarrowViewport } from '../../../core/utils/narrow-viewport.util';
-import {
-  QhseRegistrosMovil,
-  type RegistroMovil,
-} from '../../qhse/shared/components/qhse-registros-movil';
+import { QhseRegistrosMovil, type RegistroMovil } from '../../qhse/shared/components/qhse-registros-movil';
 import { AuthService } from '../../../core/services/auth.service';
-import {
-  NotificationsService,
-  AppNotificationItem,
-} from '../../../core/services/notifications.service';
-import {
-  MaintenanceOrderWithSubOrders,
-  SubOrder,
-  SubOrderStatus,
-} from '../models/maintenance-order.model';
+import { NotificationsService, AppNotificationItem } from '../../../core/services/notifications.service';
+import { MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../models/maintenance-order.model';
 import { UnitReport } from '../models/unit-report.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { UnitReportsService } from '../services/unit-reports.service';
-import {
-  SuborderExecutionDialog,
-  SuborderExecutionDialogData,
-} from '../components/suborder-execution-dialog';
-import {
-  SuborderDetailDialog,
-  SuborderDetailDialogData,
-} from '../components/suborder-detail-dialog';
+import { SuborderExecutionDialog, SuborderExecutionDialogData } from '../components/suborder-execution-dialog';
+import { SuborderDetailDialog, SuborderDetailDialogData } from '../components/suborder-detail-dialog';
 
 const STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
   Pendiente: 'warning',
@@ -100,10 +76,10 @@ export class OperatorMaintenancePage {
 
   /** Muestra TODAS las sub-órdenes Operativo (en cualquier estado post-derivación). */
   protected readonly rows = computed(() => {
-    return this.orders().flatMap((order) =>
-      order.subOrders
-        .filter((sub) => sub.type === 'Operativo' && sub.status !== 'Pendiente')
-        .map((sub) => ({
+    return this.orders()
+      .flatMap(order => order.subOrders
+        .filter(sub => sub.type === 'Operativo' && sub.status !== 'Pendiente')
+        .map(sub => ({
           id: sub.id,
           code: sub.code,
           orderCode: order.code,
@@ -111,12 +87,12 @@ export class OperatorMaintenancePage {
           statusBadge: { text: sub.status, tone: STATUS_TONE[sub.status] },
           deriveNote: sub.deriveNote || '—',
         })),
-    );
+      );
   });
 
   /** Tarjetas en móvil (Figma "M · Mantenimiento Operativo"). */
   protected readonly itemsMovil = computed<RegistroMovil[]>(() =>
-    this.rows().map((r) => ({
+    this.rows().map(r => ({
       id: r.id,
       eyebrow: r.code,
       title: r.unidad,
@@ -125,12 +101,7 @@ export class OperatorMaintenancePage {
       fields: r.deriveNote !== '—' ? [{ label: 'Nota de derivación', value: r.deriveNote }] : [],
       actions: this.isActionable(r)
         ? [
-            {
-              icon: 'tool',
-              label: 'Diagnosticar / Ejecutar',
-              primary: true,
-              run: () => this.openExecution(r),
-            },
+            { icon: 'tool', label: 'Diagnosticar / Ejecutar', primary: true, run: () => this.openExecution(r) },
             { icon: 'eye', label: 'Ver detalle', run: () => this.viewDetail(r) },
           ]
         : [{ icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(r) }],
@@ -141,21 +112,14 @@ export class OperatorMaintenancePage {
 
   // Notificaciones — solo las que están pendientes de acción del operador
   private readonly notificationItems = computed<AppNotificationItem[]>(() => {
-    const actionable = this.orders().flatMap((order) =>
-      order.subOrders
-        .filter(
-          (sub) =>
-            sub.type === 'Operativo' &&
-            (sub.status === 'Derivado a Pumping' || sub.status === 'Corrección Solicitada'),
-        )
-        .map((sub) => ({ sub, order })),
-    );
+    const actionable = this.orders()
+      .flatMap(order => order.subOrders
+        .filter(sub => sub.type === 'Operativo' && (sub.status === 'Derivado a Pumping' || sub.status === 'Corrección Solicitada'))
+        .map(sub => ({ sub, order })),
+      );
     return actionable.map(({ sub, order }) => ({
       id: `op-maint-${sub.id}`,
-      title:
-        sub.status === 'Corrección Solicitada'
-          ? 'Corrección solicitada'
-          : 'Mantenimiento operativo asignado',
+      title: sub.status === 'Corrección Solicitada' ? 'Corrección solicitada' : 'Mantenimiento operativo asignado',
       description: `Unidad ${order.unidad} — ${sub.deriveNote || sub.code}`,
       tone: (sub.status === 'Corrección Solicitada' ? 'error' : 'warning') as 'error' | 'warning',
       link: '/dashboard/mantenimiento/operativo',
@@ -190,31 +154,27 @@ export class OperatorMaintenancePage {
   }
 
   private subOrderFor(row: Record<string, unknown>): SubOrder {
-    return this.orders()
-      .flatMap((o) => o.subOrders)
-      .find((s) => s.id === row['id'])!;
+    return this.orders().flatMap(o => o.subOrders).find(s => s.id === row['id'])!;
   }
 
   private novedadFor(subOrder: SubOrder): string {
-    const order = this.orders().find((o) => o.id === subOrder.orderId);
-    const report = order && this.unitReports().find((r) => r.id === order.unitReportId);
+    const order = this.orders().find(o => o.id === subOrder.orderId);
+    const report = order && this.unitReports().find(r => r.id === order.unitReportId);
     return report?.problemasOperaciones || '';
   }
 
   /** El operador puede ejecutar si la sub-orden no está en revisión ni cerrada. */
   isActionable(row: Record<string, unknown>): boolean {
     const sub = this.subOrderFor(row);
-    return (
-      sub.status === 'Derivado a Pumping' ||
-      sub.status === 'En Diagnóstico' ||
-      sub.status === 'En Ejecución' ||
-      sub.status === 'Corrección Solicitada'
-    );
+    return sub.status === 'Derivado a Pumping'
+      || sub.status === 'En Diagnóstico'
+      || sub.status === 'En Ejecución'
+      || sub.status === 'Corrección Solicitada';
   }
 
   protected viewDetail(row: Record<string, unknown>): void {
     const subOrder = this.subOrderFor(row);
-    const order = this.orders().find((o) => o.id === subOrder.orderId);
+    const order = this.orders().find(o => o.id === subOrder.orderId);
     this.dialog.open<SuborderDetailDialog, SuborderDetailDialogData>({
       title: 'Detalle — ' + subOrder.code,
       content: SuborderDetailDialog,
@@ -231,7 +191,7 @@ export class OperatorMaintenancePage {
       data: { subOrder, novedadOriginal: this.novedadFor(subOrder) },
       footer: false,
     });
-    ref.afterClose.subscribe((changed) => {
+    ref.afterClose.subscribe(changed => {
       if (changed) this.reload();
     });
   }

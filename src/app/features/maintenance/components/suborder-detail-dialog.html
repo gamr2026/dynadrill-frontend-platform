@@ -1,4 +1,5 @@
 <div class="suborder-detail-dialog">
+
   <!-- Meta info: 2 columnas -->
   <div class="suborder-detail-dialog__grid">
     <div class="suborder-detail-dialog__row">
@@ -18,9 +19,7 @@
       <dynadrill-text variant="body">{{ data.subOrder.status }}</dynadrill-text>
     </div>
     <div class="suborder-detail-dialog__row">
-      <dynadrill-text variant="caption">{{
-        data.subOrder.type === 'Operativo' ? 'Derivación' : 'Operador asignado'
-      }}</dynadrill-text>
+      <dynadrill-text variant="caption">{{ data.subOrder.type === 'Operativo' ? 'Derivación' : 'Operador asignado' }}</dynadrill-text>
       <dynadrill-text variant="body">{{ assignmentLabel }}</dynadrill-text>
     </div>
     @if (data.subOrder.assignedByName) {
@@ -32,16 +31,10 @@
   </div>
 
   @if (data.subOrder.deriveNote) {
-    <app-novedad-readonly
-      label="Motivo de la derivación a Pumping"
-      [content]="data.subOrder.deriveNote"
-    />
+    <app-novedad-readonly label="Motivo de la derivación a Pumping" [content]="data.subOrder.deriveNote" />
   }
 
-  <app-novedad-readonly
-    label="Novedad reportada por el operador (Reporte de Unidad)"
-    [content]="data.novedadOriginal"
-  />
+  <app-novedad-readonly label="Novedad reportada por el operador (Reporte de Unidad)" [content]="data.novedadOriginal" />
 
   @if (data.subOrder.diagnostico) {
     <div class="suborder-detail-dialog__row">
@@ -58,10 +51,7 @@
   }
 
   @if (data.subOrder.correctionNote) {
-    <app-novedad-readonly
-      label="Motivo de la corrección solicitada"
-      [content]="data.subOrder.correctionNote"
-    />
+    <app-novedad-readonly label="Motivo de la corrección solicitada" [content]="data.subOrder.correctionNote" />
   }
 
   <div class="suborder-detail-dialog__actions">

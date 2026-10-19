@@ -28,14 +28,10 @@ export interface RegisterPMDialogData {
 }
 
 const NIVEL_VARIANT: Record<AlertaPreventivaNivel, DynadrillTagVariant> = {
-  rojo: 'error',
-  amarillo: 'warning',
-  verde: 'success',
+  rojo: 'error', amarillo: 'warning', verde: 'success',
 };
 const NIVEL_LABEL: Record<AlertaPreventivaNivel, string> = {
-  rojo: 'Vencido',
-  amarillo: 'Próximo',
-  verde: 'Al día',
+  rojo: 'Vencido', amarillo: 'Próximo', verde: 'Al día',
 };
 
 @Component({
@@ -118,10 +114,7 @@ export class RegisterPMDialog {
       observaciones: this.observaciones().trim() || undefined,
       checklistFabricanteArchivo: this.checklistFabricante()?.name,
       ejecutadoPor: this.permiteTercero() ? this.ejecutadoPor() : 'Interno',
-      proveedor:
-        this.permiteTercero() && this.ejecutadoPor() === 'Tercero'
-          ? this.proveedor().trim()
-          : undefined,
+      proveedor: this.permiteTercero() && this.ejecutadoPor() === 'Tercero' ? this.proveedor().trim() : undefined,
     };
 
     if (this.alerta.unidad === 'horas') {
@@ -133,10 +126,7 @@ export class RegisterPMDialog {
 
     this.unidadesService.registrarMantenimiento(Number(this.alerta.unidadId), input).subscribe({
       next: () => {
-        this.notify.success(
-          'PM registrado',
-          `Mantenimiento de ${this.alerta.unidadCode} registrado correctamente.`,
-        );
+        this.notify.success('PM registrado', `Mantenimiento de ${this.alerta.unidadCode} registrado correctamente.`);
         this.modalRef.close(true);
       },
       error: () => {

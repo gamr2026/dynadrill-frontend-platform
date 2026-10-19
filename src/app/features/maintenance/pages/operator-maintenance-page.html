@@ -1,17 +1,9 @@
 <div class="operator-maintenance-page">
-  <app-page-header
-    eyebrow="MANTENIMIENTO"
-    title="Mantenimiento Operativo"
-    subtitle="Sub-órdenes operativas derivadas a su equipo — diagnóstico y ejecución"
-  />
+  <app-page-header eyebrow="MANTENIMIENTO" title="Mantenimiento Operativo" subtitle="Sub-órdenes operativas derivadas a su equipo — diagnóstico y ejecución" />
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando mantenimientos…">
     @if (isMobile()) {
-      <app-qhse-registros-movil
-        [items]="itemsMovil()"
-        [loading]="loading()"
-        vacio="No hay mantenimientos operativos derivados."
-      />
+      <app-qhse-registros-movil [items]="itemsMovil()" [loading]="loading()" vacio="No hay mantenimientos operativos derivados." />
     } @else {
       <div class="table-scroll dyn-table-card">
         <dynadrill-data-table
@@ -29,9 +21,7 @@
     <div class="dyn-actions-row">
       <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="viewDetail(row)" />
       @if (isActionable(row)) {
-        <dynadrill-button size="small" (clicked)="openExecution(row)"
-          >Diagnosticar / Ejecutar</dynadrill-button
-        >
+        <dynadrill-button size="small" (clicked)="openExecution(row)">Diagnosticar / Ejecutar</dynadrill-button>
       }
     </div>
   </ng-template>

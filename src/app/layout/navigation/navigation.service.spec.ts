@@ -10,35 +10,21 @@ describe('NavigationService', () => {
   const user = signal<AuthenticatedUser | null>(null);
   const events = new Subject<NavigationEnd>();
 
-  function setup(
-    roleName: string | null,
-    url = '/dashboard',
-    permissions: string[] = [],
-  ): NavigationService {
-    user.set(
-      roleName
-        ? {
-            id: 'u-1',
-            legacyId: 1,
-            name: 'Ana Torres',
-            email: 'a@dynadrill.com',
-            roleId: 'r-1',
-            roleLegacyId: 1,
-            roleName,
-            roleCode: 'rol',
-            permissions,
-          }
-        : null,
-    );
+  function setup(roleName: string | null, url = '/dashboard', permissions: string[] = []): NavigationService {
+    user.set(roleName ? {
+          id: 'u-1',
+          legacyId: 1,
+          name: 'Ana Torres',
+          email: 'a@dynadrill.com',
+          roleId: 'r-1',
+          roleLegacyId: 1,
+          roleName,
+          roleCode: 'rol',
+          permissions,
+        } : null);
     TestBed.configureTestingModule({
       providers: [
-        {
-          provide: AuthService,
-          useValue: {
-            currentUser: user.asReadonly(),
-            can: (codigo: string) => user()?.permissions.includes(codigo) ?? false,
-          },
-        },
+        { provide: AuthService, useValue: { currentUser: user.asReadonly(), can: (codigo: string) => user()?.permissions.includes(codigo) ?? false } },
         { provide: Router, useValue: { events, url } },
       ],
     });
@@ -49,9 +35,8 @@ describe('NavigationService', () => {
     events.next(new NavigationEnd(1, url, url));
   }
 
-  const keys = (service: NavigationService) => service.modules().map((m) => m.key);
-  const links = (service: NavigationService, key: string) =>
-    allLinks(service.modules().find((m) => m.key === key)!);
+  const keys = (service: NavigationService) => service.modules().map(m => m.key);
+  const links = (service: NavigationService, key: string) => allLinks(service.modules().find(m => m.key === key)!);
 
   it('Flota no aparece sin el permiso de ver unidades', () => {
     expect(keys(setup('Jefe de Mantenimiento'))).not.toContain('flota');
@@ -64,14 +49,8 @@ describe('NavigationService', () => {
   });
 
   it('cada destino de Flota sale por su permiso: un conductor ve inspecciones y conductores, no unidades', () => {
-    const service = setup('Conductor', '/dashboard', [
-      'flota.inspecciones.ver',
-      'flota.conductores.ver',
-    ]);
-    expect(links(service, 'flota')).toEqual([
-      '/dashboard/flota/inspecciones',
-      '/dashboard/flota/conductores',
-    ]);
+    const service = setup('Conductor', '/dashboard', ['flota.inspecciones.ver', 'flota.conductores.ver']);
+    expect(links(service, 'flota')).toEqual(['/dashboard/flota/inspecciones', '/dashboard/flota/conductores']);
   });
 
   it('Gerenciamiento de viaje sale con cualquiera de sus tres permisos', () => {
@@ -81,15 +60,7 @@ describe('NavigationService', () => {
 
   it('Superadmin ve todos los módulos, en el orden de Figma', () => {
     const service = setup('Superadmin', '/dashboard', ['identidad.usuarios.ver']);
-    expect(keys(service)).toEqual([
-      'inicio',
-      'operaciones',
-      'mantenimiento',
-      'qhse',
-      'inventario',
-      'facturacion',
-      'usuarios',
-    ]);
+    expect(keys(service)).toEqual(['inicio', 'operaciones', 'mantenimiento', 'qhse', 'inventario', 'facturacion', 'usuarios']);
     expect(links(service, 'facturacion')).toContain('/dashboard/facturacion/catalogos');
   });
 
@@ -125,11 +96,7 @@ describe('NavigationService', () => {
   it('Jefe de Base solo ve Pumping, sus pedidos y Gerenciamiento de Viaje en Operaciones (sin Usuarios en la UI)', () => {
     const service = setup('Jefe de Base');
     expect(keys(service)).toEqual(['inicio', 'operaciones']);
-    expect(links(service, 'operaciones')).toEqual([
-      '/modulos/operativo/pumping',
-      '/modulos/operativo/pumping/pedidos',
-      '/dashboard/mantenimiento/gerenciamiento-viaje',
-    ]);
+    expect(links(service, 'operaciones')).toEqual(['/modulos/operativo/pumping', '/modulos/operativo/pumping/pedidos', '/dashboard/mantenimiento/gerenciamiento-viaje']);
   });
 
   it('"Códigos por cliente" de FCR: solo Ventas FCR y Superadmin, y activa su propia entrada (no la de FCR)', () => {
@@ -141,9 +108,7 @@ describe('NavigationService', () => {
 
     for (const rol of ['Superadmin', 'Supervisor', 'Bodeguero', 'Ingeniería de Ventas']) {
       TestBed.resetTestingModule();
-      const conCodigos = setup(rol)
-        .modules()
-        .some((m) => allLinks(m).includes(codigos));
+      const conCodigos = setup(rol).modules().some(m => allLinks(m).includes(codigos));
       expect([rol, conCodigos]).toEqual([rol, rol === 'Superadmin']);
     }
   });
@@ -160,9 +125,7 @@ describe('NavigationService', () => {
   });
 
   it('resuelve el módulo activo por el link más largo que contiene la URL', () => {
-    const service = setup('Superadmin', '/modulos/operativo/pumping/42', [
-      'identidad.usuarios.ver',
-    ]);
+    const service = setup('Superadmin', '/modulos/operativo/pumping/42', ['identidad.usuarios.ver']);
     expect(service.activeModule().key).toBe('operaciones');
 
     navigate('/dashboard/usuarios');
@@ -182,9 +145,7 @@ describe('NavigationService', () => {
 
   it('marca activo solo el destino más específico dentro del módulo', () => {
     const service = setup('Supervisor Pumping', '/modulos/operativo/pumping/aprobaciones');
-    const [pumping, , aprobaciones] = service
-      .modules()
-      .find((m) => m.key === 'operaciones')!.children!;
+    const [pumping, , aprobaciones] = service.modules().find(m => m.key === 'operaciones')!.children!;
     expect(service.isActive(aprobaciones)).toBe(true);
     expect(service.isActive(pumping)).toBe(false);
   });

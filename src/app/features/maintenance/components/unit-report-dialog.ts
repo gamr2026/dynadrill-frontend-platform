@@ -1,12 +1,5 @@
 import { CommonModule } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  WritableSignal,
-  computed,
-  inject,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, WritableSignal, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import {
   DynadrillButtonComponent,
@@ -35,11 +28,7 @@ import {
 import { UnitReportsService } from '../services/unit-reports.service';
 import { UnidadesService } from '../services/unidades.service';
 import { Unidad } from '../models/unidad.model';
-import {
-  UBICACION_VACIA,
-  UbicacionSelectorComponent,
-  type UbicacionSeleccion,
-} from '../../../shared/index';
+import { UBICACION_VACIA, UbicacionSelectorComponent, type UbicacionSeleccion } from '../../../shared/index';
 
 const STEPS = ['Datos', 'Métricas', 'Chasis', 'Plataforma', 'Instrum.', 'Problemas', 'Firmas'];
 
@@ -53,7 +42,7 @@ export interface UnitReportDialogData {
 }
 
 function toDualItems(labels: string[]): ChecklistDualItem[] {
-  return labels.map((label) => ({ label, salida: null, llegada: null }));
+  return labels.map(label => ({ label, salida: null, llegada: null }));
 }
 
 /**
@@ -114,17 +103,16 @@ export class UnitReportDialog {
 
   protected readonly unidades = signal<Unidad[]>([]);
   protected readonly unidadOptions = computed<DynadrillSelectOption[]>(() =>
-    this.unidades().map((u) => ({ label: `${u.code} — ${u.nombre}`, value: u.id })),
+    this.unidades().map(u => ({ label: `${u.code} — ${u.nombre}`, value: u.id })),
   );
   protected readonly unidadSeleccionada = computed<Unidad | undefined>(() =>
-    this.unidades().find((u) => u.id === this.unidadId()),
+    this.unidades().find(u => u.id === this.unidadId()),
   );
   /** Casillero de horas acumuladas (MAN-002) — pedido explícito del correo del cliente. */
   protected readonly horasAcumuladasLabel = computed(() => {
     const u = this.unidadSeleccionada();
     if (!u || u.tipo !== 'Servicio' || u.horometroActual === undefined) return null;
-    const ultimoServicio =
-      u.registrosPrev?.reduce((max, r) => Math.max(max, r.ultimoEnHoras), 0) ?? 0;
+    const ultimoServicio = u.registrosPrev?.reduce((max, r) => Math.max(max, r.ultimoEnHoras), 0) ?? 0;
     const acumuladas = u.horometroActual - ultimoServicio;
     return `${acumuladas} h acumuladas desde el último mantenimiento (horómetro actual: ${u.horometroActual} h)`;
   });
@@ -136,15 +124,9 @@ export class UnitReportDialog {
   protected readonly origen = signal('');
   protected readonly destino = signal('');
 
-  protected readonly inspeccionChasis = signal<ChecklistDualItem[]>(
-    toDualItems(CHASIS_CHECKLIST_LABELS),
-  );
-  protected readonly inspeccionPlataforma = signal<ChecklistDualItem[]>(
-    toDualItems(PLATAFORMA_CHECKLIST_LABELS),
-  );
-  protected readonly inspeccionInstrumentacion = signal<ChecklistDualItem[]>(
-    toDualItems(INSTRUMENTACION_CHECKLIST_LABELS),
-  );
+  protected readonly inspeccionChasis = signal<ChecklistDualItem[]>(toDualItems(CHASIS_CHECKLIST_LABELS));
+  protected readonly inspeccionPlataforma = signal<ChecklistDualItem[]>(toDualItems(PLATAFORMA_CHECKLIST_LABELS));
+  protected readonly inspeccionInstrumentacion = signal<ChecklistDualItem[]>(toDualItems(INSTRUMENTACION_CHECKLIST_LABELS));
 
   protected readonly problemasMecanica = signal('');
   protected readonly problemasInstrumentacion = signal('');
@@ -180,35 +162,21 @@ export class UnitReportDialog {
     if (oSalida !== null && oLlegada !== null && oLlegada < oSalida) {
       return 'El odómetro de llegada es menor al de salida — verifica las lecturas.';
     }
-    if (
-      u?.tipo === 'Servicio' &&
-      u.horometroActual !== undefined &&
-      hLlegada !== null &&
-      hLlegada < u.horometroActual
-    ) {
+    if (u?.tipo === 'Servicio' && u.horometroActual !== undefined && hLlegada !== null && hLlegada < u.horometroActual) {
       return `El horómetro de llegada (${hLlegada} h) es menor al último registrado para esta unidad (${u.horometroActual} h).`;
     }
-    if (
-      u?.tipo === 'Transporte' &&
-      u.kmActual !== undefined &&
-      oLlegada !== null &&
-      oLlegada < u.kmActual
-    ) {
+    if (u?.tipo === 'Transporte' && u.kmActual !== undefined && oLlegada !== null && oLlegada < u.kmActual) {
       return `El odómetro de llegada (${oLlegada} km) es menor al último registrado para esta unidad (${u.kmActual} km).`;
     }
     return null;
   });
 
   constructor() {
-    this.unidadesService.list().subscribe((unidades) => this.unidades.set(unidades));
+    this.unidadesService.list().subscribe(unidades => this.unidades.set(unidades));
   }
 
-  toggleChecklist(
-    list: WritableSignal<ChecklistDualItem[]>,
-    index: number,
-    column: 'salida' | 'llegada',
-  ): void {
-    list.update((items) =>
+  toggleChecklist(list: WritableSignal<ChecklistDualItem[]>, index: number, column: 'salida' | 'llegada'): void {
+    list.update(items =>
       items.map((item, i) => {
         if (i !== index) return item;
         const current = item[column];
@@ -219,24 +187,15 @@ export class UnitReportDialog {
   }
 
   next(): void {
-    if (
-      this.currentStep() === 0 &&
-      (!this.reportNo().trim() ||
-        this.ubicacion().pozoId === null ||
-        !this.unidadId() ||
-        !this.fechaSalida())
-    ) {
-      this.notify.error(
-        'Falta información',
-        'Completa Reporte N°, Pozo, Unidad y Fecha de Salida antes de continuar.',
-      );
+    if (this.currentStep() === 0 && (!this.reportNo().trim() || this.ubicacion().pozoId === null || !this.unidadId() || !this.fechaSalida())) {
+      this.notify.error('Falta información', 'Completa Reporte N°, Pozo, Unidad y Fecha de Salida antes de continuar.');
       return;
     }
-    this.currentStep.update((i) => Math.min(i + 1, STEPS.length - 1));
+    this.currentStep.update(i => Math.min(i + 1, STEPS.length - 1));
   }
 
   back(): void {
-    this.currentStep.update((i) => Math.max(i - 1, 0));
+    this.currentStep.update(i => Math.max(i - 1, 0));
   }
 
   cancel(): void {
@@ -244,9 +203,7 @@ export class UnitReportDialog {
   }
 
   /** Antes se podía guardar el reporte completo (7 pasos) sin ninguna firma — next() solo valida el paso 0. */
-  protected readonly canSubmit = computed(
-    () => this.operadorSalida().trim() !== '' && this.supervisorSalida().trim() !== '',
-  );
+  protected readonly canSubmit = computed(() => this.operadorSalida().trim() !== '' && this.supervisorSalida().trim() !== '');
 
   submit(): void {
     if (this.submitting() || !this.unidadId() || !this.canSubmit()) return;
@@ -286,16 +243,10 @@ export class UnitReportDialog {
     };
 
     this.unitReportsService.create(input).subscribe({
-      next: (report) => {
-        this.notify.success(
-          'Guardado',
-          `Reporte de Unidad ${unitReportCode(report.reportNo)} creado.`,
-        );
+      next: report => {
+        this.notify.success('Guardado', `Reporte de Unidad ${unitReportCode(report.reportNo)} creado.`);
         if (unitReportHasNovedades(report)) {
-          this.notify.info(
-            'Novedad detectada',
-            'Este reporte trae problemas reportados — clasifícalo desde la Bandeja.',
-          );
+          this.notify.info('Novedad detectada', 'Este reporte trae problemas reportados — clasifícalo desde la Bandeja.');
         }
         this.modalRef.close(report);
       },

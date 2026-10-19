@@ -46,9 +46,7 @@ describe('Mantenimiento contra el backend nuevo', () => {
   let http: HttpTestingController;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
-    });
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
     ordenes = TestBed.inject(MaintenanceOrdersService);
     reportes = TestBed.inject(UnitReportsService);
     http = TestBed.inject(HttpTestingController);
@@ -57,13 +55,11 @@ describe('Mantenimiento contra el backend nuevo', () => {
 
   it('lista las órdenes (solo las de una cuenta si se pide) y las traduce a los modelos de la pantalla', () => {
     let resultado: unknown;
-    ordenes.list({ asignadaA: 'u-1' }).subscribe((r) => (resultado = r));
-    const req = http.expectOne((r) => r.url === `${BASE}/ordenes`);
+    ordenes.list({ asignadaA: 'u-1' }).subscribe(r => (resultado = r));
+    const req = http.expectOne(r => r.url === `${BASE}/ordenes`);
     expect(req.request.params.get('asignadaA')).toBe('u-1');
     req.flush([orden([suborden()])]);
-    expect(resultado).toMatchObject([
-      { id: 'o-1', unidad: 'PUM-07', subOrders: [{ type: 'Mecánico', status: 'Pendiente' }] },
-    ]);
+    expect(resultado).toMatchObject([{ id: 'o-1', unidad: 'PUM-07', subOrders: [{ type: 'Mecánico', status: 'Pendiente' }] }]);
   });
 
   it('clasifica mandando los tipos en códigos del backend y, para el operativo, si se deriva', () => {
@@ -92,13 +88,7 @@ describe('Mantenimiento contra el backend nuevo', () => {
       .updateSubOrder('s-1', {
         diagnostico: 'Filtro saturado',
         repuestos: [
-          {
-            articuloId: 'a-1',
-            bodegaId: 'b-1',
-            numeroParte: 'FIL-001',
-            descripcion: 'Filtro',
-            cantidad: 3,
-          },
+          { articuloId: 'a-1', bodegaId: 'b-1', numeroParte: 'FIL-001', descripcion: 'Filtro', cantidad: 3 },
           { numeroParte: 'XZ-900', descripcion: 'Empaque', cantidad: 1 },
         ],
       })
@@ -124,23 +114,15 @@ describe('Mantenimiento contra el backend nuevo', () => {
   });
 
   it('devolver la unidad manda el estado final en el código del backend', () => {
-    ordenes
-      .closeOrder('o-1', {
-        estadoFinal: 'Con restricciones',
-        observaciones: ' Sin bomba auxiliar ',
-      })
-      .subscribe();
+    ordenes.closeOrder('o-1', { estadoFinal: 'Con restricciones', observaciones: ' Sin bomba auxiliar ' }).subscribe();
     const req = http.expectOne(`${BASE}/ordenes/o-1/retornar`);
-    expect(req.request.body).toEqual({
-      estadoFinal: 'con_restricciones',
-      observaciones: 'Sin bomba auxiliar',
-    });
+    expect(req.request.body).toEqual({ estadoFinal: 'con_restricciones', observaciones: 'Sin bomba auxiliar' });
     req.flush(orden([]));
   });
 
   it('reasignar un operador repite la clasificación de la orden cambiando solo esa sub-orden', () => {
     let nueva: unknown;
-    ordenes.reassignOperator('s-1', 'u-2').subscribe((s) => (nueva = s));
+    ordenes.reassignOperator('s-1', 'u-2').subscribe(s => (nueva = s));
     http.expectOne(`${BASE}/subordenes/s-1`).flush(suborden());
     http.expectOne(`${BASE}/ordenes/o-1`).flush(orden([suborden()]));
     const req = http.expectOne(`${BASE}/ordenes/o-1/clasificacion`);
@@ -152,29 +134,21 @@ describe('Mantenimiento contra el backend nuevo', () => {
 
   it('los reportes recibidos se leen y se descartan en el backend nuevo', () => {
     let lista: unknown;
-    reportes.list().subscribe((r) => (lista = r));
-    http
-      .expectOne((r) => r.url === `${BASE}/reportes`)
-      .flush([
-        {
-          id: 'r-1',
-          codigo: 'R0001',
-          origen: 'pumping',
-          estado: 'por_clasificar',
-          recibidoAt: '2026-10-17T10:00:00.000Z',
-          unidad: {
-            id: 'un-1',
-            codigo: 'PUM-07',
-            nombre: 'Unidad 7',
-            tipo: 'servicio',
-            categoriaPeso: null,
-          },
-          ticket: null,
-          novedades: { mecanica: 'Fuga' },
-          descarte: null,
-          ordenId: null,
-        },
-      ]);
+    reportes.list().subscribe(r => (lista = r));
+    http.expectOne(r => r.url === `${BASE}/reportes`).flush([
+      {
+        id: 'r-1',
+        codigo: 'R0001',
+        origen: 'pumping',
+        estado: 'por_clasificar',
+        recibidoAt: '2026-10-17T10:00:00.000Z',
+        unidad: { id: 'un-1', codigo: 'PUM-07', nombre: 'Unidad 7', tipo: 'servicio', categoriaPeso: null },
+        ticket: null,
+        novedades: { mecanica: 'Fuga' },
+        descarte: null,
+        ordenId: null,
+      },
+    ]);
     expect(lista).toMatchObject([{ id: 'r-1', reportNo: '0001', problemasMecanica: 'Fuga' }]);
 
     reportes.dismiss('r-1', 'Era una prueba').subscribe();

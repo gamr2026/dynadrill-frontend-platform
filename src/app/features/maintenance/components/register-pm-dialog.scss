@@ -16,9 +16,7 @@
     flex-direction: column;
     gap: 4px;
 
-    &--full {
-      grid-column: 1 / -1;
-    }
+    &--full { grid-column: 1 / -1; }
   }
 
   &__actions {
@@ -28,9 +26,7 @@
     padding-top: 16px;
     border-top: 1px solid var(--border, #e5e4ea);
 
-    > * {
-      flex: none;
-    }
+    > * { flex: none; }
   }
 
   @media (max-width: 600px) {

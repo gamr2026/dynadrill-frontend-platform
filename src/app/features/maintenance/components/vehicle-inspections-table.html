@@ -1,29 +1,17 @@
 @if (isMobile()) {
   <app-mnt-compact-list [items]="itemsMovil()" vacio="No hay inspecciones registradas." />
 } @else {
-  <dynadrill-data-table
-    [columns]="columns()"
-    [rows]="rows()"
-    [rowKey]="rowKeyFn"
-    [pageSize]="10"
-    [actionsTemplate]="actionsTpl"
-  />
+  <dynadrill-data-table [columns]="columns()" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" [actionsTemplate]="actionsTpl" />
 }
 
 <ng-template #actionsTpl let-row>
   <div class="dyn-actions-row">
-    <dynadrill-button variant="secondary" size="small" (clicked)="onView(row)"
-      >Ver detalle</dynadrill-button
-    >
+    <dynadrill-button variant="secondary" size="small" (clicked)="onView(row)">Ver detalle</dynadrill-button>
     @if (row['canEdit']) {
-      <dynadrill-button variant="secondary" size="small" (clicked)="onEdit(row)"
-        >Editar inspección</dynadrill-button
-      >
+      <dynadrill-button variant="secondary" size="small" (clicked)="onEdit(row)">Editar inspección</dynadrill-button>
     }
     @if (row['canApprove']) {
-      <dynadrill-button size="small" (clicked)="onApprove(row)"
-        >Aprobar inspección</dynadrill-button
-      >
+      <dynadrill-button size="small" (clicked)="onApprove(row)">Aprobar inspección</dynadrill-button>
     }
   </div>
 </ng-template>

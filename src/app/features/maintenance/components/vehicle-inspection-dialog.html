@@ -1,24 +1,13 @@
 <div class="vehicle-inspection-dialog">
   <!-- Quién es el conductor a cargo de esta inspección (el que figurará en el PDF como inspector) -->
   @if (inspeccionadoPor()) {
-    <dynadrill-text variant="caption" class="vehicle-inspection-dialog__conductor"
-      >Conductor a cargo de la inspección: <strong>{{ inspeccionadoPor() }}</strong></dynadrill-text
-    >
+    <dynadrill-text variant="caption" class="vehicle-inspection-dialog__conductor">Conductor a cargo de la inspección: <strong>{{ inspeccionadoPor() }}</strong></dynadrill-text>
   }
   <dynadrill-stepper [steps]="steps" [currentIndex]="currentStep()" />
 
   <!-- Móvil: "Paso 1 de 4 · Datos" con barra de progreso, en vez del stepper vertical -->
-  <div
-    class="vehicle-inspection-dialog__progress"
-    role="progressbar"
-    [attr.aria-valuenow]="currentStep() + 1"
-    aria-valuemin="1"
-    [attr.aria-valuemax]="steps.length"
-  >
-    <span class="vehicle-inspection-dialog__progress-text"
-      >Paso {{ currentStep() + 1 }} de {{ steps.length }} ·
-      <strong>{{ steps[currentStep()] }}</strong></span
-    >
+  <div class="vehicle-inspection-dialog__progress" role="progressbar" [attr.aria-valuenow]="currentStep() + 1" aria-valuemin="1" [attr.aria-valuemax]="steps.length">
+    <span class="vehicle-inspection-dialog__progress-text">Paso {{ currentStep() + 1 }} de {{ steps.length }} · <strong>{{ steps[currentStep()] }}</strong></span>
     <div class="vehicle-inspection-dialog__progress-bar">
       @for (paso of steps; track paso; let i = $index) {
         <span [class.is-done]="i <= currentStep()"></span>
@@ -29,287 +18,104 @@
   <div class="vehicle-inspection-dialog__body">
     @if (currentStep() === 0) {
       <div class="vehicle-inspection-dialog__grid">
-        <dynadrill-select
-          label="Unidad"
-          placeholder="Selecciona el vehículo"
-          [options]="unidadOptions()"
-          [value]="unidadId()"
-          [disabled]="unidadLocked"
-          (valueChange)="onUnidadChange($any($event))"
-        />
-        <dynadrill-datetime-picker
-          label="Fecha"
-          [value]="fecha()!"
-          (valueChange)="fecha.set($event)"
-        />
-        <dynadrill-input
-          label="Punto de partida"
-          [value]="puntoPartida()"
-          (valueChange)="puntoPartida.set($event)"
-        />
+        <dynadrill-select label="Unidad" placeholder="Selecciona el vehículo" [options]="unidadOptions()" [value]="unidadId()" [disabled]="unidadLocked" (valueChange)="onUnidadChange($any($event))" />
+        <dynadrill-datetime-picker label="Fecha" [value]="fecha()!" (valueChange)="fecha.set($event)" />
+        <dynadrill-input label="Punto de partida" [value]="puntoPartida()" (valueChange)="puntoPartida.set($event)" />
         <dynadrill-input label="Destino" [value]="destino()" (valueChange)="destino.set($event)" />
-        <dynadrill-select
-          label="Inspeccionado por (Conductor)"
-          placeholder="Selecciona el conductor"
-          [options]="conductorOptions()"
-          [value]="inspeccionadoPor() || null"
-          (valueChange)="inspeccionadoPor.set($any($event))"
-        />
+        <dynadrill-select label="Inspeccionado por (Conductor)" placeholder="Selecciona el conductor" [options]="conductorOptions()" [value]="inspeccionadoPor() || null" (valueChange)="inspeccionadoPor.set($any($event))" />
       </div>
 
       <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">
         Descripción del vehículo
-        @if (vehiculoDataLocked()) {
-          — tomada del registro de la unidad (se edita en Inventario)
-        }
+        @if (vehiculoDataLocked()) { — tomada del registro de la unidad (se edita en Inventario) }
       </dynadrill-text>
       <div class="vehicle-inspection-dialog__grid vehicle-inspection-dialog__grid--compact">
-        <dynadrill-input
-          label="Marca"
-          [value]="marca()"
-          [disabled]="vehiculoDataLocked()"
-          (valueChange)="marca.set($event)"
-        />
-        <dynadrill-input
-          label="Tipo"
-          [value]="tipo()"
-          [disabled]="vehiculoDataLocked()"
-          (valueChange)="tipo.set($event)"
-        />
-        <dynadrill-input
-          label="Modelo"
-          [value]="modelo()"
-          [disabled]="vehiculoDataLocked()"
-          (valueChange)="modelo.set($event)"
-        />
-        <dynadrill-input
-          label="Año fabricación"
-          [value]="anioFabricacion()"
-          [disabled]="vehiculoDataLocked()"
-          (valueChange)="anioFabricacion.set($event)"
-        />
-        <dynadrill-input
-          label="Placa N°"
-          [value]="placa()"
-          [disabled]="vehiculoDataLocked()"
-          (valueChange)="placa.set($event)"
-        />
+        <dynadrill-input label="Marca" [value]="marca()" [disabled]="vehiculoDataLocked()" (valueChange)="marca.set($event)" />
+        <dynadrill-input label="Tipo" [value]="tipo()" [disabled]="vehiculoDataLocked()" (valueChange)="tipo.set($event)" />
+        <dynadrill-input label="Modelo" [value]="modelo()" [disabled]="vehiculoDataLocked()" (valueChange)="modelo.set($event)" />
+        <dynadrill-input label="Año fabricación" [value]="anioFabricacion()" [disabled]="vehiculoDataLocked()" (valueChange)="anioFabricacion.set($event)" />
+        <dynadrill-input label="Placa N°" [value]="placa()" [disabled]="vehiculoDataLocked()" (valueChange)="placa.set($event)" />
       </div>
 
       <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">
         Documentos del vehículo
-        @if (vehiculoDataLocked()) {
-          — tomados del registro de la unidad (se editan en Inventario)
-        }
+        @if (vehiculoDataLocked()) { — tomados del registro de la unidad (se editan en Inventario) }
       </dynadrill-text>
       <div class="vehicle-inspection-dialog__grid vehicle-inspection-dialog__grid--compact">
-        <dynadrill-datetime-picker
-          mode="date"
-          label="Fecha de matrícula"
-          [value]="fechaMatricula()!"
-          [disabled]="vehiculoDataLocked()"
-          (valueChange)="fechaMatricula.set($event)"
-        />
-        <dynadrill-datetime-picker
-          mode="date"
-          label="Caducidad de matrícula"
-          [value]="caducidadMatricula()!"
-          [disabled]="vehiculoDataLocked()"
-          (valueChange)="caducidadMatricula.set($event)"
-        />
-        <dynadrill-datetime-picker
-          mode="date"
-          label="Caducidad póliza de seguro"
-          [value]="caducidadPoliza()!"
-          [disabled]="vehiculoDataLocked()"
-          (valueChange)="caducidadPoliza.set($event)"
-        />
-        <dynadrill-datetime-picker
-          mode="date"
-          label="Vigencia otro documento"
-          [value]="vigenciaOtroDocumento()!"
-          [disabled]="vehiculoDataLocked()"
-          (valueChange)="vigenciaOtroDocumento.set($event)"
-        />
+        <dynadrill-datetime-picker mode="date" label="Fecha de matrícula" [value]="fechaMatricula()!" [disabled]="vehiculoDataLocked()" (valueChange)="fechaMatricula.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Caducidad de matrícula" [value]="caducidadMatricula()!" [disabled]="vehiculoDataLocked()" (valueChange)="caducidadMatricula.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Caducidad póliza de seguro" [value]="caducidadPoliza()!" [disabled]="vehiculoDataLocked()" (valueChange)="caducidadPoliza.set($event)" />
+        <dynadrill-datetime-picker mode="date" label="Vigencia otro documento" [value]="vigenciaOtroDocumento()!" [disabled]="vehiculoDataLocked()" (valueChange)="vigenciaOtroDocumento.set($event)" />
       </div>
 
-      <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label"
-        >Kilometraje</dynadrill-text
-      >
+      <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">Kilometraje</dynadrill-text>
       <div class="vehicle-inspection-dialog__grid vehicle-inspection-dialog__grid--compact">
-        <dynadrill-input
-          label="Inicial"
-          type="number"
-          [value]="kmInicial()"
-          (valueChange)="kmInicial.set($event)"
-        />
+        <dynadrill-input label="Inicial" type="number" [value]="kmInicial()" (valueChange)="kmInicial.set($event)" />
         @if (esLlegada) {
-          <dynadrill-input
-            label="Final"
-            type="number"
-            [value]="kmFinal()"
-            (valueChange)="kmFinal.set($event)"
-          />
+          <dynadrill-input label="Final" type="number" [value]="kmFinal()" (valueChange)="kmFinal.set($event)" />
         }
-        <dynadrill-datetime-picker
-          mode="date"
-          label="Próximo mantenimiento"
-          [value]="proximoMantenimiento()!"
-          (valueChange)="proximoMantenimiento.set($event)"
-        />
+        <dynadrill-datetime-picker mode="date" label="Próximo mantenimiento" [value]="proximoMantenimiento()!" (valueChange)="proximoMantenimiento.set($event)" />
       </div>
       @if (proximoMantenimientoLeyenda()) {
-        <dynadrill-text variant="caption" class="vehicle-inspection-dialog__hint">{{
-          proximoMantenimientoLeyenda()
-        }}</dynadrill-text>
+        <dynadrill-text variant="caption" class="vehicle-inspection-dialog__hint">{{ proximoMantenimientoLeyenda() }}</dynadrill-text>
       }
     }
 
     @if (currentStep() === 1) {
-      <ng-container
-        [ngTemplateOutlet]="checklist"
-        [ngTemplateOutletContext]="{ $implicit: checklistVehiculo, list: checklistVehiculo }"
-      />
+      <ng-container [ngTemplateOutlet]="checklist" [ngTemplateOutletContext]="{ $implicit: checklistVehiculo, list: checklistVehiculo }" />
       @if (seatbeltBlocked()) {
         <div class="vehicle-inspection-dialog__blocking-warning">
-          ⚠ Cinturón de seguridad reprobado — según la Nota 1 del formato DYN-SGI-RE-068, el
-          vehículo no podrá utilizarse hasta que esto se resuelva. Igual puedes guardar la
-          inspección para dejar la falla registrada.
+          ⚠ Cinturón de seguridad reprobado — según la Nota 1 del formato DYN-SGI-RE-068, el vehículo no podrá utilizarse hasta que esto se resuelva. Igual puedes guardar la inspección para dejar la falla registrada.
         </div>
       }
     }
 
     @if (currentStep() === 2) {
-      <ng-container
-        [ngTemplateOutlet]="checklist"
-        [ngTemplateOutletContext]="{ $implicit: checklistEquipo, list: checklistEquipo }"
-      />
+      <ng-container [ngTemplateOutlet]="checklist" [ngTemplateOutletContext]="{ $implicit: checklistEquipo, list: checklistEquipo }" />
     }
 
     @if (currentStep() === 3) {
       <div class="vehicle-inspection-dialog__stack">
         @if (!conductorSeleccionado()) {
-          <dynadrill-text variant="body"
-            >Selecciona un conductor en el paso "Datos" para ver sus documentos — ya están cargados,
-            no se marcan a mano.</dynadrill-text
-          >
+          <dynadrill-text variant="body">Selecciona un conductor en el paso "Datos" para ver sus documentos — ya están cargados, no se marcan a mano.</dynadrill-text>
         } @else {
-          <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label"
-            >Documentos del conductor — cargados desde RRHH/QHSE, solo lectura</dynadrill-text
-          >
+          <dynadrill-text variant="caption" class="vehicle-inspection-dialog__section-label">Documentos del conductor — cargados desde RRHH/QHSE, solo lectura</dynadrill-text>
 
-          <div
-            class="vehicle-inspection-dialog__permiso-row"
-            [class.vehicle-inspection-dialog__permiso-row--bad]="
-              !conductorSeleccionado()!.licenciaVigente
-            "
-          >
-            <span
-              >{{ conductorSeleccionado()!.licenciaVigente ? '✓' : '✕' }} Licencia de conducción
-              vigente</span
-            >
-            @if (conductorSeleccionado()!.licenciaVencimiento) {
-              <span class="vehicle-inspection-dialog__permiso-fecha"
-                >vence {{ conductorSeleccionado()!.licenciaVencimiento }}</span
-              >
-            }
+          <div class="vehicle-inspection-dialog__permiso-row" [class.vehicle-inspection-dialog__permiso-row--bad]="!conductorSeleccionado()!.licenciaVigente">
+            <span>{{ conductorSeleccionado()!.licenciaVigente ? '✓' : '✕' }} Licencia de conducción vigente</span>
+            @if (conductorSeleccionado()!.licenciaVencimiento) { <span class="vehicle-inspection-dialog__permiso-fecha">vence {{ conductorSeleccionado()!.licenciaVencimiento }}</span> }
           </div>
-          <div
-            class="vehicle-inspection-dialog__permiso-row"
-            [class.vehicle-inspection-dialog__permiso-row--bad]="
-              !conductorSeleccionado()!.manejoDefensivoVigente
-            "
-          >
-            <span
-              >{{ conductorSeleccionado()!.manejoDefensivoVigente ? '✓' : '✕' }} Manejo defensivo
-              vigente</span
-            >
-            @if (conductorSeleccionado()!.manejoDefensivoVencimiento) {
-              <span class="vehicle-inspection-dialog__permiso-fecha"
-                >vence {{ conductorSeleccionado()!.manejoDefensivoVencimiento }}</span
-              >
-            }
+          <div class="vehicle-inspection-dialog__permiso-row" [class.vehicle-inspection-dialog__permiso-row--bad]="!conductorSeleccionado()!.manejoDefensivoVigente">
+            <span>{{ conductorSeleccionado()!.manejoDefensivoVigente ? '✓' : '✕' }} Manejo defensivo vigente</span>
+            @if (conductorSeleccionado()!.manejoDefensivoVencimiento) { <span class="vehicle-inspection-dialog__permiso-fecha">vence {{ conductorSeleccionado()!.manejoDefensivoVencimiento }}</span> }
           </div>
-          <div
-            class="vehicle-inspection-dialog__permiso-row"
-            [class.vehicle-inspection-dialog__permiso-row--bad]="
-              !conductorSeleccionado()!.examenMedicoVigente
-            "
-          >
-            <span
-              >{{ conductorSeleccionado()!.examenMedicoVigente ? '✓' : '✕' }} Exámen médico vigente
-              (1 año)</span
-            >
-            @if (conductorSeleccionado()!.examenMedicoVencimiento) {
-              <span class="vehicle-inspection-dialog__permiso-fecha"
-                >vence {{ conductorSeleccionado()!.examenMedicoVencimiento }}</span
-              >
-            }
+          <div class="vehicle-inspection-dialog__permiso-row" [class.vehicle-inspection-dialog__permiso-row--bad]="!conductorSeleccionado()!.examenMedicoVigente">
+            <span>{{ conductorSeleccionado()!.examenMedicoVigente ? '✓' : '✕' }} Exámen médico vigente (1 año)</span>
+            @if (conductorSeleccionado()!.examenMedicoVencimiento) { <span class="vehicle-inspection-dialog__permiso-fecha">vence {{ conductorSeleccionado()!.examenMedicoVencimiento }}</span> }
           </div>
-          <div
-            class="vehicle-inspection-dialog__permiso-row"
-            [class.vehicle-inspection-dialog__permiso-row--bad]="
-              !conductorSeleccionado()!.examenPsicosensometrico
-            "
-          >
-            <span
-              >{{ conductorSeleccionado()!.examenPsicosensometrico ? '✓' : '✕' }} Exámen
-              psicosensométrico</span
-            >
+          <div class="vehicle-inspection-dialog__permiso-row" [class.vehicle-inspection-dialog__permiso-row--bad]="!conductorSeleccionado()!.examenPsicosensometrico">
+            <span>{{ conductorSeleccionado()!.examenPsicosensometrico ? '✓' : '✕' }} Exámen psicosensométrico</span>
           </div>
-          <div
-            class="vehicle-inspection-dialog__permiso-row"
-            [class.vehicle-inspection-dialog__permiso-row--bad]="
-              !conductorSeleccionado()!.documentosClientes
-            "
-          >
-            <span
-              >{{ conductorSeleccionado()!.documentosClientes ? '✓' : '✕' }} Documentos requeridos
-              por los clientes (carnets, etc.)</span
-            >
+          <div class="vehicle-inspection-dialog__permiso-row" [class.vehicle-inspection-dialog__permiso-row--bad]="!conductorSeleccionado()!.documentosClientes">
+            <span>{{ conductorSeleccionado()!.documentosClientes ? '✓' : '✕' }} Documentos requeridos por los clientes (carnets, etc.)</span>
           </div>
-          <div
-            class="vehicle-inspection-dialog__permiso-row"
-            [class.vehicle-inspection-dialog__permiso-row--bad]="
-              !conductorSeleccionado()!.vacunasCertificado
-            "
-          >
-            <span
-              >{{ conductorSeleccionado()!.vacunasCertificado ? '✓' : '✕' }} Vacunas —
-              certificado</span
-            >
-            @if (conductorSeleccionado()!.vacunasVencimiento) {
-              <span class="vehicle-inspection-dialog__permiso-fecha"
-                >vence {{ conductorSeleccionado()!.vacunasVencimiento }}</span
-              >
-            }
+          <div class="vehicle-inspection-dialog__permiso-row" [class.vehicle-inspection-dialog__permiso-row--bad]="!conductorSeleccionado()!.vacunasCertificado">
+            <span>{{ conductorSeleccionado()!.vacunasCertificado ? '✓' : '✕' }} Vacunas — certificado</span>
+            @if (conductorSeleccionado()!.vacunasVencimiento) { <span class="vehicle-inspection-dialog__permiso-fecha">vence {{ conductorSeleccionado()!.vacunasVencimiento }}</span> }
           </div>
 
           @if (permisosPorVencer().length) {
-            <div
-              class="vehicle-inspection-dialog__blocking-warning vehicle-inspection-dialog__blocking-warning--alerta"
-            >
-              ⚠ {{ conductorSeleccionado()!.nombre }} tiene
-              {{
-                permisosPorVencer().length === 1
-                  ? 'un documento'
-                  : permisosPorVencer().length + ' documentos'
-              }}
-              por vencer pronto:
+            <div class="vehicle-inspection-dialog__blocking-warning vehicle-inspection-dialog__blocking-warning--alerta">
+              ⚠ {{ conductorSeleccionado()!.nombre }} tiene {{ permisosPorVencer().length === 1 ? 'un documento' : permisosPorVencer().length + ' documentos' }} por vencer pronto:
               @for (p of permisosPorVencer(); track p.documento) {
-                <div>
-                  {{ p.documento }} — vence en {{ p.diasRestantes }}
-                  {{ p.diasRestantes === 1 ? 'día' : 'días' }} ({{ p.vencimiento }})
-                </div>
+                <div>{{ p.documento }} — vence en {{ p.diasRestantes }} {{ p.diasRestantes === 1 ? 'día' : 'días' }} ({{ p.vencimiento }})</div>
               }
             </div>
           }
 
           @if (!reuneCondicionesParaTrabajar()) {
             <div class="vehicle-inspection-dialog__blocking-warning">
-              ⚠ {{ conductorSeleccionado()!.nombre }} no reúne las condiciones para trabajar — hay
-              al menos un documento vencido. No se puede guardar la inspección hasta que RRHH/QHSE
-              actualice el registro.
+              ⚠ {{ conductorSeleccionado()!.nombre }} no reúne las condiciones para trabajar — hay al menos un documento vencido. No se puede guardar la inspección hasta que RRHH/QHSE actualice el registro.
             </div>
             @if (conductoresSugeridos().length) {
               <dynadrill-select
@@ -320,46 +126,25 @@
                 (valueChange)="inspeccionadoPor.set($any($event))"
               />
             } @else {
-              <dynadrill-text variant="caption"
-                >No hay otro conductor disponible que reúna las condiciones — contacte a
-                RRHH/QHSE.</dynadrill-text
-              >
+              <dynadrill-text variant="caption">No hay otro conductor disponible que reúna las condiciones — contacte a RRHH/QHSE.</dynadrill-text>
             }
           } @else {
             <dynadrill-text variant="body">✓ Reúne las condiciones para trabajar.</dynadrill-text>
           }
         }
 
-        <dynadrill-textarea
-          label="Observaciones"
-          [value]="observacionesConductor()"
-          (valueChange)="observacionesConductor.set($event)"
-          [rows]="2"
-        />
-        <dynadrill-select
-          label="Nombre del Supervisor"
-          placeholder="Selecciona el supervisor"
-          [options]="supervisorOptions()"
-          [value]="supervisorNombre() || null"
-          (valueChange)="supervisorNombre.set($any($event) ?? '')"
-        />
+        <dynadrill-textarea label="Observaciones" [value]="observacionesConductor()" (valueChange)="observacionesConductor.set($event)" [rows]="2" />
+        <dynadrill-select label="Nombre del Supervisor" placeholder="Selecciona el supervisor" [options]="supervisorOptions()" [value]="supervisorNombre() || null" (valueChange)="supervisorNombre.set($any($event) ?? '')" />
       </div>
     }
   </div>
 
   @if (currentStep() === steps.length - 1 && !readonly && motivoNoPuedeGuardar()) {
-    <dynadrill-text variant="caption" class="vehicle-inspection-dialog__blocking-warning"
-      >⚠ {{ motivoNoPuedeGuardar() }}</dynadrill-text
-    >
+    <dynadrill-text variant="caption" class="vehicle-inspection-dialog__blocking-warning">⚠ {{ motivoNoPuedeGuardar() }}</dynadrill-text>
   }
 
   <div class="vehicle-inspection-dialog__actions">
-    <dynadrill-button
-      class="vehicle-inspection-dialog__cancel"
-      variant="secondary"
-      (clicked)="cancel()"
-      >Cancelar</dynadrill-button
-    >
+    <dynadrill-button class="vehicle-inspection-dialog__cancel" variant="secondary" (clicked)="cancel()">Cancelar</dynadrill-button>
     <div class="vehicle-inspection-dialog__actions-right">
       @if (existente) {
         <dynadrill-button variant="secondary" (clicked)="verPdf()">Ver PDF</dynadrill-button>
@@ -370,9 +155,7 @@
       @if (currentStep() < steps.length - 1) {
         <dynadrill-button (clicked)="next()">Siguiente</dynadrill-button>
       } @else if (!readonly) {
-        <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="submit()">{{
-          submitting() ? 'Guardando…' : isEditMode ? 'Guardar cambios' : 'Guardar'
-        }}</dynadrill-button>
+        <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="submit()">{{ submitting() ? 'Guardando…' : (isEditMode ? 'Guardar cambios' : 'Guardar') }}</dynadrill-button>
       }
     </div>
   </div>
@@ -381,12 +164,8 @@
 <ng-template #checklist let-items let-list="list">
   <div class="vehicle-checklist">
     <div class="vehicle-checklist__toolbar">
-      <dynadrill-button variant="secondary" size="small" (clicked)="markAll(list, 'C')"
-        >Marcar todos: Cumple</dynadrill-button
-      >
-      <dynadrill-button variant="secondary" size="small" (clicked)="markAll(list, 'NC')"
-        >Marcar todos: No cumple</dynadrill-button
-      >
+      <dynadrill-button variant="secondary" size="small" (clicked)="markAll(list, 'C')">Marcar todos: Cumple</dynadrill-button>
+      <dynadrill-button variant="secondary" size="small" (clicked)="markAll(list, 'NC')">Marcar todos: No cumple</dynadrill-button>
     </div>
     <div class="vehicle-checklist__grid">
       @for (item of items(); track item.label; let i = $index) {
@@ -398,18 +177,12 @@
               class="vehicle-checklist__toggle"
               [class.vehicle-checklist__toggle--ok]="item.estado === 'C'"
               [class.vehicle-checklist__toggle--bad]="item.estado === 'NC'"
-              [attr.aria-label]="
-                item.estado === 'C' ? 'Cumple' : item.estado === 'NC' ? 'No cumple' : 'Sin marcar'
-              "
+              [attr.aria-label]="item.estado === 'C' ? 'Cumple' : item.estado === 'NC' ? 'No cumple' : 'Sin marcar'"
               (click)="cycleEstado(list, i)"
             >
               @switch (item.estado) {
-                @case ('C') {
-                  ✓
-                }
-                @case ('NC') {
-                  ✕
-                }
+                @case ('C') { ✓ }
+                @case ('NC') { ✕ }
               }
             </button>
             <button
@@ -418,9 +191,7 @@
               [class.vehicle-checklist__na--active]="item.estado === 'NA'"
               aria-label="No aplica"
               (click)="setNA(list, i)"
-            >
-              N/A
-            </button>
+            >N/A</button>
           </div>
         </div>
       }

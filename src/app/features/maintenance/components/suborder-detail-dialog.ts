@@ -1,10 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
-import {
-  DynadrillButtonComponent,
-  DynadrillTextComponent,
-} from '@digitec-it-projects/dynadrill-ui';
+import { DynadrillButtonComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
 import { NovedadReadonlyComponent } from '../../../shared/components/novedad-readonly/novedad-readonly';
 import { SubOrder } from '../models/maintenance-order.model';
 
@@ -18,12 +15,7 @@ export interface SuborderDetailDialogData {
 @Component({
   selector: 'app-suborder-detail-dialog',
   host: { class: 'app-dialog-fullscreen-mobile' },
-  imports: [
-    CommonModule,
-    DynadrillTextComponent,
-    DynadrillButtonComponent,
-    NovedadReadonlyComponent,
-  ],
+  imports: [CommonModule, DynadrillTextComponent, DynadrillButtonComponent, NovedadReadonlyComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './suborder-detail-dialog.html',
   styleUrl: './suborder-detail-dialog.scss',

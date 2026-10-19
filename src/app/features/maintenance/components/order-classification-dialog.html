@@ -1,18 +1,17 @@
 <div class="order-classification-dialog">
+
   <!-- Cabecera con info de la unidad -->
   <div class="order-classification-dialog__header">
     <div class="order-classification-dialog__row">
       <dynadrill-text variant="caption">Unidad</dynadrill-text>
-      <dynadrill-text variant="body"
-        >{{ data.unitReport.unidad }} — Reporte
-        {{ unitReportCode(data.unitReport.reportNo) }}</dynadrill-text
-      >
+      <dynadrill-text variant="body">{{ data.unitReport.unidad }} — Reporte {{ unitReportCode(data.unitReport.reportNo) }}</dynadrill-text>
     </div>
     <div class="order-classification-dialog__row">
       <dynadrill-text variant="caption">Módulo de origen</dynadrill-text>
       <dynadrill-text variant="body">{{ data.unitReport.sourceModule }}</dynadrill-text>
     </div>
   </div>
+
 
   <!-- Novedades en lista (solo en modo nuevo reporte, no en edición) -->
   @if (!isEditMode && novedadTabs().length > 0) {
@@ -26,32 +25,26 @@
           <dynadrill-text variant="caption">{{ row.label }}</dynadrill-text>
           <dynadrill-text variant="body">{{ row.texto }}</dynadrill-text>
           @if (puedeReclasificarNovedades) {
-            <dynadrill-select
-              class="order-classification-dialog__novedad-reclasificar"
-              label="Reclasificar como"
-              [options]="novedadCategoriaOptions"
-              [value]="row.cat"
-              (valueChange)="reclasificarNovedad(row.cat, $event)"
-            />
+          <dynadrill-select
+            class="order-classification-dialog__novedad-reclasificar"
+            label="Reclasificar como"
+            [options]="novedadCategoriaOptions"
+            [value]="row.cat"
+            (valueChange)="reclasificarNovedad(row.cat, $event)"
+          />
           }
         </div>
       }
       @if (puedeReclasificarNovedades && novedadesModificadas()) {
         <div class="order-classification-dialog__novedades-guardar">
-          <dynadrill-button
-            size="small"
-            [disabled]="guardandoNovedades()"
-            (clicked)="guardarNovedades()"
-          >
+          <dynadrill-button size="small" [disabled]="guardandoNovedades()" (clicked)="guardarNovedades()">
             {{ guardandoNovedades() ? 'Guardando…' : 'Guardar cambios en novedades' }}
           </dynadrill-button>
         </div>
       }
       @if (data.unitReport.interrumpioOperacion) {
         <dynadrill-text variant="caption" class="order-classification-dialog__flag">
-          ⚠ Interrumpió/atrasó la operación{{
-            data.unitReport.detalleInterrupcion ? ': ' + data.unitReport.detalleInterrupcion : ''
-          }}
+          ⚠ Interrumpió/atrasó la operación{{ data.unitReport.detalleInterrupcion ? ': ' + data.unitReport.detalleInterrupcion : '' }}
         </dynadrill-text>
       }
     </div>
@@ -68,14 +61,8 @@
         [rows]="3"
       />
       <div class="order-classification-dialog__actions">
-        <dynadrill-button variant="secondary" (clicked)="chooseYes()"
-          >← Volver a clasificar</dynadrill-button
-        >
-        <dynadrill-button
-          variant="error"
-          [disabled]="!canDismiss() || submitting()"
-          (clicked)="confirmDismiss()"
-        >
+        <dynadrill-button variant="secondary" (clicked)="chooseYes()">← Volver a clasificar</dynadrill-button>
+        <dynadrill-button variant="error" [disabled]="!canDismiss() || submitting()" (clicked)="confirmDismiss()">
           {{ submitting() ? 'Guardando…' : 'Confirmar descarte' }}
         </dynadrill-button>
       </div>
@@ -89,10 +76,7 @@
 
       <div class="order-classification-dialog__type-block">
         <dynadrill-checkbox
-          [label]="
-            'Mecánico' +
-            (lockedTypes().has('Mecánico') ? ' (sub-orden ya Cerrada, no se puede quitar)' : '')
-          "
+          [label]="'Mecánico' + (lockedTypes().has('Mecánico') ? ' (sub-orden ya Cerrada, no se puede quitar)' : '')"
           [checked]="isChecked('Mecánico')"
           [disabled]="lockedTypes().has('Mecánico')"
           (checkedChange)="toggleType('Mecánico', $event)"
@@ -111,10 +95,7 @@
 
       <div class="order-classification-dialog__type-block">
         <dynadrill-checkbox
-          [label]="
-            'Instrumental' +
-            (lockedTypes().has('Instrumental') ? ' (sub-orden ya Cerrada, no se puede quitar)' : '')
-          "
+          [label]="'Instrumental' + (lockedTypes().has('Instrumental') ? ' (sub-orden ya Cerrada, no se puede quitar)' : '')"
           [checked]="isChecked('Instrumental')"
           [disabled]="lockedTypes().has('Instrumental')"
           (checkedChange)="toggleType('Instrumental', $event)"
@@ -133,10 +114,7 @@
 
       <div class="order-classification-dialog__type-block">
         <dynadrill-checkbox
-          [label]="
-            'Operativo' +
-            (lockedTypes().has('Operativo') ? ' (sub-orden ya Cerrada, no se puede quitar)' : '')
-          "
+          [label]="'Operativo' + (lockedTypes().has('Operativo') ? ' (sub-orden ya Cerrada, no se puede quitar)' : '')"
           [checked]="isChecked('Operativo')"
           [disabled]="lockedTypes().has('Operativo')"
           (checkedChange)="toggleType('Operativo', $event)"
@@ -145,16 +123,8 @@
           <div class="order-classification-dialog__operativo-state">
             <dynadrill-text variant="caption">¿Cuándo se deriva a Pumping?</dynadrill-text>
             <div class="order-classification-dialog__operativo-actions">
-              <dynadrill-button
-                [variant]="operativoAttended() === true ? 'primary' : 'secondary'"
-                (clicked)="setOperativoAttended(true)"
-                >Ahora (Atendido)</dynadrill-button
-              >
-              <dynadrill-button
-                [variant]="operativoAttended() === false ? 'primary' : 'secondary'"
-                (clicked)="setOperativoAttended(false)"
-                >Después (Pendiente)</dynadrill-button
-              >
+              <dynadrill-button [variant]="operativoAttended() === true ? 'primary' : 'secondary'" (clicked)="setOperativoAttended(true)">Ahora (Atendido)</dynadrill-button>
+              <dynadrill-button [variant]="operativoAttended() === false ? 'primary' : 'secondary'" (clicked)="setOperativoAttended(false)">Después (Pendiente)</dynadrill-button>
             </div>
             @if (operativoAttended() === true) {
               <dynadrill-textarea
@@ -177,9 +147,7 @@
         <dynadrill-button variant="secondary" (clicked)="chooseNo()">Descartar</dynadrill-button>
       }
       <dynadrill-button [disabled]="!canConfirm() || submitting()" (clicked)="confirm()">
-        {{
-          submitting() ? 'Guardando…' : isEditMode ? 'Guardar cambios' : 'Confirmar clasificación'
-        }}
+        {{ submitting() ? 'Guardando…' : isEditMode ? 'Guardar cambios' : 'Confirmar clasificación' }}
       </dynadrill-button>
     </div>
   }

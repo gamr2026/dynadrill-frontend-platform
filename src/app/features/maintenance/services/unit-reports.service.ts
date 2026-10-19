@@ -16,7 +16,7 @@ export class UnitReportsService {
   private readonly http = inject(HttpClient);
 
   list(): Observable<UnitReport[]> {
-    return this.api.reportes().pipe(map((rs) => rs.map(reporteAUnitReport)));
+    return this.api.reportes().pipe(map(rs => rs.map(reporteAUnitReport)));
   }
 
   get(id: string): Observable<UnitReport> {

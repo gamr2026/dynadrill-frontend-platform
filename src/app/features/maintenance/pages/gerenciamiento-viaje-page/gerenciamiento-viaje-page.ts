@@ -20,14 +20,8 @@ import {
   GerenciamientoViajeEstado,
 } from '../../../conductor/models/gerenciamiento-viaje.model';
 import { GerenciamientoViajeService } from '../../../conductor/services/gerenciamiento-viaje.service';
-import {
-  GerenciamientoViajeDetailDialog,
-  GerenciamientoViajeDetailDialogData,
-} from '../../../conductor/components/gerenciamiento-viaje-detail-dialog';
-import {
-  MotivoDialog,
-  MotivoDialogData,
-} from '../../../../shared/components/motivo-dialog/motivo-dialog';
+import { GerenciamientoViajeDetailDialog, GerenciamientoViajeDetailDialogData } from '../../../conductor/components/gerenciamiento-viaje-detail-dialog';
+import { MotivoDialog, MotivoDialogData } from '../../../../shared/components/motivo-dialog/motivo-dialog';
 import { AuthService } from '../../../../core/services/auth.service';
 
 const ESTADO_TONE: Record<GerenciamientoViajeEstado, DynadrillTagVariant> = {
@@ -45,14 +39,7 @@ const ESTADO_TONE: Record<GerenciamientoViajeEstado, DynadrillTagVariant> = {
  */
 @Component({
   selector: 'app-gerenciamiento-viaje-page',
-  imports: [
-    PageHeader,
-    KpiStat,
-    QhseFiltros,
-    MntCompactList,
-    DynadrillDataTableComponent,
-    DynadrillIconButtonComponent,
-  ],
+  imports: [PageHeader, KpiStat, QhseFiltros, MntCompactList, DynadrillDataTableComponent, DynadrillIconButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './gerenciamiento-viaje-page.html',
   styleUrl: './gerenciamiento-viaje-page.scss',
@@ -87,29 +74,17 @@ export class GerenciamientoViajePage {
     const all = this.viajes();
     return [
       { label: 'Total', value: all.length, tone: 'neutral' },
-      {
-        label: 'Pendientes',
-        value: all.filter((g) => g.estado === 'pendiente').length,
-        tone: 'warning',
-      },
-      {
-        label: 'Aprobados',
-        value: all.filter((g) => g.estado === 'aprobado').length,
-        tone: 'success',
-      },
-      {
-        label: 'Rechazados',
-        value: all.filter((g) => g.estado === 'rechazado').length,
-        tone: 'error',
-      },
+      { label: 'Pendientes', value: all.filter(g => g.estado === 'pendiente').length, tone: 'warning' },
+      { label: 'Aprobados', value: all.filter(g => g.estado === 'aprobado').length, tone: 'success' },
+      { label: 'Rechazados', value: all.filter(g => g.estado === 'rechazado').length, tone: 'error' },
     ];
   });
 
-  protected readonly opcionesFiltro = this.filtros.map((f) => ({ value: f.value, label: f.label }));
+  protected readonly opcionesFiltro = this.filtros.map(f => ({ value: f.value, label: f.label }));
 
   protected readonly filtrados = computed(() => {
     const f = this.filtro();
-    return f === 'todos' ? this.viajes() : this.viajes().filter((g) => g.estado === f);
+    return f === 'todos' ? this.viajes() : this.viajes().filter(g => g.estado === f);
   });
 
   protected readonly columns: DynadrillDataTableColumn[] = [
@@ -123,15 +98,12 @@ export class GerenciamientoViajePage {
       key: 'estadoBadge',
       header: 'Estado',
       type: 'badge',
-      filters: Object.entries(GERENCIAMIENTO_VIAJE_ESTADO_LABELS).map(([, text]) => ({
-        text,
-        value: text,
-      })),
+      filters: Object.entries(GERENCIAMIENTO_VIAJE_ESTADO_LABELS).map(([, text]) => ({ text, value: text })),
     },
   ];
 
   protected readonly rows = computed(() =>
-    this.filtrados().map((g) => ({
+    this.filtrados().map(g => ({
       id: g.id,
       code: g.code,
       tipo: this.tipoLabels[g.tipo],
@@ -147,20 +119,16 @@ export class GerenciamientoViajePage {
 
   /** Filas compactas en móvil (Figma "M · Gerenciamiento de Viaje · Bandeja"): ver, autorizar (✓) y rechazar (✗). */
   protected readonly itemsMovil = computed<MntCompactItem[]>(() =>
-    this.rows().map((r) => {
+    this.rows().map(r => {
       const gv = r.gv;
-      const riesgoTone =
-        gv.riskLevel === 'BAJO' ? 'success' : gv.riskLevel === 'MEDIO' ? 'warning' : 'error';
+      const riesgoTone = gv.riskLevel === 'BAJO' ? 'success' : gv.riskLevel === 'MEDIO' ? 'warning' : 'error';
       return {
         id: r.id,
         title: `${gv.code} · ${gv.fecha}`,
         lines: [`${gv.origen} → ${gv.destino} · ${gv.totalPoints} pts`],
         chips: [
           { text: gv.riskLevel, tone: riesgoTone as 'success' | 'warning' | 'error' },
-          {
-            text: gv.estado === 'pendiente' ? 'Pendiente de autorización' : r.estadoBadge.text,
-            tone: r.estadoBadge.tone as 'warning' | 'success' | 'error',
-          },
+          { text: gv.estado === 'pendiente' ? 'Pendiente de autorización' : r.estadoBadge.text, tone: r.estadoBadge.tone as 'warning' | 'success' | 'error' },
         ],
         actions: [
           { icon: 'eye', label: 'Ver detalle', run: () => this.verDetalle(r) },
@@ -184,7 +152,7 @@ export class GerenciamientoViajePage {
   private reload(): void {
     this.loading.set(true);
     this.service.listAll().subscribe({
-      next: (viajes) => {
+      next: viajes => {
         this.viajes.set(viajes);
         this.loading.set(false);
       },
@@ -222,10 +190,7 @@ export class GerenciamientoViajePage {
     const ref = this.dialogService.open<MotivoDialog, MotivoDialogData>({
       title: 'Rechazar Gerenciamiento de Viaje',
       content: MotivoDialog,
-      data: {
-        mensaje: `¿Por qué se rechaza el gerenciamiento de viaje ${gv.code}?`,
-        label: 'Motivo del rechazo',
-      },
+      data: { mensaje: `¿Por qué se rechaza el gerenciamiento de viaje ${gv.code}?`, label: 'Motivo del rechazo' },
       footer: false,
     });
     ref.afterClose.subscribe((motivo: string | undefined) => {

@@ -12,30 +12,24 @@ const JEFE_MANTENIMIENTO_ROLES = ['Jefe de Mantenimiento', 'Superadmin', 'Jefe d
  * Supervisor Pumping solo BAJO (el corte real por nivel de riesgo lo aplica
  * el backend, esto solo decide quién entra a la página).
  */
-const GERENCIAMIENTO_VIAJE_APPROVE_ROLES = [
-  'Jefe de Base',
-  'Superadmin',
-  'Supervisor Pumping',
-  'Gerente HSE',
-];
+const GERENCIAMIENTO_VIAJE_APPROVE_ROLES = ['Jefe de Base', 'Superadmin', 'Supervisor Pumping', 'Gerente HSE'];
 
 export const maintenanceRoutes: Routes = [
   {
     path: '',
-    loadComponent: () => import('./pages/maintenance-list-page').then((m) => m.MaintenanceListPage),
+    loadComponent: () => import('./pages/maintenance-list-page').then(m => m.MaintenanceListPage),
     canActivate: [roleGuard],
     data: { allowedRoles: JEFE_MANTENIMIENTO_ROLES },
   },
   {
     path: 'mis-tareas',
-    loadComponent: () => import('./pages/my-tasks-page').then((m) => m.MyTasksPage),
+    loadComponent: () => import('./pages/my-tasks-page').then(m => m.MyTasksPage),
     canActivate: [roleGuard],
     data: { allowedRoles: ['Operador de Mantenimiento'] },
   },
   {
     path: 'operativo',
-    loadComponent: () =>
-      import('./pages/operator-maintenance-page').then((m) => m.OperatorMaintenancePage),
+    loadComponent: () => import('./pages/operator-maintenance-page').then(m => m.OperatorMaintenancePage),
     canActivate: [roleGuard],
     // 'Operador FCR' también entra: sub-órdenes "Operativo" derivadas de un ticket FCR
     // llegan a la misma bandeja (ver ModuleRoles.maintenanceOperatorTasks en el backend).
@@ -43,24 +37,20 @@ export const maintenanceRoutes: Routes = [
   },
   {
     path: 'kpis',
-    loadComponent: () => import('./pages/maintenance-kpis-page').then((m) => m.MaintenanceKpisPage),
+    loadComponent: () => import('./pages/maintenance-kpis-page').then(m => m.MaintenanceKpisPage),
     canActivate: [roleGuard],
     data: { allowedRoles: JEFE_MANTENIMIENTO_ROLES },
     providers: [provideDynadrillCharts([BarChart, LineChart, GaugeChart, PieChart])],
   },
   {
     path: 'gerenciamiento-viaje',
-    loadComponent: () =>
-      import('./pages/gerenciamiento-viaje-page/gerenciamiento-viaje-page').then(
-        (m) => m.GerenciamientoViajePage,
-      ),
+    loadComponent: () => import('./pages/gerenciamiento-viaje-page/gerenciamiento-viaje-page').then(m => m.GerenciamientoViajePage),
     canActivate: [roleGuard],
     data: { allowedRoles: GERENCIAMIENTO_VIAJE_APPROVE_ROLES },
   },
   {
     path: 'mis-viajes',
-    loadComponent: () =>
-      import('../conductor/pages/mis-viajes-page/mis-viajes-page').then((m) => m.MisViajesPage),
+    loadComponent: () => import('../conductor/pages/mis-viajes-page/mis-viajes-page').then(m => m.MisViajesPage),
     canActivate: [roleGuard],
     data: { allowedRoles: ['Conductor'] },
   },

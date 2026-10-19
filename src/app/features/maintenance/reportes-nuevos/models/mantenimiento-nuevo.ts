@@ -9,8 +9,7 @@ export const PERMISO_MANTENIMIENTO_GESTIONAR = 'mantenimiento.ordenes.gestionar'
 
 export type EstadoReporte = 'por_clasificar' | 'descartado' | 'clasificado';
 export type OrigenReporte = 'pumping' | 'fcr' | 'vehiculos' | 'qhse';
-export type EstadoOrden =
-  'pendiente' | 'en_mantenimiento' | 'requiere_cambios' | 'aceptada' | 'cerrada';
+export type EstadoOrden = 'pendiente' | 'en_mantenimiento' | 'requiere_cambios' | 'aceptada' | 'cerrada';
 
 export interface UnidadResumen {
   id: string;
@@ -72,11 +71,7 @@ export interface OrdenMantenimiento {
   unidad: UnidadResumen;
   ticket: { id: string; numero: number | null } | null;
   creadaAt: string;
-  retorno: {
-    at: string;
-    estadoFinal: 'disponible' | 'con_restricciones';
-    observaciones: string | null;
-  } | null;
+  retorno: { at: string; estadoFinal: 'disponible' | 'con_restricciones'; observaciones: string | null } | null;
   subordenes: SubordenResumen[];
 }
 
@@ -111,10 +106,7 @@ export const ESTADO_ORDEN_LABEL: Record<EstadoOrden, string> = {
   aceptada: 'Aceptada',
   cerrada: 'Cerrada',
 };
-export const TONO_ESTADO_ORDEN: Record<
-  EstadoOrden,
-  'warning' | 'neutral' | 'success' | 'info' | 'critical'
-> = {
+export const TONO_ESTADO_ORDEN: Record<EstadoOrden, 'warning' | 'neutral' | 'success' | 'info' | 'critical'> = {
   pendiente: 'warning',
   en_mantenimiento: 'info',
   requiere_cambios: 'critical',
@@ -150,37 +142,26 @@ export interface FilaClasificacion {
 }
 
 /** Arma lo que se envía al servidor: solo los tipos elegidos, con lo que aplica a cada uno. */
-export function asignacionesDeFilas(
-  filas: FilaClasificacion[],
-  tipos: TipoSuborden[],
-): AsignacionEntrada[] {
+export function asignacionesDeFilas(filas: FilaClasificacion[], tipos: TipoSuborden[]): AsignacionEntrada[] {
   return filas
-    .filter((f) => f.elegido)
-    .map((f) => {
-      const asignable = tipos.find((t) => t.codigo === f.tipo)?.asignable ?? true;
+    .filter(f => f.elegido)
+    .map(f => {
+      const asignable = tipos.find(t => t.codigo === f.tipo)?.asignable ?? true;
       return asignable
         ? { tipo: f.tipo, usuarioId: f.usuarioId }
-        : {
-            tipo: f.tipo,
-            derivar: f.derivar,
-            notaDerivacion: f.derivar && f.notaDerivacion.trim() ? f.notaDerivacion.trim() : null,
-          };
+        : { tipo: f.tipo, derivar: f.derivar, notaDerivacion: f.derivar && f.notaDerivacion.trim() ? f.notaDerivacion.trim() : null };
     });
 }
 
 /** Qué falta para poder clasificar (`null` = listo). */
 export function validarClasificacion(filas: FilaClasificacion[]): string | null {
-  return filas.some((f) => f.elegido) ? null : 'Elija al menos un tipo de mantenimiento.';
+  return filas.some(f => f.elegido) ? null : 'Elija al menos un tipo de mantenimiento.';
 }
 
 export function mensajeErrorMantenimiento(err: unknown, porDefecto: string): string {
   const e = err as { status?: number; error?: { message?: unknown; detail?: unknown } } | null;
   const m = e?.error?.detail ?? e?.error?.message;
-  const texto = Array.isArray(m)
-    ? m.filter((x) => typeof x === 'string').join('. ')
-    : typeof m === 'string'
-      ? m
-      : '';
+  const texto = Array.isArray(m) ? m.filter(x => typeof x === 'string').join('. ') : typeof m === 'string' ? m : '';
   if (e?.status === 403) return texto || 'No tiene permiso para esta acción.';
   if (e?.status === 409) return texto || 'El reporte cambió. Recargue e intente de nuevo.';
   return texto || porDefecto;

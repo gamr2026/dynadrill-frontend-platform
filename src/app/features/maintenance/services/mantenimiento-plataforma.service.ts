@@ -21,9 +21,7 @@ export class MantenimientoPlataformaService {
   private readonly base = `${environment.apiUrl}/operaciones/mantenimiento`;
 
   // --- reportes recibidos (MAN-001-A) ---
-  reportes(
-    filtros: { estado?: EstadoReporteApi; unidadId?: string; q?: string } = {},
-  ): Observable<ReporteApi[]> {
+  reportes(filtros: { estado?: EstadoReporteApi; unidadId?: string; q?: string } = {}): Observable<ReporteApi[]> {
     let params = new HttpParams();
     if (filtros.estado) params = params.set('estado', filtros.estado);
     if (filtros.unidadId) params = params.set('unidadId', filtros.unidadId);
@@ -40,16 +38,12 @@ export class MantenimientoPlataformaService {
   }
 
   clasificar(reporteId: string, asignaciones: AsignacionApi[]): Observable<OrdenApi> {
-    return this.http.post<OrdenApi>(`${this.base}/reportes/${reporteId}/clasificar`, {
-      asignaciones,
-    });
+    return this.http.post<OrdenApi>(`${this.base}/reportes/${reporteId}/clasificar`, { asignaciones });
   }
 
   // --- órdenes ---
   /** `asignadaA`: solo las órdenes con una sub-orden asignada a esa cuenta («Mis tareas»). */
-  ordenes(
-    filtros: { estado?: string; unidadId?: string; asignadaA?: string; q?: string } = {},
-  ): Observable<OrdenApi[]> {
+  ordenes(filtros: { estado?: string; unidadId?: string; asignadaA?: string; q?: string } = {}): Observable<OrdenApi[]> {
     let params = new HttpParams();
     if (filtros.estado) params = params.set('estado', filtros.estado);
     if (filtros.unidadId) params = params.set('unidadId', filtros.unidadId);
@@ -68,21 +62,12 @@ export class MantenimientoPlataformaService {
   }
 
   reclasificar(ordenId: string, asignaciones: AsignacionApi[]): Observable<OrdenApi> {
-    return this.http.put<OrdenApi>(`${this.base}/ordenes/${ordenId}/clasificacion`, {
-      asignaciones,
-    });
+    return this.http.put<OrdenApi>(`${this.base}/ordenes/${ordenId}/clasificacion`, { asignaciones });
   }
 
   /** Fin correctivo: el Jefe devuelve la unidad a Operaciones (con todas las sub-órdenes resueltas). */
-  retornar(
-    ordenId: string,
-    estadoFinal: 'disponible' | 'con_restricciones',
-    observaciones: string | null,
-  ): Observable<OrdenApi> {
-    return this.http.post<OrdenApi>(`${this.base}/ordenes/${ordenId}/retornar`, {
-      estadoFinal,
-      observaciones,
-    });
+  retornar(ordenId: string, estadoFinal: 'disponible' | 'con_restricciones', observaciones: string | null): Observable<OrdenApi> {
+    return this.http.post<OrdenApi>(`${this.base}/ordenes/${ordenId}/retornar`, { estadoFinal, observaciones });
   }
 
   // --- ejecución y cierre de la sub-orden (MAN-001-B y C) ---
@@ -104,8 +89,6 @@ export class MantenimientoPlataformaService {
   }
 
   solicitarCorreccion(id: string, nota: string): Observable<SubordenApi> {
-    return this.http.post<SubordenApi>(`${this.base}/subordenes/${id}/solicitar-correccion`, {
-      nota,
-    });
+    return this.http.post<SubordenApi>(`${this.base}/subordenes/${id}/solicitar-correccion`, { nota });
   }
 }

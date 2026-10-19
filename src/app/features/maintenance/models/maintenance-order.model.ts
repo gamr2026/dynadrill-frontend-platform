@@ -11,8 +11,7 @@ export type SubOrderStatus =
   | 'Corrección Solicitada'
   | 'Derivado a Pumping';
 
-export type OrderStatus =
-  'Pendiente' | 'En Mantenimiento' | 'Requiere cambios' | 'Aceptado' | 'Rechazado' | 'Cerrado';
+export type OrderStatus = 'Pendiente' | 'En Mantenimiento' | 'Requiere cambios' | 'Aceptado' | 'Rechazado' | 'Cerrado';
 
 export type UnitFinalState = 'Disponible' | 'Con restricciones';
 
@@ -99,23 +98,11 @@ export interface MaintenanceOrderWithSubOrders extends MaintenanceOrder {
  * sub-órdenes están Cerrado. "Cerrado" (el estado final, distinto del
  * "Cerrado" de una sub-orden) solo llega vía Fin Correctivo.
  */
-export function computeOrderStatus(
-  order: Pick<MaintenanceOrder, 'returnedToOperation'>,
-  subOrders: SubOrder[],
-): OrderStatus {
+export function computeOrderStatus(order: Pick<MaintenanceOrder, 'returnedToOperation'>, subOrders: SubOrder[]): OrderStatus {
   if (order.returnedToOperation) return 'Cerrado';
   if (subOrders.length === 0) return 'Pendiente';
-  if (subOrders.some((s) => s.status === 'Corrección Solicitada')) return 'Requiere cambios';
-  if (subOrders.every((s) => s.status === 'Cerrado' || s.status === 'Derivado a Pumping'))
-    return 'Aceptado';
-  if (
-    subOrders.some(
-      (s) =>
-        s.status === 'En Diagnóstico' ||
-        s.status === 'En Ejecución' ||
-        s.status === 'En Revisión de Cierre',
-    )
-  )
-    return 'En Mantenimiento';
+  if (subOrders.some(s => s.status === 'Corrección Solicitada')) return 'Requiere cambios';
+  if (subOrders.every(s => s.status === 'Cerrado' || s.status === 'Derivado a Pumping')) return 'Aceptado';
+  if (subOrders.some(s => s.status === 'En Diagnóstico' || s.status === 'En Ejecución' || s.status === 'En Revisión de Cierre')) return 'En Mantenimiento';
   return 'Pendiente';
 }

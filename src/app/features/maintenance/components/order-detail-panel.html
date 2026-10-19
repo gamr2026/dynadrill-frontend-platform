@@ -10,18 +10,13 @@
   </header>
 
   @if (isReadyToReturn()) {
-    <dynadrill-button class="odp__ancho" (clicked)="returnToOperation()"
-      >Fin Correctivo</dynadrill-button
-    >
+    <dynadrill-button class="odp__ancho" (clicked)="returnToOperation()">Fin Correctivo</dynadrill-button>
   }
 
   <!-- Una tarjeta por sub-orden -->
   <div class="odp__subs">
     @for (sub of ord.subOrders; track sub.id) {
-      <article
-        class="odp__sub"
-        [class.odp__sub--destacada]="sub.status === 'En Revisión de Cierre'"
-      >
+      <article class="odp__sub" [class.odp__sub--destacada]="sub.status === 'En Revisión de Cierre'">
         <div class="odp__sub-cabecera">
           <h3 class="odp__sub-titulo">{{ sub.code }} · {{ sub.type }}</h3>
           <div class="odp__sub-iconos">
@@ -33,12 +28,7 @@
               (clicked)="toggleExpand(sub.id)"
             />
             @if (canEditOperator(sub) && editingSubId() !== sub.id) {
-              <dynadrill-icon-button
-                icon="user-switch"
-                tooltip="Cambiar operador"
-                tooltipPlacement="top"
-                (clicked)="startEditOperator(sub)"
-              />
+              <dynadrill-icon-button icon="user-switch" tooltip="Cambiar operador" tooltipPlacement="top" (clicked)="startEditOperator(sub)" />
             }
           </div>
         </div>
@@ -53,14 +43,8 @@
         @if (sub.type !== 'Operativo') {
           @if (editingSubId() !== sub.id) {
             <dl class="odp__datos">
-              <div>
-                <dt>Operador</dt>
-                <dd>{{ sub.assignedUserName ?? 'Sin asignar' }}</dd>
-              </div>
-              <div>
-                <dt>Horas de trabajo</dt>
-                <dd>{{ sub.horasTrabajo ? sub.horasTrabajo + ' h' : '—' }}</dd>
-              </div>
+              <div><dt>Operador</dt><dd>{{ sub.assignedUserName ?? 'Sin asignar' }}</dd></div>
+              <div><dt>Horas de trabajo</dt><dd>{{ sub.horasTrabajo ? sub.horasTrabajo + ' h' : '—' }}</dd></div>
             </dl>
           } @else {
             <div class="odp__edicion">
@@ -73,13 +57,8 @@
                 (valueChange)="onOperatorChange($event)"
               />
               <div class="odp__fila-botones">
-                <dynadrill-button variant="secondary" (clicked)="cancelEditOperator()"
-                  >Cancelar</dynadrill-button
-                >
-                <dynadrill-button
-                  [disabled]="!editingOperatorId() || reassigning()"
-                  (clicked)="saveOperator(sub)"
-                >
+                <dynadrill-button variant="secondary" (clicked)="cancelEditOperator()">Cancelar</dynadrill-button>
+                <dynadrill-button [disabled]="!editingOperatorId() || reassigning()" (clicked)="saveOperator(sub)">
                   {{ reassigning() ? 'Guardando…' : 'Guardar' }}
                 </dynadrill-button>
               </div>
@@ -87,16 +66,7 @@
           }
         } @else {
           <dl class="odp__datos">
-            <div>
-              <dt>Derivación</dt>
-              <dd>
-                {{
-                  sub.status === 'Derivado a Pumping'
-                    ? 'Derivado a Pumping'
-                    : 'Pendiente de derivar'
-                }}
-              </dd>
-            </div>
+            <div><dt>Derivación</dt><dd>{{ sub.status === 'Derivado a Pumping' ? 'Derivado a Pumping' : 'Pendiente de derivar' }}</dd></div>
           </dl>
         }
 
@@ -113,22 +83,16 @@
               <p class="odp__texto"><strong>Diagnóstico:</strong> {{ sub.diagnostico }}</p>
             }
             @if (sub.actividadesCorrectivas) {
-              <p class="odp__texto">
-                <strong>Actividades:</strong> {{ sub.actividadesCorrectivas }}
-              </p>
+              <p class="odp__texto"><strong>Actividades:</strong> {{ sub.actividadesCorrectivas }}</p>
             }
             @if (sub.correctionNote) {
-              <p class="odp__texto">
-                <strong>Corrección solicitada:</strong> {{ sub.correctionNote }}
-              </p>
+              <p class="odp__texto"><strong>Corrección solicitada:</strong> {{ sub.correctionNote }}</p>
             }
             @if (sub.deriveNote) {
               <p class="odp__texto"><strong>Motivo de derivación:</strong> {{ sub.deriveNote }}</p>
             }
             @if (sub.trabajosAdicionales) {
-              <p class="odp__texto">
-                <strong>Trabajos adicionales por atender:</strong> {{ sub.trabajosAdicionales }}
-              </p>
+              <p class="odp__texto"><strong>Trabajos adicionales por atender:</strong> {{ sub.trabajosAdicionales }}</p>
             }
             @for (r of sub.repuestos ?? []; track r.numeroParte) {
               <div class="odp__repuesto">
@@ -144,15 +108,8 @@
         @if (sub.status === 'En Revisión de Cierre') {
           @if (rejectingSubId() !== sub.id) {
             <div class="odp__fila-botones">
-              <dynadrill-button [disabled]="reviewing()" (clicked)="approveInline(sub)">{{
-                reviewing() ? 'Procesando…' : 'Aprobar'
-              }}</dynadrill-button>
-              <dynadrill-button
-                variant="error"
-                [disabled]="reviewing()"
-                (clicked)="startRejectMode(sub.id)"
-                >Corregir</dynadrill-button
-              >
+              <dynadrill-button [disabled]="reviewing()" (clicked)="approveInline(sub)">{{ reviewing() ? 'Procesando…' : 'Aprobar' }}</dynadrill-button>
+              <dynadrill-button variant="error" [disabled]="reviewing()" (clicked)="startRejectMode(sub.id)">Corregir</dynadrill-button>
             </div>
           } @else {
             <div class="odp__edicion">
@@ -164,13 +121,8 @@
                 [rows]="2"
               />
               <div class="odp__fila-botones">
-                <dynadrill-button variant="secondary" (clicked)="cancelRejectMode()"
-                  >Cancelar</dynadrill-button
-                >
-                <dynadrill-button
-                  [disabled]="!rejectionNote().trim() || reviewing()"
-                  (clicked)="confirmRejectionInline(sub)"
-                >
+                <dynadrill-button variant="secondary" (clicked)="cancelRejectMode()">Cancelar</dynadrill-button>
+                <dynadrill-button [disabled]="!rejectionNote().trim() || reviewing()" (clicked)="confirmRejectionInline(sub)">
                   {{ reviewing() ? 'Enviando…' : 'Enviar' }}
                 </dynadrill-button>
               </div>
@@ -179,12 +131,7 @@
         }
 
         @if (isDerivable(sub)) {
-          <dynadrill-button
-            class="odp__ancho odp__derivar"
-            variant="secondary"
-            (clicked)="deriveToPumping(sub)"
-            >Derivar a Pumping</dynadrill-button
-          >
+          <dynadrill-button class="odp__ancho odp__derivar" variant="secondary" (clicked)="deriveToPumping(sub)">Derivar a Pumping</dynadrill-button>
         }
       </article>
     }

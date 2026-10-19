@@ -1,9 +1,5 @@
 <div class="maintenance-kpis-page">
-  <app-page-header
-    eyebrow="MANTENIMIENTO"
-    title="Indicadores de Mantenimiento"
-    subtitle="MAN-MASTER-001 — calculados sobre los datos actuales del sistema"
-  />
+  <app-page-header eyebrow="MANTENIMIENTO" title="Indicadores de Mantenimiento" subtitle="MAN-MASTER-001 — calculados sobre los datos actuales del sistema" />
 
   <div class="maintenance-kpis-page__toolbar">
     <dynadrill-select
@@ -33,23 +29,11 @@
       (valueChange)="setFechaHasta($event)"
     />
     @if (hayFiltros()) {
-      <dynadrill-button variant="secondary" size="small" (clicked)="limpiarFiltros()"
-        >Limpiar filtros</dynadrill-button
-      >
+      <dynadrill-button variant="secondary" size="small" (clicked)="limpiarFiltros()">Limpiar filtros</dynadrill-button>
     }
     <div class="maintenance-kpis-page__descargar">
-      <dynadrill-icon-button
-        icon="file-pdf"
-        tooltip="Descargar reporte en PDF"
-        tooltipPlacement="top"
-        (clicked)="descargarReporte()"
-      />
-      <dynadrill-icon-button
-        icon="file-excel"
-        tooltip="Exportar a Excel"
-        tooltipPlacement="top"
-        (clicked)="descargarExcel()"
-      />
+      <dynadrill-icon-button icon="file-pdf" tooltip="Descargar reporte en PDF" tooltipPlacement="top" (clicked)="descargarReporte()" />
+      <dynadrill-icon-button icon="file-excel" tooltip="Exportar a Excel" tooltipPlacement="top" (clicked)="descargarExcel()" />
     </div>
   </div>
 
@@ -65,33 +49,19 @@
         <dynadrill-text variant="h2">Cumplimiento del plan preventivo</dynadrill-text>
         @if (hayUnidades()) {
           <div class="maintenance-kpis-page__chart-row">
-            <div
-              echarts
-              class="maintenance-kpis-page__pie"
-              [options]="cumplimientoPieOptions()"
-              [autoResize]="true"
-              aria-hidden="true"
-            ></div>
+            <div echarts class="maintenance-kpis-page__pie" [options]="cumplimientoPieOptions()" [autoResize]="true" aria-hidden="true"></div>
             <ul class="maintenance-kpis-page__legend">
               @for (item of cumplimientoPieLegend(); track item.text) {
                 <li class="maintenance-kpis-page__legend-item">
-                  <span
-                    class="maintenance-kpis-page__legend-dot"
-                    [style.background]="item.color"
-                    aria-hidden="true"
-                  ></span>
+                  <span class="maintenance-kpis-page__legend-dot" [style.background]="item.color" aria-hidden="true"></span>
                   <span class="maintenance-kpis-page__legend-text">{{ item.text }}</span>
                 </li>
               }
             </ul>
           </div>
-          <dynadrill-text variant="caption"
-            >Pasa el mouse sobre un sector para ver qué unidades lo componen.</dynadrill-text
-          >
+          <dynadrill-text variant="caption">Pasa el mouse sobre un sector para ver qué unidades lo componen.</dynadrill-text>
         } @else {
-          <dynadrill-text variant="caption"
-            >No hay unidades para el tipo seleccionado.</dynadrill-text
-          >
+          <dynadrill-text variant="caption">No hay unidades para el tipo seleccionado.</dynadrill-text>
         }
       </div>
 
@@ -99,33 +69,19 @@
         <dynadrill-text variant="h2">Disponibilidad de flota</dynadrill-text>
         @if (hayUnidades()) {
           <div class="maintenance-kpis-page__chart-row">
-            <div
-              echarts
-              class="maintenance-kpis-page__pie"
-              [options]="disponibilidadPieOptions()"
-              [autoResize]="true"
-              aria-hidden="true"
-            ></div>
+            <div echarts class="maintenance-kpis-page__pie" [options]="disponibilidadPieOptions()" [autoResize]="true" aria-hidden="true"></div>
             <ul class="maintenance-kpis-page__legend">
               @for (item of disponibilidadPieLegend(); track item.text) {
                 <li class="maintenance-kpis-page__legend-item">
-                  <span
-                    class="maintenance-kpis-page__legend-dot"
-                    [style.background]="item.color"
-                    aria-hidden="true"
-                  ></span>
+                  <span class="maintenance-kpis-page__legend-dot" [style.background]="item.color" aria-hidden="true"></span>
                   <span class="maintenance-kpis-page__legend-text">{{ item.text }}</span>
                 </li>
               }
             </ul>
           </div>
-          <dynadrill-text variant="caption"
-            >Pasa el mouse sobre un sector para ver qué unidades lo componen.</dynadrill-text
-          >
+          <dynadrill-text variant="caption">Pasa el mouse sobre un sector para ver qué unidades lo componen.</dynadrill-text>
         } @else {
-          <dynadrill-text variant="caption"
-            >No hay unidades para el tipo seleccionado.</dynadrill-text
-          >
+          <dynadrill-text variant="caption">No hay unidades para el tipo seleccionado.</dynadrill-text>
         }
       </div>
     </div>
@@ -134,45 +90,26 @@
       <dynadrill-text variant="h2">Órdenes de mantenimiento por tipo de unidad</dynadrill-text>
       @if (ordenesPorTipoUnidad().length) {
         <div class="maintenance-kpis-page__chart-row">
-          <div
-            echarts
-            class="maintenance-kpis-page__donut"
-            [options]="ordenesPorTipoDonut()"
-            [autoResize]="true"
-            aria-hidden="true"
-          ></div>
+          <div echarts class="maintenance-kpis-page__donut" [options]="ordenesPorTipoDonut()" [autoResize]="true" aria-hidden="true"></div>
           <ul class="maintenance-kpis-page__legend">
             @for (item of ordenesPorTipoLegend(); track item.text) {
               <li class="maintenance-kpis-page__legend-item">
-                <span
-                  class="maintenance-kpis-page__legend-dot"
-                  [style.background]="item.color"
-                  aria-hidden="true"
-                ></span>
+                <span class="maintenance-kpis-page__legend-dot" [style.background]="item.color" aria-hidden="true"></span>
                 <span class="maintenance-kpis-page__legend-text">{{ item.text }}</span>
               </li>
             }
           </ul>
         </div>
       } @else {
-        <dynadrill-text variant="caption"
-          >Todavía no hay órdenes de mantenimiento registradas.</dynadrill-text
-        >
+        <dynadrill-text variant="caption">Todavía no hay órdenes de mantenimiento registradas.</dynadrill-text>
       }
     </div>
 
     <div class="maintenance-kpis-page__card">
       <dynadrill-text variant="h2">Unidades con fallas repetitivas</dynadrill-text>
       @if (fallasRepetitivas().length) {
-        <dynadrill-chart
-          type="bar"
-          [categories]="fallasChartCategories()"
-          [series]="fallasChartSeries()"
-          height="260px"
-        />
-        <dynadrill-text variant="caption"
-          >Detalle por unidad — para ir directo a su orden correctiva más reciente:</dynadrill-text
-        >
+        <dynadrill-chart type="bar" [categories]="fallasChartCategories()" [series]="fallasChartSeries()" height="260px" />
+        <dynadrill-text variant="caption">Detalle por unidad — para ir directo a su orden correctiva más reciente:</dynadrill-text>
         <dynadrill-data-table
           [columns]="fallasColumns"
           [rows]="fallasRepetitivas()"
@@ -181,20 +118,16 @@
           [actionsTemplate]="fallasActionsTpl"
         />
         <ng-template #fallasActionsTpl let-row>
-          <dynadrill-button variant="secondary" size="small" (clicked)="openUnitOrder(row)"
-            >Ver orden más reciente</dynadrill-button
-          >
+          <dynadrill-button variant="secondary" size="small" (clicked)="openUnitOrder(row)">Ver orden más reciente</dynadrill-button>
         </ng-template>
       } @else {
-        <dynadrill-text variant="caption"
-          >Ninguna unidad tiene más de una orden correctiva todavía.</dynadrill-text
-        >
+        <dynadrill-text variant="caption">Ninguna unidad tiene más de una orden correctiva todavía.</dynadrill-text>
       }
     </div>
 
     <dynadrill-text variant="caption" class="maintenance-kpis-page__note">
-      Calculado sobre los registros actuales del interceptor de mocks — sirve para validar la
-      definición de cada indicador, no para tomar decisiones. Se reinicia al recargar la página.
+      Calculado sobre los registros actuales del interceptor de mocks — sirve para validar la definición de cada
+      indicador, no para tomar decisiones. Se reinicia al recargar la página.
     </dynadrill-text>
   </dynadrill-spinner>
 </div>

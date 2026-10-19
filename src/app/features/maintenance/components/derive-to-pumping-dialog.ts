@@ -1,11 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
-import {
-  DynadrillButtonComponent,
-  DynadrillNotificationService,
-  DynadrillTextareaComponent,
-  DynadrillTextComponent,
-} from '@digitec-it-projects/dynadrill-ui';
+import { DynadrillButtonComponent, DynadrillNotificationService, DynadrillTextareaComponent, DynadrillTextComponent } from '@digitec-it-projects/dynadrill-ui';
 import { SubOrder } from '../models/maintenance-order.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 
@@ -38,10 +33,7 @@ export class DeriveToPumpingDialog {
     this.submitting.set(true);
     this.ordersService.deriveToOperations(this.data.subOrder.id, this.note().trim()).subscribe({
       next: () => {
-        this.notify.success(
-          'Derivado a Pumping',
-          `${this.data.subOrder.code} salió del flujo de Mantenimiento.`,
-        );
+        this.notify.success('Derivado a Pumping', `${this.data.subOrder.code} salió del flujo de Mantenimiento.`);
         this.modalRef.close(true);
       },
       error: () => {

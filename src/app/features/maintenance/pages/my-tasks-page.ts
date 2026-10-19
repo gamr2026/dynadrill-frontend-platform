@@ -14,27 +14,14 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { injectNarrowViewport } from '../../../core/utils/narrow-viewport.util';
-import {
-  QhseRegistrosMovil,
-  type RegistroMovil,
-} from '../../qhse/shared/components/qhse-registros-movil';
+import { QhseRegistrosMovil, type RegistroMovil } from '../../qhse/shared/components/qhse-registros-movil';
 import { AuthService } from '../../../core/services/auth.service';
-import {
-  MaintenanceOrderWithSubOrders,
-  SubOrder,
-  SubOrderStatus,
-} from '../models/maintenance-order.model';
+import { MaintenanceOrderWithSubOrders, SubOrder, SubOrderStatus } from '../models/maintenance-order.model';
 import { UnitReport } from '../models/unit-report.model';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { UnitReportsService } from '../services/unit-reports.service';
-import {
-  SuborderExecutionDialog,
-  SuborderExecutionDialogData,
-} from '../components/suborder-execution-dialog';
-import {
-  SuborderDetailDialog,
-  SuborderDetailDialogData,
-} from '../components/suborder-detail-dialog';
+import { SuborderExecutionDialog, SuborderExecutionDialogData } from '../components/suborder-execution-dialog';
+import { SuborderDetailDialog, SuborderDetailDialogData } from '../components/suborder-detail-dialog';
 
 const SUB_ORDER_STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
   Pendiente: 'warning',
@@ -53,15 +40,7 @@ const SUB_ORDER_STATUS_TONE: Record<SubOrderStatus, DynadrillTagVariant> = {
  */
 @Component({
   selector: 'app-my-tasks-page',
-  imports: [
-    CommonModule,
-    DynadrillDataTableComponent,
-    DynadrillButtonComponent,
-    DynadrillIconButtonComponent,
-    DynadrillSpinnerComponent,
-    PageHeader,
-    QhseRegistrosMovil,
-  ],
+  imports: [CommonModule, DynadrillDataTableComponent, DynadrillButtonComponent, DynadrillIconButtonComponent, DynadrillSpinnerComponent, PageHeader, QhseRegistrosMovil],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './my-tasks-page.html',
   styleUrl: './my-tasks-page.scss',
@@ -101,7 +80,7 @@ export class MyTasksPage {
     const userId = this.auth.currentUser()?.id;
     if (!userId) return [];
     return this.orders()
-      .flatMap((order) => order.subOrders.map((sub) => ({ order, sub })))
+      .flatMap(order => order.subOrders.map(sub => ({ order, sub })))
       .filter(({ sub }) => sub.assignedUserId === userId)
       .map(({ order, sub }) => ({
         id: sub.id,
@@ -116,7 +95,7 @@ export class MyTasksPage {
 
   /** Tarjetas en móvil (Figma "M · Mis tareas"): Diagnosticar / Ejecutar + ojo; si no hay nada que hacer, Ver detalle. */
   protected readonly itemsMovil = computed<RegistroMovil[]>(() =>
-    this.rows().map((r) => ({
+    this.rows().map(r => ({
       id: r.id,
       eyebrow: r.code,
       title: r.unidad,
@@ -129,24 +108,11 @@ export class MyTasksPage {
       actions: [
         ...(this.isActionable(r)
           ? [
-              {
-                icon: 'tool',
-                label: 'Diagnosticar / Ejecutar',
-                primary: true,
-                run: () => this.openExecution(r),
-              },
+              { icon: 'tool', label: 'Diagnosticar / Ejecutar', primary: true, run: () => this.openExecution(r) },
               { icon: 'eye', label: 'Ver detalle', run: () => this.viewDetail(r) },
             ]
           : [{ icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(r) }]),
-        ...(r.pumpingTicketId
-          ? [
-              {
-                icon: 'project',
-                label: 'Ver ticket de Pumping',
-                run: () => this.verTicketPumping(r),
-              },
-            ]
-          : []),
+        ...(r.pumpingTicketId ? [{ icon: 'project', label: 'Ver ticket de Pumping', run: () => this.verTicketPumping(r) }] : []),
       ],
     })),
   );
@@ -160,10 +126,7 @@ export class MyTasksPage {
   private reload(): void {
     this.loading.set(true);
     // Solo las órdenes con una sub-orden asignada a esta cuenta (el backend las filtra).
-    forkJoin({
-      orders: this.ordersService.list({ asignadaA: this.auth.currentUser()?.id }),
-      unitReports: this.unitReportsService.list(),
-    }).subscribe({
+    forkJoin({ orders: this.ordersService.list({ asignadaA: this.auth.currentUser()?.id }), unitReports: this.unitReportsService.list() }).subscribe({
       next: ({ orders, unitReports }) => {
         this.orders.set(orders);
         this.unitReports.set(unitReports);
@@ -177,26 +140,22 @@ export class MyTasksPage {
   }
 
   private subOrderFor(row: Record<string, unknown>): SubOrder {
-    return this.orders()
-      .flatMap((o) => o.subOrders)
-      .find((s) => s.id === row['id'])!;
+    return this.orders().flatMap(o => o.subOrders).find(s => s.id === row['id'])!;
   }
 
   /** El operador puede abrir el dialog mientras no haya enviado a revisión ni esté Cerrado. */
   isActionable(row: Record<string, unknown>): boolean {
     const sub = this.subOrderFor(row);
-    return (
-      sub.status === 'Pendiente' ||
-      sub.status === 'En Diagnóstico' ||
-      sub.status === 'En Ejecución' ||
-      sub.status === 'Corrección Solicitada'
-    );
+    return sub.status === 'Pendiente'
+      || sub.status === 'En Diagnóstico'
+      || sub.status === 'En Ejecución'
+      || sub.status === 'Corrección Solicitada';
   }
 
   /** Lo que reportó el operador en el Reporte de Unidad — nunca lo escribe Mantenimiento. */
   private novedadFor(subOrder: SubOrder): string {
-    const order = this.orders().find((o) => o.id === subOrder.orderId);
-    const report = order && this.unitReports().find((r) => r.id === order.unitReportId);
+    const order = this.orders().find(o => o.id === subOrder.orderId);
+    const report = order && this.unitReports().find(r => r.id === order.unitReportId);
     if (!report) return '';
     if (subOrder.type === 'Mecánico') return report.problemasMecanica;
     if (subOrder.type === 'Instrumental') return report.problemasInstrumentacion;
@@ -210,7 +169,7 @@ export class MyTasksPage {
 
   viewDetail(row: Record<string, unknown>): void {
     const subOrder = this.subOrderFor(row);
-    const order = this.orders().find((o) => o.id === subOrder.orderId);
+    const order = this.orders().find(o => o.id === subOrder.orderId);
     this.dialog.open<SuborderDetailDialog, SuborderDetailDialogData>({
       title: 'Detalle — ' + subOrder.code,
       content: SuborderDetailDialog,
@@ -227,7 +186,7 @@ export class MyTasksPage {
       data: { subOrder, novedadOriginal: this.novedadFor(subOrder) },
       footer: false,
     });
-    ref.afterClose.subscribe((changed) => {
+    ref.afterClose.subscribe(changed => {
       if (changed) this.reload();
     });
   }

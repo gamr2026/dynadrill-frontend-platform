@@ -116,27 +116,19 @@ export interface VehicleInspection {
 export type CreateVehicleInspectionInput = Omit<VehicleInspection, 'id' | 'createdAt'>;
 
 /** ¿Algún ítem quedó "No cumple"? — dispara la oferta de generar Reporte de Unidad (Plan 2026, 5.4). */
-export function vehicleInspectionHasNoCumple(
-  insp: Pick<VehicleInspection, 'checklistVehiculo' | 'checklistEquipo'>,
-): boolean {
-  return [...insp.checklistVehiculo, ...insp.checklistEquipo].some((item) => item.estado === 'NC');
+export function vehicleInspectionHasNoCumple(insp: Pick<VehicleInspection, 'checklistVehiculo' | 'checklistEquipo'>): boolean {
+  return [...insp.checklistVehiculo, ...insp.checklistEquipo].some(item => item.estado === 'NC');
 }
 
 /** Nota 1 del formato DYN-SGI-RE-068: sin cinturón de seguridad en buen estado, el vehículo no puede usarse. */
 export const SEATBELT_ITEM_LABEL = 'Cinturones de seguridad — operativos para todos los asientos';
 
-export function vehicleInspectionBlockedBySeatbelt(
-  insp: Pick<VehicleInspection, 'checklistVehiculo'>,
-): boolean {
-  return insp.checklistVehiculo.some(
-    (item) => item.label === SEATBELT_ITEM_LABEL && item.estado === 'NC',
-  );
+export function vehicleInspectionBlockedBySeatbelt(insp: Pick<VehicleInspection, 'checklistVehiculo'>): boolean {
+  return insp.checklistVehiculo.some(item => item.label === SEATBELT_ITEM_LABEL && item.estado === 'NC');
 }
 
 /** Apta para viaje (Plan 2026, 5.3/5.4): aprobada por el Supervisor y sin el bloqueo de la Nota 1. */
-export function vehicleInspectionIsUsable(
-  insp: Pick<VehicleInspection, 'checklistVehiculo' | 'supervisorApprovedBy'>,
-): boolean {
+export function vehicleInspectionIsUsable(insp: Pick<VehicleInspection, 'checklistVehiculo' | 'supervisorApprovedBy'>): boolean {
   return !!insp.supervisorApprovedBy && !vehicleInspectionBlockedBySeatbelt(insp);
 }
 
@@ -193,10 +185,6 @@ export function conductorPermisosPorVencer(p: ConductorPermisos, dias = 30): Per
   ];
   return entradas
     .filter((e): e is [string, string] => !!e[1])
-    .map(([documento, vencimiento]) => ({
-      documento,
-      vencimiento,
-      diasRestantes: Math.ceil((new Date(vencimiento).getTime() - ahora) / 86_400_000),
-    }))
-    .filter((e) => e.diasRestantes >= 0 && e.diasRestantes <= dias);
+    .map(([documento, vencimiento]) => ({ documento, vencimiento, diasRestantes: Math.ceil((new Date(vencimiento).getTime() - ahora) / 86_400_000) }))
+    .filter(e => e.diasRestantes >= 0 && e.diasRestantes <= dias);
 }

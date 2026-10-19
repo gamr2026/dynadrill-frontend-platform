@@ -51,7 +51,11 @@
             [labels]="etiquetasPasos"
             [currentIndex]="indicePaso()"
             [selectedIndex]="indicePaso()"
+            [tramos]="tramos()"
           />
+          @if (puedeVerMantenimientos() && hayAsignacion()) {
+            <app-ticket-maintenance-card [ticketId]="t.id" />
+          }
         </div>
 
         <div class="dyn-detail-layout__main tpd__principal">
@@ -719,32 +723,6 @@
               </div>
             </section>
           }
-
-          @if (puedeVerMantenimientos() && hayAsignacion()) {
-            <app-ticket-maintenance-card [ticketId]="t.id" />
-          }
-
-          <section class="tpd__tarjeta" aria-label="Historial">
-            <h2>Historial del ticket</h2>
-            <ol class="tpd__historial">
-              @for (h of t.historial; track $index) {
-                <li>
-                  <strong>{{ paso(h.pasoNuevo) }}</strong>
-                  <span class="tpd__meta">
-                    {{ fechaHora(h.at) }}
-                    @if (h.actor) {
-                      · {{ h.actor.nombre }}{{ h.actor.rol ? ' (' + rol(h.actor.rol) + ')' : '' }}
-                    } @else {
-                      · Sistema
-                    }
-                    @if (h.motivo) {
-                      · {{ h.motivo }}
-                    }
-                  </span>
-                </li>
-              }
-            </ol>
-          </section>
 
           <!-- Barra de acciones del paso actual (como "Volver / Guardar y continuar" de la demo) -->
           <div class="tpd__barra" role="group" aria-label="Acciones del paso">

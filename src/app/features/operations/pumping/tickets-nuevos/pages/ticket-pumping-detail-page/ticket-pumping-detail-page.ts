@@ -33,6 +33,7 @@ import {
 } from '../../../../../facturacion/pedidos-comercial/models/pedido-comercial.model';
 import { PedidosComercialService } from '../../../../../facturacion/pedidos-comercial/services/pedidos-comercial.service';
 import { TicketProgress } from '../../../../shared/ticket-progress/ticket-progress';
+import type { TimelineTramo } from '../../../../../../shared/models/timeline.model';
 import {
   PERMISO_DOCUMENTOS_VER,
   insigniaArt,
@@ -189,6 +190,32 @@ export class TicketPumpingDetailPage {
 
   // ── "Avance del ticket": los 10 pasos del servicio en vertical (mismo componente que la demo) ──
   protected readonly etiquetasPasos = PASOS_PUMPING.map((p) => p.nombre);
+  /** El historial del ticket va dentro de cada paso de la línea de avance (actor, fecha y duración), como en la demo. */
+  protected readonly tramos = computed<(TimelineTramo | undefined)[]>(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    const actual = this.indicePaso();
+    return PASOS_PUMPING.map((p, i) => {
+      let k = -1;
+      t.historial.forEach((h, j) => {
+        if (h.pasoNuevo === p.codigo) k = j;
+      });
+      if (k < 0) return undefined;
+      const h = t.historial[k];
+      const fin = t.historial[k + 1]?.at;
+      const inicioMs = new Date(h.at).getTime();
+      return {
+        fase: p.nombre,
+        macroEstado: i < actual ? 'aprobado' : 'en_proceso',
+        inicio: h.at,
+        fin,
+        duracionMs: (fin ? new Date(fin).getTime() : Date.now()) - inicioMs,
+        actorNombre: h.actor?.nombre ?? 'Sistema',
+        actorRolLabel: h.actor?.rol ? etiquetaRol(h.actor.rol) : undefined,
+        motivo: h.motivo ?? undefined,
+      } satisfies TimelineTramo;
+    });
+  });
   protected readonly indicePaso = computed(() => {
     const i = PASOS_PUMPING.findIndex((p) => p.codigo === this.ticket()?.paso.codigo);
     return i < 0 ? 0 : i;

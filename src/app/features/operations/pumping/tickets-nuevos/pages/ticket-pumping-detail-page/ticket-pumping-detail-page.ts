@@ -39,6 +39,7 @@ import {
   PERMISO_DOCUMENTOS_GESTIONAR,
   PERMISO_DOCUMENTOS_VER,
   exigeMotivoSuplencia,
+  fechaIso,
   insigniaArt,
   type DocumentoVigente,
   type PedidoDocumental,
@@ -190,7 +191,7 @@ export class TicketPumpingDetailPage {
   /** Qué documento tiene abierto el formulario de carga (solo uno a la vez). */
   protected readonly cargaAbierta = signal<'art' | 'pt' | 'acta' | null>(null);
   protected readonly archivoDoc = signal<File | null>(null);
-  protected readonly fechaArt = signal(new Date().toISOString().slice(0, 10));
+  protected readonly fechaDoc = signal(fechaIso(new Date()));
   protected readonly motivoSuplencia = signal('');
   protected readonly cargandoDoc = signal(false);
   /** Quien sube el Acta sin ser el supervisor asignado debe decir por qué el asignado no pudo. */
@@ -226,7 +227,7 @@ export class TicketPumpingDetailPage {
             pedidoId: t.pedidoId,
             ticketId: t.id,
             tipo: doc,
-            ...(doc === 'art' ? { fecha: this.fechaArt() } : {}),
+            fecha: this.fechaDoc(),
           });
     peticion.subscribe({
       next: () => {

@@ -220,8 +220,8 @@
                       >Fecha de emisión del ART
                       <input
                         type="date"
-                        [value]="fechaArt()"
-                        (input)="fechaArt.set($any($event.target).value)"
+                        [value]="fechaDoc()"
+                        (input)="fechaDoc.set($any($event.target).value)"
                     /></label>
                     <input
                       type="file"
@@ -231,7 +231,7 @@
                     <dynadrill-button
                       variant="primary"
                       size="small"
-                      [disabled]="!archivoDoc() || !fechaArt() || cargandoDoc()"
+                      [disabled]="!archivoDoc() || !fechaDoc() || cargandoDoc()"
                       (clicked)="subirDoc()"
                       >Subir ART</dynadrill-button
                     >
@@ -241,9 +241,7 @@
                   <div class="tpd__doc-texto">
                     <strong>PT del día</strong>
                     <span class="tpd__meta">{{
-                      documentosQhse()?.ptHoy
-                        ? 'Cargado por QHSE'
-                        : 'QHSE aún no cargó el PT de hoy'
+                      documentosQhse()?.ptHoy ? 'Cargado por QHSE' : 'Falta el PT de hoy'
                     }}</span>
                     <dynadrill-tag
                       [label]="documentosQhse()?.ptHoy ? 'Cargado' : 'Pendiente'"
@@ -270,6 +268,13 @@
                 </li>
                 @if (cargaAbierta() === 'pt') {
                   <li class="tpd__doc-carga">
+                    <label class="tpd__meta"
+                      >Día de operación del PT
+                      <input
+                        type="date"
+                        [value]="fechaDoc()"
+                        (input)="fechaDoc.set($any($event.target).value)"
+                    /></label>
                     <input
                       type="file"
                       accept=".pdf,.png,.jpg,.jpeg"
@@ -278,7 +283,7 @@
                     <dynadrill-button
                       variant="primary"
                       size="small"
-                      [disabled]="!archivoDoc() || cargandoDoc()"
+                      [disabled]="!archivoDoc() || !fechaDoc() || cargandoDoc()"
                       (clicked)="subirDoc()"
                       >Subir PT</dynadrill-button
                     >

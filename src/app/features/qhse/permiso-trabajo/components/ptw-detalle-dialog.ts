@@ -97,6 +97,24 @@ export interface PtwDetalleDialogData {
         >
       }
 
+      @if (p.matricesIperc.length) {
+        <h4 class="pd__tit">Matrices IPERC de las actividades del servicio</h4>
+        <ul class="pd__lista">
+          @for (m of p.matricesIperc; track m.actividadId) {
+            <li>
+              <span>{{ m.matrizId ? '✔' : '✘' }} {{ m.actividad }}</span>
+              @if (m.matrizId) {
+                <span class="pd__meta"
+                  >{{ m.codigo }} · vale hasta {{ m.vigenteHasta | date: 'dd/MM/yyyy' }}</span
+                >
+              } @else {
+                <span class="pd__falta">{{ m.falta }}</span>
+              }
+            </li>
+          }
+        </ul>
+      }
+
       <h4 class="pd__tit">2. Formalización</h4>
       <ul class="pd__lista">
         @for (c of confirmaciones; track c) {

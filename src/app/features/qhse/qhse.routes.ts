@@ -7,6 +7,7 @@ import { PERMISO_EPI_VER } from './entrega-epi/models/entrega-epi';
 import { PERMISO_DOCUMENTOS_VER } from './documentos-pedido/models/documento-pedido';
 import { PERMISO_PTW_VER } from './permiso-trabajo/models/permiso-trabajo';
 import { PERMISO_SWA_VER } from './swa-plataforma/models/swa';
+import { PERMISO_IPERC_VER } from './iperc-maestra/models/iperc';
 
 /**
  * Fase 1 del módulo QHSE (HSE-PLAN-001 / HSE-SITIO-001): IPERC + PTW.
@@ -50,18 +51,20 @@ export const qhseRoutes: Routes = [
     data: { allowedRoles: HSE_STAFF_ROLES, hub: 'eventos' },
   },
   {
+    // Matriz IPERC maestra del backend nuevo (contenedor qhse, `/api/v2/qhse/iperc`): se autoriza por permiso del token. Las pantallas de
+    // la demo (`./iperc`, una matriz por ticket) quedan sin ruta hasta el Corte.
     path: 'iperc',
     loadComponent: () =>
-      import('./iperc/pages/iperc-list-page/iperc-list-page').then((m) => m.IpercListPage),
-    canActivate: [roleGuard],
-    data: { allowedRoles: HSE_STAFF_ROLES },
+      import('./iperc-maestra/pages/iperc-list-page/iperc-list-page').then((m) => m.IpercListPage),
+    canActivate: [permissionGuard(PERMISO_IPERC_VER)],
   },
   {
     path: 'iperc/:id',
     loadComponent: () =>
-      import('./iperc/pages/iperc-detail-page/iperc-detail-page').then((m) => m.IpercDetailPage),
-    canActivate: [roleGuard],
-    data: { allowedRoles: HSE_STAFF_ROLES },
+      import('./iperc-maestra/pages/iperc-detail-page/iperc-detail-page').then(
+        (m) => m.IpercDetailPage,
+      ),
+    canActivate: [permissionGuard(PERMISO_IPERC_VER)],
   },
   {
     // PTW del backend nuevo (contenedor qhse, `/api/v2/qhse/ptw`): se autoriza por permiso del token. El detalle se abre en un diálogo;

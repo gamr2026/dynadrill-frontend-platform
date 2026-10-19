@@ -1,0 +1,144 @@
+<div class="iperc-page">
+  @if (matriz(); as m) {
+    <app-page-header
+      eyebrow="QHSE · Matriz IPERC (DYN-SGI-RE-087)"
+      [title]="m.actividad.nombre"
+      [subtitle]="
+        m.actividad.proceso.nombre +
+        ' · ' +
+        m.actividad.zona.nombre +
+        ' · ' +
+        m.codigo +
+        ' · versión ' +
+        m.version
+      "
+    >
+      <div actions class="iperc-page__acciones">
+        <dynadrill-tag [variant]="tono()">{{ etiqueta[m.estado] }}</dynadrill-tag>
+        <dynadrill-button variant="secondary" (clicked)="volver()">Volver</dynadrill-button>
+      </div>
+    </app-page-header>
+
+    @for (a of avisos(); track a.message) {
+      <dynadrill-banner [variant]="a.variant" [message]="a.message" />
+    }
+
+    <section class="iperc-page__barra">
+      @if (editable()) {
+        <dynadrill-button
+          [disabled]="!sucio() || faltaParaGuardar().length > 0 || trabajando()"
+          (clicked)="guardar()"
+          >Guardar cambios</dynadrill-button
+        >
+      }
+      @if (puedeGestionar() && (m.estado === 'borrador' || m.estado === 'rechazada')) {
+        <dynadrill-button
+          variant="secondary"
+          [disabled]="trabajando() || sucio()"
+          (clicked)="iniciarEvaluacion()"
+          >{{
+            m.estado === 'rechazada' ? 'Retomar la evaluación' : 'Iniciar la evaluación'
+          }}</dynadrill-button
+        >
+      }
+      @if (puedeGestionar() && m.estado === 'en_evaluacion') {
+        <dynadrill-button
+          [disabled]="faltaParaRevision().length > 0 || trabajando()"
+          (clicked)="enviarARevision()"
+          >Enviar a revisión</dynadrill-button
+        >
+      }
+      @if (puedeAprobar() && m.estado === 'en_revision') {
+        <dynadrill-button
+          [disabled]="faltanAdjuntos().length > 0 || trabajando()"
+          (clicked)="aprobar()"
+          >Aprobar (vale 12 meses)</dynadrill-button
+        >
+        <dynadrill-button variant="secondary" [disabled]="trabajando()" (clicked)="rechazar()"
+          >Rechazar</dynadrill-button
+        >
+      }
+    </section>
+
+    @if (editable() && faltaParaGuardar().length) {
+      <dynadrill-text variant="caption"
+        >Para guardar falta: {{ faltaParaGuardar().join('; ') }}.</dynadrill-text
+      >
+    }
+    @if (m.estado === 'en_evaluacion' && puedeGestionar() && faltaParaRevision().length) {
+      <dynadrill-text variant="caption"
+        >Para enviar a revisión falta: {{ faltaParaRevision().join('; ') }}.</dynadrill-text
+      >
+    }
+    @if (m.estado === 'en_revision' && puedeAprobar() && faltanAdjuntos().length) {
+      <dynadrill-text variant="caption"
+        >Para aprobar adjunte {{ faltanAdjuntos().join(' y ') }}.</dynadrill-text
+      >
+    }
+
+    @if (
+      m.estado === 'en_evaluacion' ||
+      m.estado === 'en_revision' ||
+      m.estado === 'aprobada' ||
+      m.estado === 'reemplazada'
+    ) {
+      <section class="iperc-page__adjuntos">
+        <strong>Procedimiento operativo y ATS base</strong>
+        <div class="iperc-page__fila">
+          <span>Procedimiento: {{ m.procedimientoArchivoId ? 'adjunto' : 'pendiente' }}</span>
+          @if (m.procedimientoArchivoId) {
+            <dynadrill-button variant="secondary" (clicked)="verArchivo(m.procedimientoArchivoId)"
+              >Ver</dynadrill-button
+            >
+          }
+          @if (puedeGestionar() && (m.estado === 'en_evaluacion' || m.estado === 'en_revision')) {
+            <label class="iperc-page__archivo"
+              ><input
+                type="file"
+                (change)="adjuntar('procedimiento', $event)"
+                [disabled]="trabajando()"
+            /></label>
+          }
+        </div>
+        <div class="iperc-page__fila">
+          <span>ATS base: {{ m.atsArchivoId ? 'adjunto' : 'pendiente' }}</span>
+          @if (m.atsArchivoId) {
+            <dynadrill-button variant="secondary" (clicked)="verArchivo(m.atsArchivoId)"
+              >Ver</dynadrill-button
+            >
+          }
+          @if (puedeGestionar() && (m.estado === 'en_evaluacion' || m.estado === 'en_revision')) {
+            <label class="iperc-page__archivo"
+              ><input type="file" (change)="adjuntar('ats', $event)" [disabled]="trabajando()"
+            /></label>
+          }
+        </div>
+      </section>
+    }
+
+    <app-iperc-contenido-editor
+      [(contenido)]="borrador"
+      [catalogos]="catalogos()"
+      [editable]="editable()"
+      (altaCatalogo)="altaCatalogo($event)"
+    />
+
+    <section class="iperc-page__historial">
+      <strong>Historial</strong>
+      <ul>
+        @for (h of m.historial; track h.at) {
+          <li>
+            {{ h.at | date: 'dd/MM/yyyy HH:mm' }} ·
+            {{ h.estadoAnterior ? etiqueta[h.estadoAnterior] + ' → ' : ''
+            }}{{ etiqueta[h.estadoNuevo] }} · {{ h.actor }}
+            @if (h.motivo) {
+              — {{ h.motivo }}
+            }
+          </li>
+        }
+      </ul>
+    </section>
+  } @else if (cargando()) {
+    <dynadrill-text variant="caption">Consultando…</dynadrill-text>
+  }
+</div>

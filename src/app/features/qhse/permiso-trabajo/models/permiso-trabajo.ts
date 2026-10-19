@@ -68,6 +68,16 @@ export interface RequisitoGabinete {
   falta: string | null;
 }
 
+/** Matriz IPERC aprobada y vigente que respalda el PTW (una por actividad que exige el tipo de servicio del ticket). */
+export interface RequisitoIperc {
+  actividadId: string;
+  actividad: string;
+  matrizId: string | null;
+  codigo: string | null;
+  vigenteHasta: string | null;
+  falta: string | null;
+}
+
 export interface FirmaPtw {
   tipo: TipoFirmaPtw;
   nombre: string;
@@ -77,6 +87,7 @@ export interface FirmaPtw {
 export interface PtwDetalle extends Omit<PtwResumen, 'anulado'> {
   supervisor: { id: string; nombre: string } | null;
   requisitos: RequisitoGabinete[];
+  matricesIperc: RequisitoIperc[];
   gabineteCompleta: boolean;
   firmas: FirmaPtw[];
   anulado: boolean;
@@ -99,8 +110,15 @@ export function confirmacionesPendientes(p: Pick<PtwDetalle, 'firmas'>): TipoCon
 }
 
 /** Lo que impide pasar de gabinete a formalización, en las frases del servidor (vacío = se puede). */
-export function faltantesDeGabinete(p: Pick<PtwDetalle, 'requisitos'>): string[] {
-  return p.requisitos.filter((r) => r.documentoId === null).map((r) => r.falta ?? r.nombre);
+export function faltantesDeGabinete(
+  p: Pick<PtwDetalle, 'requisitos'> & Partial<Pick<PtwDetalle, 'matricesIperc'>>,
+): string[] {
+  return [
+    ...p.requisitos.filter((r) => r.documentoId === null).map((r) => r.falta ?? r.nombre),
+    ...(p.matricesIperc ?? [])
+      .filter((m) => m.matrizId === null)
+      .map((m) => m.falta ?? m.actividad),
+  ];
 }
 
 /** Qué acción de avance corresponde hoy y a qué permiso; `null` si el PTW está cerrado o anulado. */

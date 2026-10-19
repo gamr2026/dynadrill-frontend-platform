@@ -38,6 +38,26 @@ describe('NavigationService', () => {
   const keys = (service: NavigationService) => service.modules().map(m => m.key);
   const links = (service: NavigationService, key: string) => allLinks(service.modules().find(m => m.key === key)!);
 
+  it('Flota no aparece sin el permiso de ver unidades', () => {
+    expect(keys(setup('Jefe de Mantenimiento'))).not.toContain('flota');
+  });
+
+  it('Flota aparece con el permiso de ver unidades, sin importar el rol', () => {
+    const service = setup('Jefe de Mantenimiento', '/dashboard', ['flota.unidades.ver']);
+    expect(keys(service)).toContain('flota');
+    expect(links(service, 'flota')).toEqual(['/dashboard/flota/unidades']);
+  });
+
+  it('cada destino de Flota sale por su permiso: un conductor ve inspecciones y conductores, no unidades', () => {
+    const service = setup('Conductor', '/dashboard', ['flota.inspecciones.ver', 'flota.conductores.ver']);
+    expect(links(service, 'flota')).toEqual(['/dashboard/flota/inspecciones', '/dashboard/flota/conductores']);
+  });
+
+  it('Gerenciamiento de viaje sale con cualquiera de sus tres permisos', () => {
+    const service = setup('Supervisor Pumping', '/dashboard', ['flota.viajes.aprobar']);
+    expect(links(service, 'flota')).toEqual(['/dashboard/flota/viajes']);
+  });
+
   it('Superadmin ve todos los módulos, en el orden de Figma', () => {
     const service = setup('Superadmin', '/dashboard', ['identidad.usuarios.ver']);
     expect(keys(service)).toEqual(['inicio', 'operaciones', 'mantenimiento', 'qhse', 'inventario', 'facturacion', 'usuarios']);

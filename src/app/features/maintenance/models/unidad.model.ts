@@ -154,7 +154,10 @@ export type AlertaPreventivaNivel = 'rojo' | 'amarillo' | 'verde';
 
 /** Alerta calculada para una unidad y un intervalo/regla específica. */
 export interface AlertaPreventiva {
-  unidadId: number;
+  /** Número en la demo, UUID en Flota. */
+  unidadId: number | string;
+  /** Tipo de la unidad (lo informa Flota; la demo no lo traía en la alerta). */
+  unidadTipo?: UnidadTipo;
   unidadCode: string;
   unidadNombre: string;
   descripcion: string;

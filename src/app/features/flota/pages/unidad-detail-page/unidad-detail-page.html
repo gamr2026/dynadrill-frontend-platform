@@ -8,14 +8,20 @@
         <dynadrill-button actions variant="secondary" (clicked)="editar()">Editar</dynadrill-button>
       }
       @if (puedeInactivar()) {
-        <dynadrill-button actions [variant]="u.activa ? 'error' : 'primary'" (clicked)="cambiarActiva()">
+        <dynadrill-button
+          actions
+          [variant]="u.activa ? 'error' : 'primary'"
+          (clicked)="cambiarActiva()"
+        >
           {{ u.activa ? 'Dar de baja' : 'Reactivar' }}
         </dynadrill-button>
       }
     </app-page-header>
 
     @if (!u.activa) {
-      <p class="unidad-detail__baja" role="status">Esta unidad está dada de baja: no recibe lecturas ni mantenimientos nuevos.</p>
+      <p class="unidad-detail__baja" role="status">
+        Esta unidad está dada de baja: no recibe lecturas ni mantenimientos nuevos.
+      </p>
     }
 
     <section class="unidad-detail__seccion" aria-labelledby="unidad-datos">
@@ -40,13 +46,20 @@
                 <strong>{{ a.descripcion }}</strong>
                 <dynadrill-tag [label]="a.etiqueta" [variant]="a.tono" [uppercase]="false" />
               </div>
-              <dynadrill-progress [value]="a.consumido" [max]="a.intervalo" [showInfo]="false" [statusOverride]="a.estado" />
+              <dynadrill-progress
+                [value]="a.consumido"
+                [max]="a.intervalo"
+                [showInfo]="false"
+                [statusOverride]="a.estado"
+              />
               <span class="unidad-detail__alerta-texto">{{ a.texto }}</span>
             </li>
           }
         </ul>
       } @else {
-        <p class="unidad-detail__vacio">Esta unidad no tiene alertas de mantenimiento preventivo.</p>
+        <p class="unidad-detail__vacio">
+          Esta unidad no tiene alertas de mantenimiento preventivo.
+        </p>
       }
       @if (puedePreventivo() && u.activa) {
         <div class="unidad-detail__acciones">
@@ -69,13 +82,23 @@
             </dynadrill-button>
           </div>
         }
-        <dynadrill-data-table [columns]="columnasLecturas" [rows]="filasLecturas()" [rowKey]="rowKeyFn" [pageSize]="10" />
+        <dynadrill-data-table
+          [columns]="columnasLecturas"
+          [rows]="filasLecturas()"
+          [rowKey]="rowKeyFn"
+          [pageSize]="10"
+        />
       </section>
     }
 
     <section class="unidad-detail__seccion" aria-labelledby="unidad-historial">
       <h2 id="unidad-historial">Historial de mantenimientos</h2>
-      <dynadrill-data-table [columns]="columnasPreventivos" [rows]="filasPreventivos()" [rowKey]="rowKeyFn" [pageSize]="10" />
+      <dynadrill-data-table
+        [columns]="columnasPreventivos"
+        [rows]="filasPreventivos()"
+        [rowKey]="rowKeyFn"
+        [pageSize]="10"
+      />
     </section>
   }
 </dynadrill-spinner>

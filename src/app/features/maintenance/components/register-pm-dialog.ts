@@ -124,7 +124,7 @@ export class RegisterPMDialog {
       input.kmAlMomento = Number(this.valorMetrica());
     }
 
-    this.unidadesService.registrarMantenimiento(this.alerta.unidadId, input).subscribe({
+    this.unidadesService.registrarMantenimiento(Number(this.alerta.unidadId), input).subscribe({
       next: () => {
         this.notify.success('PM registrado', `Mantenimiento de ${this.alerta.unidadCode} registrado correctamente.`);
         this.modalRef.close(true);

@@ -26,22 +26,24 @@ import { MntCompactList, type MntCompactItem } from '../components/mnt-compact-c
 import { AppNotificationItem, NotificationsService } from '../../../core/services/notifications.service';
 import { computeOrderStatus, MaintenanceOrderWithSubOrders, OrderStatus } from '../models/maintenance-order.model';
 import { unitReportCode, unitReportHasNovedades, UnitReport } from '../models/unit-report.model';
-import { AlertaPreventiva, AlertaPreventivaNivel, calcularAlertas, Unidad } from '../models/unidad.model';
+import { AlertaPreventiva, AlertaPreventivaNivel } from '../models/unidad.model';
+import { alertaDesdeFlota } from '../models/flota-mantenimiento.mapper';
+import type { AlertaPreventivaFlota } from '../../flota/models/unidad-flota.model';
+import type { ConductorEstado, InspeccionResumen } from '../../flota/models/inspeccion-flota.model';
+import { FlotaUnidadesService } from '../../flota/services/flota-unidades.service';
+import { FlotaInspeccionesService } from '../../flota/services/flota-inspecciones.service';
+import { PreventivoDialog, type PreventivoDialogData } from '../../flota/components/preventivo-dialog';
+import { InspeccionVehiculoDialog, type InspeccionVehiculoDialogData } from '../../flota/components/inspeccion-vehiculo-dialog';
+import { InspeccionesFlotaTable } from '../../flota/components/inspecciones-flota-table';
 import { MaintenanceOrdersService } from '../services/maintenance-orders.service';
 import { UnitReportsService } from '../services/unit-reports.service';
-import { UnidadesService } from '../services/unidades.service';
 import { OrderDetailPanel, OrderDetailPanelData } from '../components/order-detail-panel';
 import { OrderClassificationDialog, OrderClassificationDialogData } from '../components/order-classification-dialog';
 import { DocumentoPdfService } from '../../../shared/documentos';
 import { InformeMantenimientoHoja } from '../../../shared/documentos/formatos/informe-mantenimiento-hoja';
 import { OrdenMantenimientoGeneralHoja } from '../../../shared/documentos/formatos/orden-mantenimiento-general-hoja';
 import { OrdenMantenimientoOperativoHoja } from '../../../shared/documentos/formatos/orden-mantenimiento-operativo-hoja';
-import { RegisterPMDialog, RegisterPMDialogData } from '../components/register-pm-dialog';
 import { HistorialDialog, HistorialDialogData } from '../components/historial-dialog';
-import { VehicleInspectionsTable } from '../components/vehicle-inspections-table';
-import { VehicleInspectionsService } from '../services/vehicle-inspections.service';
-import { ConductorPermisos, VehicleInspection, conductorPermisosPorVencer } from '../models/vehicle-inspection.model';
-import { VehicleInspectionDialog, VehicleInspectionDialogData } from '../components/vehicle-inspection-dialog';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -59,7 +61,7 @@ const ORDER_STATUS_TONE: Record<OrderStatus, DynadrillTagVariant> = {
 
 @Component({
   selector: 'app-maintenance-list-page',
-  imports: [DynadrillButtonComponent, DynadrillIconButtonComponent, DynadrillDataTableComponent, PageHeader, KpiStat, QhseRegistrosMovil, MntCompactList, DynadrillSelectComponent, DynadrillSpinnerComponent, DynadrillTabsComponent, VehicleInspectionsTable],
+  imports: [DynadrillButtonComponent, DynadrillIconButtonComponent, DynadrillDataTableComponent, PageHeader, KpiStat, QhseRegistrosMovil, MntCompactList, DynadrillSelectComponent, DynadrillSpinnerComponent, DynadrillTabsComponent, InspeccionesFlotaTable],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './maintenance-list-page.html',
   styleUrl: './maintenance-list-page.scss',
@@ -68,8 +70,8 @@ export class MaintenanceListPage {
   private readonly ordersService = inject(MaintenanceOrdersService);
   private readonly router = inject(Router);
   private readonly unitReportsService = inject(UnitReportsService);
-  private readonly unidadesService = inject(UnidadesService);
-  private readonly inspectionsService = inject(VehicleInspectionsService);
+  private readonly flotaUnidades = inject(FlotaUnidadesService);
+  private readonly flotaInspecciones = inject(FlotaInspeccionesService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly drawer = inject(DynadrillDrawerService);
   private readonly dialogService = inject(DynadrillDialogService);
@@ -81,13 +83,14 @@ export class MaintenanceListPage {
   protected readonly loading = signal(true);
   protected readonly orders = signal<MaintenanceOrderWithSubOrders[]>([]);
   protected readonly unitReports = signal<UnitReport[]>([]);
-  protected readonly unidades = signal<Unidad[]>([]);
-  protected readonly inspections = signal<VehicleInspection[]>([]);
-  /** Base de RRHH/QHSE simulada (ver vehicle-inspection.model.ts) — se carga acá también para poder alimentar la campana sin que nadie tenga que abrir una inspección primero. */
-  protected readonly conductoresPermisos = signal<ConductorPermisos[]>([]);
+  /** Alertas del preventivo: las calcula Flota (reglas MAN-002 en su base de datos), aquí solo se presentan. */
+  protected readonly alertasFlota = signal<AlertaPreventivaFlota[]>([]);
+  protected readonly inspecciones = signal<InspeccionResumen[]>([]);
+  /** Estado de los documentos de los conductores: alimenta la campana sin que nadie abra una inspección. */
+  protected readonly conductores = signal<ConductorEstado[]>([]);
 
   protected readonly alertas = computed<AlertaPreventiva[]>(() =>
-    this.unidades().flatMap(u => calcularAlertas(u)).sort((a, b) => a.restante - b.restante)
+    this.alertasFlota().map(alertaDesdeFlota).sort((a, b) => a.restante - b.restante)
   );
 
   protected readonly activeTab = signal(0);
@@ -169,18 +172,16 @@ export class MaintenanceListPage {
 
   protected readonly prevRowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
-  /**
-   * Pestaña Inspecciones — el Jefe solo tiene visibilidad. Abre el mismo diálogo que Pumping (DYN-SGI-RE-068, paso a
-   * paso) en modo lectura, así ambos roles ven la inspección igual.
-   */
-  protected viewInspection(inspection: VehicleInspection): void {
-    this.dialogService.open<VehicleInspectionDialog, VehicleInspectionDialogData>({
+  /** Pestaña Inspecciones: el detalle (DYN-SGI-RE-068); con el permiso correspondiente también se aprueba, rechaza o anula desde ahí. */
+  protected viewInspection(inspeccion: InspeccionResumen): void {
+    const ref = this.dialogService.open<InspeccionVehiculoDialog, InspeccionVehiculoDialogData>({
       title: 'Detalle de Inspección — DYN-SGI-RE-068',
-      content: VehicleInspectionDialog,
-      data: { existing: inspection, readonly: true },
+      content: InspeccionVehiculoDialog,
+      data: { inspeccionId: inspeccion.id },
       size: 'large',
       footer: false,
     });
+    ref.afterClose.subscribe(cambio => { if (cambio) this.reload(); });
   }
 
   /** Historial de una unidad — accesible desde cualquier alerta de Preventivo que le pertenezca. */
@@ -189,7 +190,7 @@ export class MaintenanceListPage {
     this.dialogService.open<HistorialDialog, HistorialDialogData>({
       title: 'Historial de mantenimiento',
       content: HistorialDialog,
-      data: { unidadId: alerta.unidadId, unidadCode: alerta.unidadCode, unidadNombre: alerta.unidadNombre },
+      data: { unidadId: alerta.unidadId, unidadFlotaId: String(alerta.unidadId), unidadCode: alerta.unidadCode, unidadNombre: alerta.unidadNombre },
       footer: false,
       width: '640px',
     });
@@ -200,10 +201,7 @@ export class MaintenanceListPage {
     const nivel = this.filtroNivel();
     const tipo = this.filtroTipo();
     if (nivel) list = list.filter(a => a.nivel === nivel);
-    if (tipo) list = list.filter(a => {
-      const u = this.unidades().find(u => u.code === a.unidadCode);
-      return u?.tipo === String(tipo);
-    });
+    if (tipo) list = list.filter(a => a.unidadTipo === String(tipo));
     const key = this.sortKey();
     const dir = this.sortDir() === 'asc' ? 1 : -1;
     return [...list].sort((a, b) => {
@@ -415,18 +413,13 @@ export class MaintenanceListPage {
       }
     }
 
-    /**
-     * Permisos del conductor próximos a vencer (presentación del módulo,
-     * 2026-09-01) — antes esta alerta solo se veía si alguien abría el
-     * diálogo de Inspección de Vehículos con ese conductor seleccionado;
-     * ahora también avisa por la campana sin que nadie tenga que abrirlo.
-     */
-    for (const c of this.conductoresPermisos()) {
-      for (const p of conductorPermisosPorVencer(c)) {
+    // Documentos de los conductores por vencer: avisan por la campana sin que nadie tenga que abrir una inspección.
+    for (const c of this.conductores()) {
+      for (const d of c.documentos.filter(d => d.estado === 'por_vencer')) {
         items.push({
-          id: `permiso-${c.nombre}-${p.documento}`,
-          title: `${c.nombre} — ${p.documento} por vencer`,
-          description: `Vence en ${p.diasRestantes} ${p.diasRestantes === 1 ? 'día' : 'días'} (${p.vencimiento})`,
+          id: `permiso-${c.usuario.id}-${d.tipo.codigo}`,
+          title: `${c.usuario.nombre} — ${d.tipo.nombre} por vencer`,
+          description: `Vence en ${d.diasRestantes} ${d.diasRestantes === 1 ? 'día' : 'días'} (${d.vigenteHasta})`,
           tone: 'warning',
           link: '/dashboard/mantenimiento',
         });
@@ -448,16 +441,16 @@ export class MaintenanceListPage {
     forkJoin({
       orders: this.ordersService.list(),
       unitReports: this.unitReportsService.list(),
-      unidades: this.unidadesService.list(),
-      inspections: this.inspectionsService.list(),
-      conductoresPermisos: this.inspectionsService.listConductoresPermisos(),
+      alertas: this.flotaUnidades.alertas(),
+      inspecciones: this.flotaInspecciones.listar(),
+      conductores: this.flotaInspecciones.conductores(),
     }).subscribe({
-      next: ({ orders, unitReports, unidades, inspections, conductoresPermisos }) => {
+      next: ({ orders, unitReports, alertas, inspecciones, conductores }) => {
         this.orders.set(orders);
         this.unitReports.set(unitReports);
-        this.unidades.set(unidades);
-        this.inspections.set(inspections);
-        this.conductoresPermisos.set(conductoresPermisos);
+        this.alertasFlota.set(alertas);
+        this.inspecciones.set(inspecciones);
+        this.conductores.set(conductores);
         this.loading.set(false);
       },
       error: () => {
@@ -506,13 +499,18 @@ export class MaintenanceListPage {
 
   openRegisterPM(row: Record<string, unknown>): void {
     const alerta = row['_alerta'] as AlertaPreventiva;
-    const ref = this.dialogService.open<RegisterPMDialog, RegisterPMDialogData>({
-      title: `Registrar PM — ${alerta.unidadCode}`,
-      content: RegisterPMDialog,
-      data: { alerta },
-      footer: false,
+    this.flotaUnidades.obtener(String(alerta.unidadId)).subscribe({
+      next: unidad => {
+        const ref = this.dialogService.open<PreventivoDialog, PreventivoDialogData>({
+          title: `Registrar mantenimiento — ${alerta.unidadCode}`,
+          content: PreventivoDialog,
+          data: { unidad },
+          footer: false,
+        });
+        ref.afterClose.subscribe(() => this.reload());
+      },
+      error: () => this.notify.error('Error', 'No se pudo cargar la unidad.'),
     });
-    ref.afterClose.subscribe(() => this.reload());
   }
 
   private readonly documentoPdf = inject(DocumentoPdfService);

@@ -109,13 +109,7 @@
   <!-- ── TAB INSPECCIONES — solo lectura, visibilidad total (con y sin novedad) ── -->
   <div [hidden]="activeTab() !== 2">
     <p class="maintenance-list-page__nota">Solo lectura — las inspecciones las aprueba el Supervisor.</p>
-    <app-vehicle-inspections-table
-      [inspections]="inspections()"
-      [orders]="orders()"
-      [unitReports]="unitReports()"
-      [editable]="false"
-      (view)="viewInspection($event)"
-    />
+    <app-inspecciones-flota-table [inspecciones]="inspecciones()" (view)="viewInspection($event)" />
   </div>
   </dynadrill-spinner>
 </div>

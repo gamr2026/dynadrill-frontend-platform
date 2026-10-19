@@ -1,4 +1,8 @@
-<app-page-header eyebrow="Flota" title="Unidades" subtitle="Equipos de servicio, auxiliares y de transporte, con sus lecturas y su mantenimiento preventivo">
+<app-page-header
+  eyebrow="Flota"
+  title="Unidades"
+  subtitle="Equipos de servicio, auxiliares y de transporte, con sus lecturas y su mantenimiento preventivo"
+>
   @if (puedeCrear()) {
     <dynadrill-button actions (clicked)="nuevaUnidad()">
       <dynadrill-icon name="add" [size]="16" />
@@ -8,16 +12,37 @@
 </app-page-header>
 
 <div class="unidades-list-page__filtros">
-  <dynadrill-select label="Tipo" [options]="tipoFiltro" [value]="tipo()" (valueChange)="cambiarTipo($any($event))" />
-  <dynadrill-checkbox label="Incluir unidades dadas de baja" [checked]="incluirBajas()" (checkedChange)="cambiarBajas($event)" />
+  <dynadrill-select
+    label="Tipo"
+    [options]="tipoFiltro"
+    [value]="tipo()"
+    (valueChange)="cambiarTipo($any($event))"
+  />
+  <dynadrill-checkbox
+    label="Incluir unidades dadas de baja"
+    [checked]="incluirBajas()"
+    (checkedChange)="cambiarBajas($event)"
+  />
 </div>
 
 @if (isMobile()) {
-  <app-search-field label="Buscar unidades" placeholder="Buscar código o nombre…" [value]="query()" (valueChange)="query.set($event)" />
+  <app-search-field
+    label="Buscar unidades"
+    placeholder="Buscar código o nombre…"
+    [value]="query()"
+    (valueChange)="query.set($event)"
+  />
 
   <ul class="unidades-list-page__cards" [attr.aria-busy]="loading()">
     @for (card of cards(); track card.id) {
-      <li><app-entity-card [title]="card.title" [lines]="card.lines" [tags]="card.tags" [actions]="card.actions" /></li>
+      <li>
+        <app-entity-card
+          [title]="card.title"
+          [lines]="card.lines"
+          [tags]="card.tags"
+          [actions]="card.actions"
+        />
+      </li>
     } @empty {
       @if (!loading()) {
         <li class="unidades-list-page__empty">Ninguna unidad coincide con la búsqueda.</li>
@@ -27,11 +52,19 @@
 } @else {
   <ng-template #actionsTpl let-row>
     <div class="dyn-actions-row">
-      <dynadrill-button variant="secondary" size="small" (clicked)="verFilaFicha(row)">Ver ficha</dynadrill-button>
+      <dynadrill-button variant="secondary" size="small" (clicked)="verFilaFicha(row)"
+        >Ver ficha</dynadrill-button
+      >
     </div>
   </ng-template>
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando unidades…">
-    <dynadrill-data-table [columns]="columns" [rows]="rows()" [rowKey]="rowKeyFn" [pageSize]="10" [actionsTemplate]="actionsTpl" />
+    <dynadrill-data-table
+      [columns]="columns"
+      [rows]="rows()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="10"
+      [actionsTemplate]="actionsTpl"
+    />
   </dynadrill-spinner>
 }

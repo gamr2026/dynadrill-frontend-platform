@@ -33,6 +33,10 @@ export const routes: Routes = [
         loadChildren: () => import('./features/maintenance/maintenance.routes').then(m => m.maintenanceRoutes),
       },
       {
+        path: 'dashboard/flota',
+        loadChildren: () => import('./features/flota/flota.routes').then(m => m.flotaRoutes),
+      },
+      {
         path: 'dashboard/qhse',
         loadChildren: () => import('./features/qhse/qhse.routes').then(m => m.qhseRoutes),
       },

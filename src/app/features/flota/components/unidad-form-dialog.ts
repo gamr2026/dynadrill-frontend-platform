@@ -74,43 +74,73 @@ export class UnidadFormDialog {
   protected readonly codigo = signal(this.unidad?.codigo ?? '');
   protected readonly nombre = signal(this.unidad?.nombre ?? '');
   protected readonly tipo = signal<TipoUnidadFlota | null>(this.unidad?.tipo ?? null);
-  protected readonly categoriaPeso = signal<CategoriaPesoFlota | null>(this.unidad?.categoriaPeso ?? null);
+  protected readonly categoriaPeso = signal<CategoriaPesoFlota | null>(
+    this.unidad?.categoriaPeso ?? null,
+  );
   protected readonly lecturaInicial = signal('');
   protected readonly vehiculoId = signal<string>(this.unidad?.vehiculo?.id ?? SIN_VALOR);
-  protected readonly proveedorId = signal<string>(this.unidad?.proveedorMantenimiento?.id ?? SIN_VALOR);
-  protected readonly fechaMatricula = signal<Date | null>(deFechaIso(this.unidad?.documentos.fechaMatricula));
-  protected readonly caducidadMatricula = signal<Date | null>(deFechaIso(this.unidad?.documentos.caducidadMatricula));
-  protected readonly caducidadPoliza = signal<Date | null>(deFechaIso(this.unidad?.documentos.caducidadPoliza));
-  protected readonly vigenciaOtroDocumento = signal<Date | null>(deFechaIso(this.unidad?.documentos.vigenciaOtroDocumento));
+  protected readonly proveedorId = signal<string>(
+    this.unidad?.proveedorMantenimiento?.id ?? SIN_VALOR,
+  );
+  protected readonly fechaMatricula = signal<Date | null>(
+    deFechaIso(this.unidad?.documentos.fechaMatricula),
+  );
+  protected readonly caducidadMatricula = signal<Date | null>(
+    deFechaIso(this.unidad?.documentos.caducidadMatricula),
+  );
+  protected readonly caducidadPoliza = signal<Date | null>(
+    deFechaIso(this.unidad?.documentos.caducidadPoliza),
+  );
+  protected readonly vigenciaOtroDocumento = signal<Date | null>(
+    deFechaIso(this.unidad?.documentos.vigenciaOtroDocumento),
+  );
   protected readonly predeterminada = signal(this.unidad?.predeterminada ?? false);
   protected readonly nota = signal(this.unidad?.nota ?? '');
   protected readonly enviando = signal(false);
 
-  protected readonly vehiculoOpciones = signal<DynadrillSelectOption[]>([{ label: 'Sin vehículo del catálogo', value: SIN_VALOR }]);
-  protected readonly proveedorOpciones = signal<DynadrillSelectOption[]>([{ label: 'Interno (Dynadrill)', value: SIN_VALOR }]);
+  protected readonly vehiculoOpciones = signal<DynadrillSelectOption[]>([
+    { label: 'Sin vehículo del catálogo', value: SIN_VALOR },
+  ]);
+  protected readonly proveedorOpciones = signal<DynadrillSelectOption[]>([
+    { label: 'Interno (Dynadrill)', value: SIN_VALOR },
+  ]);
 
   protected readonly esServicio = computed(() => this.tipo() === 'servicio');
   protected readonly esTransporte = computed(() => this.tipo() === 'transporte');
-  protected readonly lecturaEtiqueta = computed(() => (this.esServicio() ? 'Horómetro actual (h)' : 'Kilometraje actual (km)'));
+  protected readonly lecturaEtiqueta = computed(() =>
+    this.esServicio() ? 'Horómetro actual (h)' : 'Kilometraje actual (km)',
+  );
   protected readonly puedeGuardar = computed(
-    () => this.codigo().trim().length >= 2 && this.nombre().trim().length >= 2 && this.tipo() !== null && !this.enviando(),
+    () =>
+      this.codigo().trim().length >= 2 &&
+      this.nombre().trim().length >= 2 &&
+      this.tipo() !== null &&
+      !this.enviando(),
   );
 
   constructor() {
     this.catalogos.vehiculos().subscribe({
-      next: vs => {
+      next: (vs) => {
         const propio = this.unidad?.vehiculo;
         const base = [{ label: 'Sin vehículo del catálogo', value: SIN_VALOR }];
         const opciones = vs
-          .filter(v => v.habilitado || v.id === propio?.id)
-          .map(v => ({ label: [v.placa, v.marca, v.modelo].filter(Boolean).join(' · '), value: v.id }));
+          .filter((v) => v.habilitado || v.id === propio?.id)
+          .map((v) => ({
+            label: [v.placa, v.marca, v.modelo].filter(Boolean).join(' · '),
+            value: v.id,
+          }));
         this.vehiculoOpciones.set([...base, ...opciones]);
       },
       error: () => this.notify.error('Error', 'No se pudo cargar el catálogo de vehículos.'),
     });
     this.flota.proveedores().subscribe({
-      next: ps => this.proveedorOpciones.set([{ label: 'Interno (Dynadrill)', value: SIN_VALOR }, ...ps.map((p: ProveedorMantenimiento) => ({ label: p.nombre, value: p.id }))]),
-      error: () => this.notify.error('Error', 'No se pudo cargar los proveedores de mantenimiento.'),
+      next: (ps) =>
+        this.proveedorOpciones.set([
+          { label: 'Interno (Dynadrill)', value: SIN_VALOR },
+          ...ps.map((p: ProveedorMantenimiento) => ({ label: p.nombre, value: p.id })),
+        ]),
+      error: () =>
+        this.notify.error('Error', 'No se pudo cargar los proveedores de mantenimiento.'),
     });
   }
 
@@ -149,8 +179,11 @@ export class UnidadFormDialog {
           lecturaInicial: tipo !== 'auxiliar' && lectura !== '' ? Number(lectura) : null,
         });
     peticion.subscribe({
-      next: u => {
-        this.notify.success(this.unidad ? 'Unidad actualizada' : 'Unidad creada', `${u.codigo} guardada.`);
+      next: (u) => {
+        this.notify.success(
+          this.unidad ? 'Unidad actualizada' : 'Unidad creada',
+          `${u.codigo} guardada.`,
+        );
         this.modalRef.close(u);
       },
       error: (e: HttpErrorResponse) => {

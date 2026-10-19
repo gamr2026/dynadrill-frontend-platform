@@ -8,8 +8,8 @@ import { TipoServicio } from './unidad.model';
  * cronograma, el informe de mantenimiento y los KPIs.
  */
 export interface RegistroMantenimiento {
-  id: number;
-  unidadId: number;
+  id: number | string;
+  unidadId: number | string;
   unidadCode: string;
   clase: 'Preventivo' | 'Correctivo';
   /** Solo aplica cuando clase = 'Preventivo' y la unidad es de tipo Servicio. */

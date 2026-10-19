@@ -5,6 +5,8 @@
  */
 
 export const PERMISO_DOCUMENTOS_VER = 'qhse.documentos.ver';
+/** El equipo de Pumping ve qué documentos tiene el pedido de su ticket (solo el estado; no la bandeja ni las descargas). */
+export const PERMISO_DOCUMENTOS_VER_TICKET = 'qhse.documentos.ver_ticket';
 export const PERMISO_DOCUMENTOS_GESTIONAR = 'qhse.documentos.gestionar';
 export const PERMISO_ACTA_ENTREGA_CARGAR = 'qhse.acta_entrega.cargar';
 export const PERMISO_ACTA_ENTREGA_VER = 'qhse.acta_entrega.ver';

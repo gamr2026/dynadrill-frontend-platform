@@ -1,5 +1,12 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { switchMap } from 'rxjs';
 import {
@@ -38,6 +45,7 @@ import {
   PERMISO_ACTA_ENTREGA_CARGAR,
   PERMISO_DOCUMENTOS_GESTIONAR,
   PERMISO_DOCUMENTOS_VER,
+  PERMISO_DOCUMENTOS_VER_TICKET,
   exigeMotivoSuplencia,
   fechaIso,
   insigniaArt,
@@ -55,6 +63,7 @@ import {
   TicketEpiDialog,
   type TicketEpiDialogData,
 } from '../../components/ticket-epi-dialog/ticket-epi-dialog';
+import { TicketReporteUnidadForm } from '../../components/ticket-reporte-unidad-form/ticket-reporte-unidad-form';
 import { DocumentosPedidoService } from '../../../../../qhse/documentos-pedido/services/documentos-pedido.service';
 import {
   PERMISO_PREFACTURA_FIRMA_COMPANY_MAN,
@@ -122,6 +131,7 @@ import {
   pendientesDelPaso,
   ESTADO_REPORTE_DIARIO_LABELS,
   ESTADO_REPORTE_DIARIO_TONO,
+  type AceptacionOperador,
   type DocumentoDelTicket,
   type QuimicosTicket,
   type ReporteDiarioDia,
@@ -140,6 +150,7 @@ import { TicketsPumpingService } from '../../services/tickets-pumping.service';
   selector: 'app-ticket-pumping-detail-page',
   imports: [
     NgTemplateOutlet,
+    TicketReporteUnidadForm,
     TicketMaintenanceCard,
     TicketProgress,
     DynadrillBannerComponent,
@@ -165,6 +176,10 @@ export class TicketPumpingDetailPage {
 
   // ── Documentos QHSE del pedido (formato de recepción, SFI, ART, PT del día y Acta): los carga QHSE, aquí se consultan ──
   protected readonly puedeVerDocsQhse = computed(() => this.auth.can(PERMISO_DOCUMENTOS_VER));
+  /** El equipo de Pumping ve el estado de los documentos del pedido de su ticket sin tener la bandeja de QHSE. */
+  protected readonly puedeVerEstadoDocs = computed(
+    () => this.puedeVerDocsQhse() || this.auth.can(PERMISO_DOCUMENTOS_VER_TICKET),
+  );
   protected readonly documentosQhse = signal<PedidoDocumental | null>(null);
   protected readonly artInsignia = computed(() => {
     const art = this.documentosQhse()?.art ?? null;
@@ -206,12 +221,10 @@ export class TicketPumpingDetailPage {
 
   private cargarEpi(ticketId: string): void {
     if (!this.puedeSolicitarEpi()) return;
-    this.epiServicio
-      .deTicket(ticketId)
-      .subscribe({
-        next: (l) => this.epiOperadores.set(l),
-        error: () => this.epiOperadores.set([]),
-      });
+    this.epiServicio.deTicket(ticketId).subscribe({
+      next: (l) => this.epiOperadores.set(l),
+      error: () => this.epiOperadores.set([]),
+    });
   }
 
   protected solicitarEpi(o: OperadorEpiTicket): void {
@@ -233,13 +246,119 @@ export class TicketPumpingDetailPage {
       if (!e) return;
       this.notify.success('Solicitud registrada', 'QHSE la revisará y la despachará.');
       this.cargarEpi(t.id);
+      this.cargarTerminos(t.id);
     });
   }
 
+  // ── Traslado de salida: lo que hace el operador (inspección, EPI, reporte de unidad), como en la demo ──
+  protected readonly vistaSalida = computed(() => this.ticket()?.paso.codigo === 'traslado_salida');
+  private readonly formReporte = viewChild(TicketReporteUnidadForm);
+  protected readonly puedeEnviarReporte = computed(
+    () => this.formReporte()?.puedeEnviar() ?? false,
+  );
+  /** La unidad cuyo reporte de salida puedo firmar yo (su operador, o Superadmin) y si ya quedó firmado. */
+  protected readonly unidadParaFirmar = computed(() => {
+    const t = this.ticket();
+    if (!t) return null;
+    const r = t.requisitos.find(
+      (x) => x.codigo === 'reporte_unidad_salida' && !!x.vehiculoId && this.puedeFirmarUnidad(x),
+    );
+    return r
+      ? {
+          vehiculoId: r.vehiculoId as string,
+          placa: r.para ?? '',
+          firmado: r.estado === 'cumplido',
+        }
+      : null;
+  });
+  /** Hay un reporte por firmar: la barra muestra «Enviar reporte de unidad de salida» en lugar de «Guardar y continuar». */
+  protected readonly enviarPendiente = computed(
+    () => this.vistaSalida() && !!this.unidadParaFirmar() && !this.unidadParaFirmar()?.firmado,
+  );
+  protected enviarReporte(): void {
+    this.formReporte()?.enviar();
+  }
+  protected alFirmarReporte(): void {
+    this.recargar();
+  }
+
+  /** Estado de la inspección de cada unidad (la hace el Operador; la aprueba el Supervisor en la revisión de salida). */
+  protected readonly inspecciones = computed(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    return t.requisitos
+      .filter((r) => r.codigo === 'inspeccion_vehiculo_realizada' && !!r.vehiculoId)
+      .map((r) => {
+        const aprobada = t.requisitos.find(
+          (x) => x.codigo === 'inspeccion_vehiculo_aprobada' && x.vehiculoId === r.vehiculoId,
+        );
+        const realizada = r.estado === 'cumplido';
+        const etiqueta = !realizada
+          ? 'Pendiente'
+          : aprobada?.estado === 'cumplido'
+            ? 'Aprobada'
+            : 'Realizada';
+        const texto = !realizada
+          ? 'Pendiente de realizar'
+          : aprobada?.estado === 'cumplido'
+            ? 'Aprobada por el Supervisor'
+            : 'Realizada, esperando la aprobación del Supervisor';
+        const tono: 'success' | 'warning' | 'info' = !realizada
+          ? 'warning'
+          : aprobada?.estado === 'cumplido'
+            ? 'success'
+            : 'info';
+        return { requisito: r, placa: r.para ?? '', etiqueta, texto, tono };
+      });
+  });
+  protected readonly placasSinInspeccion = computed(() =>
+    this.inspecciones()
+      .filter((i) => i.requisito.estado === 'pendiente')
+      .map((i) => i.placa),
+  );
+
+  protected readonly epiPendiente = computed(() =>
+    this.epiOperadores().some((o) => o.entrega?.estado !== 'despachado'),
+  );
+  protected textoEpi(e: OperadorEpiTicket['entrega']): string {
+    if (!e) return 'Sin solicitar';
+    if (e.estado === 'despachado') return 'Despachado';
+    if (e.estado === 'aprobado') return 'Aprobado, esperando despacho de QHSE';
+    if (e.estado === 'rechazado') return 'Rechazado — ' + (e.motivoRechazo ?? '');
+    return 'Solicitado, esperando revisión de QHSE';
+  }
+
+  /** Términos y condiciones de cada operador (los aceptó él mismo): versión aceptada o pendiente. */
+  private readonly terminosOperadores = signal<AceptacionOperador[]>([]);
+  protected terminosDe(o: OperadorEpiTicket): AceptacionOperador['aceptacion'] {
+    return this.terminosOperadores().find((x) => x.usuarioId === o.usuarioId)?.aceptacion ?? null;
+  }
+  protected esYo(usuarioId: string): boolean {
+    return usuarioId === this.yo()?.id;
+  }
+  private cargarTerminos(ticketId: string): void {
+    this.servicio
+      .terminos(ticketId)
+      .subscribe({
+        next: (l) => this.terminosOperadores.set(l),
+        error: () => this.terminosOperadores.set([]),
+      });
+  }
+  protected cargoDe(usuarioId: string): string {
+    return this.epiOperadores().find((o) => o.usuarioId === usuarioId)?.cargo ?? 'Operador';
+  }
+  /** Quien puede ver el reporte de una unidad sin ser su operador lo abre en la ventana de solo lectura. */
+  protected verReporteDe(vehiculoId: string | null): void {
+    const r = this.ticket()?.requisitos.find(
+      (x) => x.codigo === 'reporte_unidad_salida' && x.vehiculoId === vehiculoId,
+    );
+    if (r) this.abrirReporte(r);
+  }
+
   private cargarDocumentosQhse(t: TicketPumping): void {
-    if (!this.puedeVerDocsQhse()) return;
-    this.docsQhse.pedidos(t.pedidoCodigo).subscribe({
-      next: (l) => this.documentosQhse.set(l.find((p) => p.pedidoId === t.pedidoId) ?? null),
+    if (!this.puedeVerEstadoDocs()) return;
+    this.docsQhse.deTicket(t.id).subscribe({
+      next: (d) => this.documentosQhse.set(d),
       error: () => this.documentosQhse.set(null),
     });
   }
@@ -304,6 +423,7 @@ export class TicketPumpingDetailPage {
         this.notify.success('Documento cargado', 'Quedó registrado en QHSE.');
         this.cargarDocumentosQhse(t);
         this.cargarEpi(t.id);
+        this.cargarTerminos(t.id);
       },
       error: (err) => {
         this.cargandoDoc.set(false);
@@ -878,6 +998,7 @@ export class TicketPumpingDetailPage {
     this.cargarDocumentos(t.id);
     this.cargarDocumentosQhse(t);
     this.cargarEpi(t.id);
+    this.cargarTerminos(t.id);
   }
 
   protected readonly hayAsignacion = computed(() => {
@@ -905,6 +1026,7 @@ export class TicketPumpingDetailPage {
         this.cargarPedido(t.pedidoId);
         this.cargarDocumentosQhse(t);
         this.cargarEpi(t.id);
+        this.cargarTerminos(t.id);
       },
       error: (err) => {
         this.cargando.set(false);

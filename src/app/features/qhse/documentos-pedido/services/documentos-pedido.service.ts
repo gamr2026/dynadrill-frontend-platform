@@ -27,6 +27,11 @@ export class DocumentosPedidoService {
     });
   }
 
+  /** Qué documentos tiene el pedido de un ticket y cuáles faltan (lo ve el equipo de Pumping desde el ticket). */
+  deTicket(ticketId: string): Observable<PedidoDocumental> {
+    return this.http.get<PedidoDocumental>(`${this.base}/documentos/ticket/${ticketId}`);
+  }
+
   listar(filtro: {
     pedidoId?: string;
     tipo?: TipoDocumentoPedido;
@@ -41,16 +46,14 @@ export class DocumentosPedidoService {
 
   /** Sube el archivo al servicio de archivos (módulo de QHSE) y enlaza el documento al pedido, en dos pasos. */
   cargar(archivo: File, cuerpo: Omit<CargarDocumento, 'archivoId'>): Observable<DocumentoPedido> {
-    return this.archivos
-      .subir(archivo, MODULO_ARCHIVO_DOCUMENTO)
-      .pipe(
-        switchMap((a) =>
-          this.http.post<DocumentoPedido>(`${this.base}/documentos`, {
-            ...cuerpo,
-            archivoId: a.id,
-          }),
-        ),
-      );
+    return this.archivos.subir(archivo, MODULO_ARCHIVO_DOCUMENTO).pipe(
+      switchMap((a) =>
+        this.http.post<DocumentoPedido>(`${this.base}/documentos`, {
+          ...cuerpo,
+          archivoId: a.id,
+        }),
+      ),
+    );
   }
 
   anular(id: string, motivo: string): Observable<DocumentoPedido> {
@@ -68,19 +71,17 @@ export class DocumentosPedidoService {
     archivo: File,
     opciones: { referencia?: string; motivoSuplencia?: string } = {},
   ): Observable<DocumentoPedido> {
-    return this.archivos
-      .subir(archivo, MODULO_ARCHIVO_ACTA)
-      .pipe(
-        switchMap((a) =>
-          this.http.post<DocumentoPedido>(`${this.base}/tickets/${ticketId}/acta-entrega`, {
-            archivoId: a.id,
-            ...(opciones.referencia?.trim() ? { referencia: opciones.referencia.trim() } : {}),
-            ...(opciones.motivoSuplencia?.trim()
-              ? { motivoSuplencia: opciones.motivoSuplencia.trim() }
-              : {}),
-          }),
-        ),
-      );
+    return this.archivos.subir(archivo, MODULO_ARCHIVO_ACTA).pipe(
+      switchMap((a) =>
+        this.http.post<DocumentoPedido>(`${this.base}/tickets/${ticketId}/acta-entrega`, {
+          archivoId: a.id,
+          ...(opciones.referencia?.trim() ? { referencia: opciones.referencia.trim() } : {}),
+          ...(opciones.motivoSuplencia?.trim()
+            ? { motivoSuplencia: opciones.motivoSuplencia.trim() }
+            : {}),
+        }),
+      ),
+    );
   }
 
   /** Abre el archivo en otra pestaña (el contenido exige el token: se baja como blob). */

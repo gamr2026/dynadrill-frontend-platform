@@ -6,6 +6,8 @@
 
 export const PERMISO_EPI_VER = 'qhse.epi.ver';
 export const PERMISO_EPI_CREAR = 'qhse.epi.crear';
+/** El equipo de Pumping pide el EPI de los operadores de su ticket y ve el estado de cada solicitud. */
+export const PERMISO_EPI_SOLICITAR = 'qhse.epi.solicitar';
 export const PERMISO_EPI_APROBAR = 'qhse.epi.aprobar';
 export const PERMISO_EPI_DESPACHAR = 'qhse.epi.despachar';
 
@@ -80,14 +82,23 @@ export interface FirmaEpi {
   at: string;
 }
 
-export interface EntregaEpi extends Omit<EntregaEpiResumen, 'renglones' | 'firmadaPorTrabajador' | 'firmadaPorTalentoHumano'> {
+export interface EntregaEpi extends Omit<
+  EntregaEpiResumen,
+  'renglones' | 'firmadaPorTrabajador' | 'firmadaPorTalentoHumano'
+> {
   renglones: RenglonEpi[];
   firmaTrabajador: FirmaEpi | null;
   firmaTalentoHumano: FirmaEpi | null;
   aprobado: FirmaEpi | null;
   rechazado: (FirmaEpi & { motivo: string | null }) | null;
   despachado: FirmaEpi | null;
-  historial: Array<{ estadoAnterior: EstadoEpi | null; estadoNuevo: EstadoEpi; motivo: string | null; actor: string | null; at: string }>;
+  historial: Array<{
+    estadoAnterior: EstadoEpi | null;
+    estadoNuevo: EstadoEpi;
+    motivo: string | null;
+    actor: string | null;
+    at: string;
+  }>;
   updatedAt: string;
 }
 
@@ -114,10 +125,13 @@ export interface FiltroEntregasEpi {
 }
 
 /** Los renglones se pueden cambiar hasta que se despacha. */
-export const esEditable = (e: Pick<EntregaEpi, 'estado'>): boolean => e.estado === 'solicitado' || e.estado === 'aprobado';
+export const esEditable = (e: Pick<EntregaEpi, 'estado'>): boolean =>
+  e.estado === 'solicitado' || e.estado === 'aprobado';
 
 /** Lo que falta para poder despachar, en palabras de quien opera (vacío = listo). */
-export function pendientesDeDespacho(e: Pick<EntregaEpi, 'estado' | 'lugar' | 'renglones' | 'firmaTrabajador'>): string[] {
+export function pendientesDeDespacho(
+  e: Pick<EntregaEpi, 'estado' | 'lugar' | 'renglones' | 'firmaTrabajador'>,
+): string[] {
   if (e.estado !== 'aprobado') return [];
   const falta: string[] = [];
   if (!e.lugar) falta.push('indicar el lugar de la entrega');
@@ -127,15 +141,33 @@ export function pendientesDeDespacho(e: Pick<EntregaEpi, 'estado' | 'lugar' | 'r
 }
 
 export function sinCapacitacion(e: Pick<EntregaEpi, 'renglones'>): RenglonEpi[] {
-  return e.renglones.filter(r => !r.recibioCapacitacion);
+  return e.renglones.filter((r) => !r.recibioCapacitacion);
 }
 
 /** Texto del servidor (`detail`/`message`) o el de respaldo; los 409 indican que alguien más cambió la entrega. */
 export function mensajeErrorEpi(err: unknown, porDefecto: string): string {
   const e = err as { status?: number; error?: { message?: unknown; detail?: unknown } } | null;
   const m = e?.error?.detail ?? e?.error?.message;
-  const texto = Array.isArray(m) ? m.filter(x => typeof x === 'string').join('. ') : typeof m === 'string' ? m : '';
+  const texto = Array.isArray(m)
+    ? m.filter((x) => typeof x === 'string').join('. ')
+    : typeof m === 'string'
+      ? m
+      : '';
   if (e?.status === 403) return texto || 'Su rol no tiene permiso para esta acción.';
   if (e?.status === 409) return texto || 'La entrega cambió. Recargue e intente de nuevo.';
   return texto || porDefecto;
+}
+
+/** Un operador asignado a un ticket y su solicitud de EPI más reciente (`null` = todavía no se solicitó). */
+export interface OperadorEpiTicket {
+  usuarioId: string;
+  nombre: string;
+  cargo: string | null;
+  entrega: {
+    id: string;
+    numero: number;
+    codigo: string;
+    estado: EstadoEpi;
+    motivoRechazo: string | null;
+  } | null;
 }

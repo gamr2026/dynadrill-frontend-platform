@@ -126,7 +126,7 @@
                     }}</dynadrill-button
                   >
                 }
-                @if (r.estado === 'pendiente' && r.modulo !== 'pumping' && puedeConfirmarAMano()) {
+                @if (r.estado === 'pendiente' && r.modulo === 'flota' && puedeConfirmarAMano()) {
                   <dynadrill-button variant="secondary" size="small" (clicked)="confirmarAMano(r)"
                     >Confirmar a mano (temporal)</dynadrill-button
                   >
@@ -414,6 +414,46 @@
                     [ngTemplateOutlet]="requisitoTpl"
                     [ngTemplateOutletContext]="{ $implicit: r }"
                   />
+                }
+              </ul>
+            </section>
+          }
+
+          @if (muestraEpi()) {
+            <section class="tpd__tarjeta" aria-label="Entrega de EPI">
+              <h2>Entrega de EPI</h2>
+              <p class="tpd__meta">
+                El equipo pide el EPI de cada operador; QHSE lo aprueba y lo despacha. El ticket no
+                sale de Traslado de salida hasta que todos lo tengan despachado.
+              </p>
+              <ul class="tpd__requisitos">
+                @for (o of epiOperadores(); track o.usuarioId) {
+                  <li class="tpd__requisito">
+                    <div class="tpd__requisito-info">
+                      <strong>{{ o.nombre }}</strong>
+                      @if (o.entrega?.codigo; as c) {
+                        <span class="tpd__meta">{{ c }}</span>
+                      }
+                      <dynadrill-tag
+                        [label]="estadoEpi(o.entrega)"
+                        [variant]="tonoEpi(o.entrega)"
+                        [uppercase]="false"
+                      />
+                      @if (o.entrega?.motivoRechazo; as m) {
+                        <span class="tpd__meta">· “{{ m }}”</span>
+                      }
+                    </div>
+                    <div class="tpd__requisito-acciones">
+                      @if (puedePedirEpi(o)) {
+                        <dynadrill-button
+                          variant="secondary"
+                          size="small"
+                          (clicked)="solicitarEpi(o)"
+                          >Solicitar EPI</dynadrill-button
+                        >
+                      }
+                    </div>
+                  </li>
                 }
               </ul>
             </section>

@@ -44,6 +44,17 @@ import {
   type DocumentoVigente,
   type PedidoDocumental,
 } from '../../../../../qhse/documentos-pedido/models/documento-pedido';
+import {
+  ESTADO_EPI_ETIQUETA,
+  PERMISO_EPI_SOLICITAR,
+  type EstadoEpi,
+  type OperadorEpiTicket,
+} from '../../../../../qhse/entrega-epi/models/entrega-epi';
+import { EntregaEpiService } from '../../../../../qhse/entrega-epi/services/entrega-epi.service';
+import {
+  TicketEpiDialog,
+  type TicketEpiDialogData,
+} from '../../components/ticket-epi-dialog/ticket-epi-dialog';
 import { DocumentosPedidoService } from '../../../../../qhse/documentos-pedido/services/documentos-pedido.service';
 import {
   PERMISO_PREFACTURA_FIRMA_COMPANY_MAN,
@@ -169,6 +180,62 @@ export class TicketPumpingDetailPage {
       this.terminosPorOperador().every((r) => r.estado === 'cumplido'),
   );
 
+  // ── Entrega de EPI por operador: el equipo de Pumping la pide, QHSE la aprueba y la despacha (al despacharla el requisito se cumple solo) ──
+  private readonly epiServicio = inject(EntregaEpiService);
+  protected readonly puedeSolicitarEpi = computed(() => this.auth.can(PERMISO_EPI_SOLICITAR));
+  protected readonly epiOperadores = signal<OperadorEpiTicket[]>([]);
+  protected readonly muestraEpi = computed(
+    () => this.puedeSolicitarEpi() && this.epiOperadores().length > 0,
+  );
+  protected readonly estadoEpi = (e: OperadorEpiTicket['entrega']): string =>
+    e ? ESTADO_EPI_ETIQUETA[e.estado] : 'Sin solicitar';
+  protected readonly tonoEpi = (
+    e: OperadorEpiTicket['entrega'],
+  ): 'success' | 'info' | 'error' | 'warning' | 'neutral' => {
+    const por: Record<EstadoEpi, 'success' | 'info' | 'error' | 'warning'> = {
+      despachado: 'success',
+      aprobado: 'info',
+      rechazado: 'error',
+      solicitado: 'warning',
+    };
+    return e ? por[e.estado] : 'neutral';
+  };
+  protected puedePedirEpi(o: OperadorEpiTicket): boolean {
+    return !o.entrega || o.entrega.estado === 'rechazado';
+  }
+
+  private cargarEpi(ticketId: string): void {
+    if (!this.puedeSolicitarEpi()) return;
+    this.epiServicio
+      .deTicket(ticketId)
+      .subscribe({
+        next: (l) => this.epiOperadores.set(l),
+        error: () => this.epiOperadores.set([]),
+      });
+  }
+
+  protected solicitarEpi(o: OperadorEpiTicket): void {
+    const t = this.ticket();
+    if (!t) return;
+    const ref = this.dialog.open<TicketEpiDialog, TicketEpiDialogData>({
+      title: 'Solicitar entrega de EPI',
+      content: TicketEpiDialog,
+      data: {
+        ticketId: t.id,
+        trabajadorId: o.usuarioId,
+        trabajadorNombre: o.nombre,
+        trabajadorCargo: o.cargo,
+      },
+      footer: false,
+      width: '680px',
+    });
+    ref.afterClose.subscribe((e: unknown) => {
+      if (!e) return;
+      this.notify.success('Solicitud registrada', 'QHSE la revisará y la despachará.');
+      this.cargarEpi(t.id);
+    });
+  }
+
   private cargarDocumentosQhse(t: TicketPumping): void {
     if (!this.puedeVerDocsQhse()) return;
     this.docsQhse.pedidos(t.pedidoCodigo).subscribe({
@@ -236,6 +303,7 @@ export class TicketPumpingDetailPage {
         this.archivoDoc.set(null);
         this.notify.success('Documento cargado', 'Quedó registrado en QHSE.');
         this.cargarDocumentosQhse(t);
+        this.cargarEpi(t.id);
       },
       error: (err) => {
         this.cargandoDoc.set(false);
@@ -809,6 +877,7 @@ export class TicketPumpingDetailPage {
     this.cargarCambiosItems(t.id);
     this.cargarDocumentos(t.id);
     this.cargarDocumentosQhse(t);
+    this.cargarEpi(t.id);
   }
 
   protected readonly hayAsignacion = computed(() => {
@@ -835,6 +904,7 @@ export class TicketPumpingDetailPage {
         this.cargarDocumentos(t.id);
         this.cargarPedido(t.pedidoId);
         this.cargarDocumentosQhse(t);
+        this.cargarEpi(t.id);
       },
       error: (err) => {
         this.cargando.set(false);

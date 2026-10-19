@@ -7,6 +7,7 @@ import {
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import {
   DynadrillButtonComponent,
@@ -441,6 +442,9 @@ export class TicketReporteUnidadForm {
   readonly bloque = input('');
   /** Solo lectura (quien no es el operador de la unidad, o el ticket ya salió del traslado). */
   readonly soloLectura = input(false);
+  /** Origen y destino que se indicaron en la inspección del vehículo: precargan los del reporte mientras estén vacíos. */
+  readonly origenInicial = input('');
+  readonly destinoInicial = input('');
 
   /** El reporte quedó firmado: la página recarga el ticket. */
   readonly firmado = output<void>();
@@ -479,6 +483,14 @@ export class TicketReporteUnidadForm {
 
   constructor() {
     effect(() => {
+      const o = this.origenInicial();
+      const d = this.destinoInicial();
+      untracked(() => {
+        if (o && !this.origen().trim() && !this.bloqueado()) this.origen.set(o);
+        if (d && !this.destino().trim() && !this.bloqueado()) this.destino.set(d);
+      });
+    });
+    effect(() => {
       const ticketId = this.ticketId();
       const vehiculoId = this.vehiculoId();
       this.servicio.reporteUnidad(ticketId, vehiculoId).subscribe({
@@ -486,8 +498,8 @@ export class TicketReporteUnidadForm {
           this.reporte.set(r);
           if (r.salida.fecha) this.fecha.set(r.salida.fecha);
           if (r.salida.combustible !== null) this.combustible.set(String(r.salida.combustible));
-          this.origen.set(r.origen ?? '');
-          this.destino.set(r.destino ?? '');
+          this.origen.set(r.origen ?? this.origenInicial());
+          this.destino.set(r.destino ?? this.destinoInicial());
           if (r.hubodometros.length) {
             const letras = [...new Set(r.hubodometros.map((h) => h.eje))].sort();
             this.ejes.set(

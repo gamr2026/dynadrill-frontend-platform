@@ -16,6 +16,7 @@ import {
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
+  DynadrillIconButtonComponent,
   DynadrillTagComponent,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../../../../core/services/auth.service';
@@ -67,7 +68,10 @@ import {
   InspeccionVehiculoDialog,
   type InspeccionVehiculoDialogData,
 } from '../../../../../flota/components/inspeccion-vehiculo-dialog';
-import type { CasoInspeccion } from '../../../../../flota/models/inspeccion-flota.model';
+import type {
+  CasoInspeccion,
+  InspeccionDetalle,
+} from '../../../../../flota/models/inspeccion-flota.model';
 import { FlotaInspeccionesService } from '../../../../../flota/services/flota-inspecciones.service';
 import { TicketReporteUnidadForm } from '../../components/ticket-reporte-unidad-form/ticket-reporte-unidad-form';
 import { DocumentosPedidoService } from '../../../../../qhse/documentos-pedido/services/documentos-pedido.service';
@@ -163,6 +167,7 @@ import { TicketsPumpingService } from '../../services/tickets-pumping.service';
     DynadrillButtonComponent,
     DynadrillScreenHeaderComponent,
     DynadrillSpinnerComponent,
+    DynadrillIconButtonComponent,
     DynadrillTagComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -294,16 +299,52 @@ export class TicketPumpingDetailPage {
   }
   private cargarCasosFlota(ticketId: string): void {
     if (!this.auth.can('flota.inspecciones.ver')) return;
-    this.flotaInspecciones
-      .casos(ticketId)
-      .subscribe({ next: (l) => this.casosFlota.set(l), error: () => this.casosFlota.set([]) });
+    this.flotaInspecciones.casos(ticketId).subscribe({
+      next: (l) => {
+        this.casosFlota.set(l);
+        this.cargarInspeccionSalida();
+      },
+      error: () => this.casosFlota.set([]),
+    });
+  }
+
+  /** La inspección de salida ya hecha de la unidad que firma el reporte: de ahí salen el origen y el destino del reporte. */
+  protected readonly inspeccionSalida = signal<InspeccionDetalle | null>(null);
+  private cargarInspeccionSalida(): void {
+    const caso = this.casoDeUnidad(this.unidadParaFirmar()?.vehiculoId ?? null);
+    if (!caso?.salidaInspeccionId) return this.inspeccionSalida.set(null);
+    this.flotaInspecciones.obtener(caso.salidaInspeccionId).subscribe({
+      next: (d) => this.inspeccionSalida.set(d),
+      error: () => this.inspeccionSalida.set(null),
+    });
+  }
+  /** Ver el detalle de la inspección que hizo el operador (solo lectura; el Supervisor la aprueba desde ahí). */
+  protected readonly inspeccionRealizada = (vehiculoId: string | null): boolean =>
+    !!this.casoDeUnidad(vehiculoId)?.salidaInspeccionId;
+  protected verInspeccion(vehiculoId: string | null): void {
+    const id = this.casoDeUnidad(vehiculoId)?.salidaInspeccionId;
+    if (!id) return;
+    this.dialog
+      .open<InspeccionVehiculoDialog, InspeccionVehiculoDialogData>({
+        title: 'Inspección de vehículo — DYN-SGI-RE-068',
+        content: InspeccionVehiculoDialog,
+        data: { inspeccionId: id },
+        size: 'large',
+        footer: false,
+      })
+      .afterClose.subscribe((r) => r && this.recargar());
   }
 
   // ── Traslado de salida: lo que hace el operador (inspección, EPI, reporte de unidad), como en la demo ──
   protected readonly vistaSalida = computed(() => this.ticket()?.paso.codigo === 'traslado_salida');
   private readonly formReporte = viewChild(TicketReporteUnidadForm);
+  /** Lo que todavía falta para poder enviar el reporte (todo lo pendiente del paso, menos el propio reporte). */
+  protected readonly faltanParaEnviar = computed(() => {
+    const t = this.ticket();
+    return t ? pendientesDelPaso(t).filter((r) => r.codigo !== 'reporte_unidad_salida') : [];
+  });
   protected readonly puedeEnviarReporte = computed(
-    () => this.formReporte()?.puedeEnviar() ?? false,
+    () => (this.formReporte()?.puedeEnviar() ?? false) && this.faltanParaEnviar().length === 0,
   );
   /** La unidad cuyo reporte de salida puedo firmar yo (su operador, o Superadmin) y si ya quedó firmado. */
   protected readonly unidadParaFirmar = computed(() => {
@@ -346,7 +387,7 @@ export class TicketPumpingDetailPage {
           ? 'Pendiente'
           : aprobada?.estado === 'cumplido'
             ? 'Aprobada'
-            : 'Realizada';
+            : 'Por aprobar';
         const texto = !realizada
           ? 'Pendiente de realizar'
           : aprobada?.estado === 'cumplido'

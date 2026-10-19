@@ -496,14 +496,25 @@
                         <td>{{ cargoDe(o.usuarioId) }}</td>
                         <td>{{ o.placa ?? '—' }}</td>
                         <td class="tpd__num">
-                          @if (puedeRealizarInspeccion(o.vehiculoId)) {
-                            <dynadrill-button
-                              variant="primary"
-                              size="small"
+                          <span class="tpd__iconos">
+                            <dynadrill-icon-button
+                              icon="schedule"
+                              [tooltip]="
+                                inspeccionRealizada(o.vehiculoId)
+                                  ? 'Inspección realizada'
+                                  : 'Realizar inspección'
+                              "
+                              [disabled]="!puedeRealizarInspeccion(o.vehiculoId)"
                               (clicked)="realizarInspeccion(o.vehiculoId)"
-                              >Realizar inspección</dynadrill-button
-                            >
-                          }
+                            />
+                            @if (inspeccionRealizada(o.vehiculoId)) {
+                              <dynadrill-icon-button
+                                icon="eye"
+                                tooltip="Ver detalle de la inspección"
+                                (clicked)="verInspeccion(o.vehiculoId)"
+                              />
+                            }
+                          </span>
                           @if (o.vehiculoId && o.vehiculoId !== unidadParaFirmar()?.vehiculoId) {
                             <dynadrill-button
                               variant="secondary"
@@ -530,6 +541,8 @@
                 [campo]="t.campo ?? ''"
                 [bloque]="t.bloque ?? ''"
                 [soloLectura]="u.firmado || !t.puedeActuar"
+                [origenInicial]="inspeccionSalida()?.puntoPartida ?? ''"
+                [destinoInicial]="inspeccionSalida()?.destino ?? ''"
                 (firmado)="alFirmarReporte()"
               />
             }
@@ -998,6 +1011,9 @@
             <p class="tpd__meta tpd__barra-estado" role="status">
               @if (!t.puedeActuar) {
                 Este paso lo atiende {{ roles(t.paso.roles) }}.
+              } @else if (enviarPendiente() && faltanParaEnviar().length) {
+                Para enviar el reporte falta: {{ faltanParaEnviar().length }} requisito(s)
+                pendiente(s) (inspección de vehículos, entrega de EPI o términos).
               } @else if (pendientes().length) {
                 Para pasar falta: {{ pendientes().length }} requisito(s) pendiente(s).
               } @else {

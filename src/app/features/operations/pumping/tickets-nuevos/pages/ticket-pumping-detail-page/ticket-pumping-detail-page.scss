@@ -322,6 +322,12 @@
   }
 }
 
+.tpd__iconos {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .tpd__placas {
   display: inline-flex;
   flex-wrap: wrap;

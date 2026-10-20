@@ -14,9 +14,13 @@
 <ng-template #actionsTpl let-row>
   <div class="dyn-actions-row">
     @if (row['estado'] === 'por_completar') {
-      <dynadrill-icon-button icon="edit" tooltip="Completar Gerenciamiento de Viaje" (clicked)="completarFila(row)" />
+      <dynadrill-icon-button
+        icon="edit"
+        tooltip="Completar Gerenciamiento de Viaje"
+        (clicked)="completarFila(row)"
+      />
     } @else {
-      <dynadrill-icon-button icon="file-pdf" tooltip="Ver PDF" (clicked)="verPdfFila(row)" />
+      <dynadrill-icon-button icon="eye" tooltip="Ver detalle" (clicked)="verDetalleFila(row)" />
     }
   </div>
 </ng-template>
@@ -30,7 +34,10 @@
           [title]="'Gerenciamiento de Viaje — ' + row.tipoLabel"
           [subtitle]="row.wellName + ' • ' + row.clientName"
           [status]="row.estadoBadge"
-          [fields]="[{ label: 'Paso del ticket', value: row.paso }]"
+          [fields]="[
+            { label: 'Unidad', value: row.unidad },
+            { label: 'Paso del ticket', value: row.paso },
+          ]"
           [actions]="row.actions"
         />
       </li>

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { forkJoin } from 'rxjs';
 import {
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
@@ -12,29 +13,29 @@ import { PageHeader } from '../../../../shared/components/page-header/page-heade
 import { KpiStat, KpiStatTone } from '../../../../shared/components/kpi-stat/kpi-stat';
 import { RecordAction, RecordCard } from '../../../../shared/components/record-card/record-card';
 import {
-  GERENCIAMIENTO_VIAJE_ESTADO_LABELS,
-  GERENCIAMIENTO_VIAJE_TIPO_LABELS,
-  GerenciamientoViaje,
-  GerenciamientoViajeEstado,
-  GerenciamientoViajeTipo,
-  TicketConductor,
-} from '../../../conductor/models/gerenciamiento-viaje.model';
-import { GerenciamientoViajeService } from '../../../conductor/services/gerenciamiento-viaje.service';
-import { GerenciamientoViajeDialog, GerenciamientoViajeDialogData } from '../../../conductor/components/gerenciamiento-viaje-dialog';
-import { PUMPING_STEP_LABELS, type PumpingStep } from '../models/pumping.model';
-import { DocumentoPdfService } from '../../../../shared/documentos';
-import { GerenciamientoViajeHoja } from '../../../../shared/documentos/formatos/gerenciamiento-viaje-hoja';
+  ViajeDetalleDialog,
+  type ViajeDetalleDialogData,
+} from '../../../flota/components/viaje-detalle-dialog';
+import {
+  ViajeSolicitudDialog,
+  type ViajeSolicitudDialogData,
+} from '../../../flota/components/viaje-solicitud-dialog';
+import {
+  ESTADO_TAREA_LABEL,
+  TIPO_VIAJE_LABEL,
+  tareasDeViaje,
+  type EstadoTareaViaje,
+  type TareaViaje,
+  type TipoViaje,
+  type ViajeContextoPumping,
+  type ViajeResumen,
+} from '../../../flota/models/viaje-flota.model';
+import { FlotaViajesService } from '../../../flota/services/flota-viajes.service';
 
-/** Pasos del ticket en los que le toca al Conductor cada Gerenciamiento de Viaje (el candado real está en PumpingDomainService.advance). */
-const PASOS_TAREA: Record<GerenciamientoViajeTipo, ReadonlySet<string>> = {
-  salida: new Set(['traslado_salida', 'revision_reportes_salida']),
-  retorno: new Set(['ejecucion_operativa', 'control_retorno']),
-};
-
-const ESTADO_TONE: Record<GerenciamientoViajeEstado, 'warning' | 'success' | 'error'> = {
+const ESTADO_TONE: Record<EstadoTareaViaje, 'warning' | 'success' | 'error' | 'neutral'> = {
+  por_completar: 'neutral',
   pendiente: 'warning',
   aprobado: 'success',
-  rechazado: 'error',
 };
 
 type TareaRow = {
@@ -42,81 +43,94 @@ type TareaRow = {
   code: string;
   wellName: string;
   clientName: string;
+  unidad: string;
   paso: string;
-  tipo: GerenciamientoViajeTipo;
+  tipo: TipoViaje;
   tipoLabel: string;
-  estado: GerenciamientoViajeEstado | 'por_completar';
+  estado: EstadoTareaViaje;
+  viajeId: string | null;
   estadoBadge: { text: string; tone: 'warning' | 'success' | 'error' | 'neutral' };
   actions: RecordAction[];
-  ticket: TicketConductor;
+  tarea: TareaViaje;
 };
 
 /**
- * Vista del Conductor dentro de la tabla de Pumping: una fila por cada Gerenciamiento de Viaje (salida/retorno)
- * que le toca en sus tickets. Se completa con el mismo wizard DYN-SGI-RE-049 y el ticket sigue su proceso
- * cuando el Jefe de Base lo aprueba.
+ * Vista del Conductor dentro de la tabla de Pumping: una fila por cada Gerenciamiento de Viaje (salida/retorno) que le toca en la unidad
+ * que se le asignó. Al asignarlo, la tarea aparece sola; se completa con el formulario DYN-SGI-RE-049 y el ticket sigue su proceso
+ * cuando se aprueba (el candado real está en los requisitos del ticket).
  */
 @Component({
   selector: 'app-conductor-tareas',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PageHeader, KpiStat, RecordCard, DynadrillDataTableComponent, DynadrillIconButtonComponent],
+  imports: [
+    PageHeader,
+    KpiStat,
+    RecordCard,
+    DynadrillDataTableComponent,
+    DynadrillIconButtonComponent,
+  ],
   templateUrl: './conductor-tareas.html',
   styleUrl: './conductor-tareas.scss',
 })
 export class ConductorTareas {
-  private readonly service = inject(GerenciamientoViajeService);
+  private readonly api = inject(FlotaViajesService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
-  private readonly documentoPdf = inject(DocumentoPdfService);
 
   protected readonly isMobile = injectNarrowViewport();
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
   protected readonly loading = signal(true);
-  private readonly tickets = signal<TicketConductor[]>([]);
+  private readonly tickets = signal<ViajeContextoPumping[]>([]);
+  private readonly viajes = signal<ViajeResumen[]>([]);
 
-  protected readonly rows = computed<TareaRow[]>(() => {
-    const filas: TareaRow[] = [];
-    for (const t of this.tickets()) {
-      for (const tipo of ['salida', 'retorno'] as const) {
-        const estado = t.tareas[tipo];
-        // Sin GV y todavía no le toca → no es una tarea; con GV siempre se muestra (historial).
-        if (!estado && !PASOS_TAREA[tipo].has(t.currentStep)) continue;
-        filas.push({
-          id: `${t.id}-${tipo}`,
-          code: t.code,
-          wellName: t.wellName,
-          clientName: t.clientName,
-          paso: PUMPING_STEP_LABELS[t.currentStep as PumpingStep] ?? t.currentStep,
-          tipo,
-          tipoLabel: GERENCIAMIENTO_VIAJE_TIPO_LABELS[tipo],
-          estado: estado ?? 'por_completar',
-          estadoBadge: estado
-            ? { text: GERENCIAMIENTO_VIAJE_ESTADO_LABELS[estado], tone: ESTADO_TONE[estado] }
-            : { text: 'Por completar', tone: 'neutral' },
-          actions: estado
-            ? [{ icon: 'file-pdf', label: 'Ver PDF', run: () => this.verPdf(t, tipo) }]
-            : [
-                {
-                  icon: 'edit',
-                  label: 'Completar Gerenciamiento de Viaje',
-                  primary: true,
-                  run: () => this.completar(t, tipo),
-                },
-              ],
-          ticket: t,
-        });
-      }
-    }
-    return filas;
-  });
+  protected readonly rows = computed<TareaRow[]>(() =>
+    tareasDeViaje(this.tickets(), this.viajes()).map((t) => ({
+      id: t.clave,
+      code: String(t.ticket.ticketNumero ?? t.ticket.pedidoCodigo),
+      wellName: t.ticket.destino.pozo?.nombre ?? '—',
+      clientName: t.ticket.cliente?.nombre ?? '—',
+      unidad: t.unidad.placa,
+      paso: t.ticket.paso.nombre,
+      tipo: t.tipo,
+      tipoLabel: TIPO_VIAJE_LABEL[t.tipo],
+      estado: t.estado,
+      viajeId: t.viajeId,
+      estadoBadge: t.rechazado
+        ? { text: 'Rechazado: rehacer', tone: 'error' }
+        : { text: ESTADO_TAREA_LABEL[t.estado], tone: ESTADO_TONE[t.estado] },
+      actions: t.viajeId
+        ? [{ icon: 'eye', label: 'Ver detalle', run: () => this.verDetalle(t.viajeId as string) }]
+        : [
+            {
+              icon: 'edit',
+              label: 'Completar Gerenciamiento de Viaje',
+              primary: true,
+              run: () => this.completar(t),
+            },
+          ],
+      tarea: t,
+    })),
+  );
 
   protected readonly kpis = computed<{ label: string; value: number; tone: KpiStatTone }[]>(() => {
     const r = this.rows();
     return [
-      { label: 'Por completar', value: r.filter(x => x.estado === 'por_completar').length, tone: 'warning' },
-      { label: 'Pendientes de aprobación', value: r.filter(x => x.estado === 'pendiente').length, tone: 'neutral' },
-      { label: 'Aprobados', value: r.filter(x => x.estado === 'aprobado').length, tone: 'success' },
+      {
+        label: 'Por completar',
+        value: r.filter((x) => x.estado === 'por_completar').length,
+        tone: 'warning',
+      },
+      {
+        label: 'Pendientes de aprobación',
+        value: r.filter((x) => x.estado === 'pendiente').length,
+        tone: 'neutral',
+      },
+      {
+        label: 'Aprobados',
+        value: r.filter((x) => x.estado === 'aprobado').length,
+        tone: 'success',
+      },
     ];
   });
 
@@ -125,6 +139,7 @@ export class ConductorTareas {
     { key: 'wellName', header: 'Pozo', sortable: true, searchable: true },
     { key: 'clientName', header: 'Cliente', searchable: true },
     { key: 'tipoLabel', header: 'Gerenciamiento de Viaje' },
+    { key: 'unidad', header: 'Unidad' },
     { key: 'paso', header: 'Paso del ticket' },
     { key: 'estadoBadge', header: 'Estado', type: 'badge' },
   ];
@@ -137,9 +152,10 @@ export class ConductorTareas {
 
   private reload(): void {
     this.loading.set(true);
-    this.service.ticketsMios().subscribe({
-      next: tickets => {
+    forkJoin({ tickets: this.api.misViajesPumping(), viajes: this.api.listar() }).subscribe({
+      next: ({ tickets, viajes }) => {
         this.tickets.set(tickets);
+        this.viajes.set(viajes);
         this.loading.set(false);
       },
       error: () => {
@@ -149,40 +165,34 @@ export class ConductorTareas {
     });
   }
 
-  protected completar(ticket: TicketConductor, tipo: GerenciamientoViajeTipo): void {
-    const ref = this.dialog.open<GerenciamientoViajeDialog, GerenciamientoViajeDialogData>({
-      title: `Gerenciamiento de Viaje — ${GERENCIAMIENTO_VIAJE_TIPO_LABELS[tipo]} · ${ticket.code}`,
-      content: GerenciamientoViajeDialog,
-      data: { tipo, ticket },
+  protected completar(t: TareaViaje): void {
+    const ref = this.dialog.open<ViajeSolicitudDialog, ViajeSolicitudDialogData>({
+      title: `Gerenciamiento de Viaje — ${TIPO_VIAJE_LABEL[t.tipo]} · ${t.ticket.ticketNumero ?? t.ticket.pedidoCodigo}`,
+      content: ViajeSolicitudDialog,
+      data: { ticket: t.ticket, tipo: t.tipo, vehiculoId: t.unidad.vehiculoId },
       footer: false,
       width: '900px',
     });
-    ref.afterClose.subscribe((result: GerenciamientoViaje | undefined) => {
-      if (result) this.reload();
+    ref.afterClose.subscribe((enviado: boolean | undefined) => {
+      if (enviado) this.reload();
     });
   }
 
-  /** El GV vigente de ese tipo, completo, en el formato DYN-SGI-RE-049. */
-  protected verPdf(ticket: TicketConductor, tipo: GerenciamientoViajeTipo): void {
-    const resumen = ticket.gerenciamientos.find(g => g.tipo === tipo && g.estado !== 'rechazado');
-    if (!resumen) return;
-    this.service.get(resumen.id).subscribe({
-      next: gv =>
-        this.documentoPdf.abrir({
-          titulo: `Gerenciamiento de Viaje — ${gv.code}`,
-          component: GerenciamientoViajeHoja,
-          inputs: { gv },
-          nombreArchivo: `Gerenciamiento de Viaje ${gv.code}`,
-        }),
-      error: () => this.notify.error('Error', 'No se pudo abrir el Gerenciamiento de Viaje.'),
+  protected verDetalle(viajeId: string): void {
+    this.dialog.open<ViajeDetalleDialog, ViajeDetalleDialogData>({
+      title: 'Gerenciamiento de Viaje',
+      content: ViajeDetalleDialog,
+      data: { viajeId },
+      size: 'large',
+      footer: false,
     });
   }
 
-  protected verPdfFila(row: Record<string, unknown>): void {
-    this.verPdf(row['ticket'] as TicketConductor, row['tipo'] as GerenciamientoViajeTipo);
+  protected verDetalleFila(row: Record<string, unknown>): void {
+    this.verDetalle(String(row['viajeId']));
   }
 
   protected completarFila(row: Record<string, unknown>): void {
-    this.completar(row['ticket'] as TicketConductor, row['tipo'] as GerenciamientoViajeTipo);
+    this.completar(row['tarea'] as TareaViaje);
   }
 }

@@ -1,273 +1,340 @@
-<div class="viaje-dialog">
-  <dynadrill-stepper [steps]="steps" [currentIndex]="paso()" />
+<!-- Móvil: una sola tarjeta de cabecera (el título ya está en la barra del diálogo) -->
+<dynadrill-context-card
+  class="gv-dialog__only-mobile"
+  variant="card"
+  icon="file-text"
+  title="DYN-SGI-RE-049"
+  subtitle="Evaluación de riesgos de viajes y Plan de gestión de viajes"
+  [groups]="headerGroups()"
+/>
 
-  <div class="viaje-dialog__cuerpo">
-    @if (paso() === 0) {
-      @if (fijo) {
-        <p class="viaje-dialog__nota">
-          Ticket <strong>{{ ticket()?.ticketNumero ?? ticket()?.pedidoCodigo ?? '—' }}</strong> ·
-          Viaje de <strong>{{ tipo() === 'salida' ? 'salida' : 'retorno' }}</strong> · Unidad
-          <strong>{{ unidadFija()?.placa ?? unidadFija()?.codigo ?? '—' }}</strong>
-        </p>
-      }
-      <div class="viaje-dialog__grid">
-        @if (!fijo) {
-          <dynadrill-select
-            label="Tipo de viaje"
-            [options]="tipoOpciones"
-            [value]="tipo()"
-            (valueChange)="tipo.set($any($event))"
-          />
-          <dynadrill-select
-            label="Ticket de Pumping"
-            placeholder="Seleccione el ticket"
-            [options]="ticketOpciones()"
-            [value]="ticketId()"
-            (valueChange)="elegirTicket($any($event))"
-          />
-          <dynadrill-select
-            label="Unidad"
-            placeholder="Seleccione la unidad"
-            [options]="unidadOpciones()"
-            [value]="unidadId()"
-            (valueChange)="unidadId.set($any($event))"
-          />
-        }
-        <dynadrill-select
-          label="Base (origen en la salida, destino en el retorno)"
-          placeholder="Seleccione la base"
-          [options]="bodegaOpciones()"
-          [value]="bodegaId()"
-          (valueChange)="bodegaId.set($any($event))"
-        />
-        <dynadrill-datetime-picker
-          label="Fecha del viaje"
-          mode="date"
-          [value]="$any(fecha())"
-          (valueChange)="fecha.set($any($event))"
-        />
-      </div>
-      <dynadrill-textarea
-        label="Motivo del viaje"
-        [value]="motivo()"
-        (valueChange)="motivo.set($event)"
-        [rows]="2"
-      />
-      @if (ticket(); as t) {
-        <p class="viaje-dialog__nota">
-          Ruta: <strong>{{ rutaTexto() }}</strong
-          >. Cliente: {{ t.cliente?.nombre ?? '—' }}. Supervisor del ticket:
-          {{ t.supervisor?.nombre ?? '—' }}.
-        </p>
-        @if (!t.destino.pozo) {
-          <p class="viaje-dialog__alerta" role="alert">
-            El ticket no tiene pozo asignado: no se puede armar la ruta.
-          </p>
-        }
-      } @else if (!cargando() && tickets().length === 0) {
-        <p class="viaje-dialog__alerta" role="alert">
-          No tiene tickets de Pumping asignados como conductor.
-        </p>
-      }
+<section class="gv-dialog__header gv-dialog__only-desktop">
+  <dynadrill-text variant="caption"
+    >Documento: DYN-SGI-RE-049 — Evaluación de riesgos de viajes y Plan de gestión de
+    viajes</dynadrill-text
+  >
+  <dynadrill-context-card [items]="headerItems()" />
+</section>
+
+<dynadrill-stepper class="gv-dialog__only-desktop" [steps]="steps" [currentIndex]="currentStep()" />
+
+<!-- Móvil: "Paso 1 de 4 · General" con barra de progreso, en vez del stepper vertical -->
+<div
+  class="gv-dialog__progress gv-dialog__only-mobile"
+  role="progressbar"
+  [attr.aria-valuenow]="currentStep() + 1"
+  aria-valuemin="1"
+  [attr.aria-valuemax]="steps.length"
+>
+  <span class="gv-dialog__progress-text"
+    >Paso {{ currentStep() + 1 }} de {{ steps.length }} ·
+    <strong>{{ steps[currentStep()] }}</strong></span
+  >
+  <div class="gv-dialog__progress-bar">
+    @for (paso of steps; track paso; let i = $index) {
+      <span [class.is-done]="i <= currentStep()"></span>
     }
-
-    @if (paso() === 1) {
-      <ul class="viaje-dialog__preguntas">
-        @for (p of preguntas(); track p.id) {
-          <li>
-            <fieldset>
-              <legend>{{ p.orden }}. {{ p.texto }}</legend>
-              @for (o of p.opciones; track o.id) {
-                <label
-                  class="viaje-dialog__opcion"
-                  [class.is-sel]="elegidas()[p.id] === o.id"
-                  [class.is-bad]="o.impideConducir"
-                >
-                  <input
-                    type="radio"
-                    [name]="'p-' + p.id"
-                    [checked]="elegidas()[p.id] === o.id"
-                    (change)="elegir(p.id, o.id)"
-                  />
-                  {{ o.etiqueta }}
-                </label>
-              }
-            </fieldset>
-          </li>
-        }
-      </ul>
-      <div class="viaje-dialog__resumen" role="status">
-        <strong>Puntaje: {{ riesgo().puntos }}</strong>
-        @if (riesgo().nivel; as n) {
-          <span> · Riesgo {{ nivelTexto[n] }}</span>
-        }
-        @if (riesgo().sinContestar) {
-          <span> · faltan {{ riesgo().sinContestar }} pregunta(s)</span>
-        }
-        @if (descripcionNivel()) {
-          <p>{{ descripcionNivel() }}</p>
-        }
-      </div>
-      @if (riesgo().impide) {
-        <p class="viaje-dialog__alerta" role="alert">
-          La respuesta «{{ riesgo().impide }}» indica que no debe viajar: la solicitud no se puede
-          enviar.
-        </p>
-      }
-    }
-
-    @if (paso() === 2) {
-      <div class="viaje-dialog__grid">
-        <dynadrill-input
-          label="Hora de salida (HH:MM)"
-          [value]="horaSalida()"
-          (valueChange)="horaSalida.set($event)"
-        />
-        <dynadrill-input
-          label="Hora de llegada (HH:MM)"
-          [value]="horaLlegada()"
-          (valueChange)="horaLlegada.set($event)"
-        />
-        <dynadrill-input
-          label="Pasajeros"
-          [value]="pasajeros()"
-          (valueChange)="pasajeros.set($event)"
-        />
-        <dynadrill-select
-          label="¿Se pueden combinar viajes?"
-          placeholder="Sin indicar"
-          [options]="combinarOpciones"
-          [value]="combinar() === null ? null : combinar() ? 'si' : 'no'"
-          (valueChange)="cambiarCombinar($any($event))"
-        />
-      </div>
-      <dynadrill-textarea
-        label="Datos de pernocta"
-        [value]="pernocta()"
-        (valueChange)="pernocta.set($event)"
-        [rows]="2"
-      />
-
-      <h3 class="viaje-dialog__seccion">Paradas de la ruta</h3>
-      @for (f of paradas(); track $index; let i = $index) {
-        <div class="viaje-dialog__fila">
-          <dynadrill-input
-            label="Lugar"
-            [value]="f.lugar"
-            (valueChange)="cambiarParada(i, 'lugar', $event)"
-          />
-          <dynadrill-input
-            label="Llegada"
-            [value]="f.llegada"
-            (valueChange)="cambiarParada(i, 'llegada', $event)"
-          />
-          <dynadrill-input
-            label="Salida"
-            [value]="f.salida"
-            (valueChange)="cambiarParada(i, 'salida', $event)"
-          />
-          <dynadrill-button variant="secondary" size="small" (clicked)="quitarParada(i)"
-            >Quitar</dynadrill-button
-          >
-        </div>
-      }
-      <dynadrill-button variant="secondary" size="small" (clicked)="agregarParada()"
-        >Agregar parada</dynadrill-button
-      >
-
-      <h3 class="viaje-dialog__seccion">Plan de comunicación</h3>
-      @for (f of contactos(); track $index; let i = $index) {
-        <div class="viaje-dialog__fila">
-          <dynadrill-input
-            label="Frecuencia"
-            [value]="f.frecuencia"
-            (valueChange)="cambiarContacto(i, 'frecuencia', $event)"
-          />
-          <dynadrill-input
-            label="Persona de contacto"
-            [value]="f.persona"
-            (valueChange)="cambiarContacto(i, 'persona', $event)"
-          />
-          <dynadrill-input
-            label="Teléfono o medio"
-            [value]="f.datos"
-            (valueChange)="cambiarContacto(i, 'datos', $event)"
-          />
-          <dynadrill-button variant="secondary" size="small" (clicked)="quitarContacto(i)"
-            >Quitar</dynadrill-button
-          >
-        </div>
-      }
-      <dynadrill-button variant="secondary" size="small" (clicked)="agregarContacto()"
-        >Agregar contacto</dynadrill-button
-      >
-
-      <h3 class="viaje-dialog__seccion">Visto bueno por teléfono (opcional)</h3>
-      <div class="viaje-dialog__grid">
-        <dynadrill-input
-          label="Quién lo dio"
-          [value]="telefonicaDe()"
-          (valueChange)="telefonicaDe.set($event)"
-        />
-        <dynadrill-input
-          label="Hora (HH:MM)"
-          [value]="telefonicaHora()"
-          (valueChange)="telefonicaHora.set($event)"
-        />
-      </div>
-    }
-
-    @if (paso() === 3) {
-      <dl class="viaje-dialog__datos">
-        <div>
-          <dt>Tipo</dt>
-          <dd>{{ tipo() === 'salida' ? 'Salida' : 'Retorno' }}</dd>
-        </div>
-        <div>
-          <dt>Ruta</dt>
-          <dd>{{ rutaTexto() }}</dd>
-        </div>
-        <div>
-          <dt>Fecha</dt>
-          <dd>{{ fecha()?.toLocaleDateString('es-EC') }}</dd>
-        </div>
-        <div>
-          <dt>Motivo</dt>
-          <dd>{{ motivo() }}</dd>
-        </div>
-        <div>
-          <dt>Puntaje de riesgo</dt>
-          <dd>
-            {{ riesgo().puntos }}
-            @if (riesgo().nivel; as n) {
-              ({{ nivelTexto[n] }})
-            }
-          </dd>
-        </div>
-      </dl>
-      <p class="viaje-dialog__nota">
-        Al enviar, la solicitud queda firmada a su nombre y pendiente de autorización; no se puede
-        editar (si la rechazan, se rehace).
-      </p>
-      @if (motivoNoEnviar()) {
-        <p class="viaje-dialog__alerta" role="alert">{{ motivoNoEnviar() }}</p>
-      }
-    }
-  </div>
-
-  <div class="viaje-dialog__acciones">
-    <dynadrill-button variant="secondary" (clicked)="cerrar()">Cancelar</dynadrill-button>
-    <div class="viaje-dialog__acciones-der">
-      @if (paso() > 0) {
-        <dynadrill-button variant="secondary" (clicked)="atras()">Atrás</dynadrill-button>
-      }
-      @if (paso() < steps.length - 1) {
-        <dynadrill-button (clicked)="siguiente()">Siguiente</dynadrill-button>
-      } @else {
-        <dynadrill-button [disabled]="!!motivoNoEnviar() || enviando()" (clicked)="enviar()">{{
-          enviando() ? 'Enviando…' : 'Enviar solicitud'
-        }}</dynadrill-button>
-      }
-    </div>
   </div>
 </div>
+
+<div class="gv-dialog__body">
+  @if (currentStep() === 0) {
+    <!-- ═══ Información general ═══ -->
+    <section class="gv-dialog__section">
+      <dynadrill-text variant="h2">Información general</dynadrill-text>
+      <div class="gv-dialog__form-grid">
+        <dynadrill-datetime-picker
+          mode="date"
+          label="Fecha"
+          [value]="$any(fecha())"
+          (valueChange)="fecha.set($event)"
+        />
+        <dynadrill-input
+          class="gv-dialog__full"
+          label="Motivo del viaje"
+          [value]="motivoViaje()"
+          (valueChange)="motivoViaje.set($event)"
+        />
+        <dynadrill-select
+          label="Tipo de vehículo"
+          [options]="vehicleTypeOptions"
+          [value]="vehicleType()"
+          [disabled]="true"
+        />
+        <dynadrill-input label="Placas" [value]="placas()" [disabled]="true" />
+        @if (bodegas().length > 1) {
+          <dynadrill-select
+            class="gv-dialog__full"
+            [label]="tipo() === 'salida' ? 'Base de origen' : 'Base de destino'"
+            placeholder="Seleccionar la base"
+            [options]="bodegaOpciones()"
+            [value]="bodegaId()"
+            (valueChange)="bodegaId.set($any($event))"
+          />
+        }
+      </div>
+
+      <dynadrill-text variant="body"
+        >Ticket: <strong>{{ ticketCode() }}</strong></dynadrill-text
+      >
+      <div class="gv-dialog__form-grid">
+        <dynadrill-text variant="body"
+          >Línea de servicio: <strong>{{ lineaServicio() || '—' }}</strong></dynadrill-text
+        >
+        <dynadrill-text variant="body"
+          >Origen: <strong>{{ origen() }}</strong></dynadrill-text
+        >
+        <dynadrill-text variant="body"
+          >Destino: <strong>{{ destino() }}</strong></dynadrill-text
+        >
+        <dynadrill-text variant="body"
+          >Supervisor asignado:
+          <strong>{{ assignedSupervisorNombre() || '—' }}</strong></dynadrill-text
+        >
+      </div>
+      @if (!pozoDelTicket()) {
+        <dynadrill-text variant="caption" role="alert"
+          >El ticket no tiene pozo asignado: no se puede armar la ruta.</dynadrill-text
+        >
+      }
+    </section>
+  }
+
+  @if (currentStep() === 1) {
+    <!-- ═══ Evaluación de riesgos ═══ -->
+    <section class="gv-dialog__section">
+      <dynadrill-text variant="h2">Evaluación de riesgos de viaje</dynadrill-text>
+      <dynadrill-text variant="caption"
+        >Responde cada pregunta para calcular el nivel de riesgo del viaje.</dynadrill-text
+      >
+
+      <div class="gv-dialog__questions-scroll">
+        <table class="gv-dialog__questions-table">
+          <caption class="gv-dialog__sr-only">
+            Preguntas de evaluación de riesgo y sus opciones de respuesta
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col" class="gv-dialog__questions-table-num">#</th>
+              <th scope="col">Pregunta</th>
+              <th scope="col">Opciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (question of preguntas(); track question.id) {
+              <tr>
+                <td class="gv-dialog__questions-table-num">{{ question.orden }}</td>
+                <td>{{ question.texto }}</td>
+                <td>
+                  <div
+                    class="gv-dialog__question-options"
+                    role="group"
+                    [attr.aria-label]="'Pregunta ' + question.orden"
+                  >
+                    @for (option of question.opciones; track option.id) {
+                      <button
+                        type="button"
+                        class="gv-dialog__option-btn"
+                        [class.gv-dialog__option-btn--selected]="
+                          elegidas()[question.id] === option.id
+                        "
+                        [class.gv-dialog__option-btn--blocking]="option.impideConducir"
+                        [attr.aria-pressed]="elegidas()[question.id] === option.id"
+                        (click)="elegir(question.id, option.id)"
+                      >
+                        {{ option.etiqueta }}
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="gv-dialog__section">
+      <dynadrill-text variant="h2">Resultado</dynadrill-text>
+
+      @if (riesgo().impide) {
+        <div class="gv-dialog__risk-result gv-dialog__risk-result--error">
+          <dynadrill-text variant="body"
+            ><strong>NO PUEDES VIAJAR</strong> — una de las respuestas bloquea el
+            viaje.</dynadrill-text
+          >
+        </div>
+      } @else {
+        <div class="gv-dialog__risk-result gv-dialog__risk-result--{{ riskLevelColor() }}">
+          <dynadrill-text variant="body"
+            >Total de puntos: <strong>{{ riesgo().puntos }}</strong></dynadrill-text
+          >
+          <dynadrill-text variant="body"
+            >Nivel de riesgo: <strong>{{ riskLevel() }}</strong></dynadrill-text
+          >
+          <dynadrill-text variant="caption">{{ riskDescription() }}</dynadrill-text>
+          @if (riesgo().sinContestar) {
+            <dynadrill-text variant="caption"
+              >Faltan {{ riesgo().sinContestar }} pregunta(s) por contestar.</dynadrill-text
+            >
+          }
+        </div>
+      }
+
+      <dynadrill-data-table
+        [columns]="riskTableColumns"
+        [rows]="riskTableRows()"
+        [loading]="false"
+      />
+    </section>
+  }
+
+  @if (currentStep() === 2) {
+    <!-- ═══ Pasajeros y logística ═══ -->
+    <section class="gv-dialog__section gv-dialog__section--tight">
+      <dynadrill-text variant="h2">Pasajeros y logística</dynadrill-text>
+
+      <div class="gv-dialog__form-grid">
+        <div class="gv-dialog__field-group">
+          <div class="gv-dialog__passenger-input-row">
+            <dynadrill-input
+              [label]="passengersLabel()"
+              placeholder="Nombre del pasajero — Enter o , para agregar"
+              [value]="passengerDraft()"
+              (valueChange)="passengerDraft.set($event)"
+              (keydown)="onPassengerDraftKeydown($event)"
+            />
+            <dynadrill-button
+              variant="secondary"
+              size="small"
+              [disabled]="!passengerDraft().trim()"
+              (clicked)="addPassenger()"
+              >+ Agregar</dynadrill-button
+            >
+          </div>
+          @if (passengersList().length > 0) {
+            <ul class="gv-dialog__chip-list">
+              @for (passenger of passengersList(); track passenger; let i = $index) {
+                <li>
+                  <dynadrill-tag [label]="passenger" variant="brand" />
+                  <button
+                    type="button"
+                    class="gv-dialog__chip-remove"
+                    [attr.aria-label]="'Quitar ' + passenger"
+                    (click)="removePassenger(i)"
+                  >
+                    <dynadrill-icon name="close" [size]="10" />
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+
+        <div class="gv-dialog__field-group">
+          <dynadrill-text variant="caption" class="gv-dialog__field-label"
+            >Posibilidad de combinar viajes</dynadrill-text
+          >
+          <dynadrill-chip-group
+            [options]="combineOptions"
+            mode="single"
+            [selected]="canCombineTrips()"
+            (selectedChange)="canCombineTrips.set($event)"
+          />
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ Ruta y comunicación ═══ -->
+    <section class="gv-dialog__section gv-dialog__section--tight">
+      <dynadrill-text variant="h2">Ruta y comunicación</dynadrill-text>
+      <div class="gv-dialog__form-grid">
+        <dynadrill-input
+          class="gv-dialog__full"
+          label="Locación"
+          placeholder="Ej. Base Coco"
+          [value]="routeLocation()"
+          (valueChange)="routeLocation.set($event)"
+        />
+        <div class="gv-dialog__time-field">
+          <label class="gv-dialog__time-label">Hora arribo</label>
+          <input
+            type="time"
+            class="gv-dialog__time-input"
+            [value]="routeArrivalTime()"
+            (input)="routeArrivalTime.set($any($event.target).value)"
+          />
+        </div>
+        <div class="gv-dialog__time-field">
+          <label class="gv-dialog__time-label">Hora salida</label>
+          <input
+            type="time"
+            class="gv-dialog__time-input"
+            [value]="routeDepartureTime()"
+            (input)="routeDepartureTime.set($any($event.target).value)"
+          />
+        </div>
+        <dynadrill-input
+          class="gv-dialog__full"
+          label="Datos pernoctación"
+          placeholder="Domicilio, teléfono, etc."
+          [value]="routeOvernightDetails()"
+          (valueChange)="routeOvernightDetails.set($event)"
+        />
+        <dynadrill-input
+          class="gv-dialog__full"
+          label="Frecuencia del contacto"
+          placeholder="Ej. Cada 2 horas"
+          [value]="commFrequency()"
+          (valueChange)="commFrequency.set($event)"
+        />
+        <dynadrill-input
+          class="gv-dialog__full"
+          label="Persona de contacto"
+          placeholder="Nombre del contacto en base"
+          [value]="commContactPerson()"
+          (valueChange)="commContactPerson.set($event)"
+        />
+        <dynadrill-input
+          class="gv-dialog__full"
+          label="Detalles del contacto"
+          placeholder="Ej. Teléfono, radio"
+          [value]="commContactDetails()"
+          (valueChange)="commContactDetails.set($event)"
+        />
+      </div>
+    </section>
+  }
+
+  @if (currentStep() === 3) {
+    <!-- ═══ Confirmación ═══ -->
+    <section class="gv-dialog__section">
+      <dynadrill-text variant="h2">Confirmación</dynadrill-text>
+      <dynadrill-input
+        label="Conductor(es) / Nombres"
+        [value]="conductorNames()"
+        [disabled]="true"
+      />
+      <dynadrill-text variant="caption">
+        Al enviar, este Gerenciamiento de Viaje de <strong>{{ tipoLabel }}</strong> queda pendiente
+        de autorización {{ revisor() }}.
+      </dynadrill-text>
+    </section>
+  }
+</div>
+
+<footer class="gv-dialog__actions">
+  <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+  <div class="gv-dialog__actions-right">
+    @if (currentStep() > 0) {
+      <dynadrill-button variant="secondary" (clicked)="goToPreviousStep()">Atrás</dynadrill-button>
+    }
+    @if (currentStep() < steps.length - 1) {
+      <dynadrill-button (clicked)="goToNextStep()">Siguiente</dynadrill-button>
+    } @else {
+      <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">{{
+        submitting() ? 'Enviando…' : 'Solicitar'
+      }}</dynadrill-button>
+    }
+  </div>
+</footer>

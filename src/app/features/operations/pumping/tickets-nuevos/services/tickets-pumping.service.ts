@@ -2,9 +2,14 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '@env';
-import type { ItemsParaCambio, ProponerCambioEntrada, SolicitudCambioItems } from '../models/cambio-items';
+import type {
+  ItemsParaCambio,
+  ProponerCambioEntrada,
+  SolicitudCambioItems,
+} from '../models/cambio-items';
 import type {
   AsignacionEntrada,
+  PersonaOcupadaTicket,
   ConfirmacionIngreso,
   DocumentoDelTicket,
   FiltroTickets,
@@ -44,19 +49,30 @@ export class TicketsPumpingService {
     return this.http.get<TicketPumping>(`${this.base}/tickets/${id}`);
   }
 
+  /** Quién ya está en otro ticket sin cerrar con fechas que se cruzan (para la pantalla de asignación). */
+  personalOcupado(id: string): Observable<PersonaOcupadaTicket[]> {
+    return this.http.get<PersonaOcupadaTicket[]>(`${this.base}/tickets/${id}/personal-ocupado`);
+  }
+
   asignar(id: string, cuerpo: AsignacionEntrada): Observable<TicketPumping> {
     return this.http.post<TicketPumping>(`${this.base}/tickets/${id}/asignar`, cuerpo);
   }
 
   avanzar(id: string, hacia: string, motivo?: string): Observable<TicketPumping> {
-    return this.http.post<TicketPumping>(`${this.base}/tickets/${id}/avanzar`, motivo?.trim() ? { hacia, motivo: motivo.trim() } : { hacia });
+    return this.http.post<TicketPumping>(
+      `${this.base}/tickets/${id}/avanzar`,
+      motivo?.trim() ? { hacia, motivo: motivo.trim() } : { hacia },
+    );
   }
 
   // ── Cambio de ítems del pedido (propone el Operador, aprueba el Supervisor, aplica Comercial) ──
 
   /** Los ítems que el pedido tiene hoy en Comercial y, con `q` (2 letras o más), los elegibles de la lista del cliente (sin precios). */
   itemsParaCambio(pedidoId: string, q = ''): Observable<ItemsParaCambio> {
-    return this.http.get<ItemsParaCambio>(`${environment.apiUrl}/comercial/pedidos/${pedidoId}/items-para-cambio`, { params: new HttpParams().set('q', q) });
+    return this.http.get<ItemsParaCambio>(
+      `${environment.apiUrl}/comercial/pedidos/${pedidoId}/items-para-cambio`,
+      { params: new HttpParams().set('q', q) },
+    );
   }
 
   cambiosItems(id: string): Observable<SolicitudCambioItems[]> {
@@ -73,11 +89,17 @@ export class TicketsPumpingService {
   }
 
   aprobarCambioItems(solicitudId: string): Observable<SolicitudCambioItems> {
-    return this.http.post<SolicitudCambioItems>(`${this.base}/cambios-items/${solicitudId}/aprobar`, {});
+    return this.http.post<SolicitudCambioItems>(
+      `${this.base}/cambios-items/${solicitudId}/aprobar`,
+      {},
+    );
   }
 
   rechazarCambioItems(solicitudId: string, motivo?: string): Observable<SolicitudCambioItems> {
-    return this.http.post<SolicitudCambioItems>(`${this.base}/cambios-items/${solicitudId}/rechazar`, motivo?.trim() ? { motivo: motivo.trim() } : {});
+    return this.http.post<SolicitudCambioItems>(
+      `${this.base}/cambios-items/${solicitudId}/rechazar`,
+      motivo?.trim() ? { motivo: motivo.trim() } : {},
+    );
   }
 
   // ── Documentos del ticket (monitoreo por día) ──
@@ -87,8 +109,15 @@ export class TicketsPumpingService {
   }
 
   /** El Operador del equipo adjunta el monitoreo de un día (el archivo se sube antes a `archivos`). */
-  adjuntarMonitoreo(id: string, fecha: string, archivoId: string): Observable<DocumentoDelTicket[]> {
-    return this.http.post<DocumentoDelTicket[]>(`${this.base}/tickets/${id}/documentos/monitoreo`, { fecha, archivoId });
+  adjuntarMonitoreo(
+    id: string,
+    fecha: string,
+    archivoId: string,
+  ): Observable<DocumentoDelTicket[]> {
+    return this.http.post<DocumentoDelTicket[]>(`${this.base}/tickets/${id}/documentos/monitoreo`, {
+      fecha,
+      archivoId,
+    });
   }
 
   // ── Reporte Diario de Actividades (Reporte Job) ──
@@ -102,13 +131,23 @@ export class TicketsPumpingService {
   }
 
   /** Guarda el día como borrador: reemplaza sus actividades y tablas (si estaba completado, lo reabre). */
-  guardarReporteDiario(id: string, fecha: string, cuerpo: ReporteDiarioEntrada): Observable<ReporteDiario> {
-    return this.http.put<ReporteDiario>(`${this.base}/tickets/${id}/reportes-diarios/${fecha}`, cuerpo);
+  guardarReporteDiario(
+    id: string,
+    fecha: string,
+    cuerpo: ReporteDiarioEntrada,
+  ): Observable<ReporteDiario> {
+    return this.http.put<ReporteDiario>(
+      `${this.base}/tickets/${id}/reportes-diarios/${fecha}`,
+      cuerpo,
+    );
   }
 
   /** Completa el día y lo envía a Facturación como Reporte Job. */
   completarReporteDiario(id: string, fecha: string): Observable<ReporteDiario> {
-    return this.http.post<ReporteDiario>(`${this.base}/tickets/${id}/reportes-diarios/${fecha}/completar`, {});
+    return this.http.post<ReporteDiario>(
+      `${this.base}/tickets/${id}/reportes-diarios/${fecha}/completar`,
+      {},
+    );
   }
 
   // ── Químicos del ticket (el movimiento vive en Inventario; Pumping solo lo pide) ──
@@ -119,12 +158,17 @@ export class TicketsPumpingService {
 
   /** El Operador registra lo usado de un químico (solo en la Ejecución operativa). */
   consumirQuimico(id: string, articuloId: string, cantidad: number): Observable<QuimicosTicket> {
-    return this.http.post<QuimicosTicket>(`${this.base}/tickets/${id}/quimicos/consumo`, { articuloId, cantidad });
+    return this.http.post<QuimicosTicket>(`${this.base}/tickets/${id}/quimicos/consumo`, {
+      articuloId,
+      cantidad,
+    });
   }
 
   /** El Supervisor devuelve a bodega lo que sobró (solo en el Control de retorno). */
   devolverQuimicos(id: string, lineas: QuimicoEntrada[]): Observable<QuimicosTicket> {
-    return this.http.post<QuimicosTicket>(`${this.base}/tickets/${id}/quimicos/devolucion`, { lineas });
+    return this.http.post<QuimicosTicket>(`${this.base}/tickets/${id}/quimicos/devolucion`, {
+      lineas,
+    });
   }
 
   /** El Supervisor asignado confirma que el Company Man aprobó el inicio (requisito para salir de la Ejecución operativa). */
@@ -134,7 +178,10 @@ export class TicketsPumpingService {
 
   /** El Supervisor del equipo aprueba la inspección de una unidad al revisar los reportes de salida. Devuelve los requisitos del ticket. */
   aprobarInspeccion(id: string, vehiculoId: string): Observable<RequisitoTicket[]> {
-    return this.http.post<RequisitoTicket[]>(`${this.base}/tickets/${id}/revision-salida/inspecciones/${vehiculoId}/aprobar`, {});
+    return this.http.post<RequisitoTicket[]>(
+      `${this.base}/tickets/${id}/revision-salida/inspecciones/${vehiculoId}/aprobar`,
+      {},
+    );
   }
 
   // ── Traslado de salida ──
@@ -148,19 +195,30 @@ export class TicketsPumpingService {
   }
 
   aceptarTerminos(id: string): Observable<{ versionCodigo: string; aceptadoAt: string }> {
-    return this.http.post<{ versionCodigo: string; aceptadoAt: string }>(`${this.base}/tickets/${id}/terminos/aceptar`, {});
+    return this.http.post<{ versionCodigo: string; aceptadoAt: string }>(
+      `${this.base}/tickets/${id}/terminos/aceptar`,
+      {},
+    );
   }
 
   ingreso(id: string): Observable<IngresoLocacion> {
     return this.http.get<IngresoLocacion>(`${this.base}/tickets/${id}/ingreso`);
   }
 
-  actualizarIngreso(id: string, cambios: Partial<Record<ConfirmacionIngreso, boolean>> & { nuevaLectura?: { gas: GasIngreso; lectura: number } }): Observable<IngresoLocacion> {
+  actualizarIngreso(
+    id: string,
+    cambios: Partial<Record<ConfirmacionIngreso, boolean>> & {
+      nuevaLectura?: { gas: GasIngreso; lectura: number };
+    },
+  ): Observable<IngresoLocacion> {
     return this.http.patch<IngresoLocacion>(`${this.base}/tickets/${id}/ingreso`, cambios);
   }
 
   alternarLoto(id: string, itemId: string): Observable<IngresoLocacion> {
-    return this.http.patch<IngresoLocacion>(`${this.base}/tickets/${id}/ingreso/loto/${itemId}`, {});
+    return this.http.patch<IngresoLocacion>(
+      `${this.base}/tickets/${id}/ingreso/loto/${itemId}`,
+      {},
+    );
   }
 
   unidadesReporte(id: string): Observable<UnidadReporte[]> {
@@ -172,16 +230,29 @@ export class TicketsPumpingService {
   }
 
   guardarSalida(id: string, vehiculoId: string, cuerpo: SalidaEntrada): Observable<ReporteUnidad> {
-    return this.http.put<ReporteUnidad>(`${this.base}/tickets/${id}/reportes-unidad/${vehiculoId}/salida`, cuerpo);
+    return this.http.put<ReporteUnidad>(
+      `${this.base}/tickets/${id}/reportes-unidad/${vehiculoId}/salida`,
+      cuerpo,
+    );
   }
 
   /** El operador de la unidad firma su reporte de llegada (solo en el Traslado de llegada). */
-  guardarLlegada(id: string, vehiculoId: string, cuerpo: LlegadaEntrada): Observable<ReporteUnidad> {
-    return this.http.put<ReporteUnidad>(`${this.base}/tickets/${id}/reportes-unidad/${vehiculoId}/llegada`, cuerpo);
+  guardarLlegada(
+    id: string,
+    vehiculoId: string,
+    cuerpo: LlegadaEntrada,
+  ): Observable<ReporteUnidad> {
+    return this.http.put<ReporteUnidad>(
+      `${this.base}/tickets/${id}/reportes-unidad/${vehiculoId}/llegada`,
+      cuerpo,
+    );
   }
 
   /** PUENTE TEMPORAL: confirma a mano un requisito de un módulo que aún no existe (QHSE, Mantenimiento). */
   cumplirRequisitoManual(requisitoId: string, motivo: string): Observable<{ ok: boolean }> {
-    return this.http.post<{ ok: boolean }>(`${this.base}/requisitos/${requisitoId}/cumplir-manual`, { motivo });
+    return this.http.post<{ ok: boolean }>(
+      `${this.base}/requisitos/${requisitoId}/cumplir-manual`,
+      { motivo },
+    );
   }
 }

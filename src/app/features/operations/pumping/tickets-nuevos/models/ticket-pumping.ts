@@ -7,7 +7,8 @@ import type { ActividadTabla } from '../../../../../shared/models/operativo-docs
 
 export const PERMISO_PUMPING_OPERAR = 'pumping.tickets.operar';
 
-export type MacroPaso = 'pendiente' | 'en_proceso' | 'esperando_aprobacion' | 'aprobado' | 'rechazado';
+export type MacroPaso =
+  'pendiente' | 'en_proceso' | 'esperando_aprobacion' | 'aprobado' | 'rechazado';
 
 export interface PasoTicket {
   codigo: string;
@@ -31,6 +32,8 @@ export interface TicketPumpingResumen {
   taladro: string | null;
   tiposServicio: string[];
   fechaInicioServicio: string | null;
+  /** Fin del servicio según el pedido: el día en que se libera el personal asignado. */
+  fechaFinServicio: string | null;
   createdAt: string;
 }
 
@@ -83,6 +86,8 @@ export interface UnidadAsignadaTicket {
 export interface AsignacionTicket {
   supervisor: PersonaAsignadaTicket | null;
   operadores: OperadorAsignadoTicket[];
+  /** El conductor de cada unidad (responsable de su inspección y de su gerenciamiento de viaje). */
+  conductores: OperadorAsignadoTicket[];
   unidades: UnidadAsignadaTicket[];
 }
 
@@ -90,10 +95,22 @@ export interface AsignacionTicket {
 export interface AsignacionEntrada {
   supervisorId: string;
   operadores: { usuarioId: string; vehiculoId: string }[];
+  /** Un conductor por cada unidad elegida. */
+  conductores: { usuarioId: string; vehiculoId: string }[];
   /** Químicos que salen de bodega a cargo del ticket (opcional). */
   quimicos?: QuimicoEntrada[];
   /** Archivo del documento de mezcla (de `archivos`): obligatorio si hay químicos. */
   documentoMezclaId?: string;
+}
+
+/** Persona que ya está en otro ticket sin cerrar cuyas fechas se cruzan con las de este (no se puede asignar). */
+export interface PersonaOcupadaTicket {
+  usuarioId: string;
+  ticketId: string;
+  ticketNumero: number | null;
+  pedidoCodigo: string;
+  /** Día de fin del servicio del otro ticket; nulo si no hay fecha o ya pasó sin cerrarse (se libera al cerrar). */
+  liberaEl: string | null;
 }
 
 /** Un químico que sale de bodega (o vuelve a ella): de qué bodega y cuánto. */
@@ -114,14 +131,20 @@ export interface FilaQuimico {
 export const MODULO_ARCHIVO_MEZCLA = 'ticket_mezcla_documento';
 
 /** Qué falta para asignar los químicos (texto para quien opera); `null` si está completo o no hay químicos. */
-export function validarQuimicos(filas: readonly FilaQuimico[], hayDocumento: boolean): string | null {
+export function validarQuimicos(
+  filas: readonly FilaQuimico[],
+  hayDocumento: boolean,
+): string | null {
   if (!filas.length) return null;
-  if (filas.some(f => !f.articuloId)) return 'Elija el químico de cada fila.';
-  if (filas.some(f => !f.bodegaId)) return 'Elija la bodega de la que sale cada químico.';
-  if (filas.some(f => !f.cantidad || f.cantidad <= 0)) return 'Indique la cantidad de cada químico.';
-  const repetidos = filas.map(f => `${f.articuloId}|${f.bodegaId}`);
-  if (new Set(repetidos).size !== repetidos.length) return 'Un químico no puede repetirse en la misma bodega: sume las cantidades.';
-  if (!hayDocumento) return 'Adjunte el documento de mezcla: es obligatorio cuando se asignan químicos.';
+  if (filas.some((f) => !f.articuloId)) return 'Elija el químico de cada fila.';
+  if (filas.some((f) => !f.bodegaId)) return 'Elija la bodega de la que sale cada químico.';
+  if (filas.some((f) => !f.cantidad || f.cantidad <= 0))
+    return 'Indique la cantidad de cada químico.';
+  const repetidos = filas.map((f) => `${f.articuloId}|${f.bodegaId}`);
+  if (new Set(repetidos).size !== repetidos.length)
+    return 'Un químico no puede repetirse en la misma bodega: sume las cantidades.';
+  if (!hayDocumento)
+    return 'Adjunte el documento de mezcla: es obligatorio cuando se asignan químicos.';
   return null;
 }
 
@@ -148,12 +171,17 @@ export interface FilaMovimientoQuimico {
 }
 
 /** Qué falta para registrar el consumo o la devolución (texto para quien opera); `null` si se puede enviar. */
-export function validarMovimientoQuimicos(filas: readonly FilaMovimientoQuimico[], pideBodega: boolean): string | null {
-  const con = filas.filter(f => f.cantidad !== null && f.cantidad !== 0);
+export function validarMovimientoQuimicos(
+  filas: readonly FilaMovimientoQuimico[],
+  pideBodega: boolean,
+): string | null {
+  const con = filas.filter((f) => f.cantidad !== null && f.cantidad !== 0);
   if (!con.length) return 'Indique la cantidad de al menos un químico.';
-  if (con.some(f => (f.cantidad as number) < 0)) return 'Las cantidades no pueden ser negativas.';
-  if (con.some(f => (f.cantidad as number) > f.pendiente)) return 'No puede pasar de lo que el ticket tiene a su cargo.';
-  if (pideBodega && con.some(f => !f.bodegaId)) return 'Elija la bodega a la que vuelve cada químico.';
+  if (con.some((f) => (f.cantidad as number) < 0)) return 'Las cantidades no pueden ser negativas.';
+  if (con.some((f) => (f.cantidad as number) > f.pendiente))
+    return 'No puede pasar de lo que el ticket tiene a su cargo.';
+  if (pideBodega && con.some((f) => !f.bodegaId))
+    return 'Elija la bodega a la que vuelve cada químico.';
   return null;
 }
 
@@ -181,14 +209,26 @@ export interface FilaAsignacion {
 }
 
 /** Qué falta para poder asignar (texto para quien opera); `null` si está completo. */
-export function validarAsignacion(supervisorId: string | null, filas: readonly FilaAsignacion[]): string | null {
+export function validarAsignacion(
+  supervisorId: string | null,
+  filas: readonly FilaAsignacion[],
+  /** Conductor elegido por unidad (id de la unidad → id de la cuenta). */
+  conductores: Readonly<Record<string, string | null>> = {},
+): string | null {
   if (!supervisorId) return 'Elija el supervisor.';
   if (!filas.length) return 'Agregue al menos un operador.';
-  if (filas.some(f => !f.usuarioId)) return 'Elija el operador de cada fila.';
-  if (filas.some(f => !f.vehiculoId)) return 'Elija la unidad de cada operador.';
-  const ids = filas.map(f => f.usuarioId as string);
+  if (filas.some((f) => !f.usuarioId)) return 'Elija el operador de cada fila.';
+  if (filas.some((f) => !f.vehiculoId)) return 'Elija la unidad de cada operador.';
+  const ids = filas.map((f) => f.usuarioId as string);
   if (new Set(ids).size !== ids.length) return 'Un operador no puede repetirse.';
   if (ids.includes(supervisorId)) return 'El supervisor no puede ser también operador.';
+  const unidades = [...new Set(filas.map((f) => f.vehiculoId as string))];
+  if (unidades.some((u) => !conductores[u])) return 'Elija el conductor de cada unidad.';
+  const choferes = unidades.map((u) => conductores[u] as string);
+  if (new Set(choferes).size !== choferes.length)
+    return 'Un conductor no puede llevar dos unidades.';
+  if (choferes.some((c) => c === supervisorId || ids.includes(c)))
+    return 'Una misma persona no puede tener dos funciones.';
   return null;
 }
 
@@ -216,7 +256,11 @@ export interface RequisitoTicket {
   motivo: string | null;
 }
 
-export const MODULO_LABELS: Record<ModuloDueno, string> = { pumping: 'Pumping', qhse: 'QHSE', flota: 'Flota' };
+export const MODULO_LABELS: Record<ModuloDueno, string> = {
+  pumping: 'Pumping',
+  qhse: 'QHSE',
+  flota: 'Flota',
+};
 export const ORIGEN_REQUISITO_LABELS: Record<'sistema' | 'evento' | 'manual_temporal', string> = {
   sistema: 'Registrado en Pumping',
   evento: 'Confirmado por su módulo',
@@ -225,8 +269,10 @@ export const ORIGEN_REQUISITO_LABELS: Record<'sistema' | 'evento' | 'manual_temp
 export const PERMISO_PUENTE_REQUISITOS = 'pumping.requisitos.puente';
 
 /** Requisitos pendientes para salir del paso del ticket. */
-export const pendientesDelPaso = (t: Pick<TicketPumping, 'requisitos' | 'paso'>): RequisitoTicket[] =>
-  (t.requisitos ?? []).filter(r => r.paso === t.paso.codigo && r.estado === 'pendiente');
+export const pendientesDelPaso = (
+  t: Pick<TicketPumping, 'requisitos' | 'paso'>,
+): RequisitoTicket[] =>
+  (t.requisitos ?? []).filter((r) => r.paso === t.paso.codigo && r.estado === 'pendiente');
 
 // ── Términos y condiciones ──
 export interface TerminosVigentes {
@@ -258,7 +304,13 @@ export interface IngresoLocacion {
   rutasEmergenciaVerificadas: boolean;
   simopsConfirmado: boolean;
   limites: LimiteGas[];
-  lecturas: { gas: GasIngreso; lectura: number; seguro: boolean; medidoAt: string; medidoPor: string | null }[];
+  lecturas: {
+    gas: GasIngreso;
+    lectura: number;
+    seguro: boolean;
+    medidoAt: string;
+    medidoPor: string | null;
+  }[];
   loto: { itemId: string; etiqueta: string; marcado: boolean }[];
   lotoNotificadoClienteAt: string | null;
   confirmadoPor: string | null;
@@ -279,12 +331,15 @@ export const CONFIRMACIONES_INGRESO: { clave: ConfirmacionIngreso; etiqueta: str
   { clave: 'simopsConfirmado', etiqueta: 'Operaciones simultáneas (SIMOPS) confirmadas' },
 ];
 /** Última lectura de cada gas. */
-export const ultimaLecturaPorGas = (i: Pick<IngresoLocacion, 'lecturas'>): Map<GasIngreso, IngresoLocacion['lecturas'][number]> =>
-  new Map(i.lecturas.map(l => [l.gas, l] as const));
+export const ultimaLecturaPorGas = (
+  i: Pick<IngresoLocacion, 'lecturas'>,
+): Map<GasIngreso, IngresoLocacion['lecturas'][number]> =>
+  new Map(i.lecturas.map((l) => [l.gas, l] as const));
 
 // ── Reporte de unidad (salida) ──
 export type PuntoHubodometro = 'origen' | 'destino';
-export type PosicionLlanta = 'delantera_izquierda' | 'delantera_derecha' | 'trasera_izquierda' | 'trasera_derecha';
+export type PosicionLlanta =
+  'delantera_izquierda' | 'delantera_derecha' | 'trasera_izquierda' | 'trasera_derecha';
 export type SeccionInspeccion = 'chasis' | 'motor' | 'equipo' | 'instrumentacion';
 export type ResultadoInspeccion = 'conforme' | 'no_conforme';
 
@@ -315,7 +370,12 @@ export interface ReporteUnidad {
   operador: { usuarioId: string; nombre: string } | null;
   origen: string | null;
   destino: string | null;
-  salida: { fecha: string | null; combustible: number | null; firmadaPor: string | null; firmadaAt: string | null };
+  salida: {
+    fecha: string | null;
+    combustible: number | null;
+    firmadaPor: string | null;
+    firmadaAt: string | null;
+  };
   llegada: {
     fecha: string | null;
     combustible: number | null;
@@ -327,9 +387,20 @@ export interface ReporteUnidad {
     detalleInterrupcion: string | null;
     firmadaAt: string | null;
   };
-  hubodometros: { eje: string; punto: PuntoHubodometro; salida: number | null; llegada: number | null }[];
+  hubodometros: {
+    eje: string;
+    punto: PuntoHubodometro;
+    salida: number | null;
+    llegada: number | null;
+  }[];
   llantas: { posicion: PosicionLlanta; salida: string | null; llegada: string | null }[];
-  inspecciones: { itemId: string; seccion: SeccionInspeccion; etiqueta: string; salida: ResultadoInspeccion | null; llegada: ResultadoInspeccion | null }[];
+  inspecciones: {
+    itemId: string;
+    seccion: SeccionInspeccion;
+    etiqueta: string;
+    salida: ResultadoInspeccion | null;
+    llegada: ResultadoInspeccion | null;
+  }[];
 }
 export interface SalidaEntrada {
   fecha: string;
@@ -357,10 +428,16 @@ export interface LlegadaEntrada {
 }
 
 /** Qué falta para firmar el reporte de llegada (texto para quien opera); `null` si se puede enviar. */
-export function validarLlegada(v: { fecha: string; combustible: number | null; operacionInterrumpida: boolean; detalleInterrupcion: string }): string | null {
+export function validarLlegada(v: {
+  fecha: string;
+  combustible: number | null;
+  operacionInterrumpida: boolean;
+  detalleInterrupcion: string;
+}): string | null {
   if (!v.fecha) return 'Indique la fecha de llegada.';
   if (v.combustible === null || v.combustible < 0) return 'Indique el combustible a la llegada.';
-  if (v.operacionInterrumpida && !v.detalleInterrupcion.trim()) return 'Cuente cómo se interrumpió o atrasó la operación.';
+  if (v.operacionInterrumpida && !v.detalleInterrupcion.trim())
+    return 'Cuente cómo se interrumpió o atrasó la operación.';
   return null;
 }
 
@@ -429,7 +506,10 @@ export const ESTADO_REPORTE_DIARIO_LABELS: Record<EstadoReporteDiario, string> =
   completado: 'Completado',
   corregido: 'Corregido por Facturación',
 };
-export const ESTADO_REPORTE_DIARIO_TONO: Record<EstadoReporteDiario, 'warning' | 'success' | 'info'> = {
+export const ESTADO_REPORTE_DIARIO_TONO: Record<
+  EstadoReporteDiario,
+  'warning' | 'success' | 'info'
+> = {
   borrador: 'warning',
   completado: 'success',
   corregido: 'info',
@@ -446,15 +526,23 @@ export function duracionHoras(inicio: string, fin: string): number | null {
   return Math.round((min / 60) * 100) / 100;
 }
 
-export const totalHoras = (actividades: readonly { horaInicio: string; horaFin: string }[]): number =>
-  Math.round(actividades.reduce((s, a) => s + (duracionHoras(a.horaInicio, a.horaFin) ?? 0), 0) * 100) / 100;
+export const totalHoras = (
+  actividades: readonly { horaInicio: string; horaFin: string }[],
+): number =>
+  Math.round(
+    actividades.reduce((s, a) => s + (duracionHoras(a.horaInicio, a.horaFin) ?? 0), 0) * 100,
+  ) / 100;
 
 /** Qué falta para guardar el día (texto para quien opera); `null` si se puede enviar. */
-export function validarReporteDiario(actividades: readonly { horaInicio: string; horaFin: string; detalle: string }[]): string | null {
+export function validarReporteDiario(
+  actividades: readonly { horaInicio: string; horaFin: string; detalle: string }[],
+): string | null {
   for (const [i, a] of actividades.entries()) {
     const n = i + 1;
-    if (duracionHoras(a.horaInicio, a.horaFin) === null) return `Indique la hora de inicio y de fin de la actividad ${n}.`;
-    if (a.horaInicio === a.horaFin) return `La actividad ${n} no puede empezar y terminar a la misma hora.`;
+    if (duracionHoras(a.horaInicio, a.horaFin) === null)
+      return `Indique la hora de inicio y de fin de la actividad ${n}.`;
+    if (a.horaInicio === a.horaFin)
+      return `La actividad ${n} no puede empezar y terminar a la misma hora.`;
     if (!a.detalle.trim()) return `Escriba el detalle de la actividad ${n}.`;
   }
   return null;
@@ -480,7 +568,8 @@ export const ROL_LABELS: Record<string, string> = {
 };
 
 export const etiquetaRol = (codigo: string): string => ROL_LABELS[codigo] ?? codigo;
-export const etiquetaRoles = (codigos: readonly string[]): string => codigos.map(etiquetaRol).join(' / ');
+export const etiquetaRoles = (codigos: readonly string[]): string =>
+  codigos.map(etiquetaRol).join(' / ');
 
 /** Tono del paso según su macro-estado (el texto siempre va escrito: el color no es lo único que informa). */
 export const TONO_MACRO: Record<MacroPaso, 'info' | 'warning' | 'success' | 'error' | 'neutral'> = {
@@ -498,7 +587,8 @@ export function etiquetaTipoServicio(codigo: string): string {
 }
 
 /** Orden de los pasos del servicio, para el selector de la bandeja. */
-export const PASOS_PUMPING: { codigo: string; nombre: string }[] = [  // el mantenimiento salió del flujo (ahora es una tarjeta aparte)
+export const PASOS_PUMPING: { codigo: string; nombre: string }[] = [
+  // el mantenimiento salió del flujo (ahora es una tarjeta aparte)
   { codigo: 'revision_inicial', nombre: 'Revisión inicial' },
   { codigo: 'asignacion', nombre: 'Asignación' },
   { codigo: 'traslado_salida', nombre: 'Traslado de salida' },
@@ -511,12 +601,17 @@ export const PASOS_PUMPING: { codigo: string; nombre: string }[] = [  // el mant
   { codigo: 'cierre', nombre: 'Cierre' },
 ];
 
-export const nombrePaso = (codigo: string | null): string => PASOS_PUMPING.find(p => p.codigo === codigo)?.nombre ?? codigo ?? '';
+export const nombrePaso = (codigo: string | null): string =>
+  PASOS_PUMPING.find((p) => p.codigo === codigo)?.nombre ?? codigo ?? '';
 
 export function mensajeErrorTicket(err: unknown, porDefecto: string): string {
   const e = err as { status?: number; error?: { message?: unknown; detail?: unknown } } | null;
   const m = e?.error?.detail ?? e?.error?.message;
-  const texto = Array.isArray(m) ? m.filter(x => typeof x === 'string').join('. ') : typeof m === 'string' ? m : '';
+  const texto = Array.isArray(m)
+    ? m.filter((x) => typeof x === 'string').join('. ')
+    : typeof m === 'string'
+      ? m
+      : '';
   if (e?.status === 403) return texto || 'Ese paso lo atiende otro rol.';
   if (e?.status === 409) return texto || 'El ticket cambió de paso. Recargue e intente de nuevo.';
   return texto || porDefecto;

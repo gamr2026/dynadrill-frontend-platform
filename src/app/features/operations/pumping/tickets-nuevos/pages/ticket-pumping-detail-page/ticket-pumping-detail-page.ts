@@ -12,7 +12,11 @@ import { switchMap } from 'rxjs';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
+  DynadrillCheckboxComponent,
+  DynadrillDataTableColumn,
+  DynadrillDataTableComponent,
   DynadrillDialogService,
+  DynadrillInputComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
@@ -121,8 +125,10 @@ import {
   type TicketTerminosDialogData,
 } from '../../components/ticket-terminos-dialog/ticket-terminos-dialog';
 import {
+  CONFIRMACIONES_INGRESO,
   MODULO_LABELS,
   ORIGEN_REQUISITO_LABELS,
+  ultimaLecturaPorGas,
   PASO_ASIGNACION,
   PASOS_PUMPING,
   MODULO_ARCHIVO_MONITOREO,
@@ -142,7 +148,10 @@ import {
   ESTADO_REPORTE_DIARIO_LABELS,
   ESTADO_REPORTE_DIARIO_TONO,
   type AceptacionOperador,
+  type ConfirmacionIngreso,
   type DocumentoDelTicket,
+  type GasIngreso,
+  type IngresoLocacion,
   type QuimicosTicket,
   type ReporteDiarioDia,
   type RequisitoTicket,
@@ -165,6 +174,9 @@ import { TicketsPumpingService } from '../../services/tickets-pumping.service';
     TicketProgress,
     DynadrillBannerComponent,
     DynadrillButtonComponent,
+    DynadrillCheckboxComponent,
+    DynadrillDataTableComponent,
+    DynadrillInputComponent,
     DynadrillScreenHeaderComponent,
     DynadrillSpinnerComponent,
     DynadrillIconButtonComponent,
@@ -342,6 +354,233 @@ export class TicketPumpingDetailPage {
       })
       .afterClose.subscribe((r) => r && this.recargar());
   }
+
+  // ── Ejecución operativa: lo que hace el operador en el sitio, como en la demo (checklist de ingreso, gases, LOTO, reportes, químicos) ──
+  protected readonly vistaEjecucion = computed(() => this.ticket()?.paso.codigo === PASO_EJECUCION);
+  protected readonly ingreso = signal<IngresoLocacion | null>(null);
+  protected readonly confirmacionesIngreso = CONFIRMACIONES_INGRESO;
+  protected readonly ultimasLecturas = computed(() =>
+    this.ingreso() ? ultimaLecturaPorGas(this.ingreso()!) : new Map(),
+  );
+  /** Quien llena el equipo asignado puede marcar el checklist y registrar lecturas mientras el ticket está en la ejecución. */
+  protected readonly puedeLlenarIngreso = computed(
+    () => this.vistaEjecucion() && this.puedeLlenarEquipo(),
+  );
+  protected readonly lecturasGas = signal<Partial<Record<GasIngreso, string>>>({});
+  protected readonly gasRegistrando = signal(false);
+
+  private cargarIngreso(id: string): void {
+    this.servicio.ingreso(id).subscribe({
+      next: (i) => this.ingreso.set(i),
+      error: () => this.ingreso.set(null),
+    });
+  }
+
+  private aplicarIngreso(obs: ReturnType<TicketsPumpingService['ingreso']>): void {
+    obs.subscribe({
+      next: (i) => {
+        this.ingreso.set(i);
+        this.recargarRequisitos();
+      },
+      error: (err) =>
+        this.notify.error(
+          'No se pudo guardar',
+          mensajeErrorTicket(err, 'No se pudo guardar el cambio. Intente de nuevo.'),
+        ),
+    });
+  }
+
+  protected cambiarConfirmacion(clave: ConfirmacionIngreso, valor: boolean): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.aplicarIngreso(this.servicio.actualizarIngreso(t.id, { [clave]: valor }));
+  }
+
+  protected alternarLoto(itemId: string): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.aplicarIngreso(this.servicio.alternarLoto(t.id, itemId));
+  }
+
+  protected fijarLecturaGas(gas: GasIngreso, valor: string): void {
+    // una lectura no puede ser negativa
+    const limpio = valor !== '' && Number(valor) < 0 ? '0' : valor;
+    this.lecturasGas.update((l) => ({ ...l, [gas]: limpio }));
+  }
+
+  protected bloquearTeclaGas(event: KeyboardEvent): void {
+    if (['-', '+', 'e', 'E'].includes(event.key)) event.preventDefault();
+  }
+
+  protected rangoGas(min: number | null, max: number, unidad: string): string {
+    return min !== null ? `${min} – ${max} ${unidad}` : `hasta ${max} ${unidad}`;
+  }
+
+  private lecturaValida(raw: string | undefined): boolean {
+    return !!raw && raw.trim() !== '' && !Number.isNaN(Number(raw)) && Number(raw) >= 0;
+  }
+
+  /** Gases con un valor válido escrito y todavía sin registrar. */
+  protected readonly gasesPendientes = computed(() =>
+    (this.ingreso()?.limites ?? []).filter((l) => this.lecturaValida(this.lecturasGas()[l.gas])),
+  );
+
+  /** Vista previa mientras se escribe: ¿queda dentro o fuera del rango seguro? (lo confirma el servidor al registrar). */
+  protected estadoBorrador(gas: GasIngreso): 'seguro' | 'fuera' | null {
+    const l = this.ingreso()?.limites.find((x) => x.gas === gas);
+    const raw = this.lecturasGas()[gas];
+    if (!l || !this.lecturaValida(raw)) return null;
+    const v = Number(raw);
+    return v <= l.maximo && (l.minimo === null || v >= l.minimo) ? 'seguro' : 'fuera';
+  }
+
+  /** Enter en un campo de gas: pasa al siguiente; en el último registra todas las lecturas. */
+  protected enterEnGas(event: Event, indice: number): void {
+    const campos = (event.currentTarget as HTMLElement)
+      .closest('.gas-grid')
+      ?.querySelectorAll<HTMLInputElement>('input');
+    const siguiente = campos?.[indice + 1];
+    if (siguiente) siguiente.focus();
+    else this.registrarLecturas();
+  }
+
+  /** Registra de una vez todas las lecturas escritas (una llamada por gas, en orden). */
+  protected registrarLecturas(): void {
+    const t = this.ticket();
+    const gases = this.gasesPendientes().map((l) => l.gas);
+    if (!t || this.gasRegistrando() || gases.length === 0) return;
+    this.gasRegistrando.set(true);
+    const siguiente = (i: number): void => {
+      if (i >= gases.length) {
+        this.gasRegistrando.set(false);
+        this.lecturasGas.set({});
+        const fuera = gases.filter((g) => this.ultimasLecturas().get(g)?.seguro === false);
+        if (fuera.length) {
+          this.notify.warning(
+            'Lecturas registradas',
+            'Alguna lectura quedó fuera del rango seguro: no se puede continuar hasta que sea segura.',
+          );
+        } else {
+          this.notify.success(
+            'Lecturas registradas',
+            'Todas las lecturas están dentro del rango seguro.',
+          );
+        }
+        this.recargarRequisitos();
+        return;
+      }
+      const gas = gases[i];
+      this.servicio
+        .actualizarIngreso(t.id, {
+          nuevaLectura: { gas, lectura: Number(this.lecturasGas()[gas]) },
+        })
+        .subscribe({
+          next: (ing) => {
+            this.ingreso.set(ing);
+            siguiente(i + 1);
+          },
+          error: (err) => {
+            this.gasRegistrando.set(false);
+            this.notify.error(
+              'No se pudo registrar',
+              mensajeErrorTicket(err, 'No se pudo registrar la lectura. Intente de nuevo.'),
+            );
+          },
+        });
+    };
+    siguiente(0);
+  }
+
+  /** Las verificaciones del sitio (ingreso, gases y LOTO) aún no están completas. */
+  protected readonly verificacionesPendientes = computed(
+    () => !(this.ingreso()?.completo ?? false),
+  );
+
+  /** Un renglón por día de servicio (del pedido) más los que ya tienen reporte, con su estado. */
+  protected readonly diasDeReporte = computed(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    const hechos = new Map(this.reportesDiarios().map((d) => [d.fecha, d]));
+    const fechas = new Set<string>(hechos.keys());
+    if (t.fechaInicioServicio) {
+      const ini = new Date(`${t.fechaInicioServicio}T00:00:00Z`);
+      const fin = new Date(`${t.fechaFinServicio ?? t.fechaInicioServicio}T00:00:00Z`);
+      for (let d = ini, n = 0; d <= fin && n < 62; d = new Date(d.getTime() + 86_400_000), n++) {
+        fechas.add(d.toISOString().slice(0, 10));
+      }
+    }
+    return [...fechas].sort().map((fecha, i) => {
+      const h = hechos.get(fecha);
+      return {
+        id: fecha,
+        fecha,
+        dia: `Día ${i + 1}`,
+        fechaLabel: formatoDia(fecha),
+        estado: h?.estado ?? null,
+        estadoBadge: h
+          ? {
+              text: ESTADO_REPORTE_DIARIO_LABELS[h.estado],
+              tone: ESTADO_REPORTE_DIARIO_TONO[h.estado],
+            }
+          : { text: 'Pendiente', tone: 'warning' as const },
+        completado: h?.estado === 'completado' || h?.estado === 'corregido',
+      };
+    });
+  });
+  protected readonly columnasDias: DynadrillDataTableColumn[] = [
+    { key: 'dia', header: 'Día' },
+    { key: 'fechaLabel', header: 'Fecha' },
+    { key: 'estadoBadge', header: 'Estado', type: 'badge' },
+  ];
+  protected readonly claveDia = (row: Record<string, unknown>): string => String(row['id']);
+
+  // Cierre de químicos: la cantidad usada de cada uno (lo que sobra lo devuelve el Supervisor en el control de retorno)
+  protected readonly consumoBorrador = signal<Record<string, string>>({});
+  protected readonly consumiendo = signal<string | null>(null);
+  protected consumoDe(articuloId: string): string {
+    return this.consumoBorrador()[articuloId] ?? '';
+  }
+  protected fijarConsumo(articuloId: string, valor: string): void {
+    this.consumoBorrador.update((m) => ({ ...m, [articuloId]: valor }));
+  }
+  protected consumoValido(q: { articuloId: string; pendiente: number }): boolean {
+    const n = Number(this.consumoBorrador()[q.articuloId]);
+    return Number.isFinite(n) && n > 0 && n <= q.pendiente && this.consumiendo() === null;
+  }
+  protected registrarConsumo(q: { articuloId: string; pendiente: number }): void {
+    const t = this.ticket();
+    if (!t || !this.consumoValido(q)) return;
+    this.consumiendo.set(q.articuloId);
+    this.servicio
+      .consumirQuimico(t.id, q.articuloId, Number(this.consumoBorrador()[q.articuloId]))
+      .subscribe({
+        next: (nuevo) => {
+          this.consumiendo.set(null);
+          this.quimicos.set(nuevo);
+          this.consumoBorrador.update((m) => ({ ...m, [q.articuloId]: '' }));
+          this.notify.success('Consumo registrado', 'Quedó anotado lo usado de este químico.');
+        },
+        error: (err) => {
+          this.consumiendo.set(null);
+          this.notify.error(
+            'No se pudo registrar',
+            mensajeErrorTicket(err, 'No se pudo registrar el consumo. Intente de nuevo.'),
+          );
+        },
+      });
+  }
+  /** Algún químico todavía no tiene consumo registrado. */
+  protected readonly quimicosSinConsumo = computed(() =>
+    (this.quimicos()?.quimicos ?? []).some(
+      (q) => q.usada === 0 && q.devuelta === 0 && q.pendiente > 0,
+    ),
+  );
+  /** La formalización (el Company Man aprobó el inicio) ya quedó registrada. */
+  protected readonly ejecucionFormalizada = computed(() =>
+    (this.ticket()?.requisitos ?? []).some(
+      (r) => r.codigo === 'ejecucion_formalizada' && r.estado === 'cumplido',
+    ),
+  );
 
   // ── Traslado de salida: lo que hace el operador (inspección, EPI, reporte de unidad), como en la demo ──
   protected readonly vistaSalida = computed(() => this.ticket()?.paso.codigo === 'traslado_salida');
@@ -1083,6 +1322,15 @@ export class TicketPumpingDetailPage {
     });
   }
 
+  /** Refresca el ticket (sus requisitos y su paso) sin recargar el resto de la pantalla. */
+  private recargarRequisitos(): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.servicio
+      .detalle(t.id)
+      .subscribe({ next: (n) => this.ticket.set(n), error: () => undefined });
+  }
+
   private recargar(): void {
     const t = this.ticket();
     if (!t) return;
@@ -1091,6 +1339,7 @@ export class TicketPumpingDetailPage {
       .subscribe({ next: (n) => this.ticket.set(n), error: () => undefined });
     this.cargarQuimicos(t.id);
     this.cargarReportesDiarios(t.id);
+    this.cargarIngreso(t.id);
     this.cargarCambiosItems(t.id);
     this.cargarDocumentos(t.id);
     this.cargarDocumentosQhse(t);
@@ -1119,6 +1368,7 @@ export class TicketPumpingDetailPage {
         this.cargando.set(false);
         this.cargarQuimicos(t.id);
         this.cargarReportesDiarios(t.id);
+        this.cargarIngreso(t.id);
         this.cargarCambiosItems(t.id);
         this.cargarDocumentos(t.id);
         this.cargarPedido(t.pedidoId);

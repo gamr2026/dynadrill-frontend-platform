@@ -546,6 +546,451 @@
                 (firmado)="alFirmarReporte()"
               />
             }
+          } @else if (vistaEjecucion()) {
+            <section class="tpd__seccion" aria-label="Ejecución operativa">
+              <h1 class="tpd__titulo tpd__titulo--grande">Ejecución operativa</h1>
+              <p class="tpd__meta">
+                Documento: DYN-SGI-RE-047 — Reporte diario de actividades de operaciones
+              </p>
+              <p>
+                Registre los reportes diarios de actividades de operaciones durante la ejecución del
+                servicio.
+              </p>
+            </section>
+
+            <section class="tpd__seccion" aria-label="Información del ticket">
+              <h2 class="tpd__titulo">Información del ticket</h2>
+              <div class="tpd__ficha">
+                <div class="tpd__ficha-cabecera">
+                  <div>
+                    <strong class="tpd__ficha-codigo">Ticket {{ t.ticketNumero ?? 's/n' }}</strong>
+                    <p class="tpd__meta">Ticket de Servicio Operativo</p>
+                  </div>
+                  <div class="tpd__tipos">
+                    <dynadrill-tag
+                      [label]="t.paso.nombre"
+                      [variant]="tono(t)"
+                      [uppercase]="false"
+                    />
+                    <dynadrill-tag label="Portal" variant="info" />
+                  </div>
+                </div>
+                <dl class="tpd__datos">
+                  <div class="tpd__dato--ancho">
+                    <dt>Cliente</dt>
+                    <dd>
+                      <strong>{{ t.cliente ?? '—' }}</strong>
+                      @if (t.clienteRuc) {
+                        <span class="tpd__meta"> · RUC {{ t.clienteRuc }}</span>
+                      }
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Pozo</dt>
+                    <dd>{{ t.pozo ?? '—' }}</dd>
+                  </div>
+                  <div>
+                    <dt>Fecha estimada</dt>
+                    <dd>{{ dia(t.fechaInicioServicio) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Tipo de servicio</dt>
+                    <dd>
+                      <span class="tpd__tipos">
+                        @for (s of tipos(); track s) {
+                          <dynadrill-tag [label]="s" variant="info" [uppercase]="false" />
+                        }
+                      </span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Origen</dt>
+                    <dd>Portal</dd>
+                  </div>
+                </dl>
+                <div class="tpd__ficha-pie">
+                  <span class="tpd__meta">Historial de fases con actor y fecha registrado</span>
+                  <span class="tpd__ficha-id">
+                    <span class="tpd__meta">ID: {{ t.pedidoCodigo }}</span>
+                    <dynadrill-tag label="Activo" variant="success" [uppercase]="false" />
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            @if (ingreso(); as ci) {
+              @if (verificacionesPendientes()) {
+                <div class="blocked" role="alert">
+                  <svg
+                    class="blocked__icon"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"
+                    />
+                    <path d="M12 9v4" />
+                    <path d="M12 17h.01" />
+                  </svg>
+                  <div class="blocked__body">
+                    <strong class="blocked__title"
+                      >Ejecución bloqueada hasta completar las verificaciones del sitio</strong
+                    >
+                    <p class="blocked__text">
+                      Antes de registrar el trabajo falta completar el checklist de Ingreso a
+                      locación y Verificaciones de seguridad (gases y LOTO).
+                    </p>
+                  </div>
+                </div>
+              }
+
+              <section class="tpd__seccion tpd__checks" aria-label="Ingreso a locación">
+                <h2 class="tpd__titulo">Ingreso a locación</h2>
+                @for (c of confirmacionesIngreso; track c.clave) {
+                  <dynadrill-checkbox
+                    [label]="c.etiqueta"
+                    [checked]="ci[c.clave]"
+                    [disabled]="!puedeLlenarIngreso()"
+                    (checkedChange)="cambiarConfirmacion(c.clave, $event)"
+                  />
+                }
+              </section>
+
+              <section class="tpd__seccion tpd__checks" aria-label="Verificaciones de seguridad">
+                <h2 class="tpd__titulo">Verificaciones de seguridad</h2>
+
+                <h3 class="tpd__subtitulo">Monitoreo de gases</h3>
+                <ul class="gas-grid">
+                  @for (l of ci.limites; track l.gas; let i = $index) {
+                    <li
+                      class="gas-card"
+                      [class.gas-card--seguro]="ultimasLecturas().get(l.gas)?.seguro === true"
+                      [class.gas-card--fuera]="ultimasLecturas().get(l.gas)?.seguro === false"
+                    >
+                      <div class="gas-card__head">
+                        <strong class="gas-card__name">{{ l.nombre }}</strong>
+                        @if (ultimasLecturas().get(l.gas); as u) {
+                          <dynadrill-tag
+                            [label]="u.seguro ? 'Seguro' : 'Fuera de rango'"
+                            [variant]="u.seguro ? 'success' : 'error'"
+                            [uppercase]="false"
+                          />
+                        } @else {
+                          <dynadrill-tag
+                            label="Sin lectura"
+                            variant="neutral"
+                            [uppercase]="false"
+                          />
+                        }
+                      </div>
+                      @if (ultimasLecturas().get(l.gas); as u) {
+                        <span class="gas-card__reading"
+                          >Última lectura: {{ u.lectura }} {{ l.unidad }}</span
+                        >
+                      }
+                      @if (puedeLlenarIngreso()) {
+                        <dynadrill-input
+                          [label]="'Lectura (' + l.unidad + ')'"
+                          type="number"
+                          placeholder="0"
+                          [value]="lecturasGas()[l.gas] ?? ''"
+                          (valueChange)="fijarLecturaGas(l.gas, $event)"
+                          (keydown)="bloquearTeclaGas($event)"
+                          (keydown.enter)="enterEnGas($event, i)"
+                        />
+                      }
+                      <span class="gas-card__range"
+                        >Rango seguro: {{ rangoGas(l.minimo, l.maximo, l.unidad) }}</span
+                      >
+                      @if (estadoBorrador(l.gas); as estado) {
+                        <span
+                          class="gas-card__preview"
+                          [class.gas-card__preview--fuera]="estado === 'fuera'"
+                          role="status"
+                        >
+                          {{
+                            estado === 'seguro'
+                              ? '✓ Dentro del rango seguro'
+                              : '⚠ Fuera del rango seguro — se registrará igual'
+                          }}
+                        </span>
+                      }
+                    </li>
+                  }
+                </ul>
+
+                @if (puedeLlenarIngreso()) {
+                  <button
+                    type="button"
+                    class="gas-submit"
+                    [disabled]="gasRegistrando() || gasesPendientes().length === 0"
+                    (click)="registrarLecturas()"
+                  >
+                    {{
+                      gasRegistrando()
+                        ? 'Registrando…'
+                        : gasesPendientes().length > 0
+                          ? 'Registrar lecturas (' + gasesPendientes().length + ')'
+                          : 'Registrar lecturas'
+                    }}
+                  </button>
+                }
+
+                <h3 class="tpd__subtitulo">Verificación LOTO (Lock-out/Tag-out)</h3>
+                @for (x of ci.loto; track x.itemId) {
+                  <dynadrill-checkbox
+                    [label]="x.etiqueta"
+                    [checked]="x.marcado"
+                    [disabled]="!puedeLlenarIngreso()"
+                    (checkedChange)="alternarLoto(x.itemId)"
+                  />
+                }
+                @if (ci.lotoNotificadoClienteAt) {
+                  <dynadrill-tag
+                    label="Cliente notificado: LOTO completo"
+                    variant="success"
+                    [uppercase]="false"
+                  />
+                }
+                @if (ci.completo && ci.confirmadoPor) {
+                  <dynadrill-tag
+                    [label]="'Completo — confirmado por ' + ci.confirmadoPor"
+                    variant="success"
+                    [uppercase]="false"
+                  />
+                }
+              </section>
+            }
+
+            <section class="tpd__seccion" aria-label="Formalización de ejecución">
+              <h2 class="tpd__titulo">Formalización de ejecución</h2>
+              @if (ejecucionFormalizada()) {
+                <dynadrill-tag
+                  label="El Company Man aprobó el inicio"
+                  variant="success"
+                  [uppercase]="false"
+                />
+              } @else if (puedeFormalizar()) {
+                <button
+                  type="button"
+                  class="tpd__tonal"
+                  [disabled]="ocupado()"
+                  (click)="formalizar()"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                  Confirmar aprobación del Company Man
+                </button>
+              } @else {
+                <p class="tpd__meta">
+                  El Supervisor del equipo confirma aquí que el Company Man aprobó el inicio del
+                  trabajo.
+                </p>
+              }
+            </section>
+
+            <section class="tpd__seccion" aria-label="Reportes diarios de actividades">
+              <h2 class="tpd__titulo">Reportes diarios de actividades</h2>
+
+              <ng-template #accionesDia let-row>
+                @for (m of monitoreosDe(row.fecha); track m.id; let ultimo = $last) {
+                  @if (ultimo) {
+                    <dynadrill-button
+                      variant="secondary"
+                      size="small"
+                      (clicked)="descargarMonitoreo(m)"
+                      >Descargar monitoreo</dynadrill-button
+                    >
+                  }
+                }
+                @if (puedeLlenarReporteDiario() && row.estado !== 'corregido') {
+                  <label class="tpd__adjuntar"
+                    >{{
+                      subiendoMonitoreo() === row.fecha
+                        ? 'Subiendo…'
+                        : monitoreosDe(row.fecha).length
+                          ? 'Reemplazar monitoreo'
+                          : 'Adjuntar monitoreo'
+                    }}
+                    <input
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx"
+                      [disabled]="subiendoMonitoreo() !== null"
+                      (change)="alElegirMonitoreo(row.fecha, $event)"
+                    />
+                  </label>
+                }
+                @if (row.completado) {
+                  <dynadrill-button
+                    variant="secondary"
+                    size="small"
+                    [disabled]="verificacionesPendientes()"
+                    (clicked)="abrirReporteDiario(row.fecha, true)"
+                    >{{
+                      puedeLlenarReporteDiario() ? 'Editar reporte diario' : 'Ver reporte diario'
+                    }}</dynadrill-button
+                  >
+                } @else if (puedeLlenarReporteDiario()) {
+                  <dynadrill-button
+                    variant="primary"
+                    size="small"
+                    [disabled]="verificacionesPendientes()"
+                    (clicked)="abrirReporteDiario(row.fecha, true)"
+                    >Llenar reporte diario</dynadrill-button
+                  >
+                }
+              </ng-template>
+
+              <ul class="daily-reports tpd__solo-movil">
+                @for (row of diasDeReporte(); track row.id) {
+                  <li class="daily-report">
+                    <span class="daily-report__date">{{ row.fechaLabel }}</span>
+                    <strong class="daily-report__name">Reporte diario</strong>
+                    <span class="daily-report__meta">{{
+                      row.completado ? 'Completado' : 'Pendiente'
+                    }}</span>
+                    <dynadrill-tag
+                      [label]="row.estadoBadge.text"
+                      [variant]="row.estadoBadge.tone"
+                      [uppercase]="false"
+                    />
+                    @for (m of monitoreosDe(row.fecha); track m.id; let ultimo = $last) {
+                      @if (ultimo) {
+                        <dynadrill-button
+                          variant="secondary"
+                          size="small"
+                          (clicked)="descargarMonitoreo(m)"
+                          >Descargar monitoreo</dynadrill-button
+                        >
+                      }
+                    }
+                    @if (puedeLlenarReporteDiario() && row.estado !== 'corregido') {
+                      <label class="tpd__adjuntar"
+                        >{{
+                          subiendoMonitoreo() === row.fecha
+                            ? 'Subiendo…'
+                            : monitoreosDe(row.fecha).length
+                              ? 'Reemplazar monitoreo'
+                              : 'Adjuntar monitoreo'
+                        }}
+                        <input
+                          type="file"
+                          accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx"
+                          [disabled]="subiendoMonitoreo() !== null"
+                          (change)="alElegirMonitoreo(row.fecha, $event)"
+                        />
+                      </label>
+                    }
+                    @if (row.completado || puedeLlenarReporteDiario()) {
+                      <button
+                        type="button"
+                        class="tpd__tonal"
+                        [disabled]="verificacionesPendientes()"
+                        (click)="abrirReporteDiario(row.fecha, true)"
+                      >
+                        {{ row.completado ? 'Editar reporte diario' : 'Llenar reporte diario' }}
+                      </button>
+                    }
+                  </li>
+                }
+              </ul>
+
+              <div class="tpd__solo-escritorio">
+                <dynadrill-data-table
+                  [columns]="columnasDias"
+                  [rows]="diasDeReporte()"
+                  [loading]="false"
+                  [rowKey]="claveDia"
+                  actionsHeader="Acciones"
+                  [actionsTemplate]="accionesDia"
+                />
+              </div>
+            </section>
+
+            @if (hayQuimicos()) {
+              <section class="tpd__seccion" aria-label="Cierre de químicos">
+                <h2 class="tpd__titulo">Cierre de químicos</h2>
+                <p class="tpd__meta">
+                  Registre la cantidad realmente usada de cada químico; lo que sobre lo devuelve el
+                  Supervisor a bodega en el control de retorno (Inventario).
+                </p>
+                @for (q of quimicos()!.quimicos; track q.articuloId) {
+                  <div class="tpd__quimico">
+                    <strong class="tpd__quimico-nombre">{{ q.nombre }}</strong>
+                    <span class="tpd__meta">Asignado {{ q.asignada }} {{ q.unidad }}</span>
+                    @if (q.usada > 0 || q.devuelta > 0) {
+                      <p class="tpd__meta">
+                        Usado: {{ q.usada }} {{ q.unidad }}
+                        @if (q.devuelta > 0) {
+                          — Devuelto a bodega: {{ q.devuelta }} {{ q.unidad }}
+                        }
+                        @if (q.pendiente > 0) {
+                          — Aún a cargo del ticket: {{ q.pendiente }} {{ q.unidad }}
+                        }
+                      </p>
+                    }
+                    @if (puedeConsumir() && q.pendiente > 0) {
+                      <dynadrill-input
+                        [label]="'Cantidad usada (' + q.unidad + ') *'"
+                        type="number"
+                        placeholder="0"
+                        [value]="consumoDe(q.articuloId)"
+                        (valueChange)="fijarConsumo(q.articuloId, $event)"
+                      />
+                      <button
+                        type="button"
+                        class="tpd__contorno"
+                        [disabled]="!consumoValido(q)"
+                        (click)="registrarConsumo(q)"
+                      >
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                          focusable="false"
+                        >
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                        Registrar consumo
+                      </button>
+                    }
+                  </div>
+                }
+              </section>
+              @if (puedeConsumir() && quimicosSinConsumo()) {
+                <section class="tpd__seccion" aria-label="Aviso de químicos">
+                  <p class="tpd__meta">
+                    Debe registrar el consumo real de todos los químicos antes de continuar.
+                  </p>
+                </section>
+              }
+            }
           } @else {
             @if (requisitosQhse().length) {
               <section class="tpd__tarjeta" aria-label="Requisitos de QHSE">
@@ -1052,7 +1497,9 @@
                         s.requiereMotivo
                           ? 'Devolver a ' + s.nombre
                           : siguientesAdelante().length === 1
-                            ? 'Guardar y continuar'
+                            ? vistaEjecucion()
+                              ? 'Continuar a Gerenciamiento de llegada'
+                              : 'Guardar y continuar'
                             : 'Pasar a ' + s.nombre
                       }}</dynadrill-button
                     >

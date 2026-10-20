@@ -8,17 +8,7 @@
     }
 
     @if (datos(); as d) {
-      @if (pedido().estado === 'facturado') {
-        <dynadrill-banner
-          variant="info"
-          [message]="
-            'Pedido facturado' +
-            (cierre()?.facturaNumero ? ' — factura ' + cierre()?.facturaNumero : '') +
-            (cierre()?.facturadoAt ? ' el ' + dia(cierre()?.facturadoAt) : '') +
-            '.'
-          "
-        />
-      } @else if (paso()) {
+      @if (paso()) {
         <div class="ots__paso" role="group" aria-label="Siguiente paso del pedido">
           <span class="ots__meta"
             >Siguiente paso: <strong>{{ rotulo() }}</strong></span
@@ -31,12 +21,6 @@
             <span class="ots__meta">Usted no tiene permiso para este paso.</span>
           }
         </div>
-        @if (paso() === 'control_costos' && !d.requiere && pedido().estado === 'ticket_firmado') {
-          <p class="ots__meta" role="note">
-            El contrato de este cliente no exige orden de trabajo: el pedido pasa directo a control
-            de costos.
-          </p>
-        }
       }
 
       @if (orden(); as o) {

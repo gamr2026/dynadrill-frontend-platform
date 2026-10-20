@@ -74,8 +74,11 @@ export class OrdenTrabajoSeccion {
   protected readonly cierre = signal<EstadoCierre | null>(null);
 
   protected readonly orden = computed(() => this.datos()?.orden ?? null);
+  /** Solo se ofrece generar la OT: el control de costos, el listo para facturar y la factura quedan fuera del alcance del aplicativo. */
   protected readonly paso = computed<PasoCierre>(() =>
-    siguientePasoCierre(this.pedido().estado, this.datos()?.requiere ?? false),
+    siguientePasoCierre(this.pedido().estado, this.datos()?.requiere ?? false) === 'generar_orden'
+      ? 'generar_orden'
+      : null,
   );
   protected readonly rotulo = computed(() =>
     this.paso() ? ROTULO_PASO[this.paso() as Exclude<PasoCierre, null>] : '',

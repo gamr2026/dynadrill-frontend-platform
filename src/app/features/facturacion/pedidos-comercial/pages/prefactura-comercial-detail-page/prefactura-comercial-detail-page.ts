@@ -123,8 +123,14 @@ export class PrefacturaComercialDetailPage {
   protected readonly acciones = computed(() =>
     accionesDisponibles(this.prefactura(), (p) => this.auth.can(p)),
   );
+  /** La guía de remisión debe estar emitida antes de enviar la prefactura a firmas (el servidor lo exige). */
+  protected readonly guiaEmitida = signal<boolean | null>(null);
   protected readonly puedeEnviar = computed(
-    () => this.acciones().includes('enviar') && this.checklistCompleto() && !this.ocupado(),
+    () =>
+      this.acciones().includes('enviar') &&
+      this.checklistCompleto() &&
+      this.guiaEmitida() === true &&
+      !this.ocupado(),
   );
   protected readonly puedeGenerarOrden = computed(
     () =>
@@ -193,6 +199,10 @@ export class PrefacturaComercialDetailPage {
       next: (pf) => {
         this.prefactura.set(pf);
         this.error.set(null);
+        this.pedidos.avanceDocumental(pf.pedidoId).subscribe({
+          next: (a) => this.guiaEmitida.set(a.guiaRegistrada),
+          error: () => this.guiaEmitida.set(null),
+        });
         this.pedidos
           .detalle(pf.pedidoId)
           .subscribe({ next: (p) => this.pedido.set(p), error: () => this.pedido.set(null) });

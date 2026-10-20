@@ -217,6 +217,17 @@
                     </li>
                   }
                 </ul>
+                @if (guiaEmitida() === false) {
+                  <dynadrill-banner
+                    variant="warning"
+                    message="Falta la guía de remisión: emítala en el pedido antes de enviar la prefactura a firmas."
+                  />
+                  <div class="pf-detail__head-actions">
+                    <dynadrill-button variant="secondary" (clicked)="irAlPedido()"
+                      >Ir al pedido a emitir la guía</dynadrill-button
+                    >
+                  </div>
+                }
                 <div class="pf-detail__head-actions">
                   <dynadrill-button [disabled]="!puedeEnviar()" (clicked)="ejecutar('enviar')"
                     >Enviar al cliente</dynadrill-button

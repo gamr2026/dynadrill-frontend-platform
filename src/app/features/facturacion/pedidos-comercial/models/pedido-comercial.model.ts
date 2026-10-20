@@ -1,9 +1,6 @@
 import type { DocumentoPedido } from './documentos-pedido';
 import type { MacroEstado } from '../../../../shared/models/timeline.model';
-import {
-  LINEA_SERVICIO_LABELS,
-  type LineaServicio,
-} from '../../models/pedido.model';
+import { LINEA_SERVICIO_LABELS, type LineaServicio } from '../../models/pedido.model';
 
 /**
  * Modelos del contenedor `comercial` (backend nuevo, vía gateway: `/api/comercial/pedidos`,
@@ -176,6 +173,13 @@ export interface PedidoDetalle {
   codigo: string | null;
   /** Número de ticket: el mismo que tendrá la prefactura (se reserva al abrir el pedido). */
   ticketNumero: number | null;
+  /** El ticket de Operaciones que lo atiende y el código de su paso actual (null si todavía no se abrió). */
+  ticketOperativo: {
+    origen: 'pumping' | 'fcr';
+    ticketId: string;
+    pasoCodigo: string;
+    actualizadoAt: string;
+  } | null;
   version: number;
   origen: OrigenPedido;
   estado: string;
@@ -185,7 +189,12 @@ export interface PedidoDetalle {
   terminal: boolean;
   motivoAnulacion: string | null;
   anuladoAt: string | null;
-  cliente: { id: string | null; nombre: string | null; ruc: string | null; subcliente: string | null };
+  cliente: {
+    id: string | null;
+    nombre: string | null;
+    ruc: string | null;
+    subcliente: string | null;
+  };
   lineaServicio: LineaServicio | null;
   tipoOt: TipoOt | null;
   tiposServicio: string[];
@@ -489,28 +498,47 @@ export interface ImportesItem {
 }
 
 /** Importes de un ítem con la misma regla del backend (`importesItem`): bruto, descuento y neto a dos decimales. */
-export function importesItem(cantidad: number, valorUnitario: number, descuentoPct: number | null | undefined): ImportesItem {
+export function importesItem(
+  cantidad: number,
+  valorUnitario: number,
+  descuentoPct: number | null | undefined,
+): ImportesItem {
   const bruto = redondeo(cantidad * valorUnitario);
   const descuento = redondeo((bruto * (descuentoPct ?? 0)) / 100);
   return { bruto, descuento, neto: redondeo(bruto - descuento) };
 }
 
-export function totalesItems(items: readonly Pick<ImportesItem, 'bruto' | 'descuento'>[]): { subtotal: number; descuento: number; neto: number } {
+export function totalesItems(items: readonly Pick<ImportesItem, 'bruto' | 'descuento'>[]): {
+  subtotal: number;
+  descuento: number;
+  neto: number;
+} {
   const subtotal = redondeo(items.reduce((a, i) => a + i.bruto, 0));
   const descuento = redondeo(items.reduce((a, i) => a + i.descuento, 0));
   return { subtotal, descuento, neto: redondeo(subtotal - descuento) };
 }
 
 /** Total final de AS2: `total` es el subtotal bruto, así que se resta el descuento y se suma el impuesto. */
-export function totalFinalAs2(total: number | null, descuento: number | null, impuesto: number | null): number | null {
+export function totalFinalAs2(
+  total: number | null,
+  descuento: number | null,
+  impuesto: number | null,
+): number | null {
   if (total === null) return null;
   return redondeo(total - (descuento ?? 0) + (impuesto ?? 0));
 }
 
-const FORMATO_MONEDA = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const FORMATO_MONEDA = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 export function formatoMoneda(valor: number | null | undefined): string {
-  return valor === null || valor === undefined || Number.isNaN(valor) ? '—' : FORMATO_MONEDA.format(valor);
+  return valor === null || valor === undefined || Number.isNaN(valor)
+    ? '—'
+    : FORMATO_MONEDA.format(valor);
 }
 
 /** `AAAA-MM-DD` → `DD/MM/AAAA` (sin pasar por `Date`, para no correr el día por la zona horaria). */
@@ -521,35 +549,52 @@ export function formatoDia(iso: string | null | undefined): string {
 }
 
 /** Nombre del tipo de OT según el catálogo (si no cargó, el propio código). */
-export function etiquetaTipoOt(catalogo: readonly CatalogoTipoOt[], codigo: string | null | undefined): string {
+export function etiquetaTipoOt(
+  catalogo: readonly CatalogoTipoOt[],
+  codigo: string | null | undefined,
+): string {
   if (!codigo) return '—';
-  return catalogo.find(t => t.codigo === codigo)?.nombre ?? codigo;
+  return catalogo.find((t) => t.codigo === codigo)?.nombre ?? codigo;
 }
 
-export function tiposDeLinea(catalogo: CatalogoServicios | null | undefined, linea: LineaServicio | null | undefined): CatalogoTipoServicio[] {
-  return catalogo?.lineas.find(l => l.linea === linea)?.tipos ?? [];
+export function tiposDeLinea(
+  catalogo: CatalogoServicios | null | undefined,
+  linea: LineaServicio | null | undefined,
+): CatalogoTipoServicio[] {
+  return catalogo?.lineas.find((l) => l.linea === linea)?.tipos ?? [];
 }
 
 /** "milling_tools" → "Milling Tools" cuando el catálogo aún no cargó. */
 function humanizar(codigo: string): string {
-  return codigo.replace(/_/g, ' ').replace(/(^|\s)\S/g, c => c.toUpperCase());
+  return codigo.replace(/_/g, ' ').replace(/(^|\s)\S/g, (c) => c.toUpperCase());
 }
 
-export function etiquetaTipoServicio(catalogo: CatalogoServicios | null | undefined, codigo: string): string {
+export function etiquetaTipoServicio(
+  catalogo: CatalogoServicios | null | undefined,
+  codigo: string,
+): string {
   for (const l of catalogo?.lineas ?? []) {
-    const t = l.tipos.find(x => x.codigo === codigo);
+    const t = l.tipos.find((x) => x.codigo === codigo);
     if (t) return t.nombre;
   }
   return humanizar(codigo);
 }
 
-export function etiquetasTiposServicio(catalogo: CatalogoServicios | null | undefined, codigos: readonly string[] | null | undefined): string {
-  return codigos?.length ? codigos.map(c => etiquetaTipoServicio(catalogo, c)).join(', ') : '—';
+export function etiquetasTiposServicio(
+  catalogo: CatalogoServicios | null | undefined,
+  codigos: readonly string[] | null | undefined,
+): string {
+  return codigos?.length ? codigos.map((c) => etiquetaTipoServicio(catalogo, c)).join(', ') : '—';
 }
 
 /** Subtipos con su tipo, para mostrar: "Milling (Casing Repair), Sand Bailer (Fishing)". */
-export function etiquetasSubtipos(catalogo: CatalogoServicios | null | undefined, subtipos: readonly SubtipoServicio[] | null | undefined): string {
-  return subtipos?.length ? subtipos.map(s => `${s.subtipo} (${etiquetaTipoServicio(catalogo, s.tipo)})`).join(', ') : '—';
+export function etiquetasSubtipos(
+  catalogo: CatalogoServicios | null | undefined,
+  subtipos: readonly SubtipoServicio[] | null | undefined,
+): string {
+  return subtipos?.length
+    ? subtipos.map((s) => `${s.subtipo} (${etiquetaTipoServicio(catalogo, s.tipo)})`).join(', ')
+    : '—';
 }
 
 const SEPARADOR_CLAVE = '::';
@@ -561,7 +606,9 @@ export function claveSubtipo(s: SubtipoServicio): string {
 
 export function subtipoDesdeClave(clave: string): SubtipoServicio | null {
   const i = clave.indexOf(SEPARADOR_CLAVE);
-  return i <= 0 ? null : { tipo: clave.slice(0, i), subtipo: clave.slice(i + SEPARADOR_CLAVE.length) };
+  return i <= 0
+    ? null
+    : { tipo: clave.slice(0, i), subtipo: clave.slice(i + SEPARADOR_CLAVE.length) };
 }
 
 export interface OpcionSubtipo {
@@ -571,23 +618,42 @@ export interface OpcionSubtipo {
 }
 
 /** Subtipos que ofrece cada tipo elegido, agrupados por el nombre del tipo. */
-export function opcionesSubtipos(catalogo: CatalogoServicios | null | undefined, linea: LineaServicio | null | undefined, tipos: readonly string[]): OpcionSubtipo[] {
+export function opcionesSubtipos(
+  catalogo: CatalogoServicios | null | undefined,
+  linea: LineaServicio | null | undefined,
+  tipos: readonly string[],
+): OpcionSubtipo[] {
   const elegidos = new Set(tipos);
   return tiposDeLinea(catalogo, linea)
-    .filter(t => elegidos.has(t.codigo))
-    .flatMap(t => t.subtipos.map(s => ({ label: s, value: claveSubtipo({ tipo: t.codigo, subtipo: s }), group: t.nombre })));
+    .filter((t) => elegidos.has(t.codigo))
+    .flatMap((t) =>
+      t.subtipos.map((s) => ({
+        label: s,
+        value: claveSubtipo({ tipo: t.codigo, subtipo: s }),
+        group: t.nombre,
+      })),
+    );
 }
 
 /** Al quitar un tipo se quitan también sus subtipos (y los que ya no existan en el catálogo). */
-export function subtiposVigentes(catalogo: CatalogoServicios | null | undefined, linea: LineaServicio | null | undefined, tipos: readonly string[], subtipos: readonly SubtipoServicio[]): SubtipoServicio[] {
-  const validas = new Set(opcionesSubtipos(catalogo, linea, tipos).map(o => o.value));
-  return subtipos.filter(s => validas.has(claveSubtipo(s)));
+export function subtiposVigentes(
+  catalogo: CatalogoServicios | null | undefined,
+  linea: LineaServicio | null | undefined,
+  tipos: readonly string[],
+  subtipos: readonly SubtipoServicio[],
+): SubtipoServicio[] {
+  const validas = new Set(opcionesSubtipos(catalogo, linea, tipos).map((o) => o.value));
+  return subtipos.filter((s) => validas.has(claveSubtipo(s)));
 }
 
 /** Al cambiar la línea, descarta los tipos que ya no le corresponden. */
-export function tiposCompatibles(catalogo: CatalogoServicios | null | undefined, linea: LineaServicio | null, tipos: readonly string[]): string[] {
-  const validos = new Set(tiposDeLinea(catalogo, linea).map(t => t.codigo));
-  return tipos.filter(t => validos.has(t));
+export function tiposCompatibles(
+  catalogo: CatalogoServicios | null | undefined,
+  linea: LineaServicio | null,
+  tipos: readonly string[],
+): string[] {
+  const validos = new Set(tiposDeLinea(catalogo, linea).map((t) => t.codigo));
+  return tipos.filter((t) => validos.has(t));
 }
 
 export interface BorradorPedido {
@@ -630,7 +696,9 @@ export function faltantesParaAbrir(p: BorradorPedido): string[] {
 }
 
 /** Valida coherencias que el backend rechazaría; devuelve el primer mensaje o `null`. */
-export function errorCoherencia(p: Pick<BorradorPedido, 'fechaInicioServicio' | 'fechaFinServicio' | 'rigless' | 'taladroId'>): string | null {
+export function errorCoherencia(
+  p: Pick<BorradorPedido, 'fechaInicioServicio' | 'fechaFinServicio' | 'rigless' | 'taladroId'>,
+): string | null {
   if (p.fechaInicioServicio && p.fechaFinServicio && p.fechaFinServicio < p.fechaInicioServicio) {
     return 'La fecha de fin no puede ser anterior a la de inicio.';
   }
@@ -639,12 +707,19 @@ export function errorCoherencia(p: Pick<BorradorPedido, 'fechaInicioServicio' | 
 }
 
 /** Pedido terminado, sin analista y no anulado: lo que ve la jefa de Facturación en su bandeja. */
-export function estaSinAnalista(p: Pick<PedidoResumen, 'analistaFacturacionNombre' | 'estado'>): boolean {
+export function estaSinAnalista(
+  p: Pick<PedidoResumen, 'analistaFacturacionNombre' | 'estado'>,
+): boolean {
   return !p.analistaFacturacionNombre && p.estado !== 'anulado';
 }
 
 /** Texto "Mostrando 1–10 de 35 · Página 1 de 4" (o sin total cuando AS2 no lo da). */
-export function resumenPaginacion(page: number, limit: number, cantidad: number, total: number | null): string {
+export function resumenPaginacion(
+  page: number,
+  limit: number,
+  cantidad: number,
+  total: number | null,
+): string {
   if (cantidad === 0) return 'Sin resultados';
   const desde = (page - 1) * limit + 1;
   const hasta = desde + cantidad - 1;
@@ -654,7 +729,12 @@ export function resumenPaginacion(page: number, limit: number, cantidad: number,
 }
 
 /** ¿Hay página siguiente? Con total conocido se calcula; sin él manda `hayMas` de AS2. */
-export function haySiguiente(page: number, limit: number, total: number | null, hayMas: boolean): boolean {
+export function haySiguiente(
+  page: number,
+  limit: number,
+  total: number | null,
+  hayMas: boolean,
+): boolean {
   return total === null ? hayMas : page * limit < total;
 }
 
@@ -667,20 +747,26 @@ export function pasoRequiereMotivo(paso: Pick<TransicionDisponible, 'requiereMot
  * Pasos que la pantalla pinta como botones del flujo. `anulado` y `en_correccion` se excluyen porque ya tienen su botón
  * propio (Anular / Rechazar) con la misma regla del backend: no se hardcodea el flujo, solo se evita duplicar acciones.
  */
-export function pasosDeFlujo(siguientes: readonly TransicionDisponible[], conBotonPropio: readonly string[] = ['anulado', 'en_correccion']): TransicionDisponible[] {
-  return siguientes.filter(s => !conBotonPropio.includes(s.estado));
+export function pasosDeFlujo(
+  siguientes: readonly TransicionDisponible[],
+  conBotonPropio: readonly string[] = ['anulado', 'en_correccion'],
+): TransicionDisponible[] {
+  return siguientes.filter((s) => !conBotonPropio.includes(s.estado));
 }
 
 /** ¿Existe ese paso entre los disponibles? (para mostrar Anular / Rechazar solo si el backend lo permite). */
-export function puedeDarPaso(siguientes: readonly TransicionDisponible[], estado: string): TransicionDisponible | undefined {
-  return siguientes.find(s => s.estado === estado);
+export function puedeDarPaso(
+  siguientes: readonly TransicionDisponible[],
+  estado: string,
+): TransicionDisponible | undefined {
+  return siguientes.find((s) => s.estado === estado);
 }
 
 /** Mensaje legible de un error HTTP del backend nuevo (`{ message: string | string[] }`). */
 export function mensajeDeError(err: unknown, porDefecto: string): string {
   const cuerpo = (err as { error?: { message?: unknown } } | null)?.error;
   const m = cuerpo?.message;
-  if (Array.isArray(m)) return m.filter(x => typeof x === 'string').join('. ') || porDefecto;
+  if (Array.isArray(m)) return m.filter((x) => typeof x === 'string').join('. ') || porDefecto;
   if (typeof m === 'string' && m.trim()) return m;
   return porDefecto;
 }

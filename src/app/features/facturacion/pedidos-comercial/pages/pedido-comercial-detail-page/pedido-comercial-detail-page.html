@@ -65,7 +65,7 @@
           <!-- ── Ticket operativo asociado ── -->
           <section class="fact-card pedido-detail__ord-2">
             <header class="pedido-detail__head">
-              <h2>Ticket {{ linea(p) }} asociado</h2>
+              <h2>Ticket {{ ticketOperativo() ? lineaTicket() : linea(p) }} asociado</h2>
             </header>
             <dl class="pedido-detail__defs">
               <div>
@@ -73,10 +73,33 @@
                 <dd>{{ p.ticketNumero ?? 'Se asigna al abrir el pedido' }}</dd>
               </div>
               <div>
-                <dt>Estado del pedido</dt>
-                <dd>{{ p.estadoNombre }}</dd>
+                <dt>Fase actual</dt>
+                <dd>{{ faseTicket() }}</dd>
               </div>
             </dl>
+            @if (ticketOperativo() && puedeAbrirTicket()) {
+              <button
+                type="button"
+                class="pedido-detail__btn pedido-detail__btn--tonal"
+                (click)="irAlTicket()"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+                Ir a {{ lineaTicket() }}
+              </button>
+            }
           </section>
 
           <!-- ── Documentos de respaldo ── -->

@@ -15,6 +15,14 @@ import {
   type MotivoDialogData,
 } from '../../../../../shared/components/motivo-dialog/motivo-dialog';
 import { AuthService } from '../../../../../core/services/auth.service';
+import {
+  PERMISO_FCR_VER,
+  PASOS_FCR,
+} from '../../../../operations/fcr/tickets-nuevos/models/ticket-fcr';
+import {
+  PERMISO_PUMPING_OPERAR,
+  nombrePaso as nombrePasoPumping,
+} from '../../../../operations/pumping/tickets-nuevos/models/ticket-pumping';
 import { PedidosComercialService } from '../../services/pedidos-comercial.service';
 import { GuiasSeccion } from '../../components/guias-seccion/guias-seccion';
 import { OrdenTrabajoSeccion } from '../../components/orden-trabajo-seccion/orden-trabajo-seccion';
@@ -158,6 +166,28 @@ export class PedidoComercialDetailPage {
     const sitio = [p.ubicacion.campo, p.ubicacion.pozo].filter(Boolean).join(' / ');
     return [p.cliente.nombre, sitio].filter(Boolean).join(' — ');
   });
+
+  // ── Ticket de Operaciones asociado: número, fase y acceso (si la cuenta puede abrirlo) ──
+  protected readonly ticketOperativo = computed(() => this.pedido()?.ticketOperativo ?? null);
+  protected readonly lineaTicket = computed(() =>
+    this.ticketOperativo()?.origen === 'fcr' ? 'FCR' : 'Pumping',
+  );
+  protected readonly faseTicket = computed(() => {
+    const t = this.ticketOperativo();
+    if (!t) return '—';
+    return t.origen === 'fcr'
+      ? (PASOS_FCR.find((p) => p.codigo === t.pasoCodigo)?.nombre ?? t.pasoCodigo)
+      : nombrePasoPumping(t.pasoCodigo);
+  });
+  protected readonly puedeAbrirTicket = computed(() => {
+    const t = this.ticketOperativo();
+    return !!t && this.puede(t.origen === 'fcr' ? PERMISO_FCR_VER : PERMISO_PUMPING_OPERAR);
+  });
+  protected irAlTicket(): void {
+    const t = this.ticketOperativo();
+    if (!t) return;
+    void this.router.navigate([`/modulos/operativo/${t.origen}/pedidos`, t.ticketId]);
+  }
 
   // ── Datos en rejilla (mismos bloques de la demo: Cliente, Servicio, Comercial y responsables, Administrativos) ──
   private readonly dato = (label: string, value: string | null | undefined) => ({

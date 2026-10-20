@@ -19,12 +19,13 @@ import {
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../core/services/auth.service';
+import { FlotaInspeccionesService } from '../services/flota-inspecciones.service';
 import { FlotaViajesService } from '../services/flota-viajes.service';
+import type { InspeccionDetalle } from '../models/inspeccion-flota.model';
 import {
   NIVEL_LABEL,
   TIPO_VIAJE_LABEL,
   previsualizarRiesgo,
-  type BodegaViaje,
   type PreguntaRiesgo,
   type TipoViaje,
   type UmbralRiesgo,
@@ -77,6 +78,7 @@ const PERMISO_MAYOR = 'flota.viajes.autorizar_mayor';
 export class ViajeSolicitudDialog {
   private readonly data = inject<ViajeSolicitudDialogData>(NZ_MODAL_DATA);
   private readonly api = inject(FlotaViajesService);
+  private readonly inspecciones = inject(FlotaInspeccionesService);
   private readonly auth = inject(AuthService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<ViajeSolicitudDialog, boolean>);
@@ -88,14 +90,15 @@ export class ViajeSolicitudDialog {
   protected readonly tipoLabel = TIPO_VIAJE_LABEL[this.data.tipo].toLowerCase();
 
   private readonly unidades = signal<UnidadViaje[]>([]);
-  protected readonly bodegas = signal<BodegaViaje[]>([]);
   protected readonly preguntas = signal<PreguntaRiesgo[]>([]);
   private readonly umbrales = signal<UmbralRiesgo[]>([]);
 
   // ── Paso 1: Información general ──
   protected readonly fecha = signal<Date | null>(new Date());
   protected readonly motivoViaje = signal('');
-  protected readonly bodegaId = signal<string | null>(null);
+  /** La inspección de salida de esta unidad en el ticket: de ahí salen el origen y el destino (ya no se piden). */
+  protected readonly inspeccionSalida = signal<InspeccionDetalle | null>(null);
+  protected readonly cargandoInspeccion = signal(true);
   protected readonly vehicleTypeOptions = VEHICLE_TYPE_OPTIONS;
 
   private readonly unidad = computed(
@@ -119,19 +122,15 @@ export class ViajeSolicitudDialog {
     this.data.ticket.serviciosPrincipales.map((s) => s.nombre).join(', '),
   );
   protected readonly assignedSupervisorNombre = signal(this.data.ticket.supervisor?.nombre ?? '');
-  protected readonly pozoDelTicket = computed(() => this.data.ticket.destino.pozo);
-  private readonly baseNombre = computed(
-    () => this.bodegas().find((b) => b.id === this.bodegaId())?.nombre ?? '—',
-  );
-  protected readonly origen = computed(() =>
-    this.tipo() === 'salida' ? this.baseNombre() : (this.pozoDelTicket()?.nombre ?? '—'),
-  );
-  protected readonly destino = computed(() =>
-    this.tipo() === 'salida' ? (this.pozoDelTicket()?.nombre ?? '—') : this.baseNombre(),
-  );
-  protected readonly bodegaOpciones = computed<DynadrillSelectOption[]>(() =>
-    this.bodegas().map((b) => ({ label: b.nombre, value: b.id })),
-  );
+  /** En el retorno el recorrido va al revés. */
+  protected readonly origen = computed(() => {
+    const i = this.inspeccionSalida();
+    return (this.tipo() === 'salida' ? i?.puntoPartida : i?.destino) || '—';
+  });
+  protected readonly destino = computed(() => {
+    const i = this.inspeccionSalida();
+    return (this.tipo() === 'salida' ? i?.destino : i?.puntoPartida) || '—';
+  });
 
   /** Cabecera móvil con la context-card: ticket y tipo de viaje agrupados. */
   protected readonly headerGroups = computed<DynadrillContextCardItem[][]>(() => [
@@ -249,8 +248,7 @@ export class ViajeSolicitudDialog {
       this.fecha() !== null &&
       this.motivoViaje().trim().length >= 3 &&
       !!this.unidad() &&
-      !!this.pozoDelTicket() &&
-      !!this.bodegaId() &&
+      !!this.inspeccionSalida() &&
       r.sinContestar === 0 &&
       !r.impide &&
       this.routeLocation().trim().length > 0 &&
@@ -264,17 +262,33 @@ export class ViajeSolicitudDialog {
       `${que} de la unidad ${this.placas() || '—'} — ticket ${this.ticketCode()}`,
     );
     this.api.unidades().subscribe((u) => this.unidades.set(u));
-    this.api.bodegas().subscribe((b) => {
-      this.bodegas.set(b);
-      if (b.length === 1) this.bodegaId.set(b[0].id);
+    this.inspecciones.casos(this.data.ticket.ticketId).subscribe({
+      next: (casos) => {
+        const caso = casos.find((c) => c.unidad.vehiculo?.id === this.data.vehiculoId);
+        if (!caso?.salidaInspeccionId) {
+          this.cargandoInspeccion.set(false);
+          return;
+        }
+        this.inspecciones.obtener(caso.salidaInspeccionId).subscribe({
+          next: (i) => {
+            this.inspeccionSalida.set(i);
+            this.cargandoInspeccion.set(false);
+          },
+          error: () => this.cargandoInspeccion.set(false),
+        });
+      },
+      error: () => this.cargandoInspeccion.set(false),
     });
     this.api.preguntas().subscribe((p) => this.preguntas.set(p));
     this.api.umbrales().subscribe((u) => this.umbrales.set(u));
   }
 
   protected goToNextStep(): void {
-    if (this.currentStep() === 0 && !this.bodegaId()) {
-      this.notify.error('Falta información', 'Elija la base del viaje antes de continuar.');
+    if (this.currentStep() === 0 && !this.inspeccionSalida()) {
+      this.notify.error(
+        'Falta la inspección',
+        'Registre la inspección de salida de la unidad antes de continuar.',
+      );
       return;
     }
     if (this.currentStep() < this.steps.length - 1) this.currentStep.update((s) => s + 1);
@@ -288,8 +302,6 @@ export class ViajeSolicitudDialog {
 
   protected guardar(): void {
     if (!this.puedeGuardar() || this.submitting()) return;
-    const pozo = this.pozoDelTicket()!.id;
-    const base = this.bodegaId()!;
     const vacio = (s: string) => s.trim() || null;
     const hora = (h: string) => (HORA.test(h) ? h : null);
     this.submitting.set(true);
@@ -300,8 +312,6 @@ export class ViajeSolicitudDialog {
         unidadId: this.unidad()!.id,
         fecha: aFechaIso(this.fecha())!,
         motivo: this.motivoViaje().trim(),
-        origen: this.tipo() === 'salida' ? { bodegaId: base } : { pozoId: pozo },
-        destino: this.tipo() === 'salida' ? { pozoId: pozo } : { bodegaId: base },
         respuestas: this.preguntas().map((p) => ({
           preguntaId: p.id,
           opcionId: this.elegidas()[p.id],

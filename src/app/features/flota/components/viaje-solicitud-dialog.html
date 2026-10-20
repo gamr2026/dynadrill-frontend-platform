@@ -62,16 +62,6 @@
           [disabled]="true"
         />
         <dynadrill-input label="Placas" [value]="placas()" [disabled]="true" />
-        @if (bodegas().length > 1) {
-          <dynadrill-select
-            class="gv-dialog__full"
-            [label]="tipo() === 'salida' ? 'Base de origen' : 'Base de destino'"
-            placeholder="Seleccionar la base"
-            [options]="bodegaOpciones()"
-            [value]="bodegaId()"
-            (valueChange)="bodegaId.set($any($event))"
-          />
-        }
       </div>
 
       <dynadrill-text variant="body"
@@ -92,10 +82,11 @@
           <strong>{{ assignedSupervisorNombre() || '—' }}</strong></dynadrill-text
         >
       </div>
-      @if (!pozoDelTicket()) {
-        <dynadrill-text variant="caption" role="alert"
-          >El ticket no tiene pozo asignado: no se puede armar la ruta.</dynadrill-text
-        >
+      @if (!cargandoInspeccion() && !inspeccionSalida()) {
+        <dynadrill-text variant="caption" role="alert">
+          Falta la inspección de salida de la unidad {{ placas() }}: de ahí salen el origen y el
+          destino. Regístrela en el ticket y vuelva a abrir esta tarea.
+        </dynadrill-text>
       }
     </section>
   }

@@ -145,7 +145,9 @@ export interface ViajeResumen {
 
 export type ExtremoDetalle =
   | { tipo: 'bodega'; id: string; nombre: string }
-  | { tipo: 'pozo'; id: string; nombre: string; campo: string | null };
+  | { tipo: 'pozo'; id: string; nombre: string; campo: string | null }
+  /** Lugar escrito en la inspección de salida (punto de partida o destino). */
+  | { tipo: 'texto'; nombre: string };
 
 export interface ViajeDetalle {
   id: string;
@@ -203,8 +205,9 @@ export interface SolicitarViajeEntrada {
   unidadId: string;
   fecha: string;
   motivo: string;
-  origen: { bodegaId?: string; pozoId?: string };
-  destino: { bodegaId?: string; pozoId?: string };
+  /** Con ticket se omiten: el servidor los toma de la inspección de salida de la unidad. */
+  origen?: { bodegaId?: string; pozoId?: string };
+  destino?: { bodegaId?: string; pozoId?: string };
   respuestas: Array<{ preguntaId: string; opcionId: string }>;
   pasajeros?: string | null;
   puedeCombinarViajes?: boolean | null;

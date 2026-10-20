@@ -1259,6 +1259,7 @@ export class TicketPumpingDetailPage {
       content: TicketReporteDiarioDialog,
       data: {
         ticketId: t.id,
+        ticketCodigo: String(t.ticketNumero ?? t.pedidoCodigo),
         fecha,
         nuevo: nuevo && !dia,
         soloLectura: !this.puedeLlenarReporteDiario() || dia?.estado === 'corregido',
@@ -1266,6 +1267,8 @@ export class TicketPumpingDetailPage {
           cliente: t.cliente,
           pozo: t.pozo,
           campo: t.campo,
+          bloque: t.bloque,
+          representante: t.representanteCampo?.nombre ?? null,
           taladro: t.taladro,
           contrato: t.numeroContrato,
           supervisor: t.asignacion.supervisor?.nombre ?? null,

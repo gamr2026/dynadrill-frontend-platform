@@ -1,0 +1,271 @@
+<section class="daily-report__header">
+  <dynadrill-text variant="h1">Reporte diario de actividades de operaciones</dynadrill-text>
+  <dynadrill-text variant="caption">Documento: DYN-SGI-RE-047 — Versión 11</dynadrill-text>
+  <dynadrill-context-card [items]="headerItems()" />
+</section>
+
+@if (corregido()) {
+  <div class="daily-report__aviso" role="status">
+    Facturación corrigió este día en el pedido: ya no se puede editar ni reenviar desde el ticket.
+  </div>
+}
+
+<!-- ═══ Documento de monitoreo (generado externamente) ═══ -->
+<section class="daily-report__section">
+  <dynadrill-text variant="h2">Documento de monitoreo</dynadrill-text>
+  <dynadrill-text variant="caption"
+    >Adjunte el documento de monitoreo generado externamente (ej. sensores en campo) para este
+    día.</dynadrill-text
+  >
+  @if (monitoreoDoc(); as doc) {
+    <div class="daily-report__monitoreo-doc">
+      <dynadrill-text variant="body">Documento de monitoreo cargado</dynadrill-text>
+      <dynadrill-icon-button icon="eye" tooltip="Descargar documento" (clicked)="verMonitoreo()" />
+    </div>
+  }
+  @if (!bloqueado()) {
+    <dynadrill-upload-zone state="idle" (fileSelected)="onMonitoreoSeleccionado($event)" />
+    @if (monitoreoSubiendo()) {
+      <dynadrill-text variant="caption">Subiendo…</dynadrill-text>
+    }
+  }
+</section>
+
+<!-- ═══ Información general ═══ -->
+<section class="daily-report__section daily-report__section--card">
+  <dynadrill-text variant="h2">Información general</dynadrill-text>
+  <div class="daily-report__form-grid">
+    <dynadrill-input label="Fecha *" [value]="fechaTexto" [disabled]="true" />
+    <dynadrill-input label="Cliente *" [value]="data.cabecera.cliente ?? ''" [disabled]="true" />
+    <dynadrill-input
+      label="Orden / Contrato"
+      [value]="data.cabecera.contrato ?? ''"
+      [disabled]="true"
+    />
+    <dynadrill-input
+      label="Representante del Cliente"
+      [value]="representante()"
+      [disabled]="bloqueado()"
+      (valueChange)="representante.set($event)"
+    />
+    <dynadrill-input
+      label="Cargo"
+      [value]="cargo()"
+      [disabled]="bloqueado()"
+      (valueChange)="cargo.set($event)"
+    />
+  </div>
+  <div class="daily-report__form-grid">
+    <dynadrill-input label="Pozo" [value]="data.cabecera.pozo ?? ''" [disabled]="true" />
+    <dynadrill-input label="Campo" [value]="data.cabecera.campo ?? ''" [disabled]="true" />
+    <dynadrill-input label="Bloque" [value]="data.cabecera.bloque ?? ''" [disabled]="true" />
+    <dynadrill-input label="Taladro" [value]="data.cabecera.taladro ?? ''" [disabled]="true" />
+  </div>
+</section>
+
+<!-- ═══ Detalle de actividades ═══ -->
+<section class="daily-report__section daily-report__section--card">
+  <dynadrill-text variant="h2">Actividades</dynadrill-text>
+  <dynadrill-text variant="caption"
+    >Registre las actividades realizadas con hora de inicio y fin.</dynadrill-text
+  >
+
+  <div class="daily-report__activities-header">
+    <span class="daily-report__col-time">Inicio</span>
+    <span class="daily-report__col-time">Fin</span>
+    <span class="daily-report__col-hours">Horas</span>
+    <span class="daily-report__col-detail">Detalle de actividades</span>
+    <span class="daily-report__col-action"></span>
+  </div>
+
+  @for (a of actividades(); track $index; let i = $index) {
+    <div class="daily-report__activity-row">
+      <div class="daily-report__col-time">
+        <span class="daily-report__mobile-label">Inicio</span>
+        <input
+          type="time"
+          class="daily-report__time-input"
+          aria-label="Hora de inicio"
+          [value]="a.horaInicio"
+          [disabled]="bloqueado()"
+          (input)="cambiar(i, 'horaInicio', $any($event.target).value)"
+        />
+      </div>
+      <div class="daily-report__col-time">
+        <span class="daily-report__mobile-label">Fin</span>
+        <input
+          type="time"
+          class="daily-report__time-input"
+          aria-label="Hora de fin"
+          [value]="a.horaFin"
+          [disabled]="bloqueado()"
+          (input)="cambiar(i, 'horaFin', $any($event.target).value)"
+        />
+      </div>
+      <div class="daily-report__col-hours">
+        <dynadrill-text variant="body">{{ horasTexto(a) }}</dynadrill-text>
+      </div>
+      <div class="daily-report__col-detail">
+        <span class="daily-report__mobile-label">Detalle · {{ horasTexto(a) }} h</span>
+        <dynadrill-textarea
+          label=""
+          placeholder="Describa la actividad..."
+          [value]="a.detalle"
+          [disabled]="bloqueado()"
+          (valueChange)="cambiar(i, 'detalle', $event)"
+        />
+      </div>
+      <div class="daily-report__col-action">
+        @if (!bloqueado() && actividades().length > 1) {
+          <dynadrill-icon-button icon="delete" tooltip="Quitar actividad" (clicked)="quitar(i)" />
+        }
+      </div>
+      <!-- Las tablas van a todo el ancho de la actividad (no dentro de la columna angosta del detalle). -->
+      <div class="daily-report__col-tablas">
+        @if (bloqueado()) {
+          @for (t of a.tablas; track $index) {
+            <table class="daily-report__tabla">
+              <caption>
+                {{
+                  t.titulo || 'Tabla'
+                }}
+              </caption>
+              <thead>
+                <tr>
+                  @for (c of t.columnas; track $index) {
+                    <th scope="col">{{ c }}</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (f of t.filas; track $index) {
+                  <tr>
+                    @for (v of f; track $index) {
+                      <td>{{ v }}</td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        } @else {
+          <app-actividad-tablas-editor
+            [tablas]="a.tablas"
+            (tablasChange)="cambiarTablas(i, $event)"
+          />
+        }
+      </div>
+    </div>
+  }
+
+  @if (!bloqueado()) {
+    <button type="button" class="daily-report__add" (click)="agregar()">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M12 5v14M5 12h14" /></svg
+      >Agregar actividad
+    </button>
+  }
+</section>
+
+<!-- ═══ Tiempos ═══ -->
+<section class="daily-report__section daily-report__section--card">
+  <dynadrill-text variant="h2">Resumen de tiempos</dynadrill-text>
+  <div class="daily-report__times-grid">
+    <dynadrill-input
+      type="number"
+      label="Tiempo productivo (hrs)"
+      [value]="productivo()"
+      [disabled]="bloqueado()"
+      (valueChange)="productivo.set($event)"
+    />
+    <dynadrill-input
+      type="number"
+      label="Tiempo no productivo (hrs)"
+      [value]="noProductivo()"
+      [disabled]="bloqueado()"
+      (valueChange)="noProductivo.set($event)"
+    />
+    <div class="daily-report__time-total">
+      <dynadrill-text variant="body"
+        ><strong>Tiempo Total:</strong> {{ total() }} hrs</dynadrill-text
+      >
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Observaciones ═══ -->
+<section class="daily-report__section">
+  <dynadrill-text variant="h2">¿Hubo observaciones?</dynadrill-text>
+  <dynadrill-chip-group
+    [options]="['No', 'Sí']"
+    mode="single"
+    [selected]="[tieneObservaciones() ? 'Sí' : 'No']"
+    (selectedChange)="alCambiarObservaciones($event[0] === 'Sí')"
+  />
+  @if (tieneObservaciones()) {
+    <dynadrill-textarea
+      label=""
+      placeholder="Ingrese observaciones generales del día..."
+      [value]="observaciones()"
+      [disabled]="bloqueado()"
+      (valueChange)="observaciones.set($event)"
+    />
+  }
+</section>
+
+<!-- ═══ Responsables ═══ -->
+<section class="daily-report__section">
+  <dynadrill-text variant="h2">Responsables del reporte</dynadrill-text>
+  <div class="daily-report__signatures">
+    <div class="daily-report__signature-col">
+      <dynadrill-input
+        label="Nombre (Supervisor Dynadrill)"
+        [value]="data.cabecera.supervisor ?? ''"
+        [disabled]="true"
+      />
+    </div>
+    <div class="daily-report__signature-col">
+      <dynadrill-input
+        label="Nombre (Representante Cliente)"
+        [value]="representante()"
+        [disabled]="true"
+      />
+    </div>
+  </div>
+</section>
+
+@if (problema(); as p) {
+  <dynadrill-text variant="caption" role="status">{{ p }}</dynadrill-text>
+}
+
+<!-- ═══ Footer ═══ -->
+<footer class="daily-report__actions">
+  <dynadrill-button variant="secondary" (clicked)="cerrar()">{{
+    bloqueado() ? 'Cerrar' : 'Cancelar'
+  }}</dynadrill-button>
+  @if (!bloqueado()) {
+    <dynadrill-button
+      variant="secondary"
+      [disabled]="!!problema() || enviando()"
+      (clicked)="guardar(false)"
+      >Guardar borrador</dynadrill-button
+    >
+    <dynadrill-button
+      variant="success"
+      [disabled]="!!problema() || enviando() || actividades().length === 0"
+      (clicked)="guardar(true)"
+      >{{ enviando() ? 'Guardando…' : 'Guardar reporte diario' }}</dynadrill-button
+    >
+  }
+</footer>

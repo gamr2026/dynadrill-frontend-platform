@@ -34,6 +34,8 @@ export interface TicketPumpingResumen {
   fechaInicioServicio: string | null;
   /** Fin del servicio según el pedido: el día en que se libera el personal asignado. */
   fechaFinServicio: string | null;
+  /** Representante del cliente en campo (Company Man) según el pedido. */
+  representanteCampo: { id: string; nombre: string } | null;
   createdAt: string;
 }
 

@@ -1,25 +1,31 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
+import type { NzUploadFile } from 'ng-zorro-antd/upload';
 import { switchMap } from 'rxjs';
 import {
   DynadrillButtonComponent,
+  DynadrillChipGroupComponent,
+  DynadrillContextCardComponent,
   DynadrillIconButtonComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
-  DynadrillTagComponent,
   DynadrillTextComponent,
   DynadrillTextareaComponent,
+  DynadrillUploadZoneComponent,
+  type DynadrillContextCardItem,
 } from '@digitec-it-projects/dynadrill-ui';
 import type { ActividadTabla } from '../../../../../../shared/models/operativo-docs.model';
 import { limpiarTablas } from '../../../../../../shared/utils/actividad-tablas';
+import { ArchivosService } from '../../../../../facturacion/pedidos-comercial/services/archivos.service';
+import { mensajeErrorArchivo } from '../../../../../facturacion/pedidos-comercial/models/documentos-pedido';
 import { ActividadTablasEditor } from '../../../components/actividad-tablas-editor';
 import {
-  ESTADO_REPORTE_DIARIO_LABELS,
-  ESTADO_REPORTE_DIARIO_TONO,
+  MODULO_ARCHIVO_MONITOREO,
   duracionHoras,
   mensajeErrorTicket,
   totalHoras,
   validarReporteDiario,
+  type DocumentoDelTicket,
   type ReporteDiario,
   type ReporteDiarioEntrada,
 } from '../../models/ticket-pumping';
@@ -27,10 +33,22 @@ import { TicketsPumpingService } from '../../services/tickets-pumping.service';
 
 export interface TicketReporteDiarioDialogData {
   ticketId: string;
+  /** Número del ticket (el de la prefactura), para el encabezado del formato. */
+  ticketCodigo?: string;
   /** Día del reporte (`yyyy-MM-dd`). */
   fecha: string;
-  /** Datos del ticket que encabezan el formato (vienen del ticket; no se vuelven a escribir). */
-  cabecera: { cliente: string | null; pozo: string | null; campo: string | null; taladro: string | null; contrato: string | null; supervisor: string | null };
+  /** Datos del ticket que encabezan el formato (vienen del ticket y del pedido; no se vuelven a escribir). */
+  cabecera: {
+    cliente: string | null;
+    pozo: string | null;
+    campo: string | null;
+    bloque?: string | null;
+    taladro: string | null;
+    contrato: string | null;
+    supervisor: string | null;
+    /** Representante del cliente en campo (Company Man) según el pedido. */
+    representante?: string | null;
+  };
   /** Solo lectura: quien no es Operador del equipo, el ticket ya salió de la Ejecución operativa o Facturación corrigió el día. */
   soloLectura?: boolean;
   /** `true` si el día todavía no existe en el servidor. */
@@ -45,133 +63,37 @@ interface FilaActividad {
 }
 
 const vacia = (): FilaActividad => ({ horaInicio: '', horaFin: '', detalle: '', tablas: [] });
-const numeroONulo = (v: string): number | null => (v.trim() === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+const numeroONulo = (v: string): number | null =>
+  v.trim() === '' || !Number.isFinite(Number(v)) ? null : Number(v);
+const MAX_MONITOREO_BYTES = 25 * 1024 * 1024;
 
 /**
- * Reporte Diario de Actividades de Operaciones (DYN-SGI-RE-047, el «Reporte Job») de un día del ticket: actividades con su hora de
- * inicio y fin (la duración la calcula el sistema) y, dentro de cada una, tablas. Se guarda como borrador y se completa para enviarlo
- * a Facturación; un día completado se puede reabrir y editar mientras Facturación no lo haya corregido.
+ * Reporte Diario de Actividades de Operaciones (DYN-SGI-RE-047, el «Reporte Job») de un día del ticket, con la presentación de la demo:
+ * los datos del ticket y del pedido (cliente, contrato, pozo, el Company Man...) llegan ya escritos; el operador llena las actividades
+ * con su hora de inicio y fin (la duración la calcula el sistema), sus tablas y los tiempos. Se guarda como borrador o se completa para
+ * enviarlo a Facturación; un día completado se puede reabrir mientras Facturación no lo haya corregido.
  */
 @Component({
   selector: 'app-ticket-reporte-diario-dialog',
   imports: [
     ActividadTablasEditor,
     DynadrillButtonComponent,
+    DynadrillChipGroupComponent,
+    DynadrillContextCardComponent,
     DynadrillIconButtonComponent,
     DynadrillInputComponent,
-    DynadrillTagComponent,
     DynadrillTextComponent,
     DynadrillTextareaComponent,
+    DynadrillUploadZoneComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'app-dialog-fullscreen-mobile' },
-  template: `
-    <div class="rd">
-      <div class="rd__cabecera">
-        <strong>Reporte diario del {{ data.fecha }}</strong>
-        @if (estado(); as e) {
-          <dynadrill-tag [label]="estadoEtiqueta(e)" [variant]="estadoTono(e)" [uppercase]="false" />
-        }
-        <dynadrill-text variant="caption">DYN-SGI-RE-047</dynadrill-text>
-      </div>
-      <dl class="rd__ticket">
-        <div><dt>Cliente</dt><dd>{{ data.cabecera.cliente ?? '—' }}</dd></div>
-        <div><dt>Pozo</dt><dd>{{ data.cabecera.pozo ?? '—' }}</dd></div>
-        <div><dt>Campo</dt><dd>{{ data.cabecera.campo ?? '—' }}</dd></div>
-        <div><dt>Taladro</dt><dd>{{ data.cabecera.taladro ?? '—' }}</dd></div>
-        <div><dt>Orden / contrato</dt><dd>{{ data.cabecera.contrato ?? '—' }}</dd></div>
-        <div><dt>Supervisor</dt><dd>{{ data.cabecera.supervisor ?? '—' }}</dd></div>
-      </dl>
-
-      @if (corregido()) {
-        <div class="rd__aviso" role="status">Facturación corrigió este día en el pedido: ya no se puede editar ni reenviar desde el ticket.</div>
-      }
-
-      <fieldset class="rd__bloque rd__grid">
-        <legend>Representante del cliente</legend>
-        <dynadrill-input label="Nombre (Company Man)" [value]="representante()" [disabled]="bloqueado()" (valueChange)="representante.set($event)" />
-        <dynadrill-input label="Cargo" [value]="cargo()" [disabled]="bloqueado()" (valueChange)="cargo.set($event)" />
-      </fieldset>
-
-      <fieldset class="rd__bloque">
-        <legend>Actividades</legend>
-        @for (a of actividades(); track $index; let i = $index) {
-          <article class="rd__actividad">
-            <div class="rd__actividad-cabecera">
-              <strong>Actividad {{ i + 1 }}</strong>
-              <span class="rd__duracion">{{ duracionTexto(a) }}</span>
-              @if (!bloqueado() && actividades().length > 1) {
-                <dynadrill-icon-button icon="delete" tooltip="Quitar la actividad" (clicked)="quitar(i)" />
-              }
-            </div>
-            <div class="rd__horas">
-              <label class="rd__campo"><span>Inicio</span><input type="time" [value]="a.horaInicio" [disabled]="bloqueado()" (input)="cambiar(i, 'horaInicio', $any($event.target).value)" /></label>
-              <label class="rd__campo"><span>Fin</span><input type="time" [value]="a.horaFin" [disabled]="bloqueado()" (input)="cambiar(i, 'horaFin', $any($event.target).value)" /></label>
-            </div>
-            <dynadrill-textarea label="Detalle" [rows]="3" [value]="a.detalle" [disabled]="bloqueado()" (valueChange)="cambiar(i, 'detalle', $event)" />
-            @if (bloqueado()) {
-              @for (t of a.tablas; track $index) {
-                <table class="rd__tabla">
-                  <caption>{{ t.titulo || 'Tabla' }}</caption>
-                  <thead><tr>@for (c of t.columnas; track $index) { <th scope="col">{{ c }}</th> }</tr></thead>
-                  <tbody>@for (f of t.filas; track $index) { <tr>@for (v of f; track $index) { <td>{{ v }}</td> }</tr> }</tbody>
-                </table>
-              }
-            } @else {
-              <app-actividad-tablas-editor [tablas]="a.tablas" (tablasChange)="cambiarTablas(i, $event)" />
-            }
-          </article>
-        }
-        @if (!bloqueado()) {
-          <div><dynadrill-button variant="secondary" size="small" (clicked)="agregar()">Agregar actividad</dynadrill-button></div>
-        }
-        <dynadrill-text variant="caption">Total de horas del día: {{ total() }}</dynadrill-text>
-      </fieldset>
-
-      <fieldset class="rd__bloque rd__grid">
-        <legend>Tiempos y observaciones</legend>
-        <dynadrill-input label="Tiempo productivo (h)" type="number" [value]="productivo()" [disabled]="bloqueado()" (valueChange)="productivo.set($event)" />
-        <dynadrill-input label="Tiempo no productivo (h)" type="number" [value]="noProductivo()" [disabled]="bloqueado()" (valueChange)="noProductivo.set($event)" />
-        <dynadrill-textarea class="rd__ancho" label="Observaciones (opcional)" [rows]="2" [value]="observaciones()" [disabled]="bloqueado()" (valueChange)="observaciones.set($event)" />
-      </fieldset>
-
-      @if (problema(); as p) {
-        <dynadrill-text variant="caption" role="status">{{ p }}</dynadrill-text>
-      }
-    </div>
-    <footer class="rd__acciones">
-      <dynadrill-button variant="secondary" (clicked)="cerrar()">{{ bloqueado() ? 'Cerrar' : 'Cancelar' }}</dynadrill-button>
-      @if (!bloqueado()) {
-        <dynadrill-button variant="secondary" [disabled]="!!problema() || enviando()" (clicked)="guardar(false)">Guardar borrador</dynadrill-button>
-        <dynadrill-button [disabled]="!!problema() || enviando() || actividades().length === 0" (clicked)="guardar(true)">{{ enviando() ? 'Enviando…' : 'Completar y enviar a Facturación' }}</dynadrill-button>
-      }
-    </footer>
-  `,
-  styles: `
-    .rd { display: flex; flex-direction: column; gap: 14px; }
-    .rd__cabecera { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .rd__ticket { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 16px; margin: 0; font-size: 13px; }
-    .rd__ticket dt { color: #5c5870; font-size: 12px; }
-    .rd__ticket dd { margin: 0; }
-    .rd__aviso { background: #e6f4ff; border: 1px solid #91caff; border-radius: 6px; padding: 8px 12px; font-size: 13px; }
-    .rd__bloque { border: 1px solid #ecebf1; border-radius: 8px; padding: 8px 12px 12px; display: flex; flex-direction: column; gap: 10px; }
-    .rd__bloque legend { padding: 0 6px; font-weight: 600; }
-    .rd__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-    .rd__grid legend, .rd__ancho { grid-column: 1 / -1; }
-    .rd__actividad { border: 1px solid #f3f2f7; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-    .rd__actividad-cabecera { display: flex; align-items: center; gap: 10px; }
-    .rd__duracion { color: #5c5870; font-size: 13px; margin-right: auto; }
-    .rd__horas { display: flex; gap: 12px; }
-    .rd__campo { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
-    .rd__campo input { height: 36px; border: 1px solid #d6d3e0; border-radius: 6px; padding: 0 8px; }
-    .rd__tabla { border-collapse: collapse; font-size: 13px; }
-    .rd__tabla caption { text-align: left; font-weight: 600; padding: 4px 0; }
-    .rd__tabla th, .rd__tabla td { border: 1px solid #ecebf1; padding: 4px 8px; text-align: left; }
-    .rd__acciones { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #ecebf1; }
-  `,
+  templateUrl: './ticket-reporte-diario-dialog.html',
+  styleUrl: './ticket-reporte-diario-dialog.scss',
 })
 export class TicketReporteDiarioDialog {
   private readonly servicio = inject(TicketsPumpingService);
+  private readonly archivos = inject(ArchivosService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<TicketReporteDiarioDialog, boolean>);
   protected readonly data = inject<TicketReporteDiarioDialogData>(NZ_MODAL_DATA);
@@ -181,82 +103,201 @@ export class TicketReporteDiarioDialog {
   protected readonly bloqueado = computed(() => !!this.data.soloLectura || this.corregido());
   protected readonly enviando = signal(false);
 
-  protected readonly representante = signal('');
+  protected readonly fechaTexto = new Intl.DateTimeFormat('es-EC').format(
+    new Date(`${this.data.fecha}T00:00:00`),
+  );
+  protected readonly headerItems = computed<DynadrillContextCardItem[]>(() => [
+    { label: 'Documento', value: 'DYN-SGI-RE-047 V11' },
+    { label: 'Ticket', value: this.data.ticketCodigo ?? '—' },
+  ]);
+
+  // El Company Man del pedido llega precargado; si el reporte ya lo tenía escrito, se respeta lo guardado.
+  protected readonly representante = signal(this.data.cabecera.representante ?? '');
   protected readonly cargo = signal('Representante de Campo');
   protected readonly actividades = signal<FilaActividad[]>([vacia()]);
   protected readonly productivo = signal('');
   protected readonly noProductivo = signal('');
   protected readonly observaciones = signal('');
+  protected readonly tieneObservaciones = signal(false);
+
+  // Documento de monitoreo del día (se sube antes a `archivos`; queda como historia, vale el último)
+  protected readonly monitoreoDoc = signal<DocumentoDelTicket | null>(null);
+  protected readonly monitoreoSubiendo = signal(false);
 
   protected readonly total = computed(() => totalHoras(this.actividades()));
   protected readonly problema = computed(() => {
     if (this.bloqueado()) return null;
     const t1 = numeroONulo(this.productivo());
     const t2 = numeroONulo(this.noProductivo());
-    if ((t1 !== null && (t1 < 0 || t1 > 24)) || (t2 !== null && (t2 < 0 || t2 > 24))) return 'Los tiempos productivo y no productivo van entre 0 y 24 horas.';
+    if ((t1 !== null && (t1 < 0 || t1 > 24)) || (t2 !== null && (t2 < 0 || t2 > 24)))
+      return 'Los tiempos productivo y no productivo van entre 0 y 24 horas.';
     return validarReporteDiario(this.actividades());
   });
-  protected readonly estadoEtiqueta = (e: ReporteDiario['estado']) => ESTADO_REPORTE_DIARIO_LABELS[e];
-  protected readonly estadoTono = (e: ReporteDiario['estado']) => ESTADO_REPORTE_DIARIO_TONO[e];
 
   constructor() {
+    this.cargarMonitoreo();
     if (this.data.nuevo) return;
     this.servicio.reporteDiario(this.data.ticketId, this.data.fecha).subscribe({
-      next: r => {
+      next: (r) => {
         this.estado.set(r.estado);
-        this.representante.set(r.representanteCliente ?? '');
+        if (r.representanteCliente) this.representante.set(r.representanteCliente);
         if (r.cargoRepresentante) this.cargo.set(r.cargoRepresentante);
         this.productivo.set(r.tiempoProductivo === null ? '' : String(r.tiempoProductivo));
         this.noProductivo.set(r.tiempoNoProductivo === null ? '' : String(r.tiempoNoProductivo));
         this.observaciones.set(r.observaciones ?? '');
+        this.tieneObservaciones.set(!!r.observaciones?.trim());
         this.actividades.set(
           r.actividades.length
-            ? r.actividades.map(a => ({ horaInicio: a.horaInicio, horaFin: a.horaFin, detalle: a.detalle, tablas: a.tablas.map(t => ({ ...t, titulo: t.titulo ?? '' })) }))
+            ? r.actividades.map((a) => ({
+                horaInicio: a.horaInicio,
+                horaFin: a.horaFin,
+                detalle: a.detalle,
+                tablas: a.tablas.map((t) => ({ ...t, titulo: t.titulo ?? '' })),
+              }))
             : [vacia()],
         );
       },
-      error: err => this.notify.error('Error', mensajeErrorTicket(err, 'No se pudo cargar el reporte del día.')),
+      error: (err) =>
+        this.notify.error(
+          'Error',
+          mensajeErrorTicket(err, 'No se pudo cargar el reporte del día.'),
+        ),
     });
   }
 
-  protected duracionTexto(a: FilaActividad): string {
+  protected horasTexto(a: FilaActividad): string {
     const h = duracionHoras(a.horaInicio, a.horaFin);
-    return h === null ? 'Duración: —' : `Duración: ${h} h`;
+    return h === null ? '—' : String(h);
   }
   protected agregar(): void {
-    this.actividades.update(l => [...l, vacia()]);
+    this.actividades.update((l) => [...l, vacia()]);
   }
   protected quitar(i: number): void {
-    this.actividades.update(l => (l.length > 1 ? l.filter((_, k) => k !== i) : l));
+    this.actividades.update((l) => (l.length > 1 ? l.filter((_, k) => k !== i) : l));
   }
   protected cambiar(i: number, campo: 'horaInicio' | 'horaFin' | 'detalle', valor: string): void {
-    this.actividades.update(l => l.map((a, k) => (k === i ? { ...a, [campo]: valor } : a)));
+    this.actividades.update((l) => l.map((a, k) => (k === i ? { ...a, [campo]: valor } : a)));
   }
   protected cambiarTablas(i: number, tablas: ActividadTabla[]): void {
-    this.actividades.update(l => l.map((a, k) => (k === i ? { ...a, tablas } : a)));
+    this.actividades.update((l) => l.map((a, k) => (k === i ? { ...a, tablas } : a)));
+  }
+  protected alCambiarObservaciones(hay: boolean): void {
+    this.tieneObservaciones.set(hay);
+    if (!hay) this.observaciones.set('');
+  }
+
+  // ── Documento de monitoreo ──
+  private cargarMonitoreo(): void {
+    this.servicio.documentos(this.data.ticketId).subscribe({
+      next: (l) => this.monitoreoDoc.set(this.delDia(l)),
+      error: () => this.monitoreoDoc.set(null),
+    });
+  }
+  private delDia(l: DocumentoDelTicket[]): DocumentoDelTicket | null {
+    const del = l.filter((d) => d.tipo === 'monitoreo' && d.fecha === this.data.fecha);
+    return del.length ? del[del.length - 1] : null;
+  }
+  protected verMonitoreo(): void {
+    const d = this.monitoreoDoc();
+    if (!d) return;
+    this.archivos.contenido(d.archivoId).subscribe({
+      next: (blob) => this.archivos.guardarComo(blob, `Monitoreo ${this.data.fecha}`),
+      error: () => this.notify.error('Error', 'No se pudo descargar el documento de monitoreo.'),
+    });
+  }
+  protected onMonitoreoSeleccionado(file: NzUploadFile): void {
+    if (this.monitoreoSubiendo()) return;
+    const archivo = (file.originFileObj as File | undefined) ?? (file as unknown as File);
+    if (!archivo || typeof archivo.size !== 'number') {
+      this.notify.error(
+        'Archivo no reconocido',
+        'No se pudo leer el archivo seleccionado. Intente de nuevo.',
+      );
+      return;
+    }
+    if (archivo.size > MAX_MONITOREO_BYTES) {
+      this.notify.error(
+        'Archivo demasiado grande',
+        'El archivo supera el máximo permitido de 25 MB.',
+      );
+      return;
+    }
+    this.monitoreoSubiendo.set(true);
+    let subiendo = true;
+    this.archivos
+      .subir(archivo, MODULO_ARCHIVO_MONITOREO)
+      .pipe(
+        switchMap((a) => {
+          subiendo = false;
+          return this.servicio.adjuntarMonitoreo(this.data.ticketId, this.data.fecha, a.id);
+        }),
+      )
+      .subscribe({
+        next: (l) => {
+          this.monitoreoSubiendo.set(false);
+          this.monitoreoDoc.set(this.delDia(l));
+          this.notify.success(
+            'Documento cargado',
+            `Documento de monitoreo del ${this.data.fecha}.`,
+          );
+        },
+        error: (err) => {
+          this.monitoreoSubiendo.set(false);
+          this.notify.error(
+            'No se pudo cargar',
+            subiendo
+              ? mensajeErrorArchivo(err)
+              : mensajeErrorTicket(err, 'No se pudo adjuntar el monitoreo.'),
+          );
+        },
+      });
   }
 
   /** Guarda el día; con `completar` lo envía a Facturación. */
   protected guardar(completar: boolean): void {
     if (this.problema() || this.enviando()) return;
     const cuerpo: ReporteDiarioEntrada = {
-      actividades: this.actividades().map(a => ({ horaInicio: a.horaInicio, horaFin: a.horaFin, detalle: a.detalle.trim(), tablas: limpiarTablas(a.tablas) })),
+      actividades: this.actividades().map((a) => ({
+        horaInicio: a.horaInicio,
+        horaFin: a.horaFin,
+        detalle: a.detalle.trim(),
+        tablas: limpiarTablas(a.tablas),
+      })),
       representanteCliente: this.representante().trim() || undefined,
       cargoRepresentante: this.cargo().trim() || undefined,
       tiempoProductivo: numeroONulo(this.productivo()) ?? undefined,
       tiempoNoProductivo: numeroONulo(this.noProductivo()) ?? undefined,
-      observaciones: this.observaciones().trim() || undefined,
+      observaciones: this.tieneObservaciones()
+        ? this.observaciones().trim() || undefined
+        : undefined,
     };
     this.enviando.set(true);
-    const guardado$ = this.servicio.guardarReporteDiario(this.data.ticketId, this.data.fecha, cuerpo);
-    (completar ? guardado$.pipe(switchMap(() => this.servicio.completarReporteDiario(this.data.ticketId, this.data.fecha))) : guardado$).subscribe({
+    const guardado$ = this.servicio.guardarReporteDiario(
+      this.data.ticketId,
+      this.data.fecha,
+      cuerpo,
+    );
+    (completar
+      ? guardado$.pipe(
+          switchMap(() =>
+            this.servicio.completarReporteDiario(this.data.ticketId, this.data.fecha),
+          ),
+        )
+      : guardado$
+    ).subscribe({
       next: () => {
-        this.notify.success(completar ? 'Día enviado a Facturación' : 'Borrador guardado', `Reporte del ${this.data.fecha}.`);
+        this.notify.success(
+          completar ? 'Día enviado a Facturación' : 'Borrador guardado',
+          `Reporte del ${this.data.fecha}.`,
+        );
         this.modalRef.close(true);
       },
-      error: err => {
+      error: (err) => {
         this.enviando.set(false);
-        this.notify.error('No se pudo guardar', mensajeErrorTicket(err, 'No se pudo guardar el reporte. Intente de nuevo.'));
+        this.notify.error(
+          'No se pudo guardar',
+          mensajeErrorTicket(err, 'No se pudo guardar el reporte. Intente de nuevo.'),
+        );
       },
     });
   }

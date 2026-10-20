@@ -1,0 +1,407 @@
+.daily-report {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 0.5rem 0;
+
+  &__header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    // `.daily-report` (el flex column con gap: 1.5rem de arriba) nunca envuelve
+    // realmente a __header + __section — son secciones hermanas sueltas en el
+    // template, así que ese gap del padre nunca aplica entre ellas. Margen acá
+    // para separar del contextcard sin reestructurar el template.
+    margin-bottom: 0.75rem;
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  &__section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  &__monitoreo-doc {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
+  &__activities-header {
+    display: grid;
+    grid-template-columns: 100px 100px 60px 1fr 40px;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 2px solid var(--color-border, #e0e0e0);
+    font-weight: 600;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary, #555);
+  }
+
+  &__activity-row {
+    display: grid;
+    grid-template-columns: 100px 100px 60px 1fr 40px;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--color-border, #f0f0f0);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    background: var(--surface, #fff);
+  }
+
+  &__col-time,
+  &__col-hours,
+  &__col-detail,
+  &__col-action {
+    display: flex;
+    align-items: center;
+  }
+
+  &__col-detail {
+    min-width: 0;
+
+    ::ng-deep dynadrill-textarea {
+      width: 100%;
+
+      textarea,
+      .ant-input {
+        min-height: 60px;
+        resize: vertical;
+      }
+    }
+  }
+
+  &__col-hours {
+    justify-content: center;
+  }
+
+  // Tablas de la actividad: ocupan todo el ancho de la fila.
+  &__col-tablas {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  &__time-input {
+    height: 36px;
+    padding: 0 0.5rem;
+    border: 1px solid var(--color-border, #d9d9d9);
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    font-family: inherit;
+    background: var(--color-surface, #fff);
+    color: var(--color-text, #222);
+    width: 100%;
+    transition: border-color 0.2s;
+
+    &:focus {
+      outline: none;
+      border-color: var(--color-primary, #5b2d8e);
+      box-shadow: 0 0 0 2px rgba(91, 45, 142, 0.1);
+    }
+  }
+
+  &__times-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    align-items: end;
+  }
+
+  &__time-total {
+    display: flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 0.75rem;
+    background: var(--color-surface, #f5f5f5);
+    border-radius: 6px;
+    border: 1px solid var(--color-border, #e0e0e0);
+  }
+
+  &__signatures {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  &__signature-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  &__signature-line {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  &__line {
+    height: 1px;
+    background: var(--color-text, #222);
+    margin-top: 2rem;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border, #e0e0e0);
+  }
+}
+
+// Debajo de ~640px las 3 columnas fijas (100+100+60px) más el detalle y la
+// acción no entran — cada fila pasa a apilarse con su propio label, mismo
+// patrón que las tablas responsive de QHSE. Va al final del archivo (no
+// anidado en .daily-report) para ganarle en cascada a las reglas base de
+// arriba con la misma especificidad.
+@media (max-width: 640px) {
+  .daily-report__activities-header {
+    display: none;
+  }
+
+  .daily-report__activity-row {
+    grid-template-columns: 1fr 1fr auto;
+    grid-template-areas:
+      'inicio fin accion'
+      'detalle detalle detalle'
+      'tablas tablas tablas';
+    row-gap: 0.5rem;
+  }
+
+  .daily-report__col-time:nth-child(1) {
+    grid-area: inicio;
+  }
+  .daily-report__col-time:nth-child(2) {
+    grid-area: fin;
+  }
+  .daily-report__col-hours {
+    display: none;
+  }
+  .daily-report__col-detail {
+    grid-area: detalle;
+  }
+  .daily-report__col-action {
+    grid-area: accion;
+    justify-content: flex-end;
+  }
+  .daily-report__col-tablas {
+    grid-area: tablas;
+  }
+}
+
+// ── Móvil (Figma "M · Reporte diario de actividades"): pantalla completa con barra fija ──
+@media (max-width: 840px) {
+  // El encabezado repite la fecha/cliente que ya están en "Información general" y en el título del diálogo.
+  .daily-report__header {
+    display: none;
+  }
+
+  .daily-report__section > dynadrill-text[variant='h2'] ::ng-deep :is(h2, span, p, div) {
+    font-family: var(--font-body, 'Roboto', sans-serif);
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text, #2c2b35);
+  }
+
+  .daily-report__actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    margin: 0 -16px -16px;
+    padding: 12px 16px;
+    background: var(--surface, #fff);
+
+    > dynadrill-button {
+      flex: 1;
+
+      ::ng-deep .ant-btn {
+        width: 100%;
+        height: 48px;
+        border-radius: var(--radius-md, 12px);
+        font-weight: 600;
+      }
+    }
+
+    // La acción principal va en morado (Figma), no en verde.
+    > dynadrill-button[variant='success'] ::ng-deep .ant-btn:not([disabled]) {
+      border-color: var(--dynadrill-purple, #662e9b);
+      background: var(--dynadrill-purple, #662e9b);
+      color: var(--dynadrill-white, #fff);
+
+      &:hover {
+        border-color: var(--dynadrill-purple-hover, #55267f);
+        background: var(--dynadrill-purple-hover, #55267f);
+      }
+    }
+  }
+}
+
+// ── Móvil, segunda pasada (Figma "M · Reporte diario de actividades"): tarjetas, actividades y botones ──
+.daily-report__mobile-label,
+.daily-report__only-mobile {
+  @media (min-width: 841px) {
+    display: none;
+  }
+}
+
+.daily-report__only-desktop {
+  @media (max-width: 840px) {
+    display: none;
+  }
+}
+
+@media (max-width: 840px) {
+  // El contenedor ya no necesita su propio scroll: lo hace el cuerpo del diálogo a pantalla completa.
+  .daily-report {
+    gap: 12px;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .daily-report__section--card {
+    padding: 16px;
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-lg, 16px);
+    background: var(--surface, #fff);
+    box-shadow: 0 1px 2px rgba(19, 21, 41, 0.05);
+  }
+
+  .daily-report__form-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  // Cada actividad como un bloque: Inicio / Fin en una fila y el detalle debajo.
+  .daily-report__activity-row {
+    padding: 12px;
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-md, 12px);
+    background: var(--surface-muted, #faf9fc);
+  }
+
+  .daily-report__mobile-label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--text-muted, #5c5870);
+  }
+
+  .daily-report__time-input {
+    width: 100%;
+    min-height: 48px;
+    padding: 0 12px;
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-md, 12px);
+    background: var(--surface, #fff);
+    font: inherit;
+    font-size: 14px;
+    color: var(--text, #2c2b35);
+  }
+
+  .daily-report__times-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .daily-report__time-total {
+    grid-column: 1 / -1;
+  }
+
+  // En el teléfono no se firma en papel: se ocultan las líneas de firma.
+  .daily-report__signature-line {
+    display: none;
+  }
+}
+
+.daily-report__add,
+.daily-report__outline-btn,
+.daily-report__text-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 24px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dynadrill-purple, #662e9b);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--dynadrill-purple-tint, #f6f3f9);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--dynadrill-purple, #662e9b);
+    outline-offset: 2px;
+  }
+}
+
+.daily-report__add,
+.daily-report__text-btn {
+  border-radius: var(--radius-md, 12px);
+}
+
+.daily-report__outline-btn {
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface, #fff);
+}
+
+.daily-report__hint {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-muted, #5c5870);
+}
+
+.daily-report__aviso {
+  padding: 8px 12px;
+  border: 1px solid #91caff;
+  border-radius: 6px;
+  background: #e6f4ff;
+  font-size: 13px;
+}
+
+.daily-report__tabla {
+  border-collapse: collapse;
+  font-size: 13px;
+
+  caption {
+    padding: 4px 0;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  th,
+  td {
+    padding: 4px 8px;
+    border: 1px solid var(--border, #ecebf1);
+    text-align: left;
+  }
+}

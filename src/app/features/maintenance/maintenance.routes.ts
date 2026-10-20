@@ -50,10 +50,8 @@ export const maintenanceRoutes: Routes = [
   },
   {
     path: 'gerenciamiento-viaje',
-    loadComponent: () =>
-      import('./pages/gerenciamiento-viaje-page/gerenciamiento-viaje-page').then(
-        (m) => m.GerenciamientoViajePage,
-      ),
+    // La bandeja vive en Flota (backend nuevo): la entrada del menú de Operaciones abre la misma pantalla.
+    loadComponent: () => import('../flota/pages/viajes-page/viajes-page').then((m) => m.ViajesPage),
     canActivate: [roleGuard],
     data: { allowedRoles: GERENCIAMIENTO_VIAJE_APPROVE_ROLES },
   },

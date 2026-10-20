@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { forkJoin, map } from 'rxjs';
+import { map } from 'rxjs';
 import {
   DynadrillButtonComponent,
   DynadrillDataTableColumn,
@@ -13,29 +13,26 @@ import {
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
 } from '@digitec-it-projects/dynadrill-ui';
-import { Pedido } from '../../models/pedido.model';
-import { Prefactura } from '../../models/prefactura.model';
-import { PedidoService, PrefacturaService } from '../../services/pedido.service';
-import { ESTADO_PREFACTURA_LABELS, PrefacturasFiltros, PrefacturasFiltrosDialog } from '../../components/prefacturas-filtros-dialog';
+import {
+  ESTADO_PREFACTURA_LABELS,
+  type EstadoPrefactura,
+  type PrefacturaFila,
+} from '../../pedidos-comercial/models/prefactura-comercial';
+import { PrefacturasComercialService } from '../../pedidos-comercial/services/prefacturas-comercial.service';
+import { mensajeDeError } from '../../pedidos-comercial/models/pedido-comercial.model';
+import {
+  PrefacturasFiltros,
+  PrefacturasFiltrosDialog,
+} from '../../components/prefacturas-filtros-dialog';
 import { SearchField } from '../../../../shared/components/search-field/search-field';
 import { KpiStat, KpiStatTone } from '../../../../shared/components/kpi-stat/kpi-stat';
 
-const ESTADO_TONO: Record<Prefactura['estado'], 'neutral' | 'warning' | 'success' | 'error'> = {
-  borrador: 'neutral',
-  en_revision: 'warning',
+const ESTADO_TONO: Record<EstadoPrefactura, 'neutral' | 'warning' | 'success' | 'error'> = {
   generada: 'warning',
   enviada_para_firmas: 'warning',
   firmada: 'success',
   rechazada: 'error',
-};
-
-const ESTADO_LABEL: Record<Prefactura['estado'], string> = {
-  borrador: 'Borrador',
-  en_revision: 'En revisión',
-  generada: 'Generada',
-  enviada_para_firmas: 'Enviada para firmas',
-  firmada: 'Firmada',
-  rechazada: 'Rechazada',
+  anulada: 'neutral',
 };
 
 /** Fase 4 — índice de prefacturas (Figma "03 · Facturación › Prefacturas · Lista"). */
@@ -55,8 +52,7 @@ const ESTADO_LABEL: Record<Prefactura['estado'], string> = {
   styleUrl: './prefacturas-list-page.scss',
 })
 export class PrefacturasListPage {
-  private readonly prefacturaService = inject(PrefacturaService);
-  private readonly pedidoService = inject(PedidoService);
+  private readonly servicio = inject(PrefacturasComercialService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly router = inject(Router);
   private readonly dialog = inject(DynadrillDialogService);
@@ -64,22 +60,23 @@ export class PrefacturasListPage {
   protected readonly isMobile = toSignal(
     inject(BreakpointObserver)
       .observe('(max-width: 840px)')
-      .pipe(map(state => state.matches)),
+      .pipe(map((state) => state.matches)),
     { initialValue: false },
   );
 
   protected readonly loading = signal(true);
-  protected readonly prefacturas = signal<Prefactura[]>([]);
-  private readonly pedidos = signal<Pedido[]>([]);
+  protected readonly prefacturas = signal<PrefacturaFila[]>([]);
   protected readonly busqueda = signal('');
-  protected readonly filtroEstado = signal<Prefactura['estado'] | null>(null);
+  protected readonly filtroEstado = signal<EstadoPrefactura | null>(null);
 
   protected readonly hayFiltros = computed(() => !!this.filtroEstado());
 
   /** Chips de filtros activos (móvil) — tocar uno lo quita. */
   protected readonly filtrosActivos = computed(() => {
     const estado = this.filtroEstado();
-    return estado ? [{ key: 'estado' as const, label: `Estado: ${ESTADO_PREFACTURA_LABELS[estado]}` }] : [];
+    return estado
+      ? [{ key: 'estado' as const, label: `Estado: ${ESTADO_PREFACTURA_LABELS[estado]}` }]
+      : [];
   });
 
   protected quitarFiltro(): void {
@@ -113,49 +110,71 @@ export class PrefacturasListPage {
     { key: 'estadoBadge', header: 'Estado', type: 'badge' },
   ];
 
-  private pedidoDe(id: number): Pedido | undefined {
-    return this.pedidos().find(p => p.id === id);
-  }
-
   private readonly prefacturasFiltradas = computed(() => {
     const q = this.busqueda().trim().toLowerCase();
     return this.prefacturas()
-      .filter(pf => (!this.filtroEstado() || pf.estado === this.filtroEstado()) && (!q || [pf.code, this.pedidoDe(pf.pedidoId)?.cliente ?? '', this.pedidoDe(pf.pedidoId)?.code ?? ''].some(v => v.toLowerCase().includes(q))))
-      .sort((a, b) => b.code.localeCompare(a.code, undefined, { numeric: true }));
+      .filter(
+        (pf) =>
+          (!this.filtroEstado() || pf.estado === this.filtroEstado()) &&
+          (!q ||
+            [this.codigo(pf), pf.clienteNombre ?? '', pf.pedidoCodigo ?? ''].some((v) =>
+              v.toLowerCase().includes(q),
+            )),
+      )
+      .sort((a, b) => b.generadaAt.localeCompare(a.generadaAt));
   });
 
+  /** «PRC-<ticket>» cuando AS2 ya le dio número; si no, el pedido con la versión (V1, V2…). */
+  private codigo(pf: PrefacturaFila): string {
+    return pf.ticketNumero
+      ? `PRC-${pf.ticketNumero}`
+      : `${pf.pedidoCodigo ?? 'Prefactura'} V${pf.version}`;
+  }
+
   protected readonly rows = computed(() =>
-    this.prefacturasFiltradas().map(pf => {
-      const p = this.pedidoDe(pf.pedidoId);
+    this.prefacturasFiltradas().map((pf) => {
       return {
         id: pf.id,
-        code: pf.code,
-        cliente: p?.cliente ?? '—',
-        pedido: p?.code ?? String(pf.pedidoId),
-        fecha: new Date(pf.fechaGeneracion).toLocaleDateString('es-EC'),
+        code: this.codigo(pf),
+        cliente: pf.clienteNombre ?? '—',
+        pedido: pf.pedidoCodigo ?? '—',
+        fecha: new Date(pf.generadaAt).toLocaleDateString('es-EC'),
         subtotal: '$' + pf.subtotal.toFixed(2),
         neto: '$' + pf.netoCobrar.toFixed(2),
-        estadoTexto: ESTADO_LABEL[pf.estado],
+        estadoTexto: ESTADO_PREFACTURA_LABELS[pf.estado],
         estadoTono: ESTADO_TONO[pf.estado],
-        estadoBadge: { text: pf.estado.replace(/_/g, ' '), tone: ESTADO_TONO[pf.estado] },
+        estadoBadge: { text: ESTADO_PREFACTURA_LABELS[pf.estado], tone: ESTADO_TONO[pf.estado] },
       };
     }),
   );
 
   protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
-  protected readonly kpis = computed<{ value: number | string; label: string; caption: string; tone: KpiStatTone }[]>(() => {
+  protected readonly kpis = computed<
+    { value: number | string; label: string; caption: string; tone: KpiStatTone }[]
+  >(() => {
     const pf = this.prefacturas();
     return [
-      { value: pf.length, label: 'Prefacturas', caption: 'Generadas este mes', tone: 'neutral' },
-      { value: pf.filter(p => p.estado === 'firmada').length, label: 'Firmadas', caption: 'Listas para OT', tone: 'success' },
+      { value: pf.length, label: 'Prefacturas', caption: 'Todas las versiones', tone: 'neutral' },
       {
-        value: pf.filter(p => p.estado === 'enviada_para_firmas' || p.estado === 'generada').length,
+        value: pf.filter((p) => p.estado === 'firmada').length,
+        label: 'Firmadas',
+        caption: 'Listas para OT',
+        tone: 'success',
+      },
+      {
+        value: pf.filter((p) => p.estado === 'enviada_para_firmas' || p.estado === 'generada')
+          .length,
         label: 'Esperando firma',
         caption: 'Enviadas al cliente',
         tone: 'warning',
       },
-      { value: '$' + pf.reduce((s, p) => s + p.netoCobrar, 0).toFixed(2), label: 'Total neto', caption: 'Neto a cobrar', tone: 'brand' },
+      {
+        value: '$' + pf.reduce((s, p) => s + p.netoCobrar, 0).toFixed(2),
+        label: 'Total neto',
+        caption: 'Neto a cobrar',
+        tone: 'brand',
+      },
     ];
   });
 
@@ -165,15 +184,17 @@ export class PrefacturasListPage {
 
   private reload(): void {
     this.loading.set(true);
-    forkJoin({ prefacturas: this.prefacturaService.list(), pedidos: this.pedidoService.list() }).subscribe({
-      next: ({ prefacturas, pedidos }) => {
+    this.servicio.indice().subscribe({
+      next: (prefacturas) => {
         this.prefacturas.set(prefacturas);
-        this.pedidos.set(pedidos);
         this.loading.set(false);
       },
-      error: () => {
+      error: (err) => {
         this.loading.set(false);
-        this.notify.error('Error', 'No se pudo cargar la lista de prefacturas.');
+        this.notify.error(
+          'Error',
+          mensajeDeError(err, 'No se pudo cargar la lista de prefacturas.'),
+        );
       },
     });
   }

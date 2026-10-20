@@ -2,7 +2,15 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '@env';
-import type { DevueltoA, FirmaCompanyManEntrada, MedioEnvio, Prefactura, RegistrarFirmaRequest, VistaPrefacturaTicket } from '../models/prefactura-comercial';
+import type {
+  DevueltoA,
+  FirmaCompanyManEntrada,
+  MedioEnvio,
+  Prefactura,
+  PrefacturaFila,
+  RegistrarFirmaRequest,
+  VistaPrefacturaTicket,
+} from '../models/prefactura-comercial';
 
 /** Prefacturas del contenedor `comercial`. La autoridad de estados y permisos es el backend. */
 @Injectable({ providedIn: 'root' })
@@ -12,12 +20,22 @@ export class PrefacturasComercialService {
 
   /** «Ver prefactura» desde el ticket (permiso `comercial.prefacturas.vista_ticket`): no guarda nada. */
   vistaDelTicket(pedidoId: string): Observable<VistaPrefacturaTicket> {
-    return this.http.get<VistaPrefacturaTicket>(`${this.base}/pedidos/${pedidoId}/prefactura-vista`);
+    return this.http.get<VistaPrefacturaTicket>(
+      `${this.base}/pedidos/${pedidoId}/prefactura-vista`,
+    );
   }
 
   /** El Supervisor sube el documento firmado por el Company Man (antes se sube a `archivos` con `prefactura_company_man`). 422 si falta documentación. */
   firmarDesdeTicket(pedidoId: string, cuerpo: FirmaCompanyManEntrada): Observable<Prefactura> {
-    return this.http.post<Prefactura>(`${this.base}/pedidos/${pedidoId}/prefactura/firma-company-man`, cuerpo);
+    return this.http.post<Prefactura>(
+      `${this.base}/pedidos/${pedidoId}/prefactura/firma-company-man`,
+      cuerpo,
+    );
+  }
+
+  /** Índice de las prefacturas de todos los pedidos, la más reciente primero. */
+  indice(): Observable<PrefacturaFila[]> {
+    return this.http.get<PrefacturaFila[]>(`${this.base}/prefacturas`);
   }
 
   /** Versiones del pedido, la más reciente primero. */
@@ -54,7 +72,10 @@ export class PrefacturasComercialService {
 
   /** Vuelve a leer la firma (la lectura automática es solo una ayuda); devuelve la prefactura. */
   verificarFirma(id: string, firmaId: string): Observable<Prefactura> {
-    return this.http.post<Prefactura>(`${this.base}/prefacturas/${id}/firmas/${firmaId}/verificar`, {});
+    return this.http.post<Prefactura>(
+      `${this.base}/prefacturas/${id}/firmas/${firmaId}/verificar`,
+      {},
+    );
   }
 
   darPorFirmada(id: string, razonRetraso?: string): Observable<Prefactura> {
@@ -64,6 +85,9 @@ export class PrefacturasComercialService {
   }
 
   rechazar(id: string, motivo: string, devueltoA: DevueltoA): Observable<Prefactura> {
-    return this.http.post<Prefactura>(`${this.base}/prefacturas/${id}/rechazar`, { motivo: motivo.trim(), devueltoA });
+    return this.http.post<Prefactura>(`${this.base}/prefacturas/${id}/rechazar`, {
+      motivo: motivo.trim(),
+      devueltoA,
+    });
   }
 }

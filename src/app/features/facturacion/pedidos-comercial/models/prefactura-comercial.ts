@@ -125,6 +125,22 @@ export interface FirmaCompanyManEntrada {
 export const MAX_BYTES_FIRMA = 25 * 1024 * 1024;
 export const MIN_MOTIVO_RECHAZO = 5;
 
+/** Una fila del índice de prefacturas (`GET /comercial/prefacturas`): solo lo que muestra la lista. */
+export interface PrefacturaFila {
+  id: string;
+  pedidoId: string;
+  pedidoCodigo: string | null;
+  clienteNombre: string | null;
+  version: number;
+  estado: EstadoPrefactura;
+  ticketNumero: number | null;
+  subtotal: number;
+  netoCobrar: number;
+  generadaAt: string;
+  enviadaAt: string | null;
+  firmadaAt: string | null;
+}
+
 export const ESTADO_PREFACTURA_LABELS: Record<EstadoPrefactura, string> = {
   generada: 'Generada',
   enviada_para_firmas: 'Enviada para firmas',

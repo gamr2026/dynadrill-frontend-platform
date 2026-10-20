@@ -406,7 +406,15 @@ export class TicketFcrDetailPage {
     this.dialog.open<TicketPrefacturaDialog, TicketPrefacturaDialogData>({
       title: 'Prefactura del servicio',
       content: TicketPrefacturaDialog,
-      data: { pedidoId: t.pedidoId, puedeFirmar: false },
+      data: {
+        pedidoId: t.pedidoId,
+        puedeFirmar: false,
+        ticketCodigo: String(t.ticketNumero ?? t.pedidoCodigo),
+        pedidoCodigo: t.pedidoCodigo,
+        cliente: t.cliente,
+        pozo: t.pozo,
+        campo: t.campo,
+      },
       footer: false,
       width: '860px',
     });

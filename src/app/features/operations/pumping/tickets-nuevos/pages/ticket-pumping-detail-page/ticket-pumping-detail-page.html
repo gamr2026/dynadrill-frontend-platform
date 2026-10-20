@@ -49,7 +49,7 @@
         <div class="dyn-detail-layout__aside">
           <app-ticket-progress
             [labels]="etiquetasPasos"
-            [currentIndex]="indicePaso()"
+            [currentIndex]="avancePaso()"
             [selectedIndex]="indicePaso()"
             [tramos]="tramos()"
           />
@@ -1459,6 +1459,8 @@
               } @else if (enviarPendiente() && faltanParaEnviar().length) {
                 Para enviar el reporte falta: {{ faltanParaEnviar().length }} requisito(s)
                 pendiente(s) (inspección de vehículos, entrega de EPI o términos).
+              } @else if (cerrado()) {
+                Ticket cerrado: el servicio terminó y todos sus pasos están completados.
               } @else if (pendientes().length) {
                 Para pasar falta: {{ pendientes().length }} requisito(s) pendiente(s).
               } @else {

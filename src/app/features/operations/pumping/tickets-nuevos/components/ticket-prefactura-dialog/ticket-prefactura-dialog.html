@@ -1,0 +1,193 @@
+@if (errorCarga(); as e) {
+  <dynadrill-banner variant="critical" [message]="e" />
+  <div class="tpf__acciones">
+    <dynadrill-button variant="secondary" (clicked)="cerrar()">Cerrar</dynadrill-button>
+  </div>
+} @else if (vista(); as v) {
+  @let pf = v.prefactura;
+
+  <header class="tpf__cabecera">
+    <div class="tpf__titulo">
+      <span class="tpf__eyebrow"
+        >Ticket {{ data.ticketCodigo }} · Pedido {{ data.pedidoCodigo }}</span
+      >
+      <strong class="tpf__cliente">{{ data.cliente ?? '—' }}</strong>
+      <span class="tpf__sub">{{ data.pozo ?? '—' }} · {{ data.campo ?? '—' }}</span>
+    </div>
+    <div class="tpf__tags">
+      @if (v.preliminar) {
+        <dynadrill-tag label="Preliminar" variant="warning" />
+      } @else if (pf.estado === 'firmada') {
+        <dynadrill-tag label="Firmada" variant="success" />
+      } @else {
+        <dynadrill-tag label="Prefactura generada" variant="info" />
+      }
+    </div>
+  </header>
+
+  @if (data.puedeFirmar && pf.estado !== 'firmada') {
+    <dynadrill-banner
+      variant="warning"
+      message="Falta la firma del Company Man: regístrela abajo (sección «Firma del Company Man») antes de finalizar el ticket, y Facturación recibirá la prefactura cargada y firmada."
+    />
+  }
+  @if (v.preliminar) {
+    <dynadrill-banner
+      variant="warning"
+      message="Prefactura PRELIMINAR: se calcula con lo cotizado y lo registrado hasta este momento. Los valores pueden cambiar hasta el cierre y Facturación la valida."
+    />
+  }
+  @if (!v.avance.completo) {
+    <dynadrill-banner
+      variant="warning"
+      [message]="
+        'Documentación del pedido incompleta. Falta: ' +
+        v.avance.pendientes.join(', ') +
+        '. Hasta completarla no se puede registrar la firma del Company Man.'
+      "
+    />
+  }
+  @for (a of pf.advertencias; track $index) {
+    <dynadrill-banner variant="warning" [message]="a" />
+  }
+
+  <!-- ═══ Detalle ═══ -->
+  <section class="tpf__seccion">
+    <h3 class="tpf__h">Detalle</h3>
+    <div class="tpf__scroll">
+      <table class="tpf__tabla">
+        <thead>
+          <tr>
+            <th>Ítem</th>
+            <th>Código</th>
+            <th>Descripción</th>
+            <th>Unidad</th>
+            <th class="tpf__num">Cantidad</th>
+            <th class="tpf__num">P. unitario</th>
+            <th class="tpf__num">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (it of pf.items; track it.orden) {
+            <tr>
+              <td>{{ $index + 1 }}</td>
+              <td>{{ it.codigo ?? '—' }}</td>
+              <td>
+                {{ it.descripcion }} <span class="tpf__sub">{{ it.tipo }}</span>
+              </td>
+              <td>{{ it.unidad ?? '—' }}</td>
+              <td class="tpf__num">{{ it.cantidad | number: '1.0-2' }}</td>
+              <td class="tpf__num">{{ it.precioUnitario | number: '1.2-2' }}</td>
+              <td class="tpf__num">{{ it.precioTotal | number: '1.2-2' }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="tpf__vacio">Todavía no hay líneas para facturar.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <dl class="tpf__totales">
+      <div>
+        <dt>Subtotal servicios</dt>
+        <dd>$ {{ pf.totales.subtotalServicios | number: '1.2-2' }}</dd>
+      </div>
+      <div>
+        <dt>Subtotal materiales</dt>
+        <dd>$ {{ pf.totales.subtotalMateriales | number: '1.2-2' }}</dd>
+      </div>
+      <div class="tpf__totales-fuerte">
+        <dt>Subtotal (precios sin IVA)</dt>
+        <dd>$ {{ pf.totales.subtotal | number: '1.2-2' }}</dd>
+      </div>
+      <div>
+        <dt>IVA {{ pf.tasas.ivaPct }}%</dt>
+        <dd>$ {{ pf.totales.iva | number: '1.2-2' }}</dd>
+      </div>
+      <div>
+        <dt>Retención IR ({{ pf.tasas.retencionIrPct }}%)</dt>
+        <dd>− $ {{ pf.totales.retencionIr | number: '1.2-2' }}</dd>
+      </div>
+      <div>
+        <dt>Retención IVA ({{ pf.tasas.retencionIvaPct }}%)</dt>
+        <dd>− $ {{ pf.totales.retencionIva | number: '1.2-2' }}</dd>
+      </div>
+      <div class="tpf__totales-fuerte">
+        <dt>Neto a cobrar</dt>
+        <dd>$ {{ pf.totales.netoCobrar | number: '1.2-2' }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <!-- ═══ Firma del Company Man ═══ -->
+  <section class="tpf__seccion">
+    <h3 class="tpf__h">Firma del Company Man</h3>
+    @if (pf.estado === 'firmada') {
+      @let f = pf.firmas?.[0];
+      <dynadrill-banner
+        variant="info"
+        [message]="
+          f
+            ? 'Firmada por ' +
+              f.nombre +
+              ' (' +
+              (f.cargo ?? 'Company Man') +
+              ') el ' +
+              (f.firmadoAt | date: 'dd/MM/yyyy HH:mm') +
+              '. Facturación ya la ve como firmada.'
+            : 'La prefactura ya está firmada. Facturación la ve como firmada.'
+        "
+      />
+    } @else if (puedeEnviar()) {
+      <p class="tpf__nota">
+        Imprima la prefactura, que el Company Man la firme y suba aquí el archivo firmado (PDF o
+        foto). Al registrarla, Facturación la verá como
+        <strong>firmada</strong> — se genera con los datos actuales y ya no cambia.
+      </p>
+      <div class="tpf__firma">
+        <dynadrill-input
+          label="Nombre del Company Man *"
+          [value]="nombre()"
+          [disabled]="enviando()"
+          (valueChange)="nombre.set($event)"
+        />
+        <dynadrill-input
+          label="Cargo *"
+          [value]="cargo()"
+          [disabled]="enviando()"
+          (valueChange)="cargo.set($event)"
+        />
+      </div>
+      <dynadrill-upload-zone
+        [state]="archivo() ? 'uploaded' : 'idle'"
+        [fileName]="archivo()?.name ?? ''"
+        (fileSelected)="alElegirArchivo($event)"
+      />
+      @if (error(); as e) {
+        <dynadrill-banner variant="critical" [message]="e" />
+      }
+      <div class="tpf__acciones tpf__acciones--inicio">
+        <dynadrill-button [disabled]="!!problema() || enviando()" (clicked)="firmar()">
+          {{ enviando() ? 'Registrando…' : 'Registrar prefactura firmada' }}
+        </dynadrill-button>
+      </div>
+    } @else {
+      <dynadrill-banner
+        variant="info"
+        [message]="
+          data.puedeFirmar
+            ? 'Complete la documentación del pedido para poder registrar la firma del Company Man.'
+            : 'La firma del Company Man se registra en la revisión final del ticket, cuando el servicio ya terminó.'
+        "
+      />
+    }
+  </section>
+
+  <div class="tpf__acciones">
+    <dynadrill-button variant="secondary" (clicked)="cerrar()">Cerrar</dynadrill-button>
+  </div>
+} @else {
+  <div class="tpf__estado"><dynadrill-spinner /></div>
+}

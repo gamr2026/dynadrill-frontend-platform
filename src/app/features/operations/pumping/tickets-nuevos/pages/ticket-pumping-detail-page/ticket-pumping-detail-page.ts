@@ -793,7 +793,7 @@ export class TicketPumpingDetailPage {
       const inicioMs = new Date(h.at).getTime();
       return {
         fase: p.nombre,
-        macroEstado: i < actual ? 'aprobado' : 'en_proceso',
+        macroEstado: i < actual || this.cerrado() ? 'aprobado' : 'en_proceso',
         inicio: h.at,
         fin,
         duracionMs: (fin ? new Date(fin).getTime() : Date.now()) - inicioMs,
@@ -803,6 +803,11 @@ export class TicketPumpingDetailPage {
       } satisfies TimelineTramo;
     });
   });
+  /** Un ticket que llegó a su paso final (cierre) tiene todos los pasos completados, incluido el último. */
+  protected readonly cerrado = computed(() => this.ticket()?.paso.macro === 'aprobado');
+  protected readonly avancePaso = computed(() =>
+    this.cerrado() ? PASOS_PUMPING.length : this.indicePaso(),
+  );
   protected readonly indicePaso = computed(() => {
     const i = PASOS_PUMPING.findIndex((p) => p.codigo === this.ticket()?.paso.codigo);
     return i < 0 ? 0 : i;
@@ -1015,6 +1020,12 @@ export class TicketPumpingDetailPage {
       content: TicketPrefacturaDialog,
       data: {
         pedidoId: t.pedidoId,
+        ticketCodigo: String(t.ticketNumero ?? t.pedidoCodigo),
+        pedidoCodigo: t.pedidoCodigo,
+        cliente: t.cliente,
+        pozo: t.pozo,
+        campo: t.campo,
+        companyMan: t.representanteCampo?.nombre ?? null,
         puedeFirmar:
           t.paso.codigo === PASO_REVISION_FINAL &&
           this.auth.can(PERMISO_PREFACTURA_FIRMA_COMPANY_MAN),

@@ -187,7 +187,7 @@
       label="Tiempo productivo (hrs)"
       [value]="productivo()"
       [disabled]="bloqueado()"
-      (valueChange)="productivo.set($event)"
+      (valueChange)="fijarProductivo($event)"
     />
     <dynadrill-input
       type="number"

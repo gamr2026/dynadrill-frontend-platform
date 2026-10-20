@@ -115,7 +115,8 @@ export class TicketReporteDiarioDialog {
   protected readonly representante = signal(this.data.cabecera.representante ?? '');
   protected readonly cargo = signal('Representante de Campo');
   protected readonly actividades = signal<FilaActividad[]>([vacia()]);
-  protected readonly productivo = signal('');
+  /** Lo que la persona escribió; mientras no escriba nada, el tiempo productivo es la suma de horas de las actividades. */
+  private readonly productivoManual = signal<string | null>(null);
   protected readonly noProductivo = signal('');
   protected readonly observaciones = signal('');
   protected readonly tieneObservaciones = signal(false);
@@ -125,6 +126,12 @@ export class TicketReporteDiarioDialog {
   protected readonly monitoreoSubiendo = signal(false);
 
   protected readonly total = computed(() => totalHoras(this.actividades()));
+  protected readonly productivo = computed(
+    () => this.productivoManual() ?? (this.total() > 0 ? String(this.total()) : ''),
+  );
+  protected fijarProductivo(valor: string): void {
+    this.productivoManual.set(valor);
+  }
   protected readonly problema = computed(() => {
     if (this.bloqueado()) return null;
     const t1 = numeroONulo(this.productivo());
@@ -142,7 +149,7 @@ export class TicketReporteDiarioDialog {
         this.estado.set(r.estado);
         if (r.representanteCliente) this.representante.set(r.representanteCliente);
         if (r.cargoRepresentante) this.cargo.set(r.cargoRepresentante);
-        this.productivo.set(r.tiempoProductivo === null ? '' : String(r.tiempoProductivo));
+        this.productivoManual.set(r.tiempoProductivo === null ? null : String(r.tiempoProductivo));
         this.noProductivo.set(r.tiempoNoProductivo === null ? '' : String(r.tiempoNoProductivo));
         this.observaciones.set(r.observaciones ?? '');
         this.tieneObservaciones.set(!!r.observaciones?.trim());

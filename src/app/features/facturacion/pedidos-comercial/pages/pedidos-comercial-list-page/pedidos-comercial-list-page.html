@@ -17,7 +17,12 @@
   </div>
 
   <section class="pedidos-page__tarjeta">
-    <dynadrill-tabs [tabs]="tabs()" [activeIndex]="activa()" (activeIndexChange)="activa.set($event)" [contentTemplate]="contenido" />
+    <dynadrill-tabs
+      [tabs]="tabs()"
+      [activeIndex]="activa()"
+      (activeIndexChange)="activa.set($event)"
+      [contentTemplate]="contenido"
+    />
   </section>
 
   <ng-template #contenido let-index="index">
@@ -25,9 +30,6 @@
       @switch (claveActiva()) {
         @case ('por-completar') {
           <app-por-completar-panel />
-        }
-        @case ('sin-analista') {
-          <app-pedidos-lista-panel [estados]="estados()" [catalogo]="catalogo()" [sinAnalista]="true" />
         }
         @default {
           <app-pedidos-lista-panel [estados]="estados()" [catalogo]="catalogo()" />

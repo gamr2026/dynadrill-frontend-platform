@@ -136,6 +136,9 @@ export interface ViajeResumen {
   fecha: string;
   conductor: { id: string; nombre: string };
   unidad: { id: string; codigo: string; vehiculoId: string | null };
+  /** Nombres del origen y el destino (del viaje o de la inspección de salida del ticket). */
+  origen: string;
+  destino: string;
   puntajeTotal: number;
   nivel: NivelRiesgo;
   estado: EstadoViaje;

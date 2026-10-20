@@ -1,132 +1,281 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import {
-  DynadrillButtonComponent,
   DynadrillDataTableColumn,
   DynadrillDataTableComponent,
   DynadrillDialogService,
-  DynadrillSpinnerComponent,
+  DynadrillIconButtonComponent,
+  DynadrillNotificationService,
+  type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../../core/services/auth.service';
+import { injectNarrowViewport } from '../../../../core/utils/narrow-viewport.util';
+import { KpiStat, type KpiStatTone } from '../../../../shared/components/kpi-stat/kpi-stat';
+import {
+  MotivoDialog,
+  type MotivoDialogData,
+} from '../../../../shared/components/motivo-dialog/motivo-dialog';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import {
+  MntCompactList,
+  type MntCompactItem,
+} from '../../../maintenance/components/mnt-compact-card';
+import { QhseFiltros } from '../../../qhse/shared/components/qhse-filtros';
+import {
   ViajeDetalleDialog,
-  TONO_ESTADO_VIAJE,
-  TONO_NIVEL,
   type ViajeDetalleDialogData,
 } from '../../components/viaje-detalle-dialog';
 import {
-  ESTADO_VIAJE_LABEL,
   NIVEL_LABEL,
   TIPO_VIAJE_LABEL,
+  type EstadoViaje,
+  type NivelRiesgo,
+  type UmbralRiesgo,
   type ViajeResumen,
 } from '../../models/viaje-flota.model';
 import { FlotaViajesService } from '../../services/flota-viajes.service';
-import { formatoFecha } from '../../utils/flota.util';
+import { formatoFecha, mensajeDeError } from '../../utils/flota.util';
 
-/** Portal del Conductor y bandeja de autorización del Gerenciamiento de Viaje (DYN-SGI-RE-049). Cada cuenta ve lo que su permiso le deja. */
+const ESTADO_TEXTO: Record<EstadoViaje, string> = {
+  pendiente: 'Pendiente de autorización',
+  autorizado: 'Aprobado',
+  rechazado: 'Rechazado',
+};
+const ESTADO_TONE: Record<EstadoViaje, DynadrillTagVariant> = {
+  pendiente: 'warning',
+  autorizado: 'success',
+  rechazado: 'error',
+};
+const PERMISO_MAYOR = 'flota.viajes.autorizar_mayor';
+
+type Fila = {
+  id: string;
+  code: string;
+  tipo: string;
+  fecha: string;
+  origen: string;
+  destino: string;
+  riskLevel: string;
+  estado: EstadoViaje;
+  estadoBadge: { text: string; tone: DynadrillTagVariant };
+  puedeGestionar: boolean;
+  viaje: ViajeResumen;
+};
+
+/**
+ * Bandeja del Gerenciamiento de Viaje (DYN-SGI-RE-049), con el diseño de la demo. Quien autoriza ve las solicitudes y los botones de
+ * autorizar/rechazar solo en las de riesgo que su permiso le deja (`puedeDecidir`, lo calcula el servidor, que igual lo hace cumplir).
+ * Un conductor ve únicamente las suyas.
+ */
 @Component({
   selector: 'app-viajes-page',
   imports: [
     PageHeader,
+    KpiStat,
+    QhseFiltros,
+    MntCompactList,
     DynadrillDataTableComponent,
-    DynadrillButtonComponent,
-    DynadrillSpinnerComponent,
+    DynadrillIconButtonComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <app-page-header
-      eyebrow="Flota"
-      title="Gerenciamiento de viaje"
-      [subtitle]="
-        puedeAutorizar()
-          ? 'Solicitudes de los conductores; usted autoriza las que su permiso le permite'
-          : 'Sus solicitudes de salida y de retorno por ticket (las nuevas las completa desde Pumping → Mis tareas)'
-      "
-    >
-    </app-page-header>
-    <dynadrill-spinner mode="overlay" [spinning]="cargando()" tip="Cargando…">
-      <dynadrill-data-table
-        [columns]="columnas"
-        [rows]="filas()"
-        [rowKey]="clave"
-        [pageSize]="10"
-        [actionsTemplate]="acciones"
-      />
-    </dynadrill-spinner>
-    <ng-template #acciones let-row>
-      <div class="dyn-actions-row">
-        <dynadrill-button
-          [variant]="row['puedeDecidir'] ? 'primary' : 'secondary'"
-          size="small"
-          (clicked)="ver(row['id'])"
-        >
-          {{ row['puedeDecidir'] ? 'Revisar' : 'Ver detalle' }}
-        </dynadrill-button>
-      </div>
-    </ng-template>
-  `,
+  templateUrl: './viajes-page.html',
+  styleUrl: './viajes-page.scss',
 })
 export class ViajesPage {
   private readonly api = inject(FlotaViajesService);
   private readonly dialog = inject(DynadrillDialogService);
+  private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
 
-  protected readonly cargando = signal(true);
+  protected readonly isMobile = injectNarrowViewport();
+  protected readonly loading = signal(true);
   protected readonly viajes = signal<ViajeResumen[]>([]);
-  protected readonly puedeAutorizar = computed(
-    () => this.auth.can('flota.viajes.aprobar') || this.auth.can('flota.viajes.autorizar_mayor'),
-  );
+  private readonly umbrales = signal<UmbralRiesgo[]>([]);
+  protected readonly filtro = signal<EstadoViaje | 'todos'>('pendiente');
 
-  protected readonly columnas: DynadrillDataTableColumn[] = [
-    { key: 'codigo', header: 'Código', sortable: true, searchable: true },
-    { key: 'tipo', header: 'Tipo' },
-    { key: 'fecha', header: 'Fecha', sortable: true },
-    { key: 'conductor', header: 'Conductor', searchable: true },
-    { key: 'unidad', header: 'Unidad' },
-    { key: 'nivel', header: 'Riesgo', type: 'badge' },
-    { key: 'estado', header: 'Estado', type: 'badge' },
+  protected readonly opcionesFiltro = [
+    { value: 'pendiente', label: 'Pendientes' },
+    { value: 'autorizado', label: 'Aprobados' },
+    { value: 'rechazado', label: 'Rechazados' },
+    { value: 'todos', label: 'Todos' },
   ];
 
-  protected readonly filas = computed(() =>
-    this.viajes().map((v) => ({
+  private readonly puedeAutorizar = computed(
+    () => this.auth.can('flota.viajes.aprobar') || this.auth.can(PERMISO_MAYOR),
+  );
+
+  /** Niveles de riesgo que autoriza cada permiso, según los umbrales del servidor ("BAJO y MEDIO" / "ALTO"). */
+  private nivelesDe(permiso: string): NivelRiesgo[] {
+    return this.umbrales()
+      .filter((u) => (permiso === PERMISO_MAYOR) === (u.permisoAutoriza === PERMISO_MAYOR))
+      .sort((a, b) => a.desdePuntos - b.desdePuntos)
+      .map((u) => u.nivel);
+  }
+  private unir(niveles: NivelRiesgo[]): string {
+    return niveles.map((n) => NIVEL_LABEL[n]).join(' y ');
+  }
+
+  protected readonly subtitulo = computed(() => {
+    const menor = this.unir(this.nivelesDe('flota.viajes.aprobar'));
+    const mayor = this.unir(this.nivelesDe(PERMISO_MAYOR));
+    return menor && mayor
+      ? `DYN-SGI-RE-049 — ${menor} lo autoriza el Supervisor de Pumping, ${mayor} el Jefe de Base`
+      : 'DYN-SGI-RE-049 — Evaluación de riesgos de viajes y Plan de gestión de viajes';
+  });
+
+  /** Quien solo autoriza el riesgo menor lo sabe desde el principio (banner azul de la demo). */
+  protected readonly avisoNiveles = computed(() => {
+    if (!this.puedeAutorizar() || this.auth.can(PERMISO_MAYOR)) return '';
+    const niveles = this.unir(this.nivelesDe('flota.viajes.aprobar'));
+    const rol = this.auth.currentUser()?.roleName ?? 'su rol';
+    return niveles ? `Como ${rol} solo puedes autorizar viajes de riesgo ${niveles}.` : '';
+  });
+
+  protected readonly kpis = computed<{ label: string; value: number; tone: KpiStatTone }[]>(() => {
+    const all = this.viajes();
+    const cuenta = (e: EstadoViaje) => all.filter((v) => v.estado === e).length;
+    return [
+      { label: 'Total', value: all.length, tone: 'neutral' },
+      { label: 'Pendientes', value: cuenta('pendiente'), tone: 'warning' },
+      { label: 'Aprobados', value: cuenta('autorizado'), tone: 'success' },
+      { label: 'Rechazados', value: cuenta('rechazado'), tone: 'error' },
+    ];
+  });
+
+  protected readonly filtrados = computed(() => {
+    const f = this.filtro();
+    return f === 'todos' ? this.viajes() : this.viajes().filter((v) => v.estado === f);
+  });
+
+  protected readonly columns: DynadrillDataTableColumn[] = [
+    { key: 'code', header: 'Código', sortable: true, searchable: true },
+    { key: 'tipo', header: 'Tipo' },
+    { key: 'fecha', header: 'Fecha', sortable: true },
+    { key: 'origen', header: 'Origen', searchable: true },
+    { key: 'destino', header: 'Destino', searchable: true },
+    { key: 'riskLevel', header: 'Riesgo' },
+    {
+      key: 'estadoBadge',
+      header: 'Estado',
+      type: 'badge',
+      filters: Object.values(ESTADO_TEXTO).map((text) => ({ text, value: text })),
+    },
+  ];
+
+  protected readonly rows = computed<Fila[]>(() =>
+    this.filtrados().map((v) => ({
       id: v.id,
-      codigo: v.codigo,
+      code: v.codigo,
       tipo: TIPO_VIAJE_LABEL[v.tipo],
       fecha: formatoFecha(v.fecha),
-      conductor: v.conductor.nombre,
-      unidad: v.unidad.codigo,
-      nivel: { text: `${NIVEL_LABEL[v.nivel]} (${v.puntajeTotal})`, tone: TONO_NIVEL[v.nivel] },
-      estado: { text: ESTADO_VIAJE_LABEL[v.estado], tone: TONO_ESTADO_VIAJE[v.estado] },
-      puedeDecidir: v.puedeDecidir,
+      origen: v.origen,
+      destino: v.destino,
+      riskLevel: NIVEL_LABEL[v.nivel],
+      estado: v.estado,
+      estadoBadge: { text: ESTADO_TEXTO[v.estado], tone: ESTADO_TONE[v.estado] },
+      puedeGestionar: v.puedeDecidir,
+      viaje: v,
     })),
   );
 
-  protected readonly clave = (row: Record<string, unknown>): string => String(row['id']);
+  /** Filas compactas en móvil: ver, autorizar (✓) y rechazar (✗). */
+  protected readonly itemsMovil = computed<MntCompactItem[]>(() =>
+    this.rows().map((r) => {
+      const v = r.viaje;
+      const riesgoTone = v.nivel === 'bajo' ? 'success' : v.nivel === 'medio' ? 'warning' : 'error';
+      return {
+        id: r.id,
+        title: `${v.codigo} · ${r.fecha}`,
+        lines: [`${v.origen} → ${v.destino} · ${v.puntajeTotal} pts`],
+        chips: [
+          { text: r.riskLevel, tone: riesgoTone as 'success' | 'warning' | 'error' },
+          { text: r.estadoBadge.text, tone: r.estadoBadge.tone as 'warning' | 'success' | 'error' },
+        ],
+        actions: [
+          { icon: 'eye', label: 'Ver detalle', run: () => this.verDetalle(r) },
+          ...(v.estado === 'pendiente' && r.puedeGestionar
+            ? [
+                { icon: 'check', label: 'Autorizar', run: () => this.aprobar(r) },
+                { icon: 'close', label: 'Rechazar', run: () => this.rechazar(r) },
+              ]
+            : []),
+        ],
+      };
+    }),
+  );
+
+  protected readonly rowKeyFn = (row: Record<string, unknown>): string => String(row['id']);
 
   constructor() {
-    this.recargar();
+    this.api.umbrales().subscribe((u) => this.umbrales.set(u));
+    this.reload();
   }
 
-  private recargar(): void {
-    this.cargando.set(true);
+  private reload(): void {
+    this.loading.set(true);
     this.api.listar().subscribe({
       next: (v) => {
         this.viajes.set(v);
-        this.cargando.set(false);
+        this.loading.set(false);
       },
-      error: () => this.cargando.set(false),
+      error: () => {
+        this.loading.set(false);
+        this.notify.error('Error', 'No se pudieron cargar los gerenciamientos de viaje.');
+      },
     });
   }
 
-  protected ver(viajeId: string): void {
+  protected verDetalle(row: Record<string, unknown>): void {
+    const v = row['viaje'] as ViajeResumen;
     this.dialog
       .open<ViajeDetalleDialog, ViajeDetalleDialogData>({
-        title: 'Gerenciamiento de Viaje',
+        title: `Gerenciamiento de Viaje — ${v.codigo}`,
         content: ViajeDetalleDialog,
-        data: { viajeId },
+        data: { viajeId: v.id },
         size: 'large',
         footer: false,
       })
-      .afterClose.subscribe((r) => r && this.recargar());
+      .afterClose.subscribe((r) => r && this.reload());
+  }
+
+  protected aprobar(row: Record<string, unknown>): void {
+    const v = row['viaje'] as ViajeResumen;
+    this.api.autorizar(v.id).subscribe({
+      next: () => {
+        this.notify.success('Autorizado', `${v.codigo} autorizado.`);
+        this.reload();
+      },
+      error: (e) =>
+        this.notify.error(
+          'Error',
+          mensajeDeError(e, 'No se pudo autorizar el gerenciamiento de viaje.'),
+        ),
+    });
+  }
+
+  protected rechazar(row: Record<string, unknown>): void {
+    const v = row['viaje'] as ViajeResumen;
+    const ref = this.dialog.open<MotivoDialog, MotivoDialogData>({
+      title: 'Rechazar Gerenciamiento de Viaje',
+      content: MotivoDialog,
+      data: {
+        mensaje: `¿Por qué se rechaza el gerenciamiento de viaje ${v.codigo}?`,
+        label: 'Motivo del rechazo',
+      },
+      footer: false,
+    });
+    ref.afterClose.subscribe((motivo: string | undefined) => {
+      if (!motivo) return;
+      this.api.rechazar(v.id, motivo).subscribe({
+        next: () => {
+          this.notify.success('Rechazado', `${v.codigo} rechazado.`);
+          this.reload();
+        },
+        error: (e) =>
+          this.notify.error(
+            'Error',
+            mensajeDeError(e, 'No se pudo rechazar el gerenciamiento de viaje.'),
+          ),
+      });
+    });
   }
 }

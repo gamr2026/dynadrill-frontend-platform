@@ -1,0 +1,62 @@
+<app-page-header eyebrow="Flota" title="Gerenciamiento de Viaje" [subtitle]="subtitulo()" />
+
+<app-qhse-filtros
+  [opciones]="opcionesFiltro"
+  [selected]="filtro()"
+  (selectedChange)="filtro.set($any($event))"
+/>
+
+<div class="kpi-stat-row" role="list">
+  @for (kpi of kpis(); track kpi.label) {
+    <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
+  }
+</div>
+
+@if (avisoNiveles(); as aviso) {
+  <p class="gerenciamiento-viaje-page__aviso" role="note">{{ aviso }}</p>
+}
+
+@if (isMobile()) {
+  <app-mnt-compact-list
+    [items]="itemsMovil()"
+    [loading]="loading()"
+    vacio="No hay gerenciamientos de viaje con ese filtro."
+  />
+} @else {
+  <ng-template #actionsTpl let-row>
+    <div class="gerenciamiento-viaje-page__row-actions">
+      <dynadrill-icon-button
+        icon="eye"
+        tooltip="Ver detalle"
+        tooltipPlacement="top"
+        (clicked)="verDetalle(row)"
+      />
+      @if (row.estado === 'pendiente' && row.puedeGestionar) {
+        <dynadrill-icon-button
+          icon="check"
+          tooltip="Autorizar"
+          tooltipPlacement="top"
+          (clicked)="aprobar(row)"
+        />
+        <dynadrill-icon-button
+          icon="close"
+          tooltip="Rechazar"
+          tooltipPlacement="top"
+          (clicked)="rechazar(row)"
+        />
+      }
+    </div>
+  </ng-template>
+
+  <div class="table-scroll dyn-table-card">
+    <dynadrill-data-table
+      [columns]="columns"
+      [rows]="rows()"
+      [loading]="loading()"
+      [rowKey]="rowKeyFn"
+      [pageSize]="10"
+      actionsHeader="Acciones"
+      [actionsTemplate]="actionsTpl"
+    />
+  </div>
+}

@@ -297,12 +297,20 @@ export class TicketPumpingDetailPage {
       })
       .afterClose.subscribe((r) => r && this.recargar());
   }
-  private cargarCasosFlota(ticketId: string): void {
+  /**
+   * Flota abre el caso de inspección de cada unidad al procesar el evento de la asignación, un instante después de que esta termina:
+   * si faltan casos se vuelve a preguntar unas veces antes de dar la unidad por no registrada en Flota.
+   */
+  private cargarCasosFlota(ticketId: string, intento = 0): void {
     if (!this.auth.can('flota.inspecciones.ver')) return;
     this.flotaInspecciones.casos(ticketId).subscribe({
       next: (l) => {
         this.casosFlota.set(l);
         this.cargarInspeccionSalida();
+        const esperados = this.ticket()?.asignacion.unidades.length ?? 0;
+        if (l.length < esperados && intento < 4) {
+          setTimeout(() => this.cargarCasosFlota(ticketId, intento + 1), 1500);
+        }
       },
       error: () => this.casosFlota.set([]),
     });

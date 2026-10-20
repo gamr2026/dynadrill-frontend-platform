@@ -1,0 +1,176 @@
+@use '../../../facturacion-ui' as f;
+
+.aot-detail {
+  @include f.page;
+
+  .fact-card {
+    @include f.card;
+  }
+
+  &__head {
+    @include f.card-head;
+  }
+  &__defs {
+    @include f.defs;
+  }
+  &__table {
+    @include f.table;
+  }
+
+  &__head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+// Móvil (Figma "M · OT · Detalle"): acciones a ancho completo y detalle como lista.
+.aot-detail {
+  &__estado {
+    display: flex;
+    align-items: center;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 12px 24px;
+    border: 0;
+    border-radius: var(--radius-md, 12px);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--dynadrill-purple, #662e9b);
+      outline-offset: 2px;
+    }
+
+    &--outline {
+      flex: 1 1 0;
+      border: 1px solid var(--dynadrill-purple-tint-strong, #e7deef);
+      background: var(--surface, #fff);
+      color: var(--dynadrill-purple, #662e9b);
+
+      &:hover {
+        background: var(--dynadrill-purple-tint, #f6f3f9);
+      }
+
+      @media (min-width: 841px) {
+        flex: 0 0 auto;
+      }
+    }
+
+    &--primary {
+      width: 100%;
+      background: var(--dynadrill-purple, #662e9b);
+      color: var(--dynadrill-white, #fff);
+      box-shadow: 0 4px 6px rgba(19, 21, 41, 0.08);
+
+      &:hover {
+        background: var(--dynadrill-purple-hover, #55267f);
+      }
+
+      @media (min-width: 841px) {
+        width: auto;
+        align-self: flex-start;
+      }
+    }
+  }
+
+  &__lines {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    @media (min-width: 841px) {
+      display: none;
+    }
+  }
+
+  &__line {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 0;
+    border-top: 1px solid var(--border, #e5e4ea);
+  }
+
+  &__line-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  &__line-code {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dynadrill-purple, #662e9b);
+  }
+
+  &__line-total {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text, #2c2b35);
+  }
+
+  &__line-name {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--text, #2c2b35);
+  }
+
+  &__line-meta {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 0;
+    border-top: 1px solid var(--border, #e5e4ea);
+    border-bottom: 1px solid var(--border, #e5e4ea);
+    font-size: 14px;
+    color: var(--text-muted, #5c5870);
+    list-style: none;
+
+    strong {
+      font-weight: 700;
+      color: var(--text, #2c2b35);
+    }
+  }
+
+  &__table-wrap {
+    @media (max-width: 840px) {
+      display: none;
+    }
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
+}

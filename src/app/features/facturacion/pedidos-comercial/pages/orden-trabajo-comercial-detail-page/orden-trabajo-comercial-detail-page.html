@@ -1,0 +1,199 @@
+<div class="aot-detail">
+  @if (error(); as e) {
+    <dynadrill-banner variant="critical" [message]="e" />
+  }
+
+  @if (orden(); as a) {
+    <dynadrill-screen-header
+      class="screen-header--compact-mobile"
+      eyebrow="FACTURACIÓN — OT"
+      [title]="a.codigo"
+      subtitle="ORDEN DE TRABAJO / RESUMEN DE COSTOS"
+    />
+
+    <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
+      <section class="fact-card">
+        <header class="aot-detail__head"><h2>Documento</h2></header>
+        <div class="aot-detail__estado">
+          <dynadrill-tag
+            [label]="a.estado === 'firmada' ? 'Firmada' : 'Generada'"
+            [variant]="a.estado === 'firmada' ? 'success' : 'warning'"
+          />
+        </div>
+        <div class="aot-detail__actions">
+          <button
+            type="button"
+            class="aot-detail__btn aot-detail__btn--outline"
+            (click)="irAlPedido()"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="m12 19-7-7 7-7" />
+              <path d="M19 12H5" /></svg
+            >Ir al pedido
+          </button>
+          <button type="button" class="aot-detail__btn aot-detail__btn--outline" (click)="verPdf()">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+              <circle cx="12" cy="12" r="3" /></svg
+            >Ver / Imprimir PDF
+          </button>
+        </div>
+        @if (a.estado !== 'firmada' && puedeFirmar()) {
+          <button
+            type="button"
+            class="aot-detail__btn aot-detail__btn--primary"
+            (click)="marcarFirmada()"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="m9 12 2 2 4-4" /></svg
+            >Marcar como firmada
+          </button>
+        }
+        <dl class="aot-detail__defs">
+          <div>
+            <dt>Nº OT</dt>
+            <dd>{{ a.numero }}</dd>
+          </div>
+          <div>
+            <dt>Nº OPR</dt>
+            <dd>{{ a.codigo }}</dd>
+          </div>
+          <div>
+            <dt>Fecha OT</dt>
+            <dd>{{ dia(a.fecha) }}</dd>
+          </div>
+          <div>
+            <dt>Contrato</dt>
+            <dd>{{ a.numeroContrato ?? '—' }}</dd>
+          </div>
+          <div>
+            <dt>Servicio</dt>
+            <dd>{{ a.servicio }}</dd>
+          </div>
+          <div>
+            <dt>Inicio / Terminación</dt>
+            <dd>{{ dia(a.fechaInicio) }} — {{ dia(a.fechaTerminacion) }}</dd>
+          </div>
+          <div>
+            <dt>Valor de la OT</dt>
+            <dd>${{ a.valorOt | number: '1.2-2' }}</dd>
+          </div>
+          <div>
+            <dt>Generada</dt>
+            <dd>{{ a.generadaAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+          </div>
+          @if (a.firmada; as f) {
+            <div>
+              <dt>Marcada firmada</dt>
+              <dd>
+                {{ f.at | date: 'dd/MM/yyyy HH:mm'
+                }}{{ f.archivoNombre ? ' · ' + f.archivoNombre : '' }}
+              </dd>
+            </div>
+          }
+        </dl>
+      </section>
+
+      <dynadrill-banner
+        variant="info"
+        message="Con la OT firmada, el valor real del pedido se registra en AS2 y el ticket pasa a Control de Costos / SRI — pasos fuera del alcance del aplicativo."
+      />
+
+      <section class="fact-card">
+        <header class="aot-detail__head">
+          <h2>Detalle ({{ a.items.length }})</h2>
+        </header>
+        <ul class="aot-detail__lines">
+          @for (it of a.items; track it.orden) {
+            <li class="aot-detail__line">
+              <div class="aot-detail__line-top">
+                <span class="aot-detail__line-code">{{ it.codigo ?? '—' }}</span>
+                <span class="aot-detail__line-total">$ {{ it.total | number: '1.2-2' }}</span>
+              </div>
+              <p class="aot-detail__line-name">{{ it.servicioRequerido }}</p>
+              <p class="aot-detail__line-meta">
+                {{ it.unidad ?? '—' }} · Tarifa ${{ it.tarifaUnitaria | number: '1.2-2' }} · Cant.
+                {{ it.cantidad }}
+              </p>
+            </li>
+          }
+          <li class="aot-detail__row">
+            <span>Total</span><strong>$ {{ a.valorOt | number: '1.2-2' }}</strong>
+          </li>
+        </ul>
+        <div class="table-scroll aot-detail__table-wrap">
+          <table class="aot-detail__table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Servicio requerido</th>
+                <th>Unidad</th>
+                <th class="num">Tarifa</th>
+                <th class="num">Cantidad</th>
+                <th class="num">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (it of a.items; track it.orden) {
+                <tr>
+                  <td>{{ it.codigo ?? '—' }}</td>
+                  <td>{{ it.servicioRequerido }}</td>
+                  <td>{{ it.unidad ?? '—' }}</td>
+                  <td class="num">${{ it.tarifaUnitaria | number: '1.2-2' }}</td>
+                  <td class="num">{{ it.cantidad }}</td>
+                  <td class="num">${{ it.total | number: '1.2-2' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </dynadrill-spinner>
+  } @else if (!loading() && !error()) {
+    <dynadrill-banner
+      variant="info"
+      [message]="
+        requiere()
+          ? 'El contrato de este cliente exige orden de trabajo y todavía no se ha generado.'
+          : 'Este pedido no tiene orden de trabajo (el contrato del cliente no la exige).'
+      "
+    />
+    <button type="button" class="aot-detail__btn aot-detail__btn--outline" (click)="irAlPedido()">
+      Ir al pedido
+    </button>
+  }
+</div>

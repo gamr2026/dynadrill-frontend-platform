@@ -1,0 +1,89 @@
+<dynadrill-spinner mode="overlay" [spinning]="cargando() || generando()" tip="Cargando…">
+  <div class="pfr">
+    @if (error(); as e) {
+      <dynadrill-banner variant="warning" [message]="e" />
+    }
+
+    @if (actual(); as pf) {
+      @if (pf.estado === 'rechazada' && pf.rechazo) {
+        <dynadrill-banner
+          variant="warning"
+          [message]="
+            'Rechazada por el cliente: ' +
+            pf.rechazo.motivo +
+            '. Corrija la documentación necesaria y regenere la prefactura para reenviarla.'
+          "
+        />
+      }
+      <dl class="pfr__defs">
+        <div>
+          <dt>Ticket</dt>
+          <dd>{{ pf.ticketNumero ?? 'Sin número' }}</dd>
+        </div>
+        <div>
+          <dt>Estado</dt>
+          <dd>{{ estado(pf.estado) }}</dd>
+        </div>
+      </dl>
+      <div class="pfr__rows">
+        <div class="pfr__row">
+          <span>Subtotal servicios</span><strong>{{ moneda(pf.totales.subtotalServicios) }}</strong>
+        </div>
+        <div class="pfr__row">
+          <span>Subtotal materiales</span
+          ><strong>{{ moneda(pf.totales.subtotalMateriales) }}</strong>
+        </div>
+        <div class="pfr__row">
+          <span>IVA ({{ pf.tasas.ivaPct }}%)</span><strong>{{ moneda(pf.totales.iva) }}</strong>
+        </div>
+        <div class="pfr__row">
+          <span>Neto a cobrar</span><strong>{{ moneda(pf.totales.netoCobrar) }}</strong>
+        </div>
+      </div>
+      <button type="button" class="pfr__btn pfr__btn--primary" (click)="ver()">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+        Ver prefactura
+      </button>
+    } @else if (!cargando()) {
+      <p class="pfr__nota">
+        @if (puedeGenerar()) {
+          La documentación de respaldo debe estar completa para generar la prefactura.
+        } @else {
+          La prefactura se habilita cuando la documentación de respaldo (y la guía de remisión, si
+          aplica) está completa.
+        }
+      </p>
+    }
+
+    @if (puedeGenerar()) {
+      <button
+        type="button"
+        class="pfr__btn pfr__btn--primary"
+        [disabled]="generando()"
+        (click)="generar()"
+      >
+        {{
+          generando()
+            ? 'Generando…'
+            : actual()?.estado === 'rechazada'
+              ? 'Regenerar y reenviar'
+              : 'Generar prefactura'
+        }}
+      </button>
+    }
+  </div>
+</dynadrill-spinner>

@@ -8,12 +8,25 @@
       <li class="docs__item">
         <div class="docs__datos">
           <strong>{{ d.nombre }}</strong>
-          <span class="docs__meta">{{ tamano(d.tamanoBytes) }} · {{ dia(d.createdAt) }} · {{ d.subidoPor ?? 'Sin dato' }}</span>
+          <span class="docs__meta"
+            >{{ tamano(d.tamanoBytes) }} · {{ dia(d.createdAt) }} ·
+            {{ d.subidoPor ?? 'Sin dato' }}</span
+          >
         </div>
         <div class="docs__acciones">
-          <dynadrill-icon-button icon="file-text" [tooltip]="'Descargar ' + d.nombre" [disabled]="descargando() !== null" (clicked)="descargar(d)" />
+          <dynadrill-button
+            variant="secondary"
+            size="small"
+            [disabled]="descargando() !== null"
+            (clicked)="descargar(d)"
+            >Descargar</dynadrill-button
+          >
           @if (puedeEditar()) {
-            <dynadrill-icon-button icon="delete" [tooltip]="'Quitar ' + d.nombre" (clicked)="quitar(d)" />
+            <dynadrill-icon-button
+              icon="delete"
+              [tooltip]="'Quitar ' + d.nombre"
+              (clicked)="quitar(d)"
+            />
           }
         </div>
       </li>
@@ -24,7 +37,13 @@
 
   @if (puedeEditar()) {
     <label class="docs__subir">
-      <span>{{ subiendo() ? 'Subiendo el documento…' : 'Adjuntar documento (PDF, PNG, JPEG, DOCX o XLSX; máximo 25 MB; hasta ' + maximo + ' por pedido)' }}</span>
+      <span>{{
+        subiendo()
+          ? 'Subiendo el documento…'
+          : 'Adjuntar documento (PDF, PNG, JPEG, DOCX o XLSX; máximo 25 MB; hasta ' +
+            maximo +
+            ' por pedido)'
+      }}</span>
       <input type="file" [accept]="accept" [disabled]="subiendo()" (change)="onArchivo($event)" />
     </label>
   }

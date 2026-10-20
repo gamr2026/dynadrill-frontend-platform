@@ -1,0 +1,86 @@
+@use '../../../facturacion-ui' as f;
+
+:host {
+  display: block;
+}
+
+.pfr {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 48px;
+
+  &__defs {
+    @include f.defs;
+  }
+
+  &__nota {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__rows {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border, #e5e4ea);
+    font-size: 14px;
+    line-height: 1.45;
+
+    span {
+      color: var(--text-muted, #5c5870);
+    }
+
+    strong {
+      font-weight: 600;
+      color: var(--text, #2c2b35);
+      text-align: right;
+    }
+  }
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 12px 24px;
+    border: 0;
+    border-radius: var(--radius-md, 12px);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--dynadrill-purple, #662e9b);
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    &--primary {
+      width: 100%;
+      background: var(--dynadrill-purple, #662e9b);
+      color: var(--dynadrill-white, #fff);
+      box-shadow: 0 4px 6px rgba(19, 21, 41, 0.08);
+
+      &:hover:not(:disabled) {
+        background: var(--dynadrill-purple-hover, #55267f);
+      }
+    }
+  }
+}

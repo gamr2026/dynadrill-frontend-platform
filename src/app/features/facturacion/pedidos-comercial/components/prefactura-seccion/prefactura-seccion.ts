@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
@@ -13,8 +22,15 @@ import { ArchivosService } from '../../services/archivos.service';
 import { PrefacturasComercialService } from '../../services/prefacturas-comercial.service';
 import { OrdenesTrabajoComercialService } from '../../services/ordenes-trabajo-comercial.service';
 import { csvAs2 } from '../../models/orden-trabajo';
-import { PrefacturaAccionDialog, type PrefacturaAccionDialogData, type TipoAccionPrefactura } from '../prefactura-accion-dialog/prefactura-accion-dialog';
-import { PrefacturaFirmaDialog, type PrefacturaFirmaDialogData } from '../prefactura-firma-dialog/prefactura-firma-dialog';
+import {
+  PrefacturaAccionDialog,
+  type PrefacturaAccionDialogData,
+  type TipoAccionPrefactura,
+} from '../prefactura-accion-dialog/prefactura-accion-dialog';
+import {
+  PrefacturaFirmaDialog,
+  type PrefacturaFirmaDialogData,
+} from '../prefactura-firma-dialog/prefactura-firma-dialog';
 import { formatoDia, formatoMoneda, type PedidoDetalle } from '../../models/pedido-comercial.model';
 import {
   ESTADO_PREFACTURA_TONO,
@@ -42,7 +58,12 @@ import {
 /** Prefactura del pedido: estado, acciones según permisos, líneas, totales, advertencias, firmas e historial de versiones. */
 @Component({
   selector: 'app-prefactura-seccion',
-  imports: [DynadrillBannerComponent, DynadrillButtonComponent, DynadrillIconButtonComponent, DynadrillSpinnerComponent, DynadrillTagComponent],
+  imports: [
+    DynadrillBannerComponent,
+    DynadrillButtonComponent,
+    DynadrillSpinnerComponent,
+    DynadrillTagComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './prefactura-seccion.html',
   styleUrl: './prefactura-seccion.scss',
@@ -66,9 +87,15 @@ export class PrefacturaSeccion {
   protected readonly versiones = signal<Prefactura[]>([]);
   protected readonly actual = signal<Prefactura | null>(null);
 
-  protected readonly acciones = computed(() => accionesDisponibles(this.actual(), p => this.auth.can(p)));
-  protected readonly historial = computed(() => this.versiones().filter(v => v.id !== this.actual()?.id));
-  protected readonly vigente = computed(() => !!this.actual() && esVigente(this.actual() as Prefactura));
+  protected readonly acciones = computed(() =>
+    accionesDisponibles(this.actual(), (p) => this.auth.can(p)),
+  );
+  protected readonly historial = computed(() =>
+    this.versiones().filter((v) => v.id !== this.actual()?.id),
+  );
+  protected readonly vigente = computed(
+    () => !!this.actual() && esVigente(this.actual() as Prefactura),
+  );
 
   private readonly destroyRef = inject(DestroyRef);
   private sondeo: ReturnType<typeof setInterval> | null = null;
@@ -93,7 +120,10 @@ export class PrefacturaSeccion {
     if (reiniciar) this.sondeoAgotado.set(false);
     if (!debeSondear(firmas, this.inicioSondeo, Date.now())) {
       this.detenerSondeo();
-      this.sondeoAgotado.set(firmas.some(f => f.verificacionAt === null) && Date.now() - this.inicioSondeo >= LIMITE_SONDEO_MS);
+      this.sondeoAgotado.set(
+        firmas.some((f) => f.verificacionAt === null) &&
+          Date.now() - this.inicioSondeo >= LIMITE_SONDEO_MS,
+      );
       return;
     }
     if (this.sondeo) return;
@@ -104,7 +134,7 @@ export class PrefacturaSeccion {
     const a = this.actual();
     if (!a) return this.detenerSondeo();
     this.servicio.detalle(a.id).subscribe({
-      next: d => {
+      next: (d) => {
         this.actual.set(d);
         this.evaluarSondeo();
       },
@@ -122,14 +152,17 @@ export class PrefacturaSeccion {
     if (!a || this.verificando()) return;
     this.verificando.set(f.id);
     this.servicio.verificarFirma(a.id, f.id).subscribe({
-      next: p => {
+      next: (p) => {
         this.verificando.set(null);
         this.actual.set(p);
         this.evaluarSondeo(true);
       },
-      error: err => {
+      error: (err) => {
         this.verificando.set(null);
-        this.notify.error('No se pudo verificar', mensajeErrorPrefactura(err, 'No se pudo volver a verificar la firma. Intente de nuevo.'));
+        this.notify.error(
+          'No se pudo verificar',
+          mensajeErrorPrefactura(err, 'No se pudo volver a verificar la firma. Intente de nuevo.'),
+        );
       },
     });
   }
@@ -138,7 +171,7 @@ export class PrefacturaSeccion {
     this.cargando.set(true);
     this.error.set(null);
     this.servicio.delPedido(this.pedido().id).subscribe({
-      next: vs => {
+      next: (vs) => {
         this.versiones.set(vs);
         const a = prefacturaActual(vs);
         if (!a) {
@@ -147,21 +180,23 @@ export class PrefacturaSeccion {
           return;
         }
         this.servicio.detalle(a.id).subscribe({
-          next: d => {
+          next: (d) => {
             this.actual.set(d);
             this.cargando.set(false);
             this.evaluarSondeo(true);
           },
-          error: err => this.fallarCarga(err),
+          error: (err) => this.fallarCarga(err),
         });
       },
-      error: err => this.fallarCarga(err),
+      error: (err) => this.fallarCarga(err),
     });
   }
 
   private fallarCarga(err: unknown): void {
     this.cargando.set(false);
-    this.error.set(mensajeErrorPrefactura(err, 'No se pudo cargar la prefactura. Intente de nuevo.'));
+    this.error.set(
+      mensajeErrorPrefactura(err, 'No se pudo cargar la prefactura. Intente de nuevo.'),
+    );
   }
 
   protected ejecutar(a: AccionPrefactura): void {
@@ -171,7 +206,9 @@ export class PrefacturaSeccion {
       case 'generar':
         return this.llamar(this.servicio.generar(this.pedido().id), 'Prefactura generada');
       case 'recalcular':
-        return p ? this.llamar(this.servicio.recalcular(p.id), 'Prefactura recalculada') : undefined;
+        return p
+          ? this.llamar(this.servicio.recalcular(p.id), 'Prefactura recalculada')
+          : undefined;
       case 'ticket':
         return p ? this.abrirAccion('ticket', 'Número de ticket de AS2', p) : undefined;
       case 'enviar':
@@ -195,9 +232,11 @@ export class PrefacturaSeccion {
         this.cargar();
         this.cambioDePedido.emit();
       },
-      error: err => {
+      error: (err) => {
         this.ocupado.set(false);
-        this.errorAccion.set(mensajeErrorPrefactura(err, 'No se pudo completar la acción. Intente de nuevo.'));
+        this.errorAccion.set(
+          mensajeErrorPrefactura(err, 'No se pudo completar la acción. Intente de nuevo.'),
+        );
       },
     });
   }
@@ -242,24 +281,34 @@ export class PrefacturaSeccion {
     this.ocupado.set(true);
     this.errorAccion.set(null);
     this.ordenes.exportacionAs2(p.id).subscribe({
-      next: e => {
+      next: (e) => {
         this.ocupado.set(false);
         const nombre = `AS2-carga-${e.ticketNumero ?? 'prefactura'}.csv`;
-        this.archivos.guardarComo(new Blob([csvAs2(e.filas)], { type: 'text/csv;charset=utf-8' }), nombre);
-        if (e.advertencias.length) this.notify.warning('Exportado con avisos', e.advertencias.join(' '));
+        this.archivos.guardarComo(
+          new Blob([csvAs2(e.filas)], { type: 'text/csv;charset=utf-8' }),
+          nombre,
+        );
+        if (e.advertencias.length)
+          this.notify.warning('Exportado con avisos', e.advertencias.join(' '));
         else this.notify.success('Exportado', 'Plantilla de carga a AS2 descargada.');
       },
-      error: err => {
+      error: (err) => {
         this.ocupado.set(false);
-        this.errorAccion.set(mensajeErrorPrefactura(err, 'No se pudo exportar a AS2. Intente de nuevo.'));
+        this.errorAccion.set(
+          mensajeErrorPrefactura(err, 'No se pudo exportar a AS2. Intente de nuevo.'),
+        );
       },
     });
   }
 
   protected descargar(f: FirmaPrefactura): void {
     this.archivos.contenido(f.archivoId).subscribe({
-      next: blob => this.archivos.guardarComo(blob, f.archivoNombre ?? `firma-${f.firmanteTipo}`),
-      error: () => this.notify.error('No se pudo descargar', 'No se pudo descargar el documento firmado. Intente de nuevo.'),
+      next: (blob) => this.archivos.guardarComo(blob, f.archivoNombre ?? `firma-${f.firmanteTipo}`),
+      error: () =>
+        this.notify.error(
+          'No se pudo descargar',
+          'No se pudo descargar el documento firmado. Intente de nuevo.',
+        ),
     });
   }
 

@@ -9,14 +9,21 @@
 
     @if (actual()?.estado === 'firmada') {
       <div class="pf__acciones" role="group" aria-label="Exportación a AS2">
-        <dynadrill-button variant="secondary" [disabled]="ocupado()" (clicked)="exportarAs2()">Exportar a AS2 (CSV)</dynadrill-button>
+        <dynadrill-button variant="secondary" [disabled]="ocupado()" (clicked)="exportarAs2()"
+          >Exportar a AS2 (CSV)</dynadrill-button
+        >
       </div>
     }
 
     @if (acciones().length) {
       <div class="pf__acciones" role="group" aria-label="Acciones de la prefactura">
         @for (a of acciones(); track a) {
-          <dynadrill-button [variant]="a === 'rechazar' ? 'error' : esPrimaria(a) ? 'primary' : 'secondary'" [disabled]="ocupado()" (clicked)="ejecutar(a)">{{ rotulo(a) }}</dynadrill-button>
+          <dynadrill-button
+            [variant]="a === 'rechazar' ? 'error' : esPrimaria(a) ? 'primary' : 'secondary'"
+            [disabled]="ocupado()"
+            (clicked)="ejecutar(a)"
+            >{{ rotulo(a) }}</dynadrill-button
+          >
         }
       </div>
     }
@@ -25,9 +32,13 @@
       <div class="pf__estado">
         <dynadrill-tag [label]="estado(p.estado)" [variant]="tono(p)" [uppercase]="false" />
         <span class="pf__meta">Versión {{ p.version }} · generada el {{ dia(p.generadaAt) }}</span>
-        <span class="pf__meta">Ticket N.º {{ p.ticketNumero ?? 'sin número (pedido anterior)' }}</span>
+        <span class="pf__meta"
+          >Ticket N.º {{ p.ticketNumero ?? 'sin número (pedido anterior)' }}</span
+        >
         @if (p.enviadaAt) {
-          <span class="pf__meta">Enviada el {{ dia(p.enviadaAt) }} por {{ medio(p.medioEnvio) }}</span>
+          <span class="pf__meta"
+            >Enviada el {{ dia(p.enviadaAt) }} por {{ medio(p.medioEnvio) }}</span
+          >
         }
         @if (p.firmadaAt) {
           <span class="pf__meta">Firmada el {{ dia(p.firmadaAt) }}</span>
@@ -35,10 +46,23 @@
       </div>
 
       @if (p.estado === 'rechazada' && p.rechazo) {
-        <dynadrill-banner variant="critical" [message]="'Rechazada el ' + dia(p.rechazo.at) + ' y devuelta a ' + devueltoA(p.rechazo.devueltoA) + ': ' + p.rechazo.motivo" />
+        <dynadrill-banner
+          variant="critical"
+          [message]="
+            'Rechazada el ' +
+            dia(p.rechazo.at) +
+            ' y devuelta a ' +
+            devueltoA(p.rechazo.devueltoA) +
+            ': ' +
+            p.rechazo.motivo
+          "
+        />
       }
       @if (p.razonRetraso) {
-        <dynadrill-banner variant="info" [message]="'Razón del retraso en la firma: ' + p.razonRetraso" />
+        <dynadrill-banner
+          variant="info"
+          [message]="'Razón del retraso en la firma: ' + p.razonRetraso"
+        />
       }
 
       @if (p.advertencias.length) {
@@ -56,7 +80,9 @@
         <h3>Líneas</h3>
         <div class="pf__tabla">
           <table>
-            <caption class="sr-only">Líneas de la prefactura</caption>
+            <caption class="sr-only">
+              Líneas de la prefactura
+            </caption>
             <thead>
               <tr>
                 <th scope="col">Código</th>
@@ -84,20 +110,43 @@
                   <td class="num">{{ moneda(i.precioTotal) }}</td>
                 </tr>
               } @empty {
-                <tr><td class="vacio" colspan="9">La prefactura no tiene líneas.</td></tr>
+                <tr>
+                  <td class="vacio" colspan="9">La prefactura no tiene líneas.</td>
+                </tr>
               }
             </tbody>
           </table>
         </div>
 
         <dl class="pf__totales">
-          <div><dt>Servicios</dt><dd>{{ moneda(p.totales.subtotalServicios) }}</dd></div>
-          <div><dt>Materiales</dt><dd>{{ moneda(p.totales.subtotalMateriales) }}</dd></div>
-          <div><dt>Subtotal</dt><dd>{{ moneda(p.totales.subtotal) }}</dd></div>
-          <div><dt>IVA ({{ p.tasas.ivaPct }} %)</dt><dd>{{ moneda(p.totales.iva) }}</dd></div>
-          <div><dt>Retención IR ({{ p.tasas.retencionIrPct }} %)</dt><dd>{{ moneda(p.totales.retencionIr) }}</dd></div>
-          <div><dt>Retención IVA ({{ p.tasas.retencionIvaPct }} %)</dt><dd>{{ moneda(p.totales.retencionIva) }}</dd></div>
-          <div class="pf__neto"><dt>Neto a cobrar</dt><dd>{{ moneda(p.totales.netoCobrar) }}</dd></div>
+          <div>
+            <dt>Servicios</dt>
+            <dd>{{ moneda(p.totales.subtotalServicios) }}</dd>
+          </div>
+          <div>
+            <dt>Materiales</dt>
+            <dd>{{ moneda(p.totales.subtotalMateriales) }}</dd>
+          </div>
+          <div>
+            <dt>Subtotal</dt>
+            <dd>{{ moneda(p.totales.subtotal) }}</dd>
+          </div>
+          <div>
+            <dt>IVA ({{ p.tasas.ivaPct }} %)</dt>
+            <dd>{{ moneda(p.totales.iva) }}</dd>
+          </div>
+          <div>
+            <dt>Retención IR ({{ p.tasas.retencionIrPct }} %)</dt>
+            <dd>{{ moneda(p.totales.retencionIr) }}</dd>
+          </div>
+          <div>
+            <dt>Retención IVA ({{ p.tasas.retencionIvaPct }} %)</dt>
+            <dd>{{ moneda(p.totales.retencionIva) }}</dd>
+          </div>
+          <div class="pf__neto">
+            <dt>Neto a cobrar</dt>
+            <dd>{{ moneda(p.totales.netoCobrar) }}</dd>
+          </div>
         </dl>
       </section>
 
@@ -109,7 +158,10 @@
             <li class="pf__firma">
               <div>
                 <strong>{{ f.nombre }}</strong>
-                <span class="pf__meta">{{ firmante(f.firmanteTipo) }}{{ f.cargo ? ' · ' + f.cargo : '' }} · {{ dia(f.firmadoAt) }}</span>
+                <span class="pf__meta"
+                  >{{ firmante(f.firmanteTipo) }}{{ f.cargo ? ' · ' + f.cargo : '' }} ·
+                  {{ dia(f.firmadoAt) }}</span
+                >
                 @if (verif(f); as v) {
                   <span class="pf__verif" aria-live="polite">
                     <dynadrill-tag [label]="v.texto" [variant]="v.tono" [uppercase]="false" />
@@ -121,9 +173,19 @@
               </div>
               <div class="pf__firma-acciones">
                 @if (puedeVerificar()) {
-                  <dynadrill-button variant="secondary" size="small" [disabled]="verificando() !== null" (clicked)="volverAVerificar(f)">{{ verificando() === f.id ? 'Verificando…' : 'Volver a verificar' }}</dynadrill-button>
+                  <dynadrill-button
+                    variant="secondary"
+                    size="small"
+                    [disabled]="verificando() !== null"
+                    (clicked)="volverAVerificar(f)"
+                    >{{
+                      verificando() === f.id ? 'Verificando…' : 'Volver a verificar'
+                    }}</dynadrill-button
+                  >
                 }
-                <dynadrill-icon-button icon="file-text" [tooltip]="'Descargar documento firmado de ' + f.nombre" (clicked)="descargar(f)" />
+                <dynadrill-button variant="secondary" size="small" (clicked)="descargar(f)"
+                  >Descargar firmado</dynadrill-button
+                >
               </div>
             </li>
           } @empty {
@@ -144,7 +206,10 @@
               <dynadrill-tag [label]="estado(v.estado)" [variant]="tono(v)" [uppercase]="false" />
               <span>Versión {{ v.version }} · generada el {{ dia(v.generadaAt) }}</span>
               @if (v.rechazo) {
-                <span class="pf__meta">Devuelta a {{ devueltoA(v.rechazo.devueltoA) }} el {{ dia(v.rechazo.at) }}: {{ v.rechazo.motivo }}</span>
+                <span class="pf__meta"
+                  >Devuelta a {{ devueltoA(v.rechazo.devueltoA) }} el {{ dia(v.rechazo.at) }}:
+                  {{ v.rechazo.motivo }}</span
+                >
               }
             </li>
           }

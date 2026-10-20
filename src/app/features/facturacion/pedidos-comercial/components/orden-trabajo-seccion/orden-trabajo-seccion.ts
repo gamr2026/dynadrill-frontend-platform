@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
@@ -7,11 +15,16 @@ import {
   DynadrillSpinnerComponent,
   DynadrillTagComponent,
 } from '@digitec-it-projects/dynadrill-ui';
+import { Router } from '@angular/router';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { DocumentoPdfService } from '../../../../../shared/documentos';
 import { AotHoja } from '../../../../../shared/documentos/formatos/aot-hoja';
 import { OrdenesTrabajoComercialService } from '../../services/ordenes-trabajo-comercial.service';
-import { OrdenTrabajoDialog, type OrdenTrabajoDialogData, type TipoAccionOrden } from '../orden-trabajo-dialog/orden-trabajo-dialog';
+import {
+  OrdenTrabajoDialog,
+  type OrdenTrabajoDialogData,
+  type TipoAccionOrden,
+} from '../orden-trabajo-dialog/orden-trabajo-dialog';
 import { formatoDia, formatoMoneda, type PedidoDetalle } from '../../models/pedido-comercial.model';
 import {
   PERMISOS_ORDENES,
@@ -31,7 +44,12 @@ import {
  */
 @Component({
   selector: 'app-orden-trabajo-seccion',
-  imports: [DynadrillBannerComponent, DynadrillButtonComponent, DynadrillSpinnerComponent, DynadrillTagComponent],
+  imports: [
+    DynadrillBannerComponent,
+    DynadrillButtonComponent,
+    DynadrillSpinnerComponent,
+    DynadrillTagComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './orden-trabajo-seccion.html',
   styleUrl: './orden-trabajo-seccion.scss',
@@ -42,6 +60,7 @@ export class OrdenTrabajoSeccion {
   private readonly documentoPdf = inject(DocumentoPdfService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
 
   readonly pedido = input.required<PedidoDetalle>();
   /** Tras cada acción el estado del pedido cambió: la página lo recarga. */
@@ -55,13 +74,19 @@ export class OrdenTrabajoSeccion {
   protected readonly cierre = signal<EstadoCierre | null>(null);
 
   protected readonly orden = computed(() => this.datos()?.orden ?? null);
-  protected readonly paso = computed<PasoCierre>(() => siguientePasoCierre(this.pedido().estado, this.datos()?.requiere ?? false));
-  protected readonly rotulo = computed(() => (this.paso() ? ROTULO_PASO[this.paso() as Exclude<PasoCierre, null>] : ''));
+  protected readonly paso = computed<PasoCierre>(() =>
+    siguientePasoCierre(this.pedido().estado, this.datos()?.requiere ?? false),
+  );
+  protected readonly rotulo = computed(() =>
+    this.paso() ? ROTULO_PASO[this.paso() as Exclude<PasoCierre, null>] : '',
+  );
   protected readonly puedeCerrar = computed(() => this.auth.can(PERMISOS_ORDENES.cierre));
   protected readonly puedeEmitir = computed(() => this.auth.can(PERMISOS_ORDENES.emitir));
   protected readonly puedeFirmar = computed(() => this.auth.can(PERMISOS_ORDENES.firmar));
   /** ¿Puede hacer el paso que toca? (cada paso pide su permiso) */
-  protected readonly puedeElPaso = computed(() => (this.paso() === 'generar_orden' ? this.puedeEmitir() : this.puedeCerrar()));
+  protected readonly puedeElPaso = computed(() =>
+    this.paso() === 'generar_orden' ? this.puedeEmitir() : this.puedeCerrar(),
+  );
 
   constructor() {
     queueMicrotask(() => this.cargar());
@@ -71,19 +96,21 @@ export class OrdenTrabajoSeccion {
     this.cargando.set(true);
     this.error.set(null);
     this.servicio.delPedido(this.pedido().id).subscribe({
-      next: d => {
+      next: (d) => {
         this.datos.set(d);
         this.servicio.cierre(this.pedido().id).subscribe({
-          next: c => {
+          next: (c) => {
             this.cierre.set(c);
             this.cargando.set(false);
           },
           error: () => this.cargando.set(false),
         });
       },
-      error: err => {
+      error: (err) => {
         this.cargando.set(false);
-        this.error.set(mensajeErrorOrden(err, 'No se pudo cargar la orden de trabajo. Intente de nuevo.'));
+        this.error.set(
+          mensajeErrorOrden(err, 'No se pudo cargar la orden de trabajo. Intente de nuevo.'),
+        );
       },
     });
   }
@@ -105,6 +132,15 @@ export class OrdenTrabajoSeccion {
     }
   }
 
+  /** Abre la pantalla de la orden de trabajo (documento, datos y detalle de costos). */
+  protected verDetalle(): void {
+    void this.router.navigate([
+      '/dashboard/facturacion/pedidos',
+      this.pedido().id,
+      'orden-trabajo',
+    ]);
+  }
+
   protected marcarFirmada(): void {
     const o = this.orden();
     if (o) this.abrir('firmada', 'Marcar la orden de trabajo como firmada', o.id);
@@ -123,7 +159,10 @@ export class OrdenTrabajoSeccion {
     });
   }
 
-  private llamar(obs: ReturnType<OrdenesTrabajoComercialService['enviarControlCostos']>, titulo: string): void {
+  private llamar(
+    obs: ReturnType<OrdenesTrabajoComercialService['enviarControlCostos']>,
+    titulo: string,
+  ): void {
     this.ocupado.set(true);
     obs.subscribe({
       next: () => {
@@ -131,9 +170,11 @@ export class OrdenTrabajoSeccion {
         this.notify.success(titulo);
         this.recargar();
       },
-      error: err => {
+      error: (err) => {
         this.ocupado.set(false);
-        this.errorAccion.set(mensajeErrorOrden(err, 'No se pudo completar la acción. Intente de nuevo.'));
+        this.errorAccion.set(
+          mensajeErrorOrden(err, 'No se pudo completar la acción. Intente de nuevo.'),
+        );
       },
     });
   }

@@ -301,7 +301,7 @@
           @if (puedeVerPrefactura()) {
             <section class="fact-card pedido-detail__ord-4">
               <header class="pedido-detail__head"><h2>Prefactura</h2></header>
-              <app-prefactura-seccion [pedido]="p" (cambioDePedido)="refrescar()" />
+              <app-prefactura-resumen [pedido]="p" (cambioDePedido)="refrescar()" />
             </section>
           }
         </aside>

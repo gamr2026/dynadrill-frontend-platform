@@ -19,7 +19,7 @@ import { PedidosComercialService } from '../../services/pedidos-comercial.servic
 import { GuiasSeccion } from '../../components/guias-seccion/guias-seccion';
 import { OrdenTrabajoSeccion } from '../../components/orden-trabajo-seccion/orden-trabajo-seccion';
 import { PERMISOS_ORDENES, muestraOrdenYCierre } from '../../models/orden-trabajo';
-import { PrefacturaSeccion } from '../../components/prefactura-seccion/prefactura-seccion';
+import { PrefacturaResumen } from '../../components/prefactura-resumen/prefactura-resumen';
 import { PERMISOS_GUIAS } from '../../models/guia-comercial';
 import { PERMISOS_PREFACTURAS } from '../../models/prefactura-comercial';
 import { DocumentosRespaldo } from '../../components/documentos-respaldo/documentos-respaldo';
@@ -67,7 +67,7 @@ import {
     DynadrillTagComponent,
     DocumentosPedido,
     DocumentosRespaldo,
-    PrefacturaSeccion,
+    PrefacturaResumen,
     GuiasSeccion,
     OrdenTrabajoSeccion,
   ],
@@ -222,6 +222,8 @@ export class PedidoComercialDetailPage {
   });
 
   // ── Línea de estados: lo ya recorrido (con su fecha y quién), el actual y lo que sigue en el camino de la prefactura ──
+  /** Estados que nombran un hecho ya cumplido (firmado, generada, facturado): al llegar a ellos el paso sale completado, no «en curso». */
+  private static readonly HECHOS = ['ticket_firmado', 'aot_generada', 'facturado'];
   private static readonly CAMINO = [
     'documentos_completos',
     'en_revision_prefacturacion',
@@ -241,7 +243,10 @@ export class PedidoComercialDetailPage {
     };
     const hechos = p.historial.map((h, i, todos) => ({
       label: h.nombreEstado,
-      state: i === todos.length - 1 ? ('current' as const) : ('done' as const),
+      state:
+        i === todos.length - 1 && !PedidoComercialDetailPage.HECHOS.includes(p.estado)
+          ? ('current' as const)
+          : ('done' as const),
       fecha: corto(h.fecha),
       actor: h.actorNombre ?? 'Sistema',
       motivo: h.motivo,
@@ -271,12 +276,10 @@ export class PedidoComercialDetailPage {
     this.servicio
       .catalogoServicios()
       .subscribe({ next: (c) => this.catalogo.set(c), error: () => this.catalogo.set(null) });
-    this.servicio
-      .estados()
-      .subscribe({
-        next: (e) => this.estadosCatalogo.set(e),
-        error: () => this.estadosCatalogo.set([]),
-      });
+    this.servicio.estados().subscribe({
+      next: (e) => this.estadosCatalogo.set(e),
+      error: () => this.estadosCatalogo.set([]),
+    });
     this.cargar();
   }
 

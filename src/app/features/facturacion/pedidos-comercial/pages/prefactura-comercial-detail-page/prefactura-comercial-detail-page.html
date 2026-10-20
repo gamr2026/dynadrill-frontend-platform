@@ -1,0 +1,419 @@
+<div class="pf-detail">
+  @if (error(); as e) {
+    <dynadrill-banner variant="critical" [message]="e" />
+  }
+
+  @if (prefactura(); as pf) {
+    <dynadrill-screen-header
+      class="screen-header--compact-mobile"
+      eyebrow="FACTURACIÓN — PREFACTURA"
+      [title]="titulo()"
+      [subtitle]="subtitulo()"
+    />
+
+    <div class="pf-detail__toolbar">
+      <button type="button" class="pf-detail__btn pf-detail__btn--outline" (click)="irAlPedido()">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="m12 19-7-7 7-7" />
+          <path d="M19 12H5" /></svg
+        >Ir al pedido
+      </button>
+      <button
+        type="button"
+        class="pf-detail__btn pf-detail__btn--outline"
+        [disabled]="!pedido()"
+        (click)="verPdf()"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+          <circle cx="12" cy="12" r="3" /></svg
+        >Ver / Imprimir PDF
+      </button>
+      @if (pf.estado === 'firmada') {
+        <dynadrill-button variant="secondary" [disabled]="ocupado()" (clicked)="exportarAs2()"
+          >Exportar a AS2</dynadrill-button
+        >
+      }
+      @for (a of acciones(); track a) {
+        @if (a === 'recalcular' || a === 'ticket') {
+          <dynadrill-button variant="secondary" [disabled]="ocupado()" (clicked)="ejecutar(a)">{{
+            rotulo(a)
+          }}</dynadrill-button>
+        }
+      }
+    </div>
+
+    @if (errorAccion(); as e) {
+      <dynadrill-banner variant="warning" [message]="e" />
+    }
+
+    <dynadrill-spinner mode="overlay" [spinning]="loading() || ocupado()" tip="Cargando…">
+      <div class="pf-detail__grid">
+        <div class="pf-detail__main">
+          <div class="pf-detail__top">
+            @for (w of pf.advertencias; track w) {
+              <dynadrill-banner variant="critical" [message]="w" />
+            }
+            <section class="fact-card">
+              <header class="pf-detail__head">
+                <h2>Ítems</h2>
+                <dynadrill-tag
+                  [label]="estadoChip().label"
+                  [variant]="estadoChip().tone"
+                  [uppercase]="false"
+                />
+              </header>
+
+              <!-- Móvil: cada ítem como tarjeta; la tabla queda para escritorio. -->
+              <ul class="pf-detail__items">
+                @for (it of pf.items; track it.orden) {
+                  <li class="pf-detail__item">
+                    <div class="pf-detail__item-top">
+                      <span class="pf-detail__item-code">{{ it.codigo ?? 'Sin código' }}</span>
+                      <span class="pf-detail__item-total"
+                        >${{ it.precioTotal | number: '1.2-2' }}</span
+                      >
+                    </div>
+                    <p class="pf-detail__item-name">{{ it.descripcion }}</p>
+                    <p class="pf-detail__item-meta">
+                      {{ it.cantidad }} × ${{ it.precioUnitario | number: '1.2-2' }} · Serie
+                      {{ it.serie || '—' }}
+                    </p>
+                    <p class="pf-detail__item-meta">
+                      {{ it.tipo }} · Fuente: {{ fuente(it.fuente) }}
+                    </p>
+                  </li>
+                } @empty {
+                  <li class="pf-detail__item-meta">
+                    La prefactura no tiene líneas — revise el Reporte de Herramientas y la lista de
+                    precios del cliente.
+                  </li>
+                }
+              </ul>
+
+              <div class="table-scroll pf-detail__table-wrap">
+                <table class="pf-detail__table">
+                  <thead>
+                    <tr>
+                      <th>Código</th>
+                      <th>Descripción</th>
+                      <th>Serie</th>
+                      <th class="num">Cantidad</th>
+                      <th class="num">P. unit.</th>
+                      <th>Tipo</th>
+                      <th>Fuente</th>
+                      <th class="num">P. total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (it of pf.items; track it.orden) {
+                      <tr>
+                        <td>{{ it.codigo ?? 'Sin código' }}</td>
+                        <td>{{ it.descripcion }}</td>
+                        <td>{{ it.serie || '—' }}</td>
+                        <td class="num">{{ it.cantidad }} {{ it.unidad ?? '' }}</td>
+                        <td class="num">${{ it.precioUnitario | number: '1.2-2' }}</td>
+                        <td>{{ it.tipo }}</td>
+                        <td>{{ fuente(it.fuente) }}</td>
+                        <td class="num">${{ it.precioTotal | number: '1.2-2' }}</td>
+                      </tr>
+                    } @empty {
+                      <tr>
+                        <td colspan="8">
+                          La prefactura no tiene líneas — revise el Reporte de Herramientas y la
+                          lista de precios del cliente.
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="fact-card">
+              <header class="pf-detail__head"><h2>Comercial y responsables</h2></header>
+              <dl class="pf-detail__defs">
+                @for (d of datosComercial(); track d.label) {
+                  <div>
+                    <dt>{{ d.label }}</dt>
+                    <dd>{{ d.value }}</dd>
+                  </div>
+                }
+              </dl>
+              @if (puedeEditarRepresentantes()) {
+                <button
+                  type="button"
+                  class="pf-detail__btn pf-detail__btn--text"
+                  (click)="editarRepresentantes()"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg
+                  >Editar representantes
+                </button>
+              }
+            </section>
+          </div>
+
+          <div class="pf-detail__rest">
+            <!-- ── Revisión + envío al cliente ── -->
+            @if (pf.estado === 'generada' && acciones().includes('enviar')) {
+              <section class="fact-card">
+                <header class="pf-detail__head">
+                  <h2>Revisión antes de enviar</h2>
+                  <div class="pf-detail__head-actions">
+                    <dynadrill-button
+                      variant="secondary"
+                      size="small"
+                      (clicked)="marcarTodoRevisado()"
+                      >Marcar todo revisado</dynadrill-button
+                    >
+                  </div>
+                </header>
+                <ul class="pf-detail__checklist">
+                  @for (c of checklistItems; track c.key) {
+                    <li>
+                      <label>
+                        <input
+                          type="checkbox"
+                          [checked]="checklist()[c.key]"
+                          (change)="toggleChecklist(c.key)"
+                        />
+                        {{ c.label }}
+                      </label>
+                    </li>
+                  }
+                </ul>
+                <div class="pf-detail__head-actions">
+                  <dynadrill-button [disabled]="!puedeEnviar()" (clicked)="ejecutar('enviar')"
+                    >Enviar al cliente</dynadrill-button
+                  >
+                </div>
+              </section>
+            }
+
+            @if (pf.enviadaAt) {
+              <section class="fact-card" [class.pf-detail__pending]="esperandoFirma()">
+                <header class="pf-detail__head"><h2>Enviado al cliente</h2></header>
+                <dl class="pf-detail__defs">
+                  <div>
+                    <dt>Fecha de envío</dt>
+                    <dd>{{ pf.enviadaAt | date: 'dd/MM/yyyy · HH:mm' }}</dd>
+                  </div>
+                  <div>
+                    <dt>Medio</dt>
+                    <dd>{{ medio(pf.medioEnvio) }}</dd>
+                  </div>
+                </dl>
+                @if (pf.firmas.length) {
+                  <p class="pf-detail__pack-title">Firmas registradas ({{ pf.firmas.length }})</p>
+                  <ul class="pf-detail__pack">
+                    @for (f of pf.firmas; track f.id) {
+                      <li>
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                          focusable="false"
+                        >
+                          <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                          <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                          <path d="M10 13h4M10 17h4" />
+                        </svg>
+                        <span
+                          >{{ f.nombre }} · {{ firmante(f.firmanteTipo)
+                          }}{{ f.cargo ? ' · ' + f.cargo : '' }}</span
+                        >
+                        @if (verif(f); as v) {
+                          <dynadrill-tag [label]="v.texto" [variant]="v.tono" [uppercase]="false" />
+                        }
+                        <dynadrill-button
+                          variant="secondary"
+                          size="small"
+                          [disabled]="verificando() !== null"
+                          (clicked)="volverAVerificar(f)"
+                          >{{
+                            verificando() === f.id ? 'Verificando…' : 'Volver a verificar'
+                          }}</dynadrill-button
+                        >
+                        <dynadrill-button variant="secondary" size="small" (clicked)="descargar(f)"
+                          >Descargar firmado</dynadrill-button
+                        >
+                      </li>
+                    }
+                  </ul>
+                }
+                @if (esperandoFirma()) {
+                  <div class="pf-detail__head-actions">
+                    @for (a of acciones(); track a) {
+                      @if (a === 'firma' || a === 'firmada' || a === 'rechazar') {
+                        <dynadrill-button
+                          [variant]="
+                            a === 'firmada' ? 'primary' : a === 'rechazar' ? 'error' : 'secondary'
+                          "
+                          [disabled]="ocupado()"
+                          (clicked)="ejecutar(a)"
+                          >{{ rotulo(a) }}</dynadrill-button
+                        >
+                      }
+                    }
+                  </div>
+                }
+              </section>
+            }
+
+            @if (pf.estado === 'generada' && acciones().includes('firma')) {
+              <section class="fact-card">
+                <header class="pf-detail__head"><h2>Firma del Company Man</h2></header>
+                <dynadrill-text variant="caption"
+                  >La firma del Company Man se toma en campo antes de enviar la prefactura al
+                  cliente.</dynadrill-text
+                >
+                <div class="pf-detail__head-actions">
+                  <dynadrill-button
+                    variant="secondary"
+                    [disabled]="ocupado()"
+                    (clicked)="ejecutar('firma')"
+                    >Registrar firma</dynadrill-button
+                  >
+                </div>
+              </section>
+            }
+
+            @if (pf.estado === 'firmada') {
+              <section class="fact-card fact-card--success">
+                <header class="pf-detail__head">
+                  <h2>Firma del cliente</h2>
+                  <div class="pf-detail__head-actions">
+                    @if (orden()) {
+                      <dynadrill-button variant="secondary" size="small" (clicked)="verOrden()"
+                        >Ver OT</dynadrill-button
+                      >
+                    } @else if (puedeGenerarOrden()) {
+                      <dynadrill-button size="small" (clicked)="generarOrden()"
+                        >Generar OT</dynadrill-button
+                      >
+                    }
+                  </div>
+                </header>
+                @for (f of pf.firmas; track f.id) {
+                  <dynadrill-text variant="body"
+                    >{{ f.nombre }} · {{ f.cargo ?? firmante(f.firmanteTipo) }}</dynadrill-text
+                  >
+                  <dynadrill-text variant="caption">{{
+                    f.firmadoAt | date: 'dd/MM/yyyy HH:mm'
+                  }}</dynadrill-text>
+                }
+                @if (orden(); as o) {
+                  <dynadrill-text variant="caption"
+                    >OT {{ o.codigo }} —
+                    {{ o.estado === 'firmada' ? 'Firmada' : 'Generada' }}</dynadrill-text
+                  >
+                }
+              </section>
+            }
+
+            @if (pf.rechazo; as r) {
+              <section class="fact-card fact-card--error">
+                <header class="pf-detail__head">
+                  <h2>Rechazada por el cliente</h2>
+                  <dynadrill-button size="small" (clicked)="irAlPedido()"
+                    >Corregir y regenerar en el Pedido</dynadrill-button
+                  >
+                </header>
+                <dynadrill-text variant="body">{{ r.motivo }}</dynadrill-text>
+                <dynadrill-text variant="caption"
+                  >Devuelto a {{ devueltoA(r.devueltoA) }} · {{ r.at | date: 'dd/MM/yyyy HH:mm'
+                  }}{{ pf.razonRetraso ? ' · Retraso: ' + pf.razonRetraso : '' }}</dynadrill-text
+                >
+              </section>
+            }
+          </div>
+        </div>
+
+        <div class="pf-detail__aside">
+          <section class="fact-card pf-detail__aside-item pf-detail__aside-item--liq">
+            <header class="pf-detail__head"><h2>Liquidación</h2></header>
+            <div class="pf-detail__liquidacion">
+              <dl class="pf-detail__totals">
+                <div>
+                  <dt>Subtotal Servicios</dt>
+                  <dd>${{ pf.totales.subtotalServicios | number: '1.2-2' }}</dd>
+                </div>
+                <div>
+                  <dt>Subtotal Materiales</dt>
+                  <dd>${{ pf.totales.subtotalMateriales | number: '1.2-2' }}</dd>
+                </div>
+                <div class="pf-detail__totals-sum">
+                  <dt>Subtotal</dt>
+                  <dd>${{ pf.totales.subtotal | number: '1.2-2' }}</dd>
+                </div>
+                <div>
+                  <dt>IVA ({{ pf.tasas.ivaPct }}%)</dt>
+                  <dd>${{ pf.totales.iva | number: '1.2-2' }}</dd>
+                </div>
+                <div class="pf-detail__totals-neg">
+                  <dt>Retención IR ({{ pf.tasas.retencionIrPct }}%)</dt>
+                  <dd>−${{ pf.totales.retencionIr | number: '1.2-2' }}</dd>
+                </div>
+                <div class="pf-detail__totals-neg">
+                  <dt>Retención IVA ({{ pf.tasas.retencionIvaPct }}%)</dt>
+                  <dd>−${{ pf.totales.retencionIva | number: '1.2-2' }}</dd>
+                </div>
+              </dl>
+              <div>
+                <dynadrill-kpi-card [value]="netoFmt()" label="Neto a cobrar" tone="brand" />
+                <dynadrill-text variant="caption" class="pf-detail__neto-caption"
+                  >Subtotal + IVA − retenciones</dynadrill-text
+                >
+              </div>
+            </div>
+            <dynadrill-text variant="caption"
+              >Generada el {{ pf.generadaAt | date: 'dd/MM/yyyy HH:mm' }} · Versión
+              {{ pf.version }}</dynadrill-text
+            >
+          </section>
+        </div>
+      </div>
+    </dynadrill-spinner>
+  }
+</div>

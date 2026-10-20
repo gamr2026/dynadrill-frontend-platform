@@ -8,6 +8,13 @@
     (valueChange)="tipo.set($any($event))"
   />
   <dynadrill-input label="Nombre" [value]="nombre()" (valueChange)="nombre.set($event)" />
+  @if (pideCedula()) {
+    <dynadrill-input
+      label="Cédula (opcional)"
+      [value]="cedula()"
+      (valueChange)="cedula.set($event)"
+    />
+  }
 
   <div class="persona-form__actions">
     <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>

@@ -7,28 +7,65 @@
 
   <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
     <section class="fact-card catalogos-ventas-page__panel">
-      <dynadrill-tabs [tabs]="tabs" [activeIndex]="activeTabIndex()" (activeIndexChange)="activeTabIndex.set($event)" [contentTemplate]="tabContent" />
+      <dynadrill-tabs
+        [tabs]="tabs"
+        [activeIndex]="activeTabIndex()"
+        (activeIndexChange)="activeTabIndex.set($event)"
+        [contentTemplate]="tabContent"
+      />
     </section>
   </dynadrill-spinner>
 
   <ng-template #tabContent let-tab let-index="index">
     @if (index === 0) {
       @if (isMobile()) {
-        <dynadrill-chip-group class="catalogos-ventas-page__chips" mode="single" [options]="tipoChips" [selected]="tipoSeleccionado()" (selectedChange)="onTipoChip($event)" />
+        <dynadrill-chip-group
+          class="catalogos-ventas-page__chips"
+          mode="single"
+          [options]="tipoChips"
+          [selected]="tipoSeleccionado()"
+          (selectedChange)="onTipoChip($event)"
+        />
 
         <ul class="catalogos-ventas-page__cards">
           @for (p of personasCards(); track p.id) {
-            <li><app-entity-card [title]="p.title" [lines]="p.lines" [tags]="p.tags" [actions]="p.actions" /></li>
+            <li>
+              <app-entity-card
+                [title]="p.title"
+                [lines]="p.lines"
+                [tags]="p.tags"
+                [actions]="p.actions"
+              />
+            </li>
           } @empty {
             <li class="catalogos-ventas-page__empty">No hay personas para este filtro.</li>
           }
         </ul>
 
-        <button type="button" class="catalogos-ventas-page__fab" (click)="nuevaPersona()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>Nueva persona</button>
+        @if (puedeCrearPersona()) {
+          <button type="button" class="catalogos-ventas-page__fab" (click)="nuevaPersona()">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M12 5v14M5 12h14" /></svg
+            >Nueva persona
+          </button>
+        }
       } @else {
         <header class="catalogos-ventas-page__head">
           <h2>Personas de contacto</h2>
-          <dynadrill-button (clicked)="nuevaPersona()">+ Nueva persona</dynadrill-button>
+          @if (puedeCrearPersona()) {
+            <dynadrill-button (clicked)="nuevaPersona()">+ Nueva persona</dynadrill-button>
+          }
         </header>
         <div class="table-scroll">
           <dynadrill-data-table
@@ -44,17 +81,43 @@
       @if (isMobile()) {
         <ul class="catalogos-ventas-page__cards">
           @for (c of clientesCards(); track c.id) {
-            <li><app-entity-card [title]="c.title" [lines]="c.lines" [tags]="c.tags" [actions]="c.actions" /></li>
+            <li>
+              <app-entity-card
+                [title]="c.title"
+                [lines]="c.lines"
+                [tags]="c.tags"
+                [actions]="c.actions"
+              />
+            </li>
           } @empty {
             <li class="catalogos-ventas-page__empty">Todavía no hay clientes.</li>
           }
         </ul>
 
-        <button type="button" class="catalogos-ventas-page__fab" (click)="nuevoCliente()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>Nuevo cliente</button>
+        @if (puedeCrearCliente()) {
+          <button type="button" class="catalogos-ventas-page__fab" (click)="nuevoCliente()">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M12 5v14M5 12h14" /></svg
+            >Nuevo cliente
+          </button>
+        }
       } @else {
         <header class="catalogos-ventas-page__head">
           <h2>Clientes</h2>
-          <dynadrill-button (clicked)="nuevoCliente()">+ Nuevo cliente</dynadrill-button>
+          @if (puedeCrearCliente()) {
+            <dynadrill-button (clicked)="nuevoCliente()">+ Nuevo cliente</dynadrill-button>
+          }
         </header>
         <div class="table-scroll">
           <dynadrill-data-table
@@ -71,15 +134,31 @@
 
   <ng-template #personaActions let-row>
     <div class="catalogos-ventas-page__row-actions">
-      <dynadrill-icon-button icon="edit" tooltip="Editar" (clicked)="editarPersona(row)" />
-      <dynadrill-icon-button icon="delete" tooltip="Eliminar" (clicked)="eliminarPersona(row)" />
+      @if (puedeEditarPersona()) {
+        <dynadrill-icon-button icon="edit" tooltip="Editar" (clicked)="editarPersona(row)" />
+      }
+      @if (puedeInactivarPersona()) {
+        <dynadrill-icon-button
+          [icon]="row.activo ? 'delete' : 'check'"
+          [tooltip]="row.activo ? 'Inactivar' : 'Reactivar'"
+          (clicked)="cambiarEstadoPersona(row)"
+        />
+      }
     </div>
   </ng-template>
 
   <ng-template #clienteActions let-row>
     <div class="catalogos-ventas-page__row-actions">
-      <dynadrill-icon-button icon="edit" tooltip="Editar" (clicked)="editarCliente(row)" />
-      <dynadrill-icon-button icon="delete" tooltip="Eliminar" (clicked)="eliminarCliente(row)" />
+      @if (puedeEditarCliente()) {
+        <dynadrill-icon-button icon="edit" tooltip="Editar" (clicked)="editarCliente(row)" />
+      }
+      @if (puedeInactivarCliente()) {
+        <dynadrill-icon-button
+          [icon]="row.activo ? 'delete' : 'check'"
+          [tooltip]="row.activo ? 'Inactivar' : 'Reactivar'"
+          (clicked)="cambiarEstadoCliente(row)"
+        />
+      }
     </div>
   </ng-template>
 </div>

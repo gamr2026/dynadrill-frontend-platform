@@ -19,6 +19,14 @@ import type {
   VehiculoPlataforma,
 } from '../models/catalogos-plataforma.model';
 
+/** Datos para crear o editar un cliente del catálogo. */
+export interface DatosCliente {
+  tipoIdentificacion: string;
+  identificacion: string;
+  nombreComercial: string;
+  nombreFiscal?: string;
+}
+
 /**
  * Catálogos del backend nuevo (el gateway enruta `/api/v2/catalogos/*` a plataforma). El `CatalogosService` compartido
  * sigue apuntando a `/api/catalogos` (demo, ids numéricos) para las pantallas que aún no migran.
@@ -44,6 +52,41 @@ export class CatalogosPlataformaService {
     let params = new HttpParams();
     if (tipo) params = params.set('tipo', tipo);
     return this.http.get<PersonaPlataforma[]>(`${this.base}/personas`, { params });
+  }
+
+  crearCliente(d: DatosCliente): Observable<ClientePlataforma> {
+    return this.http.post<ClientePlataforma>(`${this.base}/clientes`, d);
+  }
+
+  actualizarCliente(
+    id: string,
+    d: Partial<DatosCliente> & { activo?: boolean },
+  ): Observable<ClientePlataforma> {
+    return this.http.put<ClientePlataforma>(`${this.base}/clientes/${id}`, d);
+  }
+
+  /** El backend no borra: deja el cliente inactivo (sigue en los pedidos que ya lo usan). */
+  inactivarCliente(id: string): Observable<{ ok: true }> {
+    return this.http.delete<{ ok: true }>(`${this.base}/clientes/${id}`);
+  }
+
+  crearPersona(d: {
+    tipo: TipoPersonaPlataforma;
+    nombre: string;
+    cedula?: string;
+  }): Observable<PersonaPlataforma> {
+    return this.http.post<PersonaPlataforma>(`${this.base}/personas`, d);
+  }
+
+  actualizarPersona(
+    id: string,
+    d: { nombre?: string; cedula?: string; activo?: boolean },
+  ): Observable<PersonaPlataforma> {
+    return this.http.put<PersonaPlataforma>(`${this.base}/personas/${id}`, d);
+  }
+
+  inactivarPersona(id: string): Observable<{ ok: true }> {
+    return this.http.delete<{ ok: true }>(`${this.base}/personas/${id}`);
   }
 
   campos(): Observable<CampoPlataforma[]> {
@@ -72,7 +115,11 @@ export class CatalogosPlataformaService {
     return this.http.get<TransportistaPlataforma[]>(`${this.base}/transportistas`);
   }
 
-  crearTransportista(d: { nombreFiscal: string; tipoIdentificacion: TipoIdentificacionTransporte; identificacion: string }): Observable<TransportistaPlataforma> {
+  crearTransportista(d: {
+    nombreFiscal: string;
+    tipoIdentificacion: TipoIdentificacionTransporte;
+    identificacion: string;
+  }): Observable<TransportistaPlataforma> {
     return this.http.post<TransportistaPlataforma>(`${this.base}/transportistas`, d);
   }
 
@@ -90,7 +137,14 @@ export class CatalogosPlataformaService {
     return this.http.post<TipoVehiculoPlataforma>(`${this.base}/tipos-vehiculo`, { nombre });
   }
 
-  crearVehiculo(d: { placa: string; transportistaId: string; tipoVehiculoId?: string; marca?: string; modelo?: string; anio?: number }): Observable<VehiculoPlataforma> {
+  crearVehiculo(d: {
+    placa: string;
+    transportistaId: string;
+    tipoVehiculoId?: string;
+    marca?: string;
+    modelo?: string;
+    anio?: number;
+  }): Observable<VehiculoPlataforma> {
     return this.http.post<VehiculoPlataforma>(`${this.base}/vehiculos`, d);
   }
 
@@ -100,7 +154,11 @@ export class CatalogosPlataformaService {
     return this.http.get<ChoferPlataforma[]>(`${this.base}/choferes`, { params });
   }
 
-  crearChofer(d: { transportistaId: string; licencia: string; nombre: string }): Observable<ChoferPlataforma> {
+  crearChofer(d: {
+    transportistaId: string;
+    licencia: string;
+    nombre: string;
+  }): Observable<ChoferPlataforma> {
     return this.http.post<ChoferPlataforma>(`${this.base}/choferes`, d);
   }
 }

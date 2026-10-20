@@ -1,11 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
-import { DynadrillButtonComponent, DynadrillNotificationService, DynadrillInputComponent } from '@digitec-it-projects/dynadrill-ui';
-import { CatalogosService } from '../../../shared/services/catalogos.service';
-import { ClienteCatalogo } from '../../../shared/models/catalogos.model';
+import {
+  DynadrillButtonComponent,
+  DynadrillNotificationService,
+  DynadrillInputComponent,
+} from '@digitec-it-projects/dynadrill-ui';
+import { mensajeDeError } from '../pedidos-comercial/models/pedido-comercial.model';
+import type { ClientePlataforma } from '../pedidos-comercial/models/catalogos-plataforma.model';
+import { CatalogosPlataformaService } from '../pedidos-comercial/services/catalogos-plataforma.service';
 
 export interface ClienteFormDialogData {
-  cliente?: ClienteCatalogo;
+  cliente?: ClientePlataforma;
 }
 
 /** Alta/edición de un cliente del catálogo ClienteCatalogo — CRUD de Ventas (FACT-001). */
@@ -18,9 +23,9 @@ export interface ClienteFormDialogData {
   host: { class: 'app-dialog-sheet-mobile' },
 })
 export class ClienteFormDialog {
-  private readonly catalogosService = inject(CatalogosService);
+  private readonly catalogosService = inject(CatalogosPlataformaService);
   private readonly notify = inject(DynadrillNotificationService);
-  private readonly modalRef = inject(NzModalRef<ClienteFormDialog, ClienteCatalogo | undefined>);
+  private readonly modalRef = inject(NzModalRef<ClienteFormDialog, ClientePlataforma | undefined>);
   private readonly data = inject<ClienteFormDialogData | null>(NZ_MODAL_DATA, { optional: true });
 
   protected readonly editando = computed(() => !!this.data?.cliente);
@@ -31,7 +36,10 @@ export class ClienteFormDialog {
   protected readonly submitting = signal(false);
 
   protected readonly puedeGuardar = computed(
-    () => this.tipoIdentificacion().trim().length > 0 && this.identificacion().trim().length > 0 && this.nombreComercial().trim().length > 0,
+    () =>
+      this.tipoIdentificacion().trim().length > 0 &&
+      this.identificacion().trim().length > 0 &&
+      this.nombreComercial().trim().length > 0,
   );
 
   protected cancelar(): void {
@@ -54,13 +62,16 @@ export class ClienteFormDialog {
       : this.catalogosService.crearCliente(payload);
 
     request.subscribe({
-      next: cliente => {
-        this.notify.success(existente ? 'Actualizado' : 'Creado', `${payload.nombreComercial} guardado.`);
+      next: (cliente) => {
+        this.notify.success(
+          existente ? 'Actualizado' : 'Creado',
+          `${payload.nombreComercial} guardado.`,
+        );
         this.modalRef.close(cliente);
       },
-      error: () => {
+      error: (err) => {
         this.submitting.set(false);
-        this.notify.error('Error', 'No se pudo guardar.');
+        this.notify.error('Error', mensajeDeError(err, 'No se pudo guardar.'));
       },
     });
   }

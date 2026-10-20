@@ -2,7 +2,12 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { environment } from '@env';
-import type { AvanceDocumental, DocumentoOperativo, TipoDocumentoOperativo } from '../models/documentos-operativos';
+import type {
+  AvanceDocumental,
+  CorregirDiaEntrada,
+  DocumentoOperativo,
+  TipoDocumentoOperativo,
+} from '../models/documentos-operativos';
 import type {
   ActualizarPedidoRequest,
   CatalogoServicios,
@@ -20,7 +25,9 @@ import type {
 } from '../models/pedido-comercial.model';
 
 /** Arma los parámetros de consulta omitiendo los vacíos (`null`, `undefined`, cadenas en blanco, listas vacías). */
-export function construirParametros(valores: Record<string, string | number | boolean | readonly string[] | null | undefined>): HttpParams {
+export function construirParametros(
+  valores: Record<string, string | number | boolean | readonly string[] | null | undefined>,
+): HttpParams {
   let params = new HttpParams();
   for (const [clave, valor] of Object.entries(valores)) {
     if (valor === null || valor === undefined) continue;
@@ -77,12 +84,20 @@ export class PedidosComercialService {
   /** Qué pedidos de AS2 ya existen en el portal (máximo 100 ids por consulta). */
   vinculosAs2(ids: readonly number[]): Observable<VinculoAs2[]> {
     if (ids.length === 0) return of([]);
-    return this.http.get<VinculoAs2[]>(`${this.base}/vinculos-as2`, { params: { ids: ids.slice(0, 100).join(',') } });
+    return this.http.get<VinculoAs2[]>(`${this.base}/vinculos-as2`, {
+      params: { ids: ids.slice(0, 100).join(',') },
+    });
   }
 
   /** Valida las filas del Excel contra la lista de precios del cliente; no guarda nada. */
-  validarPlantilla(clienteId: string, filas: readonly FilaPlantilla[]): Observable<ResultadoValidarPlantilla> {
-    return this.http.post<ResultadoValidarPlantilla>(`${this.base}/validar-plantilla`, { clienteId, filas });
+  validarPlantilla(
+    clienteId: string,
+    filas: readonly FilaPlantilla[],
+  ): Observable<ResultadoValidarPlantilla> {
+    return this.http.post<ResultadoValidarPlantilla>(`${this.base}/validar-plantilla`, {
+      clienteId,
+      filas,
+    });
   }
 
   /** Toma un pedido de AS2 y lo deja "por completar" (borrador) en el portal. */
@@ -117,7 +132,12 @@ export class PedidosComercialService {
   }
 
   /** Paso entre estados; `forzar` solo lo acepta el backend para quien tenga `comercial.pedidos.forzar_estado`. */
-  transicionar(id: string, estado: string, motivo?: string, forzar = false): Observable<PedidoDetalle> {
+  transicionar(
+    id: string,
+    estado: string,
+    motivo?: string,
+    forzar = false,
+  ): Observable<PedidoDetalle> {
     const cuerpo: { estado: string; motivo?: string; forzar?: boolean } = { estado };
     if (motivo?.trim()) cuerpo.motivo = motivo.trim();
     if (forzar) cuerpo.forzar = true;
@@ -133,12 +153,28 @@ export class PedidosComercialService {
   }
 
   /** Documentos operativos que envió Operaciones (solo lectura); `tipo` filtra. */
-  documentosOperativos(id: string, tipo?: TipoDocumentoOperativo): Observable<DocumentoOperativo[]> {
-    return this.http.get<DocumentoOperativo[]>(`${this.base}/${id}/documentos-operativos`, { params: construirParametros({ tipo }) });
+  documentosOperativos(
+    id: string,
+    tipo?: TipoDocumentoOperativo,
+  ): Observable<DocumentoOperativo[]> {
+    return this.http.get<DocumentoOperativo[]>(`${this.base}/${id}/documentos-operativos`, {
+      params: construirParametros({ tipo }),
+    });
   }
 
   avanceDocumental(id: string): Observable<AvanceDocumental> {
     return this.http.get<AvanceDocumental>(`${this.base}/${id}/documentos-operativos/avance`);
+  }
+
+  /** Facturación corrige las actividades de un día del Reporte Job (hasta que el pedido sale para firmas). */
+  corregirDiaOperativo(
+    id: string,
+    cuerpo: CorregirDiaEntrada,
+  ): Observable<{ documentoId: string | null; avance: AvanceDocumental }> {
+    return this.http.put<{ documentoId: string | null; avance: AvanceDocumental }>(
+      `${this.base}/${id}/documentos-operativos/dia`,
+      cuerpo,
+    );
   }
 
   /** Solo con `comercial.documentos_operativos.eliminar` y mientras el pedido siga en etapa de documentos. */

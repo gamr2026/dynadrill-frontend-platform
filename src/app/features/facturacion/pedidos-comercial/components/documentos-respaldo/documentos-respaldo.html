@@ -1,0 +1,220 @@
+<dynadrill-spinner mode="overlay" [spinning]="cargando()" tip="Cargando…">
+  <div class="resp">
+    @if (error(); as e) {
+      <dynadrill-banner variant="critical" [message]="e" />
+    }
+
+    @if (avance(); as a) {
+      <div class="resp__avance">
+        <div class="resp__progreso">
+          <div class="resp__progreso-fila">
+            <span>Reporte Job</span>
+            <span>{{ diasHechos() }} de {{ diasEsperados() }}</span>
+          </div>
+          <dynadrill-progress
+            [value]="diasHechos()"
+            [max]="diasEsperados() || 1"
+            [showInfo]="false"
+            [statusOverride]="
+              diasHechos() >= diasEsperados() && diasEsperados() > 0 ? 'success' : 'normal'
+            "
+          />
+        </div>
+        <dynadrill-tag
+          [label]="
+            a.reporteHerramientasRequerido
+              ? a.reporteHerramientasRecibido
+                ? 'Reporte de Htas.: al día'
+                : 'Reporte de Htas.: pendiente'
+              : 'Reporte de Htas.: no aplica'
+          "
+          [variant]="
+            !a.reporteHerramientasRequerido
+              ? 'neutral'
+              : a.reporteHerramientasRecibido
+                ? 'success'
+                : 'warning'
+          "
+        />
+        @if (a.guiaRequerida) {
+          <dynadrill-tag
+            [label]="a.guiaRegistrada ? 'Guía de remisión: lista' : 'Guía de remisión: pendiente'"
+            [variant]="a.guiaRegistrada ? 'success' : 'warning'"
+          />
+        }
+        <dynadrill-tag
+          [label]="a.completo ? 'Listo para prefacturar' : 'Documentación incompleta'"
+          [variant]="a.completo ? 'success' : 'warning'"
+        />
+      </div>
+      @if (!a.completo && a.pendientes.length) {
+        <dynadrill-banner variant="warning" [message]="'Falta: ' + a.pendientes.join('; ') + '.'" />
+      }
+    }
+
+    <div class="resp__scroll">
+      <table class="resp__tabla">
+        <thead>
+          <tr>
+            <th>Documento</th>
+            <th>Origen</th>
+            <th>Fecha</th>
+            <th>Firmado por</th>
+            <th>Estado</th>
+            <th aria-label="Acciones"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (d of reportesJob(); track d.id) {
+            <tr>
+              <td>Reporte Job</td>
+              <td>{{ origen(d.origen) }}</td>
+              <td>{{ fecha(d.fecha) }}</td>
+              <td>{{ d.firmadoPor || '—' }}</td>
+              <td><dynadrill-tag label="Recibido" variant="success" /></td>
+              <td class="resp__acciones">
+                <button
+                  type="button"
+                  class="resp__icono"
+                  aria-label="Ver formato"
+                  title="Ver formato"
+                  (click)="verReporteJob(d)"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  class="resp__icono"
+                  aria-label="Descargar PDF"
+                  title="Descargar PDF"
+                  (click)="verReporteJob(d, true)"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="m7 10 5 5 5-5" />
+                    <path d="M12 15V3" />
+                  </svg>
+                </button>
+                @if (admiteCorreccion() && d.fecha) {
+                  <button
+                    type="button"
+                    class="resp__icono"
+                    [attr.aria-label]="'Corregir actividades del ' + fecha(d.fecha)"
+                    title="Corregir actividades"
+                    (click)="corregir(d)"
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                    </svg>
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+          @if (reportesHtas().length) {
+            <tr>
+              <td>Reporte de Herramientas</td>
+              <td>FCR</td>
+              <td>consolidado</td>
+              <td>{{ reportesHtas()[0].firmadoPor || '—' }}</td>
+              <td><dynadrill-tag label="Recibido" variant="success" /></td>
+              <td class="resp__acciones">
+                <button
+                  type="button"
+                  class="resp__icono"
+                  aria-label="Ver formato"
+                  title="Ver formato"
+                  (click)="verReporteHerramientas()"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  class="resp__icono"
+                  aria-label="Descargar PDF"
+                  title="Descargar PDF"
+                  (click)="verReporteHerramientas(true)"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="m7 10 5 5 5-5" />
+                    <path d="M12 15V3" />
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          }
+          @if (sinDocumentos() && !cargando()) {
+            <tr>
+              <td colspan="6" class="resp__vacio">
+                Todavía no se ha recibido documentación operativa para este pedido.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</dynadrill-spinner>

@@ -1,142 +1,531 @@
-@use '../../pc' as pc;
-@use '../../../facturacion-ui' as f;
+@use '../../facturacion-ui' as f;
 
-.detalle {
+.pedido-detail {
   @include f.page;
 
-  &__cuerpo {
+  .fact-card {
+    @include f.card;
+  }
+
+  &__head {
+    @include f.card-head;
+  }
+  &__defs {
+    @include f.defs;
+  }
+  &__table {
+    @include f.table;
+  }
+
+  &__toolbar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+
+    // Figma móvil: solo "Editar pedido", a ancho completo — Rechazar/Anular
+    // viven en el "⋮" de la barra superior (ver useDetailChrome).
+    @media (max-width: 840px) {
+      dynadrill-button:nth-child(n + 2) {
+        display: none;
+      }
+
+      dynadrill-button:first-child {
+        flex: 1 1 100%;
+
+        ::ng-deep .ant-btn {
+          width: 100%;
+        }
+      }
+    }
+  }
+
+  // Escritorio (Figma "D · Pedidos · Detalle"): dos columnas INDEPENDIENTES — la principal (ticket, documentos, cliente,
+  // servicio…) y la barra lateral (Estado y Prefactura). Antes era un único grid con filas compartidas: la tarjeta alta de
+  // Estado estiraba su fila y dejaba un hueco enorme bajo las tarjetas de la izquierda.
+  //
+  // En móvil ambas columnas se aplanan (`display: contents`) y `order` devuelve el orden original de la pantalla:
+  // Estado, Ticket, Documentos, Prefactura y luego el resto.
+  &__grid {
     display: flex;
     flex-direction: column;
     gap: 16px;
+
+    @media (min-width: 1100px) {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      align-items: start;
+      gap: 16px;
+    }
   }
 
-  &__tarjeta {
-    @include pc.tarjeta;
+  &__main,
+  &__side {
+    display: contents;
+
+    @media (min-width: 1100px) {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    > * {
+      order: 5;
+    }
   }
 
-  &__titulo {
-    @include f.card-head;
+  &__side > &__ord-1 {
+    order: 1;
   }
 
-  &__estado {
+  &__main > &__ord-2 {
+    order: 2;
+  }
+
+  &__main > &__ord-3 {
+    order: 3;
+  }
+
+  &__side > &__ord-4 {
+    order: 4;
+  }
+
+  &__head-actions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
-  }
-
-  &__rol {
-    font-size: 13px;
-    color: var(--text-muted, #5c5870);
-  }
-
-  &__acciones {
-    display: flex;
-    flex-wrap: wrap;
     gap: 8px;
   }
 
-  &__datos {
-    @include f.defs;
-  }
-
-  &__destacado dd {
-    font-size: 16px;
-    color: var(--dynadrill-purple, #662e9b);
-  }
-
-  &__tabla {
-    @include pc.tabla-con-scroll;
-  }
-
-  &__totales {
+  &__doc-actions {
     display: flex;
     flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 8px 32px;
-    margin: 0;
+    gap: 6px;
+  }
 
-    div {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 2px;
+  &__avance {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+
+    gap: 8px;
+
+    > .pedido-detail__progress {
+      flex: 1 1 100%;
+    }
+  }
+
+  // Figma "Data/TimelineStep" (vertical, móvil y columna Estado en escritorio):
+  // punto de 24px con check (hecho) / aro grueso (actual) / aro gris (pendiente)
+  // y conector de 2px — morado en los hechos, gris en el resto.
+  &__timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  &__step {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  &__step-rail {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  &__step-dot {
+    box-sizing: border-box;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 9999px;
+    background: var(--surface, #fff);
+    border: 2px solid var(--border, #e5e4ea);
+    color: var(--dynadrill-white, #fff);
+  }
+
+  &__step-connector {
+    flex: 1 1 auto;
+    width: 2px;
+    min-height: 8px;
+    background: var(--border, #e5e4ea);
+  }
+
+  &__step--last &__step-connector {
+    display: none;
+  }
+
+  &__step--done &__step-dot {
+    background: var(--dynadrill-purple, #662e9b);
+    border-color: var(--dynadrill-purple, #662e9b);
+  }
+
+  &__step--done &__step-connector {
+    background: var(--dynadrill-purple, #662e9b);
+  }
+
+  &__step--current &__step-dot {
+    border: 3px solid var(--dynadrill-purple, #662e9b);
+  }
+
+  &__step-text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    padding-bottom: 16px;
+    font-family: var(--font-body, 'Roboto', sans-serif);
+    text-align: left;
+
+    &--btn {
+      border: none;
+      background: none;
+      margin: 0;
+      padding-top: 0;
+      font: inherit;
+      cursor: pointer;
+      border-radius: 8px;
+
+      &:focus-visible {
+        outline: 2px solid var(--dynadrill-purple, #662e9b);
+        outline-offset: 2px;
+      }
     }
 
-    dt {
-      font-size: 12px;
+    &--selected {
+      background: var(--dynadrill-purple-tint, #f6f3f9);
+    }
+  }
+
+  &__step-title {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--text, #2c2b35);
+  }
+
+  &__step-meta {
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__step--pending &__step-title {
+    font-weight: 400;
+    color: var(--text-muted, #5c5870);
+  }
+  // ── Bloques de Figma (móvil y escritorio) ──
+  &__estado-actual {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__capitalize {
+    text-transform: capitalize;
+  }
+
+  &__progress {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__progress-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--text-muted, #5c5870);
+
+    span:first-child {
+      color: var(--text, #2c2b35);
+    }
+  }
+
+  // Botones de la card (Figma "Button": mín. 48px, radio 12, Roboto 14 semibold).
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 12px 24px;
+    border: 0;
+    border-radius: var(--radius-md, 12px);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--dynadrill-purple, #662e9b);
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    &--primary {
+      width: 100%;
+      background: var(--dynadrill-purple, #662e9b);
+      color: var(--dynadrill-white, #fff);
+      box-shadow: 0 4px 6px rgba(19, 21, 41, 0.08);
+
+      &:hover:not(:disabled) {
+        background: var(--dynadrill-purple-hover, #55267f);
+      }
+    }
+
+    &--tonal {
+      width: 100%;
+      background: var(--dynadrill-purple-tint-strong, #e7deef);
+      color: var(--dynadrill-purple, #662e9b);
+    }
+
+    &--text {
+      align-self: flex-start;
+      background: none;
+      color: var(--dynadrill-purple, #662e9b);
+
+      &:hover:not(:disabled) {
+        background: var(--dynadrill-purple-tint, #f6f3f9);
+      }
+    }
+  }
+
+  // Filas etiqueta / valor (Figma "Data/KeyValue" Inline): liquidación y totales.
+  &__rows {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border, #e5e4ea);
+    font-size: 14px;
+    line-height: 1.45;
+    list-style: none;
+
+    span {
       color: var(--text-muted, #5c5870);
     }
 
-    dd {
-      margin: 0;
+    strong {
       font-weight: 600;
-      font-variant-numeric: tabular-nums;
+      color: var(--text, #2c2b35);
+      text-align: right;
     }
   }
 
-  &__totales-neto dd {
-    font-size: 18px;
-  }
-
-  &__nota {
-    margin: 0;
-    font-size: 13px;
-    color: var(--text-muted, #5c5870);
-  }
-
-  &__linea {
+  // Líneas estimadas: tarjetas en móvil, tabla en escritorio.
+  &__lines {
     display: flex;
     flex-direction: column;
-    gap: 14px;
     margin: 0;
     padding: 0;
     list-style: none;
-  }
 
-  &__hito {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-
-    div {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
+    @media (min-width: 841px) {
+      display: none;
     }
   }
 
-  &__punto {
-    flex: none;
-    width: 12px;
-    height: 12px;
-    margin-top: 4px;
-    border-radius: 50%;
-    background: var(--text-muted, #5c5870);
-
-    &--brand { background: var(--dynadrill-purple, #662e9b); }
-    &--success { background: var(--success, #52c41a); }
-    &--warning { background: var(--warning, #faad14); }
-    &--error { background: var(--error, #ff4d4f); }
-    &--info { background: #1677ff; }
+  &__line {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-top: 1px solid var(--border, #e5e4ea);
   }
 
-  &__meta,
-  &__motivo {
+  &__line-text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__line-code {
     font-size: 12px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dynadrill-purple, #662e9b);
+  }
+
+  &__line-name {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--text, #2c2b35);
+  }
+
+  &__line-meta {
+    font-size: 11px;
+    line-height: 1.35;
     color: var(--text-muted, #5c5870);
   }
 
-  &__vacio {
-    color: var(--text-muted, #5c5870);
+  &__line-total {
+    flex: none;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text, #2c2b35);
+  }
+
+  // Acciones de fila (Figma "IconButton"): 48×48, borde, radio 12.
+  &__icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-md, 12px);
+    background: var(--surface, #fff);
+    color: var(--text, #2c2b35);
+    cursor: pointer;
+
+    // Escritorio (Figma): ícono simple, sin recuadro — el de 48 px con borde es el área táctil de móvil.
+    @media (min-width: 841px) {
+      width: 36px;
+      height: 36px;
+      border-color: transparent;
+      background: transparent;
+
+      &:hover {
+        background: var(--surface-muted, #f4f3f8);
+      }
+    }
+
+    & + & {
+      margin-left: 4px;
+    }
+
+    &:hover {
+      background: var(--dynadrill-purple-tint, #f6f3f9);
+      color: var(--dynadrill-purple, #662e9b);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--dynadrill-purple, #662e9b);
+      outline-offset: 2px;
+    }
+  }
+
+  &__table-wrap {
+    @media (max-width: 840px) {
+      display: none;
+    }
+  }
+
+  // Documentos de respaldo en móvil (Figma): cada fila como bloque
+  // nombre / origen · fecha / chip de estado, con las acciones a la derecha.
+  &__table--docs {
+    @media (max-width: 840px) {
+      thead {
+        display: none;
+      }
+
+      tbody {
+        display: block;
+      }
+
+      tbody tr {
+        display: grid;
+        grid-template-columns: auto auto 1fr auto;
+        grid-template-areas:
+          'name name name act'
+          'origen fecha . act'
+          'chip chip . act';
+        align-items: center;
+        column-gap: 6px;
+        padding: 12px 0;
+        border-top: 1px solid var(--border, #e5e4ea);
+      }
+
+      tbody td {
+        display: block;
+        padding: 0;
+        border: 0;
+        background: none;
+      }
+
+      tbody td:nth-child(1) {
+        grid-area: name;
+        font-weight: 600;
+      }
+
+      tbody td:nth-child(2),
+      tbody td:nth-child(3) {
+        font-size: 11px;
+        line-height: 1.35;
+        color: var(--text-muted, #5c5870);
+      }
+
+      tbody td:nth-child(2) {
+        grid-area: origen;
+      }
+
+      tbody td:nth-child(3) {
+        grid-area: fecha;
+
+        &::before {
+          content: '· ';
+        }
+      }
+
+      tbody td:nth-child(4) {
+        display: none;
+      }
+
+      tbody td:nth-child(5) {
+        grid-area: chip;
+        justify-self: start;
+        margin-top: 4px;
+      }
+
+      tbody td:nth-child(6),
+      tbody td[colspan] + td {
+        grid-area: act;
+        display: flex;
+        gap: 4px;
+      }
+
+      tbody td[colspan] {
+        grid-area: auto;
+        grid-column: 1 / 4;
+        font-size: 11px;
+        color: var(--text-muted, #5c5870);
+      }
+    }
   }
 }
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+.table-scroll {
+  overflow-x: auto;
 }

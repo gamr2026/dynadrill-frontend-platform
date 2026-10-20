@@ -3,6 +3,7 @@
 export const PERMISOS_DOCUMENTOS_OPERATIVOS = {
   ver: 'comercial.documentos_operativos.ver',
   eliminar: 'comercial.documentos_operativos.eliminar',
+  corregir: 'comercial.documentos_operativos.corregir',
 } as const;
 
 export type TipoDocumentoOperativo = 'reporte_job' | 'reporte_herramientas';
@@ -22,6 +23,7 @@ export interface ActividadOperativa {
   duracionHoras: number | null;
   detalle: string | null;
   autor: string | null;
+  tablas?: { titulo: string | null; columnas: string[]; filas: string[][] }[];
 }
 
 export interface UsoHerramienta {
@@ -52,6 +54,24 @@ export interface DocumentoOperativo {
   herramientas: HerramientaOperativa[];
 }
 
+/** Una actividad del día que se corrige (`PUT documentos-operativos/dia`). */
+export interface ActividadCorreccion {
+  fecha: string;
+  horaInicio: string;
+  horaFin: string;
+  duracionHoras: number;
+  detalle: string;
+  autor?: string;
+  tablas?: { titulo?: string; columnas: string[]; filas: string[][] }[];
+}
+
+export interface CorregirDiaEntrada {
+  origen: OrigenDocumentoOperativo;
+  fecha: string;
+  /** Lista vacía = quitar el día. */
+  actividades: ActividadCorreccion[];
+}
+
 export interface AvanceDocumental {
   completo: boolean;
   diasEsperados: number;
@@ -72,14 +92,21 @@ export const ESTADO_USO_LABELS: Record<EstadoUsoHerramienta, string> = {
   venta: 'Venta',
 };
 
-export const ORIGEN_DOCUMENTO_LABELS: Record<OrigenDocumentoOperativo, string> = { fcr: 'FCR', pumping: 'Pumping' };
+export const ORIGEN_DOCUMENTO_LABELS: Record<OrigenDocumentoOperativo, string> = {
+  fcr: 'FCR',
+  pumping: 'Pumping',
+};
 
-export const etiquetaUso = (estado: string): string => (ESTADO_USO_LABELS as Record<string, string>)[estado] ?? estado;
+export const etiquetaUso = (estado: string): string =>
+  (ESTADO_USO_LABELS as Record<string, string>)[estado] ?? estado;
 
-export const etiquetaOrigen = (origen: string): string => (ORIGEN_DOCUMENTO_LABELS as Record<string, string>)[origen] ?? origen.toUpperCase();
+export const etiquetaOrigen = (origen: string): string =>
+  (ORIGEN_DOCUMENTO_LABELS as Record<string, string>)[origen] ?? origen.toUpperCase();
 
 /** Horas totales de las actividades (suma de `duracionHoras`, a dos decimales). */
-export function horasTotales(actividades: readonly Pick<ActividadOperativa, 'duracionHoras'>[]): number {
+export function horasTotales(
+  actividades: readonly Pick<ActividadOperativa, 'duracionHoras'>[],
+): number {
   return Math.round(actividades.reduce((a, x) => a + (x.duracionHoras ?? 0), 0) * 100) / 100;
 }
 
@@ -89,12 +116,16 @@ export function formatoHoras(horas: number): string {
 }
 
 /** Herramientas sin código: no se facturarán. */
-export function herramientasSinCodigo(herramientas: readonly Pick<HerramientaOperativa, 'codigo'>[]): number {
-  return herramientas.filter(h => !h.codigo?.trim()).length;
+export function herramientasSinCodigo(
+  herramientas: readonly Pick<HerramientaOperativa, 'codigo'>[],
+): number {
+  return herramientas.filter((h) => !h.codigo?.trim()).length;
 }
 
 /** Porcentaje (0-100) de días con Reporte Job sobre los esperados. */
-export function porcentajeReporteJob(avance: Pick<AvanceDocumental, 'diasConReporteJob' | 'diasEsperados'>): number {
+export function porcentajeReporteJob(
+  avance: Pick<AvanceDocumental, 'diasConReporteJob' | 'diasEsperados'>,
+): number {
   if (avance.diasEsperados <= 0) return avance.diasConReporteJob > 0 ? 100 : 0;
   return Math.min(100, Math.round((avance.diasConReporteJob / avance.diasEsperados) * 100));
 }
@@ -113,19 +144,29 @@ export function listaDeChequeo(a: AvanceDocumental): PuntoChequeo[] {
   };
   const htas: PuntoChequeo = !a.reporteHerramientasRequerido
     ? { texto: 'Reporte de Herramientas: no se requiere', estado: 'na' }
-    : { texto: a.reporteHerramientasRecibido ? 'Reporte de Herramientas: recibido' : 'Reporte de Herramientas: pendiente', estado: a.reporteHerramientasRecibido ? 'ok' : 'pendiente' };
+    : {
+        texto: a.reporteHerramientasRecibido
+          ? 'Reporte de Herramientas: recibido'
+          : 'Reporte de Herramientas: pendiente',
+        estado: a.reporteHerramientasRecibido ? 'ok' : 'pendiente',
+      };
   const lista = [job, htas];
   if (a.guiaRequerida) {
-    lista.push({ texto: a.guiaRegistrada ? 'Guía de remisión: registrada' : 'Guía de remisión: pendiente', estado: a.guiaRegistrada ? 'ok' : 'pendiente' });
+    lista.push({
+      texto: a.guiaRegistrada ? 'Guía de remisión: registrada' : 'Guía de remisión: pendiente',
+      estado: a.guiaRegistrada ? 'ok' : 'pendiente',
+    });
   }
   return lista;
 }
 
 /** Ordena los Reportes Job por fecha (los sin fecha al final). */
 export function reportesJobOrdenados(docs: readonly DocumentoOperativo[]): DocumentoOperativo[] {
-  return docs.filter(d => d.tipo === 'reporte_job').sort((a, b) => (a.fecha ?? '9999').localeCompare(b.fecha ?? '9999'));
+  return docs
+    .filter((d) => d.tipo === 'reporte_job')
+    .sort((a, b) => (a.fecha ?? '9999').localeCompare(b.fecha ?? '9999'));
 }
 
 export function reportesHerramientas(docs: readonly DocumentoOperativo[]): DocumentoOperativo[] {
-  return docs.filter(d => d.tipo === 'reporte_herramientas');
+  return docs.filter((d) => d.tipo === 'reporte_herramientas');
 }

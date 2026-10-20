@@ -80,6 +80,8 @@ describe('tareasDeViaje', () => {
     fecha: '2026-10-20',
     conductor: { id: 'c1', nombre: 'C' },
     unidad: { id: 'u1', codigo: 'U', vehiculoId: 'v1' },
+    origen: 'Base Coca',
+    destino: 'Pozo 1',
     puntajeTotal: 0,
     nivel: 'bajo',
     estado: 'pendiente',

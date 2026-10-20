@@ -3,27 +3,36 @@
 
   <div class="viaje-dialog__cuerpo">
     @if (paso() === 0) {
+      @if (fijo) {
+        <p class="viaje-dialog__nota">
+          Ticket <strong>{{ ticket()?.ticketNumero ?? ticket()?.pedidoCodigo ?? '—' }}</strong> ·
+          Viaje de <strong>{{ tipo() === 'salida' ? 'salida' : 'retorno' }}</strong> · Unidad
+          <strong>{{ unidadFija()?.placa ?? unidadFija()?.codigo ?? '—' }}</strong>
+        </p>
+      }
       <div class="viaje-dialog__grid">
-        <dynadrill-select
-          label="Tipo de viaje"
-          [options]="tipoOpciones"
-          [value]="tipo()"
-          (valueChange)="tipo.set($any($event))"
-        />
-        <dynadrill-select
-          label="Ticket de Pumping"
-          placeholder="Seleccione el ticket"
-          [options]="ticketOpciones()"
-          [value]="ticketId()"
-          (valueChange)="elegirTicket($any($event))"
-        />
-        <dynadrill-select
-          label="Unidad"
-          placeholder="Seleccione la unidad"
-          [options]="unidadOpciones()"
-          [value]="unidadId()"
-          (valueChange)="unidadId.set($any($event))"
-        />
+        @if (!fijo) {
+          <dynadrill-select
+            label="Tipo de viaje"
+            [options]="tipoOpciones"
+            [value]="tipo()"
+            (valueChange)="tipo.set($any($event))"
+          />
+          <dynadrill-select
+            label="Ticket de Pumping"
+            placeholder="Seleccione el ticket"
+            [options]="ticketOpciones()"
+            [value]="ticketId()"
+            (valueChange)="elegirTicket($any($event))"
+          />
+          <dynadrill-select
+            label="Unidad"
+            placeholder="Seleccione la unidad"
+            [options]="unidadOpciones()"
+            [value]="unidadId()"
+            (valueChange)="unidadId.set($any($event))"
+          />
+        }
         <dynadrill-select
           label="Base (origen en la salida, destino en el retorno)"
           placeholder="Seleccione la base"
@@ -57,7 +66,7 @@
         }
       } @else if (!cargando() && tickets().length === 0) {
         <p class="viaje-dialog__alerta" role="alert">
-          No tiene tickets de Pumping asignados como operador.
+          No tiene tickets de Pumping asignados como conductor.
         </p>
       }
     }

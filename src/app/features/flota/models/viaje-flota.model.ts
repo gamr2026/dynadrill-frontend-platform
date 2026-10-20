@@ -39,6 +39,8 @@ export interface UnidadViaje {
   codigo: string;
   nombre: string;
   categoriaPeso: 'pesado' | 'liviano' | null;
+  /** Vehículo del catálogo de Pumping: así se liga la unidad de Flota con la que el ticket asignó. */
+  vehiculoId: string | null;
   placa: string | null;
 }
 
@@ -59,6 +61,71 @@ export interface ViajeContextoPumping {
   };
   serviciosPrincipales: Array<{ codigo: string; nombre: string }>;
   supervisor: { id: string; nombre: string } | null;
+  paso: { codigo: string; nombre: string };
+  /** Las unidades que lleva esta cuenta en el ticket. */
+  unidades: Array<{ vehiculoId: string; placa: string }>;
+  /** Gerenciamientos que le tocan en este momento del servicio. */
+  tiposViaje: TipoViaje[];
+}
+
+/** Estado de una tarea de gerenciamiento del conductor: lo que le falta, lo que espera aprobación o lo ya aprobado. */
+export type EstadoTareaViaje = 'por_completar' | 'pendiente' | 'aprobado';
+
+export const ESTADO_TAREA_LABEL: Record<EstadoTareaViaje, string> = {
+  por_completar: 'Por completar',
+  pendiente: 'Pendiente de aprobación',
+  aprobado: 'Aprobado',
+};
+
+/** Una tarea del conductor: el gerenciamiento de salida o de retorno de su unidad en un ticket. */
+export interface TareaViaje {
+  clave: string;
+  ticket: ViajeContextoPumping;
+  tipo: TipoViaje;
+  unidad: { vehiculoId: string; placa: string };
+  estado: EstadoTareaViaje;
+  /** Solicitud ya enviada (pendiente o aprobada); un rechazo deja la tarea por completar de nuevo. */
+  viajeId: string | null;
+  /** El último intento fue rechazado: hay que rehacerlo. */
+  rechazado: boolean;
+}
+
+/**
+ * Las tareas de gerenciamiento del conductor: al asignarlo a una unidad de un ticket le toca el de salida (desde el traslado) y el de
+ * retorno (desde la ejecución). Se completan al enviar la solicitud; un rechazo la reabre.
+ */
+export function tareasDeViaje(
+  tickets: readonly ViajeContextoPumping[],
+  viajes: readonly ViajeResumen[],
+): TareaViaje[] {
+  const tareas: TareaViaje[] = [];
+  for (const t of tickets) {
+    for (const u of t.unidades) {
+      for (const tipo of t.tiposViaje) {
+        const suyos = viajes
+          .filter(
+            (v) =>
+              v.ticketId === t.ticketId && v.tipo === tipo && v.unidad.vehiculoId === u.vehiculoId,
+          )
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        const vigente = suyos.find((v) => v.estado !== 'rechazado') ?? null;
+        tareas.push({
+          clave: `${t.ticketId}|${u.vehiculoId}|${tipo}`,
+          ticket: t,
+          tipo,
+          unidad: u,
+          estado: !vigente
+            ? 'por_completar'
+            : vigente.estado === 'autorizado'
+              ? 'aprobado'
+              : 'pendiente',
+          viajeId: vigente?.id ?? null,
+          rechazado: !vigente && suyos.length > 0,
+        });
+      }
+    }
+  }
+  return tareas;
 }
 
 export interface ViajeResumen {
@@ -68,7 +135,7 @@ export interface ViajeResumen {
   ticketId: string | null;
   fecha: string;
   conductor: { id: string; nombre: string };
-  unidad: { id: string; codigo: string };
+  unidad: { id: string; codigo: string; vehiculoId: string | null };
   puntajeTotal: number;
   nivel: NivelRiesgo;
   estado: EstadoViaje;

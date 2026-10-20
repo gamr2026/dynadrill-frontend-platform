@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { NzModalRef } from 'ng-zorro-antd/modal';
+import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import {
   DynadrillButtonComponent,
   DynadrillDatetimePickerComponent,
@@ -27,6 +27,13 @@ import { aFechaIso, mensajeDeError } from '../utils/flota.util';
 
 const STEPS = ['Viaje', 'Riesgo', 'Plan y ruta', 'Confirmar'];
 const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/** Al abrirlo desde una tarea del conductor el ticket, el tipo y la unidad ya vienen definidos y no se cambian. */
+export interface ViajeSolicitudDialogData {
+  ticketId: string;
+  tipo: TipoViaje;
+  vehiculoId: string;
+}
 
 interface FilaParada {
   lugar: string;
@@ -64,6 +71,11 @@ export class ViajeSolicitudDialog {
   private readonly inspecciones = inject(FlotaInspeccionesService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<ViajeSolicitudDialog, boolean>);
+  private readonly tarea = inject<ViajeSolicitudDialogData | null>(NZ_MODAL_DATA, {
+    optional: true,
+  });
+  /** Viene de una tarea: ticket, tipo y unidad están definidos. */
+  protected readonly fijo = this.tarea !== null;
 
   protected readonly steps = STEPS;
   protected readonly nivelTexto = NIVEL_LABEL;
@@ -150,27 +162,57 @@ export class ViajeSolicitudDialog {
     return '';
   });
 
+  /** La unidad de la tarea, con su placa, para mostrarla y para el motivo sugerido. */
+  protected readonly unidadFija = computed(
+    () => this.unidades().find((u) => u.vehiculoId === this.tarea?.vehiculoId) ?? null,
+  );
+
   constructor() {
+    if (this.tarea) this.tipo.set(this.tarea.tipo);
     this.api.misViajesPumping().subscribe({
       next: (t) => {
         this.tickets.set(t);
-        if (t.length === 1) this.elegirTicket(t[0].ticketId);
+        if (this.tarea) this.elegirTicket(this.tarea.ticketId);
+        else if (t.length === 1) this.elegirTicket(t[0].ticketId);
       },
       error: () => this.notify.error('Error', 'No se pudieron cargar sus tickets de Pumping.'),
     });
-    this.api.unidades().subscribe((u) => this.unidades.set(u));
+    this.api.unidades().subscribe((u) => {
+      this.unidades.set(u);
+      const fija = u.find((x) => x.vehiculoId === this.tarea?.vehiculoId);
+      if (fija) {
+        this.unidadId.set(fija.id);
+        this.sugerirMotivo();
+      }
+    });
     this.api.bodegas().subscribe((b) => {
       this.bodegas.set(b);
+      if (b.length === 1 && !this.bodegaId()) this.bodegaId.set(b[0].id);
       this.cargando.set(false);
     });
     this.api.preguntas().subscribe((p) => this.preguntas.set(p));
     this.api.umbrales().subscribe((u) => this.umbrales.set(u));
   }
 
+  /** Motivo propuesto cuando viene de una tarea (la persona lo puede ajustar). */
+  private sugerirMotivo(): void {
+    const t = this.ticket();
+    const u = this.unidadFija();
+    if (!this.tarea || !t || !u || this.motivo()) return;
+    const que = this.tarea.tipo === 'salida' ? 'Traslado' : 'Retorno';
+    this.motivo.set(
+      `${que} de la unidad ${u.placa ?? u.codigo} — ticket ${t.ticketNumero ?? t.pedidoCodigo}`,
+    );
+  }
+
   /** Al elegir el ticket se sugiere la unidad de la inspección que le abrió Pumping a esta cuenta. */
   protected elegirTicket(id: string | null): void {
     this.ticketId.set(id);
     if (!id) return;
+    if (this.tarea) {
+      this.sugerirMotivo();
+      return; // la unidad ya está definida por la tarea
+    }
     this.inspecciones.casos(id).subscribe({
       next: (casos) => {
         const caso = casos[0];

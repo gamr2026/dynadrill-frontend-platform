@@ -1,10 +1,15 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
-import { DynadrillButtonComponent, DynadrillSelectComponent, type DynadrillSelectOption } from '@digitec-it-projects/dynadrill-ui';
-import { ESTADO_PEDIDO_LABELS, EstadoPedido } from '../models/pedido.model';
-
+import {
+  DynadrillButtonComponent,
+  DynadrillSelectComponent,
+  type DynadrillSelectOption,
+} from '@digitec-it-projects/dynadrill-ui';
 export interface ReporteriaFiltros {
-  estado: EstadoPedido | null;
+  /** Código del estado del pedido (null = todos). */
+  estado: string | null;
+  /** Los estados que tienen pedidos, con su nombre: lo que se ofrece en el select. */
+  opciones?: { value: string; label: string }[];
 }
 
 /**
@@ -19,7 +24,13 @@ export interface ReporteriaFiltros {
   template: `
     <div class="filtros">
       <section class="filtros__group">
-        <dynadrill-select label="Estado" placeholder="Todos los estados" [options]="estadoOptions" [value]="estado()" (valueChange)="estado.set($any($event) || null)" />
+        <dynadrill-select
+          label="Estado"
+          placeholder="Todos los estados"
+          [options]="estadoOptions"
+          [value]="estado()"
+          (valueChange)="estado.set($any($event) || null)"
+        />
       </section>
 
       <div class="filtros__footer">
@@ -35,9 +46,9 @@ export class ReporteriaFiltrosDialog {
   private readonly modalRef = inject(NzModalRef<ReporteriaFiltrosDialog, ReporteriaFiltros>);
   private readonly inicial = inject<ReporteriaFiltros>(NZ_MODAL_DATA);
 
-  protected readonly estado = signal<EstadoPedido | null>(this.inicial.estado);
-  protected readonly estadoOptions: DynadrillSelectOption[] = (Object.entries(ESTADO_PEDIDO_LABELS) as [EstadoPedido, string][]).map(
-    ([value, label]) => ({ label, value }),
+  protected readonly estado = signal<string | null>(this.inicial.estado);
+  protected readonly estadoOptions: DynadrillSelectOption[] = (this.inicial.opciones ?? []).map(
+    ({ value, label }) => ({ label, value }),
   );
 
   protected limpiar(): void {
@@ -45,6 +56,9 @@ export class ReporteriaFiltrosDialog {
   }
 
   protected aplicar(): void {
-    this.modalRef.close({ estado: this.estado() } satisfies ReporteriaFiltros);
+    this.modalRef.close({
+      estado: this.estado(),
+      opciones: this.inicial.opciones,
+    } satisfies ReporteriaFiltros);
   }
 }

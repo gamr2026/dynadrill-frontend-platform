@@ -3,7 +3,9 @@
 .reporteria-page {
   @include f.page;
 
-  .fact-card { @include f.card; }
+  .fact-card {
+    @include f.card;
+  }
 
   // Móvil (Figma): las pestañas y su contenido van directo sobre el fondo, sin marco de card.
   .fact-card.reporteria-page__panel {

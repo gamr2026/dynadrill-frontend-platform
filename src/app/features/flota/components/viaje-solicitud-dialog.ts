@@ -203,6 +203,27 @@ export class ViajeSolicitudDialog {
     this.elegidas.update((m) => ({ ...m, [preguntaId]: opcionId }));
   }
 
+  /**
+   * Llenado rápido: responde cada pregunta pendiente con su opción de menor puntaje (nunca una que impida conducir), para no marcar
+   * una por una. No pisa lo elegido a mano. Se busca el mínimo, no la primera opción: no todas vienen ordenadas por riesgo.
+   */
+  protected llenadoRapidoRiesgo(): void {
+    this.elegidas.update((m) => {
+      const nuevas = { ...m };
+      for (const p of this.preguntas()) {
+        if (nuevas[p.id]) continue;
+        const mejor = p.opciones
+          .filter((o) => !o.impideConducir)
+          .reduce<(typeof p.opciones)[number] | null>(
+            (a, o) => (!a || o.puntos < a.puntos ? o : a),
+            null,
+          );
+        if (mejor) nuevas[p.id] = mejor.id;
+      }
+      return nuevas;
+    });
+  }
+
   // ── Paso 3: Plan y ruta ──
   protected readonly passengerDraft = signal('');
   protected readonly passengersList = signal<string[]>([]);

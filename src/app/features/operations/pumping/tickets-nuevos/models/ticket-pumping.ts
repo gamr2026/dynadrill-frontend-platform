@@ -6,6 +6,8 @@ import type { ActividadTabla } from '../../../../../shared/models/operativo-docs
  */
 
 export const PERMISO_PUMPING_OPERAR = 'pumping.tickets.operar';
+/** Ver los documentos del ticket (monitoreo y mezcla química) sin poder operarlo: lo tiene Facturación. */
+export const PERMISO_PUMPING_DOCUMENTOS_VER = 'pumping.documentos.ver';
 
 export type MacroPaso =
   'pendiente' | 'en_proceso' | 'esperando_aprobacion' | 'aprobado' | 'rechazado';

@@ -20,6 +20,7 @@ import {
   PASOS_FCR,
 } from '../../../../operations/fcr/tickets-nuevos/models/ticket-fcr';
 import {
+  PERMISO_PUMPING_DOCUMENTOS_VER,
   PERMISO_PUMPING_OPERAR,
   nombrePaso as nombrePasoPumping,
 } from '../../../../operations/pumping/tickets-nuevos/models/ticket-pumping';
@@ -131,6 +132,9 @@ export class PedidoComercialDetailPage {
   protected readonly puedeVerPrefactura = computed(() => this.puede(PERMISOS_PREFACTURAS.ver));
   protected readonly puedeVerOperativos = computed(() =>
     this.puede(PERMISOS_DOCUMENTOS_OPERATIVOS.ver),
+  );
+  protected readonly puedeVerRespaldoTicket = computed(() =>
+    this.puede(PERMISO_PUMPING_DOCUMENTOS_VER),
   );
   protected readonly puedeCorregirOperativos = computed(() =>
     this.puede(PERMISOS_DOCUMENTOS_OPERATIVOS.corregir),

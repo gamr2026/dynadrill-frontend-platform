@@ -206,6 +206,76 @@
               </td>
             </tr>
           }
+          @for (d of monitoreos(); track d.id) {
+            <tr>
+              <td>Monitoreo</td>
+              <td>Pumping</td>
+              <td>{{ fecha(d.fecha) }}</td>
+              <td>—</td>
+              <td><dynadrill-tag label="Recibido" variant="success" /></td>
+              <td class="resp__acciones">
+                <button
+                  type="button"
+                  class="resp__icono"
+                  aria-label="Descargar"
+                  title="Descargar"
+                  (click)="descargarDelTicket(d)"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="m7 10 5 5 5-5" />
+                    <path d="M12 15V3" />
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          }
+          @for (d of mezclas(); track d.id) {
+            <tr>
+              <td>Mezcla química</td>
+              <td>Pumping</td>
+              <td>—</td>
+              <td>—</td>
+              <td><dynadrill-tag label="Recibido" variant="success" /></td>
+              <td class="resp__acciones">
+                <button
+                  type="button"
+                  class="resp__icono"
+                  aria-label="Descargar"
+                  title="Descargar"
+                  (click)="descargarDelTicket(d)"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="m7 10 5 5 5-5" />
+                    <path d="M12 15V3" />
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          }
           @if (sinDocumentos() && !cargando()) {
             <tr>
               <td colspan="6" class="resp__vacio">

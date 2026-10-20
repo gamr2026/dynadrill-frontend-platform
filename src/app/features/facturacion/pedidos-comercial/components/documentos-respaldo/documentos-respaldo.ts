@@ -7,7 +7,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 import {
   DynadrillBannerComponent,
   DynadrillDialogService,
@@ -41,6 +41,9 @@ import {
   type PedidoDetalle,
 } from '../../models/pedido-comercial.model';
 import { PedidosComercialService } from '../../services/pedidos-comercial.service';
+import { ArchivosService } from '../../services/archivos.service';
+import { TicketsPumpingService } from '../../../../operations/pumping/tickets-nuevos/services/tickets-pumping.service';
+import type { DocumentoDelTicket } from '../../../../operations/pumping/tickets-nuevos/models/ticket-pumping';
 import {
   CorregirDiaDialog,
   type CorregirDiaDialogData,
@@ -68,10 +71,14 @@ export class DocumentosRespaldo {
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly pdf = inject(DocumentoPdfService);
+  private readonly ticketsPumping = inject(TicketsPumpingService);
+  private readonly archivos = inject(ArchivosService);
 
   readonly pedido = input.required<PedidoDetalle>();
   /** Persona con `comercial.documentos_operativos.corregir`. */
   readonly puedeCorregir = input(false);
+  /** Persona con `pumping.documentos.ver`: ve el monitoreo y la mezcla química del ticket. */
+  readonly puedeVerRespaldoTicket = input(false);
   /** Corregir un día cambia el avance documental y puede cambiar los pasos del pedido. */
   readonly cambioDePedido = output<void>();
 
@@ -79,6 +86,16 @@ export class DocumentosRespaldo {
   protected readonly error = signal<string | null>(null);
   protected readonly documentos = signal<DocumentoOperativo[]>([]);
   protected readonly avance = signal<AvanceDocumental | null>(null);
+  /** Monitoreo (uno por día) y mezcla química que Operaciones subió al ticket de Pumping. */
+  protected readonly respaldoTicket = signal<DocumentoDelTicket[]>([]);
+  protected readonly monitoreos = computed(() =>
+    this.respaldoTicket()
+      .filter((d) => d.tipo === 'monitoreo')
+      .sort((a, b) => (a.fecha ?? '').localeCompare(b.fecha ?? '')),
+  );
+  protected readonly mezclas = computed(() =>
+    this.respaldoTicket().filter((d) => d.tipo === 'mezcla_quimica'),
+  );
 
   protected readonly reportesJob = computed(() => reportesJobOrdenados(this.documentos()));
   protected readonly reportesHtas = computed(() => reportesHerramientas(this.documentos()));
@@ -87,7 +104,10 @@ export class DocumentosRespaldo {
     () => this.puedeCorregir() && this.pedido().editable,
   );
   protected readonly sinDocumentos = computed(
-    () => this.reportesJob().length === 0 && this.reportesHtas().length === 0,
+    () =>
+      this.reportesJob().length === 0 &&
+      this.reportesHtas().length === 0 &&
+      this.respaldoTicket().length === 0,
   );
   protected readonly diasHechos = computed(() => this.avance()?.diasConReporteJob ?? 0);
   protected readonly diasEsperados = computed(() => this.avance()?.diasEsperados ?? 0);
@@ -108,11 +128,20 @@ export class DocumentosRespaldo {
     this.cargando.set(true);
     this.error.set(null);
     const id = this.pedido().id;
+    const ticket = this.pedido().ticketOperativo;
+    const respaldo$ =
+      this.puedeVerRespaldoTicket() && ticket?.origen === 'pumping'
+        ? this.ticketsPumping
+            .documentos(ticket.ticketId)
+            .pipe(catchError(() => of([] as DocumentoDelTicket[])))
+        : of([] as DocumentoDelTicket[]);
     forkJoin({
       docs: this.servicio.documentosOperativos(id),
       avance: this.servicio.avanceDocumental(id),
+      respaldo: respaldo$,
     }).subscribe({
-      next: ({ docs, avance }) => {
+      next: ({ docs, avance, respaldo }) => {
+        this.respaldoTicket.set(respaldo);
         this.documentos.set(docs);
         this.avance.set(avance);
         this.cargando.set(false);
@@ -209,6 +238,20 @@ export class DocumentosRespaldo {
       orientacion: 'landscape',
       nombreArchivo: `Reporte de Herramientas ${this.encabezado(docs[0]).code}`,
       descargar,
+    });
+  }
+
+  /** Baja el archivo del ticket (el contenido exige el token, por eso va como blob). */
+  protected descargarDelTicket(d: DocumentoDelTicket): void {
+    const nombre =
+      d.tipo === 'monitoreo' ? `Monitoreo ${d.fecha?.slice(0, 10) ?? ''}`.trim() : 'Mezcla química';
+    this.archivos.contenido(d.archivoId).subscribe({
+      next: (blob) => this.archivos.guardarComo(blob, nombre),
+      error: () =>
+        this.notify.error(
+          'No se pudo descargar',
+          'No se pudo descargar el documento. Intente de nuevo.',
+        ),
     });
   }
 

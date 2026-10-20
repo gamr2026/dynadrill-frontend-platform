@@ -3,9 +3,13 @@
 .lp-detail {
   @include f.page;
 
-  .fact-card { @include f.card; }
+  .fact-card {
+    @include f.card;
+  }
 
-  &__head { @include f.card-head; }
+  &__head {
+    @include f.card-head;
+  }
 
   &__head-actions {
     display: flex;
@@ -149,7 +153,9 @@
   &__table {
     @include f.table;
 
-    td { vertical-align: top; }
+    td {
+      vertical-align: top;
+    }
 
     tfoot td {
       border-top: 1px solid var(--color-border, #e0e0e0);

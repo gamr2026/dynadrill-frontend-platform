@@ -3,8 +3,8 @@
     <dynadrill-screen-header
       class="screen-header--compact-mobile"
       eyebrow="FACTURACIÓN — LISTA DE PRECIOS"
-      [title]="l.cliente"
-      [subtitle]="'Contrato ' + l.numeroContrato + ' · vigente desde ' + l.vigenteDesde"
+      [title]="l.clienteNombre ?? 'Lista de precios'"
+      [subtitle]="'Contrato ' + (l.numeroContrato ?? '—') + ' · vigente desde ' + l.vigenteDesde"
     />
 
     <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
@@ -12,16 +12,25 @@
         <header class="lp-detail__head">
           <h2>Datos de la lista</h2>
           <div class="lp-detail__head-actions">
-            <dynadrill-tag [label]="l.activa ? 'Activa' : 'Inactiva'" [variant]="l.activa ? 'success' : 'neutral'" />
+            <dynadrill-tag
+              [label]="l.activa ? 'Activa' : 'Inactiva'"
+              [variant]="l.activa ? 'success' : 'neutral'"
+            />
           </div>
         </header>
       </section>
 
       <section class="fact-card">
         <header class="lp-detail__head">
-          <h2>Ítems ({{ l.items.length }})</h2>
+          <h2>Ítems ({{ pagination.total() }})</h2>
           <div class="lp-detail__head-actions lp-detail__desktop-only">
-            <dynadrill-button variant="secondary" size="small" [disabled]="!l.items.length" (clicked)="descargarExcel()">Descargar Excel</dynadrill-button>
+            <dynadrill-button
+              variant="secondary"
+              size="small"
+              [disabled]="!l.items"
+              (clicked)="descargarExcel()"
+              >Descargar Excel</dynadrill-button
+            >
           </div>
         </header>
 
@@ -32,7 +41,12 @@
           [value]="busqueda()"
           (valueChange)="onBusqueda($event)"
         />
-        <dynadrill-chip-group mode="single" [options]="tipoChips" [selected]="tipoSeleccionado()" (selectedChange)="onTipoChip($event)" />
+        <dynadrill-chip-group
+          mode="single"
+          [options]="tipoChips"
+          [selected]="tipoSeleccionado()"
+          (selectedChange)="onTipoChip($event)"
+        />
 
         <!-- Móvil (Figma "M · Listas de precios · Detalle"): cada ítem como fila de lista; la tabla queda para escritorio. -->
         <ul class="lp-detail__items">
@@ -43,38 +57,63 @@
                 <span class="lp-detail__item-price">$ {{ it.precio | number: '1.2-2' }}</span>
               </div>
               <p class="lp-detail__item-name">{{ it.descripcion }}</p>
-              <p class="lp-detail__item-meta">{{ it.unidad }} · {{ it.tipo }}</p>
+              <p class="lp-detail__item-meta">{{ it.unidad ?? '—' }} · {{ it.tipo }}</p>
             </li>
           } @empty {
-            <li class="lp-detail__item-meta">{{ l.items.length ? 'Ningún ítem coincide con la búsqueda.' : 'Sin ítems.' }}</li>
+            <li class="lp-detail__item-meta">
+              {{
+                cargandoItems()
+                  ? 'Cargando…'
+                  : l.items
+                    ? 'Ningún ítem coincide con la búsqueda.'
+                    : 'Sin ítems.'
+              }}
+            </li>
           }
         </ul>
 
         <div class="table-scroll lp-detail__table-wrap">
           <table class="lp-detail__table">
             <thead>
-              <tr><th>Código</th><th>Descripción</th><th>Unidad</th><th class="num">Precio</th><th>Tipo</th></tr>
+              <tr>
+                <th>Código</th>
+                <th>Descripción</th>
+                <th>Unidad</th>
+                <th class="num">Precio</th>
+                <th>Tipo</th>
+              </tr>
             </thead>
             <tbody>
               @for (it of pagination.pageItems(); track $index) {
                 <tr>
                   <td>{{ it.codigo }}</td>
                   <td>{{ it.descripcion }}</td>
-                  <td>{{ it.unidad }}</td>
+                  <td>{{ it.unidad ?? '—' }}</td>
                   <td class="num">${{ it.precio }}</td>
                   <td>{{ it.tipo }}</td>
                 </tr>
               } @empty {
-                <tr><td colspan="5">{{ l.items.length ? 'Ningún ítem coincide con la búsqueda.' : 'Sin ítems.' }}</td></tr>
+                <tr>
+                  <td colspan="5">
+                    {{
+                      cargandoItems()
+                        ? 'Cargando…'
+                        : l.items
+                          ? 'Ningún ítem coincide con la búsqueda.'
+                          : 'Sin ítems.'
+                    }}
+                  </td>
+                </tr>
               }
             </tbody>
-            @if (l.items.length) {
+            @if (l.items) {
               <tfoot>
                 <tr>
                   <td colspan="3"></td>
                   <td class="num">Totales</td>
                   <td>
-                    {{ totalServicio() }} Servicio (${{ sumaServicio().toFixed(2) }}) · {{ totalMaterial() }} Material (${{ sumaMaterial().toFixed(2) }})
+                    {{ totalServicio() }} Servicio (${{ sumaServicio().toFixed(2) }}) ·
+                    {{ totalMaterial() }} Material (${{ sumaMaterial().toFixed(2) }})
                   </td>
                 </tr>
               </tfoot>
@@ -82,15 +121,40 @@
           </table>
         </div>
 
-        <app-list-pager [pagination]="pagination" summaryLabel="ítems" label="Paginación de ítems" />
+        <app-list-pager
+          [pagination]="pagination"
+          summaryLabel="ítems"
+          label="Paginación de ítems"
+        />
 
-        @if (l.items.length) {
+        @if (l.items) {
           <p class="lp-detail__totals lp-detail__mobile-only">
-            Totales: {{ totalServicio() }} Servicio ($ {{ sumaServicio() | number: '1.2-2' }}) · {{ totalMaterial() }} Material ($ {{ sumaMaterial() | number: '1.2-2' }})
+            Totales: {{ totalServicio() }} Servicio ($ {{ sumaServicio() | number: '1.2-2' }}) ·
+            {{ totalMaterial() }} Material ($ {{ sumaMaterial() | number: '1.2-2' }})
           </p>
         }
-        <button type="button" class="lp-detail__download lp-detail__mobile-only" [disabled]="!l.items.length" (click)="descargarExcel()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg>
+        <button
+          type="button"
+          class="lp-detail__download lp-detail__mobile-only"
+          [disabled]="!l.items"
+          (click)="descargarExcel()"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <path d="m7 10 5 5 5-5" />
+            <path d="M12 15V3" />
+          </svg>
           Descargar Excel
         </button>
       </section>

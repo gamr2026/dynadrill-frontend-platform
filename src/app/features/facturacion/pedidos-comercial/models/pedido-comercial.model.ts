@@ -361,11 +361,19 @@ export interface ResultadoImportarLineas {
 export interface ListaPreciosResumen {
   id: string;
   clienteId: string;
-  clienteNombre: string;
+  clienteNombre: string | null;
   numeroContrato: string | null;
   vigenteDesde: string;
   activa: boolean;
   items: number;
+  /** Cuántos ítems de cada tipo tiene la lista y cuánto suman sus precios unitarios (no es un total a cobrar). */
+  servicios?: TotalTipoLista;
+  materiales?: TotalTipoLista;
+}
+
+export interface TotalTipoLista {
+  cantidad: number;
+  suma: number;
 }
 
 export type TipoItemLista = 'Material' | 'Servicio';

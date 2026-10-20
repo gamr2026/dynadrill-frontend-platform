@@ -1,21 +1,21 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
-  DynadrillDialogService,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
   DynadrillTagComponent,
   DynadrillTextComponent,
 } from '@digitec-it-projects/dynadrill-ui';
-import { ListaPrecios } from '../../models/lista-precios.model';
-import { ListaPreciosService } from '../../services/pedido.service';
-import { ListaPreciosCabeceraDialog } from '../../components/lista-precios-cabecera-dialog';
+import {
+  mensajeDeError,
+  type ListaPreciosResumen,
+} from '../../pedidos-comercial/models/pedido-comercial.model';
+import { ListasPreciosComercialService } from '../../pedidos-comercial/services/listas-precios-comercial.service';
 import { KpiStat, KpiStatTone } from '../../../../shared/components/kpi-stat/kpi-stat';
 
 /**
- * Fase 2 — Lista de Precios multicliente. Índice de listas + alta. La edición
- * de ítems vive en el detalle.
+ * Listas de precios por cliente y contrato, del backend nuevo. Son de consulta: los códigos y precios llegan de AS2.
  */
 @Component({
   selector: 'app-lista-precios-page',
@@ -31,21 +31,37 @@ import { KpiStat, KpiStatTone } from '../../../../shared/components/kpi-stat/kpi
   styleUrl: './lista-precios-page.scss',
 })
 export class ListaPreciosPage {
-  private readonly listaService = inject(ListaPreciosService);
-  private readonly dialog = inject(DynadrillDialogService);
+  private readonly servicio = inject(ListasPreciosComercialService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly router = inject(Router);
 
   protected readonly loading = signal(true);
-  protected readonly listas = signal<ListaPrecios[]>([]);
+  protected readonly listas = signal<ListaPreciosResumen[]>([]);
 
-  protected readonly kpis = computed<{ value: number; label: string; caption: string; tone: KpiStatTone }[]>(() => {
+  protected readonly kpis = computed<
+    { value: number; label: string; caption: string; tone: KpiStatTone }[]
+  >(() => {
     const ls = this.listas();
     return [
       { value: ls.length, label: 'Listas', caption: 'Registradas', tone: 'neutral' },
-      { value: ls.filter(l => l.activa).length, label: 'Activas', caption: 'Vigentes', tone: 'success' },
-      { value: new Set(ls.map(l => l.cliente)).size, label: 'Clientes', caption: 'Con tarifario', tone: 'brand' },
-      { value: ls.reduce((s, l) => s + l.items.length, 0), label: 'Ítems totales', caption: 'Servicios + materiales', tone: 'info' },
+      {
+        value: ls.filter((l) => l.activa).length,
+        label: 'Activas',
+        caption: 'Vigentes',
+        tone: 'success',
+      },
+      {
+        value: new Set(ls.map((l) => l.clienteId)).size,
+        label: 'Clientes',
+        caption: 'Con tarifario',
+        tone: 'brand',
+      },
+      {
+        value: ls.reduce((s, l) => s + l.items, 0),
+        label: 'Ítems totales',
+        caption: 'Servicios + materiales',
+        tone: 'info',
+      },
     ];
   });
 
@@ -55,37 +71,24 @@ export class ListaPreciosPage {
 
   private reload(): void {
     this.loading.set(true);
-    this.listaService.list().subscribe({
-      next: listas => {
+    this.servicio.listar().subscribe({
+      next: (listas) => {
         this.listas.set(listas);
         this.loading.set(false);
       },
-      error: () => {
+      error: (err) => {
         this.loading.set(false);
-        this.notify.error('Error', 'No se pudo cargar la lista de precios.');
+        this.notify.error('Error', mensajeDeError(err, 'No se pudo cargar las listas de precios.'));
       },
     });
   }
 
-  protected nuevaLista(): void {
-    const ref = this.dialog.open<ListaPreciosCabeceraDialog>({
-      title: 'Nueva lista de precios',
-      content: ListaPreciosCabeceraDialog,
-      data: {},
-      footer: false,
-      width: '640px',
-    });
-    ref.afterClose.subscribe(lista => {
-      if (lista) this.router.navigate(['/dashboard/facturacion/lista-precios', (lista as ListaPrecios).id]);
-    });
-  }
-
-  protected abrir(id: number): void {
+  protected abrir(id: string): void {
     this.router.navigate(['/dashboard/facturacion/lista-precios', id]);
   }
 
   /** Para el tag "X Servicio / Y Material" de cada card — a simple vista, sin entrar al detalle. */
-  protected contarPorTipo(l: ListaPrecios, tipo: 'Servicio' | 'Material'): number {
-    return l.items.filter(i => i.tipo === tipo).length;
+  protected contarPorTipo(l: ListaPreciosResumen, tipo: 'Servicio' | 'Material'): number {
+    return (tipo === 'Servicio' ? l.servicios : l.materiales)?.cantidad ?? 0;
   }
 }

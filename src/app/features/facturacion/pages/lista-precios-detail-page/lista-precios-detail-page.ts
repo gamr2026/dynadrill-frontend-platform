@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
+import { catchError, debounceTime, EMPTY, firstValueFrom, switchMap, tap } from 'rxjs';
 import * as XLSX from 'xlsx';
 import {
   DynadrillBannerComponent,
@@ -11,18 +13,23 @@ import {
   DynadrillSpinnerComponent,
   DynadrillTagComponent,
 } from '@digitec-it-projects/dynadrill-ui';
-import { ListaPrecios } from '../../models/lista-precios.model';
-import { ListaPreciosService } from '../../services/pedido.service';
+import {
+  mensajeDeError,
+  type ItemLista,
+  type ListaPreciosResumen,
+  type Pagina,
+} from '../../pedidos-comercial/models/pedido-comercial.model';
+import { ListasPreciosComercialService } from '../../pedidos-comercial/services/listas-precios-comercial.service';
 import { ListPager } from '../../../../shared/components/list-pager/list-pager';
 import { SearchField } from '../../../../shared/components/search-field/search-field';
-import { createPagination } from '../../../../shared/utils/pagination.util';
+import type { Pagination } from '../../../../shared/utils/pagination.util';
 import { useDetailChrome } from '../../../../layout/page-chrome.service';
 
 const TODOS = 'Todos';
 /** Ítems por página: el catálogo de un cliente puede pasar de mil filas. */
 const ITEMS_POR_PAGINA = 25;
 
-/** Fase 2 — detalle de una Lista de Precios: solo lectura (RN: la edición se retiró de la UI, ver listas-precios.controller.ts en el backend). */
+/** Detalle de una lista de precios, de solo lectura: la cabecera con sus totales y los ítems, que se buscan y paginan en el servidor (una lista puede pasar de dos mil). */
 @Component({
   selector: 'app-lista-precios-detail-page',
   imports: [
@@ -42,13 +49,17 @@ const ITEMS_POR_PAGINA = 25;
 })
 export class ListaPreciosDetailPage {
   private readonly route = inject(ActivatedRoute);
-  private readonly listaService = inject(ListaPreciosService);
+  private readonly servicio = inject(ListasPreciosComercialService);
   private readonly notify = inject(DynadrillNotificationService);
 
-  private readonly listaId = Number(this.route.snapshot.paramMap.get('id'));
+  private readonly listaId = this.route.snapshot.paramMap.get('id') ?? '';
 
   protected readonly loading = signal(true);
-  protected readonly lista = signal<ListaPrecios | null>(null);
+  protected readonly lista = signal<ListaPreciosResumen | null>(null);
+  /** Los ítems de la página que se está viendo. */
+  private readonly itemsPagina = signal<ItemLista[]>([]);
+  private readonly totalFiltrado = signal(0);
+  private readonly pagina = signal(1);
 
   // ── Búsqueda + filtro por tipo (Figma "D · Listas de precios · Detalle") ──
   protected readonly busqueda = signal('');
@@ -59,75 +70,137 @@ export class ListaPreciosDetailPage {
   protected onTipoChip(selected: string[]): void {
     const v = selected[0];
     this.tipoFiltro.set(v === 'Servicio' || v === 'Material' ? v : null);
-    this.pagination.reset();
+    this.pagina.set(1);
   }
 
   protected onBusqueda(valor: string): void {
     this.busqueda.set(valor);
-    this.pagination.reset();
+    this.pagina.set(1);
   }
 
-  private readonly todosLosItems = computed(() => this.lista()?.items ?? []);
+  protected readonly items = computed(() => this.itemsPagina());
 
-  protected readonly items = computed(() => {
-    const q = this.busqueda().trim().toLowerCase();
-    const tipo = this.tipoFiltro();
-    return this.todosLosItems().filter(
-      i => (!tipo || i.tipo === tipo) && (!q || i.codigo.toLowerCase().includes(q) || i.descripcion.toLowerCase().includes(q)),
-    );
-  });
-  protected readonly pagination = createPagination(this.items, ITEMS_POR_PAGINA);
+  /** Paginación contra el servidor: cambiar de página vuelve a consultar (la búsqueda y el tipo reinician en la primera). */
+  protected readonly pagination: Pagination<ItemLista> = {
+    page: this.pagina.asReadonly(),
+    totalPages: computed(() => Math.max(1, Math.ceil(this.totalFiltrado() / ITEMS_POR_PAGINA))),
+    pageItems: this.itemsPagina.asReadonly(),
+    total: this.totalFiltrado.asReadonly(),
+    range: computed(() => {
+      const total = this.totalFiltrado();
+      if (!total) return { from: 0, to: 0 };
+      const from = (this.pagina() - 1) * ITEMS_POR_PAGINA + 1;
+      return { from, to: Math.min(from + ITEMS_POR_PAGINA - 1, total) };
+    }),
+    goTo: (page) => this.pagina.set(page),
+    reset: () => this.pagina.set(1),
+  };
 
   /**
-   * Totales por tipo — de la lista COMPLETA, no de lo filtrado por búsqueda/chip
-   * (Figma: el contador "N items" del encabezado sí sigue al filtro, los
-   * "Totales" del pie son del catálogo entero). Catálogo sin cantidad por
-   * ítem, así que esto es lo que sí se puede contar.
+   * Totales por tipo de la lista COMPLETA, no de lo filtrado por la búsqueda o el chip (Figma: el contador "N ítems" del
+   * encabezado sigue al filtro; los "Totales" del pie son del catálogo entero). La suma es de precios unitarios, no un total a cobrar.
    */
-  protected readonly totalServicio = computed(() => this.todosLosItems().filter(i => i.tipo === 'Servicio').length);
-  protected readonly totalMaterial = computed(() => this.todosLosItems().filter(i => i.tipo === 'Material').length);
-  /** Suma de precios por tipo — no es un "total a cobrar" (esto es catálogo, no un pedido con cantidades), solo la suma de precios unitarios de cada tipo. */
-  protected readonly sumaServicio = computed(() => this.todosLosItems().filter(i => i.tipo === 'Servicio').reduce((s, i) => s + i.precio, 0));
-  protected readonly sumaMaterial = computed(() => this.todosLosItems().filter(i => i.tipo === 'Material').reduce((s, i) => s + i.precio, 0));
+  protected readonly totalServicio = computed(() => this.lista()?.servicios?.cantidad ?? 0);
+  protected readonly totalMaterial = computed(() => this.lista()?.materiales?.cantidad ?? 0);
+  protected readonly sumaServicio = computed(() => this.lista()?.servicios?.suma ?? 0);
+  protected readonly sumaMaterial = computed(() => this.lista()?.materiales?.suma ?? 0);
 
   constructor() {
-    this.reload();
+    this.cargarCabecera();
+
+    // Los ítems se piden al servidor cuando cambia la búsqueda, el tipo o la página (la búsqueda espera a que se deje de escribir).
+    toObservable(
+      computed(() => ({ q: this.busqueda().trim(), tipo: this.tipoFiltro(), page: this.pagina() })),
+    )
+      .pipe(
+        debounceTime(250),
+        tap(() => this.cargandoItems.set(true)),
+        switchMap((c) =>
+          this.servicio
+            .items(this.listaId, {
+              q: c.q || undefined,
+              tipo: c.tipo,
+              page: c.page,
+              limit: ITEMS_POR_PAGINA,
+            })
+            .pipe(
+              catchError((err) => {
+                this.cargandoItems.set(false);
+                this.notify.error(
+                  'Error',
+                  mensajeDeError(err, 'No se pudieron cargar los ítems de la lista.'),
+                );
+                return EMPTY;
+              }),
+            ),
+        ),
+        takeUntilDestroyed(),
+      )
+      .subscribe((pagina) => {
+        this.itemsPagina.set(pagina.items);
+        this.totalFiltrado.set(pagina.total);
+        this.cargandoItems.set(false);
+      });
 
     // Barra "Detail" del header (Figma Nav/TopAppBar, solo móvil).
     useDetailChrome(
-      () => this.lista()?.cliente ?? 'Lista de precios',
+      () => this.lista()?.clienteNombre ?? 'Lista de precios',
       '/dashboard/facturacion/lista-precios',
-      () => this.lista()?.items.length ? [{ label: 'Descargar Excel', action: () => this.descargarExcel() }] : [],
+      () =>
+        this.lista()?.items
+          ? [{ label: 'Descargar Excel', action: () => void this.descargarExcel() }]
+          : [],
     );
   }
 
-  private reload(): void {
+  protected readonly cargandoItems = signal(true);
+
+  private cargarCabecera(): void {
     this.loading.set(true);
-    this.listaService.get(this.listaId).subscribe({
-      next: l => {
+    this.servicio.detalle(this.listaId).subscribe({
+      next: (l) => {
         this.lista.set(l);
         this.loading.set(false);
       },
-      error: () => {
+      error: (err) => {
         this.loading.set(false);
-        this.notify.error('Error', 'No se pudo cargar la lista de precios.');
+        this.notify.error('Error', mensajeDeError(err, 'No se pudo cargar la lista de precios.'));
       },
     });
   }
 
-  protected descargarExcel(): void {
+  /** El Excel lleva la lista completa, no solo la página: se pide por tandas de 200. */
+  protected async descargarExcel(): Promise<void> {
     const l = this.lista();
     if (!l) return;
-    const filas = l.items.map(i => ({
-      Código: i.codigo,
-      Descripción: i.descripcion,
-      Unidad: i.unidad,
-      Precio: i.precio,
-      Tipo: i.tipo,
-    }));
-    const sheet = XLSX.utils.json_to_sheet(filas);
-    const book = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(book, sheet, 'Lista de precios');
-    XLSX.writeFile(book, `Lista-de-precios-${l.cliente}-${l.numeroContrato}.xlsx`);
+    try {
+      const todos: ItemLista[] = [];
+      let respuesta: Pagina<ItemLista>;
+      let page = 1;
+      do {
+        respuesta = await firstValueFrom(this.servicio.items(this.listaId, { page, limit: 200 }));
+        todos.push(...respuesta.items);
+        page++;
+      } while (todos.length < respuesta.total && respuesta.items.length);
+      const filas = todos.map((i) => ({
+        Código: i.codigo,
+        Descripción: i.descripcion,
+        Unidad: i.unidad ?? '',
+        Precio: i.precio,
+        Tipo: i.tipo,
+      }));
+      const sheet = XLSX.utils.json_to_sheet(filas);
+      const book = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(book, sheet, 'Lista de precios');
+      XLSX.writeFile(
+        book,
+        `Lista-de-precios-${l.clienteNombre ?? 'cliente'}-${l.numeroContrato ?? l.id}.xlsx`,
+      );
+    } catch (err) {
+      this.notify.error(
+        'No se pudo descargar',
+        mensajeDeError(err, 'No se pudo armar el Excel de la lista. Intente de nuevo.'),
+      );
+    }
   }
 }

@@ -17,6 +17,13 @@ import {
   DynadrillTagComponent,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../../../core/services/auth.service';
+import { DocumentoPdfService } from '../../../../../shared/documentos';
+import { ChecklistHerramientaHoja } from '../../../../../shared/documentos/formatos/checklist-herramienta-hoja';
+import type {
+  FcrToolInspection,
+  FcrToolInspectionFirma,
+  FcrToolInspectionFirmaRol,
+} from '../../models/fcr-tool-inspeccion.model';
 import {
   MotivoDialog,
   type MotivoDialogData,
@@ -28,6 +35,7 @@ import {
   PASO_APROBACION,
   PASO_INSPECCION,
   mensajeErrorTicket,
+  type InspeccionHerramienta,
   type ResumenInspeccion,
   type TicketFcr,
 } from '../models/ticket-fcr';
@@ -91,7 +99,12 @@ import {
                     }
                   </td>
                   <td class="p__meta">{{ firmasTxt(r) }}</td>
-                  <td>
+                  <td class="p__fila-acciones">
+                    @if (r.inspeccion) {
+                      <dynadrill-button variant="secondary" size="small" (clicked)="verFormato(r)"
+                        >Ver formato</dynadrill-button
+                      >
+                    }
                     @if (r.inspeccion && r.inspeccion.estado !== 'rechazada') {
                       <dynadrill-button variant="secondary" size="small" (clicked)="abrir(r)">{{
                         r.inspeccion.estado === 'borrador' ? 'Abrir / firmar' : 'Ver'
@@ -183,6 +196,11 @@ import {
       font-size: 12px;
       color: #8a4b00;
     }
+    .p__fila-acciones {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
     .p__acciones {
       display: flex;
       flex-wrap: wrap;
@@ -195,6 +213,7 @@ export class TicketFcrInspeccionesPanel {
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly pdf = inject(DocumentoPdfService);
 
   readonly ticket = input.required<TicketFcr>();
   readonly cambio = output<void>();
@@ -253,6 +272,77 @@ export class TicketFcrInspeccionesPanel {
         this.error.set(mensajeErrorTicket(err, 'No se pudo cargar las inspecciones.'));
       },
     });
+  }
+
+  /** Abre el formato DYN-FCR-RE-009 «Registro de inspección y reparación de herramientas» de esa herramienta, con lo que ya está registrado. */
+  protected verFormato(r: ResumenInspeccion): void {
+    if (!r.inspeccion) return;
+    this.servicio.inspeccion(this.ticket().id, r.inspeccion.id).subscribe({
+      next: (i) =>
+        this.pdf.abrir({
+          titulo: `Inspección y reparación — ${i.descripcionHerramienta}`,
+          component: ChecklistHerramientaHoja,
+          inputs: { inspeccion: this.aFormato(i) },
+          nombreArchivo:
+            `Inspección y reparación ${i.descripcionHerramienta} ${i.numeroSerie ?? ''}`.trim(),
+        }),
+      error: (err) =>
+        this.error.set(mensajeErrorTicket(err, 'No se pudo abrir el formato de la inspección.')),
+    });
+  }
+
+  /** La inspección del backend en la forma que imprime la hoja del formato. */
+  private aFormato(i: InspeccionHerramienta): FcrToolInspection {
+    const firma = (
+      rol: 'reparado_por' | 'revisado_por' | 'liberado_qhse',
+    ): FcrToolInspectionFirma | undefined => {
+      const f = i.firmas[rol];
+      return f ? { nombre: f.nombre, fecha: f.firmadaAt, firmado: true } : undefined;
+    };
+    const firmas: Partial<Record<FcrToolInspectionFirmaRol, FcrToolInspectionFirma>> = {};
+    const r = firma('reparado_por');
+    const v = firma('revisado_por');
+    const q = firma('liberado_qhse');
+    if (r) firmas.reparadoPor = r;
+    if (v) firmas.revisadoPor = v;
+    if (q) firmas.liberadoQhse = q;
+    const estados = {
+      borrador: 'borrador',
+      enviada: 'enviado',
+      aprobada: 'aprobado',
+      rechazada: 'rechazado',
+    } as const;
+    return {
+      id: 0,
+      ticketId: 0,
+      toolId: 0,
+      articuloId: null,
+      cliente: i.cliente ?? '',
+      pozo: i.pozo ?? '',
+      fechaInspeccion: i.fechaInspeccion,
+      fechaReparacion: i.fechaReparacion,
+      fechaEnvio: i.fechaEnvio,
+      descripcionHerramienta: i.descripcionHerramienta,
+      numeroSerie: i.numeroSerie ?? '',
+      inspeccionadoPor: i.inspeccionadoPor ?? '',
+      reparadoPor: r?.nombre ?? '',
+      estado: estados[i.estado],
+      observaciones: i.observaciones ?? '',
+      firmas,
+      partes: i.partes.map((p, k) => ({
+        id: k + 1,
+        orden: p.orden,
+        item: p.item,
+        codigo: p.codigo ?? '',
+        descripcion: p.descripcion,
+        cantidadEsperada: p.cantidadEsperada,
+        visualResultado: p.visual ?? '',
+        endResultado: p.endResultado ?? '',
+        cambioCantidad: p.cambioCantidad,
+        accion: p.accion ?? '',
+        manual: p.manual,
+      })),
+    };
   }
 
   protected iniciar(r: ResumenInspeccion): void {

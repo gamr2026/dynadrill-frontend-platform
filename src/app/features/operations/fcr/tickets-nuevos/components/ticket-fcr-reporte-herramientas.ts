@@ -452,12 +452,14 @@ export class TicketFcrReporteHerramientas {
   ): void {
     this.ocupado.set(true);
     this.error.set(null);
+    const estabaConfirmado = !!this.reporte()?.listadoConfirmado;
     peticion.subscribe({
       next: (r) => {
         this.ocupado.set(false);
         this.reporte.set(r);
         alTerminar?.();
-        this.cambio.emit();
+        // recargar el ticket cuesta una decena de consultas: solo si cambió el requisito «reporte confirmado»
+        if (estabaConfirmado !== r.listadoConfirmado) this.cambio.emit();
       },
       error: (err) => {
         this.ocupado.set(false);

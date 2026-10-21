@@ -317,6 +317,7 @@ export class TicketFcrDetailPage {
       this.esServicio() &&
       this.indicePaso() < this.pasos().findIndex((x) => x.codigo === PASO_PREPARACION),
   );
+  private readonly pedidoId = computed(() => this.ticket()?.pedidoId ?? null);
   protected readonly itemsPedido = computed(() => this.pedido()?.items ?? []);
   protected readonly operadoresTexto = computed(() => {
     const o = this.ticket()?.asignacion.operadores ?? [];
@@ -349,10 +350,11 @@ export class TicketFcrDetailPage {
         error: () => this.recibidas.set(null),
       });
     });
+    // el pedido solo se vuelve a leer si cambia el ticket abierto, no cada vez que se recarga
     effect(() => {
-      const t = this.ticket();
-      if (!t || !this.puedeVerPedido()) return;
-      this.pedidos.detalle(t.pedidoId).subscribe({
+      const pedidoId = this.pedidoId();
+      if (!pedidoId || !this.puedeVerPedido()) return;
+      this.pedidos.detalle(pedidoId).subscribe({
         next: (p) => this.pedido.set(p),
         error: () => this.pedido.set(null),
       });

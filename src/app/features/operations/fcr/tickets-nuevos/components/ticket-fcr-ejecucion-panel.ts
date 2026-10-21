@@ -27,7 +27,6 @@ import { AuthService } from '../../../../../core/services/auth.service';
 import {
   ESTADO_DIA_LABELS,
   ESTADO_DIA_TONO,
-  ESTADO_USO_LABELS,
   PASO_EJECUCION,
   duracionHoras,
   fechaEnServicio,
@@ -37,13 +36,11 @@ import {
   type BitacoraTicket,
   type DiaBitacora,
   type DiaBitacoraDetalle,
-  type HerramientaTicket,
   type TicketFcr,
-  type UsoTicket,
 } from '../models/ticket-fcr';
 import { TicketsFcrService } from '../services/tickets-fcr.service';
 import { TicketFcrReporteHerramientas } from './ticket-fcr-reporte-herramientas';
-import { TicketFcrUsoDialog, type TicketFcrUsoDialogData } from './ticket-fcr-uso-dialog';
+import { TicketFcrInspeccionesDetalle } from './ticket-fcr-inspecciones-detalle';
 
 /**
  * Ejecución: la bitácora de cada día (se envía a Facturación día por día) y el uso diario de las herramientas. El operador del equipo
@@ -61,6 +58,7 @@ import { TicketFcrUsoDialog, type TicketFcrUsoDialogData } from './ticket-fcr-us
     DynadrillTagComponent,
     DynadrillTextareaComponent,
     DynadrillTextComponent,
+    TicketFcrInspeccionesDetalle,
     TicketFcrReporteHerramientas,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -68,7 +66,7 @@ import { TicketFcrUsoDialog, type TicketFcrUsoDialogData } from './ticket-fcr-us
     <section class="p" aria-label="Ejecución del trabajo">
       <h2><dynadrill-icon name="clock" [size]="20" /> Ejecución del Trabajo FCR</h2>
       <p class="p__sub">
-        Bitácora horaria y uso de herramientas — alimentan el Reporte de Trabajo y el Reporte de
+        Bitácora horaria y reporte de herramientas — alimentan el Reporte de Trabajo y el Reporte de
         Herramientas al finalizar.
       </p>
       @if (servicioTxt(); as st) {
@@ -238,64 +236,10 @@ import { TicketFcrUsoDialog, type TicketFcrUsoDialogData } from './ticket-fcr-us
           (cambio)="cambio.emit()"
         />
 
-        <h3>Completación, picker, presión y peso</h3>
-        @if (puedeEditar()) {
-          <div class="p__acciones">
-            <dynadrill-button
-              variant="secondary"
-              size="small"
-              [disabled]="!recibidas().length"
-              (clicked)="registrarUso()"
-              >Registrar completación o picker de una herramienta</dynadrill-button
-            >
-          </div>
+        @if (ticket().tipoOt === 'servicio') {
+          <h3>Inspección y reparación de las herramientas seleccionadas</h3>
+          <app-ticket-fcr-inspecciones-detalle [ticket]="ticket()" />
         }
-        <div class="p__tabla">
-          <table>
-            <caption class="sr-only">
-              Registro de completación o picker por herramienta
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Día</th>
-                <th scope="col">Herramienta</th>
-                <th scope="col">Completación o trabajo</th>
-                <th scope="col">Picker</th>
-                <th scope="col">Presión / peso</th>
-                <th scope="col"><span class="sr-only">Acciones</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (u of uso()?.usos ?? []; track u.id) {
-                <tr>
-                  <td>{{ u.fecha }}</td>
-                  <td>
-                    {{ u.nombre }} <span class="p__meta">{{ u.codigo }}</span>
-                  </td>
-                  <td>{{ u.tipoCompletacion ?? u.tipoTrabajo ?? '—' }}</td>
-                  <td>{{ u.tipoPicker ?? '—' }}</td>
-                  <td>
-                    {{ u.presion ?? '—' }} / {{ u.peso ?? '—' }}
-                    @if (u.observacion) {
-                      <div class="p__nov">{{ u.observacion }}</div>
-                    }
-                  </td>
-                  <td>
-                    @if (puedeEditar()) {
-                      <dynadrill-button variant="secondary" size="small" (clicked)="quitarUso(u.id)"
-                        >Quitar</dynadrill-button
-                      >
-                    }
-                  </td>
-                </tr>
-              } @empty {
-                <tr>
-                  <td colspan="6" class="p__meta">Todavía no hay registros de picker.</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
 
         @if (puedeEditar()) {
           <div class="p__acciones" role="group" aria-label="Finalizar la ejecución">
@@ -477,18 +421,12 @@ export class TicketFcrEjecucionPanel {
     mFin: '',
     detalle: '',
   });
-  protected readonly uso = signal<UsoTicket | null>(null);
-  private readonly herramientas = signal<HerramientaTicket[]>([]);
   protected readonly cargando = signal(true);
   protected readonly ocupado = signal(false);
   protected readonly error = signal<string | null>(null);
 
   protected readonly estadoDia = (d: DiaBitacora) => ESTADO_DIA_LABELS[d.estado];
   protected readonly tonoDia = (d: DiaBitacora) => ESTADO_DIA_TONO[d.estado];
-  protected readonly estadoUso = (e: keyof typeof ESTADO_USO_LABELS) => ESTADO_USO_LABELS[e];
-  protected readonly recibidas = computed(() =>
-    this.herramientas().filter((h) => h.estado === 'recibida'),
-  );
   /** El operador del equipo, mientras el ticket está en ejecución. */
   protected readonly puedeEditar = computed(
     () => this.ticket().paso.codigo === PASO_EJECUCION && this.ticket().puedeActuar,
@@ -543,10 +481,11 @@ export class TicketFcrEjecucionPanel {
   private cargar(): void {
     const id = this.ticket().id;
     // el velo de carga solo sale la primera vez; las recargas posteriores no tapan el panel
-    if (!this.bitacora() && !this.uso()) this.cargando.set(true);
+    if (!this.bitacora()) this.cargando.set(true);
     this.servicio.bitacora(id).subscribe({
       next: (b) => {
         this.bitacora.set(b);
+        this.cargando.set(false);
         if (!this.nueva().fecha) this.cambiarNueva('fecha', this.hoyEnServicio());
         const dias = b.dias.filter((d) => d.actividades > 0);
         if (!dias.length) return this.detalles.set({});
@@ -556,21 +495,10 @@ export class TicketFcrEjecucionPanel {
           error: () => this.detalles.set({}),
         });
       },
-      error: (err) => this.error.set(mensajeErrorTicket(err, 'No se pudo cargar la bitácora.')),
-    });
-    this.servicio.uso(id).subscribe({
-      next: (u) => {
-        this.uso.set(u);
-        this.cargando.set(false);
-      },
       error: (err) => {
         this.cargando.set(false);
-        this.error.set(mensajeErrorTicket(err, 'No se pudo cargar el uso de las herramientas.'));
+        this.error.set(mensajeErrorTicket(err, 'No se pudo cargar la bitácora.'));
       },
-    });
-    this.servicio.herramientas(id).subscribe({
-      next: (h) => this.herramientas.set(h.herramientas),
-      error: () => this.herramientas.set([]),
     });
   }
 
@@ -668,44 +596,6 @@ export class TicketFcrEjecucionPanel {
       error: (err) => {
         this.ocupado.set(false);
         this.error.set(mensajeErrorTicket(err, 'No se pudo enviar el día.'));
-      },
-    });
-  }
-
-  protected registrarUso(): void {
-    const t = this.ticket();
-    const ref = this.dialog.open<TicketFcrUsoDialog, TicketFcrUsoDialogData>({
-      title: 'Uso de una herramienta',
-      content: TicketFcrUsoDialog,
-      data: {
-        ticketId: t.id,
-        tipoOt: t.tipoOt,
-        herramientas: this.herramientas(),
-        servicio: this.bitacora()?.servicio ?? { desde: null, hasta: null },
-        fecha: this.hoyEnServicio(),
-      },
-      footer: false,
-      width: '640px',
-    });
-    ref.afterClose.subscribe((u: UsoTicket | undefined) => {
-      if (u) {
-        this.uso.set(u);
-        this.cambio.emit();
-      }
-    });
-  }
-
-  protected quitarUso(usoId: string): void {
-    this.ocupado.set(true);
-    this.servicio.quitarUso(this.ticket().id, usoId).subscribe({
-      next: (u) => {
-        this.ocupado.set(false);
-        this.uso.set(u);
-        this.cambio.emit();
-      },
-      error: (err) => {
-        this.ocupado.set(false);
-        this.error.set(mensajeErrorTicket(err, 'No se pudo quitar el registro.'));
       },
     });
   }

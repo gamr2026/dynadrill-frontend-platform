@@ -19,11 +19,6 @@ import {
 import { AuthService } from '../../../../../core/services/auth.service';
 import { DocumentoPdfService } from '../../../../../shared/documentos';
 import { ChecklistHerramientaHoja } from '../../../../../shared/documentos/formatos/checklist-herramienta-hoja';
-import type {
-  FcrToolInspection,
-  FcrToolInspectionFirma,
-  FcrToolInspectionFirmaRol,
-} from '../../models/fcr-tool-inspeccion.model';
 import {
   MotivoDialog,
   type MotivoDialogData,
@@ -35,7 +30,6 @@ import {
   PASO_APROBACION,
   PASO_INSPECCION,
   mensajeErrorTicket,
-  type InspeccionHerramienta,
   type ResumenInspeccion,
   type TicketFcr,
 } from '../models/ticket-fcr';
@@ -44,6 +38,7 @@ import {
   TicketFcrInspeccionDialog,
   type TicketFcrInspeccionDialogData,
 } from './ticket-fcr-inspeccion-dialog';
+import { inspeccionAFormato } from './inspeccion-formato';
 
 /**
  * Inspección y reparación de herramientas (entrada SERVICIOS): el operador asignado inicia y llena la de cada herramienta, el Supervisor y
@@ -282,67 +277,13 @@ export class TicketFcrInspeccionesPanel {
         this.pdf.abrir({
           titulo: `Inspección y reparación — ${i.descripcionHerramienta}`,
           component: ChecklistHerramientaHoja,
-          inputs: { inspeccion: this.aFormato(i) },
+          inputs: { inspeccion: inspeccionAFormato(i) },
           nombreArchivo:
             `Inspección y reparación ${i.descripcionHerramienta} ${i.numeroSerie ?? ''}`.trim(),
         }),
       error: (err) =>
         this.error.set(mensajeErrorTicket(err, 'No se pudo abrir el formato de la inspección.')),
     });
-  }
-
-  /** La inspección del backend en la forma que imprime la hoja del formato. */
-  private aFormato(i: InspeccionHerramienta): FcrToolInspection {
-    const firma = (
-      rol: 'reparado_por' | 'revisado_por' | 'liberado_qhse',
-    ): FcrToolInspectionFirma | undefined => {
-      const f = i.firmas[rol];
-      return f ? { nombre: f.nombre, fecha: f.firmadaAt, firmado: true } : undefined;
-    };
-    const firmas: Partial<Record<FcrToolInspectionFirmaRol, FcrToolInspectionFirma>> = {};
-    const r = firma('reparado_por');
-    const v = firma('revisado_por');
-    const q = firma('liberado_qhse');
-    if (r) firmas.reparadoPor = r;
-    if (v) firmas.revisadoPor = v;
-    if (q) firmas.liberadoQhse = q;
-    const estados = {
-      borrador: 'borrador',
-      enviada: 'enviado',
-      aprobada: 'aprobado',
-      rechazada: 'rechazado',
-    } as const;
-    return {
-      id: 0,
-      ticketId: 0,
-      toolId: 0,
-      articuloId: null,
-      cliente: i.cliente ?? '',
-      pozo: i.pozo ?? '',
-      fechaInspeccion: i.fechaInspeccion,
-      fechaReparacion: i.fechaReparacion,
-      fechaEnvio: i.fechaEnvio,
-      descripcionHerramienta: i.descripcionHerramienta,
-      numeroSerie: i.numeroSerie ?? '',
-      inspeccionadoPor: i.inspeccionadoPor ?? '',
-      reparadoPor: r?.nombre ?? '',
-      estado: estados[i.estado],
-      observaciones: i.observaciones ?? '',
-      firmas,
-      partes: i.partes.map((p, k) => ({
-        id: k + 1,
-        orden: p.orden,
-        item: p.item,
-        codigo: p.codigo ?? '',
-        descripcion: p.descripcion,
-        cantidadEsperada: p.cantidadEsperada,
-        visualResultado: p.visual ?? '',
-        endResultado: p.endResultado ?? '',
-        cambioCantidad: p.cambioCantidad,
-        accion: p.accion ?? '',
-        manual: p.manual,
-      })),
-    };
   }
 
   protected iniciar(r: ResumenInspeccion): void {

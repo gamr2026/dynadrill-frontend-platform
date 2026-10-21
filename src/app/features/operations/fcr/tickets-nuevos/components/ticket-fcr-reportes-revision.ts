@@ -7,10 +7,7 @@ import {
   DynadrillNotificationService,
 } from '@digitec-it-projects/dynadrill-ui';
 import { DocumentoPdfService } from '../../../../../shared/documentos';
-import {
-  ReporteHerramientasHoja,
-  type FilaDetalle,
-} from '../../../../../shared/documentos/formatos/reporte-herramientas-hoja';
+import { ReporteHerramientasHoja } from '../../../../../shared/documentos/formatos/reporte-herramientas-hoja';
 import {
   ReporteJobHoja,
   type ReporteJobExtras,
@@ -136,8 +133,8 @@ export class TicketFcrReportesRevision {
     const t = this.ticket();
     this.ocupado.set(true);
     this.error.set(null);
-    forkJoin({ reporte: this.servicio.reporte(t.id), uso: this.servicio.uso(t.id) }).subscribe({
-      next: ({ reporte, uso }) => {
+    this.servicio.reporte(t.id).subscribe({
+      next: (reporte) => {
         this.ocupado.set(false);
         const tools: OperativoToolRef[] = [];
         const usageLog: OperativoToolUsageEntry[] = [];
@@ -159,19 +156,10 @@ export class TicketFcrReportesRevision {
               ...(it.porDia ? {} : { cantidad: d.cantidad }),
             });
         });
-        const detallePicker: FilaDetalle[] = uso.usos.map((u) => ({
-          herramienta: u.nombre,
-          fecha: dia(u.fecha),
-          tipo: u.tipoTrabajo ?? u.tipoCompletacion ?? '',
-          picker: u.tipoPicker ?? '',
-          presion: u.presion === null ? '' : String(u.presion),
-          peso: u.peso === null ? '' : String(u.peso),
-          observacion: u.observacion ?? '',
-        }));
         this.pdf.abrir({
           titulo: 'Reporte de Herramientas',
           component: ReporteHerramientasHoja,
-          inputs: { header: this.encabezado(), tools, usageLog, detallePicker },
+          inputs: { header: this.encabezado(), tools, usageLog },
           orientacion: 'landscape',
           nombreArchivo: `Reporte de Herramientas ${this.encabezado().code}`,
           descargar,

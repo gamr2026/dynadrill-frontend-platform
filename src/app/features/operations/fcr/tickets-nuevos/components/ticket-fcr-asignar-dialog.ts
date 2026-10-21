@@ -9,8 +9,6 @@ import {
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import { RolesService } from '../../../../users/services/users.service';
-import { CatalogosPlataformaService } from '../../../../facturacion/pedidos-comercial/services/catalogos-plataforma.service';
-import type { VehiculoPlataforma } from '../../../../facturacion/pedidos-comercial/models/catalogos-plataforma.model';
 import {
   mensajeErrorTicket,
   validarAsignacion,
@@ -31,7 +29,7 @@ interface Persona {
 }
 
 /**
- * El Supervisor asigna a los operadores del servicio y, si el servicio lleva vehículo, su unidad (opcional). A cada cuenta elegida se le
+ * El Supervisor asigna a los operadores del servicio. A cada cuenta elegida se le
  * avisa por correo y campanita (solo a ellas, no a todo su rol).
  */
 @Component({
@@ -56,7 +54,7 @@ interface Persona {
         />
       }
       <fieldset class="d__bloque">
-        <legend>Operadores y unidad (opcional)</legend>
+        <legend>Operadores</legend>
         @for (f of filas(); track $index; let i = $index) {
           <div class="d__fila">
             <dynadrill-select
@@ -66,14 +64,6 @@ interface Persona {
               [value]="f.usuarioId"
               [searchable]="true"
               (valueChange)="cambiar(i, 'usuarioId', $any($event))"
-            />
-            <dynadrill-select
-              label="Unidad (si lleva vehículo)"
-              placeholder="Sin unidad"
-              [options]="opcionesUnidades()"
-              [value]="f.vehiculoId"
-              [searchable]="true"
-              (valueChange)="cambiar(i, 'vehiculoId', $any($event))"
             />
             <button
               type="button"
@@ -147,30 +137,20 @@ interface Persona {
 export class TicketFcrAsignarDialog {
   private readonly servicio = inject(TicketsFcrService);
   private readonly roles = inject(RolesService);
-  private readonly catalogos = inject(CatalogosPlataformaService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly modalRef = inject(NzModalRef<TicketFcrAsignarDialog, TicketFcr | undefined>);
   protected readonly data = inject<TicketFcrAsignarDialogData>(NZ_MODAL_DATA);
 
   private readonly supervisores = signal<Persona[]>([]);
   private readonly operadores = signal<Persona[]>([]);
-  private readonly vehiculos = signal<VehiculoPlataforma[]>([]);
   protected readonly supervisorId = signal<string | null>(null);
-  protected readonly filas = signal<FilaOperador[]>([{ usuarioId: null, vehiculoId: null }]);
+  protected readonly filas = signal<FilaOperador[]>([{ usuarioId: null }]);
   protected readonly enviando = signal(false);
 
   protected readonly opcionesSupervisor = computed<DynadrillSelectOption[]>(() =>
     this.supervisores()
       .filter((s) => !this.filas().some((f) => f.usuarioId === s.id))
       .map((s) => ({ label: s.name, value: s.id })),
-  );
-  protected readonly opcionesUnidades = computed<DynadrillSelectOption[]>(() =>
-    this.vehiculos()
-      .filter((v) => v.habilitado)
-      .map((v) => ({
-        label: [v.placa, v.tipoVehiculo?.nombre, v.marca, v.modelo].filter(Boolean).join(' · '),
-        value: v.id,
-      })),
   );
   protected readonly problema = computed(() =>
     validarAsignacion(this.supervisorId(), this.filas(), this.data.haySupervisor),
@@ -180,7 +160,6 @@ export class TicketFcrAsignarDialog {
     forkJoin({
       sup: this.roles.usuariosPorRol('supervisor'),
       ops: this.roles.usuariosPorRol('operador_fcr'),
-      veh: this.catalogos.vehiculos(),
     }).subscribe({
       next: (r) => {
         const unicos = (l: Persona[]) =>
@@ -189,13 +168,9 @@ export class TicketFcrAsignarDialog {
           );
         this.supervisores.set(unicos(r.sup));
         this.operadores.set(unicos(r.ops));
-        this.vehiculos.set(r.veh);
       },
       error: (err) =>
-        this.notify.error(
-          'Error',
-          mensajeErrorTicket(err, 'No se pudo cargar las personas y unidades.'),
-        ),
+        this.notify.error('Error', mensajeErrorTicket(err, 'No se pudo cargar las personas.')),
     });
   }
 
@@ -215,12 +190,10 @@ export class TicketFcrAsignarDialog {
     this.filas.update((l) => l.map((f, k) => (k === i ? { ...f, [campo]: valor } : f)));
   }
   protected agregar(): void {
-    this.filas.update((l) => [...l, { usuarioId: null, vehiculoId: null }]);
+    this.filas.update((l) => [...l, { usuarioId: null }]);
   }
   protected quitar(i: number): void {
-    this.filas.update((l) =>
-      l.length > 1 ? l.filter((_, k) => k !== i) : [{ usuarioId: null, vehiculoId: null }],
-    );
+    this.filas.update((l) => (l.length > 1 ? l.filter((_, k) => k !== i) : [{ usuarioId: null }]));
   }
 
   protected asignar(): void {
@@ -228,10 +201,7 @@ export class TicketFcrAsignarDialog {
     const sup = this.supervisorId();
     const cuerpo = {
       ...(!this.data.haySupervisor && sup ? { supervisorId: sup } : {}),
-      operadores: this.filas().map((f) => ({
-        usuarioId: f.usuarioId!,
-        ...(f.vehiculoId ? { vehiculoId: f.vehiculoId } : {}),
-      })),
+      operadores: this.filas().map((f) => ({ usuarioId: f.usuarioId! })),
     };
     this.enviando.set(true);
     this.servicio.asignar(this.data.ticketId, cuerpo).subscribe({

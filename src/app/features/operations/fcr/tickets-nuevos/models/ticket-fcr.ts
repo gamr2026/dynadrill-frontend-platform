@@ -66,10 +66,9 @@ export interface RequisitoTicket {
   nombre: string;
   descripcion: string | null;
   modulo: 'fcr' | 'qhse' | 'flota';
-  ambito: 'ticket' | 'unidad' | 'operador';
+  ambito: 'ticket' | 'operador';
   paso: string | null;
   para: string | null;
-  vehiculoId: string | null;
   usuarioId: string | null;
   estado: 'pendiente' | 'cumplido';
   cumplidoAt: string | null;
@@ -81,19 +80,9 @@ export interface PersonaAsignada {
   usuarioId: string;
   nombre: string;
 }
-export interface OperadorAsignado extends PersonaAsignada {
-  vehiculoId: string | null;
-  placa: string | null;
-}
-export interface UnidadAsignada {
-  vehiculoId: string;
-  placa: string;
-  descripcion: string | null;
-}
 export interface AsignacionTicket {
   supervisor: PersonaAsignada | null;
-  operadores: OperadorAsignado[];
-  unidades: UnidadAsignada[];
+  operadores: PersonaAsignada[];
 }
 
 export interface TicketFcr extends TicketFcrResumen {
@@ -592,33 +581,6 @@ export function fechaEnServicio(fecha: string, servicio: BitacoraTicket['servici
   );
 }
 
-export type EstadoUso = 'operacion' | 'stand_by' | 'daily_charge' | 'venta';
-export const ESTADO_USO_LABELS: Record<EstadoUso, string> = {
-  operacion: 'Operación',
-  stand_by: 'Stand by',
-  daily_charge: 'Daily charge',
-  venta: 'Venta',
-};
-
-export interface UsoHerramienta {
-  id: string;
-  herramientaId: string;
-  codigo: string;
-  nombre: string;
-  fecha: string;
-  estado: EstadoUso;
-  tipoCompletacion: string | null;
-  tipoTrabajo: string | null;
-  tipoPicker: string | null;
-  presion: number | null;
-  peso: number | null;
-  observacion: string | null;
-}
-export interface UsoTicket {
-  listadoConfirmado: boolean;
-  usos: UsoHerramienta[];
-}
-
 /** Estado de un día de una fila por día del Reporte de Herramientas (el stand-by no se cobra y no se registra). */
 export type EstadoDiaReporte = 'operacion' | 'daily_charge' | 'venta';
 export const ESTADO_DIA_REPORTE_LABELS: Record<EstadoDiaReporte, string> = {
@@ -676,88 +638,10 @@ export interface OpcionItemLista {
   tipo: 'Material' | 'Servicio';
 }
 
-export interface PickerEntrada {
-  tipoCompletacionId?: string;
-  tipoTrabajoId?: string;
-  tipoPickerId: string;
-  presion: number;
-  peso: number;
-  observacion?: string;
-}
-
-/** Qué falta del registro de picker (o `null`): completación en venta, tipo de trabajo en servicios, picker, presión y peso. */
-export function validarPicker(
-  tipoOt: TipoOt,
-  p: Partial<Record<keyof PickerEntrada, string | number | null | undefined>>,
-): string | null {
-  if (tipoOt === 'servicio' && !p.tipoTrabajoId) return 'Elija el tipo de trabajo.';
-  if (tipoOt === 'venta' && !p.tipoCompletacionId) return 'Elija el tipo de completación.';
-  if (!p.tipoPickerId) return 'Elija el tipo de picker.';
-  for (const [campo, nombre] of [
-    ['presion', 'la presión'],
-    ['peso', 'el peso'],
-  ] as const) {
-    const v = p[campo];
-    if (v === null || v === undefined || v === '' || Number.isNaN(Number(v)) || Number(v) < 0)
-      return `Indique ${nombre} (un número desde 0).`;
-  }
-  return null;
-}
-
-// ── Llegada de unidad ──
-
-export interface ReporteLlegada {
-  id: string;
-  fecha: string;
-  combustible: number | null;
-  novedadesMecanica: string | null;
-  novedadesInstrumentacion: string | null;
-  novedadesOperaciones: string | null;
-  unidadLista: boolean;
-  operacionInterrumpida: boolean;
-  detalleInterrupcion: string | null;
-  firmadaPor: string;
-  firmadaAt: string;
-}
-export interface UnidadLlegada {
-  vehiculoId: string;
-  placa: string;
-  operador: PersonaAsignada | null;
-  reporte: ReporteLlegada | null;
-}
-export interface LlegadaEntrada {
-  fecha: string;
-  combustible: number;
-  novedadesMecanica?: string;
-  novedadesInstrumentacion?: string;
-  novedadesOperaciones?: string;
-  unidadLista: boolean;
-  operacionInterrumpida: boolean;
-  detalleInterrupcion?: string;
-}
-
-/** Qué falta del reporte de llegada (o `null`). */
-export function validarLlegada(
-  l: Partial<Omit<LlegadaEntrada, 'combustible'>> & { combustible?: number | null },
-): string | null {
-  if (!l.fecha || !/^\d{4}-\d{2}-\d{2}$/.test(l.fecha)) return 'Indique el día de la llegada.';
-  if (
-    l.combustible === null ||
-    l.combustible === undefined ||
-    Number.isNaN(Number(l.combustible)) ||
-    Number(l.combustible) < 0
-  )
-    return 'Indique el combustible (un número desde 0).';
-  if (l.operacionInterrumpida && !l.detalleInterrupcion?.trim())
-    return 'Explique por qué se interrumpió la operación.';
-  return null;
-}
-
 // ── Asignación ──
 
 export interface FilaOperador {
   usuarioId: string | null;
-  vehiculoId: string | null;
 }
 
 /** Qué falta para asignar (o `null`): al menos un operador, sin repetir, y el supervisor distinto de los operadores. */

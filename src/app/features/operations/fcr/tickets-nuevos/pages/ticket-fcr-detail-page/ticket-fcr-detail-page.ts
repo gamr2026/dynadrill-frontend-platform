@@ -169,7 +169,7 @@ export class TicketFcrDetailPage {
   });
   protected readonly hayAsignacion = computed(() => {
     const a = this.ticket()?.asignacion;
-    return !!a && (!!a.supervisor || a.operadores.length > 0 || a.unidades.length > 0);
+    return !!a && (!!a.supervisor || a.operadores.length > 0);
   });
 
   private readonly codigoActual = computed(() => this.ticket()?.paso.codigo ?? '');

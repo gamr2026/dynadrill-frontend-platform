@@ -25,7 +25,6 @@ import {
   mensajeErrorTicket,
   type HerramientaTicket,
   type TicketFcr,
-  type UnidadLlegada,
 } from '../models/ticket-fcr';
 import { TicketsFcrService } from '../services/tickets-fcr.service';
 import {
@@ -33,14 +32,9 @@ import {
   type FaltanteResultado,
   type TicketFcrFaltanteDialogData,
 } from './ticket-fcr-faltante-dialog';
-import {
-  TicketFcrLlegadaDialog,
-  type TicketFcrLlegadaDialogData,
-} from './ticket-fcr-llegada-dialog';
 
 /**
- * Control de retorno: Bodega registra cada herramienta como devuelta o faltante (con causa y detalle), y el operador de cada unidad firma
- * su reporte de llegada. Sin eso el ticket no pasa al cierre.
+ * Control de retorno: Bodega registra cada herramienta como devuelta o faltante (con causa y detalle). Sin eso el ticket no pasa al cierre.
  */
 @Component({
   selector: 'app-ticket-fcr-retorno-panel',
@@ -95,28 +89,6 @@ import {
             <li class="p__meta">El ticket no tiene herramientas.</li>
           }
         </ul>
-
-        @if (llegadas().length) {
-          <h2>Reporte de unidad de llegada</h2>
-          <ul class="p__lista">
-            @for (u of llegadas(); track u.vehiculoId) {
-              <li>
-                <span
-                  >{{ u.placa }}
-                  <span class="p__meta">· {{ u.operador?.nombre ?? 'Sin operador' }}</span></span
-                >
-                <dynadrill-tag
-                  [label]="u.reporte ? 'Firmado' : 'Pendiente'"
-                  [variant]="u.reporte ? 'success' : 'warning'"
-                  [uppercase]="false"
-                />
-                <dynadrill-button variant="secondary" size="small" (clicked)="abrirLlegada(u)">{{
-                  !u.reporte && puedeFirmar(u) ? 'Llenar y firmar' : 'Ver'
-                }}</dynadrill-button>
-              </li>
-            }
-          </ul>
-        }
       </dynadrill-spinner>
     </section>
   `,
@@ -185,7 +157,6 @@ export class TicketFcrRetornoPanel {
   readonly cambio = output<void>();
 
   protected readonly herramientas = signal<HerramientaTicket[]>([]);
-  protected readonly llegadas = signal<UnidadLlegada[]>([]);
   protected readonly cargando = signal(true);
   protected readonly ocupado = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -220,9 +191,6 @@ export class TicketFcrRetornoPanel {
         this.error.set(mensajeErrorTicket(err, 'No se pudo cargar las herramientas.'));
       },
     });
-    this.servicio
-      .llegadas(id)
-      .subscribe({ next: (l) => this.llegadas.set(l), error: () => this.llegadas.set([]) });
   }
 
   private resultado(
@@ -271,35 +239,5 @@ export class TicketFcrRetornoPanel {
           `Faltante registrado: ${h.nombre}`,
         ),
     );
-  }
-
-  /** El operador asignado a la unidad (o Superadmin) firma su reporte. */
-  protected puedeFirmar(u: UnidadLlegada): boolean {
-    const me = this.auth.currentUser();
-    return (
-      this.enRetorno() && !!me && (me.roleCode === 'superadmin' || u.operador?.usuarioId === me.id)
-    );
-  }
-
-  protected abrirLlegada(u: UnidadLlegada): void {
-    const ref = this.dialog.open<TicketFcrLlegadaDialog, TicketFcrLlegadaDialogData>({
-      title: `Reporte de unidad de llegada — ${u.placa}`,
-      content: TicketFcrLlegadaDialog,
-      data: {
-        ticketId: this.ticket().id,
-        vehiculoId: u.vehiculoId,
-        placa: u.placa,
-        reporte: u.reporte,
-        puedeFirmar: this.puedeFirmar(u),
-      },
-      footer: false,
-      width: '720px',
-    });
-    ref.afterClose.subscribe((l: UnidadLlegada[] | undefined) => {
-      if (l) {
-        this.llegadas.set(l);
-        this.cambio.emit();
-      }
-    });
   }
 }

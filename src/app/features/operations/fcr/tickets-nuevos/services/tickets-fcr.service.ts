@@ -18,15 +18,12 @@ import type {
   DiaBitacoraDetalle,
   DocumentoTicket,
   EstadoDiaReporte,
-  EstadoUso,
   FiltroTickets,
   HerramientaDisponible,
   HerramientaPendiente,
   HerramientasTicket,
   InspeccionHerramienta,
-  LlegadaEntrada,
   OpcionItemLista,
-  PickerEntrada,
   ReporteHerramientas,
   ResponsableTrabajo,
   ResultadoParte,
@@ -34,8 +31,6 @@ import type {
   RolFirma,
   TicketFcr,
   TicketFcrResumen,
-  UnidadLlegada,
-  UsoTicket,
 } from '../models/ticket-fcr';
 
 /** Tickets de FCR del contenedor `operaciones`. La autoridad de pasos, roles y requisitos es el backend. */
@@ -83,7 +78,7 @@ export class TicketsFcrService {
     id: string,
     cuerpo: {
       supervisorId?: string;
-      operadores: Array<{ usuarioId: string; vehiculoId?: string }>;
+      operadores: Array<{ usuarioId: string }>;
     },
   ): Observable<TicketFcr> {
     return this.http.post<TicketFcr>(`${this.t(id)}/asignar`, cuerpo);
@@ -317,25 +312,6 @@ export class TicketsFcrService {
   enviarDia(id: string, fecha: string): Observable<DiaBitacoraDetalle> {
     return this.http.post<DiaBitacoraDetalle>(`${this.t(id)}/bitacora/${fecha}/enviar`, {});
   }
-  uso(id: string): Observable<UsoTicket> {
-    return this.http.get<UsoTicket>(`${this.t(id)}/uso-herramientas`);
-  }
-  registrarUso(
-    id: string,
-    herramientaId: string,
-    fecha: string,
-    estado: EstadoUso,
-    picker?: PickerEntrada,
-  ): Observable<UsoTicket> {
-    return this.http.put<UsoTicket>(
-      `${this.t(id)}/uso-herramientas/${herramientaId}/${fecha}`,
-      picker ? { estado, picker } : { estado },
-    );
-  }
-  quitarUso(id: string, usoId: string): Observable<UsoTicket> {
-    return this.http.delete<UsoTicket>(`${this.t(id)}/uso-herramientas/${usoId}`);
-  }
-
   // ── Reporte de Herramientas por ítem de la lista de precios ──
 
   reporte(id: string): Observable<ReporteHerramientas> {
@@ -425,21 +401,5 @@ export class TicketsFcrService {
   }
   rechazarReportes(id: string, motivo: string): Observable<TicketFcr> {
     return this.http.post<TicketFcr>(`${this.t(id)}/rechazar-reportes`, { motivo: motivo.trim() });
-  }
-
-  // ── Llegada de unidades ──
-
-  llegadas(id: string): Observable<UnidadLlegada[]> {
-    return this.http.get<UnidadLlegada[]>(`${this.t(id)}/reportes-unidad-llegada`);
-  }
-  firmarLlegada(
-    id: string,
-    vehiculoId: string,
-    cuerpo: LlegadaEntrada,
-  ): Observable<UnidadLlegada[]> {
-    return this.http.post<UnidadLlegada[]>(
-      `${this.t(id)}/reportes-unidad-llegada/${vehiculoId}`,
-      cuerpo,
-    );
   }
 }

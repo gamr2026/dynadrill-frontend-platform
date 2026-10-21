@@ -13,8 +13,6 @@ import {
   siguienteFirma,
   validarActividades,
   validarAsignacion,
-  validarLlegada,
-  validarPicker,
   type FirmaInspeccion,
   type HerramientaTicket,
   type RequisitoTicket,
@@ -30,7 +28,6 @@ const requisito = (paso: string, estado: RequisitoTicket['estado']): RequisitoTi
   ambito: 'ticket',
   paso,
   para: null,
-  vehiculoId: null,
   usuarioId: null,
   estado,
   cumplidoAt: null,
@@ -136,27 +133,8 @@ describe('tickets de FCR (modelo)', () => {
     expect(fechaEnServicio('2026-10-15', { desde: null, hasta: null })).toBe(true);
   });
 
-  it('el picker pide completación en venta y tipo de trabajo en servicios', () => {
-    const ok = { tipoPickerId: 'p', presion: 100, peso: 5 };
-    expect(validarPicker('venta', { ...ok })).toContain('completación');
-    expect(validarPicker('servicio', { ...ok })).toContain('trabajo');
-    expect(validarPicker('venta', { ...ok, tipoCompletacionId: 'c' })).toBeNull();
-    expect(validarPicker('servicio', { ...ok, tipoTrabajoId: 't', presion: -1 })).toContain(
-      'presión',
-    );
-  });
-
-  it('el reporte de llegada exige día y combustible, y el detalle si se interrumpió', () => {
-    expect(validarLlegada({ fecha: '2026-10-18', combustible: 0 })).toBeNull();
-    expect(validarLlegada({ fecha: '', combustible: 1 })).toContain('día');
-    expect(validarLlegada({ fecha: '2026-10-18', combustible: null })).toContain('combustible');
-    expect(
-      validarLlegada({ fecha: '2026-10-18', combustible: 1, operacionInterrumpida: true }),
-    ).toContain('interrumpió');
-  });
-
   it('la asignación exige supervisor, operadores y sin repetidos', () => {
-    const f = (u: string | null) => ({ usuarioId: u, vehiculoId: null });
+    const f = (u: string | null) => ({ usuarioId: u });
     expect(validarAsignacion(null, [f('a')], false)).toContain('supervisor');
     expect(validarAsignacion(null, [f('a')], true)).toBeNull();
     expect(validarAsignacion('s', [], false)).toContain('operador');

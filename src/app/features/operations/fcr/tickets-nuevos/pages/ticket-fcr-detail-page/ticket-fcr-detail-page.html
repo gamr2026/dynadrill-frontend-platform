@@ -335,21 +335,6 @@
                           <dt>Operadores</dt>
                           <dd>{{ operadoresTexto() }}</dd>
                         </div>
-                        <div>
-                          <dt>Unidades</dt>
-                          <dd>
-                            @for (
-                              u of t.asignacion.unidades;
-                              track u.vehiculoId;
-                              let ultimo = $last
-                            ) {
-                              {{ u.placa }}{{ u.descripcion ? ' (' + u.descripcion + ')' : ''
-                              }}{{ ultimo ? '' : ', ' }}
-                            } @empty {
-                              Sin unidades
-                            }
-                          </dd>
-                        </div>
                       </dl>
                     } @else {
                       <p class="tpd__meta">Todavía no hay operador asignado.</p>

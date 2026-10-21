@@ -148,18 +148,31 @@ export class TicketFcrDetailPage {
   private readonly codigoActual = computed(() => this.ticket()?.paso.codigo ?? '');
   /** El paso que quien consulta eligió en el avance del ticket (por omisión, el actual). */
   private readonly faseElegida = signal<number | null>(null);
+  /** Los pasos del avance, como en la demo: la venta no pasa por los de servicios y «Cerrado» no es un paso aparte. */
+  protected readonly pasos = computed(() =>
+    PASOS_FCR.filter(
+      (p) =>
+        p.codigo !== PASO_CERRADO &&
+        (this.ticket()?.tipoOt !== 'venta' ||
+          ![PASO_TIPO_OPERADOR, PASO_INSPECCION, PASO_APROBACION].includes(p.codigo)),
+    ),
+  );
   protected readonly indicePaso = computed(() => {
-    const i = PASOS_FCR.findIndex((p) => p.codigo === this.codigoActual());
-    return i < 0 ? 0 : i;
+    const i = this.pasos().findIndex((p) => p.codigo === this.codigoActual());
+    return i < 0 ? this.pasos().length - 1 : i;
   });
   protected readonly cerrado = computed(() => this.ticket()?.paso.macro === 'aprobado');
   protected readonly avancePaso = computed(() =>
-    this.cerrado() ? PASOS_FCR.length : this.indicePaso(),
+    this.cerrado() ? this.pasos().length : this.indicePaso(),
   );
   protected readonly indiceFase = computed(() => this.faseElegida() ?? this.indicePaso());
   /** Código del paso cuyo detalle se muestra: los paneles siguen a la fase elegida; las acciones, al paso actual. */
-  private readonly codigoPaso = computed(() => PASOS_FCR[this.indiceFase()]?.codigo ?? '');
-  protected readonly etiquetasPasos = PASOS_FCR.map((p) => p.nombre);
+  private readonly codigoPaso = computed(() =>
+    this.faseElegida() === null
+      ? this.codigoActual()
+      : (this.pasos()[this.indiceFase()]?.codigo ?? ''),
+  );
+  protected readonly etiquetasPasos = computed(() => this.pasos().map((p) => p.nombre));
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
   protected seleccionarFase(i: number): void {
     this.faseElegida.set(i === this.indicePaso() ? null : i);
@@ -168,7 +181,7 @@ export class TicketFcrDetailPage {
     const t = this.ticket();
     if (!t) return [];
     const actual = this.indicePaso();
-    return PASOS_FCR.map((p, i) => {
+    return this.pasos().map((p, i) => {
       let k = -1;
       t.historial.forEach((h, j) => {
         if (h.pasoNuevo === p.codigo) k = j;

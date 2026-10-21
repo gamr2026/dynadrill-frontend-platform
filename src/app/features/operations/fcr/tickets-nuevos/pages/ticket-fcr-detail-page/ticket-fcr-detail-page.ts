@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TicketProgress } from '../../../../shared/ticket-progress/ticket-progress';
 import type { TimelineTramo } from '../../../../../../shared/models/timeline.model';
@@ -6,6 +14,7 @@ import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
   DynadrillDialogService,
+  DynadrillIconComponent,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
@@ -16,7 +25,15 @@ import {
   MotivoDialog,
   type MotivoDialogData,
 } from '../../../../../../shared/components/motivo-dialog/motivo-dialog';
-import { formatoDia } from '../../../../../facturacion/pedidos-comercial/models/pedido-comercial.model';
+import {
+  formatoDia,
+  type PedidoDetalle,
+} from '../../../../../facturacion/pedidos-comercial/models/pedido-comercial.model';
+import { PedidosComercialService } from '../../../../../facturacion/pedidos-comercial/services/pedidos-comercial.service';
+import {
+  TicketFichaPedido,
+  type RespaldoFichaPedido,
+} from '../../../../shared/ticket-ficha-pedido/ticket-ficha-pedido';
 import { PERMISO_PREFACTURA_VISTA_TICKET } from '../../../../../facturacion/pedidos-comercial/models/prefactura-comercial';
 import { ActaEntregaCarga } from '../../../../../qhse/documentos-pedido/components/acta-entrega-carga';
 import {
@@ -95,6 +112,9 @@ import { TicketsFcrService } from '../../services/tickets-fcr.service';
   selector: 'app-ticket-fcr-detail-page',
   imports: [
     ActaEntregaCarga,
+    DynadrillIconComponent,
+    NgTemplateOutlet,
+    TicketFichaPedido,
     DynadrillBannerComponent,
     DynadrillButtonComponent,
     DynadrillScreenHeaderComponent,
@@ -118,6 +138,7 @@ export class TicketFcrDetailPage {
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(DynadrillDialogService);
+  private readonly pedidos = inject(PedidosComercialService);
 
   protected readonly cargando = signal(true);
   protected readonly ocupado = signal(false);
@@ -125,6 +146,8 @@ export class TicketFcrDetailPage {
   protected readonly errorAccion = signal<string | null>(null);
   protected readonly ticket = signal<TicketFcr | null>(null);
   protected readonly acta = signal<ActaReunion | null>(null);
+  protected readonly pedido = signal<PedidoDetalle | null>(null);
+  private readonly recibidas = signal<{ recibidas: number; total: number } | null>(null);
   protected readonly cambiosItems = signal<SolicitudCambioItems[]>([]);
 
   protected readonly puedeVerPedido = computed(() => this.auth.can('comercial.pedidos.ver'));
@@ -147,7 +170,6 @@ export class TicketFcrDetailPage {
 
   private readonly codigoActual = computed(() => this.ticket()?.paso.codigo ?? '');
   /** El paso que quien consulta eligió en el avance del ticket (por omisión, el actual). */
-  private readonly faseElegida = signal<number | null>(null);
   /** Los pasos del avance, como en la demo: la venta no pasa por los de servicios y «Cerrado» no es un paso aparte. */
   protected readonly pasos = computed(() =>
     PASOS_FCR.filter(
@@ -165,17 +187,24 @@ export class TicketFcrDetailPage {
   protected readonly avancePaso = computed(() =>
     this.cerrado() ? this.pasos().length : this.indicePaso(),
   );
-  protected readonly indiceFase = computed(() => this.faseElegida() ?? this.indicePaso());
+  protected readonly indiceFase = computed(() => this.indicePaso());
   /** Código del paso cuyo detalle se muestra: los paneles siguen a la fase elegida; las acciones, al paso actual. */
-  private readonly codigoPaso = computed(() =>
-    this.faseElegida() === null
-      ? this.codigoActual()
-      : (this.pasos()[this.indiceFase()]?.codigo ?? ''),
-  );
+  private readonly codigoPaso = this.codigoActual;
   protected readonly etiquetasPasos = computed(() => this.pasos().map((p) => p.nombre));
   protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
+  /** Las fases ya alcanzadas, de la primera a la actual: cada una queda apilada en la pantalla, como en la demo. */
+  protected readonly fasesVisibles = computed(() =>
+    this.cerrado() ? this.pasos() : this.pasos().slice(0, this.indicePaso() + 1),
+  );
+  protected esActual(codigo: string): boolean {
+    return codigo === this.codigoActual() || (this.cerrado() && codigo === PASO_CIERRE);
+  }
+  /** El avance lateral lleva a la sección de la fase elegida. */
   protected seleccionarFase(i: number): void {
-    this.faseElegida.set(i === this.indicePaso() ? null : i);
+    const codigo = this.pasos()[i]?.codigo;
+    document
+      .getElementById(`fase-${codigo}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   protected readonly tramos = computed<(TimelineTramo | undefined)[]>(() => {
     const t = this.ticket();
@@ -237,39 +266,12 @@ export class TicketFcrDetailPage {
     return t.siguientes;
   });
 
-  protected readonly verHerramientas = computed(
-    () =>
-      [
-        PASO_TIPO_OPERADOR,
-        PASO_INSPECCION,
-        PASO_APROBACION,
-        PASO_PREPARACION,
-        PASO_ASIGNACION,
-        PASO_REUNION,
-        PASO_EJECUCION,
-        PASO_REVISION_REPORTES,
-        PASO_RETORNO,
-        PASO_CIERRE,
-        PASO_CERRADO,
-      ].includes(this.codigoPaso()) || this.codigoPaso() === 'revision_inicial',
-  );
-  protected readonly verInspecciones = computed(
-    () => this.esServicio() && [PASO_INSPECCION, PASO_APROBACION].includes(this.codigoPaso()),
-  );
-  protected readonly verDocumentos = computed(() =>
-    [PASO_INSPECCION, PASO_PREPARACION].includes(this.codigoPaso()),
-  );
-  protected readonly verEjecucion = computed(() =>
-    [PASO_EJECUCION, PASO_REVISION_REPORTES, PASO_RETORNO, PASO_CIERRE, PASO_CERRADO].includes(
-      this.codigoPaso(),
-    ),
-  );
-  protected readonly verRetorno = computed(() =>
-    [PASO_RETORNO, PASO_CIERRE, PASO_CERRADO].includes(this.codigoPaso()),
-  );
-  protected readonly verActaEntrega = computed(() =>
-    [PASO_CIERRE, PASO_CERRADO].includes(this.codigoPaso()),
-  );
+  protected readonly verHerramientas = computed(() => !!this.ticket());
+  protected readonly verInspecciones = computed(() => this.esServicio());
+  protected readonly verDocumentos = computed(() => !!this.ticket());
+  protected readonly verEjecucion = computed(() => !!this.ticket());
+  protected readonly verRetorno = computed(() => !!this.ticket());
+  protected readonly verActaEntrega = computed(() => !!this.ticket());
   protected readonly puedeVerPrefactura = computed(
     () =>
       this.auth.can(PERMISO_PREFACTURA_VISTA_TICKET) &&
@@ -293,8 +295,57 @@ export class TicketFcrDetailPage {
       : `${formatoDia(iso)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   };
 
+  protected readonly respaldoFicha = computed<RespaldoFichaPedido>(() => {
+    const t = this.ticket();
+    return {
+      campo: t?.campo ?? null,
+      bloque: t?.bloque ?? null,
+      pozo: t?.pozo ?? null,
+      taladro: t?.taladro ?? null,
+      numeroContrato: t?.numeroContrato ?? null,
+      inicio: t?.fechaInicioServicio ?? null,
+      fin: t?.fechaFinServicio ?? null,
+    };
+  });
+  protected readonly operadoresTexto = computed(() => {
+    const o = this.ticket()?.asignacion.operadores ?? [];
+    return o.length ? o.map((x) => x.nombre).join(', ') : 'Sin asignar';
+  });
+  protected readonly herramientasRecibidas = computed(() => {
+    const r = this.recibidas();
+    return r ? `${r.recibidas} de ${r.total} recibidas` : '—';
+  });
+  /** «Fase anterior aprobada por …»: quien movió el ticket al paso actual. */
+  protected readonly faseAnterior = computed(() => {
+    const t = this.ticket();
+    if (!t) return null;
+    const h = [...t.historial].reverse().find((x) => x.pasoNuevo === t.paso.codigo);
+    if (!h?.actor || !h.pasoAnterior) return null;
+    return `Fase anterior aprobada por ${h.actor.nombre}${h.actor.rol ? ' (' + etiquetaRol(h.actor.rol) + ')' : ''} el ${formatoDia(h.at)}`;
+  });
+
   constructor() {
     queueMicrotask(() => this.cargar());
+    effect(() => {
+      const t = this.ticket();
+      if (!t) return;
+      this.servicio.herramientas(t.id).subscribe({
+        next: (h) =>
+          this.recibidas.set({
+            recibidas: h.herramientas.filter((x) => x.estado === 'recibida').length,
+            total: h.herramientas.length,
+          }),
+        error: () => this.recibidas.set(null),
+      });
+    });
+    effect(() => {
+      const t = this.ticket();
+      if (!t || !this.puedeVerPedido()) return;
+      this.pedidos.detalle(t.pedidoId).subscribe({
+        next: (p) => this.pedido.set(p),
+        error: () => this.pedido.set(null),
+      });
+    });
   }
 
   private cargar(): void {

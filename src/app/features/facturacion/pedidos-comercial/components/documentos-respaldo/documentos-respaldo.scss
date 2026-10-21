@@ -68,6 +68,24 @@
     }
   }
 
+  &__meta {
+    color: var(--text-muted, #5c5870);
+    font-size: 12px;
+  }
+
+  &__subir {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--text-muted, #5c5870);
+
+    input {
+      font: inherit;
+      color: var(--text, #2c2b35);
+    }
+  }
+
   &__vacio {
     color: var(--text-muted, #5c5870);
     font-size: 13px;

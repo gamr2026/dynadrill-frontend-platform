@@ -7,7 +7,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { catchError, forkJoin, of } from 'rxjs';
+import { catchError, forkJoin, of, switchMap } from 'rxjs';
 import {
   DynadrillBannerComponent,
   DynadrillDialogService,
@@ -40,6 +40,14 @@ import {
   mensajeDeError,
   type PedidoDetalle,
 } from '../../models/pedido-comercial.model';
+import {
+  ACCEPT_DOCUMENTOS,
+  MAX_DOCUMENTOS_PEDIDO,
+  errorDeArchivo,
+  formatoTamano,
+  mensajeErrorArchivo,
+  type DocumentoPedido,
+} from '../../models/documentos-pedido';
 import { PedidosComercialService } from '../../services/pedidos-comercial.service';
 import { ArchivosService } from '../../services/archivos.service';
 import { TicketsPumpingService } from '../../../../operations/pumping/tickets-nuevos/services/tickets-pumping.service';
@@ -77,11 +85,23 @@ export class DocumentosRespaldo {
   readonly pedido = input.required<PedidoDetalle>();
   /** Persona con `comercial.documentos_operativos.corregir`. */
   readonly puedeCorregir = input(false);
+  /** Persona con `comercial.documentos_operativos.ver`: sin él solo ve los adjuntos del pedido. */
+  readonly puedeVerOperativos = input(true);
   /** Persona con `pumping.documentos.ver`: ve el monitoreo y la mezcla química del ticket. */
   readonly puedeVerRespaldoTicket = input(false);
   /** Corregir un día cambia el avance documental y puede cambiar los pasos del pedido. */
   readonly cambioDePedido = output<void>();
+  /** Pedido editable y persona con `comercial.pedidos.editar`: puede adjuntar y quitar documentos del pedido. */
+  readonly puedeAdjuntar = input(false);
+  /** Adjuntar o quitar devuelven el detalle completo del pedido. */
+  readonly pedidoActualizado = output<PedidoDetalle>();
 
+  protected readonly accept = ACCEPT_DOCUMENTOS;
+  protected readonly maximo = MAX_DOCUMENTOS_PEDIDO;
+  protected readonly tamano = formatoTamano;
+  protected readonly subiendo = signal(false);
+  protected readonly descargando = signal<string | null>(null);
+  protected readonly errorSubida = signal<string | null>(null);
   protected readonly cargando = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly documentos = signal<DocumentoOperativo[]>([]);
@@ -107,7 +127,8 @@ export class DocumentosRespaldo {
     () =>
       this.reportesJob().length === 0 &&
       this.reportesHtas().length === 0 &&
-      this.respaldoTicket().length === 0,
+      this.respaldoTicket().length === 0 &&
+      this.pedido().documentos.length === 0,
   );
   protected readonly diasHechos = computed(() => this.avance()?.diasConReporteJob ?? 0);
   protected readonly diasEsperados = computed(() => this.avance()?.diasEsperados ?? 0);
@@ -136,8 +157,10 @@ export class DocumentosRespaldo {
             .pipe(catchError(() => of([] as DocumentoDelTicket[])))
         : of([] as DocumentoDelTicket[]);
     forkJoin({
-      docs: this.servicio.documentosOperativos(id),
-      avance: this.servicio.avanceDocumental(id),
+      docs: this.puedeVerOperativos()
+        ? this.servicio.documentosOperativos(id)
+        : of([] as DocumentoOperativo[]),
+      avance: this.puedeVerOperativos() ? this.servicio.avanceDocumental(id) : of(null),
       respaldo: respaldo$,
     }).subscribe({
       next: ({ docs, avance, respaldo }) => {
@@ -251,6 +274,75 @@ export class DocumentosRespaldo {
         this.notify.error(
           'No se pudo descargar',
           'No se pudo descargar el documento. Intente de nuevo.',
+        ),
+    });
+  }
+
+  /** Adjunto del pedido: primero se sube al módulo de archivos y luego se adjunta al pedido. */
+  protected onArchivo(evento: Event): void {
+    const entrada = evento.target as HTMLInputElement;
+    const archivo = entrada.files?.[0];
+    entrada.value = '';
+    if (!archivo || this.subiendo()) return;
+    const error = errorDeArchivo(archivo, this.pedido().documentos.length);
+    if (error) {
+      this.errorSubida.set(error);
+      return;
+    }
+    this.errorSubida.set(null);
+    this.subiendo.set(true);
+    this.archivos
+      .subir(archivo)
+      .pipe(switchMap((subido) => this.servicio.adjuntarDocumento(this.pedido().id, subido.id)))
+      .subscribe({
+        next: (p) => {
+          this.subiendo.set(false);
+          this.notify.success('Documento adjuntado', archivo.name);
+          this.pedidoActualizado.emit(p);
+        },
+        error: (err) => {
+          this.subiendo.set(false);
+          this.errorSubida.set(mensajeErrorArchivo(err));
+        },
+      });
+  }
+
+  protected descargarAdjunto(d: DocumentoPedido): void {
+    if (this.descargando()) return;
+    this.descargando.set(d.id);
+    this.archivos.contenido(d.archivoId).subscribe({
+      next: (blob) => {
+        this.descargando.set(null);
+        this.archivos.guardarComo(blob, d.nombre);
+      },
+      error: () => {
+        this.descargando.set(null);
+        this.notify.error(
+          'No se pudo descargar',
+          'No se pudo descargar el documento. Intente de nuevo.',
+        );
+      },
+    });
+  }
+
+  protected async quitarAdjunto(d: DocumentoPedido): Promise<void> {
+    const ok = await this.dialog.confirm({
+      title: `¿Quitar "${d.nombre}"?`,
+      content:
+        'El documento se quita del pedido y se da de baja. Esta acción no se puede deshacer.',
+      okText: 'Quitar',
+      danger: true,
+    });
+    if (!ok) return;
+    this.servicio.quitarDocumento(this.pedido().id, d.id).subscribe({
+      next: (p) => {
+        this.notify.success('Documento quitado', d.nombre);
+        this.pedidoActualizado.emit(p);
+      },
+      error: (err) =>
+        this.notify.error(
+          'No se pudo quitar',
+          mensajeDeError(err, 'No se pudo quitar el documento.'),
         ),
     });
   }

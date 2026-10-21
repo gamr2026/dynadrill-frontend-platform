@@ -103,17 +103,18 @@
           </section>
 
           <!-- ── Documentos de respaldo ── -->
-          @if (puedeVerOperativos()) {
-            <section class="fact-card pedido-detail__ord-3">
-              <header class="pedido-detail__head"><h2>Documentos de respaldo</h2></header>
-              <app-documentos-respaldo
-                [pedido]="p"
-                [puedeCorregir]="puedeCorregirOperativos()"
-                [puedeVerRespaldoTicket]="puedeVerRespaldoTicket()"
-                (cambioDePedido)="refrescar()"
-              />
-            </section>
-          }
+          <section class="fact-card pedido-detail__ord-3">
+            <header class="pedido-detail__head"><h2>Documentos de respaldo</h2></header>
+            <app-documentos-respaldo
+              [pedido]="p"
+              [puedeVerOperativos]="puedeVerOperativos()"
+              [puedeCorregir]="puedeCorregirOperativos()"
+              [puedeVerRespaldoTicket]="puedeVerRespaldoTicket()"
+              [puedeAdjuntar]="puedeAdjuntar()"
+              (pedidoActualizado)="onDocumentos($event)"
+              (cambioDePedido)="refrescar()"
+            />
+          </section>
 
           <section class="fact-card">
             <header class="pedido-detail__head"><h2>Cliente</h2></header>
@@ -244,16 +245,6 @@
               <app-orden-trabajo-seccion [pedido]="p" (cambioDePedido)="refrescar()" />
             </section>
           }
-
-          <section class="fact-card">
-            <header class="pedido-detail__head"><h2>Documentos adjuntos</h2></header>
-            <app-documentos-pedido
-              [pedidoId]="p.id"
-              [documentos]="p.documentos"
-              [puedeEditar]="puedeAdjuntar()"
-              (cambio)="onDocumentos($event)"
-            />
-          </section>
         </div>
 
         <aside class="pedido-detail__side">

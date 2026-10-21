@@ -33,7 +33,6 @@ import { PERMISOS_GUIAS } from '../../models/guia-comercial';
 import { PERMISOS_PREFACTURAS } from '../../models/prefactura-comercial';
 import { DocumentosRespaldo } from '../../components/documentos-respaldo/documentos-respaldo';
 import { PERMISOS_DOCUMENTOS_OPERATIVOS } from '../../models/documentos-operativos';
-import { DocumentosPedido } from '../../components/documentos-pedido/documentos-pedido';
 import {
   AsignarAnalistaDialog,
   type AsignarAnalistaDialogData,
@@ -74,7 +73,6 @@ import {
     DynadrillBannerComponent,
     DynadrillSpinnerComponent,
     DynadrillTagComponent,
-    DocumentosPedido,
     DocumentosRespaldo,
     PrefacturaResumen,
     GuiasSeccion,

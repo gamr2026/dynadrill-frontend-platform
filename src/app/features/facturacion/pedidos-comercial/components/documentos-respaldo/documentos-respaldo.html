@@ -276,6 +276,70 @@
               </td>
             </tr>
           }
+          @for (a of pedido().documentos; track a.id) {
+            <tr>
+              <td>
+                {{ a.nombre }} <span class="resp__meta">({{ tamano(a.tamanoBytes) }})</span>
+              </td>
+              <td>Adjunto del pedido</td>
+              <td>{{ fecha(a.createdAt) }}</td>
+              <td>{{ a.subidoPor || '—' }}</td>
+              <td><dynadrill-tag label="Recibido" variant="success" /></td>
+              <td class="resp__acciones">
+                <button
+                  type="button"
+                  class="resp__icono"
+                  aria-label="Descargar"
+                  title="Descargar"
+                  [disabled]="descargando() !== null"
+                  (click)="descargarAdjunto(a)"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <path d="m7 10 5 5 5-5" />
+                    <path d="M12 15V3" />
+                  </svg>
+                </button>
+                @if (puedeAdjuntar()) {
+                  <button
+                    type="button"
+                    class="resp__icono"
+                    [attr.aria-label]="'Quitar ' + a.nombre"
+                    title="Quitar"
+                    (click)="quitarAdjunto(a)"
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path d="M3 6h18" />
+                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    </svg>
+                  </button>
+                }
+              </td>
+            </tr>
+          }
           @if (sinDocumentos() && !cargando()) {
             <tr>
               <td colspan="6" class="resp__vacio">
@@ -286,5 +350,21 @@
         </tbody>
       </table>
     </div>
+
+    @if (errorSubida(); as e) {
+      <dynadrill-banner variant="critical" [message]="e" />
+    }
+    @if (puedeAdjuntar()) {
+      <label class="resp__subir">
+        <span>{{
+          subiendo()
+            ? 'Subiendo el documento…'
+            : 'Adjuntar documento (PDF, PNG, JPEG, DOCX o XLSX; máximo 25 MB; hasta ' +
+              maximo +
+              ' por pedido)'
+        }}</span>
+        <input type="file" [accept]="accept" [disabled]="subiendo()" (change)="onArchivo($event)" />
+      </label>
+    }
   </div>
 </dynadrill-spinner>

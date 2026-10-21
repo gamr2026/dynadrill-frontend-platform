@@ -227,6 +227,7 @@ export class TicketFcrDetailPage {
   protected readonly verHerramientas = computed(
     () =>
       [
+        PASO_TIPO_OPERADOR,
         PASO_INSPECCION,
         PASO_APROBACION,
         PASO_PREPARACION,

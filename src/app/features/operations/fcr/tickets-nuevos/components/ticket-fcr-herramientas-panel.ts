@@ -360,16 +360,28 @@ import { TicketsFcrService } from '../services/tickets-fcr.service';
     .h {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      padding: 16px;
+      gap: 0.75rem;
+      padding: 1.5rem;
       background: var(--surface, #fff);
-      border: 1px solid var(--border, #ecebf1);
-      border-radius: 14px;
+      border: 1px solid var(--border, #e5e4ea);
+      border-radius: 0.75rem;
+      box-shadow: var(--shadow-sm, 0 1px 2px rgba(19, 21, 41, 0.05));
+    }
+    .h__cabecera {
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid var(--dynadrill-purple, #662e9b);
     }
     .h h2 {
       margin: 0;
-      font-size: 15px;
+      font-size: 1.125rem;
       font-weight: 600;
+      color: var(--dynadrill-purple, #662e9b);
+    }
+    .h h3 {
+      margin: 0.5rem 0 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--dynadrill-purple, #662e9b);
     }
     .h__cabecera,
     .h__acciones,
@@ -391,11 +403,20 @@ import { TicketsFcrService } from '../services/tickets-fcr.service';
       border-collapse: collapse;
       font-size: 13px;
     }
+    .h__tabla thead th {
+      font-weight: 600;
+      color: var(--text-secondary, #666);
+      white-space: nowrap;
+      background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
+    }
+    .h__tabla tbody tr:nth-child(even) {
+      background: var(--surface-muted, #faf9fc);
+    }
     .h__tabla th,
     .h__tabla td {
-      padding: 8px;
+      padding: 0.5rem 0.75rem;
       text-align: left;
-      border-bottom: 1px solid #ecebf1;
+      border-bottom: 1px solid var(--border-default, #e0e0e0);
       vertical-align: top;
     }
     .h__meta {

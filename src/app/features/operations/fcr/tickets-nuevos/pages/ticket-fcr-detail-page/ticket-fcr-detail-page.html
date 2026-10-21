@@ -244,7 +244,7 @@
             <app-ticket-fcr-inspecciones-panel [ticket]="t" (cambio)="recargar()" />
           }
           @if (verDocumentos()) {
-            <app-ticket-fcr-documentos-panel [ticket]="t" />
+            <app-ticket-fcr-documentos-panel [ticket]="t" (cambio)="recargar()" />
           }
           @if (verEjecucion()) {
             <app-ticket-fcr-ejecucion-panel [ticket]="t" (cambio)="recargar()" />

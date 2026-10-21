@@ -5,6 +5,7 @@ import {
   effect,
   inject,
   input,
+  output,
   signal,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
@@ -82,16 +83,26 @@ import { TicketsFcrService } from '../services/tickets-fcr.service';
     .p {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      padding: 16px;
+      gap: 0.75rem;
+      padding: 1.5rem;
       background: var(--surface, #fff);
-      border: 1px solid var(--border, #ecebf1);
-      border-radius: 14px;
+      border: 1px solid var(--border, #e5e4ea);
+      border-radius: 0.75rem;
+      box-shadow: var(--shadow-sm, 0 1px 2px rgba(19, 21, 41, 0.05));
     }
     .p h2 {
       margin: 0;
-      font-size: 15px;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid var(--dynadrill-purple, #662e9b);
+      font-size: 1.125rem;
       font-weight: 600;
+      color: var(--dynadrill-purple, #662e9b);
+    }
+    .p h3 {
+      margin: 0.5rem 0 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--dynadrill-purple, #662e9b);
     }
     .p__lista {
       margin: 0;
@@ -128,6 +139,8 @@ export class TicketFcrDocumentosPanel {
   private readonly notify = inject(DynadrillNotificationService);
 
   readonly ticket = input.required<TicketFcr>();
+  /** Avisa a la página para que recargue el ticket (cambian los requisitos). */
+  readonly cambio = output<void>();
 
   protected readonly docs = signal<DocumentoTicket[]>([]);
   protected readonly error = signal<string | null>(null);
@@ -193,6 +206,7 @@ export class TicketFcrDocumentosPanel {
           this.subiendo.set(null);
           this.docs.set(l);
           this.notify.success('Documento adjuntado', CAMPO_DOCUMENTO_LABELS[campo]);
+          this.cambio.emit();
         },
         error: (err) => {
           this.subiendo.set(null);

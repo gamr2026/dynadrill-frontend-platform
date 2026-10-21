@@ -8,27 +8,64 @@
   />
 
   <div class="ch__datos">
-    <div class="ch__fila"><span><strong>Cliente :</strong> {{ inspeccion().cliente }}</span><span><strong>Pozo:</strong> {{ inspeccion().pozo }}</span></div>
+    <div class="ch__fila">
+      <span><strong>Cliente :</strong> {{ inspeccion().cliente }}</span
+      ><span><strong>Pozo:</strong> {{ inspeccion().pozo }}</span>
+    </div>
+    <!-- Campos que el sistema no guarda: quedan abiertos para llenarlos a mano al firmar -->
+    <div class="ch__fila ch__fila--3">
+      <span><strong>Procedencia:</strong> <span class="ch__abierto"></span></span>
+      <span><strong>Reporte Insp N°:</strong> <span class="ch__abierto"></span></span>
+      <span><strong>OTI N°:</strong> <span class="ch__abierto"></span></span>
+    </div>
+    <div class="ch__fila">
+      <span><strong>Fecha de Ingreso:</strong> <span class="ch__abierto"></span></span><span></span>
+    </div>
     <div class="ch__fila ch__fila--3">
       <span><strong>Fecha de Inspección:</strong> {{ fecha(inspeccion().fechaInspeccion) }}</span>
       <span><strong>Fecha de Reparación:</strong> {{ fecha(inspeccion().fechaReparacion) }}</span>
       <span><strong>Fecha de Envío:</strong> {{ fecha(inspeccion().fechaEnvio) }}</span>
     </div>
-    <div class="ch__fila"><span><strong>Descripcion de la herramienta:</strong> {{ inspeccion().descripcionHerramienta }}</span><span><strong>S/N:</strong> {{ inspeccion().numeroSerie }}</span></div>
     <div class="ch__fila">
-      <span><strong>Inspeccionada por:</strong> &nbsp; Dynadrill Ecuador C.A. <span class="doc-check">{{ inspeccion().inspeccionadoPor === 'dynadrill' ? 'X' : '' }}</span></span>
-      <span><strong>Proveedor externo</strong> <span class="doc-check">{{ inspeccion().inspeccionadoPor === 'proveedor_externo' ? 'X' : '' }}</span></span>
+      <span
+        ><strong>Descripcion de la herramienta:</strong>
+        {{ inspeccion().descripcionHerramienta }}</span
+      ><span><strong>S/N:</strong> {{ inspeccion().numeroSerie }}</span>
     </div>
     <div class="ch__fila">
-      <span><strong>Reparada por:</strong> &nbsp; Dynadrill Ecuador C.A. <span class="doc-check"></span> {{ inspeccion().reparadoPor }}</span>
+      <span
+        ><strong>Inspeccionada por:</strong> &nbsp; Dynadrill Ecuador C.A.
+        <span class="doc-check">{{
+          inspeccion().inspeccionadoPor === 'dynadrill' ? 'X' : ''
+        }}</span></span
+      >
+      <span
+        ><strong>Proveedor externo</strong>
+        <span class="doc-check">{{
+          inspeccion().inspeccionadoPor === 'proveedor_externo' ? 'X' : ''
+        }}</span></span
+      >
+    </div>
+    <div class="ch__fila">
+      <span
+        ><strong>Reparada por:</strong> &nbsp; Dynadrill Ecuador C.A.
+        <span class="doc-check"></span> {{ inspeccion().reparadoPor }}</span
+      >
       <span><strong>Proveedor externo</strong> <span class="doc-check"></span></span>
     </div>
   </div>
 
   <table class="ch__tabla">
     <colgroup>
-      <col class="ch__c-item" /><col class="ch__c-cant" /><col class="ch__c-cod" /><col class="ch__c-desc" />
-      <col class="ch__c-res" /><col class="ch__c-res" /><col class="ch__c-cam" /><col class="ch__c-acc" /><col class="ch__c-nota" />
+      <col class="ch__c-item" />
+      <col class="ch__c-cant" />
+      <col class="ch__c-cod" />
+      <col class="ch__c-desc" />
+      <col class="ch__c-res" />
+      <col class="ch__c-res" />
+      <col class="ch__c-cam" />
+      <col class="ch__c-acc" />
+      <col class="ch__c-nota" />
     </colgroup>
     <thead>
       <tr class="ch__morado">
@@ -38,8 +75,14 @@
         <th rowspan="2">NOTA:</th>
       </tr>
       <tr class="ch__morado">
-        <th>ITEM</th><th>CANTIDAD</th><th>CODIGO</th><th>DESCRIPCION</th>
-        <th>VISUAL</th><th>END</th><th>CANTIDAD</th><th>ACCION</th>
+        <th>ITEM</th>
+        <th>CANTIDAD</th>
+        <th>CODIGO</th>
+        <th>DESCRIPCION</th>
+        <th>VISUAL</th>
+        <th>END</th>
+        <th>CANTIDAD</th>
+        <th>ACCION</th>
       </tr>
     </thead>
     <tbody>
@@ -56,7 +99,9 @@
           <td></td>
         </tr>
       } @empty {
-        <tr><td colspan="9">Sin elementos registrados.</td></tr>
+        <tr>
+          <td colspan="9">Sin elementos registrados.</td>
+        </tr>
       }
     </tbody>
   </table>
@@ -67,11 +112,16 @@
   <div class="ch__firmas">
     @for (f of firmantes(); track f.etiqueta) {
       <div class="ch__firma-fila">
-        <span class="ch__f-nombre"><strong>{{ f.etiqueta }}:</strong> {{ f.nombre }}</span>
+        <span class="ch__f-nombre"
+          ><strong>{{ f.etiqueta }}:</strong> {{ f.nombre }}</span
+        >
         <span class="ch__f-firma"><strong>Firma:</strong></span>
         <span class="ch__f-fecha"><strong>Fecha:</strong> {{ f.fecha }}</span>
       </div>
     }
   </div>
-  <div class="ch__pie">Nota: En caso de ser Inspeccionado y/o reparado por proveedor externo, este debe acompañar los reportes correspondientes.</div>
+  <div class="ch__pie">
+    Nota: En caso de ser Inspeccionado y/o reparado por proveedor externo, este debe acompañar los
+    reportes correspondientes.
+  </div>
 </div>

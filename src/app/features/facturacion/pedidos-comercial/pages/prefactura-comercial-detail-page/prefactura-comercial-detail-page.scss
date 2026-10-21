@@ -335,3 +335,34 @@
 .table-scroll {
   overflow-x: auto;
 }
+
+.pf-detail__reemplazar {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--border, #d8d4e0);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dynadrill-purple, #662e9b);
+  cursor: pointer;
+  position: relative;
+
+  &:hover {
+    background: var(--dynadrill-purple-tint, #f6f3f9);
+  }
+
+  &:focus-within {
+    outline: 2px solid var(--dynadrill-purple, #662e9b);
+    outline-offset: 2px;
+  }
+}
+
+.pf-detail__oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}

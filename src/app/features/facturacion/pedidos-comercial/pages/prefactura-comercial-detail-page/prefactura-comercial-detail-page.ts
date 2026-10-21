@@ -1,6 +1,7 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { switchMap, timer } from 'rxjs';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
@@ -35,8 +36,12 @@ import {
   formatoMoneda,
   type PedidoDetalle,
 } from '../../models/pedido-comercial.model';
+import { mensajeErrorArchivo } from '../../models/documentos-pedido';
 import {
   ESTADO_PREFACTURA_TONO,
+  MAX_BYTES_FIRMA,
+  MODULO_ARCHIVO_PREFACTURA,
+  PERMISOS_PREFACTURAS,
   accionesDisponibles,
   aHojaPrefactura,
   estadoVerificacion,
@@ -45,6 +50,7 @@ import {
   etiquetaFirmante,
   etiquetaFuente,
   etiquetaMedio,
+  hayVerificacionPendiente,
   mensajeErrorPrefactura,
   type AccionPrefactura,
   type FirmaPrefactura,
@@ -111,6 +117,7 @@ export class PrefacturaComercialDetailPage {
   protected readonly pedido = signal<PedidoDetalle | null>(null);
   protected readonly orden = signal<OrdenTrabajo | null>(null);
   protected readonly verificando = signal<string | null>(null);
+  protected readonly reemplazando = signal<string | null>(null);
 
   protected readonly checklistItems = CHECKLIST;
   protected readonly checklist = signal<Record<string, boolean>>(
@@ -118,6 +125,13 @@ export class PrefacturaComercialDetailPage {
   );
   protected readonly checklistCompleto = computed(() =>
     Object.values(this.checklist()).every(Boolean),
+  );
+
+  /** Facturación puede cargar el documento firmado nuevo mientras la prefactura esté vigente (p. ej. si no se detecta la firma). */
+  protected readonly puedeReemplazar = computed(
+    () =>
+      this.auth.can(PERMISOS_PREFACTURAS.firmar) &&
+      ['generada', 'enviada_para_firmas', 'firmada'].includes(this.prefactura()?.estado ?? ''),
   );
 
   protected readonly acciones = computed(() =>
@@ -375,6 +389,65 @@ export class PrefacturaComercialDetailPage {
     ref.afterClose.subscribe((r: Prefactura | undefined) => {
       if (r) this.cargar();
     });
+  }
+
+  /** Sube el documento nuevo, lo registra en lugar del anterior y espera la lectura de la firma (solo es una ayuda). */
+  protected reemplazarFirmado(evento: Event, f: FirmaPrefactura): void {
+    const entrada = evento.target as HTMLInputElement;
+    const archivo = entrada.files?.[0];
+    entrada.value = '';
+    const p = this.prefactura();
+    if (!archivo || !p || this.reemplazando()) return;
+    const ext = archivo.name.split('.').pop()?.toLowerCase() ?? '';
+    const tipoOk =
+      ['application/pdf', 'image/png', 'image/jpeg'].includes(archivo.type) ||
+      ['pdf', 'png', 'jpg', 'jpeg'].includes(ext);
+    if (!tipoOk) {
+      return void this.notify.error(
+        'Archivo no admitido',
+        'El documento firmado debe ser PDF, PNG o JPEG.',
+      );
+    }
+    if (archivo.size <= 0 || archivo.size > MAX_BYTES_FIRMA) {
+      return void this.notify.error(
+        'Archivo no admitido',
+        'El archivo está vacío o supera el máximo de 25 MB.',
+      );
+    }
+    this.reemplazando.set(f.id);
+    this.archivos
+      .subir(archivo, MODULO_ARCHIVO_PREFACTURA)
+      .pipe(switchMap((subido) => this.servicio.reemplazarFirma(p.id, f.id, subido.id)))
+      .subscribe({
+        next: (n) => {
+          this.reemplazando.set(null);
+          this.prefactura.set(n);
+          this.notify.success('Documento firmado cargado', archivo.name);
+          this.sondearLectura();
+        },
+        error: (err) => {
+          this.reemplazando.set(null);
+          this.notify.error(
+            'No se pudo cargar',
+            mensajeErrorPrefactura(err, mensajeErrorArchivo(err)),
+          );
+        },
+      });
+  }
+
+  /** La lectura de la firma tarda unos segundos: se vuelve a consultar mientras haya resultados pendientes (hasta ~40 s). */
+  private sondearLectura(intento = 0): void {
+    const p = this.prefactura();
+    if (!p || intento >= 14 || !hayVerificacionPendiente(p.firmas)) return;
+    timer(3000)
+      .pipe(switchMap(() => this.servicio.detalle(p.id)))
+      .subscribe({
+        next: (n) => {
+          this.prefactura.set(n);
+          this.sondearLectura(intento + 1);
+        },
+        error: () => undefined,
+      });
   }
 
   protected volverAVerificar(f: FirmaPrefactura): void {

@@ -301,21 +301,21 @@ export function estadoVerificacion(
     case 'firma_detectada':
       return {
         clave: 'detectada',
-        texto: 'Se detecta una firma — revise el documento',
+        texto: 'Firmado',
         tono: 'success',
         detalle,
       };
     case 'firma_no_detectada':
       return {
         clave: 'no_detectada',
-        texto: 'No se detecta firma manuscrita — revise el documento',
+        texto: 'No firmado',
         tono: 'warning',
         detalle,
       };
     case 'no_concluyente':
       return {
         clave: 'no_concluyente',
-        texto: 'No concluyente — revise a mano',
+        texto: 'No concluyente',
         tono: 'neutral',
         detalle,
       };

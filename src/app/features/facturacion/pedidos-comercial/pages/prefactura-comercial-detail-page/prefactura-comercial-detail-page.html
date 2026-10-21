@@ -289,6 +289,20 @@
                         <dynadrill-button variant="secondary" size="small" (clicked)="descargar(f)"
                           >Descargar firmado</dynadrill-button
                         >
+                        @if (puedeReemplazar()) {
+                          <label class="pf-detail__reemplazar">
+                            <span>{{
+                              reemplazando() === f.id ? 'Cargando…' : 'Cargar firmado nuevo'
+                            }}</span>
+                            <input
+                              type="file"
+                              class="pf-detail__oculto"
+                              accept=".pdf,.png,.jpg,.jpeg"
+                              [disabled]="reemplazando() !== null"
+                              (change)="reemplazarFirmado($event, f)"
+                            />
+                          </label>
+                        }
                       </li>
                     }
                   </ul>

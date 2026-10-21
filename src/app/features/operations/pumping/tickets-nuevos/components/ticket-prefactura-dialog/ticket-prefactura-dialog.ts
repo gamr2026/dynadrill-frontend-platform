@@ -18,7 +18,9 @@ import { mensajeErrorArchivo } from '../../../../../facturacion/pedidos-comercia
 import {
   MAX_BYTES_FIRMA,
   MODULO_ARCHIVO_COMPANY_MAN,
+  estadoVerificacion,
   mensajeErrorPrefactura,
+  type FirmaPrefactura,
   type VistaPrefacturaTicket,
 } from '../../../../../facturacion/pedidos-comercial/models/prefactura-comercial';
 
@@ -65,6 +67,8 @@ export class TicketPrefacturaDialog {
   private readonly modalRef = inject(NzModalRef<TicketPrefacturaDialog, boolean>);
   protected readonly data = inject<TicketPrefacturaDialogData>(NZ_MODAL_DATA);
 
+  /** Solo saber si se detecta una firma o no (lectura automática: es una ayuda, no certifica nada). */
+  protected readonly verif = (f: FirmaPrefactura) => estadoVerificacion(f, false);
   protected readonly vista = signal<VistaPrefacturaTicket | null>(null);
   protected readonly errorCarga = signal<string | null>(null);
   protected readonly error = signal<string | null>(null);

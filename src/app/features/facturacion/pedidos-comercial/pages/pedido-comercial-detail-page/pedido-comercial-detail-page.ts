@@ -131,6 +131,7 @@ export class PedidoComercialDetailPage {
   protected readonly puedeVerOperativos = computed(() =>
     this.puede(PERMISOS_DOCUMENTOS_OPERATIVOS.ver),
   );
+  protected readonly puedeCargarFirmado = computed(() => this.puede(PERMISOS_PREFACTURAS.firmar));
   protected readonly puedeVerRespaldoTicket = computed(() =>
     this.puede(PERMISO_PUMPING_DOCUMENTOS_VER),
   );

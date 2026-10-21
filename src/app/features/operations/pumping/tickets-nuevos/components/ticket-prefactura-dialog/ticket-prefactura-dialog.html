@@ -140,6 +140,15 @@
             : 'La prefactura ya está firmada. Facturación la ve como firmada.'
         "
       />
+      @if (f) {
+        <p class="tpf__nota">
+          Lectura del documento:
+          <dynadrill-tag [label]="verif(f).texto" [variant]="verif(f).tono" [uppercase]="false" />
+          @if (verif(f).clave === 'no_detectada') {
+            Facturación podrá cargar un documento firmado nuevo.
+          }
+        </p>
+      }
     } @else if (puedeEnviar()) {
       <p class="tpf__nota">
         Imprima la prefactura, que el Company Man la firme y suba aquí el archivo firmado (PDF o

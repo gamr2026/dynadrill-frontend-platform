@@ -212,7 +212,22 @@
               <td>Pumping</td>
               <td>{{ fecha(d.fecha) }}</td>
               <td>—</td>
-              <td><dynadrill-tag label="Recibido" variant="success" /></td>
+              <td>
+                <dynadrill-tag label="Recibido" variant="success" />
+                @if (firmadoDe(d); as f) {
+                  <dynadrill-tag
+                    [label]="estadoFirma(f).texto"
+                    [variant]="estadoFirma(f).tono"
+                    [uppercase]="false"
+                  />
+                } @else {
+                  <dynadrill-tag
+                    label="Sin versión firmada"
+                    variant="neutral"
+                    [uppercase]="false"
+                  />
+                }
+              </td>
               <td class="resp__acciones">
                 <button
                   type="button"
@@ -238,6 +253,66 @@
                     <path d="M12 15V3" />
                   </svg>
                 </button>
+                @if (firmadoDe(d); as f) {
+                  <button
+                    type="button"
+                    class="resp__icono"
+                    aria-label="Descargar firmado"
+                    title="Descargar firmado"
+                    (click)="descargarFirmado(f)"
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                    </svg>
+                  </button>
+                }
+                @if (puedeCargarFirmado()) {
+                  <label
+                    class="resp__icono resp__subir-firmado"
+                    [attr.title]="
+                      firmadoDe(d)
+                        ? 'Cargar una versión firmada nueva'
+                        : 'Cargar la versión firmada'
+                    "
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <path d="m17 8-5-5-5 5" />
+                      <path d="M12 3v12" />
+                    </svg>
+                    <span class="resp__oculto">Cargar versión firmada</span>
+                    <input
+                      type="file"
+                      class="resp__oculto"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      [disabled]="subiendoFirmado() !== null"
+                      (change)="onFirmado($event, d)"
+                    />
+                  </label>
+                }
               </td>
             </tr>
           }
@@ -247,7 +322,22 @@
               <td>Pumping</td>
               <td>—</td>
               <td>—</td>
-              <td><dynadrill-tag label="Recibido" variant="success" /></td>
+              <td>
+                <dynadrill-tag label="Recibido" variant="success" />
+                @if (firmadoDe(d); as f) {
+                  <dynadrill-tag
+                    [label]="estadoFirma(f).texto"
+                    [variant]="estadoFirma(f).tono"
+                    [uppercase]="false"
+                  />
+                } @else {
+                  <dynadrill-tag
+                    label="Sin versión firmada"
+                    variant="neutral"
+                    [uppercase]="false"
+                  />
+                }
+              </td>
               <td class="resp__acciones">
                 <button
                   type="button"
@@ -273,6 +363,66 @@
                     <path d="M12 15V3" />
                   </svg>
                 </button>
+                @if (firmadoDe(d); as f) {
+                  <button
+                    type="button"
+                    class="resp__icono"
+                    aria-label="Descargar firmado"
+                    title="Descargar firmado"
+                    (click)="descargarFirmado(f)"
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                    </svg>
+                  </button>
+                }
+                @if (puedeCargarFirmado()) {
+                  <label
+                    class="resp__icono resp__subir-firmado"
+                    [attr.title]="
+                      firmadoDe(d)
+                        ? 'Cargar una versión firmada nueva'
+                        : 'Cargar la versión firmada'
+                    "
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <path d="m17 8-5-5-5 5" />
+                      <path d="M12 3v12" />
+                    </svg>
+                    <span class="resp__oculto">Cargar versión firmada</span>
+                    <input
+                      type="file"
+                      class="resp__oculto"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      [disabled]="subiendoFirmado() !== null"
+                      (change)="onFirmado($event, d)"
+                    />
+                  </label>
+                }
               </td>
             </tr>
           }

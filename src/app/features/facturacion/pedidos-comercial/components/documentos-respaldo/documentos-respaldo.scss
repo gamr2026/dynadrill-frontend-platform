@@ -68,6 +68,24 @@
     }
   }
 
+  &__oculto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  &__subir-firmado {
+    position: relative;
+
+    &:focus-within {
+      outline: 2px solid var(--dynadrill-purple, #662e9b);
+      outline-offset: 2px;
+    }
+  }
+
   &__meta {
     color: var(--text-muted, #5c5870);
     font-size: 12px;

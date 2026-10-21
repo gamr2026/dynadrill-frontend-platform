@@ -24,7 +24,10 @@ import {
 
 const todos = () => true;
 const nada = () => false;
-const pf = (estado: EstadoPrefactura, nFirmas = 0) => ({ estado, firmas: Array.from({ length: nFirmas }, () => ({}) as never) });
+const pf = (estado: EstadoPrefactura, nFirmas = 0) => ({
+  estado,
+  firmas: Array.from({ length: nFirmas }, () => ({}) as never),
+});
 
 describe('vigencia', () => {
   it('rechazada y anulada no son vigentes', () => {
@@ -35,7 +38,11 @@ describe('vigencia', () => {
   });
 
   it('la actual es la vigente o, si no hay, la más reciente', () => {
-    const vs = [{ estado: 'rechazada' as const, id: 3 }, { estado: 'generada' as const, id: 2 }, { estado: 'rechazada' as const, id: 1 }];
+    const vs = [
+      { estado: 'rechazada' as const, id: 3 },
+      { estado: 'generada' as const, id: 2 },
+      { estado: 'rechazada' as const, id: 1 },
+    ];
     expect(prefacturaActual(vs)?.id).toBe(2);
     expect(prefacturaActual([vs[0], vs[2]])?.id).toBe(3);
     expect(prefacturaActual([])).toBeNull();
@@ -50,12 +57,26 @@ describe('acciones disponibles', () => {
   });
 
   it('generada: recalcular, ticket, enviar y firma (sin "dar por firmada" ni rechazo)', () => {
-    expect(accionesDisponibles(pf('generada', 1), todos)).toEqual(['recalcular', 'ticket', 'enviar', 'firma']);
+    expect(accionesDisponibles(pf('generada', 1), todos)).toEqual([
+      'recalcular',
+      'ticket',
+      'enviar',
+      'firma',
+    ]);
   });
 
   it('enviada: ticket, firma, rechazo y "dar por firmada" solo con al menos una firma', () => {
-    expect(accionesDisponibles(pf('enviada_para_firmas', 0), todos)).toEqual(['ticket', 'firma', 'rechazar']);
-    expect(accionesDisponibles(pf('enviada_para_firmas', 2), todos)).toEqual(['ticket', 'firma', 'firmada', 'rechazar']);
+    expect(accionesDisponibles(pf('enviada_para_firmas', 0), todos)).toEqual([
+      'ticket',
+      'firma',
+      'rechazar',
+    ]);
+    expect(accionesDisponibles(pf('enviada_para_firmas', 2), todos)).toEqual([
+      'ticket',
+      'firma',
+      'firmada',
+      'rechazar',
+    ]);
   });
 
   it('firmada solo admite registrar el número de ticket', () => {
@@ -63,9 +84,18 @@ describe('acciones disponibles', () => {
   });
 
   it('cada permiso habilita solo lo suyo', () => {
-    expect(accionesDisponibles(pf('generada'), p => p === 'comercial.prefacturas.enviar')).toEqual(['enviar']);
-    expect(accionesDisponibles(pf('generada'), p => p === 'comercial.prefacturas.firmar')).toEqual(['firma']);
-    expect(accionesDisponibles(pf('enviada_para_firmas', 1), p => p === 'comercial.prefacturas.rechazar')).toEqual(['rechazar']);
+    expect(
+      accionesDisponibles(pf('generada'), (p) => p === 'comercial.prefacturas.enviar'),
+    ).toEqual(['enviar']);
+    expect(
+      accionesDisponibles(pf('generada'), (p) => p === 'comercial.prefacturas.firmar'),
+    ).toEqual(['firma']);
+    expect(
+      accionesDisponibles(
+        pf('enviada_para_firmas', 1),
+        (p) => p === 'comercial.prefacturas.rechazar',
+      ),
+    ).toEqual(['rechazar']);
     expect(accionesDisponibles(pf('generada'), nada)).toEqual([]);
   });
 });
@@ -104,22 +134,50 @@ describe('validaciones', () => {
     expect(validarFirma({ ...base, firmadoAt: null }, '2026-10-15')).toMatch(/fecha/);
     expect(validarFirma({ ...base, firmadoAt: '2026-10-20' }, '2026-10-15')).toMatch(/futura/);
     expect(validarFirma({ ...base, archivo: null }, '2026-10-15')).toMatch(/Adjunte/);
-    expect(validarFirma({ ...base, archivo: { name: 'a.docx', size: 5, type: 'application/msword' } }, '2026-10-15')).toMatch(/PDF, PNG o JPEG/);
-    expect(validarFirma({ ...base, archivo: { name: 'a.pdf', size: 26 * 1024 * 1024, type: 'application/pdf' } }, '2026-10-15')).toMatch(/25 MB/);
+    expect(
+      validarFirma(
+        { ...base, archivo: { name: 'a.docx', size: 5, type: 'application/msword' } },
+        '2026-10-15',
+      ),
+    ).toMatch(/PDF, PNG o JPEG/);
+    expect(
+      validarFirma(
+        { ...base, archivo: { name: 'a.pdf', size: 26 * 1024 * 1024, type: 'application/pdf' } },
+        '2026-10-15',
+      ),
+    ).toMatch(/25 MB/);
   });
 
   it('el company man usa el representante de campo del pedido y no pide nombre', () => {
-    const cm: BorradorFirma = { ...base, firmanteTipo: 'company_man', personaIdRepresentante: 'p1', nombre: '' };
+    const cm: BorradorFirma = {
+      ...base,
+      firmanteTipo: 'company_man',
+      personaIdRepresentante: 'p1',
+      nombre: '',
+    };
     expect(validarFirma(cm, '2026-10-15')).toBeNull();
-    expect(armarFirma(cm, 'a1')).toEqual({ firmanteTipo: 'company_man', firmadoAt: '2026-10-10', archivoId: 'a1', personaId: 'p1' });
+    expect(armarFirma(cm, 'a1')).toEqual({
+      firmanteTipo: 'company_man',
+      firmadoAt: '2026-10-10',
+      archivoId: 'a1',
+      personaId: 'p1',
+    });
   });
 
   it('company man sin representante asignado exige nombre', () => {
-    expect(validarFirma({ ...base, firmanteTipo: 'company_man', nombre: '' }, '2026-10-15')).toMatch(/representante de campo/);
+    expect(
+      validarFirma({ ...base, firmanteTipo: 'company_man', nombre: '' }, '2026-10-15'),
+    ).toMatch(/representante de campo/);
   });
 
   it('arma el cuerpo con nombre y cargo cuando no hay persona', () => {
-    expect(armarFirma({ ...base, cargo: ' Gerente ' }, 'a1')).toEqual({ firmanteTipo: 'cliente', firmadoAt: '2026-10-10', archivoId: 'a1', nombre: 'Ana Pérez', cargo: 'Gerente' });
+    expect(armarFirma({ ...base, cargo: ' Gerente ' }, 'a1')).toEqual({
+      firmanteTipo: 'cliente',
+      firmadoAt: '2026-10-10',
+      archivoId: 'a1',
+      nombre: 'Ana Pérez',
+      cargo: 'Gerente',
+    });
   });
 });
 
@@ -129,7 +187,12 @@ describe('mensajes', () => {
   });
 
   it('422 de documentación incompleta muestra lo que falta', () => {
-    expect(mensajeErrorPrefactura({ status: 422, error: { code: 'DOCUMENTACION_INCOMPLETA', message: 'Falta: Reporte Job' } }, 'x')).toBe('Falta: Reporte Job');
+    expect(
+      mensajeErrorPrefactura(
+        { status: 422, error: { code: 'DOCUMENTACION_INCOMPLETA', message: 'Falta: Reporte Job' } },
+        'x',
+      ),
+    ).toBe('Falta: Reporte Job');
     expect(mensajeErrorPrefactura({ status: 409, error: {} }, 'x')).toMatch(/conflicto/);
     expect(mensajeErrorPrefactura({ status: 500 }, 'por defecto')).toBe('por defecto');
   });
@@ -140,7 +203,9 @@ describe('PrefacturasComercialService', () => {
   let http: HttpTestingController;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
     s = TestBed.inject(PrefacturasComercialService);
     http = TestBed.inject(HttpTestingController);
   });
@@ -172,8 +237,18 @@ describe('PrefacturasComercialService', () => {
   });
 
   it('firmas, dar por firmada (razón opcional) y rechazo', () => {
-    s.registrarFirma('f1', { firmanteTipo: 'cliente', nombre: 'Ana', firmadoAt: '2026-10-10', archivoId: 'a1' }).subscribe();
-    pedido('prefacturas/f1/firmas', 'POST', { firmanteTipo: 'cliente', nombre: 'Ana', firmadoAt: '2026-10-10', archivoId: 'a1' });
+    s.registrarFirma('f1', {
+      firmanteTipo: 'cliente',
+      nombre: 'Ana',
+      firmadoAt: '2026-10-10',
+      archivoId: 'a1',
+    }).subscribe();
+    pedido('prefacturas/f1/firmas', 'POST', {
+      firmanteTipo: 'cliente',
+      nombre: 'Ana',
+      firmadoAt: '2026-10-10',
+      archivoId: 'a1',
+    });
     s.darPorFirmada('f1').subscribe();
     pedido('prefacturas/f1/firmar', 'POST', {});
     s.darPorFirmada('f1', ' llegó tarde ').subscribe();
@@ -184,7 +259,14 @@ describe('PrefacturasComercialService', () => {
 });
 
 describe('verificación de firmas (solo informativa)', () => {
-  const f = (p: Partial<{ verificacion: 'no_verificada' | 'firma_detectada' | 'firma_no_detectada' | 'no_concluyente'; verificacionConfianza: number | null; verificacionAt: string | null; nombreCoincide: boolean | null }>) => ({
+  const f = (
+    p: Partial<{
+      verificacion: 'no_verificada' | 'firma_detectada' | 'firma_no_detectada' | 'no_concluyente';
+      verificacionConfianza: number | null;
+      verificacionAt: string | null;
+      nombreCoincide: boolean | null;
+    }>,
+  ) => ({
     verificacion: 'no_verificada' as const,
     verificacionConfianza: null,
     verificacionAt: '2026-10-15T10:00:00Z',
@@ -193,29 +275,43 @@ describe('verificación de firmas (solo informativa)', () => {
   });
 
   it('sin resultado: "Verificando…" y, agotado el sondeo, aviso para reintentar', () => {
-    expect(estadoVerificacion(f({ verificacionAt: null }))).toMatchObject({ clave: 'verificando', texto: 'Verificando…' });
-    expect(estadoVerificacion(f({ verificacionAt: null }), true)).toMatchObject({ clave: 'sin_resultado' });
+    expect(estadoVerificacion(f({ verificacionAt: null }))).toMatchObject({
+      clave: 'verificando',
+      texto: 'Verificando…',
+    });
+    expect(estadoVerificacion(f({ verificacionAt: null }), true)).toMatchObject({
+      clave: 'sin_resultado',
+    });
   });
 
   it('no_verificada con fecha: el servicio no respondió', () => {
-    expect(estadoVerificacion(f({}))).toMatchObject({ clave: 'no_se_pudo', texto: 'No se pudo verificar (el servicio no respondió)' });
+    expect(estadoVerificacion(f({}))).toMatchObject({
+      clave: 'no_se_pudo',
+      texto: 'No se pudo verificar (el servicio no respondió)',
+    });
   });
 
   it('firma detectada con confianza en porcentaje y coincidencia del nombre', () => {
-    const e = estadoVerificacion(f({ verificacion: 'firma_detectada', verificacionConfianza: 0.876, nombreCoincide: true }));
-    expect(e.texto).toBe('Se detecta una firma — revise el documento');
+    const e = estadoVerificacion(
+      f({ verificacion: 'firma_detectada', verificacionConfianza: 0.876, nombreCoincide: true }),
+    );
+    expect(e.texto).toBe('Firmado');
     expect(e.detalle).toBe('Confianza: 88 % · El nombre coincide');
-    expect(estadoVerificacion(f({ verificacion: 'firma_detectada', nombreCoincide: false })).detalle).toBe('No se encontró el nombre esperado');
+    expect(
+      estadoVerificacion(f({ verificacion: 'firma_detectada', nombreCoincide: false })).detalle,
+    ).toBe('No se encontró el nombre esperado');
     expect(estadoVerificacion(f({ verificacion: 'firma_detectada' })).detalle).toBeNull();
   });
 
   it('no detectada y no concluyente', () => {
-    expect(estadoVerificacion(f({ verificacion: 'firma_no_detectada' })).texto).toBe('No se detecta firma manuscrita — revise el documento');
-    expect(estadoVerificacion(f({ verificacion: 'no_concluyente' })).texto).toBe('No concluyente — revise a mano');
+    expect(estadoVerificacion(f({ verificacion: 'firma_no_detectada' })).texto).toBe('No firmado');
+    expect(estadoVerificacion(f({ verificacion: 'no_concluyente' })).texto).toBe('No concluyente');
   });
 
   it('el aviso fijo existe', () => {
-    expect(AVISO_VERIFICACION).toBe('La lectura automática es una ayuda para revisar; no certifica que la firma sea auténtica.');
+    expect(AVISO_VERIFICACION).toBe(
+      'La lectura automática es una ayuda para revisar; no certifica que la firma sea auténtica.',
+    );
   });
 
   it('sondea solo con resultados pendientes y hasta el límite de ~90 s', () => {
@@ -229,14 +325,19 @@ describe('verificación de firmas (solo informativa)', () => {
   });
 
   it('nunca condiciona las acciones: "Dar por firmada" no depende del resultado', () => {
-    const base = (verificacion: string) => ({ estado: 'enviada_para_firmas' as const, firmas: [{ verificacion, verificacionAt: null }] as never });
+    const base = (verificacion: string) => ({
+      estado: 'enviada_para_firmas' as const,
+      firmas: [{ verificacion, verificacionAt: null }] as never,
+    });
     for (const v of ['no_verificada', 'firma_no_detectada', 'no_concluyente', 'firma_detectada']) {
       expect(accionesDisponibles(base(v), todos)).toContain('firmada');
     }
   });
 
   it('el servicio vuelve a verificar con POST firmas/:firmaId/verificar', () => {
-    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
     const s = TestBed.inject(PrefacturasComercialService);
     const http = TestBed.inject(HttpTestingController);
     s.verificarFirma('f1', 'g1').subscribe();

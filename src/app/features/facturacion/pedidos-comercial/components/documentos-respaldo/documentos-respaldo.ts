@@ -7,7 +7,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { catchError, forkJoin, of, switchMap } from 'rxjs';
+import { catchError, forkJoin, of, switchMap, timer } from 'rxjs';
 import {
   DynadrillBannerComponent,
   DynadrillDialogService,
@@ -50,6 +50,9 @@ import {
 } from '../../models/documentos-pedido';
 import { PedidosComercialService } from '../../services/pedidos-comercial.service';
 import { ArchivosService } from '../../services/archivos.service';
+import { DocumentosFirmadosComercialService } from '../../services/documentos-firmados-comercial.service';
+import { MODULO_ARCHIVO_FIRMADO, type DocumentoFirmado } from '../../models/documentos-firmados';
+import { MAX_BYTES_FIRMA, estadoVerificacion } from '../../models/prefactura-comercial';
 import { TicketsPumpingService } from '../../../../operations/pumping/tickets-nuevos/services/tickets-pumping.service';
 import type { DocumentoDelTicket } from '../../../../operations/pumping/tickets-nuevos/models/ticket-pumping';
 import {
@@ -81,12 +84,15 @@ export class DocumentosRespaldo {
   private readonly pdf = inject(DocumentoPdfService);
   private readonly ticketsPumping = inject(TicketsPumpingService);
   private readonly archivos = inject(ArchivosService);
+  private readonly firmadosApi = inject(DocumentosFirmadosComercialService);
 
   readonly pedido = input.required<PedidoDetalle>();
   /** Persona con `comercial.documentos_operativos.corregir`. */
   readonly puedeCorregir = input(false);
   /** Persona con `comercial.documentos_operativos.ver`: sin él solo ve los adjuntos del pedido. */
   readonly puedeVerOperativos = input(true);
+  /** Persona con `comercial.prefacturas.firmar`: carga la versión firmada del monitoreo y de la mezcla. */
+  readonly puedeCargarFirmado = input(false);
   /** Persona con `pumping.documentos.ver`: ve el monitoreo y la mezcla química del ticket. */
   readonly puedeVerRespaldoTicket = input(false);
   /** Corregir un día cambia el avance documental y puede cambiar los pasos del pedido. */
@@ -108,6 +114,9 @@ export class DocumentosRespaldo {
   protected readonly avance = signal<AvanceDocumental | null>(null);
   /** Monitoreo (uno por día) y mezcla química que Operaciones subió al ticket de Pumping. */
   protected readonly respaldoTicket = signal<DocumentoDelTicket[]>([]);
+  /** Versión firmada vigente de cada documento del ticket, con el indicador de la lectura de la firma. */
+  protected readonly firmados = signal<DocumentoFirmado[]>([]);
+  protected readonly subiendoFirmado = signal<string | null>(null);
   protected readonly monitoreos = computed(() =>
     this.respaldoTicket()
       .filter((d) => d.tipo === 'monitoreo')
@@ -162,9 +171,14 @@ export class DocumentosRespaldo {
         : of([] as DocumentoOperativo[]),
       avance: this.puedeVerOperativos() ? this.servicio.avanceDocumental(id) : of(null),
       respaldo: respaldo$,
+      firmados: this.puedeVerOperativos()
+        ? this.firmadosApi.delPedido(id).pipe(catchError(() => of([] as DocumentoFirmado[])))
+        : of([] as DocumentoFirmado[]),
     }).subscribe({
-      next: ({ docs, avance, respaldo }) => {
+      next: ({ docs, avance, respaldo, firmados }) => {
         this.respaldoTicket.set(respaldo);
+        this.firmados.set(firmados);
+        this.sondearFirmas();
         this.documentos.set(docs);
         this.avance.set(avance);
         this.cargando.set(false);
@@ -261,6 +275,87 @@ export class DocumentosRespaldo {
       orientacion: 'landscape',
       nombreArchivo: `Reporte de Herramientas ${this.encabezado(docs[0]).code}`,
       descargar,
+    });
+  }
+
+  protected firmadoDe(d: DocumentoDelTicket): DocumentoFirmado | undefined {
+    return this.firmados().find((f) => f.documentoTicketId === d.id);
+  }
+
+  /** Solo saber si se detecta una firma o no: el texto sale del mismo indicador que usan las prefacturas. */
+  protected estadoFirma(f: DocumentoFirmado) {
+    return estadoVerificacion({ ...f, nombreCoincide: null }, false);
+  }
+
+  /** La lectura de la firma tarda unos segundos: se vuelve a consultar mientras haya resultados pendientes (hasta ~40 s). */
+  private sondearFirmas(intento = 0): void {
+    if (intento >= 14 || !this.firmados().some((f) => f.verificacionAt === null)) return;
+    timer(3000)
+      .pipe(switchMap(() => this.firmadosApi.delPedido(this.pedido().id)))
+      .subscribe({
+        next: (f) => {
+          this.firmados.set(f);
+          this.sondearFirmas(intento + 1);
+        },
+        error: () => undefined,
+      });
+  }
+
+  protected onFirmado(evento: Event, d: DocumentoDelTicket): void {
+    const entrada = evento.target as HTMLInputElement;
+    const archivo = entrada.files?.[0];
+    entrada.value = '';
+    if (!archivo || this.subiendoFirmado()) return;
+    const ext = archivo.name.split('.').pop()?.toLowerCase() ?? '';
+    const tipoOk =
+      ['application/pdf', 'image/png', 'image/jpeg'].includes(archivo.type) ||
+      ['pdf', 'png', 'jpg', 'jpeg'].includes(ext);
+    if (!tipoOk)
+      return void this.notify.error(
+        'Archivo no admitido',
+        'La versión firmada debe ser PDF, PNG o JPEG.',
+      );
+    if (archivo.size <= 0 || archivo.size > MAX_BYTES_FIRMA) {
+      return void this.notify.error(
+        'Archivo no admitido',
+        'El archivo está vacío o supera el máximo de 25 MB.',
+      );
+    }
+    this.subiendoFirmado.set(d.id);
+    this.archivos
+      .subir(archivo, MODULO_ARCHIVO_FIRMADO)
+      .pipe(
+        switchMap((subido) =>
+          this.firmadosApi.cargar(this.pedido().id, {
+            tipo: d.tipo,
+            documentoTicketId: d.id,
+            ...(d.fecha ? { fecha: d.fecha.slice(0, 10) } : {}),
+            archivoId: subido.id,
+          }),
+        ),
+      )
+      .subscribe({
+        next: (f) => {
+          this.subiendoFirmado.set(null);
+          this.firmados.set(f);
+          this.notify.success('Versión firmada cargada', archivo.name);
+          this.sondearFirmas();
+        },
+        error: (err) => {
+          this.subiendoFirmado.set(null);
+          this.notify.error('No se pudo cargar', mensajeErrorArchivo(err));
+        },
+      });
+  }
+
+  protected descargarFirmado(f: DocumentoFirmado): void {
+    this.archivos.contenido(f.archivoId).subscribe({
+      next: (blob) => this.archivos.guardarComo(blob, f.archivoNombre),
+      error: () =>
+        this.notify.error(
+          'No se pudo descargar',
+          'No se pudo descargar el documento firmado. Intente de nuevo.',
+        ),
     });
   }
 

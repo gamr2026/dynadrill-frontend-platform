@@ -71,6 +71,14 @@ export class PrefacturasComercialService {
   }
 
   /** Vuelve a leer la firma (la lectura automática es solo una ayuda); devuelve la prefactura. */
+  /** Carga el documento firmado nuevo en lugar del registrado (el archivo se sube antes con `modulo = prefactura_documento`). */
+  reemplazarFirma(id: string, firmaId: string, archivoId: string): Observable<Prefactura> {
+    return this.http.post<Prefactura>(
+      `${this.base}/prefacturas/${id}/firmas/${firmaId}/reemplazar`,
+      { archivoId },
+    );
+  }
+
   verificarFirma(id: string, firmaId: string): Observable<Prefactura> {
     return this.http.post<Prefactura>(
       `${this.base}/prefacturas/${id}/firmas/${firmaId}/verificar`,

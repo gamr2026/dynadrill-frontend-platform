@@ -616,6 +616,62 @@ export interface UsoTicket {
   listadoConfirmado: boolean;
   usos: UsoHerramienta[];
 }
+
+/** Estado de un día de una fila por día del Reporte de Herramientas (el stand-by no se cobra y no se registra). */
+export type EstadoDiaReporte = 'operacion' | 'daily_charge' | 'venta';
+export const ESTADO_DIA_REPORTE_LABELS: Record<EstadoDiaReporte, string> = {
+  operacion: 'Operación',
+  daily_charge: 'Daily charge',
+  venta: 'Venta',
+};
+/** Marca corta del formato impreso DYN-FCR-RE-008. */
+export const ESTADO_DIA_REPORTE_MARCA: Record<EstadoDiaReporte, string> = {
+  operacion: 'O',
+  daily_charge: 'D',
+  venta: 'V',
+};
+
+/** Una fila del Reporte de Herramientas: un ítem de la lista de precios del cliente con su cantidad real. */
+export interface ItemReporte {
+  id: string;
+  orden: number;
+  listaPreciosItemId: string;
+  codigo: string;
+  descripcion: string;
+  unidad: string;
+  /** La unidad es de tiempo: la cantidad es el número de días marcados. */
+  porDia: boolean;
+  serie: string | null;
+  cantidad: number;
+  dias: Array<{ fecha: string; estado: EstadoDiaReporte }>;
+  seriesSugeridas: string[];
+}
+
+export interface ReporteHerramientas {
+  listadoConfirmado: boolean;
+  fechaInicio: string | null;
+  fechaFin: string | null;
+  items: ItemReporte[];
+}
+
+export interface AgregarItemReporteEntrada {
+  listaPreciosItemId: string;
+  codigo: string;
+  descripcion: string;
+  unidad?: string;
+  serie?: string;
+  cantidad?: number;
+}
+
+/** Ítem elegible de la lista de precios del cliente (lo devuelve Comercial). */
+export interface OpcionItemLista {
+  listaPreciosItemId: string;
+  codigo: string;
+  descripcion: string;
+  unidad: string;
+  tipo: 'Material' | 'Servicio';
+}
+
 export interface PickerEntrada {
   tipoCompletacionId?: string;
   tipoTrabajoId?: string;

@@ -37,6 +37,7 @@ import {
   type TicketFcrBitacoraDialogData,
 } from './ticket-fcr-bitacora-dialog';
 import { TicketFcrFechaDialog, type TicketFcrFechaDialogData } from './ticket-fcr-fecha-dialog';
+import { TicketFcrReporteHerramientas } from './ticket-fcr-reporte-herramientas';
 import { TicketFcrUsoDialog, type TicketFcrUsoDialogData } from './ticket-fcr-uso-dialog';
 
 /**
@@ -53,10 +54,11 @@ import { TicketFcrUsoDialog, type TicketFcrUsoDialogData } from './ticket-fcr-us
     DynadrillSpinnerComponent,
     DynadrillTagComponent,
     DynadrillTextComponent,
+    TicketFcrReporteHerramientas,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="p" aria-label="Bitácora y uso de herramientas">
+    <section class="p" aria-label="Bitácora y reporte de herramientas">
       <h2>Bitácora diaria</h2>
       @if (error(); as e) {
         <dynadrill-banner variant="warning" [message]="e" />
@@ -94,7 +96,14 @@ import { TicketFcrUsoDialog, type TicketFcrUsoDialogData } from './ticket-fcr-us
           }
         </ul>
 
-        <h2>Uso de las herramientas</h2>
+        <h2>Reporte de herramientas</h2>
+        <app-ticket-fcr-reporte-herramientas
+          [ticket]="ticket()"
+          [puedeEditar]="puedeEditar()"
+          (cambio)="cambio.emit()"
+        />
+
+        <h2>Completación, picker, presión y peso</h2>
         @if (puedeEditar()) {
           <div class="p__acciones">
             <dynadrill-button
@@ -102,27 +111,19 @@ import { TicketFcrUsoDialog, type TicketFcrUsoDialogData } from './ticket-fcr-us
               size="small"
               [disabled]="!recibidas().length"
               (clicked)="registrarUso()"
-              >Registrar uso de una herramienta</dynadrill-button
+              >Registrar completación o picker de una herramienta</dynadrill-button
             >
-            <dynadrill-button variant="secondary" size="small" (clicked)="confirmarUso()">{{
-              uso()?.listadoConfirmado
-                ? 'Deshacer la confirmación del listado de uso'
-                : 'Confirmar que el listado de uso está completo'
-            }}</dynadrill-button>
           </div>
-        } @else if (uso()?.listadoConfirmado) {
-          <dynadrill-tag label="Listado de uso confirmado" variant="success" [uppercase]="false" />
         }
         <div class="p__tabla">
           <table>
             <caption class="sr-only">
-              Uso diario de las herramientas
+              Registro de completación o picker por herramienta
             </caption>
             <thead>
               <tr>
                 <th scope="col">Día</th>
                 <th scope="col">Herramienta</th>
-                <th scope="col">Estado de cobro</th>
                 <th scope="col">Completación o trabajo</th>
                 <th scope="col">Picker</th>
                 <th scope="col">Presión / peso</th>
@@ -136,7 +137,6 @@ import { TicketFcrUsoDialog, type TicketFcrUsoDialogData } from './ticket-fcr-us
                   <td>
                     {{ u.nombre }} <span class="p__meta">{{ u.codigo }}</span>
                   </td>
-                  <td>{{ estadoUso(u.estado) }}</td>
                   <td>{{ u.tipoCompletacion ?? u.tipoTrabajo ?? '—' }}</td>
                   <td>{{ u.tipoPicker ?? '—' }}</td>
                   <td>
@@ -155,7 +155,7 @@ import { TicketFcrUsoDialog, type TicketFcrUsoDialogData } from './ticket-fcr-us
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="7" class="p__meta">Todavía no hay uso registrado.</td>
+                  <td colspan="6" class="p__meta">Todavía no hay registros de picker.</td>
                 </tr>
               }
             </tbody>
@@ -169,8 +169,9 @@ import { TicketFcrUsoDialog, type TicketFcrUsoDialogData } from './ticket-fcr-us
             >
           </div>
           <dynadrill-text variant="caption"
-            >Exige la bitácora enviada (todos sus días) y el listado de uso confirmado. Al finalizar
-            se envía el Reporte de Herramientas a Facturación y usted ya no corrige.</dynadrill-text
+            >Exige la bitácora enviada (todos sus días) y el reporte de herramientas confirmado. Al
+            finalizar se envía el Reporte de Herramientas a Facturación y usted ya no
+            corrige.</dynadrill-text
           >
         }
       </dynadrill-spinner>
@@ -273,12 +274,10 @@ export class TicketFcrEjecucionPanel {
   private cargar(): void {
     const id = this.ticket().id;
     this.cargando.set(true);
-    this.servicio
-      .bitacora(id)
-      .subscribe({
-        next: (b) => this.bitacora.set(b),
-        error: (err) => this.error.set(mensajeErrorTicket(err, 'No se pudo cargar la bitácora.')),
-      });
+    this.servicio.bitacora(id).subscribe({
+      next: (b) => this.bitacora.set(b),
+      error: (err) => this.error.set(mensajeErrorTicket(err, 'No se pudo cargar la bitácora.')),
+    });
     this.servicio.uso(id).subscribe({
       next: (u) => {
         this.uso.set(u);
@@ -289,12 +288,10 @@ export class TicketFcrEjecucionPanel {
         this.error.set(mensajeErrorTicket(err, 'No se pudo cargar el uso de las herramientas.'));
       },
     });
-    this.servicio
-      .herramientas(id)
-      .subscribe({
-        next: (h) => this.herramientas.set(h.herramientas),
-        error: () => this.herramientas.set([]),
-      });
+    this.servicio.herramientas(id).subscribe({
+      next: (h) => this.herramientas.set(h.herramientas),
+      error: () => this.herramientas.set([]),
+    });
   }
 
   private hoyEnServicio(): string {
@@ -391,21 +388,6 @@ export class TicketFcrEjecucionPanel {
       error: (err) => {
         this.ocupado.set(false);
         this.error.set(mensajeErrorTicket(err, 'No se pudo quitar el registro.'));
-      },
-    });
-  }
-
-  protected confirmarUso(): void {
-    this.ocupado.set(true);
-    this.servicio.confirmarListadoUso(this.ticket().id, !this.uso()?.listadoConfirmado).subscribe({
-      next: (u) => {
-        this.ocupado.set(false);
-        this.uso.set(u);
-        this.cambio.emit();
-      },
-      error: (err) => {
-        this.ocupado.set(false);
-        this.error.set(mensajeErrorTicket(err, 'No se pudo confirmar el listado.'));
       },
     });
   }

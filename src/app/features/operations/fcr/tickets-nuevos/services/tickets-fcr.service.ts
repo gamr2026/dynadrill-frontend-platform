@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '@env';
 import type {
   ActaReunion,
+  AgregarItemReporteEntrada,
   ActividadBitacora,
   BitacoraTicket,
   CampoDocumento,
@@ -11,6 +12,7 @@ import type {
   CausaFaltante,
   DiaBitacoraDetalle,
   DocumentoTicket,
+  EstadoDiaReporte,
   EstadoUso,
   FiltroTickets,
   HerramientaDisponible,
@@ -18,7 +20,9 @@ import type {
   HerramientasTicket,
   InspeccionHerramienta,
   LlegadaEntrada,
+  OpcionItemLista,
   PickerEntrada,
+  ReporteHerramientas,
   ResponsableTrabajo,
   ResultadoParte,
   ResumenInspeccion,
@@ -326,10 +330,53 @@ export class TicketsFcrService {
   quitarUso(id: string, usoId: string): Observable<UsoTicket> {
     return this.http.delete<UsoTicket>(`${this.t(id)}/uso-herramientas/${usoId}`);
   }
-  confirmarListadoUso(id: string, confirmado: boolean): Observable<UsoTicket> {
-    return this.http.post<UsoTicket>(`${this.t(id)}/uso-herramientas/confirmar-listado`, {
+
+  // ── Reporte de Herramientas por ítem de la lista de precios ──
+
+  reporte(id: string): Observable<ReporteHerramientas> {
+    return this.http.get<ReporteHerramientas>(`${this.t(id)}/reporte-herramientas`);
+  }
+  agregarItemReporte(id: string, item: AgregarItemReporteEntrada): Observable<ReporteHerramientas> {
+    return this.http.post<ReporteHerramientas>(`${this.t(id)}/reporte-herramientas/items`, item);
+  }
+  actualizarItemReporte(
+    id: string,
+    itemId: string,
+    cambios: { serie?: string; cantidad?: number },
+  ): Observable<ReporteHerramientas> {
+    return this.http.patch<ReporteHerramientas>(
+      `${this.t(id)}/reporte-herramientas/items/${itemId}`,
+      cambios,
+    );
+  }
+  quitarItemReporte(id: string, itemId: string): Observable<ReporteHerramientas> {
+    return this.http.delete<ReporteHerramientas>(
+      `${this.t(id)}/reporte-herramientas/items/${itemId}`,
+    );
+  }
+  /** Marca (o, con `null`, desmarca) un día de una fila por día. */
+  marcarDiaReporte(
+    id: string,
+    itemId: string,
+    fecha: string,
+    estado: EstadoDiaReporte | null,
+  ): Observable<ReporteHerramientas> {
+    const url = `${this.t(id)}/reporte-herramientas/items/${itemId}/dias/${fecha}`;
+    return estado
+      ? this.http.put<ReporteHerramientas>(url, { estado })
+      : this.http.delete<ReporteHerramientas>(url);
+  }
+  confirmarReporte(id: string, confirmado: boolean): Observable<ReporteHerramientas> {
+    return this.http.post<ReporteHerramientas>(`${this.t(id)}/reporte-herramientas/confirmar`, {
       confirmado,
     });
+  }
+  /** Ítems de la lista de precios del pedido que se pueden agregar al reporte (los busca Comercial). */
+  itemsDeLista(pedidoId: string, q: string): Observable<{ opciones: OpcionItemLista[] }> {
+    return this.http.get<{ opciones: OpcionItemLista[] }>(
+      `${environment.apiUrl}/comercial/pedidos/${pedidoId}/items-para-cambio`,
+      { params: new HttpParams().set('q', q) },
+    );
   }
   finalizarEjecucion(id: string): Observable<TicketFcr> {
     return this.http.post<TicketFcr>(`${this.t(id)}/finalizar-ejecucion`, {});

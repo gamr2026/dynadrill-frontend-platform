@@ -19,13 +19,11 @@ import { mensajeErrorArchivo } from '../../models/documentos-pedido';
 import {
   MODULO_ARCHIVO_ORDEN,
   mensajeErrorOrden,
-  validarFactura,
   type CiudadOt,
-  type EstadoCierre,
   type OrdenTrabajo,
 } from '../../models/orden-trabajo';
 
-export type TipoAccionOrden = 'emitir' | 'firmada' | 'factura';
+export type TipoAccionOrden = 'emitir' | 'firmada';
 
 export interface OrdenTrabajoDialogData {
   tipo: TipoAccionOrden;
@@ -36,7 +34,7 @@ export interface OrdenTrabajoDialogData {
   sugerencia?: { descripcion?: string };
 }
 
-/** Un diálogo para las tres acciones con datos: generar la OT, marcarla firmada (con archivo opcional) y registrar la factura. */
+/** Un diálogo para las dos acciones con datos: generar la OT y marcarla firmada (con archivo opcional). */
 @Component({
   selector: 'app-orden-trabajo-dialog',
   imports: [
@@ -95,17 +93,6 @@ export interface OrdenTrabajoDialogData {
             />
           </label>
         }
-        @case ('factura') {
-          <dynadrill-text variant="body"
-            >Escriba el número de la factura que se emitió en AS2. Con esto el pedido queda
-            facturado y cerrado.</dynadrill-text
-          >
-          <dynadrill-input
-            label="Número de factura"
-            [value]="factura()"
-            (valueChange)="factura.set($event)"
-          />
-        }
       }
       @if (error(); as e) {
         <p class="ot__error" role="alert">{{ e }}</p>
@@ -156,9 +143,7 @@ export class OrdenTrabajoDialog {
   private readonly pedidos = inject(PedidosComercialService);
   private readonly prefacturas = inject(PrefacturasComercialService);
   private readonly notify = inject(DynadrillNotificationService);
-  private readonly modalRef = inject(
-    NzModalRef<OrdenTrabajoDialog, OrdenTrabajo | EstadoCierre | undefined>,
-  );
+  private readonly modalRef = inject(NzModalRef<OrdenTrabajoDialog, OrdenTrabajo | undefined>);
   protected readonly data = inject<OrdenTrabajoDialogData>(NZ_MODAL_DATA);
 
   protected readonly ciudades = signal<CiudadOt[]>([]);
@@ -167,7 +152,6 @@ export class OrdenTrabajoDialog {
   protected readonly repNombre = signal('');
   protected readonly repCargo = signal('');
   protected readonly archivo = signal<File | null>(null);
-  protected readonly factura = signal('');
   protected readonly enviando = signal(false);
   protected readonly error = signal<string | null>(null);
 
@@ -179,7 +163,6 @@ export class OrdenTrabajoDialog {
       ({
         emitir: 'Generar orden de trabajo',
         firmada: 'Marcar como firmada',
-        factura: 'Registrar factura',
       })[this.data.tipo],
   );
 
@@ -287,18 +270,10 @@ export class OrdenTrabajoDialog {
           });
         return;
       }
-      case 'factura': {
-        const problema = validarFactura(this.factura());
-        if (problema) return void this.error.set(problema);
-        this.enviar(
-          this.servicio.facturado(this.data.pedidoId, this.factura()),
-          'Pedido facturado',
-        );
-      }
     }
   }
 
-  private enviar(obs: Observable<OrdenTrabajo | EstadoCierre>, titulo: string): void {
+  private enviar(obs: Observable<OrdenTrabajo>, titulo: string): void {
     this.enviando.set(true);
     obs.subscribe({
       next: (r) => this.terminar(r, titulo),
@@ -309,7 +284,7 @@ export class OrdenTrabajoDialog {
     });
   }
 
-  private terminar(r: OrdenTrabajo | EstadoCierre, titulo: string): void {
+  private terminar(r: OrdenTrabajo, titulo: string): void {
     this.notify.success(titulo);
     this.modalRef.close(r);
   }

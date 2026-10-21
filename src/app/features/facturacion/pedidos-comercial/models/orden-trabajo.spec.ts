@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { CABECERA_AS2, aHojaAot, csvAs2, muestraOrdenYCierre, siguientePasoCierre, validarFactura, type OrdenTrabajo } from './orden-trabajo';
+import {
+  CABECERA_AS2,
+  aHojaAot,
+  csvAs2,
+  muestraOrdenYCierre,
+  siguientePasoCierre,
+  type OrdenTrabajo,
+} from './orden-trabajo';
 
 const orden: OrdenTrabajo = {
   id: 'o1',
@@ -22,16 +29,24 @@ const orden: OrdenTrabajo = {
   estado: 'generada',
   generadaAt: '2026-10-31T10:00:00Z',
   firmada: null,
-  items: [{ orden: 1, codigo: 'SUP-1', servicioRequerido: 'Supervisor', unidad: 'día', tarifaUnitaria: 437.23, cantidad: 2, total: 874.46 }],
+  items: [
+    {
+      orden: 1,
+      codigo: 'SUP-1',
+      servicioRequerido: 'Supervisor',
+      unidad: 'día',
+      tarifaUnitaria: 437.23,
+      cantidad: 2,
+      total: 874.46,
+    },
+  ],
 };
 
 describe('orden de trabajo y cierre (modelo)', () => {
-  it('indica el siguiente paso según el estado y si el contrato exige la OT', () => {
+  it('solo queda por hacer generar la OT, y únicamente si el contrato la exige', () => {
     expect(siguientePasoCierre('ticket_firmado', true)).toBe('generar_orden');
-    expect(siguientePasoCierre('ticket_firmado', false)).toBe('control_costos');
-    expect(siguientePasoCierre('aot_generada', true)).toBe('control_costos');
-    expect(siguientePasoCierre('enviado_a_control_de_costos', true)).toBe('listo_para_facturar');
-    expect(siguientePasoCierre('listo_para_facturar', false)).toBe('facturar');
+    expect(siguientePasoCierre('ticket_firmado', false)).toBeNull();
+    expect(siguientePasoCierre('aot_generada', true)).toBeNull();
     expect(siguientePasoCierre('facturado', true)).toBeNull();
     expect(siguientePasoCierre('abierto', true)).toBeNull();
   });
@@ -41,13 +56,6 @@ describe('orden de trabajo y cierre (modelo)', () => {
     expect(muestraOrdenYCierre('facturado')).toBe(true);
     expect(muestraOrdenYCierre('prefactura_generada')).toBe(false);
     expect(muestraOrdenYCierre('borrador')).toBe(false);
-  });
-
-  it('valida el número de factura', () => {
-    expect(validarFactura('  ')).toContain('número de la factura');
-    expect(validarFactura('ab')).toContain('número de la factura');
-    expect(validarFactura('x'.repeat(41))).toContain('demasiado largo');
-    expect(validarFactura('001-001-000001234')).toBeNull();
   });
 
   it('adapta la OT al modelo de la hoja de impresión', () => {
@@ -62,13 +70,36 @@ describe('orden de trabajo y cierre (modelo)', () => {
       fechaTerminacion: '2026-11-02',
       representanteCliente: { nombre: 'Ing. Cliente', cargo: 'Supervisor' },
     });
-    expect(a.detalle).toEqual([{ codigo: 'SUP-1', servicioRequerido: 'Supervisor', unidad: 'día', tarifaUnitaria: 437.23, cantidad: 2, total: 874.46 }]);
+    expect(a.detalle).toEqual([
+      {
+        codigo: 'SUP-1',
+        servicioRequerido: 'Supervisor',
+        unidad: 'día',
+        tarifaUnitaria: 437.23,
+        cantidad: 2,
+        total: 874.46,
+      },
+    ]);
   });
 
   it('arma el CSV de la plantilla de AS2 con sus columnas, comillas y BOM', () => {
     const csv = csvAs2([
-      { codigoProducto: 'SFS6218', codigoUnidad: 'UN', cantidad: 2, descripcion: 'Cargo, "especial"', precio: 100, porcentajeDescuento: 10 },
-      { codigoProducto: 'SUP-1', codigoUnidad: 'día', cantidad: 3, descripcion: 'Supervisor', precio: 437.23, porcentajeDescuento: 0 },
+      {
+        codigoProducto: 'SFS6218',
+        codigoUnidad: 'UN',
+        cantidad: 2,
+        descripcion: 'Cargo, "especial"',
+        precio: 100,
+        porcentajeDescuento: 10,
+      },
+      {
+        codigoProducto: 'SUP-1',
+        codigoUnidad: 'día',
+        cantidad: 3,
+        descripcion: 'Supervisor',
+        precio: 437.23,
+        porcentajeDescuento: 0,
+      },
     ]);
     expect(csv.charCodeAt(0)).toBe(0xfeff);
     const lineas = csv.slice(1).trimEnd().split('\r\n');

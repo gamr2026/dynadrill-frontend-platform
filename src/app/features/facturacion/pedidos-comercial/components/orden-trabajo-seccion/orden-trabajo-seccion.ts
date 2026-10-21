@@ -32,15 +32,13 @@ import {
   aHojaAot,
   mensajeErrorOrden,
   siguientePasoCierre,
-  type EstadoCierre,
   type OrdenDelPedido,
   type PasoCierre,
 } from '../../models/orden-trabajo';
 
 /**
- * Orden de trabajo (OT) y cierre del pedido: generar la OT de la prefactura firmada (si el contrato la exige), verla e
- * imprimirla con el formato "Orden de trabajo — Resumen de costos", marcarla como firmada (firma física), y llevar el
- * pedido por control de costos, listo para facturar y facturado.
+ * Orden de trabajo (OT) del pedido: generar la OT de la prefactura firmada (si el contrato la exige), verla e imprimirla con el
+ * formato "Orden de trabajo — Resumen de costos" y marcarla como firmada (firma física).
  */
 @Component({
   selector: 'app-orden-trabajo-seccion',
@@ -71,10 +69,9 @@ export class OrdenTrabajoSeccion {
   protected readonly error = signal<string | null>(null);
   protected readonly errorAccion = signal<string | null>(null);
   protected readonly datos = signal<OrdenDelPedido | null>(null);
-  protected readonly cierre = signal<EstadoCierre | null>(null);
 
   protected readonly orden = computed(() => this.datos()?.orden ?? null);
-  /** Solo se ofrece generar la OT: el control de costos, el listo para facturar y la factura quedan fuera del alcance del aplicativo. */
+  /** Solo se ofrece generar la OT: el cierre (control de costos y factura) queda fuera del alcance del aplicativo. */
   protected readonly paso = computed<PasoCierre>(() =>
     siguientePasoCierre(this.pedido().estado, this.datos()?.requiere ?? false) === 'generar_orden'
       ? 'generar_orden'
@@ -83,13 +80,9 @@ export class OrdenTrabajoSeccion {
   protected readonly rotulo = computed(() =>
     this.paso() ? ROTULO_PASO[this.paso() as Exclude<PasoCierre, null>] : '',
   );
-  protected readonly puedeCerrar = computed(() => this.auth.can(PERMISOS_ORDENES.cierre));
   protected readonly puedeEmitir = computed(() => this.auth.can(PERMISOS_ORDENES.emitir));
   protected readonly puedeFirmar = computed(() => this.auth.can(PERMISOS_ORDENES.firmar));
-  /** ¿Puede hacer el paso que toca? (cada paso pide su permiso) */
-  protected readonly puedeElPaso = computed(() =>
-    this.paso() === 'generar_orden' ? this.puedeEmitir() : this.puedeCerrar(),
-  );
+  protected readonly puedeElPaso = computed(() => this.puedeEmitir());
 
   constructor() {
     queueMicrotask(() => this.cargar());
@@ -101,13 +94,7 @@ export class OrdenTrabajoSeccion {
     this.servicio.delPedido(this.pedido().id).subscribe({
       next: (d) => {
         this.datos.set(d);
-        this.servicio.cierre(this.pedido().id).subscribe({
-          next: (c) => {
-            this.cierre.set(c);
-            this.cargando.set(false);
-          },
-          error: () => this.cargando.set(false),
-        });
+        this.cargando.set(false);
       },
       error: (err) => {
         this.cargando.set(false);
@@ -122,17 +109,7 @@ export class OrdenTrabajoSeccion {
     const paso = this.paso();
     if (!paso || this.ocupado()) return;
     this.errorAccion.set(null);
-    const id = this.pedido().id;
-    switch (paso) {
-      case 'generar_orden':
-        return this.abrir('emitir', 'Generar orden de trabajo');
-      case 'facturar':
-        return this.abrir('factura', 'Registrar factura');
-      case 'control_costos':
-        return this.llamar(this.servicio.enviarControlCostos(id), 'Enviado a control de costos');
-      case 'listo_para_facturar':
-        return this.llamar(this.servicio.listoParaFacturar(id), 'Listo para facturar');
-    }
+    this.abrir('emitir', 'Generar orden de trabajo');
   }
 
   /** Abre la pantalla de la orden de trabajo (documento, datos y detalle de costos). */
@@ -159,26 +136,6 @@ export class OrdenTrabajoSeccion {
     });
     ref.afterClose.subscribe((r: unknown) => {
       if (r) this.recargar();
-    });
-  }
-
-  private llamar(
-    obs: ReturnType<OrdenesTrabajoComercialService['enviarControlCostos']>,
-    titulo: string,
-  ): void {
-    this.ocupado.set(true);
-    obs.subscribe({
-      next: () => {
-        this.ocupado.set(false);
-        this.notify.success(titulo);
-        this.recargar();
-      },
-      error: (err) => {
-        this.ocupado.set(false);
-        this.errorAccion.set(
-          mensajeErrorOrden(err, 'No se pudo completar la acción. Intente de nuevo.'),
-        );
-      },
     });
   }
 

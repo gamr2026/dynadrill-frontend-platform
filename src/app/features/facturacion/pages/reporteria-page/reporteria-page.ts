@@ -70,13 +70,8 @@ const TIPO_OT_LABELS: Record<'venta' | 'servicio', string> = {
   venta: 'Venta',
   servicio: 'Servicio',
 };
-/** Estados en los que el pedido ya no está "en proceso" de facturación. */
-const ESTADOS_CERRADOS = [
-  'facturado',
-  'listo_para_facturar',
-  'enviado_a_control_de_costos',
-  'anulado',
-];
+/** Estados en los que el pedido ya no está "en proceso" de facturación (el flujo termina en la firma o la OT). */
+const ESTADOS_CERRADOS = ['ticket_firmado', 'aot_generada', 'facturado', 'anulado'];
 const SIN = '— Sin asignar —';
 
 /** Código del ticket: «PRC-<número>» cuando AS2 ya lo asignó; si no, el código del pedido. */

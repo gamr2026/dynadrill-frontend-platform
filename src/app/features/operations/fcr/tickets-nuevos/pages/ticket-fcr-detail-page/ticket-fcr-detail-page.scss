@@ -29,16 +29,19 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    padding: 16px;
+    padding: 1.5rem;
     background: var(--surface, #fff);
-    border: 1px solid var(--border, #ecebf1);
-    border-radius: 14px;
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-sm, 0 1px 2px rgba(19, 21, 41, 0.05));
 
     h2 {
       margin: 0;
-      font-size: 15px;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid var(--dynadrill-purple, #662e9b);
+      font-size: 1.125rem;
       font-weight: 600;
-      color: var(--text, #2c2b35);
+      color: var(--dynadrill-purple, #662e9b);
     }
   }
 
@@ -123,4 +126,16 @@
     font-weight: 600;
     color: #5c5870;
   }
+}
+
+.fcr-detail__top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.tpd__principal {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }

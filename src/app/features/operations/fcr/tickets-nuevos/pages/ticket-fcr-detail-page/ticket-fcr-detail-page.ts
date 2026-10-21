@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { TicketProgress } from '../../../../shared/ticket-progress/ticket-progress';
+import type { TimelineTramo } from '../../../../../../shared/models/timeline.model';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
@@ -98,6 +100,7 @@ import { TicketsFcrService } from '../../services/tickets-fcr.service';
     DynadrillScreenHeaderComponent,
     DynadrillSpinnerComponent,
     DynadrillTagComponent,
+    TicketProgress,
     TicketFcrDocumentosPanel,
     TicketFcrEjecucionPanel,
     TicketFcrHerramientasPanel,
@@ -142,32 +145,82 @@ export class TicketFcrDetailPage {
     return !!a && (!!a.supervisor || a.operadores.length > 0 || a.unidades.length > 0);
   });
 
-  private readonly codigoPaso = computed(() => this.ticket()?.paso.codigo ?? '');
+  private readonly codigoActual = computed(() => this.ticket()?.paso.codigo ?? '');
+  /** El paso que quien consulta eligió en el avance del ticket (por omisión, el actual). */
+  private readonly faseElegida = signal<number | null>(null);
+  protected readonly indicePaso = computed(() => {
+    const i = PASOS_FCR.findIndex((p) => p.codigo === this.codigoActual());
+    return i < 0 ? 0 : i;
+  });
+  protected readonly cerrado = computed(() => this.ticket()?.paso.macro === 'aprobado');
+  protected readonly avancePaso = computed(() =>
+    this.cerrado() ? PASOS_FCR.length : this.indicePaso(),
+  );
+  protected readonly indiceFase = computed(() => this.faseElegida() ?? this.indicePaso());
+  /** Código del paso cuyo detalle se muestra: los paneles siguen a la fase elegida; las acciones, al paso actual. */
+  private readonly codigoPaso = computed(() => PASOS_FCR[this.indiceFase()]?.codigo ?? '');
+  protected readonly etiquetasPasos = PASOS_FCR.map((p) => p.nombre);
+  protected readonly roleName = computed(() => this.auth.currentUser()?.roleName ?? '');
+  protected seleccionarFase(i: number): void {
+    this.faseElegida.set(i === this.indicePaso() ? null : i);
+  }
+  protected readonly tramos = computed<(TimelineTramo | undefined)[]>(() => {
+    const t = this.ticket();
+    if (!t) return [];
+    const actual = this.indicePaso();
+    return PASOS_FCR.map((p, i) => {
+      let k = -1;
+      t.historial.forEach((h, j) => {
+        if (h.pasoNuevo === p.codigo) k = j;
+      });
+      if (k < 0) return undefined;
+      const h = t.historial[k];
+      const fin = t.historial[k + 1]?.at;
+      return {
+        fase: p.nombre,
+        macroEstado: i < actual || this.cerrado() ? 'aprobado' : 'en_proceso',
+        inicio: h.at,
+        fin,
+        duracionMs: (fin ? new Date(fin).getTime() : Date.now()) - new Date(h.at).getTime(),
+        actorNombre: h.actor?.nombre ?? 'Sistema',
+        actorRolLabel: h.actor?.rol ? etiquetaRol(h.actor.rol) : undefined,
+        motivo: h.motivo ?? undefined,
+      } satisfies TimelineTramo;
+    });
+  });
+  /** Qué se espera del ticket ahora y de quién (el banner de la demo). */
+  protected readonly bannerAccion = computed(() => {
+    const t = this.ticket();
+    if (!t) return '';
+    if (this.cerrado()) return 'El ticket está cerrado.';
+    return t.puedeActuar
+      ? `Es su turno: ${t.paso.nombre}.`
+      : `Acción esperada: ${t.paso.nombre}, a cargo de ${etiquetaRoles(t.paso.roles)}.`;
+  });
+  protected irACambios(): void {
+    document
+      .getElementById('cambios-items')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
   private readonly esServicio = computed(() => this.ticket()?.tipoOt === 'servicio');
   protected readonly debeDefinirTipo = computed(
-    () => !!this.ticket()?.puedeActuar && this.codigoPaso() === PASO_TIPO_OPERADOR,
+    () => !!this.ticket()?.puedeActuar && this.codigoActual() === PASO_TIPO_OPERADOR,
   );
   protected readonly debeAsignar = computed(
-    () => !!this.ticket()?.puedeActuar && this.codigoPaso() === PASO_ASIGNACION,
+    () => !!this.ticket()?.puedeActuar && this.codigoActual() === PASO_ASIGNACION,
   );
   protected readonly debeFirmarActa = computed(
-    () => !!this.ticket()?.puedeActuar && this.codigoPaso() === PASO_REUNION,
+    () => !!this.ticket()?.puedeActuar && this.codigoActual() === PASO_REUNION,
   );
   protected readonly enRevisionReportes = computed(
-    () => !!this.ticket()?.puedeActuar && this.codigoPaso() === PASO_REVISION_REPORTES,
+    () => !!this.ticket()?.puedeActuar && this.codigoActual() === PASO_REVISION_REPORTES,
   );
   /** Estos pasos se resuelven en su panel o con un botón propio; los botones genéricos de «siguiente» solo salen donde no hay acción propia. */
   protected readonly siguientesGenericos = computed(() => {
     const t = this.ticket();
     if (!t) return [];
-    if (
-      this.debeDefinirTipo() ||
-      this.debeAsignar() ||
-      this.debeFirmarActa() ||
-      this.enRevisionReportes()
-    )
-      return [];
-    if (this.codigoPaso() === PASO_EJECUCION) return [];
+    if (this.enRevisionReportes()) return [];
+    if (this.codigoActual() === PASO_EJECUCION) return [];
     return t.siguientes;
   });
 
@@ -287,7 +340,7 @@ export class TicketFcrDetailPage {
     return (
       !!t &&
       this.hayAsignacion() &&
-      ![PASO_CIERRE, PASO_CERRADO].includes(this.codigoPaso()) &&
+      ![PASO_CIERRE, PASO_CERRADO].includes(this.codigoActual()) &&
       this.auth.can(PERMISO_FCR_CAMBIOS_SOLICITAR) &&
       (this.esDelEquipo() || this.esSupervisorDelTicket()) &&
       !this.cambiosItems().some((s) => s.estado === 'pendiente')

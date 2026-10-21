@@ -36,6 +36,9 @@ export interface HerramientaOperativa {
   nombre: string;
   serie: string | null;
   codigo: string | null;
+  /** Unidad y cantidad real del ítem de la lista de precios (solo el reporte por ítem las trae). */
+  unidad?: string | null;
+  cantidad?: number | null;
   usos: UsoHerramienta[];
 }
 

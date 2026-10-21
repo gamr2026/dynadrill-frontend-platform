@@ -258,6 +258,8 @@ export class DocumentosRespaldo {
           name: h.nombre,
           serialCode: h.serie ?? undefined,
           codigo: h.codigo ?? undefined,
+          unidad: h.unidad ?? undefined,
+          cantidad: h.cantidad ?? null,
         });
         for (const u of h.usos)
           usageLog.push({

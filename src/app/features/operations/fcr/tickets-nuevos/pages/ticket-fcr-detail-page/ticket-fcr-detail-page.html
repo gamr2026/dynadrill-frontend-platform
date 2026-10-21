@@ -383,6 +383,12 @@
                       El Supervisor revisa la bitácora y el Reporte de Herramientas que subió el
                       Operador.
                     </p>
+                    <app-ticket-fcr-reportes-revision
+                      [ticket]="t"
+                      [representanteCliente]="
+                        pedido()?.responsables?.representanteCampo?.nombre ?? null
+                      "
+                    />
                     @if (esActual(p.codigo)) {
                       <ng-container *ngTemplateOutlet="cierreDeFase" />
                     }

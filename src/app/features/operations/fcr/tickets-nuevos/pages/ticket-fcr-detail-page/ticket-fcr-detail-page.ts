@@ -66,6 +66,7 @@ import {
 } from '../../components/ticket-fcr-fecha-dialog';
 import { TicketFcrHerramientasPanel } from '../../components/ticket-fcr-herramientas-panel';
 import { TicketFcrInspeccionesPanel } from '../../components/ticket-fcr-inspecciones-panel';
+import { TicketFcrReportesRevision } from '../../components/ticket-fcr-reportes-revision';
 import { TicketFcrRetornoPanel } from '../../components/ticket-fcr-retorno-panel';
 import {
   TicketFcrTipoOperadorDialog,
@@ -125,6 +126,7 @@ import { TicketsFcrService } from '../../services/tickets-fcr.service';
     TicketFcrEjecucionPanel,
     TicketFcrHerramientasPanel,
     TicketFcrInspeccionesPanel,
+    TicketFcrReportesRevision,
     TicketFcrRetornoPanel,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

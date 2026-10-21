@@ -34,6 +34,10 @@ export interface OperativoToolRef {
   serialCode?: string;
   /** Código de la lista de precios (columna "CODIGO #" del DYN-FCR-RE-008). */
   codigo?: string;
+  /** Unidad del ítem de la lista de precios. */
+  unidad?: string;
+  /** Cantidad real de un ítem que no se marca por día (km, pies, galones, unidades…): sale en la columna TOTAL. */
+  cantidad?: number | null;
 }
 
 /** Un registro por (herramienta, fecha); volver a registrar esa combinación reemplaza el estado del día. */

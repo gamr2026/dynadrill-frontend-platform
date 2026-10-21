@@ -23,7 +23,7 @@ export interface DocumentoPedido {
 }
 
 export const MODULO_ARCHIVO_PEDIDO = 'pedido_documento';
-export const MAX_BYTES_DOCUMENTO = 25 * 1024 * 1024;
+export const MAX_BYTES_DOCUMENTO = 10 * 1024 * 1024;
 export const MAX_DOCUMENTOS_PEDIDO = 10;
 
 export const TIPOS_DOCUMENTO_ADMITIDOS: Record<string, string> = {
@@ -46,7 +46,7 @@ const EXTENSIONES: Record<string, string> = {
 
 /** Valor para el atributo `accept` del input de archivo. */
 export const ACCEPT_DOCUMENTOS = Object.keys(EXTENSIONES)
-  .map(e => `.${e}`)
+  .map((e) => `.${e}`)
   .join(',');
 
 /** Tamaño legible: 512 B, 1,5 KB, 3,2 MB. */
@@ -64,33 +64,49 @@ export function formatoTamano(bytes: number): string {
 }
 
 /** Valida tipo y tamaño antes de subir. Devuelve el mensaje (con "usted") o `null` si es válido. */
-export function errorDeArchivo(archivo: { name: string; size: number; type: string }, adjuntosActuales: number): string | null {
-  if (adjuntosActuales >= MAX_DOCUMENTOS_PEDIDO) return `El pedido ya tiene el máximo de ${MAX_DOCUMENTOS_PEDIDO} documentos. Quite alguno antes de adjuntar otro.`;
+export function errorDeArchivo(
+  archivo: { name: string; size: number; type: string },
+  adjuntosActuales: number,
+): string | null {
+  if (adjuntosActuales >= MAX_DOCUMENTOS_PEDIDO)
+    return `El pedido ya tiene el máximo de ${MAX_DOCUMENTOS_PEDIDO} documentos. Quite alguno antes de adjuntar otro.`;
   if (archivo.size <= 0) return 'El archivo está vacío. Elija otro archivo.';
-  if (archivo.size > MAX_BYTES_DOCUMENTO) return `El archivo pesa ${formatoTamano(archivo.size)} y el máximo es ${formatoTamano(MAX_BYTES_DOCUMENTO)}.`;
+  if (archivo.size > MAX_BYTES_DOCUMENTO)
+    return `El archivo pesa ${formatoTamano(archivo.size)} y el máximo es ${formatoTamano(MAX_BYTES_DOCUMENTO)}.`;
   const ext = archivo.name.split('.').pop()?.toLowerCase() ?? '';
   const mimeAdmitido = archivo.type in TIPOS_DOCUMENTO_ADMITIDOS;
   // Algunos navegadores no informan el tipo de un DOCX/XLSX: en ese caso se confía en la extensión (el backend revisa el contenido).
   const sinTipo = archivo.type === '' || archivo.type === 'application/octet-stream';
-  if (!mimeAdmitido && !(sinTipo && ext in EXTENSIONES)) return 'Tipo de archivo no admitido. Puede adjuntar PDF, PNG, JPEG, DOCX o XLSX.';
+  if (!mimeAdmitido && !(sinTipo && ext in EXTENSIONES))
+    return 'Tipo de archivo no admitido. Puede adjuntar PDF, PNG, JPEG, DOCX o XLSX.';
   return null;
 }
 
 /** Mensaje para el error de subida/adjuntar según el código HTTP del backend. */
 export function mensajeErrorArchivo(err: unknown): string {
   const e = err as { status?: number; error?: { message?: unknown; detail?: unknown } } | null;
-  const detalle = typeof e?.error?.detail === 'string' ? e.error.detail : typeof e?.error?.message === 'string' ? e.error.message : Array.isArray(e?.error?.message) ? e.error.message.join('. ') : '';
+  const detalle =
+    typeof e?.error?.detail === 'string'
+      ? e.error.detail
+      : typeof e?.error?.message === 'string'
+        ? e.error.message
+        : Array.isArray(e?.error?.message)
+          ? e.error.message.join('. ')
+          : '';
   switch (e?.status) {
     case 400:
       return detalle || 'El archivo no es válido. Revise que no esté vacío.';
     case 403:
       return 'Usted no tiene permiso para adjuntar documentos.';
     case 413:
-      return 'El archivo supera el tamaño máximo permitido (25 MB).';
+      return 'El archivo supera el tamaño máximo permitido.';
     case 415:
       return 'Tipo de archivo no admitido. Puede adjuntar PDF, PNG, JPEG, DOCX o XLSX.';
     case 422:
-      return detalle || 'El contenido del archivo no corresponde a su tipo o fue rechazado por el antivirus.';
+      return (
+        detalle ||
+        'El contenido del archivo no corresponde a su tipo o fue rechazado por el antivirus.'
+      );
     case 503:
       return 'El antivirus no está disponible en este momento. Intente de nuevo en unos minutos.';
     default:

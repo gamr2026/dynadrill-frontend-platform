@@ -86,6 +86,10 @@ export interface DocumentoPedido {
   anuladoAt: string | null;
   anuladoPor: string | null;
   motivoAnulacion: string | null;
+  /** Lectura automática de la firma del documento cargado: solo un indicador (no certifica nada). */
+  verificacion: 'no_verificada' | 'firma_detectada' | 'firma_no_detectada' | 'no_concluyente';
+  verificacionConfianza: number | null;
+  verificacionAt: string | null;
 }
 
 /** El Acta de un ticket (vigente y anuladas) y el supervisor asignado, para saber si quien sube es suplente. */

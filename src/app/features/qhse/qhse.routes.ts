@@ -3,6 +3,7 @@ import { roleGuard } from '../../core/guards/role.guard';
 import { permissionGuard } from '../../core/guards/permission.guard';
 import { PERMISO_EPI_VER } from './entrega-epi/models/entrega-epi';
 import { PERMISO_DOCUMENTOS_VER } from './documentos-pedido/models/documento-pedido';
+import { PERMISO_TERMINOS_VALIDAR } from './terminos/models/terminos';
 import { PERMISO_PTW_VER } from './permiso-trabajo/models/permiso-trabajo';
 import { PERMISO_SWA_VER } from './swa-plataforma/models/swa';
 import { PERMISO_IPERC_VER } from './iperc-maestra/models/iperc';
@@ -210,5 +211,12 @@ export const qhseRoutes: Routes = [
         (m) => m.DocumentosPedidoPage,
       ),
     canActivate: [permissionGuard(PERMISO_DOCUMENTOS_VER)],
+  },
+  {
+    // Términos y condiciones de uso de equipos (Pumping): QHSE valida el texto o publica una versión nueva (D9).
+    path: 'terminos',
+    loadComponent: () =>
+      import('./terminos/pages/terminos-page/terminos-page').then((m) => m.TerminosPage),
+    canActivate: [permissionGuard(PERMISO_TERMINOS_VALIDAR)],
   },
 ];

@@ -60,6 +60,11 @@ export class DocumentosPedidoService {
     return this.http.post<DocumentoPedido>(`${this.base}/documentos/${id}/anular`, { motivo });
   }
 
+  /** Vuelve a leer la firma de un documento ya cargado (solo un indicador). */
+  verificar(id: string): Observable<DocumentoPedido> {
+    return this.http.post<DocumentoPedido>(`${this.base}/documentos/${id}/verificar`, {});
+  }
+
   /** El Acta vigente del ticket y las anuladas (historial). */
   actaDelTicket(ticketId: string): Observable<ActaDelTicket> {
     return this.http.get<ActaDelTicket>(`${this.base}/tickets/${ticketId}/acta-entrega`);

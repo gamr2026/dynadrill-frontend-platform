@@ -284,6 +284,8 @@ export interface TerminosVigentes {
   titulo: string;
   texto: string;
   textoHash: string;
+  /** `false` = borrador: QHSE todavía no validó el texto. */
+  validada?: boolean;
 }
 export interface AceptacionOperador {
   usuarioId: string;

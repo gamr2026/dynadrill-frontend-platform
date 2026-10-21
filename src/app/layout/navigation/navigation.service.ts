@@ -96,6 +96,11 @@ const QHSE_CHILDREN: NavEntry[] = [
       { label: 'IPERC', link: '/dashboard/qhse/iperc' },
       { label: 'PTW / Recibimiento', link: '/dashboard/qhse/ptw' },
       { label: 'Documentos por pedido', link: '/dashboard/qhse/documentos' },
+      {
+        label: 'Términos y condiciones',
+        link: '/dashboard/qhse/terminos',
+        permission: 'pumping.terminos.validar',
+      },
       { label: 'Cumplimiento legal', link: '/dashboard/qhse/legal' },
       { label: 'Objetivos ambientales', link: '/dashboard/qhse/objetivos-ambientales' },
     ],

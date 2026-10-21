@@ -1,5 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { switchMap, timer } from 'rxjs';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import {
   DynadrillButtonComponent,
@@ -14,6 +15,7 @@ import {
   type MotivoDialogData,
 } from '../../../../shared/components/motivo-dialog/motivo-dialog';
 import { mensajeDeError } from '../../../../shared/utils/mensaje-error.util';
+import { estadoVerificacion } from '../../../facturacion/pedidos-comercial/models/prefactura-comercial';
 import {
   PERMISO_DOCUMENTOS_GESTIONAR,
   TIPO_DOCUMENTO_ETIQUETA,
@@ -65,6 +67,21 @@ export interface DocumentosDetalleDialogData {
               <dynadrill-tag variant="neutral">Anulado</dynadrill-tag>
             } @else if (d.vencido) {
               <dynadrill-tag variant="error">Vencido</dynadrill-tag>
+            }
+            @if (!d.anulado) {
+              <dynadrill-tag [variant]="verif(d).tono" [uppercase]="false">{{
+                verif(d).texto
+              }}</dynadrill-tag>
+              @if (puedeAnular()) {
+                <dynadrill-button
+                  variant="secondary"
+                  [disabled]="verificando() !== null"
+                  (clicked)="verificar(d)"
+                  >{{
+                    verificando() === d.id ? 'Leyendo…' : 'Volver a leer la firma'
+                  }}</dynadrill-button
+                >
+              }
             }
             <dynadrill-button variant="secondary" (clicked)="abrir(d)">Ver</dynadrill-button>
             @if (puedeAnular() && !d.anulado) {
@@ -125,6 +142,10 @@ export class DocumentosDetalleDialog {
   protected readonly cargando = signal(true);
   protected readonly documentos = signal<DocumentoPedido[]>([]);
   protected readonly puedeAnular = computed(() => this.auth.can(PERMISO_DOCUMENTOS_GESTIONAR));
+  protected readonly verificando = signal<string | null>(null);
+  /** Solo saber si se detecta una firma o no: el mismo indicador que usan las prefacturas. */
+  protected readonly verif = (d: DocumentoPedido) =>
+    estadoVerificacion({ ...d, nombreCoincide: null }, false);
   private huboCambio = false;
 
   constructor() {
@@ -136,10 +157,48 @@ export class DocumentosDetalleDialog {
       next: (d) => {
         this.documentos.set(d);
         this.cargando.set(false);
+        this.sondear();
       },
       error: (err) => {
         this.cargando.set(false);
         this.notify.error('Error', mensajeDeError(err, 'No se pudieron cargar los documentos.'));
+      },
+    });
+  }
+
+  /** La lectura de la firma tarda unos segundos: se vuelve a consultar mientras haya resultados pendientes (hasta ~40 s). */
+  private sondear(intento = 0): void {
+    if (intento >= 14 || !this.documentos().some((x) => !x.anulado && x.verificacionAt === null))
+      return;
+    timer(3000)
+      .pipe(
+        switchMap(() =>
+          this.servicio.listar({ pedidoId: this.data.pedidoId, incluirAnulados: true }),
+        ),
+      )
+      .subscribe({
+        next: (d) => {
+          this.documentos.set(d);
+          this.sondear(intento + 1);
+        },
+        error: () => undefined,
+      });
+  }
+
+  protected verificar(d: DocumentoPedido): void {
+    if (this.verificando()) return;
+    this.verificando.set(d.id);
+    this.servicio.verificar(d.id).subscribe({
+      next: () => {
+        this.verificando.set(null);
+        this.recargar();
+      },
+      error: (err) => {
+        this.verificando.set(null);
+        this.notify.error(
+          'No se pudo leer',
+          mensajeDeError(err, 'No se pudo volver a leer la firma.'),
+        );
       },
     });
   }

@@ -32,7 +32,7 @@ import {
 } from '../models/ticket-fcr';
 import { TicketsFcrService } from '../services/tickets-fcr.service';
 
-/** Orden del ciclo al pulsar el día: vacío → operación → daily charge → venta → vacío. */
+/** Orden del ciclo al pulsar el día de una fila de tiempo: vacío → operación → daily charge → venta → vacío. */
 const CICLO: Array<EstadoDiaReporte | null> = [null, 'operacion', 'daily_charge', 'venta'];
 
 /** Los días entre dos fechas `YYYY-MM-DD` (ambas incluidas), sin pasar por la zona horaria. */
@@ -48,9 +48,10 @@ function diasEntre(desde: string, hasta: string): string[] {
 }
 
 /**
- * Reporte de Herramientas (DYN-FCR-RE-008) por ítem de la lista de precios del cliente: cada fila es un código de la lista; las filas de
- * unidad de tiempo se marcan día por día (O operación, D daily charge, V venta) y las demás llevan la cantidad real. El stand-by no se
- * cobra y no se registra. Lo que se reporta es lo que se factura; si difiere de lo cotizado, se propone el cambio de ítems.
+ * Reporte de Herramientas (DYN-FCR-RE-008) como los formatos reales: una matriz ítem × día. Las filas son los ítems cotizados del pedido
+ * (precargados); el operador solo reparte cada cantidad en los días del servicio: en las filas de tiempo marca el día (O operación, D daily
+ * charge, V venta) y en las demás escribe la cantidad aplicada ese día. Lo reportado de un código no puede superar lo cotizado; para pasarse se
+ * propone el cambio de ítems del pedido. El stand-by no se cobra y no se registra.
  */
 @Component({
   selector: 'app-ticket-fcr-reporte-herramientas',
@@ -77,52 +78,19 @@ function diasEntre(desde: string, hasta: string): string[] {
             [uppercase]="false"
           />
         }
-
         @if (puedeEditar()) {
-          <div class="r__agregar">
-            <dynadrill-input
-              label="Buscar en la lista de precios"
-              placeholder="Código o descripción"
-              [value]="busqueda()"
-              (valueChange)="busqueda.set($event)"
-            />
-            <dynadrill-button
-              variant="secondary"
-              size="small"
-              [disabled]="busqueda().trim().length < 2"
-              (clicked)="buscar()"
-              >Buscar</dynadrill-button
-            >
-          </div>
-          @if (opciones().length) {
-            <div class="r__agregar">
-              <dynadrill-select
-                label="Ítem de la lista"
-                placeholder="Elija el ítem"
-                [options]="opcionesSelect()"
-                [value]="elegido()"
-                [searchable]="true"
-                (valueChange)="elegido.set($any($event))"
-              />
-              <dynadrill-button
-                variant="primary"
-                size="small"
-                [disabled]="!elegido()"
-                (clicked)="agregar()"
-                >Agregar al reporte</dynadrill-button
-              >
-            </div>
-          } @else if (buscado()) {
-            <dynadrill-text variant="caption"
-              >La lista de precios del cliente no tiene ítems con ese texto.</dynadrill-text
-            >
-          }
+          <dynadrill-text variant="caption"
+            >Reparta la cantidad de cada ítem en los días del servicio. En los ítems por día pulse
+            la celda para marcarla (1 = operación; vuelva a pulsar para D daily charge, V venta o
+            quitarla); en los demás escriba la cantidad aplicada ese día. Lo reportado no puede
+            superar lo cotizado.</dynadrill-text
+          >
         }
 
         <div class="r__scroll">
           <table class="r__tabla">
             <caption class="sr-only">
-              Reporte de herramientas por ítem de la lista de precios
+              Reporte de herramientas: cantidad de cada ítem por día
             </caption>
             <thead>
               <tr>
@@ -130,10 +98,11 @@ function diasEntre(desde: string, hasta: string): string[] {
                 <th scope="col">Descripción</th>
                 <th scope="col">Unidad</th>
                 <th scope="col">Serie #</th>
+                <th scope="col" class="r__num">Cotizado</th>
                 @for (d of dias(); track d) {
                   <th scope="col" class="r__dia">{{ etiquetaDia(d) }}</th>
                 }
-                <th scope="col">Cantidad</th>
+                <th scope="col" class="r__num">Total</th>
                 @if (puedeEditar()) {
                   <th scope="col"><span class="sr-only">Acciones</span></th>
                 }
@@ -156,7 +125,7 @@ function diasEntre(desde: string, hasta: string): string[] {
                         [value]="it.serie ?? ''"
                         (change)="guardarSerie(it, $any($event.target).value)"
                       />
-                      <datalist id="series-{{ it.id }}">
+                      <datalist [id]="'series-' + it.id">
                         @for (s of it.seriesSugeridas; track s) {
                           <option [value]="s"></option>
                         }
@@ -165,9 +134,10 @@ function diasEntre(desde: string, hasta: string): string[] {
                       {{ it.serie ?? '—' }}
                     }
                   </td>
-                  @if (it.porDia) {
-                    @for (d of dias(); track d) {
-                      <td class="r__dia">
+                  <td class="r__num">{{ it.cotizado }}</td>
+                  @for (d of dias(); track d) {
+                    <td class="r__dia">
+                      @if (it.porDia) {
                         @if (puedeEditar()) {
                           <button
                             type="button"
@@ -181,27 +151,26 @@ function diasEntre(desde: string, hasta: string): string[] {
                         } @else {
                           {{ letra(it, d) }}
                         }
-                      </td>
-                    }
-                  } @else {
-                    <td [attr.colspan]="dias().length || 1" class="r__dia">
-                      <span class="r__meta">No es por día: escriba la cantidad</span>
+                      } @else if (puedeEditar()) {
+                        <input
+                          class="r__celda"
+                          type="number"
+                          min="0"
+                          step="any"
+                          [attr.aria-label]="it.codigo + ', día ' + d + ': cantidad aplicada'"
+                          [value]="cantidadDia(it, d) ?? ''"
+                          (change)="guardarCelda(it, d, $event)"
+                        />
+                      } @else {
+                        {{ cantidadDia(it, d) ?? '' }}
+                      }
                     </td>
                   }
-                  <td>
-                    @if (!it.porDia && puedeEditar()) {
-                      <input
-                        class="r__campo r__campo--num"
-                        type="number"
-                        min="0"
-                        step="any"
-                        [attr.aria-label]="'Cantidad de ' + it.codigo"
-                        [value]="it.cantidad"
-                        (change)="guardarCantidad(it, $any($event.target).value)"
-                      />
-                    } @else {
-                      <strong>{{ it.cantidad }}</strong>
-                    }
+                  <td class="r__num">
+                    <strong
+                      [class.r__total--tope]="it.cantidad >= it.cotizado && it.cotizado > 0"
+                      >{{ it.cantidad }}</strong
+                    >
                   </td>
                   @if (puedeEditar()) {
                     <td>
@@ -213,26 +182,73 @@ function diasEntre(desde: string, hasta: string): string[] {
                 </tr>
               } @empty {
                 <tr>
-                  <td [attr.colspan]="6 + dias().length" class="r__meta">
-                    Todavía no hay ítems en el reporte. Búsquelos en la lista de precios del
-                    cliente.
+                  <td [attr.colspan]="7 + dias().length" class="r__meta">
+                    El pedido no trae ítems cotizados para reportar.
                   </td>
                 </tr>
               }
             </tbody>
           </table>
         </div>
-        <dynadrill-text variant="caption"
-          >Marque cada día con O (operación), D (daily charge) o V (venta); pulse otra vez para
-          cambiar o quitar la marca. El stand-by no se cobra.</dynadrill-text
-        >
 
         @if (puedeEditar()) {
           <div class="r__acciones">
+            <dynadrill-button
+              variant="secondary"
+              size="small"
+              (clicked)="buscando.set(!buscando())"
+              >{{
+                buscando() ? 'Cerrar la búsqueda' : 'Agregar otro ítem de la lista de precios'
+              }}</dynadrill-button
+            >
             <dynadrill-button variant="secondary" size="small" (clicked)="confirmar()">{{
               reporte()?.listadoConfirmado ? 'Reabrir el reporte' : 'Declarar el reporte completo'
             }}</dynadrill-button>
           </div>
+          @if (buscando()) {
+            <div class="r__agregar">
+              <dynadrill-input
+                label="Buscar en la lista de precios"
+                placeholder="Código o descripción"
+                [value]="busqueda()"
+                (valueChange)="busqueda.set($event)"
+              />
+              <dynadrill-button
+                variant="secondary"
+                size="small"
+                [disabled]="busqueda().trim().length < 2"
+                (clicked)="buscar()"
+                >Buscar</dynadrill-button
+              >
+            </div>
+            @if (opciones().length) {
+              <div class="r__agregar">
+                <dynadrill-select
+                  label="Ítem de la lista"
+                  placeholder="Elija el ítem"
+                  [options]="opcionesSelect()"
+                  [value]="elegido()"
+                  [searchable]="true"
+                  (valueChange)="elegido.set($any($event))"
+                />
+                <dynadrill-button
+                  variant="primary"
+                  size="small"
+                  [disabled]="!elegido()"
+                  (clicked)="agregar()"
+                  >Agregar al reporte</dynadrill-button
+                >
+              </div>
+              <dynadrill-text variant="caption"
+                >Un ítem que no está cotizado no se puede repartir hasta que el pedido lo incluya:
+                proponga el cambio de ítems.</dynadrill-text
+              >
+            } @else if (buscado()) {
+              <dynadrill-text variant="caption"
+                >La lista de precios del cliente no tiene ítems con ese texto.</dynadrill-text
+              >
+            }
+          }
         }
       </div>
     </dynadrill-spinner>
@@ -257,6 +273,7 @@ function diasEntre(desde: string, hasta: string): string[] {
     }
     .r__acciones {
       display: flex;
+      flex-wrap: wrap;
       gap: 0.75rem;
     }
     .r__scroll {
@@ -270,7 +287,7 @@ function diasEntre(desde: string, hasta: string): string[] {
     }
     .r__tabla th,
     .r__tabla td {
-      padding: 0.5rem 0.75rem;
+      padding: 0.375rem 0.5rem;
       text-align: left;
       border-bottom: 1px solid var(--border-default, #e0e0e0);
       vertical-align: middle;
@@ -290,21 +307,34 @@ function diasEntre(desde: string, hasta: string): string[] {
     }
     .r__dia {
       text-align: center !important;
-      padding-inline: 0.25rem !important;
+      padding-inline: 0.125rem !important;
+      min-width: 3rem;
+    }
+    .r__num {
+      text-align: right !important;
+      white-space: nowrap;
+    }
+    .r__total--tope {
+      color: var(--dynadrill-purple, #662e9b);
     }
     .r__meta {
       font-size: 0.75rem;
       color: var(--text-secondary, #666);
     }
     .r__campo {
-      width: 8rem;
+      width: 7rem;
       padding: 0.25rem 0.5rem;
       border: 1px solid var(--border-default, #e0e0e0);
       border-radius: 0.375rem;
       font: inherit;
     }
-    .r__campo--num {
-      width: 6rem;
+    .r__celda {
+      width: 3.75rem;
+      padding: 0.25rem;
+      text-align: center;
+      border: 1px solid var(--border-default, #e0e0e0);
+      border-radius: 0.375rem;
+      font: inherit;
     }
     .r__marca {
       width: 1.75rem;
@@ -322,7 +352,8 @@ function diasEntre(desde: string, hasta: string): string[] {
       background: var(--dynadrill-purple, #662e9b);
     }
     .r__marca:focus-visible,
-    .r__campo:focus-visible {
+    .r__campo:focus-visible,
+    .r__celda:focus-visible {
       outline: 2px solid var(--dynadrill-purple, #662e9b);
       outline-offset: 2px;
     }
@@ -341,6 +372,7 @@ export class TicketFcrReporteHerramientas {
   protected readonly cargando = signal(true);
   protected readonly ocupado = signal(false);
   protected readonly error = signal<string | null>(null);
+  protected readonly buscando = signal(false);
   protected readonly busqueda = signal('');
   protected readonly buscado = signal(false);
   protected readonly opciones = signal<OpcionItemLista[]>([]);
@@ -353,17 +385,17 @@ export class TicketFcrReporteHerramientas {
     })),
   );
 
-  /** Los días del servicio; si el ticket no trae fechas, los que ya tienen marcas. */
+  /** Los días del servicio; si el ticket no trae fechas, los que ya tienen celdas. */
   protected readonly dias = computed(() => {
     const r = this.reporte();
     if (!r) return [];
-    const marcados = new Set(r.items.flatMap((i) => i.dias.map((d) => d.fecha)));
+    const usados = new Set(r.items.flatMap((i) => i.dias.map((d) => d.fecha)));
     if (r.fechaInicio && r.fechaFin) {
       const rango = diasEntre(r.fechaInicio, r.fechaFin);
-      marcados.forEach((f) => !rango.includes(f) && rango.push(f));
+      usados.forEach((f) => !rango.includes(f) && rango.push(f));
       return rango.sort();
     }
-    return [...marcados].sort();
+    return [...usados].sort();
   });
 
   constructor() {
@@ -381,9 +413,14 @@ export class TicketFcrReporteHerramientas {
     return it.dias.find((d) => d.fecha === fecha)?.estado ?? null;
   }
 
+  protected cantidadDia(it: ItemReporte, fecha: string): number | null {
+    return it.dias.find((d) => d.fecha === fecha)?.cantidad ?? null;
+  }
+
+  /** Lo que muestra la celda de una fila por día: 1 si es operación; D o V si es daily charge o venta. */
   protected letra(it: ItemReporte, fecha: string): string {
     const m = this.marca(it, fecha);
-    return m ? ESTADO_DIA_REPORTE_MARCA[m] : '';
+    return !m ? '' : m === 'operacion' ? '1' : ESTADO_DIA_REPORTE_MARCA[m];
   }
 
   protected descripcionMarca(it: ItemReporte, fecha: string): string {
@@ -410,6 +447,7 @@ export class TicketFcrReporteHerramientas {
     peticion: Observable<ReporteHerramientas>,
     mensajeError: string,
     alTerminar?: () => void,
+    alFallar?: () => void,
   ): void {
     this.ocupado.set(true);
     this.error.set(null);
@@ -423,6 +461,7 @@ export class TicketFcrReporteHerramientas {
       error: (err) => {
         this.ocupado.set(false);
         this.error.set(mensajeErrorTicket(err, mensajeError));
+        alFallar?.();
         this.cargar();
       },
     });
@@ -475,20 +514,37 @@ export class TicketFcrReporteHerramientas {
     );
   }
 
-  protected guardarCantidad(it: ItemReporte, valor: string): void {
-    const cantidad = Number(valor);
-    if (!Number.isFinite(cantidad) || cantidad < 0 || cantidad === it.cantidad) return;
-    this.escribir(
-      this.servicio.actualizarItemReporte(this.ticket().id, it.id, { cantidad }),
-      'No se pudo guardar la cantidad.',
-    );
-  }
-
+  /** Celda de una fila por día: pasa a la siguiente marca del ciclo. */
   protected ciclar(it: ItemReporte, fecha: string): void {
     const siguiente = CICLO[(CICLO.indexOf(this.marca(it, fecha)) + 1) % CICLO.length];
     this.escribir(
       this.servicio.marcarDiaReporte(this.ticket().id, it.id, fecha, siguiente),
       'No se pudo marcar el día.',
+    );
+  }
+
+  /** Celda de una fila con cantidad: escribirla la pone; dejarla vacía o en cero la quita. Si el servidor la rechaza vuelve el valor anterior. */
+  protected guardarCelda(it: ItemReporte, fecha: string, e: Event): void {
+    const campo = e.target as HTMLInputElement;
+    const previo = this.cantidadDia(it, fecha);
+    const texto = campo.value.trim();
+    const n = texto === '' ? 0 : Number(texto);
+    if (!Number.isFinite(n) || n < 0) {
+      campo.value = previo === null ? '' : String(previo);
+      return;
+    }
+    if (n === (previo ?? 0)) return;
+    this.escribir(
+      this.servicio.marcarDiaReporte(
+        this.ticket().id,
+        it.id,
+        fecha,
+        n > 0 ? 'operacion' : null,
+        n > 0 ? n : undefined,
+      ),
+      'No se pudo guardar la cantidad.',
+      undefined,
+      () => (campo.value = previo === null ? '' : String(previo)),
     );
   }
 

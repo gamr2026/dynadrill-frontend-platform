@@ -641,11 +641,14 @@ export interface ItemReporte {
   codigo: string;
   descripcion: string;
   unidad: string;
-  /** La unidad es de tiempo: la cantidad es el número de días marcados. */
+  /** La unidad es de tiempo: sus celdas son marcas que valen 1; en las demás cada celda lleva su cantidad. */
   porDia: boolean;
   serie: string | null;
+  /** Total real de la fila: la suma de sus días. */
   cantidad: number;
-  dias: Array<{ fecha: string; estado: EstadoDiaReporte }>;
+  /** Lo cotizado por Ventas para ese código (tope de lo que se puede reportar). */
+  cotizado: number;
+  dias: Array<{ fecha: string; estado: EstadoDiaReporte; cantidad: number }>;
   seriesSugeridas: string[];
 }
 
@@ -657,12 +660,11 @@ export interface ReporteHerramientas {
 }
 
 export interface AgregarItemReporteEntrada {
-  listaPreciosItemId: string;
+  listaPreciosItemId?: string;
   codigo: string;
   descripcion: string;
   unidad?: string;
   serie?: string;
-  cantidad?: number;
 }
 
 /** Ítem elegible de la lista de precios del cliente (lo devuelve Comercial). */

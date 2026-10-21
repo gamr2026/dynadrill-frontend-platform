@@ -119,20 +119,26 @@ export class ReporteHerramientasHoja {
         daily_charge: 0,
         venta: 0,
       };
+      let porCantidad = 0;
       for (const e of this.usageLog().filter((u) => u.toolId === t.id)) {
-        celdas[e.date] = TOOL_DAILY_STATUS_CODE[e.status];
-        conteo[e.status]++;
+        if (e.cantidad !== undefined) {
+          celdas[e.date] = String(e.cantidad).replace('.', ',');
+          porCantidad += e.cantidad;
+        } else {
+          celdas[e.date] = TOOL_DAILY_STATUS_CODE[e.status];
+          conteo[e.status]++;
+        }
       }
       const marcas = conteo.operacion + conteo.daily_charge + conteo.venta;
-      // un ítem que no es por día (km, pies, galones…) lleva su cantidad real en TOTAL
-      const porCantidad = marcas === 0 && t.cantidad != null;
+      // un ítem que no es por día (km, pies, galones…) suma las cantidades de sus días; si solo se conoce el total (Facturación), va en TOTAL
+      const soloTotal = marcas === 0 && porCantidad === 0 && t.cantidad != null;
       return {
         codigo: t.codigo ?? '',
-        nombre: porCantidad && t.unidad ? `${t.name} (${t.unidad})` : t.name,
+        nombre: (porCantidad > 0 || soloTotal) && t.unidad ? `${t.name} (${t.unidad})` : t.name,
         serie: t.serialCode ?? '',
         celdas,
         conteo,
-        total: porCantidad ? Number(t.cantidad) : marcas,
+        total: soloTotal ? Number(t.cantidad) : porCantidad > 0 ? porCantidad : marcas,
       };
     }),
   );

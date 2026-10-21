@@ -347,7 +347,7 @@ export class TicketsFcrService {
   actualizarItemReporte(
     id: string,
     itemId: string,
-    cambios: { serie?: string; cantidad?: number },
+    cambios: { serie?: string },
   ): Observable<ReporteHerramientas> {
     return this.http.patch<ReporteHerramientas>(
       `${this.t(id)}/reporte-herramientas/items/${itemId}`,
@@ -359,16 +359,20 @@ export class TicketsFcrService {
       `${this.t(id)}/reporte-herramientas/items/${itemId}`,
     );
   }
-  /** Marca (o, con `null`, desmarca) un día de una fila por día. */
+  /** Pone (o, con `null`, quita) la celda de un día: una marca en las filas por día; en las demás, la cantidad aplicada ese día. */
   marcarDiaReporte(
     id: string,
     itemId: string,
     fecha: string,
     estado: EstadoDiaReporte | null,
+    cantidad?: number,
   ): Observable<ReporteHerramientas> {
     const url = `${this.t(id)}/reporte-herramientas/items/${itemId}/dias/${fecha}`;
     return estado
-      ? this.http.put<ReporteHerramientas>(url, { estado })
+      ? this.http.put<ReporteHerramientas>(
+          url,
+          cantidad === undefined ? { estado } : { estado, cantidad },
+        )
       : this.http.delete<ReporteHerramientas>(url);
   }
   confirmarReporte(id: string, confirmado: boolean): Observable<ReporteHerramientas> {

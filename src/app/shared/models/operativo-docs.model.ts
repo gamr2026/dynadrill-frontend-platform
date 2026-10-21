@@ -46,6 +46,8 @@ export interface OperativoToolUsageEntry {
   toolId: number;
   date: string;
   status: ToolDailyStatus;
+  /** Cantidad aplicada ese día en una fila que no es por día (km, galones…): la celda muestra el número y no la marca. */
+  cantidad?: number;
 }
 
 // ── Reporte Job — bitácora horaria ──

@@ -148,7 +148,6 @@ export class TicketFcrReportesRevision {
             codigo: it.codigo,
             serialCode: it.serie ?? undefined,
             unidad: it.unidad,
-            cantidad: it.porDia ? null : it.cantidad,
           });
           for (const d of it.dias)
             usageLog.push({
@@ -156,6 +155,8 @@ export class TicketFcrReportesRevision {
               toolId: i + 1,
               date: d.fecha,
               status: d.estado,
+              // en las filas que no son por día la celda lleva la cantidad aplicada ese día
+              ...(it.porDia ? {} : { cantidad: d.cantidad }),
             });
         });
         const detallePicker: FilaDetalle[] = uso.usos.map((u) => ({

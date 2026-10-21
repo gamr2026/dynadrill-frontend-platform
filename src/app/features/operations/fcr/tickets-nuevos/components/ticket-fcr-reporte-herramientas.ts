@@ -7,6 +7,7 @@ import {
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import type { Observable } from 'rxjs';
 import {
@@ -401,7 +402,8 @@ export class TicketFcrReporteHerramientas {
   constructor() {
     effect(() => {
       this.ticket().version;
-      this.cargar();
+      // solo la versión del ticket dispara la recarga: lo que lee `cargar` no debe volver a ejecutar el efecto
+      untracked(() => this.cargar());
     });
   }
 

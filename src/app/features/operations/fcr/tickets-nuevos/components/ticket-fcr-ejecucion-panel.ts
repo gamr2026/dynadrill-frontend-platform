@@ -7,6 +7,7 @@ import {
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -534,7 +535,8 @@ export class TicketFcrEjecucionPanel {
   constructor() {
     effect(() => {
       this.ticket().version;
-      this.cargar();
+      // solo la versión del ticket dispara la recarga: lo que lee `cargar` no debe volver a ejecutar el efecto
+      untracked(() => this.cargar());
     });
   }
 

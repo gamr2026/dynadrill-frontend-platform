@@ -166,7 +166,7 @@
                 }
                 @if (debeAsignar()) {
                   <dynadrill-button variant="primary" (clicked)="asignar()">{{
-                    hayAsignacion() ? 'Reasignar operador' : 'Asignar operador'
+                    t.asignacion.operadores.length ? 'Reasignar operador' : 'Asignar operador'
                   }}</dynadrill-button>
                 }
                 @if (debeFirmarActa()) {

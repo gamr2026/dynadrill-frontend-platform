@@ -30,6 +30,7 @@ import {
   type PedidoDetalle,
 } from '../../../../../facturacion/pedidos-comercial/models/pedido-comercial.model';
 import { PedidosComercialService } from '../../../../../facturacion/pedidos-comercial/services/pedidos-comercial.service';
+import { TicketDocumentosQhse } from '../../../../shared/ticket-documentos-qhse/ticket-documentos-qhse';
 import {
   TicketFichaPedido,
   type RespaldoFichaPedido,
@@ -115,6 +116,7 @@ import { TicketsFcrService } from '../../services/tickets-fcr.service';
     ActaEntregaCarga,
     DynadrillIconComponent,
     NgTemplateOutlet,
+    TicketDocumentosQhse,
     TicketFichaPedido,
     DynadrillBannerComponent,
     DynadrillButtonComponent,

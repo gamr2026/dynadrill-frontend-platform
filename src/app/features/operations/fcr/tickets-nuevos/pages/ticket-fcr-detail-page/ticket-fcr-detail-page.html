@@ -51,6 +51,13 @@
             [message]="bannerAccion()"
           />
 
+          <app-ticket-documentos-qhse
+            [ticketId]="t.id"
+            [pedidoId]="t.pedidoId"
+            [supervisorId]="t.asignacion.supervisor?.usuarioId ?? null"
+            [version]="t.version"
+          />
+
           <!-- Tarjeta resumen del ticket, como la demo -->
           <section class="tpd__resumen" aria-label="Resumen del ticket">
             <div class="tpd__resumen-cabecera">

@@ -66,7 +66,7 @@ function diasEntre(desde: string, hasta: string): string[] {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <dynadrill-spinner mode="overlay" [spinning]="cargando() || ocupado()" tip="Procesando…">
+    <dynadrill-spinner mode="overlay" [spinning]="cargando()" tip="Cargando el reporte…">
       <div class="r">
         @if (error(); as e) {
           <dynadrill-banner variant="warning" [message]="e" />
@@ -429,7 +429,8 @@ export class TicketFcrReporteHerramientas {
   }
 
   private cargar(): void {
-    this.cargando.set(true);
+    // el velo de carga solo sale la primera vez; las recargas posteriores (al cambiar el ticket) son silenciosas
+    if (!this.reporte()) this.cargando.set(true);
     this.servicio.reporte(this.ticket().id).subscribe({
       next: (r) => {
         this.reporte.set(r);

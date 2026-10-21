@@ -540,7 +540,8 @@ export class TicketFcrEjecucionPanel {
 
   private cargar(): void {
     const id = this.ticket().id;
-    this.cargando.set(true);
+    // el velo de carga solo sale la primera vez; las recargas posteriores no tapan el panel
+    if (!this.bitacora() && !this.uso()) this.cargando.set(true);
     this.servicio.bitacora(id).subscribe({
       next: (b) => {
         this.bitacora.set(b);

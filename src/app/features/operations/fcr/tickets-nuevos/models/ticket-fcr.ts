@@ -9,6 +9,8 @@ import { mensajeDeError } from '../../../../../shared/utils/mensaje-error.util';
 export const PERMISO_FCR_OPERAR = 'fcr.tickets.operar';
 export const PERMISO_FCR_VER = 'fcr.tickets.ver';
 export const PERMISO_FCR_BODEGA = 'fcr.herramientas.preparar';
+export const PERMISO_FCR_CAMBIOS_SOLICITAR = 'fcr.cambios_items.solicitar';
+export const PERMISO_FCR_CAMBIOS_APROBAR = 'fcr.cambios_items.aprobar';
 export const PERMISO_FCR_PUENTE = 'fcr.requisitos.puente';
 export const PERMISO_FCR_CONFIGURAR = 'fcr.configuracion.gestionar';
 

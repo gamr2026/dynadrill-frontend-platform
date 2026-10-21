@@ -3,6 +3,11 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '@env';
 import type {
+  ItemsParaCambio,
+  ProponerCambioEntrada,
+  SolicitudCambioItems,
+} from '../../../pumping/tickets-nuevos/models/cambio-items';
+import type {
   ActaReunion,
   AgregarItemReporteEntrada,
   ActividadBitacora,
@@ -371,6 +376,36 @@ export class TicketsFcrService {
       confirmado,
     });
   }
+  // ── Cambio de ítems del pedido (la propone el operador, la aprueba el Supervisor del ticket) ──
+
+  itemsParaCambio(pedidoId: string, q = ''): Observable<ItemsParaCambio> {
+    return this.http.get<ItemsParaCambio>(
+      `${environment.apiUrl}/comercial/pedidos/${pedidoId}/items-para-cambio`,
+      { params: new HttpParams().set('q', q) },
+    );
+  }
+  cambiosItems(id: string): Observable<SolicitudCambioItems[]> {
+    return this.http.get<SolicitudCambioItems[]>(`${this.t(id)}/cambios-items`);
+  }
+  proponerCambioItems(id: string, cuerpo: ProponerCambioEntrada): Observable<SolicitudCambioItems> {
+    return this.http.post<SolicitudCambioItems>(`${this.t(id)}/cambios-items`, cuerpo);
+  }
+  cambiosItemsPendientes(): Observable<SolicitudCambioItems[]> {
+    return this.http.get<SolicitudCambioItems[]>(`${this.base}/cambios-items/pendientes`);
+  }
+  aprobarCambioItems(solicitudId: string): Observable<SolicitudCambioItems> {
+    return this.http.post<SolicitudCambioItems>(
+      `${this.base}/cambios-items/${solicitudId}/aprobar`,
+      {},
+    );
+  }
+  rechazarCambioItems(solicitudId: string, motivo?: string): Observable<SolicitudCambioItems> {
+    return this.http.post<SolicitudCambioItems>(
+      `${this.base}/cambios-items/${solicitudId}/rechazar`,
+      motivo?.trim() ? { motivo: motivo.trim() } : {},
+    );
+  }
+
   /** Ítems de la lista de precios del pedido que se pueden agregar al reporte (los busca Comercial). */
   itemsDeLista(pedidoId: string, q: string): Observable<{ opciones: OpcionItemLista[] }> {
     return this.http.get<{ opciones: OpcionItemLista[] }>(

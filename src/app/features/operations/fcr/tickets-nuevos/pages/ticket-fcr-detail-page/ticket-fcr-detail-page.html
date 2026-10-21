@@ -222,6 +222,59 @@
         <app-acta-entrega-carga [ticketId]="t.id" />
       }
 
+      @if (muestraCambios()) {
+        <section id="cambios-items" class="tpd__tarjeta" aria-label="Cambios de ítems del pedido">
+          <h2>Cambios de ítems del pedido</h2>
+          <p class="tpd__meta">
+            Lo reportado manda: si difiere de lo cotizado, el equipo propone cómo deben quedar los
+            ítems; el Supervisor del ticket los aprueba y Facturación los aplica con su lista de
+            precios.
+          </p>
+          <ul class="tpd__requisitos">
+            @for (s of cambiosItems(); track s.id) {
+              <li class="tpd__requisito">
+                <div class="tpd__requisito-info">
+                  <dynadrill-tag
+                    [label]="estadoCambio(s)"
+                    [variant]="tonoCambio(s)"
+                    [uppercase]="false"
+                  />
+                  <strong>{{ fechaHora(s.solicitadoAt) }}</strong>
+                  <span class="tpd__meta"
+                    >{{ s.solicitadoPor.nombre }} · {{ s.items.length }} ítem(s) ·
+                    {{ s.motivo }}</span
+                  >
+                  @if (aplicacionCambio(s); as a) {
+                    <span class="tpd__meta">· {{ a }}</span>
+                  }
+                </div>
+                <div class="tpd__requisito-acciones">
+                  <dynadrill-button
+                    [variant]="
+                      puedeRevisarCambios() && s.estado === 'pendiente' ? 'primary' : 'secondary'
+                    "
+                    size="small"
+                    (clicked)="verCambio(s)"
+                    >{{
+                      puedeRevisarCambios() && s.estado === 'pendiente' ? 'Revisar' : 'Ver'
+                    }}</dynadrill-button
+                  >
+                </div>
+              </li>
+            } @empty {
+              <li class="tpd__meta">Todavía no hay cambios propuestos.</li>
+            }
+          </ul>
+          @if (puedeProponerCambio()) {
+            <div class="tpd__acciones" role="group" aria-label="Proponer un cambio">
+              <dynadrill-button variant="secondary" size="small" (clicked)="proponerCambio()"
+                >Proponer un cambio de ítems</dynadrill-button
+              >
+            </div>
+          }
+        </section>
+      }
+
       <section class="tpd__tarjeta" aria-label="Historial">
         <h2>Historial del ticket</h2>
         <ol class="tpd__historial">

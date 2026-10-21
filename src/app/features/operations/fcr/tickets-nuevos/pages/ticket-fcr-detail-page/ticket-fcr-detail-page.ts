@@ -22,6 +22,20 @@ import {
   type TicketPrefacturaDialogData,
 } from '../../../../pumping/tickets-nuevos/components/ticket-prefactura-dialog/ticket-prefactura-dialog';
 import {
+  ESTADO_SOLICITUD_LABELS,
+  ESTADO_SOLICITUD_TONO,
+  etiquetaAplicacion,
+  type SolicitudCambioItems,
+} from '../../../../pumping/tickets-nuevos/models/cambio-items';
+import {
+  TicketCambioItemsDialog,
+  type TicketCambioItemsDialogData,
+} from '../../../../pumping/tickets-nuevos/components/ticket-cambio-items-dialog/ticket-cambio-items-dialog';
+import {
+  TicketCambioItemsRevisarDialog,
+  type TicketCambioItemsRevisarDialogData,
+} from '../../../../pumping/tickets-nuevos/components/ticket-cambio-items-revisar-dialog/ticket-cambio-items-revisar-dialog';
+import {
   TicketFcrAsignarDialog,
   type TicketFcrAsignarDialogData,
 } from '../../components/ticket-fcr-asignar-dialog';
@@ -53,6 +67,8 @@ import {
   PASO_REUNION,
   PASO_REVISION_REPORTES,
   PASO_TIPO_OPERADOR,
+  PERMISO_FCR_CAMBIOS_APROBAR,
+  PERMISO_FCR_CAMBIOS_SOLICITAR,
   PERMISO_FCR_PUENTE,
   TIPO_OT_LABELS,
   TONO_MACRO,
@@ -106,6 +122,7 @@ export class TicketFcrDetailPage {
   protected readonly errorAccion = signal<string | null>(null);
   protected readonly ticket = signal<TicketFcr | null>(null);
   protected readonly acta = signal<ActaReunion | null>(null);
+  protected readonly cambiosItems = signal<SolicitudCambioItems[]>([]);
 
   protected readonly puedeVerPedido = computed(() => this.auth.can('comercial.pedidos.ver'));
   protected readonly puedeConfirmarAMano = computed(() => this.auth.can(PERMISO_FCR_PUENTE));
@@ -244,7 +261,96 @@ export class TicketFcrDetailPage {
     });
   }
 
+  // ── Cambio de ítems del pedido: lo cotizado frente a lo realmente usado ──
+  protected readonly estadoCambio = (s: SolicitudCambioItems) => ESTADO_SOLICITUD_LABELS[s.estado];
+  protected readonly tonoCambio = (s: SolicitudCambioItems) => ESTADO_SOLICITUD_TONO[s.estado];
+  protected readonly aplicacionCambio = etiquetaAplicacion;
+  private readonly yo = computed(() => this.auth.currentUser());
+  private readonly esSupervisorDelTicket = computed(() => {
+    const t = this.ticket();
+    const u = this.yo();
+    return (
+      !!t && !!u && (u.roleCode === 'superadmin' || t.asignacion.supervisor?.usuarioId === u.id)
+    );
+  });
+  private readonly esDelEquipo = computed(() => {
+    const t = this.ticket();
+    const u = this.yo();
+    return (
+      !!t &&
+      !!u &&
+      (u.roleCode === 'superadmin' || t.asignacion.operadores.some((o) => o.usuarioId === u.id))
+    );
+  });
+  protected readonly puedeProponerCambio = computed(() => {
+    const t = this.ticket();
+    return (
+      !!t &&
+      this.hayAsignacion() &&
+      ![PASO_CIERRE, PASO_CERRADO].includes(this.codigoPaso()) &&
+      this.auth.can(PERMISO_FCR_CAMBIOS_SOLICITAR) &&
+      (this.esDelEquipo() || this.esSupervisorDelTicket()) &&
+      !this.cambiosItems().some((s) => s.estado === 'pendiente')
+    );
+  });
+  protected readonly puedeRevisarCambios = computed(
+    () => this.auth.can(PERMISO_FCR_CAMBIOS_APROBAR) && this.esSupervisorDelTicket(),
+  );
+  protected readonly muestraCambios = computed(
+    () => this.hayAsignacion() && (this.cambiosItems().length > 0 || this.puedeProponerCambio()),
+  );
+
+  private cargarCambiosItems(id: string): void {
+    if (
+      !this.auth.can(PERMISO_FCR_CAMBIOS_SOLICITAR) &&
+      !this.auth.can(PERMISO_FCR_CAMBIOS_APROBAR)
+    )
+      return;
+    this.servicio
+      .cambiosItems(id)
+      .subscribe({ next: (l) => this.cambiosItems.set(l), error: () => this.cambiosItems.set([]) });
+  }
+
+  protected proponerCambio(): void {
+    const t = this.ticket();
+    if (!t) return;
+    const ref = this.dialog.open<TicketCambioItemsDialog, TicketCambioItemsDialogData>({
+      title: 'Proponer un cambio de ítems del pedido',
+      content: TicketCambioItemsDialog,
+      data: { ticketId: t.id, pedidoId: t.pedidoId, pedidoCodigo: t.pedidoCodigo, linea: 'fcr' },
+      footer: false,
+      width: '900px',
+    });
+    ref.afterClose.subscribe(
+      (s: SolicitudCambioItems | undefined) => s && this.cargarCambiosItems(t.id),
+    );
+  }
+
+  protected verCambio(s: SolicitudCambioItems): void {
+    const t = this.ticket();
+    if (!t) return;
+    const ref = this.dialog.open<
+      TicketCambioItemsRevisarDialog,
+      TicketCambioItemsRevisarDialogData
+    >({
+      title: 'Cambio de ítems del pedido',
+      content: TicketCambioItemsRevisarDialog,
+      data: {
+        solicitud: s,
+        pedidoId: t.pedidoId,
+        puedeRevisar: this.puedeRevisarCambios(),
+        linea: 'fcr',
+      },
+      footer: false,
+      width: '820px',
+    });
+    ref.afterClose.subscribe(
+      (r: SolicitudCambioItems | undefined) => r && this.cargarCambiosItems(t.id),
+    );
+  }
+
   private cargarActa(t: TicketFcr): void {
+    this.cargarCambiosItems(t.id);
     this.servicio
       .reunion(t.id)
       .subscribe({ next: (a) => this.acta.set(a), error: () => this.acta.set(null) });

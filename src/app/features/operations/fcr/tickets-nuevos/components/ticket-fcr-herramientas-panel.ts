@@ -13,6 +13,7 @@ import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
   DynadrillDialogService,
+  DynadrillIconComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
   DynadrillSpinnerComponent,
@@ -49,6 +50,7 @@ import { TicketsFcrService } from '../services/tickets-fcr.service';
   imports: [
     DynadrillBannerComponent,
     DynadrillButtonComponent,
+    DynadrillIconComponent,
     DynadrillInputComponent,
     DynadrillSpinnerComponent,
     DynadrillTagComponent,
@@ -58,7 +60,7 @@ import { TicketsFcrService } from '../services/tickets-fcr.service';
   template: `
     <section class="h" aria-label="Herramientas del ticket">
       <header class="h__cabecera">
-        <h2>Herramientas</h2>
+        <h2><dynadrill-icon name="tool" [size]="20" /> Preparación de Herramientas</h2>
         @for (r of resumen(); track r.estado) {
           <dynadrill-tag
             [label]="r.cantidad + ' · ' + estadoTxt(r.estado)"
@@ -70,6 +72,44 @@ import { TicketsFcrService } from '../services/tickets-fcr.service';
           <dynadrill-tag label="Listado confirmado" variant="success" [uppercase]="false" />
         }
       </header>
+      <p class="h__sub">
+        Precargadas de los kits del Pedido (Códigos por cliente) · Solicitud del Supervisor → Bodega
+        → Recepción del Supervisor · Mecánico se completa solo, más adelante (checklist de
+        inspección)
+      </p>
+      @if (itemsPedido().length) {
+        <div class="h__caja">
+          <div class="h__caja-cabecera">
+            <span class="h__caja-titulo"
+              ><dynadrill-icon name="file-text" [size]="16" /> Actividades según el Pedido
+              {{ t().pedidoCodigo }}:</span
+            >
+            @if (puedeGestionar() && enPreparacion()) {
+              <dynadrill-button
+                variant="secondary"
+                size="small"
+                [disabled]="!!datos()?.listadoConfirmado"
+                (clicked)="
+                  ejecutar(
+                    servicio.recargarHerramientas(t().id),
+                    'Listado recargado desde el pedido'
+                  )
+                "
+                >Recargar desde el pedido</dynadrill-button
+              >
+            }
+          </div>
+          <strong class="h__caja-sub">Otros servicios del Pedido</strong>
+          <ul class="h__caja-lista">
+            @for (i of itemsPedido(); track i.codigo) {
+              <li>
+                <strong>{{ i.codigo }}</strong> — {{ i.descripcion }} ({{ i.cantidad }}
+                {{ i.unidad ?? '' }})
+              </li>
+            }
+          </ul>
+        </div>
+      }
       @if (error(); as e) {
         <dynadrill-banner variant="warning" [message]="e" />
       }
@@ -96,18 +136,20 @@ import { TicketsFcrService } from '../services/tickets-fcr.service';
                 (clicked)="solicitar()"
                 >Solicitar a Bodega lo pendiente</dynadrill-button
               >
-              <dynadrill-button
-                variant="secondary"
-                size="small"
-                [disabled]="!!datos()?.listadoConfirmado"
-                (clicked)="
-                  ejecutar(
-                    servicio.recargarHerramientas(t().id),
-                    'Listado recargado desde el pedido'
-                  )
-                "
-                >Recargar desde el pedido</dynadrill-button
-              >
+              @if (!itemsPedido().length) {
+                <dynadrill-button
+                  variant="secondary"
+                  size="small"
+                  [disabled]="!!datos()?.listadoConfirmado"
+                  (clicked)="
+                    ejecutar(
+                      servicio.recargarHerramientas(t().id),
+                      'Listado recargado desde el pedido'
+                    )
+                  "
+                  >Recargar desde el pedido</dynadrill-button
+                >
+              }
               <dynadrill-button
                 variant="secondary"
                 size="small"
@@ -178,9 +220,10 @@ import { TicketsFcrService } from '../services/tickets-fcr.service';
               <thead>
                 <tr>
                   <th scope="col">Herramienta</th>
-                  <th scope="col">Origen</th>
                   <th scope="col">Estado</th>
-                  <th scope="col">Existencia</th>
+                  <th scope="col">Bodega</th>
+                  <th scope="col">Recepción</th>
+                  <th scope="col">Mecánico</th>
                   <th scope="col"><span class="sr-only">Acciones</span></th>
                 </tr>
               </thead>
@@ -192,6 +235,9 @@ import { TicketsFcrService } from '../services/tickets-fcr.service';
                       <span class="h__meta"
                         >{{ h.codigo }}{{ h.numeroSerie ? ' · serie ' + h.numeroSerie : '' }}</span
                       >
+                      @if (h.existencia !== null && h.existencia <= 0) {
+                        <div class="h__aviso">⚠ Sin stock en Inventario</div>
+                      }
                       @if (h.agregadaTarde) {
                         <dynadrill-tag
                           label="Agregada tarde"
@@ -210,20 +256,33 @@ import { TicketsFcrService } from '../services/tickets-fcr.service';
                       }
                     </td>
                     <td>
-                      {{
-                        h.origen === 'pedido'
-                          ? 'Pedido' + (h.codigoPedido ? ' (' + h.codigoPedido + ')' : '')
-                          : 'A mano'
-                      }}
-                    </td>
-                    <td>
                       <dynadrill-tag
                         [label]="estadoTxt(h.estado)"
                         [variant]="tono(h.estado)"
                         [uppercase]="false"
                       />
                     </td>
-                    <td>{{ h.existencia ?? '—' }}</td>
+                    <td>
+                      <dynadrill-tag
+                        [label]="etapa(h, 'bodega').texto"
+                        [variant]="etapa(h, 'bodega').tono"
+                        [uppercase]="false"
+                      />
+                    </td>
+                    <td>
+                      <dynadrill-tag
+                        [label]="etapa(h, 'recepcion').texto"
+                        [variant]="etapa(h, 'recepcion').tono"
+                        [uppercase]="false"
+                      />
+                    </td>
+                    <td>
+                      <dynadrill-tag
+                        [label]="t().tipoOt === 'venta' ? 'No aplica' : 'En inspección'"
+                        variant="neutral"
+                        [uppercase]="false"
+                      />
+                    </td>
                     <td class="h__fila-acciones">
                       @if (puedeGestionar()) {
                         @if (
@@ -331,7 +390,7 @@ import { TicketsFcrService } from '../services/tickets-fcr.service';
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="5" class="h__meta">Este ticket no tiene herramientas.</td>
+                    <td colspan="6" class="h__meta">Este ticket no tiene herramientas.</td>
                   </tr>
                 }
               </tbody>
@@ -423,6 +482,47 @@ import { TicketsFcrService } from '../services/tickets-fcr.service';
       font-size: 12px;
       color: #5c5870;
     }
+    .h__sub {
+      margin: 0;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted, #5c5870);
+    }
+    .h__caja {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--dynadrill-purple, #662e9b);
+      border-radius: 0.5rem;
+      background: var(--dynadrill-purple-tint, rgba(102, 46, 155, 0.06));
+    }
+    .h__caja-cabecera {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .h__caja-titulo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8125rem;
+      color: var(--text-secondary, #666);
+    }
+    .h__caja-sub {
+      font-size: 0.875rem;
+    }
+    .h__caja-lista {
+      margin: 0;
+      padding-left: 1.25rem;
+      font-size: 0.8125rem;
+    }
+    .h__aviso {
+      font-size: 0.75rem;
+      color: #8a4b00;
+    }
     .h__nov {
       font-size: 12px;
       color: #8a4b00;
@@ -451,6 +551,10 @@ export class TicketFcrHerramientasPanel {
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
 
+  /** Ítems del pedido (los trae la página si quien consulta puede leerlo): la caja «Actividades según el Pedido». */
+  readonly itemsPedido = input<
+    Array<{ codigo: string; descripcion: string; cantidad: number; unidad?: string | null }>
+  >([]);
   readonly ticket = input.required<TicketFcr>();
   /** El panel cambió algo del ticket (para que la página lo recargue). */
   readonly cambio = output<void>();
@@ -467,6 +571,28 @@ export class TicketFcrHerramientasPanel {
 
   protected readonly estadoTxt = (e: HerramientaTicket['estado']) => ESTADO_HERRAMIENTA_LABELS[e];
   protected readonly tono = (e: HerramientaTicket['estado']) => ESTADO_HERRAMIENTA_TONO[e];
+  /** Cómo va la herramienta en la etapa de Bodega o de recepción: OK, pendiente, con novedad o aún no le toca. */
+  protected etapa(
+    h: HerramientaTicket,
+    cual: 'bodega' | 'recepcion',
+  ): { texto: string; tono: 'success' | 'warning' | 'info' | 'neutral' } {
+    const e = h.estado;
+    if (cual === 'bodega') {
+      if (e === 'novedad_bodega') return { texto: 'Novedad', tono: 'warning' };
+      if (
+        ['preparada', 'enviada', 'recibida', 'novedad_recepcion', 'devuelta', 'faltante'].includes(
+          e,
+        )
+      )
+        return { texto: 'OK', tono: 'success' };
+      return e === 'solicitada'
+        ? { texto: 'Pendiente', tono: 'info' }
+        : { texto: '—', tono: 'neutral' };
+    }
+    if (e === 'novedad_recepcion') return { texto: 'Novedad', tono: 'warning' };
+    if (['recibida', 'devuelta', 'faltante'].includes(e)) return { texto: 'OK', tono: 'success' };
+    return e === 'enviada' ? { texto: 'Pendiente', tono: 'info' } : { texto: '—', tono: 'neutral' };
+  }
   protected readonly avisoTxt = (m: keyof typeof AVISO_PRECARGA_LABELS) => AVISO_PRECARGA_LABELS[m];
   protected readonly resumen = computed(() =>
     resumenHerramientas(this.datos()?.herramientas ?? []),

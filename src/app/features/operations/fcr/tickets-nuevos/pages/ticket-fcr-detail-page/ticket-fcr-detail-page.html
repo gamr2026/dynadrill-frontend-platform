@@ -262,8 +262,12 @@
                       <ng-container *ngTemplateOutlet="cierreDeFase" />
                     }
                   </section>
-                  @if (esActual(p.codigo) && verHerramientas()) {
-                    <app-ticket-fcr-herramientas-panel [ticket]="t" (cambio)="recargar()" />
+                  @if (herramientasEnTipoOperador()) {
+                    <app-ticket-fcr-herramientas-panel
+                      [ticket]="t"
+                      [itemsPedido]="itemsPedido()"
+                      (cambio)="recargar()"
+                    />
                   }
                 }
                 @case ('inspeccion') {
@@ -299,7 +303,11 @@
                 }
                 @case ('preparacion_herramientas') {
                   @if (verHerramientas()) {
-                    <app-ticket-fcr-herramientas-panel [ticket]="t" (cambio)="recargar()" />
+                    <app-ticket-fcr-herramientas-panel
+                      [ticket]="t"
+                      [itemsPedido]="itemsPedido()"
+                      (cambio)="recargar()"
+                    />
                   }
                   @if (esActual(p.codigo)) {
                     <section class="tpd__tarjeta tpd__tarjeta--acciones">

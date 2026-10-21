@@ -307,6 +307,13 @@ export class TicketFcrDetailPage {
       fin: t?.fechaFinServicio ?? null,
     };
   });
+  /** En servicios las herramientas se arman desde «Tipo de operador»; al llegar a la preparación pasan a su sección. */
+  protected readonly herramientasEnTipoOperador = computed(
+    () =>
+      this.esServicio() &&
+      this.indicePaso() < this.pasos().findIndex((x) => x.codigo === PASO_PREPARACION),
+  );
+  protected readonly itemsPedido = computed(() => this.pedido()?.items ?? []);
   protected readonly operadoresTexto = computed(() => {
     const o = this.ticket()?.asignacion.operadores ?? [];
     return o.length ? o.map((x) => x.nombre).join(', ') : 'Sin asignar';

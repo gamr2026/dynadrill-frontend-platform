@@ -8,10 +8,19 @@
   <dynadrill-spinner mode="overlay" [spinning]="cargando()" tip="Cargando…">
     <div class="form__cuerpo">
       @if (!esEdicion) {
-        <dynadrill-banner variant="info" message="El código del pedido es el número del pedido de AS2 (PEC-). Si el pedido ya existe en AS2 se usa ese número; si lo crea aquí, el portal reserva el siguiente número de AS2 al abrirlo, para usarlo al crearlo allá. No hace falta elegir analista: si falta, se notifica a la coordinadora." />
+        <dynadrill-banner
+          variant="info"
+          message="El código del pedido es el número del pedido de AS2 (PEC-). Si el pedido ya existe en AS2 se usa ese número; si lo crea aquí, el portal reserva el siguiente número de AS2 al abrirlo, para usarlo al crearlo allá. No hace falta elegir analista: si falta, se notifica a la coordinadora."
+        />
       }
       @if (itemsSinLista() > 0) {
-        <dynadrill-banner variant="warning" [message]="itemsSinLista() + ' ítem(s) del pedido no están vinculados a la lista de precios y se conservan mientras no modifique los ítems.'" />
+        <dynadrill-banner
+          variant="warning"
+          [message]="
+            itemsSinLista() +
+            ' ítem(s) del pedido no están vinculados a la lista de precios y se conservan mientras no modifique los ítems.'
+          "
+        />
       }
 
       <section class="form__tarjeta">
@@ -20,16 +29,40 @@
           <p class="form__nota">El cliente viene de AS2 y no se puede cambiar desde el portal.</p>
         }
         <div class="form__rejilla">
-          <dynadrill-select label="Cliente" placeholder="Elija el cliente" [options]="clienteOpciones()" [value]="clienteId()" [searchable]="true" [disabled]="clienteBloqueado()" (valueChange)="onCliente($any($event))" />
-          <dynadrill-input label="Subcliente (opcional)" [value]="subcliente()" (valueChange)="subcliente.set($event)" />
+          <dynadrill-select
+            label="Cliente"
+            placeholder="Elija el cliente"
+            [options]="clienteOpciones()"
+            [value]="clienteId()"
+            [searchable]="true"
+            [disabled]="clienteBloqueado()"
+            (valueChange)="onCliente($any($event))"
+          />
+          <dynadrill-input
+            label="Subcliente (opcional)"
+            [value]="subcliente()"
+            (valueChange)="subcliente.set($event)"
+          />
         </div>
       </section>
 
       <section class="form__tarjeta">
         <header class="form__titulo"><h2>Servicio</h2></header>
         <div class="form__rejilla">
-          <dynadrill-select label="Línea de servicio" placeholder="Elija la línea" [options]="lineaOpciones()" [value]="lineaServicio()" (valueChange)="onLinea($any($event))" />
-          <dynadrill-select label="Tipo de OT" placeholder="Venta o servicio" [options]="tipoOtOpciones()" [value]="tipoOt()" (valueChange)="tipoOt.set($any($event))" />
+          <dynadrill-select
+            label="Línea de servicio"
+            placeholder="Elija la línea"
+            [options]="lineaOpciones()"
+            [value]="lineaServicio()"
+            (valueChange)="onLinea($any($event))"
+          />
+          <dynadrill-select
+            label="Tipo de OT"
+            placeholder="Venta o servicio"
+            [options]="tipoOtOpciones()"
+            [value]="tipoOt()"
+            (valueChange)="tipoOt.set($any($event))"
+          />
           <dynadrill-select
             label="Tipos de servicio"
             [placeholder]="lineaServicio() ? 'Elija uno o más tipos' : 'Elija primero la línea'"
@@ -40,12 +73,41 @@
             (valueChange)="onTipos($event)"
           />
           @if (subtipoOpciones().length) {
-            <dynadrill-select label="Subtipos de servicio (opcional)" placeholder="Elija los subtipos" [options]="subtipoOpciones()" [value]="subtiposClaves()" [multiple]="true" [grouped]="true" [searchable]="true" (valueChange)="onSubtipos($event)" />
+            <dynadrill-select
+              label="Subtipos de servicio (opcional)"
+              placeholder="Elija los subtipos"
+              [options]="subtipoOpciones()"
+              [value]="subtiposClaves()"
+              [multiple]="true"
+              [grouped]="true"
+              [searchable]="true"
+              (valueChange)="onSubtipos($event)"
+            />
           }
-          <dynadrill-input label="Número de contrato" [value]="numeroContrato()" (valueChange)="numeroContrato.set($event)" />
-          <dynadrill-select label="Medio de solicitud (opcional)" placeholder="Verbal o escrita" [options]="medioOpciones" [value]="solicitudMedio()" (valueChange)="solicitudMedio.set($any($event))" />
-          <dynadrill-datetime-picker mode="date" label="Inicio del servicio" [value]="fechaInicio()!" (valueChange)="fechaInicio.set($event)" />
-          <dynadrill-datetime-picker mode="date" label="Fin del servicio" [value]="fechaFin()!" (valueChange)="fechaFin.set($event)" />
+          <dynadrill-input
+            label="Número de contrato"
+            [value]="numeroContrato()"
+            (valueChange)="numeroContrato.set($event)"
+          />
+          <dynadrill-select
+            label="Medio de solicitud (opcional)"
+            placeholder="Verbal o escrita"
+            [options]="medioOpciones"
+            [value]="solicitudMedio()"
+            (valueChange)="solicitudMedio.set($any($event))"
+          />
+          <dynadrill-datetime-picker
+            mode="date"
+            label="Inicio del servicio"
+            [value]="fechaInicio()!"
+            (valueChange)="fechaInicio.set($event)"
+          />
+          <dynadrill-datetime-picker
+            mode="date"
+            label="Fin del servicio"
+            [value]="fechaFin()!"
+            (valueChange)="fechaFin.set($event)"
+          />
         </div>
         @if (errorCoherencia(); as e) {
           <p class="form__error" role="alert">{{ e }}</p>
@@ -54,57 +116,124 @@
 
       <section class="form__tarjeta">
         <header class="form__titulo"><h2>Ubicación</h2></header>
-        <app-ubicacion-pedido-selector [valorInicial]="ubicacionInicial()" (seleccionChange)="onUbicacion($event)" />
+        <app-ubicacion-pedido-selector
+          [valorInicial]="ubicacionInicial()"
+          (seleccionChange)="onUbicacion($event)"
+        />
         <p class="form__ayuda">Para un trabajo sin taladro elija "RIGLESS" en el taladro.</p>
       </section>
 
       <section class="form__tarjeta">
         <header class="form__titulo"><h2>Responsables</h2></header>
         <div class="form__rejilla">
-          <dynadrill-select label="Agente comercial (por defecto, quien crea el pedido)" placeholder="Quien crea el pedido" [options]="agenteOpciones()" [value]="agenteId()" [searchable]="true" (valueChange)="agenteId.set($any($event))" />
-          <dynadrill-select label="Técnico HSE" placeholder="Elija el técnico HSE" [options]="tecnicoOpciones()" [value]="tecnicoHseId()" [searchable]="true" (valueChange)="tecnicoHseId.set($any($event))" />
-          <dynadrill-select label="Representante de campo (opcional)" placeholder="Elija la persona" [options]="repCampoOpciones()" [value]="representanteCampoId()" [searchable]="true" (valueChange)="representanteCampoId.set($any($event))" />
-          <dynadrill-select label="Representante de Quito (opcional)" placeholder="Elija la persona" [options]="repQuitoOpciones()" [value]="representanteQuitoId()" [searchable]="true" (valueChange)="representanteQuitoId.set($any($event))" />
+          <dynadrill-select
+            label="Agente comercial (por defecto, quien crea el pedido)"
+            placeholder="Quien crea el pedido"
+            [options]="agenteOpciones()"
+            [value]="agenteId()"
+            [searchable]="true"
+            (valueChange)="agenteId.set($any($event))"
+          />
+          <dynadrill-select
+            label="Técnico HSE"
+            placeholder="Elija el técnico HSE"
+            [options]="tecnicoOpciones()"
+            [value]="tecnicoHseId()"
+            [searchable]="true"
+            (valueChange)="tecnicoHseId.set($any($event))"
+          />
+          <dynadrill-select
+            label="Representante de campo (opcional)"
+            placeholder="Elija la persona"
+            [options]="repCampoOpciones()"
+            [value]="representanteCampoId()"
+            [searchable]="true"
+            (valueChange)="representanteCampoId.set($any($event))"
+          />
+          <dynadrill-select
+            label="Representante de Quito (opcional)"
+            placeholder="Elija la persona"
+            [options]="repQuitoOpciones()"
+            [value]="representanteQuitoId()"
+            [searchable]="true"
+            (valueChange)="representanteQuitoId.set($any($event))"
+          />
         </div>
       </section>
 
       <section class="form__tarjeta">
         <header class="form__titulo"><h2>Datos administrativos</h2></header>
         @if (bodegaBloqueada() || condicionPagoBloqueada()) {
-          <p class="form__nota">La bodega y la condición de pago que vienen de AS2 no se pueden cambiar desde el portal.</p>
+          <p class="form__nota">
+            La bodega y la condición de pago que vienen de AS2 no se pueden cambiar desde el portal.
+          </p>
         }
         <div class="form__rejilla">
-          <dynadrill-select label="Bodega" placeholder="Elija la bodega" [options]="bodegaOpciones()" [value]="bodegaId()" [searchable]="true" [disabled]="bodegaBloqueada()" (valueChange)="bodegaId.set($any($event))" />
-          <dynadrill-select label="Condición de pago (opcional)" placeholder="Elija la condición de pago" [options]="condicionPagoOpciones()" [value]="condicionPagoId()" [searchable]="true" [disabled]="condicionPagoBloqueada()" (valueChange)="condicionPagoId.set($any($event))" />
+          <dynadrill-select
+            label="Bodega"
+            placeholder="Elija la bodega"
+            [options]="bodegaOpciones()"
+            [value]="bodegaId()"
+            [searchable]="true"
+            [disabled]="bodegaBloqueada()"
+            (valueChange)="bodegaId.set($any($event))"
+          />
+          <dynadrill-select
+            label="Condición de pago (opcional)"
+            placeholder="Elija la condición de pago"
+            [options]="condicionPagoOpciones()"
+            [value]="condicionPagoId()"
+            [searchable]="true"
+            [disabled]="condicionPagoBloqueada()"
+            (valueChange)="condicionPagoId.set($any($event))"
+          />
           <dynadrill-input label="Zona (según el campo)" [disabled]="true" [value]="zona()" />
         </div>
       </section>
 
       <section class="form__tarjeta">
         <header class="form__titulo"><h2>Ítems</h2></header>
-        <app-items-editor [clienteId]="clienteId()" [(lineas)]="lineas" />
+        <app-items-editor
+          [clienteId]="clienteId()"
+          [(lineas)]="lineas"
+          (ejemploCargado)="onEjemplo($event)"
+        />
       </section>
 
       <section class="form__tarjeta">
         <header class="form__titulo"><h2>Documentos</h2></header>
         @if (pedido(); as p) {
-          <app-documentos-pedido [pedidoId]="p.id" [documentos]="p.documentos" [puedeEditar]="true" (cambio)="onDocumentos($event)" />
+          <app-documentos-pedido
+            [pedidoId]="p.id"
+            [documentos]="p.documentos"
+            [puedeEditar]="true"
+            (cambio)="onDocumentos($event)"
+          />
         } @else {
           <p class="form__ayuda">Podrá adjuntar documentos al guardar el pedido.</p>
         }
       </section>
 
       @if (ofreceAbrir() && faltantes().length) {
-        <dynadrill-banner variant="warning" [message]="'Para abrir el pedido falta: ' + faltantes().join(', ') + '.'" />
+        <dynadrill-banner
+          variant="warning"
+          [message]="'Para abrir el pedido falta: ' + faltantes().join(', ') + '.'"
+        />
       }
 
       <footer class="form__acciones">
         <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
-        <dynadrill-button variant="secondary" [disabled]="!puedeGuardar()" (clicked)="guardar(false)">
+        <dynadrill-button
+          variant="secondary"
+          [disabled]="!puedeGuardar()"
+          (clicked)="guardar(false)"
+        >
           {{ guardando() ? 'Guardando…' : esEdicion ? 'Guardar cambios' : 'Guardar por completar' }}
         </dynadrill-button>
         @if (ofreceAbrir()) {
-          <dynadrill-button [disabled]="!puedeAbrirAhora()" (clicked)="guardar(true)">{{ esEdicion ? 'Guardar y abrir' : 'Crear y abrir' }}</dynadrill-button>
+          <dynadrill-button [disabled]="!puedeAbrirAhora()" (clicked)="guardar(true)">{{
+            esEdicion ? 'Guardar y abrir' : 'Crear y abrir'
+          }}</dynadrill-button>
         }
       </footer>
     </div>

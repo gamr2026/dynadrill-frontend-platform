@@ -1,20 +1,58 @@
 <div class="items">
   @if (!clienteId()) {
-    <dynadrill-banner variant="info" message="Elija primero el cliente: los ítems salen de su lista de precios." />
+    <dynadrill-banner
+      variant="info"
+      message="Elija primero el cliente: los ítems salen de su lista de precios."
+    />
   }
 
   <section class="items__bloque">
     <h3>Plantilla Excel de AS2</h3>
     <p class="items__ayuda">
-      Cargue la plantilla "AS2 Pedido Cliente": cada código se valida contra la lista de precios del cliente (el precio válido es el de la lista).
+      Cargue la plantilla "AS2 Pedido Cliente": cada código se valida contra la lista de precios del
+      cliente (el precio válido es el de la lista).
       <a [href]="urlPlantilla" download="AS2 Pedido Cliente.xlsx">Descargar plantilla</a>
     </p>
     <label class="items__archivo">
       <span>Archivo de la plantilla (.xlsx)</span>
-      <input type="file" accept=".xlsx,.xls" [disabled]="!clienteId() || leyendo()" (change)="onArchivo($event)" />
+      <input
+        type="file"
+        accept=".xlsx,.xls"
+        [disabled]="!clienteId() || leyendo()"
+        (change)="onArchivo($event)"
+      />
     </label>
+    <p class="items__ayuda">
+      O empiece desde un ejemplo armado con las líneas de un ticket real: carga los ítems, la línea
+      de servicio y el tipo de servicio.
+    </p>
+    <ul class="items__ejemplos">
+      @for (p of plantillasEjemplo; track p.id) {
+        <li class="items__ejemplo">
+          <span class="items__ejemplo-texto">
+            <strong>{{ p.titulo }}</strong>
+            <small>{{ p.detalle }}</small>
+          </span>
+          <dynadrill-button
+            variant="secondary"
+            size="small"
+            [disabled]="!clienteId() || leyendo()"
+            (clicked)="cargarEjemplo(p)"
+            >Cargar</dynadrill-button
+          >
+          <dynadrill-icon-button
+            icon="download"
+            [tooltip]="'Descargar ' + p.archivo"
+            (clicked)="descargarEjemplo(p)"
+          />
+        </li>
+      }
+    </ul>
     @if (erroresPlantilla().length) {
-      <dynadrill-banner variant="warning" message="Algunas filas del archivo no se pudieron usar:" />
+      <dynadrill-banner
+        variant="warning"
+        message="Algunas filas del archivo no se pudieron usar:"
+      />
       <ul class="items__errores">
         @for (e of erroresPlantilla(); track $index) {
           <li>Fila {{ e.fila }} · {{ e.codigo }}: {{ e.motivo }}</li>
@@ -22,10 +60,16 @@
       </ul>
     }
     @if (diferenciasPlantilla().length) {
-      <dynadrill-banner variant="info" message="El precio del archivo difiere del de la lista en estos códigos; se usa el de la lista:" />
+      <dynadrill-banner
+        variant="info"
+        message="El precio del archivo difiere del de la lista en estos códigos; se usa el de la lista:"
+      />
       <ul class="items__errores">
         @for (d of diferenciasPlantilla(); track d.fila) {
-          <li>Fila {{ d.fila }} · {{ d.codigo }}: diferencia de {{ moneda(d.diferenciaPrecio) }} (lista {{ moneda(d.precioLista) }})</li>
+          <li>
+            Fila {{ d.fila }} · {{ d.codigo }}: diferencia de
+            {{ moneda(d.diferenciaPrecio) }} (lista {{ moneda(d.precioLista) }})
+          </li>
         }
       </ul>
     }
@@ -34,13 +78,27 @@
   <section class="items__bloque">
     <h3>Buscar en la lista de precios</h3>
     <div class="items__filtros">
-      <app-search-field class="busqueda" label="Buscar ítem por código o descripción" placeholder="Buscar por código o descripción…" [value]="busqueda()" (valueChange)="onBusqueda($event)" />
-      <dynadrill-select label="Tipo" placeholder="Todos" [options]="tipoOpciones" [value]="tipo()" (valueChange)="onTipo($any($event))" />
+      <app-search-field
+        class="busqueda"
+        label="Buscar ítem por código o descripción"
+        placeholder="Buscar por código o descripción…"
+        [value]="busqueda()"
+        (valueChange)="onBusqueda($event)"
+      />
+      <dynadrill-select
+        label="Tipo"
+        placeholder="Todos"
+        [options]="tipoOpciones"
+        [value]="tipo()"
+        (valueChange)="onTipo($any($event))"
+      />
     </div>
     <dynadrill-spinner mode="overlay" [spinning]="buscando()" tip="Buscando…">
       <div class="items__tabla">
         <table>
-          <caption class="sr-only">Ítems disponibles en la lista de precios del cliente</caption>
+          <caption class="sr-only">
+            Ítems disponibles en la lista de precios del cliente
+          </caption>
           <thead>
             <tr>
               <th scope="col">Código</th>
@@ -60,11 +118,23 @@
                 <td>{{ it.unidad ?? '—' }}</td>
                 <td class="num">{{ moneda(it.precio) }}</td>
                 <td>
-                  <dynadrill-button variant="secondary" size="small" (clicked)="agregar(it)">{{ yaAgregado(it) ? 'Sumar 1' : 'Agregar' }}</dynadrill-button>
+                  <dynadrill-button variant="secondary" size="small" (clicked)="agregar(it)">{{
+                    yaAgregado(it) ? 'Sumar 1' : 'Agregar'
+                  }}</dynadrill-button>
                 </td>
               </tr>
             } @empty {
-              <tr><td class="vacio" colspan="6">{{ clienteId() ? (buscando() ? 'Buscando…' : 'No hay ítems que coincidan.') : 'Elija el cliente para ver su lista.' }}</td></tr>
+              <tr>
+                <td class="vacio" colspan="6">
+                  {{
+                    clienteId()
+                      ? buscando()
+                        ? 'Buscando…'
+                        : 'No hay ítems que coincidan.'
+                      : 'Elija el cliente para ver su lista.'
+                  }}
+                </td>
+              </tr>
             }
           </tbody>
         </table>
@@ -73,8 +143,18 @@
     <nav class="items__paginador" aria-label="Paginación de la lista de precios">
       <p aria-live="polite">{{ resumenBusqueda() }}</p>
       <div class="botones">
-        <dynadrill-icon-button icon="left" tooltip="Página anterior" [disabled]="!hayAnterior() || buscando()" (clicked)="irA(-1)" />
-        <dynadrill-icon-button icon="right" tooltip="Página siguiente" [disabled]="!haySiguiente() || buscando()" (clicked)="irA(1)" />
+        <dynadrill-icon-button
+          icon="left"
+          tooltip="Página anterior"
+          [disabled]="!hayAnterior() || buscando()"
+          (clicked)="irA(-1)"
+        />
+        <dynadrill-icon-button
+          icon="right"
+          tooltip="Página siguiente"
+          [disabled]="!haySiguiente() || buscando()"
+          (clicked)="irA(1)"
+        />
       </div>
     </nav>
   </section>
@@ -83,7 +163,9 @@
     <h3>Ítems del pedido ({{ lineas().length }})</h3>
     <div class="items__tabla">
       <table>
-        <caption class="sr-only">Ítems elegidos para el pedido</caption>
+        <caption class="sr-only">
+          Ítems elegidos para el pedido
+        </caption>
         <thead>
           <tr>
             <th scope="col">Código</th>
@@ -106,21 +188,54 @@
                 }
               </td>
               <td class="num">{{ moneda(l.precio) }}</td>
-              <td class="campo"><dynadrill-input type="number" label="Cantidad" [value]="l.cantidad" (valueChange)="cambiar(i, 'cantidad', $event)" /></td>
-              <td class="campo"><dynadrill-input type="number" label="Descuento %" [value]="l.descuentoPct" (valueChange)="cambiar(i, 'descuentoPct', $event)" /></td>
+              <td class="campo">
+                <dynadrill-input
+                  type="number"
+                  label="Cantidad"
+                  [value]="l.cantidad"
+                  (valueChange)="cambiar(i, 'cantidad', $event)"
+                />
+              </td>
+              <td class="campo">
+                <dynadrill-input
+                  type="number"
+                  label="Descuento %"
+                  [value]="l.descuentoPct"
+                  (valueChange)="cambiar(i, 'descuentoPct', $event)"
+                />
+              </td>
               <td class="num">{{ moneda(neto(l)) }}</td>
-              <td><dynadrill-icon-button icon="delete" [tooltip]="'Quitar ' + l.codigo" (clicked)="quitar(i)" /></td>
+              <td>
+                <dynadrill-icon-button
+                  icon="delete"
+                  [tooltip]="'Quitar ' + l.codigo"
+                  (clicked)="quitar(i)"
+                />
+              </td>
             </tr>
           } @empty {
-            <tr><td class="vacio" colspan="7">Todavía no hay ítems. Busque en la lista o cargue la plantilla.</td></tr>
+            <tr>
+              <td class="vacio" colspan="7">
+                Todavía no hay ítems. Busque en la lista o cargue la plantilla.
+              </td>
+            </tr>
           }
         </tbody>
       </table>
     </div>
     <dl class="items__totales">
-      <div><dt>Subtotal</dt><dd>{{ moneda(totales().subtotal) }}</dd></div>
-      <div><dt>Descuento</dt><dd>{{ moneda(totales().descuento) }}</dd></div>
-      <div class="neto"><dt>Total neto</dt><dd>{{ moneda(totales().neto) }}</dd></div>
+      <div>
+        <dt>Subtotal</dt>
+        <dd>{{ moneda(totales().subtotal) }}</dd>
+      </div>
+      <div>
+        <dt>Descuento</dt>
+        <dd>{{ moneda(totales().descuento) }}</dd>
+      </div>
+      <div class="neto">
+        <dt>Total neto</dt>
+        <dd>{{ moneda(totales().neto) }}</dd>
+      </div>
     </dl>
   </section>
 </div>

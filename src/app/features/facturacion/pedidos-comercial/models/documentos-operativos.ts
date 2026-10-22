@@ -1,4 +1,8 @@
 /** Documentos operativos del pedido (`/api/comercial/pedidos/:id/documentos-operativos`). Los envía Operaciones. */
+import type {
+  OperativoToolRef,
+  OperativoToolUsageEntry,
+} from '../../../../shared/models/operativo-docs.model';
 
 export const PERMISOS_DOCUMENTOS_OPERATIVOS = {
   ver: 'comercial.documentos_operativos.ver',
@@ -29,6 +33,8 @@ export interface ActividadOperativa {
 export interface UsoHerramienta {
   fecha: string;
   estado: EstadoUsoHerramienta;
+  /** Cantidad aplicada ese día (1 es una marca). Los reportes anteriores a la cantidad por día no la traen. */
+  cantidad?: number;
 }
 
 export interface HerramientaOperativa {
@@ -161,6 +167,43 @@ export function listaDeChequeo(a: AvanceDocumental): PuntoChequeo[] {
     });
   }
   return lista;
+}
+
+/**
+ * Arma lo que pide la hoja del Reporte de Herramientas (DYN-FCR-RE-008) con todo lo recibido. Una fila lleva las cantidades por día en
+ * las celdas cuando algún día vale distinto de 1 (km, pies, galones...); si todos valen 1 son marcas por día (O, D, V) y el total sale de
+ * la propia fila.
+ */
+export function herramientasParaHoja(docs: readonly DocumentoOperativo[]): {
+  tools: OperativoToolRef[];
+  usageLog: OperativoToolUsageEntry[];
+} {
+  const tools: OperativoToolRef[] = [];
+  const usageLog: OperativoToolUsageEntry[] = [];
+  for (const d of docs) {
+    for (const h of d.herramientas) {
+      const id = tools.length + 1;
+      tools.push({
+        id,
+        name: h.nombre,
+        serialCode: h.serie ?? undefined,
+        codigo: h.codigo ?? undefined,
+        unidad: h.unidad ?? undefined,
+        cantidad: h.cantidad ?? null,
+      });
+      const conCantidades = h.usos.some((u) => u.cantidad !== undefined && u.cantidad !== 1);
+      for (const u of h.usos) {
+        usageLog.push({
+          id: usageLog.length + 1,
+          toolId: id,
+          date: u.fecha.slice(0, 10),
+          status: u.estado,
+          ...(conCantidades ? { cantidad: u.cantidad ?? 1 } : {}),
+        });
+      }
+    }
+  }
+  return { tools, usageLog };
 }
 
 /** Ordena los Reportes Job por fecha (los sin fecha al final). */

@@ -52,6 +52,14 @@
       }
     }
 
+    @if (hayFormatos()) {
+      <div class="resp__barra">
+        <dynadrill-button variant="secondary" size="small" (clicked)="descargarTodo()"
+          >Descargar todo en PDF</dynadrill-button
+        >
+      </div>
+    }
+
     <div class="resp__scroll">
       <table class="resp__tabla">
         <thead>

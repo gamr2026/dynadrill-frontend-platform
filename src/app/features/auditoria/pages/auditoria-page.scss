@@ -1,0 +1,113 @@
+@use '../../facturacion/facturacion-ui' as f;
+
+:host {
+  display: block;
+}
+
+.auditoria {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__tarjeta {
+    @include f.card;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  &__filtros {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+
+    > * {
+      flex: 1 1 200px;
+      min-width: 0;
+    }
+  }
+
+  &__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__aviso,
+  &__error {
+    margin: 0;
+    font-size: 13px;
+    color: var(--error, #cf1322);
+  }
+
+  &__tabla {
+    overflow-x: auto;
+
+    table {
+      @include f.table;
+      min-width: 820px;
+    }
+
+    .nowrap {
+      white-space: nowrap;
+    }
+
+    .principal {
+      display: block;
+      font-weight: 600;
+    }
+
+    .secundario {
+      display: block;
+      font-size: 12px;
+      color: var(--text-muted, #5c5870);
+      overflow-wrap: anywhere;
+    }
+
+    .codigo {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .acciones {
+      display: flex;
+      justify-content: flex-end;
+      white-space: nowrap;
+    }
+
+    .vacio {
+      padding: 28px 12px;
+      text-align: center;
+      color: var(--text-muted, #5c5870);
+    }
+  }
+
+  &__paginador {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 4px 0;
+
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--text-muted, #5c5870);
+    }
+
+    .botones {
+      display: flex;
+      gap: 8px;
+    }
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

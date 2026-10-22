@@ -402,7 +402,7 @@
                       <dynadrill-icon name="success" [size]="20" /> Cierre de Ticket y Encuesta
                     </h2>
                     @if (verActaEntrega()) {
-                      <app-acta-entrega-carga [ticketId]="t.id" />
+                      <app-acta-entrega-carga [ticketId]="t.id" (cambio)="alCargarActa()" />
                     }
                     @if (esActual(p.codigo) || cerrado()) {
                       <ng-container *ngTemplateOutlet="cierreDeFase" />

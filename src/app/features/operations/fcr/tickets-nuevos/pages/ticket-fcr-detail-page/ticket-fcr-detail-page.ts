@@ -480,6 +480,12 @@ export class TicketFcrDetailPage {
     );
   }
 
+  /** QHSE avisa a Operaciones por evento (llega en instantes): se recarga ya y otra vez poco después para ver el requisito cumplido. */
+  protected alCargarActa(): void {
+    this.recargar();
+    setTimeout(() => this.recargar(), 1500);
+  }
+
   private cargarActa(t: TicketFcr): void {
     this.cargarCambiosItems(t.id);
     this.servicio

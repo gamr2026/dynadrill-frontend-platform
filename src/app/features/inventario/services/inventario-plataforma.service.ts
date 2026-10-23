@@ -10,6 +10,7 @@ import type {
   CategoriaInventario,
   CrearArticuloInput,
   FiltroArticulos,
+  MinimoStock,
   MotivoMovimiento,
   MovimientoKardex,
   ParteArticulo,
@@ -42,12 +43,16 @@ export class InventarioPlataformaService {
 
   /** Selector de repuestos de Mantenimiento: busca por código o nombre (desde 2 letras) y trae la existencia por bodega. */
   repuestosDisponibles(q: string): Observable<RepuestoDisponible[]> {
-    return this.http.get<RepuestoDisponible[]>(`${this.base}/articulos/repuestos`, { params: new HttpParams().set('q', q) });
+    return this.http.get<RepuestoDisponible[]>(`${this.base}/articulos/repuestos`, {
+      params: new HttpParams().set('q', q),
+    });
   }
 
   /** Selector de químicos para la asignación de Pumping: solo con existencia, con el saldo por bodega. `q` es opcional. */
   quimicosDisponibles(q = ''): Observable<RepuestoDisponible[]> {
-    return this.http.get<RepuestoDisponible[]>(`${this.base}/articulos/quimicos`, { params: new HttpParams().set('q', q) });
+    return this.http.get<RepuestoDisponible[]>(`${this.base}/articulos/quimicos`, {
+      params: new HttpParams().set('q', q),
+    });
   }
 
   articulo(id: string): Observable<ArticuloInventarioDetalle> {
@@ -58,21 +63,48 @@ export class InventarioPlataformaService {
     return this.http.post<ArticuloInventarioDetalle>(`${this.base}/articulos`, input);
   }
 
-  actualizarArticulo(id: string, input: ActualizarArticuloInput): Observable<ArticuloInventarioDetalle> {
+  actualizarArticulo(
+    id: string,
+    input: ActualizarArticuloInput,
+  ): Observable<ArticuloInventarioDetalle> {
     return this.http.put<ArticuloInventarioDetalle>(`${this.base}/articulos/${id}`, input);
   }
 
   // --- kardex ---
-  kardex(articuloId: string, opciones: { bodegaId?: string; limite?: number } = {}): Observable<MovimientoKardex[]> {
+  kardex(
+    articuloId: string,
+    opciones: { bodegaId?: string; limite?: number } = {},
+  ): Observable<MovimientoKardex[]> {
     let params = new HttpParams();
     if (opciones.bodegaId) params = params.set('bodegaId', opciones.bodegaId);
     if (opciones.limite) params = params.set('limite', opciones.limite);
-    return this.http.get<MovimientoKardex[]>(`${this.base}/articulos/${articuloId}/movimientos`, { params });
+    return this.http.get<MovimientoKardex[]>(`${this.base}/articulos/${articuloId}/movimientos`, {
+      params,
+    });
   }
 
   /** El servidor calcula el saldo y rechaza una salida que deje el stock de la bodega en negativo (409). */
   registrarMovimiento(input: RegistrarMovimientoInput): Observable<MovimientoKardex> {
     return this.http.post<MovimientoKardex>(`${this.base}/movimientos`, input);
+  }
+
+  // --- mínimos de stock por artículo y bodega ---
+  minimos(
+    filtro: { articuloId?: string; bodegaId?: string; bajoMinimo?: boolean } = {},
+  ): Observable<MinimoStock[]> {
+    let params = new HttpParams();
+    if (filtro.articuloId) params = params.set('articuloId', filtro.articuloId);
+    if (filtro.bodegaId) params = params.set('bodegaId', filtro.bodegaId);
+    if (filtro.bajoMinimo) params = params.set('bajoMinimo', 'true');
+    return this.http.get<MinimoStock[]>(`${this.base}/minimos`, { params });
+  }
+
+  fijarMinimo(articuloId: string, bodegaId: string, minimo: number): Observable<unknown> {
+    return this.http.put(`${this.base}/articulos/${articuloId}/minimos/${bodegaId}`, { minimo });
+  }
+
+  quitarMinimo(articuloId: string, bodegaId: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/articulos/${articuloId}/minimos/${bodegaId}`);
   }
 
   // --- partes de una herramienta ---

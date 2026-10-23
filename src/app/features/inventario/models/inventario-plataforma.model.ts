@@ -63,6 +63,20 @@ export interface ArticuloInventario {
   stockActual: number;
 }
 
+/** El mínimo de stock de un artículo en una bodega, con su existencia de hoy. */
+export interface MinimoStock {
+  articuloId: string;
+  articuloCodigo: string;
+  articulo: string;
+  bodegaId: string;
+  bodega: string;
+  minimo: number;
+  stock: number;
+  bajoMinimo: boolean;
+  /** Lo que falta para llegar al mínimo (0 si no está bajo). */
+  faltante: number;
+}
+
 export interface StockPorBodega {
   bodegaId: string;
   bodega: string;
@@ -123,12 +137,7 @@ export interface UnidadStockInventario extends UnidadStockRef {
 export type TipoMovimiento = 'entrada' | 'salida';
 
 export type OrigenMovimiento =
-  | 'saldo_inicial'
-  | 'compra'
-  | 'ajuste'
-  | 'despacho_bodega'
-  | 'salida_ticket'
-  | 'devolucion_ticket';
+  'saldo_inicial' | 'compra' | 'ajuste' | 'despacho_bodega' | 'salida_ticket' | 'devolucion_ticket';
 
 export const MOVIMIENTO_TIPO_LABELS: Record<TipoMovimiento, string> = {
   entrada: 'Entrada',
@@ -200,7 +209,9 @@ export interface ParteArticulo {
   cantidadEsperada: number;
 }
 
-export type ParteArticuloInput = Pick<ParteArticulo, 'item' | 'codigo' | 'descripcion'> & { cantidadEsperada?: number };
+export type ParteArticuloInput = Pick<ParteArticulo, 'item' | 'codigo' | 'descripcion'> & {
+  cantidadEsperada?: number;
+};
 
 /** Mensaje para quien usa la pantalla: el del servidor si lo trae (409, 400 con detalle), o el genérico. */
 export function mensajeErrorInventario(err: unknown, porDefecto: string): string {

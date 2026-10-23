@@ -100,7 +100,7 @@
                     enSuPaso(r) && puedeFirmarUnidad(r) ? 'Reporte y firma' : 'Ver reporte'
                   }}</dynadrill-button>
                 }
-                @if (r.codigo === 'inspeccion_vehiculo_aprobada' && r.vehiculoId) {
+                @if (r.codigo === 'inspeccion_vehiculo_aprobada' && r.unidadId) {
                   <dynadrill-button variant="secondary" size="small" (clicked)="abrirReporte(r)"
                     >Ver reporte de salida</dynadrill-button
                   >
@@ -405,14 +405,14 @@
                       <dynadrill-tag [label]="i.etiqueta" [variant]="i.tono" [uppercase]="false" />
                     </div>
                     @if (i.requisito.estado === 'pendiente') {
-                      @if (puedeRealizarInspeccion(i.requisito.vehiculoId)) {
+                      @if (puedeRealizarInspeccion(i.requisito.unidadId)) {
                         <dynadrill-button
                           variant="primary"
                           size="small"
-                          (clicked)="realizarInspeccion(i.requisito.vehiculoId)"
+                          (clicked)="realizarInspeccion(i.requisito.unidadId)"
                           >Realizar inspección</dynadrill-button
                         >
-                      } @else if (!casoDeUnidad(i.requisito.vehiculoId)) {
+                      } @else if (!casoDeUnidad(i.requisito.unidadId)) {
                         <span class="tpd__meta"
                           >Esta unidad no está registrada en Flota como unidad de transporte: no se
                           puede inspeccionar desde aquí.</span
@@ -494,32 +494,32 @@
                       <tr>
                         <td>{{ o.nombre }}</td>
                         <td>{{ cargoDe(o.usuarioId) }}</td>
-                        <td>{{ o.placa ?? '—' }}</td>
+                        <td>{{ o.placa ?? o.codigo ?? '—' }}</td>
                         <td class="tpd__num">
                           <span class="tpd__iconos">
                             <dynadrill-icon-button
                               icon="schedule"
                               [tooltip]="
-                                inspeccionRealizada(o.vehiculoId)
+                                inspeccionRealizada(o.unidadId)
                                   ? 'Inspección realizada'
                                   : 'Realizar inspección'
                               "
-                              [disabled]="!puedeRealizarInspeccion(o.vehiculoId)"
-                              (clicked)="realizarInspeccion(o.vehiculoId)"
+                              [disabled]="!puedeRealizarInspeccion(o.unidadId)"
+                              (clicked)="realizarInspeccion(o.unidadId)"
                             />
-                            @if (inspeccionRealizada(o.vehiculoId)) {
+                            @if (inspeccionRealizada(o.unidadId)) {
                               <dynadrill-icon-button
                                 icon="eye"
                                 tooltip="Ver detalle de la inspección"
-                                (clicked)="verInspeccion(o.vehiculoId)"
+                                (clicked)="verInspeccion(o.unidadId)"
                               />
                             }
                           </span>
-                          @if (o.vehiculoId && o.vehiculoId !== unidadParaFirmar()?.vehiculoId) {
+                          @if (o.unidadId && o.unidadId !== unidadParaFirmar()?.unidadId) {
                             <dynadrill-button
                               variant="secondary"
                               size="small"
-                              (clicked)="verReporteDe(o.vehiculoId)"
+                              (clicked)="verReporteDe(o.unidadId)"
                               >Ver reporte</dynadrill-button
                             >
                           }
@@ -534,7 +534,7 @@
             @if (unidadParaFirmar(); as u) {
               <app-ticket-reporte-unidad-form
                 [ticketId]="t.id"
-                [vehiculoId]="u.vehiculoId"
+                [unidadId]="u.unidadId"
                 [placa]="u.placa"
                 [cliente]="t.cliente ?? ''"
                 [pozo]="t.pozo ?? ''"
@@ -1234,7 +1234,8 @@
                     <dt>Operadores</dt>
                     <dd>
                       @for (o of t.asignacion.operadores; track o.usuarioId; let ultimo = $last) {
-                        {{ o.nombre }}{{ o.placa ? ' (' + o.placa + ')' : ''
+                        {{ o.nombre
+                        }}{{ (o.placa ?? o.codigo) ? ' (' + (o.placa ?? o.codigo) + ')' : ''
                         }}{{ ultimo ? '' : ', ' }}
                       }
                     </dd>
@@ -1242,8 +1243,8 @@
                   <div>
                     <dt>Unidades</dt>
                     <dd>
-                      @for (u of t.asignacion.unidades; track u.vehiculoId; let ultimo = $last) {
-                        {{ u.placa }}{{ u.descripcion ? ' (' + u.descripcion + ')' : ''
+                      @for (u of t.asignacion.unidades; track u.unidadId; let ultimo = $last) {
+                        {{ u.placa ?? u.codigo }}{{ u.descripcion ? ' (' + u.descripcion + ')' : ''
                         }}{{ ultimo ? '' : ', ' }}
                       }
                     </dd>

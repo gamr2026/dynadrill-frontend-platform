@@ -38,7 +38,7 @@ import { aFechaIso, mensajeDeError } from '../utils/flota.util';
 export interface ViajeSolicitudDialogData {
   ticket: ViajeContextoPumping;
   tipo: TipoViaje;
-  vehiculoId: string;
+  unidadId: string;
 }
 
 const STEPS = ['General', 'Evaluación', 'Plan y ruta', 'Confirmación'];
@@ -102,7 +102,7 @@ export class ViajeSolicitudDialog {
   protected readonly vehicleTypeOptions = VEHICLE_TYPE_OPTIONS;
 
   private readonly unidad = computed(
-    () => this.unidades().find((u) => u.vehiculoId === this.data.vehiculoId) ?? null,
+    () => this.unidades().find((u) => u.id === this.data.unidadId) ?? null,
   );
   protected readonly vehicleType = computed<'Liviano' | 'Pesado' | null>(() => {
     const c = this.unidad()?.categoriaPeso;
@@ -111,7 +111,8 @@ export class ViajeSolicitudDialog {
   protected readonly placas = computed(
     () =>
       this.unidad()?.placa ??
-      this.data.ticket.unidades.find((u) => u.vehiculoId === this.data.vehiculoId)?.placa ??
+      this.unidad()?.codigo ??
+      this.data.ticket.unidades.find((u) => u.unidadId === this.data.unidadId)?.codigo ??
       '',
   );
 
@@ -285,7 +286,7 @@ export class ViajeSolicitudDialog {
     this.api.unidades().subscribe((u) => this.unidades.set(u));
     this.inspecciones.casos(this.data.ticket.ticketId).subscribe({
       next: (casos) => {
-        const caso = casos.find((c) => c.unidad.vehiculo?.id === this.data.vehiculoId);
+        const caso = casos.find((c) => c.unidad.id === this.data.unidadId);
         if (!caso?.salidaInspeccionId) {
           this.cargandoInspeccion.set(false);
           return;

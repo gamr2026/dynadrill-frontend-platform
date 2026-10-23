@@ -1,0 +1,177 @@
+<div class="encuestas">
+  <app-page-header
+    eyebrow="Administración"
+    title="Encuestas"
+    subtitle="Las plantillas de las encuestas de satisfacción por módulo y lo que se envió a los clientes. Una versión publicada no se modifica: abra un borrador para corregirla."
+  />
+
+  <dynadrill-spinner mode="overlay" [spinning]="cargando() || ocupado()" tip="Cargando…">
+    @if (error(); as e) {
+      <div class="encuestas__error" role="alert">
+        <p>{{ e }}</p>
+      </div>
+    }
+
+    <section class="encuestas__tarjeta" aria-labelledby="enc-plantillas">
+      <header class="encuestas__cabecera">
+        <h2 id="enc-plantillas" class="encuestas__subtitulo">Plantillas</h2>
+        @if (!creando()) {
+          <dynadrill-button variant="secondary" size="small" (clicked)="creando.set(true)"
+            >Nueva encuesta</dynadrill-button
+          >
+        }
+      </header>
+
+      @if (creando()) {
+        <div class="encuestas__nueva">
+          <dynadrill-input
+            label="Código (minúsculas y guion bajo)"
+            placeholder="satisfaccion_fcr"
+            [value]="nuevoCodigo()"
+            (valueChange)="nuevoCodigo.set($event)"
+          />
+          <dynadrill-input
+            label="Nombre"
+            placeholder="Satisfacción de FCR"
+            [value]="nuevoNombre()"
+            (valueChange)="nuevoNombre.set($event)"
+          />
+          <dynadrill-select
+            label="Módulo"
+            placeholder="Elija el módulo"
+            [options]="moduloOpciones()"
+            [value]="nuevoModulo()"
+            (valueChange)="nuevoModulo.set($any($event))"
+          />
+          @if (problemaNueva(); as p) {
+            <p class="encuestas__ayuda" role="status">{{ p }}</p>
+          }
+          <div class="encuestas__acciones">
+            <dynadrill-button variant="secondary" (clicked)="creando.set(false)"
+              >Cancelar</dynadrill-button
+            >
+            <dynadrill-button [disabled]="!!problemaNueva() || ocupado()" (clicked)="crear()"
+              >Crear encuesta</dynadrill-button
+            >
+          </div>
+        </div>
+      }
+
+      @if (encuestas().length === 0 && !cargando()) {
+        <dynadrill-empty-state
+          title="Sin encuestas"
+          description="Todavía no hay encuestas. Cree la primera con «Nueva encuesta»."
+        />
+      } @else {
+        <ul class="encuestas__lista">
+          @for (e of encuestas(); track e.id) {
+            <li class="encuestas__item">
+              <div class="encuestas__item-info">
+                <strong>{{ e.nombre }}</strong>
+                <span class="encuestas__meta">{{ e.moduloNombre }} · {{ e.codigo }}</span>
+                <span class="encuestas__tags">
+                  <dynadrill-tag
+                    [label]="e.activa ? 'Activa' : 'Inactiva'"
+                    [variant]="e.activa ? 'success' : 'neutral'"
+                  />
+                  @if (e.vigente; as v) {
+                    <dynadrill-tag [label]="'Vigente: versión ' + v.numero" variant="info" />
+                  } @else {
+                    <dynadrill-tag label="Sin versión publicada" variant="warning" />
+                  }
+                  @if (e.borrador; as b) {
+                    <dynadrill-tag [label]="'Borrador: versión ' + b.numero" variant="neutral" />
+                  }
+                </span>
+              </div>
+              <div class="encuestas__item-acciones">
+                @if (e.borrador) {
+                  <dynadrill-button size="small" (clicked)="editarBorrador(e)"
+                    >Editar el borrador</dynadrill-button
+                  >
+                } @else {
+                  <dynadrill-button size="small" (clicked)="abrirBorrador(e)"
+                    >Crear un borrador</dynadrill-button
+                  >
+                }
+                @if (e.vigente) {
+                  <dynadrill-button variant="secondary" size="small" (clicked)="verVigente(e)"
+                    >Ver la vigente</dynadrill-button
+                  >
+                }
+                <dynadrill-button variant="secondary" size="small" (clicked)="alternarActiva(e)">{{
+                  e.activa ? 'Desactivar' : 'Activar'
+                }}</dynadrill-button>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="encuestas__tarjeta" aria-labelledby="enc-enviadas">
+      <header class="encuestas__cabecera">
+        <h2 id="enc-enviadas" class="encuestas__subtitulo">Enviadas a clientes ({{ total() }})</h2>
+        <div class="encuestas__filtro">
+          <dynadrill-select
+            label="Estado"
+            placeholder="Todas"
+            [options]="estadoOpciones"
+            [value]="filtroEstado()"
+            (valueChange)="filtrar($event)"
+          />
+        </div>
+      </header>
+
+      @if (invitaciones().length === 0) {
+        <dynadrill-empty-state
+          title="Sin envíos"
+          description="Todavía no se ha enviado ninguna encuesta con este filtro."
+        />
+      } @else {
+        <ul class="encuestas__lista">
+          @for (i of invitaciones(); track i.id) {
+            <li class="encuestas__item">
+              <div class="encuestas__item-info">
+                <strong>{{ i.encuesta.nombre }} · versión {{ i.version }}</strong>
+                <span class="encuestas__meta">
+                  {{ i.correoDestino }} · enviada el {{ i.creadaAt | date: 'dd/MM/yyyy HH:mm' }}
+                </span>
+                <span class="encuestas__tags">
+                  <dynadrill-tag [label]="etiqueta(i.estado)" [variant]="tono(i.estado)" />
+                  @if (i.respondiente; as r) {
+                    <span class="encuestas__meta"
+                      >Respondió {{ r.nombre }}{{ r.cargo ? ' (' + r.cargo + ')' : '' }}</span
+                    >
+                  } @else if (i.estado === 'pendiente') {
+                    <span class="encuestas__meta"
+                      >Vence el {{ i.venceAt | date: 'dd/MM/yyyy HH:mm' }}</span
+                    >
+                  }
+                  @if (i.envioError) {
+                    <dynadrill-tag label="El correo no salió" variant="error" />
+                  }
+                </span>
+              </div>
+              <div class="encuestas__item-acciones">
+                <dynadrill-button variant="secondary" size="small" (clicked)="verDetalle(i)"
+                  >Ver detalle</dynadrill-button
+                >
+                @if (i.estado !== 'respondida') {
+                  <dynadrill-button size="small" (clicked)="reenviar(i)">Reenviar</dynadrill-button>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+        @if (hayMas()) {
+          <div class="encuestas__acciones">
+            <dynadrill-button variant="secondary" (clicked)="cargarInvitaciones(false)"
+              >Ver más</dynadrill-button
+            >
+          </div>
+        }
+      }
+    </section>
+  </dynadrill-spinner>
+</div>

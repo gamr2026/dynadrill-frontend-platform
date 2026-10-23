@@ -14,6 +14,7 @@ import type {
   BitacoraTicket,
   CampoDocumento,
   CatalogosFcr,
+  DisponibilidadOperadores,
   CausaFaltante,
   DiaBitacoraDetalle,
   DocumentoTicket,
@@ -23,6 +24,7 @@ import type {
   HerramientaPendiente,
   HerramientasTicket,
   InspeccionHerramienta,
+  ObservacionTicket,
   OpcionItemLista,
   ReporteHerramientas,
   ResponsableTrabajo,
@@ -56,11 +58,18 @@ export class TicketsFcrService {
     return this.http.get<TicketFcr>(this.t(id));
   }
 
-  avanzar(id: string, hacia: string, motivo?: string): Observable<TicketFcr> {
-    return this.http.post<TicketFcr>(
-      `${this.t(id)}/avanzar`,
-      motivo?.trim() ? { hacia, motivo: motivo.trim() } : { hacia },
-    );
+  /** `correoCliente` es obligatorio al cerrar (`hacia = 'cerrado'`): ahí se envía la encuesta de satisfacción. */
+  avanzar(
+    id: string,
+    hacia: string,
+    motivo?: string,
+    correoCliente?: string,
+  ): Observable<TicketFcr> {
+    return this.http.post<TicketFcr>(`${this.t(id)}/avanzar`, {
+      hacia,
+      ...(motivo?.trim() ? { motivo: motivo.trim() } : {}),
+      ...(correoCliente?.trim() ? { correoCliente: correoCliente.trim() } : {}),
+    });
   }
 
   definirTipoOperador(
@@ -82,6 +91,28 @@ export class TicketsFcrService {
     },
   ): Observable<TicketFcr> {
     return this.http.post<TicketFcr>(`${this.t(id)}/asignar`, cuerpo);
+  }
+
+  /** Cada operador con ✓/✗ frente al servicio del ticket (o al rango pedido). */
+  operadoresDisponibles(
+    id: string,
+    rango: { desde?: string; hasta?: string } = {},
+  ): Observable<DisponibilidadOperadores> {
+    let params = new HttpParams();
+    if (rango.desde) params = params.set('desde', rango.desde);
+    if (rango.hasta) params = params.set('hasta', rango.hasta);
+    return this.http.get<DisponibilidadOperadores>(`${this.t(id)}/operadores-disponibles`, {
+      params,
+    });
+  }
+
+  // ── Observaciones ──
+
+  observaciones(id: string): Observable<ObservacionTicket[]> {
+    return this.http.get<ObservacionTicket[]>(`${this.t(id)}/observaciones`);
+  }
+  agregarObservacion(id: string, mensaje: string): Observable<ObservacionTicket> {
+    return this.http.post<ObservacionTicket>(`${this.t(id)}/observaciones`, { mensaje });
   }
 
   /** PUENTE TEMPORAL: confirma a mano un requisito de otro módulo que aún no publica su evento. */

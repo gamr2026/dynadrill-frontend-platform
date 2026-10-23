@@ -17,8 +17,8 @@ import {
   mensajeErrorArchivo,
   type ArchivoSubido,
 } from '../../../../../facturacion/pedidos-comercial/models/documentos-pedido';
-import { CatalogosPlataformaService } from '../../../../../facturacion/pedidos-comercial/services/catalogos-plataforma.service';
-import type { VehiculoPlataforma } from '../../../../../facturacion/pedidos-comercial/models/catalogos-plataforma.model';
+import { FlotaUnidadesService } from '../../../../../flota/services/flota-unidades.service';
+import type { UnidadFlota } from '../../../../../flota/models/unidad-flota.model';
 import {
   MODULO_ARCHIVO_MEZCLA,
   mensajeErrorTicket,
@@ -45,8 +45,7 @@ interface Persona {
 
 /**
 
- * El Jefe de Base asigna al equipo del servicio: un supervisor, los operadores (cada uno con la unidad que lleva, vehículos del
- * catálogo) y el conductor de cada unidad. Quien ya está en otro ticket sin cerrar (con fechas que se cruzan) no se puede elegir:
+ * El Jefe de Base asigna al equipo del servicio: un supervisor, los operadores (cada uno con la unidad de Flota que lleva) y el conductor de cada unidad. Quien ya está en otro ticket sin cerrar (con fechas que se cruzan) no se puede elegir:
  * se muestra aparte con el día en que se libera. A cada persona elegida se le avisa por correo y campanita (solo a ellas, no a todo su rol).
  */
 @Component({
@@ -89,11 +88,11 @@ interface Persona {
             />
             <dynadrill-select
               label="Unidad"
-              placeholder="Elija la placa"
+              placeholder="Elija la unidad"
               [options]="opcionesUnidades()"
-              [value]="f.vehiculoId"
+              [value]="f.unidadId"
               [searchable]="true"
-              (valueChange)="cambiar(i, 'vehiculoId', $any($event))"
+              (valueChange)="cambiar(i, 'unidadId', $any($event))"
             />
             <button
               type="button"
@@ -117,7 +116,7 @@ interface Persona {
           <legend>Conductor de cada unidad</legend>
           @for (u of unidadesElegidas(); track u.id) {
             <dynadrill-select
-              [label]="'Conductor de ' + u.placa"
+              [label]="'Conductor de ' + u.nombre"
               placeholder="Elija el conductor"
               [options]="opcionesConductores(u.id)"
               [value]="conductorPorUnidad()[u.id] ?? null"
@@ -278,7 +277,7 @@ interface Persona {
 export class TicketAsignarDialog {
   private readonly servicio = inject(TicketsPumpingService);
   private readonly roles = inject(RolesService);
-  private readonly catalogos = inject(CatalogosPlataformaService);
+  private readonly flota = inject(FlotaUnidadesService);
   private readonly inventario = inject(InventarioPlataformaService);
   private readonly archivos = inject(ArchivosService);
   private readonly notify = inject(DynadrillNotificationService);
@@ -290,7 +289,7 @@ export class TicketAsignarDialog {
   private readonly conductores = signal<Persona[]>([]);
   /** Quién ya está en otro ticket sin cerrar con fechas que se cruzan (no se puede asignar). */
   private readonly ocupados = signal<PersonaOcupadaTicket[]>([]);
-  private readonly vehiculos = signal<VehiculoPlataforma[]>([]);
+  private readonly unidades = signal<UnidadFlota[]>([]);
 
   protected readonly supervisorId = signal<string | null>(
     this.data.actual?.supervisor?.usuarioId ?? null,
@@ -299,14 +298,12 @@ export class TicketAsignarDialog {
     this.data.actual?.operadores.length
       ? this.data.actual.operadores.map((o) => ({
           usuarioId: o.usuarioId,
-          vehiculoId: o.vehiculoId,
+          unidadId: o.unidadId,
         }))
-      : [{ usuarioId: null, vehiculoId: null }],
+      : [{ usuarioId: null, unidadId: null }],
   );
   protected readonly conductorPorUnidad = signal<Record<string, string | null>>(
-    Object.fromEntries(
-      (this.data.actual?.conductores ?? []).map((c) => [c.vehiculoId, c.usuarioId]),
-    ),
+    Object.fromEntries((this.data.actual?.conductores ?? []).map((c) => [c.unidadId, c.usuarioId])),
   );
   protected readonly enviando = signal(false);
 
@@ -334,11 +331,14 @@ export class TicketAsignarDialog {
     const ids = [
       ...new Set(
         this.filas()
-          .map((f) => f.vehiculoId)
+          .map((f) => f.unidadId)
           .filter((v): v is string => !!v),
       ),
     ];
-    return ids.map((id) => ({ id, placa: this.vehiculos().find((v) => v.id === id)?.placa ?? '' }));
+    return ids.map((id) => {
+      const u = this.unidades().find((x) => x.id === id);
+      return { id, nombre: u ? (u.vehiculo?.placa ?? u.codigo) : '' };
+    });
   });
   /** Personas de las listas de elegir que no están disponibles, con el ticket en que están y cuándo se liberan. */
   protected readonly noDisponibles = computed(() => {
@@ -357,12 +357,18 @@ export class TicketAsignarDialog {
       .sort((a, b) => a.localeCompare(b, 'es'));
   });
   protected readonly opcionesUnidades = computed<DynadrillSelectOption[]>(() =>
-    this.vehiculos()
-      .filter((v) => v.habilitado)
-      .map((v) => ({
-        label: [v.placa, v.tipoVehiculo?.nombre, v.marca, v.modelo].filter(Boolean).join(' · '),
-        value: v.id,
-      })),
+    this.unidades().map((u) => ({
+      label: [
+        u.vehiculo?.placa ?? u.codigo,
+        u.nombre,
+        u.vehiculo?.tipoVehiculo,
+        u.vehiculo?.marca,
+        u.vehiculo?.modelo,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      value: u.id,
+    })),
   );
   protected readonly problema = computed(
     () =>
@@ -384,7 +390,7 @@ export class TicketAsignarDialog {
       supPumping: this.roles.usuariosPorRol('supervisor_pumping'),
       ops: this.roles.usuariosPorRol('operador'),
       cond: this.roles.usuariosPorRol('conductor'),
-      veh: this.catalogos.vehiculos(),
+      uni: this.flota.listar({ activa: 'true' }),
       ocupados: this.servicio.personalOcupado(this.data.ticketId),
     }).subscribe({
       next: (r) => {
@@ -396,7 +402,7 @@ export class TicketAsignarDialog {
         this.operadores.set(unicos(r.ops));
         this.conductores.set(unicos(r.cond));
         this.ocupados.set(r.ocupados);
-        this.vehiculos.set(r.veh);
+        this.unidades.set(r.uni);
       },
       error: (err) =>
         this.notify.error(
@@ -492,11 +498,11 @@ export class TicketAsignarDialog {
     this.filas.update((l) => l.map((f, k) => (k === i ? { ...f, [campo]: valor } : f)));
   }
   protected agregar(): void {
-    this.filas.update((l) => [...l, { usuarioId: null, vehiculoId: null }]);
+    this.filas.update((l) => [...l, { usuarioId: null, unidadId: null }]);
   }
   protected quitar(i: number): void {
     this.filas.update((l) =>
-      l.length > 1 ? l.filter((_, k) => k !== i) : [{ usuarioId: null, vehiculoId: null }],
+      l.length > 1 ? l.filter((_, k) => k !== i) : [{ usuarioId: null, unidadId: null }],
     );
   }
 
@@ -504,10 +510,10 @@ export class TicketAsignarDialog {
     if (this.problema() || this.enviando()) return;
     const cuerpo = {
       supervisorId: this.supervisorId()!,
-      operadores: this.filas().map((f) => ({ usuarioId: f.usuarioId!, vehiculoId: f.vehiculoId! })),
+      operadores: this.filas().map((f) => ({ usuarioId: f.usuarioId!, unidadId: f.unidadId! })),
       conductores: this.unidadesElegidas().map((u) => ({
         usuarioId: this.conductorPorUnidad()[u.id]!,
-        vehiculoId: u.id,
+        unidadId: u.id,
       })),
     };
     const quimicos = this.quimicos().map((q) => ({

@@ -56,6 +56,14 @@ import {
   type TicketCambioItemsRevisarDialogData,
 } from '../../../../pumping/tickets-nuevos/components/ticket-cambio-items-revisar-dialog/ticket-cambio-items-revisar-dialog';
 import {
+  TicketFcrCorreoClienteDialog,
+  type TicketFcrCorreoClienteDialogData,
+} from '../../components/ticket-fcr-correo-cliente-dialog';
+import {
+  TicketFcrObservacionesDialog,
+  type TicketFcrObservacionesDialogData,
+} from '../../components/ticket-fcr-observaciones-dialog';
+import {
   TicketFcrAsignarDialog,
   type TicketFcrAsignarDialogData,
 } from '../../components/ticket-fcr-asignar-dialog';
@@ -535,11 +543,45 @@ export class TicketFcrDetailPage {
   private pasarA(s: SiguientePaso, motivo?: string): void {
     const t = this.ticket();
     if (!t) return;
+    if (s.codigo === PASO_CERRADO) return this.cerrarTicket(s);
     this.resultado(
       this.servicio.avanzar(t.id, s.codigo, motivo),
       `Pasó a ${s.nombre}`,
       'No se pudo pasar al siguiente paso. Intente de nuevo.',
     );
+  }
+
+  /** Cerrar exige el correo del cliente: la encuesta de satisfacción se le envía ahí. */
+  private cerrarTicket(s: SiguientePaso): void {
+    const t = this.ticket();
+    if (!t) return;
+    const ref = this.dialog.open<TicketFcrCorreoClienteDialog, TicketFcrCorreoClienteDialogData>({
+      title: 'Cerrar el ticket',
+      content: TicketFcrCorreoClienteDialog,
+      data: { cliente: t.cliente },
+      footer: false,
+      width: '520px',
+    });
+    ref.afterClose.subscribe((correo: string | undefined) => {
+      if (!correo) return;
+      this.resultado(
+        this.servicio.avanzar(t.id, s.codigo, undefined, correo),
+        'Ticket cerrado. Se envió la encuesta al cliente.',
+        'No se pudo cerrar el ticket. Intente de nuevo.',
+      );
+    });
+  }
+
+  protected verObservaciones(): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.dialog.open<TicketFcrObservacionesDialog, TicketFcrObservacionesDialogData>({
+      title: 'Observaciones del ticket',
+      content: TicketFcrObservacionesDialog,
+      data: { ticketId: t.id, ticketNumero: t.ticketNumero, cerrado: this.cerrado() },
+      footer: false,
+      width: '560px',
+    });
   }
 
   protected definirTipo(): void {

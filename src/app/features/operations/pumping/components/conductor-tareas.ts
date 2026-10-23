@@ -90,7 +90,7 @@ export class ConductorTareas {
       code: String(t.ticket.ticketNumero ?? t.ticket.pedidoCodigo),
       wellName: t.ticket.destino.pozo?.nombre ?? '—',
       clientName: t.ticket.cliente?.nombre ?? '—',
-      unidad: t.unidad.placa,
+      unidad: t.unidad.placa ?? t.unidad.codigo,
       paso: t.ticket.paso.nombre,
       tipo: t.tipo,
       tipoLabel: TIPO_VIAJE_LABEL[t.tipo],
@@ -169,7 +169,7 @@ export class ConductorTareas {
     const ref = this.dialog.open<ViajeSolicitudDialog, ViajeSolicitudDialogData>({
       title: `Gerenciamiento de Viaje — ${TIPO_VIAJE_LABEL[t.tipo]} · ${t.ticket.ticketNumero ?? t.ticket.pedidoCodigo}`,
       content: ViajeSolicitudDialog,
-      data: { ticket: t.ticket, tipo: t.tipo, vehiculoId: t.unidad.vehiculoId },
+      data: { ticket: t.ticket, tipo: t.tipo, unidadId: t.unidad.unidadId },
       footer: false,
       width: '900px',
     });

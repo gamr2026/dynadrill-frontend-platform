@@ -72,7 +72,7 @@ const hoy = () => {
         </div>
         <div class="rf__grid rf__grid--2">
           <dynadrill-input label="Cliente" [value]="cliente()" [disabled]="true" />
-          <dynadrill-input label="Unidad" [value]="r.placa" [disabled]="true" />
+          <dynadrill-input label="Unidad" [value]="r.placa ?? r.codigo" [disabled]="true" />
         </div>
       </section>
 
@@ -434,7 +434,7 @@ export class TicketReporteUnidadForm {
   private readonly notify = inject(DynadrillNotificationService);
 
   readonly ticketId = input.required<string>();
-  readonly vehiculoId = input.required<string>();
+  readonly unidadId = input.required<string>();
   readonly placa = input.required<string>();
   readonly cliente = input('');
   readonly pozo = input('');
@@ -492,8 +492,8 @@ export class TicketReporteUnidadForm {
     });
     effect(() => {
       const ticketId = this.ticketId();
-      const vehiculoId = this.vehiculoId();
-      this.servicio.reporteUnidad(ticketId, vehiculoId).subscribe({
+      const unidadId = this.unidadId();
+      this.servicio.reporteUnidad(ticketId, unidadId).subscribe({
         next: (r) => {
           this.reporte.set(r);
           if (r.salida.fecha) this.fecha.set(r.salida.fecha);
@@ -594,7 +594,7 @@ export class TicketReporteUnidadForm {
       })),
     };
     this.enviando.set(true);
-    this.servicio.guardarSalida(this.ticketId(), this.vehiculoId(), cuerpo).subscribe({
+    this.servicio.guardarSalida(this.ticketId(), this.unidadId(), cuerpo).subscribe({
       next: () => {
         this.enviando.set(false);
         this.notify.success(

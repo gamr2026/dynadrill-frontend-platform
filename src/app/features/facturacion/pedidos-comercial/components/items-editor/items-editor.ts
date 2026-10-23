@@ -1,6 +1,18 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, model, signal, untracked } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  input,
+  model,
+  output,
+  signal,
+  untracked,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, firstValueFrom } from 'rxjs';
 import {
   DynadrillBannerComponent,
   DynadrillButtonComponent,
@@ -16,6 +28,7 @@ import { SearchField } from '../../../../../shared/components/search-field/searc
 import { ListasPreciosComercialService } from '../../services/listas-precios-comercial.service';
 import { PedidosComercialService } from '../../services/pedidos-comercial.service';
 import { leerFilasPlantillaAs2 } from '../../models/plantilla-as2.util';
+import { PLANTILLAS_EJEMPLO, type PlantillaEjemplo } from '../../models/plantillas-ejemplo';
 import {
   MAX_LINEAS,
   agregarLinea,
@@ -32,6 +45,7 @@ import {
   type ErrorPlantilla,
   type ItemListaCliente,
   type ItemPlantillaValidado,
+  type LineaServicio,
   type TipoItemLista,
 } from '../../models/pedido-comercial.model';
 
@@ -70,6 +84,10 @@ export class ItemsEditor {
 
   protected readonly maxLineas = MAX_LINEAS;
   protected readonly urlPlantilla = URL_PLANTILLA_AS2;
+  protected readonly plantillasEjemplo = PLANTILLAS_EJEMPLO;
+
+  /** Un ejemplo cargado con éxito: el formulario fija la línea y el tipo de servicio del ticket de origen. */
+  readonly ejemploCargado = output<{ linea: LineaServicio; tipoServicio: string }>();
 
   // ── Búsqueda en la lista de precios ──
   protected readonly busqueda = signal('');
@@ -82,7 +100,9 @@ export class ItemsEditor {
     { label: 'Servicio', value: 'Servicio' },
     { label: 'Material', value: 'Material' },
   ];
-  protected readonly resumenBusqueda = computed(() => resumenPaginacion(this.pagina(), LIMITE_BUSQUEDA, this.resultados().length, this.total()));
+  protected readonly resumenBusqueda = computed(() =>
+    resumenPaginacion(this.pagina(), LIMITE_BUSQUEDA, this.resultados().length, this.total()),
+  );
   protected readonly hayAnterior = computed(() => this.pagina() > 1);
   protected readonly haySiguiente = computed(() => this.pagina() * LIMITE_BUSQUEDA < this.total());
 
@@ -99,10 +119,12 @@ export class ItemsEditor {
   private vigente = 0;
 
   constructor() {
-    this.texto$.pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(inject(DestroyRef))).subscribe(() => {
-      this.pagina.set(1);
-      this.buscar();
-    });
+    this.texto$
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(inject(DestroyRef)))
+      .subscribe(() => {
+        this.pagina.set(1);
+        this.buscar();
+      });
     // Al cambiar el cliente se recarga la lista de ítems elegibles (y se limpia lo anterior).
     effect(() => {
       this.clienteId();
@@ -127,7 +149,7 @@ export class ItemsEditor {
   }
 
   protected irA(delta: number): void {
-    this.pagina.update(p => Math.max(1, p + delta));
+    this.pagina.update((p) => Math.max(1, p + delta));
     this.buscar();
   }
 
@@ -141,41 +163,54 @@ export class ItemsEditor {
       return;
     }
     this.buscando.set(true);
-    this.listas.itemsDeCliente(cliente, { q: this.busqueda(), tipo: this.tipo(), page: this.pagina(), limit: LIMITE_BUSQUEDA }).subscribe({
-      next: r => {
-        if (peticion !== this.vigente) return;
-        this.resultados.set(r.items);
-        this.total.set(r.total);
-        this.buscando.set(false);
-      },
-      error: err => {
-        if (peticion !== this.vigente) return;
-        this.buscando.set(false);
-        this.notify.error('Error', mensajeDeError(err, 'No se pudo consultar la lista de precios del cliente.'));
-      },
-    });
+    this.listas
+      .itemsDeCliente(cliente, {
+        q: this.busqueda(),
+        tipo: this.tipo(),
+        page: this.pagina(),
+        limit: LIMITE_BUSQUEDA,
+      })
+      .subscribe({
+        next: (r) => {
+          if (peticion !== this.vigente) return;
+          this.resultados.set(r.items);
+          this.total.set(r.total);
+          this.buscando.set(false);
+        },
+        error: (err) => {
+          if (peticion !== this.vigente) return;
+          this.buscando.set(false);
+          this.notify.error(
+            'Error',
+            mensajeDeError(err, 'No se pudo consultar la lista de precios del cliente.'),
+          );
+        },
+      });
   }
 
   // ── Edición de líneas ──
 
   protected agregar(item: ItemListaCliente): void {
-    if (this.llena() && !this.lineas().some(l => l.listaPreciosItemId === item.listaPreciosItemId)) {
+    if (
+      this.llena() &&
+      !this.lineas().some((l) => l.listaPreciosItemId === item.listaPreciosItemId)
+    ) {
       this.notify.warning('Límite alcanzado', `Un pedido admite hasta ${MAX_LINEAS} ítems.`);
       return;
     }
-    this.lineas.update(ls => agregarLinea(ls, item));
+    this.lineas.update((ls) => agregarLinea(ls, item));
   }
 
   protected yaAgregado(item: ItemListaCliente): boolean {
-    return this.lineas().some(l => l.listaPreciosItemId === item.listaPreciosItemId);
+    return this.lineas().some((l) => l.listaPreciosItemId === item.listaPreciosItemId);
   }
 
   protected cambiar(indice: number, campo: 'cantidad' | 'descuentoPct', valor: string): void {
-    this.lineas.update(ls => ls.map((l, i) => (i === indice ? { ...l, [campo]: valor } : l)));
+    this.lineas.update((ls) => ls.map((l, i) => (i === indice ? { ...l, [campo]: valor } : l)));
   }
 
   protected quitar(indice: number): void {
-    this.lineas.update(ls => ls.filter((_, i) => i !== indice));
+    this.lineas.update((ls) => ls.filter((_, i) => i !== indice));
   }
 
   // ── Plantilla Excel de AS2 ──
@@ -184,15 +219,48 @@ export class ItemsEditor {
     const entrada = evento.target as HTMLInputElement;
     const archivo = entrada.files?.[0];
     entrada.value = '';
-    const cliente = this.clienteId();
     if (!archivo) return;
-    if (!cliente) {
-      this.notify.warning('Elija el cliente', 'La plantilla se valida contra la lista de precios del cliente.');
+    if (archivo.size > MAX_BYTES_PLANTILLA) {
+      this.notify.error(
+        'Archivo demasiado grande',
+        'El archivo supera el máximo permitido de 5 MB.',
+      );
       return;
     }
-    if (archivo.size > MAX_BYTES_PLANTILLA) {
-      this.notify.error('Archivo demasiado grande', 'El archivo supera el máximo permitido de 5 MB.');
-      return;
+    await this.cargarDatos(async () => new Uint8Array(await archivo.arrayBuffer()));
+  }
+
+  // ── Plantillas de ejemplo ──
+
+  protected descargarEjemplo(p: PlantillaEjemplo): void {
+    const a = document.createElement('a');
+    a.href = `/plantillas/${p.archivo}`;
+    a.download = p.archivo;
+    a.click();
+  }
+
+  /** Aplica un ejemplo: carga y valida sus líneas contra la lista del cliente y avisa al formulario la línea y el tipo de servicio. */
+  protected async cargarEjemplo(p: PlantillaEjemplo): Promise<void> {
+    const cargado = await this.cargarDatos(async () => {
+      const resp = await fetch(`/plantillas/${p.archivo}`);
+      if (!resp.ok) throw new Error(String(resp.status));
+      return new Uint8Array(await resp.arrayBuffer());
+    });
+    if (cargado) this.ejemploCargado.emit({ linea: p.linea, tipoServicio: p.tipoServicio });
+  }
+
+  /**
+   * Lee un Excel con el formato de AS2 Pedido Cliente y reemplaza los ítems, validándolo contra la lista de precios del cliente.
+   * Devuelve `true` si quedó al menos un ítem válido.
+   */
+  private async cargarDatos(obtener: () => Promise<Uint8Array>): Promise<boolean> {
+    const cliente = this.clienteId();
+    if (!cliente) {
+      this.notify.warning(
+        'Elija el cliente',
+        'La plantilla se valida contra la lista de precios del cliente.',
+      );
+      return false;
     }
     if (this.lineas().length > 0) {
       const ok = await this.dialog.confirm({
@@ -200,38 +268,56 @@ export class ItemsEditor {
         content: 'La plantilla reemplaza todos los ítems del pedido por los registros del archivo.',
         okText: 'Reemplazar',
       });
-      if (!ok) return;
+      if (!ok) return false;
     }
     this.leyendo.set(true);
     try {
+      const datos = await obtener();
       const XLSX = await import('xlsx');
-      const libro = XLSX.read(new Uint8Array(await archivo.arrayBuffer()), { type: 'array' });
+      const libro = XLSX.read(datos, { type: 'array' });
       const hoja = libro.Sheets[libro.SheetNames[0]];
-      const filas = XLSX.utils.sheet_to_json<unknown[]>(hoja, { header: 1, defval: '', raw: false });
+      const filas = XLSX.utils.sheet_to_json<unknown[]>(hoja, {
+        header: 1,
+        defval: '',
+        raw: false,
+      });
       const lectura = leerFilasPlantillaAs2(filas);
       if (lectura.error) {
-        this.leyendo.set(false);
         this.notify.error('Plantilla no reconocida', lectura.error);
-        return;
+        return false;
       }
-      this.pedidos.validarPlantilla(cliente, lectura.filas).subscribe({
-        next: r => {
-          this.leyendo.set(false);
-          const ilegibles: ErrorPlantilla[] = lectura.ilegibles.map(i => ({ fila: i.fila, codigo: i.codigo, motivo: i.motivo }));
-          this.erroresPlantilla.set([...ilegibles, ...r.errores]);
-          this.diferenciasPlantilla.set(r.items.filter(i => i.diferenciaPrecio !== null));
-          this.lineas.set(r.items.slice(0, MAX_LINEAS).map(lineaDesdePlantilla));
-          if (r.items.length > 0) this.notify.success('Plantilla cargada', `${r.items.length} ítem(s) validado(s) contra la lista de precios.`);
-          else this.notify.warning('Sin ítems válidos', 'Ningún código del archivo está en la lista de precios del cliente.');
-        },
-        error: err => {
-          this.leyendo.set(false);
-          this.notify.error('No se pudo validar', mensajeDeError(err, 'No se pudo validar la plantilla.'));
-        },
-      });
-    } catch {
+      const r = await firstValueFrom(this.pedidos.validarPlantilla(cliente, lectura.filas));
+      const ilegibles: ErrorPlantilla[] = lectura.ilegibles.map((i) => ({
+        fila: i.fila,
+        codigo: i.codigo,
+        motivo: i.motivo,
+      }));
+      this.erroresPlantilla.set([...ilegibles, ...r.errores]);
+      this.diferenciasPlantilla.set(r.items.filter((i) => i.diferenciaPrecio !== null));
+      this.lineas.set(r.items.slice(0, MAX_LINEAS).map(lineaDesdePlantilla));
+      if (r.items.length > 0) {
+        this.notify.success(
+          'Plantilla cargada',
+          `${r.items.length} ítem(s) validado(s) contra la lista de precios.`,
+        );
+        return true;
+      }
+      this.notify.warning(
+        'Sin ítems válidos',
+        'Ningún código del archivo está en la lista de precios del cliente.',
+      );
+      return false;
+    } catch (err) {
+      const deRed = typeof err === 'object' && err !== null && 'status' in err;
+      this.notify.error(
+        deRed ? 'No se pudo validar' : 'Error al leer el archivo',
+        deRed
+          ? mensajeDeError(err, 'No se pudo validar la plantilla.')
+          : 'No se pudo procesar el Excel. Verifique que no esté dañado o que el ejemplo exista.',
+      );
+      return false;
+    } finally {
       this.leyendo.set(false);
-      this.notify.error('Error al leer el archivo', 'No se pudo procesar el Excel. Verifique que no esté dañado.');
     }
   }
 

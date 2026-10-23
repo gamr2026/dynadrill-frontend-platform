@@ -1,0 +1,193 @@
+<div class="auditoria">
+  <app-page-header
+    eyebrow="Administración"
+    title="Auditoría"
+    subtitle="Lo que pasó en el sistema: quién, qué, cuándo y sobre qué entidad. El registro no se puede modificar ni borrar."
+  />
+
+  <section class="auditoria__tarjeta" aria-label="Búsqueda en la auditoría">
+    <div class="auditoria__filtros">
+      <dynadrill-select
+        label="Quién actuó"
+        placeholder="Cualquier persona"
+        [options]="actorOpciones()"
+        [value]="filtros().actorId"
+        [searchable]="true"
+        (valueChange)="poner('actorId', $any($event))"
+      />
+      <dynadrill-select
+        label="Qué pasó"
+        placeholder="Cualquier hecho"
+        [options]="tipoOpciones()"
+        [value]="filtros().tipo"
+        [searchable]="true"
+        (valueChange)="poner('tipo', $any($event))"
+      />
+      <dynadrill-select
+        label="Módulo"
+        placeholder="Todos"
+        [options]="origenOpciones()"
+        [value]="filtros().origen"
+        (valueChange)="poner('origen', $any($event))"
+      />
+      <dynadrill-datetime-picker
+        mode="date"
+        label="Desde"
+        [value]="$any(desde())"
+        (valueChange)="ponerFecha('desde', $event)"
+      />
+      <dynadrill-datetime-picker
+        mode="date"
+        label="Hasta"
+        [value]="$any(hasta())"
+        (valueChange)="ponerFecha('hasta', $event)"
+      />
+    </div>
+
+    <div class="auditoria__filtros">
+      <dynadrill-select
+        label="Dato de negocio"
+        placeholder="Elija un dato (pedido, ticket…)"
+        [options]="claveOpciones()"
+        [value]="filtros().clave"
+        [searchable]="true"
+        (valueChange)="poner('clave', $any($event))"
+      />
+      <dynadrill-input
+        label="Valor del dato"
+        [value]="filtros().valor"
+        (valueChange)="poner('valor', $event)"
+      />
+      <dynadrill-select
+        label="Tipo de entidad"
+        placeholder="Elija el tipo"
+        [options]="sujetoOpciones()"
+        [value]="filtros().sujetoTipo"
+        [searchable]="true"
+        (valueChange)="poner('sujetoTipo', $any($event))"
+      />
+      <dynadrill-input
+        label="Identificador de la entidad (UUID)"
+        [value]="filtros().sujetoId"
+        (valueChange)="poner('sujetoId', $event)"
+      />
+    </div>
+
+    @if (errorFiltros(); as e) {
+      <p class="auditoria__aviso" role="alert">{{ e }}</p>
+    }
+
+    <div class="auditoria__acciones">
+      <dynadrill-button [disabled]="!!errorFiltros() || cargando()" (clicked)="buscarConFiltros()"
+        >Buscar</dynadrill-button
+      >
+      @if (conFiltros()) {
+        <dynadrill-button variant="secondary" (clicked)="limpiar()"
+          >Limpiar filtros</dynadrill-button
+        >
+      }
+    </div>
+  </section>
+
+  @if (error(); as e) {
+    <p class="auditoria__error" role="alert">{{ e }}</p>
+  }
+
+  <section class="auditoria__tarjeta" aria-label="Resultados">
+    <dynadrill-spinner mode="overlay" [spinning]="cargando()" tip="Consultando…">
+      <div class="auditoria__tabla">
+        <table>
+          <caption class="sr-only">
+            Hechos registrados en la auditoría, del más reciente al más antiguo
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Fecha y hora</th>
+              <th scope="col">Qué pasó</th>
+              <th scope="col">Entidad</th>
+              <th scope="col">Quién</th>
+              <th scope="col">Módulo</th>
+              <th scope="col"><span class="sr-only">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (e of eventos(); track e.id) {
+              <tr>
+                <td class="nowrap">
+                  {{ e.ocurridoAt | date: 'dd/MM/yyyy' : '' : 'es'
+                  }}<span class="secundario">{{
+                    e.ocurridoAt | date: 'HH:mm:ss' : '' : 'es'
+                  }}</span>
+                </td>
+                <td>
+                  <span class="principal">{{ etiqueta(e) }}</span>
+                  <span class="secundario codigo">{{ e.tipo }}</span>
+                </td>
+                <td>
+                  <span class="principal">{{ sujeto(e.sujeto.tipo) }}</span>
+                  @for (d of datos(e); track d.etiqueta) {
+                    <span class="secundario">{{ d.etiqueta }}: {{ d.valor }}</span>
+                  }
+                </td>
+                <td>
+                  @if (e.actor; as a) {
+                    <span class="principal">{{ a.nombre }}</span>
+                    @if (a.rol; as r) {
+                      <span class="secundario">{{ r.nombre }}</span>
+                    }
+                  } @else {
+                    <span class="secundario">Sistema</span>
+                  }
+                </td>
+                <td>
+                  <dynadrill-tag [label]="origen(e.origen)" variant="neutral" [uppercase]="false" />
+                </td>
+                <td>
+                  <div class="acciones">
+                    <dynadrill-icon-button
+                      icon="clock"
+                      tooltip="Ver la línea de tiempo de esta entidad"
+                      (clicked)="verLineaDeTiempo(e)"
+                    />
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              @if (buscado() && !cargando()) {
+                <tr>
+                  <td colspan="6" class="vacio">
+                    {{
+                      conFiltros()
+                        ? 'Ningún hecho coincide con la búsqueda.'
+                        : 'Todavía no hay hechos registrados.'
+                    }}
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </dynadrill-spinner>
+
+    <div class="auditoria__paginador">
+      <p>{{ resumen() }}</p>
+      <div class="botones">
+        <dynadrill-button
+          variant="secondary"
+          size="small"
+          [disabled]="!hayAnterior() || cargando()"
+          (clicked)="irA(-1)"
+          >Anterior</dynadrill-button
+        >
+        <dynadrill-button
+          variant="secondary"
+          size="small"
+          [disabled]="!haySiguiente() || cargando()"
+          (clicked)="irA(1)"
+          >Siguiente</dynadrill-button
+        >
+      </div>
+    </div>
+  </section>
+</div>

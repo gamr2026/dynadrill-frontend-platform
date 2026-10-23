@@ -1,0 +1,21 @@
+:host {
+  display: block;
+}
+
+/* Página horizontal con nombre: el resto del PDF queda en la orientación que fija la impresión (vertical). */
+@page apaisada {
+  size: A4 landscape;
+  margin: 8mm;
+}
+
+.doc-pedido__hoja {
+  break-after: page;
+
+  &:last-child {
+    break-after: auto;
+  }
+
+  &--apaisada {
+    page: apaisada;
+  }
+}

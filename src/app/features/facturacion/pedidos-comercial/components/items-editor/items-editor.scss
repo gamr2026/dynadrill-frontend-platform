@@ -47,6 +47,36 @@
     }
   }
 
+  &__ejemplos {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__ejemplo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: 10px;
+    background: var(--surface, #fff);
+  }
+
+  &__ejemplo-texto {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+
+    small {
+      color: var(--text-muted, #5c5870);
+    }
+  }
+
   &__errores {
     margin: 0;
     padding-left: 20px;

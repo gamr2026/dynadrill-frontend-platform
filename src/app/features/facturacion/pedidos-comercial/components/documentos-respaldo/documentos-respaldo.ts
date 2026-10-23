@@ -10,6 +10,7 @@ import {
 import { catchError, forkJoin, of, switchMap, timer } from 'rxjs';
 import {
   DynadrillBannerComponent,
+  DynadrillButtonComponent,
   DynadrillDialogService,
   DynadrillNotificationService,
   DynadrillProgressComponent,
@@ -19,17 +20,17 @@ import {
 import type {
   OperativoActivityLogEntry,
   OperativoDocHeader,
-  OperativoToolRef,
-  OperativoToolUsageEntry,
 } from '../../../../../shared/models/operativo-docs.model';
 import { DocumentoPdfService } from '../../../../../shared/documentos';
 import { ReporteHerramientasHoja } from '../../../../../shared/documentos/formatos/reporte-herramientas-hoja';
+import { DocumentosPedidoHoja } from '../documentos-pedido-hoja/documentos-pedido-hoja';
 import {
   ReporteJobHoja,
   type ReporteJobExtras,
 } from '../../../../../shared/documentos/formatos/reporte-job-hoja';
 import {
   etiquetaOrigen,
+  herramientasParaHoja,
   reportesHerramientas,
   reportesJobOrdenados,
   type AvanceDocumental,
@@ -69,6 +70,7 @@ import {
   selector: 'app-documentos-respaldo',
   imports: [
     DynadrillBannerComponent,
+    DynadrillButtonComponent,
     DynadrillProgressComponent,
     DynadrillSpinnerComponent,
     DynadrillTagComponent,
@@ -131,6 +133,10 @@ export class DocumentosRespaldo {
   /** Corregir solo mientras el pedido todavía admite cambios (el servidor lo vuelve a comprobar). */
   protected readonly admiteCorreccion = computed(
     () => this.puedeCorregir() && this.pedido().editable,
+  );
+  /** Hay formatos generados (Reporte Job o de Herramientas) que bajar juntos. */
+  protected readonly hayFormatos = computed(
+    () => this.reportesJob().length + this.reportesHtas().length > 0,
   );
   protected readonly sinDocumentos = computed(
     () =>
@@ -247,29 +253,7 @@ export class DocumentosRespaldo {
   protected verReporteHerramientas(descargar = false): void {
     const docs = this.reportesHtas();
     if (!docs.length) return;
-    const tools: OperativoToolRef[] = [];
-    const usageLog: OperativoToolUsageEntry[] = [];
-    let n = 0;
-    for (const d of docs) {
-      for (const h of d.herramientas) {
-        const id = ++n;
-        tools.push({
-          id,
-          name: h.nombre,
-          serialCode: h.serie ?? undefined,
-          codigo: h.codigo ?? undefined,
-          unidad: h.unidad ?? undefined,
-          cantidad: h.cantidad ?? null,
-        });
-        for (const u of h.usos)
-          usageLog.push({
-            id: usageLog.length + 1,
-            toolId: id,
-            date: u.fecha.slice(0, 10),
-            status: u.estado,
-          });
-      }
-    }
+    const { tools, usageLog } = herramientasParaHoja(docs);
     this.pdf.abrir({
       titulo: 'Reporte de Herramientas',
       component: ReporteHerramientasHoja,
@@ -280,6 +264,29 @@ export class DocumentosRespaldo {
     });
   }
 
+  /**
+   * Todos los formatos generados del pedido en un solo PDF: un Reporte Job por día y el Reporte de Herramientas. Los archivos que se
+   * subieron (monitoreo, mezcla química, adjuntos, versiones firmadas) siguen descargándose uno a uno desde su fila.
+   */
+  protected descargarTodo(): void {
+    const jobs = this.reportesJob();
+    const htas = this.reportesHtas();
+    if (!jobs.length && !htas.length) return;
+    const primero = jobs[0] ?? htas[0];
+    this.pdf.abrir({
+      titulo: 'Documentos del pedido',
+      component: DocumentosPedidoHoja,
+      inputs: {
+        reportesJob: jobs.map((d) => ({ header: this.encabezado(d), log: this.bitacora([d]) })),
+        herramientas: htas.length
+          ? { header: this.encabezado(htas[0]), ...herramientasParaHoja(htas) }
+          : null,
+        extras: this.extras(),
+      },
+      nombreArchivo: `Documentos del pedido ${this.encabezado(primero).code}`,
+      descargar: true,
+    });
+  }
   protected firmadoDe(d: DocumentoDelTicket): DocumentoFirmado | undefined {
     return this.firmados().find((f) => f.documentoTicketId === d.id);
   }

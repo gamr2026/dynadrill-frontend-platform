@@ -5,26 +5,47 @@ import {
   DynadrillDatetimePickerComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
+  DynadrillSelectComponent,
+  type DynadrillSelectOption,
   DynadrillTextareaComponent,
   DynadrillTextComponent,
 } from '@digitec-it-projects/dynadrill-ui';
-import { ObjetivoAmbiental, CreateObjetivoAmbientalInput } from '../models/objetivo-ambiental.model';
+import {
+  accionEnBlanco,
+  accionesConContenido,
+  type AccionPlanBorrador,
+  type CrearObjetivo,
+  type Frecuencia,
+  type ObjetivoDetalle,
+} from '../models/objetivo-ambiental.model';
 import { ObjetivoAmbientalService } from '../services/objetivo-ambiental.service';
+import { PersonasQhseService, type PersonaQhse } from '../../shared/services/personas-qhse.service';
 import { toLocalDateString } from '../../../../shared/utils';
+import { mensajeDeError } from '../../../../shared/utils/mensaje-error.util';
 
 /** QHSE evalúa y actualiza estos objetivos (revisión anual) — no es un registro que abra el personal operativo. */
 @Component({
   selector: 'app-objetivo-ambiental-dialog',
   host: { class: 'app-dialog-sheet-mobile' },
-  imports: [DynadrillTextComponent, DynadrillInputComponent, DynadrillTextareaComponent, DynadrillDatetimePickerComponent, DynadrillButtonComponent],
+  imports: [
+    DynadrillTextComponent,
+    DynadrillInputComponent,
+    DynadrillTextareaComponent,
+    DynadrillDatetimePickerComponent,
+    DynadrillSelectComponent,
+    DynadrillButtonComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './objetivo-ambiental-dialog.html',
   styleUrl: './objetivo-ambiental-dialog.scss',
 })
 export class ObjetivoAmbientalDialog {
   private readonly service = inject(ObjetivoAmbientalService);
+  private readonly personasService = inject(PersonasQhseService);
   private readonly notify = inject(DynadrillNotificationService);
-  private readonly modalRef = inject(NzModalRef<ObjetivoAmbientalDialog, ObjetivoAmbiental | undefined>);
+  private readonly modalRef = inject(
+    NzModalRef<ObjetivoAmbientalDialog, ObjetivoDetalle | undefined>,
+  );
 
   protected readonly submitting = signal(false);
 
@@ -35,16 +56,18 @@ export class ObjetivoAmbientalDialog {
   protected readonly indicador = signal('');
   protected readonly beneficioEmpresarial = signal('');
   protected readonly plazo = signal<Date | null>(null);
-  protected readonly resultado = signal('');
-  protected readonly evidencia = signal('');
 
-  // Plan de acción
-  protected readonly accionEspecifica = signal('');
-  protected readonly responsable = signal('');
-  protected readonly evidenciaPlan = signal('');
-  protected readonly indicadorPlan = signal('');
-  protected readonly frecuencia = signal('');
-  protected readonly periodoEvaluacion = signal<Date | null>(null);
+  // Plan de acción: una acción por fila (se parte con una en blanco)
+  protected readonly acciones = signal<AccionPlanBorrador[]>([accionEnBlanco()]);
+
+  private readonly personas = signal<PersonaQhse[]>([]);
+  private readonly frecuencias = signal<Frecuencia[]>([]);
+  protected readonly opcionesPersonas = computed<DynadrillSelectOption[]>(() =>
+    this.personas().map((p) => ({ label: p.nombre, value: p.id })),
+  );
+  protected readonly opcionesFrecuencias = computed<DynadrillSelectOption[]>(() =>
+    this.frecuencias().map((f) => ({ label: f.nombre, value: f.id })),
+  );
 
   protected readonly puedeGuardar = computed(
     () =>
@@ -54,6 +77,29 @@ export class ObjetivoAmbientalDialog {
       this.indicador().trim().length > 0,
   );
 
+  constructor() {
+    this.service.catalogos().subscribe({
+      next: (c) => this.frecuencias.set(c.frecuencias),
+      error: (e) =>
+        this.notify.error('Error', mensajeDeError(e, 'No se pudieron cargar las frecuencias.')),
+    });
+    this.personasService.responsables().subscribe((p) => this.personas.set(p));
+  }
+
+  protected setAccion(i: number, cambios: Partial<AccionPlanBorrador>): void {
+    this.acciones.update((filas) => filas.map((f, k) => (k === i ? { ...f, ...cambios } : f)));
+  }
+
+  protected agregarAccion(): void {
+    this.acciones.update((filas) => [...filas, accionEnBlanco()]);
+  }
+
+  protected quitarAccion(i: number): void {
+    this.acciones.update((filas) =>
+      filas.length > 1 ? filas.filter((_, k) => k !== i) : [accionEnBlanco()],
+    );
+  }
+
   protected cancelar(): void {
     this.modalRef.close();
   }
@@ -62,33 +108,30 @@ export class ObjetivoAmbientalDialog {
     if (!this.puedeGuardar() || this.submitting()) return;
     this.submitting.set(true);
 
-    const input: CreateObjetivoAmbientalInput = {
+    const plazo = this.plazo();
+    const input: CrearObjetivo = {
       titulo: this.titulo().trim(),
-      plazo: this.plazo() ? toLocalDateString(this.plazo()!) : undefined,
-      objetivoAmbiental: this.objetivoAmbiental().trim(),
+      objetivo: this.objetivoAmbiental().trim(),
       meta: this.meta().trim(),
       indicador: this.indicador().trim(),
-      beneficioEmpresarial: this.beneficioEmpresarial().trim() || undefined,
-      resultado: this.resultado().trim() || undefined,
-      evidencia: this.evidencia().trim() || undefined,
-      planAccion: {
-        accionEspecifica: this.accionEspecifica().trim() || undefined,
-        responsable: this.responsable().trim() || undefined,
-        evidencia: this.evidenciaPlan().trim() || undefined,
-        indicador: this.indicadorPlan().trim() || undefined,
-        frecuencia: this.frecuencia().trim() || undefined,
-        periodoEvaluacion: this.periodoEvaluacion() ? toLocalDateString(this.periodoEvaluacion()!) : undefined,
-      },
+      ...(this.beneficioEmpresarial().trim()
+        ? { beneficioEmpresarial: this.beneficioEmpresarial().trim() }
+        : {}),
+      ...(plazo ? { plazo: toLocalDateString(plazo) } : {}),
+      planAccion: accionesConContenido(this.acciones()),
     };
 
     this.service.create(input).subscribe({
-      next: objetivo => {
-        this.notify.success('Registrado', `Objetivo ambiental ${objetivo.code} registrado.`);
+      next: (objetivo) => {
+        this.notify.success('Registrado', `Objetivo ambiental ${objetivo.codigo} registrado.`);
         this.modalRef.close(objetivo);
       },
-      error: () => {
+      error: (e) => {
         this.submitting.set(false);
-        this.notify.error('Error', 'No se pudo registrar el objetivo ambiental.');
+        this.notify.error(
+          'Error',
+          mensajeDeError(e, 'No se pudo registrar el objetivo ambiental.'),
+        );
       },
     });
   }

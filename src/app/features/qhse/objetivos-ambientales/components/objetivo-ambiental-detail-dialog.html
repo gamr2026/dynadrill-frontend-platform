@@ -1,6 +1,94 @@
 <div class="objetivo-ambiental-detail-dialog">
-  <dynadrill-tag [label]="estadoLabels[estado]" [variant]="estadoTone" />
+  @if (objetivo(); as o) {
+    <dynadrill-tag [label]="estadoLabel()" [variant]="estadoTone()" />
 
-  <dynadrill-context-card [items]="objetivoItems()" layout="vertical" />
-  <dynadrill-context-card [items]="planAccionItems()" layout="vertical" />
+    <dynadrill-context-card [items]="objetivoItems()" layout="vertical" />
+    @for (items of planAccionItems(); track $index) {
+      <dynadrill-context-card [items]="items" layout="vertical" />
+    }
+
+    <section class="objetivo-ambiental-detail-dialog__bloque">
+      <dynadrill-text variant="h2">Seguimiento</dynadrill-text>
+      @if (o.seguimientos.length) {
+        <ul class="objetivo-ambiental-detail-dialog__lista">
+          @for (s of o.seguimientos; track s.id) {
+            <li>
+              <strong>{{ s.avancePorcentaje }}%</strong> · {{ s.fecha | date: 'dd/MM/yyyy' }}
+              <span class="objetivo-ambiental-detail-dialog__autor">{{ s.registradoPor }}</span>
+              <span>{{ s.observacion }}</span>
+            </li>
+          }
+        </ul>
+      } @else {
+        <dynadrill-text variant="caption">Todavía no hay registros de seguimiento.</dynadrill-text>
+      }
+
+      @if (puedeGestionar()) {
+        <div class="objetivo-ambiental-detail-dialog__form">
+          <dynadrill-input
+            label="Avance (0 a 100 %)"
+            type="number"
+            [value]="avance()"
+            (valueChange)="avance.set($event)"
+          />
+          <dynadrill-textarea
+            label="Observación"
+            [value]="observacion()"
+            (valueChange)="observacion.set($event)"
+            [rows]="2"
+          />
+          <div class="objetivo-ambiental-detail-dialog__acciones">
+            <dynadrill-button
+              size="small"
+              [disabled]="!puedeRegistrarSeguimiento() || enviando()"
+              (clicked)="registrarSeguimiento()"
+            >
+              Registrar seguimiento
+            </dynadrill-button>
+          </div>
+        </div>
+      }
+    </section>
+
+    @if (puedeGestionar()) {
+      <section class="objetivo-ambiental-detail-dialog__bloque">
+        <dynadrill-text variant="h2">Cerrar el objetivo</dynadrill-text>
+        <dynadrill-text variant="caption"
+          >Al cerrarlo ya no se puede modificar ni agregarle seguimiento.</dynadrill-text
+        >
+        <div class="objetivo-ambiental-detail-dialog__form">
+          <dynadrill-select
+            label="Resultado del objetivo"
+            placeholder="Elija"
+            [options]="opcionesCierre"
+            [value]="estadoCierre()"
+            (valueChange)="estadoCierre.set($any($event) ?? '')"
+          />
+          <dynadrill-textarea
+            label="Descripción del resultado"
+            [value]="resultado()"
+            (valueChange)="resultado.set($event)"
+            [rows]="2"
+          />
+          <dynadrill-input
+            label="Evidencia (opcional)"
+            [value]="evidencia()"
+            (valueChange)="evidencia.set($event)"
+          />
+          <div class="objetivo-ambiental-detail-dialog__acciones">
+            <dynadrill-button
+              variant="secondary"
+              size="small"
+              [disabled]="!puedeCerrar() || enviando()"
+              (clicked)="cerrar()"
+            >
+              Cerrar objetivo
+            </dynadrill-button>
+          </div>
+        </div>
+      </section>
+    }
+  } @else {
+    <dynadrill-text variant="caption">Cargando…</dynadrill-text>
+  }
 </div>

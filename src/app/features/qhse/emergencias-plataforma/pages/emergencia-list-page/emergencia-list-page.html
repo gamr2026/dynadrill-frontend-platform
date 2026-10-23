@@ -1,0 +1,63 @@
+<div class="emergencia-page">
+  <app-page-header
+    eyebrow="QHSE"
+    title="Emergencias y MEDEVAC"
+    subtitle="HSE-TRIAGE-001 — activación, cronómetro, nivel, heridos, MEDEVAC y Reporte Flash"
+  >
+    <div actions>
+      <dynadrill-button variant="error" (clicked)="activar()">Activar emergencia</dynadrill-button>
+    </div>
+  </app-page-header>
+
+  @if (kpis().length) {
+    <div class="kpi-stat-row" role="list">
+      @for (kpi of kpis(); track kpi.label) {
+        <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
+      }
+    </div>
+  }
+
+  <div class="emergencia-page__toolbar">
+    <app-qhse-filtros
+      [opciones]="opcionesFiltro()"
+      [selected]="filtroEstado()"
+      (selectedChange)="filtroEstado.set($any($event))"
+    />
+    <dynadrill-input
+      placeholder="Buscar por emergencia, tipo, ubicación, pedido…"
+      [value]="busqueda()"
+      (valueChange)="busqueda.set($event)"
+    />
+  </div>
+
+  @if (isMobile()) {
+    <app-qhse-registros-movil
+      [items]="itemsMovil()"
+      [loading]="cargando()"
+      vacio="No hay emergencias con ese filtro."
+    />
+  } @else {
+    <ng-template #accionesTpl let-row>
+      <div class="emergencia-page__row-actions">
+        <dynadrill-icon-button
+          icon="eye"
+          tooltip="Abrir"
+          tooltipPlacement="top"
+          (clicked)="abrir(row.id)"
+        />
+      </div>
+    </ng-template>
+
+    <div class="table-scroll dyn-table-card">
+      <dynadrill-data-table
+        [columns]="columnas"
+        [rows]="filas()"
+        [loading]="cargando()"
+        [rowKey]="rowKeyFn"
+        [pageSize]="10"
+        actionsHeader="Acciones"
+        [actionsTemplate]="accionesTpl"
+      />
+    </div>
+  }
+</div>

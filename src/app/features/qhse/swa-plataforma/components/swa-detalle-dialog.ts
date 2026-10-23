@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import {
   DynadrillButtonComponent,
+  DynadrillDialogService,
   DynadrillInputComponent,
   DynadrillNotificationService,
   DynadrillTagComponent,
@@ -17,6 +18,11 @@ import {
   type SwaDetalle,
 } from '../models/swa';
 import { SwaService } from '../services/swa.service';
+import {
+  EmergenciaActivarDialog,
+  type EmergenciaActivada,
+} from '../../emergencias-plataforma/components/emergencia-activar-dialog';
+import type { EmergenciaActivarDialogData } from '../../emergencias-plataforma/models/emergencia';
 
 export interface SwaDetalleDialogData {
   swaId: string;
@@ -159,6 +165,19 @@ export interface SwaDetalleDialogData {
         </p>
       }
 
+      @if (s.emergencia; as e) {
+        <p class="sd__meta">
+          Escaló a la emergencia <strong>{{ e.codigo }}</strong
+          >.
+        </p>
+      } @else if (s.puedeEscalarAEmergencia && puedeGestionar()) {
+        <div class="sd__fila">
+          <dynadrill-button variant="secondary" [disabled]="trabajando()" (clicked)="escalar(s.id)"
+            >Escalar a emergencia</dynadrill-button
+          >
+        </div>
+      }
+
       <h4 class="sd__tit">Historial</h4>
       <ul class="sd__hist">
         @for (h of s.historial; track h.at) {
@@ -238,6 +257,7 @@ export class SwaDetalleDialog {
   private readonly servicio = inject(SwaService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly auth = inject(AuthService);
+  private readonly dialogos = inject(DynadrillDialogService);
   private readonly modalRef = inject(NzModalRef<SwaDetalleDialog, boolean | undefined>);
 
   protected readonly etiqueta = ESTADO_SWA_ETIQUETA;
@@ -284,6 +304,23 @@ export class SwaDetalleDialog {
       this.servicio.reanudar(this.data.swaId, heroe),
       'Trabajo reanudado: el ticket queda libre si no tiene otras SWA abiertas.',
     );
+  }
+
+  /** Riesgo no controlado: abre el diálogo de Emergencias con esta SWA como origen (hereda su servicio). */
+  protected escalar(swaId: string): void {
+    const ref = this.dialogos.open<EmergenciaActivarDialog, EmergenciaActivarDialogData>({
+      title: 'Activar emergencia — HSE-TRIAGE-001',
+      content: EmergenciaActivarDialog,
+      data: { origenSwaId: swaId },
+      footer: false,
+      width: '560px',
+    });
+    ref.afterClose.subscribe((activada?: EmergenciaActivada) => {
+      if (!activada) return;
+      this.huboCambio = true;
+      this.servicio.detalle(swaId).subscribe((s) => this.swa.set(s));
+      this.notify.success('Emergencia activada', `Se activó la emergencia ${activada.codigo}.`);
+    });
   }
 
   protected cerrar(): void {

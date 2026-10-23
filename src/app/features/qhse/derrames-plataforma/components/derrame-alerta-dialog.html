@@ -1,0 +1,58 @@
+<div class="derrame-alert-dialog">
+  <dynadrill-banner variant="warning" [message]="aviso" />
+
+  <dynadrill-textarea
+    label="Descripción de la situación"
+    [value]="descripcion()"
+    (valueChange)="descripcion.set($event)"
+    [rows]="2"
+  />
+
+  <div class="derrame-alert-dialog__grid">
+    <dynadrill-select
+      label="Volumen estimado"
+      placeholder="Elija el volumen"
+      [options]="opcionesBanda()"
+      [value]="bandaId()"
+      (valueChange)="bandaId.set($any($event) ?? '')"
+    />
+    <dynadrill-select
+      label="Dónde ocurrió"
+      placeholder="Elija dónde"
+      [options]="opcionesUbicacion()"
+      [value]="ubicacionId()"
+      (valueChange)="ubicacionId.set($any($event) ?? '')"
+    />
+  </div>
+
+  <div class="derrame-alert-dialog__grid">
+    <dynadrill-input
+      label="Ubicación física"
+      [value]="ubicacionFisica()"
+      (valueChange)="ubicacionFisica.set($event)"
+    />
+    <dynadrill-input label="Activado por" [value]="activadoPor" [disabled]="true" />
+  </div>
+
+  @if (opcionesServicio().length > 0) {
+    <dynadrill-select
+      label="Servicio afectado (opcional)"
+      placeholder="Ligar el derrame a un ticket de Pumping/FCR en curso"
+      [options]="opcionesServicio()"
+      [value]="ticketId()"
+      [searchable]="true"
+      (valueChange)="ticketId.set($any($event) ?? '')"
+    />
+  }
+
+  <div class="derrame-alert-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button
+      variant="error"
+      [disabled]="!puedeActivar() || enviando()"
+      (clicked)="activar()"
+    >
+      {{ enviando() ? 'Registrando…' : '⚠ Derrame detectado' }}
+    </dynadrill-button>
+  </div>
+</div>

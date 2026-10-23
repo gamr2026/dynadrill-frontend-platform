@@ -1,0 +1,545 @@
+@if (cargando()) {
+  <p class="emergencia-detail-page__loading">Cargando emergencia…</p>
+} @else if (evento(); as e) {
+  <dynadrill-screen-header
+    [eyebrow]="e.codigo"
+    [title]="e.tipo.nombre"
+    [subtitle]="e.descripcion"
+    [roleTag]="estadoEtiqueta[e.estado]"
+  />
+
+  <dynadrill-button variant="secondary" size="small" (click)="back()"
+    >← Volver a Emergencias</dynadrill-button
+  >
+
+  @if (e.origen; as o) {
+    <dynadrill-banner
+      variant="info"
+      [message]="'Escalada desde ' + (o.tipo === 'swa' ? 'SWA ' : 'Derrame ') + o.codigo"
+    />
+  }
+  @if (e.reporteFlashVencido) {
+    <dynadrill-banner
+      variant="critical"
+      message="Reporte Flash VENCIDO — debía emitirse dentro de las primeras 2 horas."
+    />
+  }
+
+  <dynadrill-context-card [items]="contextItems()" />
+
+  <!-- 1. Nivel -->
+  <section class="emergencia-detail-page__section">
+    <h3>1. Nivel de emergencia</h3>
+    @if (e.nivel; as n) {
+      <dynadrill-tag
+        [label]="'Nivel ' + n.valor"
+        [variant]="n.valor === 3 ? 'error' : n.valor === 2 ? 'warning' : 'info'"
+      />
+      <p class="emergencia-detail-page__note">
+        Declarado por {{ n.declaradoPor ?? '—' }} el {{ n.declaradoAt | date: 'dd/MM/yyyy HH:mm' }}
+        @if (e.niveles.length > 1) {
+          · {{ e.niveles.length }} declaraciones
+        }
+      </p>
+    }
+    @if (puedeActuar()) {
+      <dynadrill-select
+        [label]="e.nivel ? 'Cambiar nivel' : 'Declarar nivel'"
+        [options]="nivelOpciones"
+        [value]="e.nivel?.valor ?? null"
+        (valueChange)="declararNivel($any($event))"
+      />
+    } @else if (!e.nivel) {
+      <p class="emergencia-detail-page__note">Sin declarar.</p>
+    }
+  </section>
+
+  <!-- 2. Cronómetro -->
+  <section class="emergencia-detail-page__section">
+    <h3>2. Cronómetro del evento</h3>
+    <div class="emergencia-detail-page__timeline">
+      @for (t of e.cronometro; track $index) {
+        <div class="emergencia-detail-page__timeline-item">
+          <span class="emergencia-detail-page__timeline-time"
+            >{{ t.at | date: 'HH:mm:ss' }} · +{{ t.minutos }} min</span
+          >
+          <span
+            >{{ t.texto }}
+            @if (!t.automatica && t.actor) {
+              <em class="emergencia-detail-page__note">— {{ t.actor }}</em>
+            }
+          </span>
+        </div>
+      }
+      @if (!e.cronometro.length) {
+        <p class="emergencia-detail-page__note">Sin acciones registradas todavía.</p>
+      }
+    </div>
+    @if (puedeActuar()) {
+      <div class="emergencia-detail-page__inline-form">
+        <dynadrill-input
+          label="Registrar acción"
+          placeholder="Ej: Alarma activada, evacuación iniciada..."
+          [value]="nuevoEventoTexto()"
+          (valueChange)="nuevoEventoTexto.set($event)"
+        />
+        <dynadrill-button
+          variant="secondary"
+          [disabled]="trabajando() || !nuevoEventoTexto().trim()"
+          (click)="agregarEvento()"
+          >Registrar</dynadrill-button
+        >
+      </div>
+    }
+  </section>
+
+  <!-- 3. Conteo de personal -->
+  <section class="emergencia-detail-page__section">
+    <h3>3. Conteo de personal</h3>
+    @if (e.conteo; as c) {
+      <dynadrill-context-card [items]="conteoItems()" />
+      @if (c.faltantes > 0) {
+        <dynadrill-banner
+          variant="critical"
+          [message]="
+            c.faltantes + ' persona(s) sin confirmar — reportar al comandante inmediatamente.'
+          "
+        />
+      }
+      <p class="emergencia-detail-page__note">
+        Contado por {{ c.por ?? '—' }} el {{ c.at | date: 'dd/MM/yyyy HH:mm' }}
+        @if (e.conteos.length > 1) {
+          · {{ e.conteos.length }} conteos
+        }
+      </p>
+    } @else if (!puedeActuar()) {
+      <p class="emergencia-detail-page__note">Sin conteo registrado.</p>
+    }
+    @if (puedeActuar()) {
+      <div class="emergencia-detail-page__inline-form">
+        <dynadrill-input
+          label="Total en locación"
+          type="number"
+          [value]="totalEnLocacion()"
+          (valueChange)="totalEnLocacion.set($event)"
+        />
+        <dynadrill-input
+          label="Evacuados"
+          type="number"
+          [value]="evacuados()"
+          (valueChange)="evacuados.set($event)"
+        />
+        <dynadrill-button
+          variant="secondary"
+          [disabled]="trabajando()"
+          (click)="completarConteo()"
+          >{{ e.conteo ? 'Actualizar conteo' : 'Completar conteo' }}</dynadrill-button
+        >
+      </div>
+    }
+  </section>
+
+  <!-- 4. Heridos / Triage / MEDEVAC -->
+  <section class="emergencia-detail-page__section">
+    <h3>4. Heridos — Triage y MEDEVAC</h3>
+
+    @if (!e.heridos.length) {
+      <p class="emergencia-detail-page__note">Sin heridos registrados.</p>
+    }
+    @for (h of e.heridos; track h.id) {
+      <div class="emergencia-detail-page__herido">
+        <div class="emergencia-detail-page__herido-header">
+          <strong>{{ h.nombreCompleto }}</strong>
+          <dynadrill-tag [label]="triageEtiqueta[h.triage]" [variant]="triageTono[h.triage]" />
+          @if (h.medevac; as m) {
+            <dynadrill-tag
+              [label]="etapaEtiqueta[m.etapa]"
+              [variant]="m.etapa === 'transferido' ? 'success' : 'warning'"
+            />
+          }
+        </div>
+        <p class="emergencia-detail-page__note">
+          {{ h.mecanismoLesion }}
+          @if (h.lesiones) {
+            — {{ h.lesiones }}
+          }
+          @if (h.tratamientoCampo) {
+            · Tratamiento en campo: {{ h.tratamientoCampo }}
+          }
+          @if (h.cedula) {
+            · Cédula {{ h.cedula }}
+          }
+        </p>
+
+        @if (puedeActuar()) {
+          <dynadrill-select
+            label="Triage"
+            [options]="triageOpciones"
+            [value]="h.triage"
+            (valueChange)="cambiarTriage(h, $any($event))"
+          />
+        }
+
+        @if (h.signosVitales.length) {
+          <div class="emergencia-detail-page__vitales-log">
+            @for (v of h.signosVitales; track v.registradoAt) {
+              <span>{{ v.registradoAt | date: 'HH:mm' }} — {{ resumenSignos(v) }}</span>
+            }
+          </div>
+        }
+
+        @if (puedeActuar()) {
+          <div class="emergencia-detail-page__inline-form">
+            <input
+              #pulso
+              type="number"
+              placeholder="Pulso"
+              aria-label="Pulso"
+              class="emergencia-detail-page__mini-input"
+            />
+            <input
+              #sistolica
+              type="number"
+              placeholder="Presión sistólica"
+              aria-label="Presión sistólica"
+              class="emergencia-detail-page__mini-input"
+            />
+            <input
+              #diastolica
+              type="number"
+              placeholder="Presión diastólica"
+              aria-label="Presión diastólica"
+              class="emergencia-detail-page__mini-input"
+            />
+            <input
+              #resp
+              type="number"
+              placeholder="Resp."
+              aria-label="Respiración"
+              class="emergencia-detail-page__mini-input"
+            />
+            <select
+              #consciencia
+              aria-label="Consciencia"
+              class="emergencia-detail-page__mini-input"
+            >
+              <option value="">Consciencia</option>
+              @for (n of nivelesConsciencia; track n) {
+                <option [value]="n">{{ conscienciaEtiqueta[n] }}</option>
+              }
+            </select>
+            <dynadrill-button
+              variant="secondary"
+              size="small"
+              [disabled]="trabajando()"
+              (click)="
+                registrarSignos(
+                  h,
+                  pulso.value,
+                  sistolica.value,
+                  diastolica.value,
+                  resp.value,
+                  consciencia.value
+                )
+              "
+            >
+              Registrar signos vitales
+            </dynadrill-button>
+          </div>
+        }
+
+        @if (!h.medevac) {
+          @if (puedeActuar() && h.triage !== 'negro') {
+            <dynadrill-button
+              variant="error"
+              size="small"
+              [disabled]="trabajando()"
+              (click)="activarMedevac(h)"
+              >Activar MEDEVAC</dynadrill-button
+            >
+          }
+        } @else if (h.medevac; as m) {
+          <div class="emergencia-detail-page__medevac">
+            @if (puedeActuar() && !m.transferidoAt) {
+              <dynadrill-select
+                label="Medio de transporte"
+                [options]="transporteOpciones"
+                [value]="medioDe(h)"
+                (valueChange)="elegirMedio(h, $any($event))"
+              />
+              <dynadrill-select
+                label="Hospital destino"
+                placeholder="Elija del catálogo"
+                [options]="opcionesHospital()"
+                [value]="hospitalDe(h)"
+                [searchable]="true"
+                (valueChange)="elegirHospital(h, $any($event))"
+              />
+              <dynadrill-button variant="secondary" size="small" (click)="agregarHospital(h)"
+                >+ Agregar hospital</dynadrill-button
+              >
+              <dynadrill-input
+                label="ETA (minutos)"
+                type="number"
+                [value]="etaDe(h)"
+                (valueChange)="elegirEta(h, $event)"
+              />
+              <dynadrill-button
+                variant="secondary"
+                size="small"
+                [disabled]="trabajando()"
+                (click)="guardarMedevac(h)"
+                >Guardar datos del MEDEVAC</dynadrill-button
+              >
+            } @else {
+              <p class="emergencia-detail-page__note">
+                {{
+                  m.medioTransporte
+                    ? 'Transporte: ' + medioEtiqueta[m.medioTransporte]
+                    : 'Sin medio de transporte'
+                }}
+                ·
+                {{
+                  m.hospital ? m.hospital.nombre + ' (' + m.hospital.ciudad + ')' : 'Sin hospital'
+                }}
+                @if (m.etaMinutos) {
+                  · ETA {{ m.etaMinutos }} min
+                }
+              </p>
+            }
+            @if (m.hospitalNotificadoAt) {
+              <dynadrill-tag
+                [label]="'Hospital notificado ' + (m.hospitalNotificadoAt | date: 'short')"
+                variant="success"
+              />
+            } @else if (puedeActuar()) {
+              <dynadrill-button
+                variant="secondary"
+                size="small"
+                [disabled]="trabajando() || m.etapa !== 'listo_para_notificar'"
+                (click)="notificarHospital(h)"
+                >Notificar a hospital</dynadrill-button
+              >
+            }
+            @if (m.transferidoAt) {
+              <dynadrill-tag
+                [label]="'Transferido a cuidado médico ' + (m.transferidoAt | date: 'short')"
+                variant="success"
+              />
+            } @else if (puedeActuar()) {
+              <dynadrill-button
+                variant="secondary"
+                size="small"
+                [disabled]="trabajando() || !m.hospitalNotificadoAt"
+                (click)="transferirHerido(h)"
+                >Marcar transferido</dynadrill-button
+              >
+            }
+          </div>
+        }
+      </div>
+    }
+
+    @if (puedeActuar()) {
+      <div class="emergencia-detail-page__nuevo-herido">
+        <dynadrill-input
+          label="Nombre completo"
+          [value]="nuevoHeridoNombre()"
+          (valueChange)="nuevoHeridoNombre.set($event)"
+        />
+        <dynadrill-input
+          label="Cédula (opcional)"
+          [value]="nuevoHeridoCedula()"
+          (valueChange)="nuevoHeridoCedula.set($event)"
+        />
+        <dynadrill-select
+          label="Triage"
+          [options]="triageOpciones"
+          [value]="nuevoHeridoTriage()"
+          (valueChange)="nuevoHeridoTriage.set($any($event))"
+        />
+        <dynadrill-input
+          label="Mecanismo de lesión"
+          placeholder="Qué pasó"
+          [value]="nuevoHeridoMecanismo()"
+          (valueChange)="nuevoHeridoMecanismo.set($event)"
+        />
+        <dynadrill-textarea
+          label="Lesiones identificadas"
+          [value]="nuevoHeridoLesiones()"
+          (valueChange)="nuevoHeridoLesiones.set($event)"
+          [rows]="2"
+        />
+        <dynadrill-button
+          variant="secondary"
+          [disabled]="!puedeAgregarHerido() || trabajando()"
+          (click)="agregarHerido()"
+          >+ Agregar herido</dynadrill-button
+        >
+      </div>
+    }
+  </section>
+
+  <!-- 5. Cadena de notificación -->
+  <section class="emergencia-detail-page__section">
+    <h3>5. Cadena de notificación</h3>
+    <div class="emergencia-detail-page__notificaciones">
+      @for (n of e.cascada; track n.pasoId) {
+        <div class="emergencia-detail-page__notificacion">
+          <span
+            >{{ n.orden }}. {{ n.desde }} → {{ n.hacia }}
+            <em>(&lt; {{ n.plazoMinutos }} min)</em></span
+          >
+          @if (n.notificadoAt) {
+            <dynadrill-tag
+              [label]="
+                'Notificado ' + (n.notificadoAt | date: 'short') + ' — ' + estadoPaso(n).texto
+              "
+              [variant]="estadoPaso(n).tono === 'success' ? 'success' : 'warning'"
+            />
+          } @else {
+            @if (n.vencido) {
+              <dynadrill-tag label="Plazo vencido" variant="error" />
+            }
+            @if (puedeActuar()) {
+              <dynadrill-button
+                variant="secondary"
+                size="small"
+                [disabled]="trabajando()"
+                (click)="notificarPaso(n.pasoId)"
+                >Marcar notificado</dynadrill-button
+              >
+            }
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- 6. Reporte Flash -->
+  <section class="emergencia-detail-page__section">
+    <h3>6. Reporte Flash (plazo: {{ e.plazoReporteFlashMinutos / 60 }} horas)</h3>
+    @if (e.reporteFlash; as f) {
+      <dynadrill-tag
+        [label]="
+          'Emitido ' +
+          (f.emitidoAt | date: 'short') +
+          ' (' +
+          f.minutos +
+          ' min desde la activación)'
+        "
+        [variant]="f.fueraDePlazo ? 'warning' : 'success'"
+      />
+      @if (f.fueraDePlazo) {
+        <p class="emergencia-detail-page__note">Se emitió fuera del plazo de 2 horas.</p>
+      }
+      <p class="emergencia-detail-page__note">Emitido por {{ f.emitidoPor ?? '—' }}.</p>
+      <dl class="emergencia-detail-page__flash">
+        <dt>Resumen ejecutivo</dt>
+        <dd>{{ f.resumenEjecutivo }}</dd>
+        <dt>Personal afectado</dt>
+        <dd>{{ f.personalAfectado }}</dd>
+        <dt>Acciones tomadas</dt>
+        <dd>{{ f.accionesTomadas }}</dd>
+        <dt>Estado actual</dt>
+        <dd>{{ f.estadoActual }}</dd>
+        <dt>Próximos pasos</dt>
+        <dd>{{ f.proximosPasos }}</dd>
+      </dl>
+    } @else if (puedeActuar()) {
+      <dynadrill-textarea
+        label="Resumen ejecutivo"
+        [value]="flashResumen()"
+        (valueChange)="flashResumen.set($event)"
+        [rows]="2"
+      />
+      <dynadrill-textarea
+        label="Personal afectado"
+        [value]="flashPersonalAfectado()"
+        (valueChange)="flashPersonalAfectado.set($event)"
+        [rows]="2"
+      />
+      <dynadrill-textarea
+        label="Acciones tomadas"
+        [value]="flashAcciones()"
+        (valueChange)="flashAcciones.set($event)"
+        [rows]="2"
+      />
+      <dynadrill-textarea
+        label="Estado actual"
+        [value]="flashEstado()"
+        (valueChange)="flashEstado.set($event)"
+        [rows]="2"
+      />
+      <dynadrill-textarea
+        label="Próximos pasos"
+        [value]="flashProximosPasos()"
+        (valueChange)="flashProximosPasos.set($event)"
+        [rows]="2"
+      />
+      <dynadrill-button
+        variant="secondary"
+        [disabled]="!puedeEmitirFlash() || trabajando()"
+        (click)="emitirReporteFlash()"
+        >Emitir Reporte Flash</dynadrill-button
+      >
+    } @else {
+      <p class="emergencia-detail-page__note">Sin emitir.</p>
+    }
+  </section>
+
+  <!-- 7. Cierre -->
+  <section class="emergencia-detail-page__section">
+    <h3>7. Control y cierre</h3>
+    @if (e.estado === 'cerrada') {
+      <dynadrill-tag label="Emergencia cerrada" variant="success" />
+      <p class="emergencia-detail-page__note">
+        Controlada por {{ e.controladaPor ?? '—' }} el
+        {{ e.controladaAt | date: 'dd/MM/yyyy HH:mm' }} · Cerrada por {{ e.cerradaPor ?? '—' }} el
+        {{ e.cerradaAt | date: 'dd/MM/yyyy HH:mm' }}
+      </p>
+    } @else {
+      @if (e.estado === 'controlada') {
+        <p class="emergencia-detail-page__note">
+          Controlada por {{ e.controladaPor ?? '—' }} el
+          {{ e.controladaAt | date: 'dd/MM/yyyy HH:mm' }}.
+        </p>
+      }
+      @if (e.requiereInvestigacion) {
+        @if (e.investigacionAbierta === false) {
+          <dynadrill-banner
+            variant="warning"
+            message="Nivel 2/3 — requiere Investigación de Incidentes (HSE-TRIAGE-002) antes de cerrar el ciclo. Todavía no se abre desde esta pantalla: ábrala desde el módulo de Investigaciones y vuelva aquí para cerrar."
+          />
+        } @else {
+          <dynadrill-tag label="Investigación de incidentes abierta" variant="info" />
+        }
+      }
+      @if (pendientes().length) {
+        <p class="emergencia-detail-page__note">Para cerrar falta:</p>
+        <ul class="emergencia-detail-page__pendientes">
+          @for (p of pendientes(); track p) {
+            <li>{{ p }}</li>
+          }
+        </ul>
+      }
+      @if (puedeActuar()) {
+        @if (e.estado === 'activa') {
+          <dynadrill-button
+            variant="secondary"
+            [disabled]="trabajando()"
+            (click)="marcarControlada()"
+            >Marcar como controlada</dynadrill-button
+          >
+        } @else {
+          <dynadrill-button
+            variant="error"
+            [disabled]="!e.puedeCerrar || trabajando()"
+            (click)="cerrar()"
+            >Cerrar emergencia</dynadrill-button
+          >
+        }
+      }
+    }
+  </section>
+}

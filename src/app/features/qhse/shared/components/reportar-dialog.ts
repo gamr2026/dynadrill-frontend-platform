@@ -8,8 +8,8 @@ import {
 } from '@digitec-it-projects/dynadrill-ui';
 import { StopRegistrarDialog } from '../../stop-plataforma/components/stop-registrar-dialog';
 import { SwaActivarDialog } from '../../swa-plataforma/components/swa-activar-dialog';
-import { DesechoDialog } from '../../desechos/components/desecho-dialog';
-import { DerrameAlertDialog } from '../../derrames/components/derrame-alert-dialog';
+import { DesechoRegistrarDialog } from '../../desechos-plataforma/components/desecho-registrar-dialog';
+import { DerrameAlertaDialog } from '../../derrames-plataforma/components/derrame-alerta-dialog';
 
 /**
  * Acceso rápido universal "Reportar": las acciones que la documentación
@@ -58,18 +58,19 @@ export class ReportarDialog {
 
   protected reportarDesecho(): void {
     this.modalRef.close();
-    this.dialogService.open<DesechoDialog>({
+    this.dialogService.open<DesechoRegistrarDialog>({
       title: 'Registrar desecho — HSE-AMBIENTAL-001',
-      content: DesechoDialog,
+      content: DesechoRegistrarDialog,
       footer: false,
     });
   }
 
   protected reportarDerrame(): void {
     this.modalRef.close();
-    this.dialogService.open<DerrameAlertDialog>({
+    this.dialogService.open<DerrameAlertaDialog>({
       title: 'Alerta de derrame — HSE-AMBIENTAL-002',
-      content: DerrameAlertDialog,
+      content: DerrameAlertaDialog,
+      width: '560px',
       footer: false,
     });
   }

@@ -107,16 +107,14 @@ export class SwaActivarDialog {
   ]);
 
   constructor() {
-    this.servicio
-      .tiposDePeligro()
-      .subscribe({
-        next: (t) => this.tipos.set(t),
-        error: (err) =>
-          this.notify.error(
-            'Error',
-            mensajeDeError(err, 'No se pudieron cargar los tipos de peligro.'),
-          ),
-      });
+    this.servicio.tiposDePeligro().subscribe({
+      next: (t) => this.tipos.set(t),
+      error: (err) =>
+        this.notify.error(
+          'Error',
+          mensajeDeError(err, 'No se pudieron cargar los tipos de peligro.'),
+        ),
+    });
     this.servicio
       .ticketsDetenibles()
       .subscribe({ next: (t) => this.tickets.set(t), error: () => undefined });

@@ -6,34 +6,107 @@
 
 <dynadrill-spinner mode="overlay" [spinning]="loading()" tip="Cargando…">
   <div class="legal-page__grid">
-    @for (t of tarjetas(); track t.tipo) {
-      <dynadrill-card [accent]="t.documento ? 'success' : 'neutral'">
+    @for (t of tarjetas(); track t.tipoId) {
+      <dynadrill-card [accent]="t.vigente ? tonoVigencia(t.vigente) : 'neutral'">
         <span card-title>{{ t.label }}</span>
-        <dynadrill-tag card-extra [label]="t.documento ? 'Cargado' : 'Pendiente'" [variant]="t.documento ? 'success' : 'warning'" />
+        <dynadrill-tag
+          card-extra
+          [label]="t.vigente ? textoVigencia(t.vigente) : 'Pendiente'"
+          [variant]="t.vigente ? tonoVigencia(t.vigente) : 'warning'"
+        />
 
-        @if (t.documento) {
-          <p class="legal-page__archivo">{{ t.documento.nombreOriginal }}</p>
+        @if (t.vigente; as v) {
           <dl class="legal-page__meta">
-            @if (t.documento.revision) {
-              <div><dt>Revisión</dt><dd>{{ t.documento.revision }}</dd></div>
+            <div>
+              <dt>Revisión</dt>
+              <dd>{{ v.revision }}</dd>
+            </div>
+            <div>
+              <dt>Aprobada el</dt>
+              <dd>{{ v.fechaAprobacion | date: 'dd/MM/yyyy' }}</dd>
+            </div>
+            @if (v.vigenteHasta) {
+              <div>
+                <dt>Vigente hasta</dt>
+                <dd>{{ v.vigenteHasta | date: 'dd/MM/yyyy' }}</dd>
+              </div>
             }
-            <div><dt>Subido por</dt><dd>{{ t.documento.uploadedBy }}</dd></div>
-            <div><dt>Fecha</dt><dd>{{ t.documento.uploadedAt | date: 'short' }}</dd></div>
+            <div>
+              <dt>Subido por</dt>
+              <dd>{{ v.registradoPor }}</dd>
+            </div>
+            <div>
+              <dt>Fecha</dt>
+              <dd>{{ v.registradoAt | date: 'short' }}</dd>
+            </div>
           </dl>
         } @else {
           <p class="legal-page__archivo">Todavía no se subió ningún documento.</p>
         }
 
         <div class="legal-page__actions">
-          @if (t.documento) {
-            <dynadrill-button variant="secondary" size="small" (clicked)="descargar(t.tipo)">Descargar</dynadrill-button>
+          @if (t.vigente; as v) {
+            <dynadrill-button variant="secondary" size="small" (clicked)="descargar(v)"
+              >Descargar</dynadrill-button
+            >
           }
-          <dynadrill-input placeholder="N° de revisión (opcional)" [value]="revisionDe(t.tipo)" (valueChange)="setRevision(t.tipo, $event)" />
-          <dynadrill-button size="small" [disabled]="subiendo() === t.tipo" (clicked)="archivoInput.click()">
-            {{ t.documento ? 'Reemplazar' : 'Subir' }}
-          </dynadrill-button>
-          <input #archivoInput type="file" hidden (change)="subir(t.tipo, archivoInput)" />
         </div>
+
+        @if (puedeGestionar()) {
+          <div class="legal-page__actions">
+            <dynadrill-input
+              placeholder="N° de revisión"
+              [value]="borrador(t.tipoId).revision"
+              (valueChange)="setCampo(t.tipoId, 'revision', $event)"
+            />
+            <label class="legal-page__fecha">
+              Aprobada el
+              <input
+                type="date"
+                [value]="borrador(t.tipoId).fechaAprobacion"
+                (input)="setCampo(t.tipoId, 'fechaAprobacion', $any($event.target).value)"
+              />
+            </label>
+            <label class="legal-page__fecha">
+              Vigente hasta (opcional)
+              <input
+                type="date"
+                [value]="borrador(t.tipoId).vigenteHasta"
+                (input)="setCampo(t.tipoId, 'vigenteHasta', $any($event.target).value)"
+              />
+            </label>
+            <dynadrill-button
+              size="small"
+              [disabled]="subiendo() === t.tipoId"
+              (clicked)="archivoInput.click()"
+            >
+              {{ t.vigente ? 'Subir revisión nueva' : 'Subir' }}
+            </dynadrill-button>
+            <input #archivoInput type="file" hidden (change)="subir(t.tipoId, archivoInput)" />
+          </div>
+        }
+
+        @if (t.anteriores.length) {
+          <details class="legal-page__historial">
+            <summary>Revisiones anteriores ({{ t.anteriores.length }})</summary>
+            <ul>
+              @for (r of t.anteriores; track r.id) {
+                <li>
+                  <span>
+                    <strong>{{ r.revision }}</strong> · aprobada el
+                    {{ r.fechaAprobacion | date: 'dd/MM/yyyy' }}
+                    @if (r.reemplazadoAt) {
+                      · reemplazada el {{ r.reemplazadoAt | date: 'dd/MM/yyyy' }}
+                    }
+                  </span>
+                  <dynadrill-button variant="secondary" size="small" (clicked)="descargar(r)"
+                    >Descargar</dynadrill-button
+                  >
+                </li>
+              }
+            </ul>
+          </details>
+        }
       </dynadrill-card>
     }
   </div>

@@ -8,21 +8,41 @@ import {
   DynadrillSpinnerComponent,
   DynadrillTagComponent,
 } from '@digitec-it-projects/dynadrill-ui';
+import { AuthService } from '../../../../../core/services/auth.service';
 import { PageHeader } from '../../../../../shared/components/page-header/page-header';
-import { DocumentoLegal, LEGAL_TIPO_LABELS, LegalTipo } from '../../models/documento-legal.model';
+import { mensajeDeError } from '../../../../../shared/utils/mensaje-error.util';
+import {
+  ESTADO_VIGENCIA_TONO,
+  PERMISO_LEGAL_GESTIONAR,
+  textoDeVigencia,
+  type RequisitoLegalGrupo,
+  type RevisionLegal,
+} from '../../models/documento-legal.model';
 import { DocumentoLegalService } from '../../services/documento-legal.service';
 
-const TIPOS: LegalTipo[] = ['ambiente', 'sst'];
+interface BorradorRevision {
+  revision: string;
+  fechaAprobacion: string;
+  vigenteHasta: string;
+}
+const BORRADOR_VACIO: BorradorRevision = { revision: '', fechaAprobacion: '', vigenteHasta: '' };
 
 /**
- * Matrices de evaluación de requisitos legales (Ambiente / SST) — checklists
- * estáticos de cumplimiento normativo. QHSE sube el archivo completo cada
- * vez que sale una revisión nueva; no hay filas individuales por norma en
- * el sistema (el archivo mismo es la fuente de verdad).
+ * Matrices de evaluación de requisitos legales (Ambiente / SST) — checklists de cumplimiento normativo. QHSE sube el archivo completo cada vez
+ * que sale una revisión nueva: la anterior queda en el historial (no se pisa) y la nueva rige, con su fecha de aprobación y, si la tiene, su
+ * vigencia. El archivo mismo es la fuente de verdad (no hay filas por norma).
  */
 @Component({
   selector: 'app-legal-page',
-  imports: [DatePipe, PageHeader, DynadrillCardComponent, DynadrillTagComponent, DynadrillButtonComponent, DynadrillInputComponent, DynadrillSpinnerComponent],
+  imports: [
+    DatePipe,
+    PageHeader,
+    DynadrillCardComponent,
+    DynadrillTagComponent,
+    DynadrillButtonComponent,
+    DynadrillInputComponent,
+    DynadrillSpinnerComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './legal-page.html',
   styleUrl: './legal-page.scss',
@@ -30,18 +50,20 @@ const TIPOS: LegalTipo[] = ['ambiente', 'sst'];
 export class LegalPage {
   private readonly service = inject(DocumentoLegalService);
   private readonly notify = inject(DynadrillNotificationService);
+  private readonly auth = inject(AuthService);
 
   protected readonly loading = signal(true);
-  protected readonly documentos = signal<DocumentoLegal[]>([]);
-  protected readonly tipoLabels = LEGAL_TIPO_LABELS;
-  protected readonly subiendo = signal<LegalTipo | null>(null);
-  protected readonly revisionDraft = signal<Record<LegalTipo, string>>({ ambiente: '', sst: '' });
+  protected readonly grupos = signal<RequisitoLegalGrupo[]>([]);
+  protected readonly subiendo = signal<string | null>(null);
+  protected readonly borradores = signal<Record<string, BorradorRevision>>({});
+  protected readonly puedeGestionar = computed(() => this.auth.can(PERMISO_LEGAL_GESTIONAR));
 
   protected readonly tarjetas = computed(() =>
-    TIPOS.map(tipo => ({
-      tipo,
-      label: this.tipoLabels[tipo],
-      documento: this.documentos().find(d => d.tipo === tipo) ?? null,
+    this.grupos().map((g) => ({
+      tipoId: g.tipo.id,
+      label: g.tipo.nombre,
+      vigente: g.vigente,
+      anteriores: g.revisiones.filter((r) => r.estado !== 'vigente'),
     })),
   );
 
@@ -52,51 +74,86 @@ export class LegalPage {
   private cargar(): void {
     this.loading.set(true);
     this.service.listar().subscribe({
-      next: documentos => {
-        this.documentos.set(documentos);
+      next: (grupos) => {
+        this.grupos.set(grupos);
         this.loading.set(false);
       },
-      error: () => {
+      error: (e) => {
         this.loading.set(false);
-        this.notify.error('Error', 'No se pudo cargar el estado de las matrices legales.');
+        this.notify.error(
+          'Error',
+          mensajeDeError(e, 'No se pudo cargar el estado de las matrices legales.'),
+        );
       },
     });
   }
 
-  protected revisionDe(tipo: LegalTipo): string {
-    return this.revisionDraft()[tipo];
+  protected borrador(tipoId: string): BorradorRevision {
+    return this.borradores()[tipoId] ?? BORRADOR_VACIO;
   }
 
-  protected setRevision(tipo: LegalTipo, valor: string): void {
-    this.revisionDraft.update(m => ({ ...m, [tipo]: valor }));
+  protected setCampo(tipoId: string, campo: keyof BorradorRevision, valor: string): void {
+    this.borradores.update((m) => ({
+      ...m,
+      [tipoId]: { ...this.borrador(tipoId), [campo]: valor },
+    }));
   }
 
-  protected subir(tipo: LegalTipo, input: HTMLInputElement): void {
+  /** Tono del tag de vigencia de la revisión que rige. */
+  protected tonoVigencia(r: RevisionLegal): 'success' | 'warning' | 'error' | 'neutral' {
+    return ESTADO_VIGENCIA_TONO[r.estadoVigencia ?? 'sin_vencimiento'];
+  }
+
+  protected textoVigencia(r: RevisionLegal): string {
+    return textoDeVigencia(r);
+  }
+
+  protected subir(tipoId: string, input: HTMLInputElement): void {
     const archivo = input.files?.[0];
     input.value = '';
     if (!archivo) return;
-    this.subiendo.set(tipo);
-    this.service.subir(tipo, archivo, this.revisionDe(tipo).trim() || undefined).subscribe({
-      next: () => {
-        this.subiendo.set(null);
-        this.notify.success('Guardado', 'El documento quedó guardado.');
-        this.cargar();
-      },
-      error: () => {
-        this.subiendo.set(null);
-        this.notify.error('Error', 'No se pudo subir el documento.');
-      },
-    });
+    const b = this.borrador(tipoId);
+    if (!b.revision.trim()) {
+      this.notify.error('Falta la revisión', 'Escriba el número de revisión del documento.');
+      return;
+    }
+    if (!b.fechaAprobacion) {
+      this.notify.error('Falta la fecha', 'Indique la fecha de aprobación de la revisión.');
+      return;
+    }
+    this.subiendo.set(tipoId);
+    this.service
+      .registrarRevision(
+        {
+          tipoId,
+          revision: b.revision.trim(),
+          fechaAprobacion: b.fechaAprobacion,
+          ...(b.vigenteHasta ? { vigenteHasta: b.vigenteHasta } : {}),
+        },
+        archivo,
+      )
+      .subscribe({
+        next: () => {
+          this.subiendo.set(null);
+          this.borradores.update((m) => ({ ...m, [tipoId]: BORRADOR_VACIO }));
+          this.notify.success('Guardado', 'La revisión quedó registrada.');
+          this.cargar();
+        },
+        error: (e) => {
+          this.subiendo.set(null);
+          this.notify.error('Error', mensajeDeError(e, 'No se pudo registrar la revisión.'));
+        },
+      });
   }
 
-  protected descargar(tipo: LegalTipo): void {
-    this.service.descargar(tipo).subscribe({
-      next: blob => {
+  protected descargar(r: RevisionLegal): void {
+    this.service.descargar(r.archivoId).subscribe({
+      next: (blob) => {
         const url = URL.createObjectURL(blob);
         window.open(url, '_blank');
         setTimeout(() => URL.revokeObjectURL(url), 60_000);
       },
-      error: () => this.notify.error('Error', 'No se pudo abrir el documento.'),
+      error: (e) => this.notify.error('Error', mensajeDeError(e, 'No se pudo abrir el documento.')),
     });
   }
 }

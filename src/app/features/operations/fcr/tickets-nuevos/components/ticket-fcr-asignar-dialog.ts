@@ -13,6 +13,7 @@ import {
   mensajeErrorTicket,
   validarAsignacion,
   type FilaOperador,
+  type OperadorDisponible,
   type TicketFcr,
 } from '../models/ticket-fcr';
 import { TicketsFcrService } from '../services/tickets-fcr.service';
@@ -55,6 +56,11 @@ interface Persona {
       }
       <fieldset class="d__bloque">
         <legend>Operadores</legend>
+        @if (rango(); as r) {
+          <dynadrill-text variant="caption"
+            >Disponibilidad para el servicio del {{ r.desde }} al {{ r.hasta }}.</dynadrill-text
+          >
+        }
         @for (f of filas(); track $index; let i = $index) {
           <div class="d__fila">
             <dynadrill-select
@@ -81,15 +87,23 @@ interface Persona {
           >
         </div>
       </fieldset>
+      @if (ocupadosElegidos().length) {
+        <dynadrill-text variant="caption" role="alert"
+          >✗ Ya están asignados a otro ticket durante este servicio: {{ textoOcupados() }}. Elija a
+          otra persona.</dynadrill-text
+        >
+      }
       @if (problema(); as p) {
         <dynadrill-text variant="caption" role="status">{{ p }}</dynadrill-text>
       }
     </div>
     <footer class="d__acciones">
       <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
-      <dynadrill-button [disabled]="!!problema() || enviando()" (clicked)="asignar()">{{
-        enviando() ? 'Asignando…' : 'Asignar y avisar'
-      }}</dynadrill-button>
+      <dynadrill-button
+        [disabled]="!!problema() || enviando() || ocupadosElegidos().length > 0"
+        (clicked)="asignar()"
+        >{{ enviando() ? 'Asignando…' : 'Asignar y avisar' }}</dynadrill-button
+      >
     </footer>
   `,
   styles: `
@@ -142,7 +156,8 @@ export class TicketFcrAsignarDialog {
   protected readonly data = inject<TicketFcrAsignarDialogData>(NZ_MODAL_DATA);
 
   private readonly supervisores = signal<Persona[]>([]);
-  private readonly operadores = signal<Persona[]>([]);
+  private readonly operadores = signal<OperadorDisponible[]>([]);
+  protected readonly rango = signal<{ desde: string; hasta: string } | null>(null);
   protected readonly supervisorId = signal<string | null>(null);
   protected readonly filas = signal<FilaOperador[]>([{ usuarioId: null }]);
   protected readonly enviando = signal(false);
@@ -152,6 +167,15 @@ export class TicketFcrAsignarDialog {
       .filter((s) => !this.filas().some((f) => f.usuarioId === s.id))
       .map((s) => ({ label: s.name, value: s.id })),
   );
+  protected readonly ocupadosElegidos = computed(() => {
+    const elegidos = new Set(this.filas().map((f) => f.usuarioId));
+    return this.operadores().filter((o) => !o.disponible && elegidos.has(o.usuarioId));
+  });
+  protected readonly textoOcupados = computed(() =>
+    this.ocupadosElegidos()
+      .map((o) => `${o.nombre} (${o.detalle})`)
+      .join('; '),
+  );
   protected readonly problema = computed(() =>
     validarAsignacion(this.supervisorId(), this.filas(), this.data.haySupervisor),
   );
@@ -159,7 +183,7 @@ export class TicketFcrAsignarDialog {
   constructor() {
     forkJoin({
       sup: this.roles.usuariosPorRol('supervisor'),
-      ops: this.roles.usuariosPorRol('operador_fcr'),
+      ops: this.servicio.operadoresDisponibles(this.data.ticketId),
     }).subscribe({
       next: (r) => {
         const unicos = (l: Persona[]) =>
@@ -167,7 +191,8 @@ export class TicketFcrAsignarDialog {
             a.name.localeCompare(b.name, 'es'),
           );
         this.supervisores.set(unicos(r.sup));
-        this.operadores.set(unicos(r.ops));
+        this.operadores.set(r.ops.operadores);
+        this.rango.set({ desde: r.ops.desde, hasta: r.ops.hasta });
       },
       error: (err) =>
         this.notify.error('Error', mensajeErrorTicket(err, 'No se pudo cargar las personas.')),
@@ -182,8 +207,11 @@ export class TicketFcrAsignarDialog {
         .map((f) => f.usuarioId),
     );
     return this.operadores()
-      .filter((o) => !usados.has(o.id) && o.id !== this.supervisorId())
-      .map((o) => ({ label: o.name, value: o.id }));
+      .filter((o) => !usados.has(o.usuarioId) && o.usuarioId !== this.supervisorId())
+      .map((o) => ({
+        label: `${o.disponible ? '✓' : '✗'} ${o.nombre}${o.disponible ? '' : ' — ' + o.detalle}`,
+        value: o.usuarioId,
+      }));
   }
 
   protected cambiar(i: number, campo: keyof FilaOperador, valor: string | null): void {

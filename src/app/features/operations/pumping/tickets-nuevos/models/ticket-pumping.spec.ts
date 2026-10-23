@@ -60,48 +60,46 @@ describe('tickets de Pumping (modelo)', () => {
   });
 
   it('la asignación pide supervisor y, por cada fila, un operador con su unidad, sin repetir personas', () => {
-    expect(validarAsignacion(null, [{ usuarioId: 'o1', vehiculoId: 'v1' }])).toContain(
-      'supervisor',
-    );
+    expect(validarAsignacion(null, [{ usuarioId: 'o1', unidadId: 'v1' }])).toContain('supervisor');
     expect(validarAsignacion('s1', [])).toContain('operador');
-    expect(validarAsignacion('s1', [{ usuarioId: null, vehiculoId: 'v1' }])).toContain(
+    expect(validarAsignacion('s1', [{ usuarioId: null, unidadId: 'v1' }])).toContain(
       'operador de cada fila',
     );
-    expect(validarAsignacion('s1', [{ usuarioId: 'o1', vehiculoId: null }])).toContain(
+    expect(validarAsignacion('s1', [{ usuarioId: 'o1', unidadId: null }])).toContain(
       'unidad de cada operador',
     );
     expect(
       validarAsignacion('s1', [
-        { usuarioId: 'o1', vehiculoId: 'v1' },
-        { usuarioId: 'o1', vehiculoId: 'v2' },
+        { usuarioId: 'o1', unidadId: 'v1' },
+        { usuarioId: 'o1', unidadId: 'v2' },
       ]),
     ).toContain('no puede repetirse');
-    expect(validarAsignacion('s1', [{ usuarioId: 's1', vehiculoId: 'v1' }])).toContain(
+    expect(validarAsignacion('s1', [{ usuarioId: 's1', unidadId: 'v1' }])).toContain(
       'también operador',
     );
     // cada unidad lleva su conductor, que no puede ser otra de las personas del equipo
-    expect(validarAsignacion('s1', [{ usuarioId: 'o1', vehiculoId: 'v1' }])).toContain(
+    expect(validarAsignacion('s1', [{ usuarioId: 'o1', unidadId: 'v1' }])).toContain(
       'conductor de cada unidad',
     );
     expect(
       validarAsignacion(
         's1',
         [
-          { usuarioId: 'o1', vehiculoId: 'v1' },
-          { usuarioId: 'o2', vehiculoId: 'v2' },
+          { usuarioId: 'o1', unidadId: 'v1' },
+          { usuarioId: 'o2', unidadId: 'v2' },
         ],
         { v1: 'c1', v2: 'c1' },
       ),
     ).toContain('no puede llevar dos unidades');
-    expect(
-      validarAsignacion('s1', [{ usuarioId: 'o1', vehiculoId: 'v1' }], { v1: 'o1' }),
-    ).toContain('dos funciones');
+    expect(validarAsignacion('s1', [{ usuarioId: 'o1', unidadId: 'v1' }], { v1: 'o1' })).toContain(
+      'dos funciones',
+    );
     expect(
       validarAsignacion(
         's1',
         [
-          { usuarioId: 'o1', vehiculoId: 'v1' },
-          { usuarioId: 'o2', vehiculoId: 'v1' },
+          { usuarioId: 'o1', unidadId: 'v1' },
+          { usuarioId: 'o2', unidadId: 'v1' },
         ],
         { v1: 'c1' },
       ),

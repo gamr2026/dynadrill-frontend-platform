@@ -279,14 +279,12 @@ export class TicketPumpingDetailPage {
   protected readonly casosFlota = signal<CasoInspeccion[]>([]);
   protected readonly puedeInspeccionar = computed(() => this.auth.can('flota.inspecciones.crear'));
   /** El caso de inspección de una unidad del ticket; no existe si la unidad no está registrada en Flota como unidad de transporte. */
-  protected casoDeUnidad(vehiculoId: string | null): CasoInspeccion | null {
-    return vehiculoId
-      ? (this.casosFlota().find((c) => c.unidad.vehiculo?.id === vehiculoId) ?? null)
-      : null;
+  protected casoDeUnidad(unidadId: string | null): CasoInspeccion | null {
+    return unidadId ? (this.casosFlota().find((c) => c.unidad.id === unidadId) ?? null) : null;
   }
   /** ¿Puedo hacer yo la inspección de salida de esta unidad? (su operador, o Superadmin) */
-  protected puedeRealizarInspeccion(vehiculoId: string | null): boolean {
-    const c = this.casoDeUnidad(vehiculoId);
+  protected puedeRealizarInspeccion(unidadId: string | null): boolean {
+    const c = this.casoDeUnidad(unidadId);
     const u = this.yo();
     return (
       !!c &&
@@ -296,8 +294,8 @@ export class TicketPumpingDetailPage {
       (c.operador.id === u.id || u.roleCode === 'superadmin')
     );
   }
-  protected realizarInspeccion(vehiculoId: string | null): void {
-    const caso = this.casoDeUnidad(vehiculoId);
+  protected realizarInspeccion(unidadId: string | null): void {
+    const caso = this.casoDeUnidad(unidadId);
     if (!caso) return;
     this.dialog
       .open<InspeccionVehiculoDialog, InspeccionVehiculoDialogData>({
@@ -331,7 +329,7 @@ export class TicketPumpingDetailPage {
   /** La inspección de salida ya hecha de la unidad que firma el reporte: de ahí salen el origen y el destino del reporte. */
   protected readonly inspeccionSalida = signal<InspeccionDetalle | null>(null);
   private cargarInspeccionSalida(): void {
-    const caso = this.casoDeUnidad(this.unidadParaFirmar()?.vehiculoId ?? null);
+    const caso = this.casoDeUnidad(this.unidadParaFirmar()?.unidadId ?? null);
     if (!caso?.salidaInspeccionId) return this.inspeccionSalida.set(null);
     this.flotaInspecciones.obtener(caso.salidaInspeccionId).subscribe({
       next: (d) => this.inspeccionSalida.set(d),
@@ -339,10 +337,10 @@ export class TicketPumpingDetailPage {
     });
   }
   /** Ver el detalle de la inspección que hizo el operador (solo lectura; el Supervisor la aprueba desde ahí). */
-  protected readonly inspeccionRealizada = (vehiculoId: string | null): boolean =>
-    !!this.casoDeUnidad(vehiculoId)?.salidaInspeccionId;
-  protected verInspeccion(vehiculoId: string | null): void {
-    const id = this.casoDeUnidad(vehiculoId)?.salidaInspeccionId;
+  protected readonly inspeccionRealizada = (unidadId: string | null): boolean =>
+    !!this.casoDeUnidad(unidadId)?.salidaInspeccionId;
+  protected verInspeccion(unidadId: string | null): void {
+    const id = this.casoDeUnidad(unidadId)?.salidaInspeccionId;
     if (!id) return;
     this.dialog
       .open<InspeccionVehiculoDialog, InspeccionVehiculoDialogData>({
@@ -598,11 +596,11 @@ export class TicketPumpingDetailPage {
     const t = this.ticket();
     if (!t) return null;
     const r = t.requisitos.find(
-      (x) => x.codigo === 'reporte_unidad_salida' && !!x.vehiculoId && this.puedeFirmarUnidad(x),
+      (x) => x.codigo === 'reporte_unidad_salida' && !!x.unidadId && this.puedeFirmarUnidad(x),
     );
     return r
       ? {
-          vehiculoId: r.vehiculoId as string,
+          unidadId: r.unidadId as string,
           placa: r.para ?? '',
           firmado: r.estado === 'cumplido',
         }
@@ -624,10 +622,10 @@ export class TicketPumpingDetailPage {
     const t = this.ticket();
     if (!t) return [];
     return t.requisitos
-      .filter((r) => r.codigo === 'inspeccion_vehiculo_realizada' && !!r.vehiculoId)
+      .filter((r) => r.codigo === 'inspeccion_vehiculo_realizada' && !!r.unidadId)
       .map((r) => {
         const aprobada = t.requisitos.find(
-          (x) => x.codigo === 'inspeccion_vehiculo_aprobada' && x.vehiculoId === r.vehiculoId,
+          (x) => x.codigo === 'inspeccion_vehiculo_aprobada' && x.unidadId === r.unidadId,
         );
         const realizada = r.estado === 'cumplido';
         const etiqueta = !realizada
@@ -683,9 +681,9 @@ export class TicketPumpingDetailPage {
     return this.epiOperadores().find((o) => o.usuarioId === usuarioId)?.cargo ?? 'Operador';
   }
   /** Quien puede ver el reporte de una unidad sin ser su operador lo abre en la ventana de solo lectura. */
-  protected verReporteDe(vehiculoId: string | null): void {
+  protected verReporteDe(unidadId: string | null): void {
     const r = this.ticket()?.requisitos.find(
-      (x) => x.codigo === 'reporte_unidad_salida' && x.vehiculoId === vehiculoId,
+      (x) => x.codigo === 'reporte_unidad_salida' && x.unidadId === unidadId,
     );
     if (r) this.abrirReporte(r);
   }
@@ -886,11 +884,11 @@ export class TicketPumpingDetailPage {
   /** ¿Puedo firmar el reporte de esta unidad? (su operador, o Superadmin) */
   protected puedeFirmarUnidad(r: RequisitoTicket): boolean {
     const t = this.ticket();
-    if (!t || !r.vehiculoId) return false;
+    if (!t || !r.unidadId) return false;
     return (
       this.yo()?.roleCode === 'superadmin' ||
       t.asignacion.operadores.some(
-        (o) => o.vehiculoId === r.vehiculoId && o.usuarioId === this.yo()?.id,
+        (o) => o.unidadId === r.unidadId && o.usuarioId === this.yo()?.id,
       )
     );
   }
@@ -939,13 +937,13 @@ export class TicketPumpingDetailPage {
 
   protected abrirReporte(r: RequisitoTicket): void {
     const t = this.ticket();
-    if (!t || !r.vehiculoId) return;
+    if (!t || !r.unidadId) return;
     const ref = this.dialog.open<TicketReporteUnidadDialog, TicketReporteUnidadDialogData>({
       title: `Reporte de unidad de salida — ${r.para ?? ''}`,
       content: TicketReporteUnidadDialog,
       data: {
         ticketId: t.id,
-        vehiculoId: r.vehiculoId,
+        unidadId: r.unidadId,
         placa: r.para ?? '',
         soloLectura: t.paso.codigo !== 'traslado_salida' || !this.puedeFirmarUnidad(r),
       },
@@ -966,10 +964,10 @@ export class TicketPumpingDetailPage {
   }
   protected aprobarInspeccion(r: RequisitoTicket): void {
     const t = this.ticket();
-    if (!t || !r.vehiculoId || this.ocupado()) return;
+    if (!t || !r.unidadId || this.ocupado()) return;
     this.ocupado.set(true);
     this.errorAccion.set(null);
-    this.servicio.aprobarInspeccion(t.id, r.vehiculoId).subscribe({
+    this.servicio.aprobarInspeccion(t.id, r.unidadId).subscribe({
       next: () => {
         this.ocupado.set(false);
         this.notify.success('Inspección aprobada', `Unidad ${r.para ?? ''}.`);
@@ -985,13 +983,13 @@ export class TicketPumpingDetailPage {
   /** Reporte de unidad de llegada: lo firma el operador de la unidad en el Traslado de llegada; después se consulta. */
   protected abrirReporteLlegada(r: RequisitoTicket): void {
     const t = this.ticket();
-    if (!t || !r.vehiculoId) return;
+    if (!t || !r.unidadId) return;
     const ref = this.dialog.open<TicketReporteLlegadaDialog, TicketReporteLlegadaDialogData>({
       title: `Reporte de unidad de llegada — ${r.para ?? ''}`,
       content: TicketReporteLlegadaDialog,
       data: {
         ticketId: t.id,
-        vehiculoId: r.vehiculoId,
+        unidadId: r.unidadId,
         placa: r.para ?? '',
         soloLectura: t.paso.codigo !== PASO_TRASLADO_LLEGADA || !this.puedeFirmarUnidad(r),
       },

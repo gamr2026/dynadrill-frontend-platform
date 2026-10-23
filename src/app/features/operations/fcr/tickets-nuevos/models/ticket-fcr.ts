@@ -80,6 +80,40 @@ export interface PersonaAsignada {
   usuarioId: string;
   nombre: string;
 }
+/** Una observación del ticket: nota con autor, rol y fecha, inmutable. */
+export interface ObservacionTicket {
+  id: string;
+  mensaje: string;
+  autor: string;
+  autorRol: string;
+  autorRolNombre: string;
+  fecha: string;
+}
+
+/** Un ticket de FCR sin cerrar en el que el operador ya está asignado. */
+export interface OcupacionOperador {
+  ticketId: string;
+  ticketNumero: number | null;
+  pedidoCodigo: string;
+  desde: string | null;
+  hasta: string | null;
+}
+
+/** Un operador frente al rango del servicio: ✓ disponible, ✗ ocupado (con la razón en una frase). */
+export interface OperadorDisponible {
+  usuarioId: string;
+  nombre: string;
+  disponible: boolean;
+  detalle: string;
+  ocupaciones: OcupacionOperador[];
+}
+
+export interface DisponibilidadOperadores {
+  desde: string;
+  hasta: string;
+  operadores: OperadorDisponible[];
+}
+
 export interface AsignacionTicket {
   supervisor: PersonaAsignada | null;
   operadores: PersonaAsignada[];

@@ -177,9 +177,9 @@ export class TicketsPumpingService {
   }
 
   /** El Supervisor del equipo aprueba la inspección de una unidad al revisar los reportes de salida. Devuelve los requisitos del ticket. */
-  aprobarInspeccion(id: string, vehiculoId: string): Observable<RequisitoTicket[]> {
+  aprobarInspeccion(id: string, unidadId: string): Observable<RequisitoTicket[]> {
     return this.http.post<RequisitoTicket[]>(
-      `${this.base}/tickets/${id}/revision-salida/inspecciones/${vehiculoId}/aprobar`,
+      `${this.base}/tickets/${id}/revision-salida/inspecciones/${unidadId}/aprobar`,
       {},
     );
   }
@@ -225,25 +225,21 @@ export class TicketsPumpingService {
     return this.http.get<UnidadReporte[]>(`${this.base}/tickets/${id}/reportes-unidad`);
   }
 
-  reporteUnidad(id: string, vehiculoId: string): Observable<ReporteUnidad> {
-    return this.http.get<ReporteUnidad>(`${this.base}/tickets/${id}/reportes-unidad/${vehiculoId}`);
+  reporteUnidad(id: string, unidadId: string): Observable<ReporteUnidad> {
+    return this.http.get<ReporteUnidad>(`${this.base}/tickets/${id}/reportes-unidad/${unidadId}`);
   }
 
-  guardarSalida(id: string, vehiculoId: string, cuerpo: SalidaEntrada): Observable<ReporteUnidad> {
+  guardarSalida(id: string, unidadId: string, cuerpo: SalidaEntrada): Observable<ReporteUnidad> {
     return this.http.put<ReporteUnidad>(
-      `${this.base}/tickets/${id}/reportes-unidad/${vehiculoId}/salida`,
+      `${this.base}/tickets/${id}/reportes-unidad/${unidadId}/salida`,
       cuerpo,
     );
   }
 
   /** El operador de la unidad firma su reporte de llegada (solo en el Traslado de llegada). */
-  guardarLlegada(
-    id: string,
-    vehiculoId: string,
-    cuerpo: LlegadaEntrada,
-  ): Observable<ReporteUnidad> {
+  guardarLlegada(id: string, unidadId: string, cuerpo: LlegadaEntrada): Observable<ReporteUnidad> {
     return this.http.put<ReporteUnidad>(
-      `${this.base}/tickets/${id}/reportes-unidad/${vehiculoId}/llegada`,
+      `${this.base}/tickets/${id}/reportes-unidad/${unidadId}/llegada`,
       cuerpo,
     );
   }

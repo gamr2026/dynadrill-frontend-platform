@@ -79,14 +79,23 @@ export interface PersonaAsignadaTicket {
 }
 /** Operador con la unidad que lleva. */
 export interface OperadorAsignadoTicket extends PersonaAsignadaTicket {
-  vehiculoId: string | null;
+  /** Unidad de Flota que lleva. */
+  unidadId: string | null;
+  codigo: string | null;
+  /** Placa del vehículo enlazado a la unidad; `null` si la unidad no tiene vehículo (se nombra por su código). */
   placa: string | null;
 }
 export interface UnidadAsignadaTicket {
-  vehiculoId: string;
-  placa: string;
+  unidadId: string;
+  codigo: string;
+  nombre: string;
+  placa: string | null;
   descripcion: string | null;
 }
+
+/** Cómo se nombra una unidad en pantalla: su placa si tiene vehículo enlazado y, si no, su código de Flota. */
+export const etiquetaUnidad = (u: { placa: string | null; codigo: string | null }): string =>
+  u.placa ?? u.codigo ?? '—';
 export interface AsignacionTicket {
   supervisor: PersonaAsignadaTicket | null;
   operadores: OperadorAsignadoTicket[];
@@ -98,9 +107,9 @@ export interface AsignacionTicket {
 /** Cuerpo de `POST /tickets/:id/asignar`: solo ids (el backend obtiene los nombres de identidad y del catálogo de vehículos). Cada operador lleva su unidad. */
 export interface AsignacionEntrada {
   supervisorId: string;
-  operadores: { usuarioId: string; vehiculoId: string }[];
+  operadores: { usuarioId: string; unidadId: string }[];
   /** Un conductor por cada unidad elegida. */
-  conductores: { usuarioId: string; vehiculoId: string }[];
+  conductores: { usuarioId: string; unidadId: string }[];
   /** Químicos que salen de bodega a cargo del ticket (opcional). */
   quimicos?: QuimicoEntrada[];
   /** Archivo del documento de mezcla (de `archivos`): obligatorio si hay químicos. */
@@ -209,7 +218,7 @@ export const PASO_ASIGNACION = 'asignacion';
 /** Fila del formulario de asignación: un operador y su unidad (cualquiera puede estar sin elegir todavía). */
 export interface FilaAsignacion {
   usuarioId: string | null;
-  vehiculoId: string | null;
+  unidadId: string | null;
 }
 
 /** Qué falta para poder asignar (texto para quien opera); `null` si está completo. */
@@ -222,11 +231,11 @@ export function validarAsignacion(
   if (!supervisorId) return 'Elija el supervisor.';
   if (!filas.length) return 'Agregue al menos un operador.';
   if (filas.some((f) => !f.usuarioId)) return 'Elija el operador de cada fila.';
-  if (filas.some((f) => !f.vehiculoId)) return 'Elija la unidad de cada operador.';
+  if (filas.some((f) => !f.unidadId)) return 'Elija la unidad de cada operador.';
   const ids = filas.map((f) => f.usuarioId as string);
   if (new Set(ids).size !== ids.length) return 'Un operador no puede repetirse.';
   if (ids.includes(supervisorId)) return 'El supervisor no puede ser también operador.';
-  const unidades = [...new Set(filas.map((f) => f.vehiculoId as string))];
+  const unidades = [...new Set(filas.map((f) => f.unidadId as string))];
   if (unidades.some((u) => !conductores[u])) return 'Elija el conductor de cada unidad.';
   const choferes = unidades.map((u) => conductores[u] as string);
   if (new Set(choferes).size !== choferes.length)
@@ -252,7 +261,7 @@ export interface RequisitoTicket {
   paso: string | null;
   /** Placa de la unidad o nombre del operador; `null` si es del ticket. */
   para: string | null;
-  vehiculoId: string | null;
+  unidadId: string | null;
   usuarioId: string | null;
   estado: EstadoRequisito;
   cumplidoAt: string | null;
@@ -363,16 +372,18 @@ export const SECCIONES_INSPECCION: { seccion: SeccionInspeccion; etiqueta: strin
 ];
 
 export interface UnidadReporte {
-  vehiculoId: string;
-  placa: string;
+  unidadId: string;
+  codigo: string;
+  placa: string | null;
   operador: { usuarioId: string; nombre: string } | null;
   salidaFirmada: boolean;
   salidaFirmadaAt: string | null;
 }
 export interface ReporteUnidad {
   ticketId: string;
-  vehiculoId: string;
-  placa: string;
+  unidadId: string;
+  codigo: string;
+  placa: string | null;
   operador: { usuarioId: string; nombre: string } | null;
   origen: string | null;
   destino: string | null;
@@ -418,7 +429,7 @@ export interface SalidaEntrada {
   inspecciones: { itemId: string; resultado: ResultadoInspeccion }[];
 }
 
-/** Cuerpo de `PUT /tickets/:id/reportes-unidad/:vehiculoId/llegada`: lo que el operador firma al llegar (Traslado de llegada). */
+/** Cuerpo de `PUT /tickets/:id/reportes-unidad/:unidadId/llegada`: lo que el operador firma al llegar (Traslado de llegada). */
 export interface LlegadaEntrada {
   fecha: string;
   combustible: number;

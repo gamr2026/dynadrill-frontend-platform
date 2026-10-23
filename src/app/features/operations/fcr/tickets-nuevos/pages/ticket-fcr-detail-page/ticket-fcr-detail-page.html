@@ -10,6 +10,11 @@
     <dynadrill-button variant="secondary" size="small" (clicked)="volver()"
       >← Volver a Tickets</dynadrill-button
     >
+    @if (ticket()) {
+      <dynadrill-button variant="secondary" size="small" (clicked)="verObservaciones()"
+        >Observaciones</dynadrill-button
+      >
+    }
     @if (puedeVerPedido() && ticket()) {
       <dynadrill-button variant="secondary" size="small" (clicked)="verPedido()"
         >Ver pedido en Facturación</dynadrill-button

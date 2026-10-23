@@ -68,7 +68,7 @@ describe('tareasDeViaje', () => {
     serviciosPrincipales: [],
     supervisor: null,
     paso: { codigo: 'traslado_salida', nombre: 'Traslado de salida' },
-    unidades: [{ vehiculoId: 'v1', placa: 'GSI6538' }],
+    unidades: [{ unidadId: 'u1', codigo: 'U', placa: 'GSI6538' }],
     tiposViaje: ['salida'],
     ...extra,
   });
@@ -114,8 +114,8 @@ describe('tareasDeViaje', () => {
     expect(rechazada).toMatchObject({ estado: 'por_completar', rechazado: true, viajeId: null });
     const dos = ticket({
       unidades: [
-        { vehiculoId: 'v1', placa: 'A' },
-        { vehiculoId: 'v2', placa: 'B' },
+        { unidadId: 'u1', codigo: 'U1', placa: 'A' },
+        { unidadId: 'u2', codigo: 'U2', placa: 'B' },
       ],
     });
     const t = tareasDeViaje([dos], [viaje({ estado: 'autorizado' })]);

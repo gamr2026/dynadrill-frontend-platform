@@ -63,7 +63,7 @@ export interface ViajeContextoPumping {
   supervisor: { id: string; nombre: string } | null;
   paso: { codigo: string; nombre: string };
   /** Las unidades que lleva esta cuenta en el ticket. */
-  unidades: Array<{ vehiculoId: string; placa: string }>;
+  unidades: Array<{ unidadId: string; codigo: string; placa: string | null }>;
   /** Gerenciamientos que le tocan en este momento del servicio. */
   tiposViaje: TipoViaje[];
 }
@@ -82,7 +82,7 @@ export interface TareaViaje {
   clave: string;
   ticket: ViajeContextoPumping;
   tipo: TipoViaje;
-  unidad: { vehiculoId: string; placa: string };
+  unidad: { unidadId: string; codigo: string; placa: string | null };
   estado: EstadoTareaViaje;
   /** Solicitud ya enviada (pendiente o aprobada); un rechazo deja la tarea por completar de nuevo. */
   viajeId: string | null;
@@ -103,14 +103,11 @@ export function tareasDeViaje(
     for (const u of t.unidades) {
       for (const tipo of t.tiposViaje) {
         const suyos = viajes
-          .filter(
-            (v) =>
-              v.ticketId === t.ticketId && v.tipo === tipo && v.unidad.vehiculoId === u.vehiculoId,
-          )
+          .filter((v) => v.ticketId === t.ticketId && v.tipo === tipo && v.unidad.id === u.unidadId)
           .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
         const vigente = suyos.find((v) => v.estado !== 'rechazado') ?? null;
         tareas.push({
-          clave: `${t.ticketId}|${u.vehiculoId}|${tipo}`,
+          clave: `${t.ticketId}|${u.unidadId}|${tipo}`,
           ticket: t,
           tipo,
           unidad: u,

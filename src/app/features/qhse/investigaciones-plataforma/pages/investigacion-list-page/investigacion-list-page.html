@@ -1,0 +1,92 @@
+<app-page-header
+  eyebrow="QHSE"
+  title="Investigaciones"
+  subtitle="HSE-TRIAGE-002 — investigación de incidentes y casi accidentes (DYN-SGI-RE-034)"
+>
+  @if (puedeGestionar()) {
+    <div actions>
+      <dynadrill-button (clicked)="nuevaInvestigacion()">+ Nueva investigación</dynadrill-button>
+    </div>
+  }
+</app-page-header>
+
+<div class="investigacion-list-page__filtros">
+  <dynadrill-input
+    placeholder="Buscar por código o ubicación"
+    [value]="searchText()"
+    (valueChange)="setSearchText($event)"
+  />
+  <dynadrill-select
+    [options]="estadoOptions"
+    [value]="estadoFiltro()"
+    (valueChange)="setEstadoFiltro($any($event) ?? '')"
+  />
+</div>
+
+<div class="kpi-stat-row" role="list">
+  @for (kpi of kpis(); track kpi.label) {
+    <app-kpi-stat [value]="kpi.value" [label]="kpi.label" [tone]="kpi.tone" />
+  }
+</div>
+
+@if (!isMobile()) {
+  <div class="investigacion-list-page__grid">
+    @for (i of visibles(); track i.id) {
+      <dynadrill-card [accent]="i.accent">
+        <span card-title>{{ i.code }}</span>
+        <dynadrill-tag card-extra [label]="i.estadoLabel" variant="neutral" />
+
+        <p class="investigacion-list-page__linea">{{ i.resultadoLabel }}</p>
+        <div class="investigacion-list-page__chips">
+          @if (i.accionesPendientes > 0) {
+            <dynadrill-tag
+              [label]="
+                i.accionesPendientes +
+                (i.accionesPendientes === 1 ? ' acción pendiente' : ' acciones pendientes')
+              "
+              variant="neutral"
+            />
+          }
+          <dynadrill-tag [label]="i.plazoLabel" [variant]="i.accent" />
+        </div>
+        <dl class="investigacion-list-page__meta">
+          <div>
+            <dt><dynadrill-icon name="location" [size]="14" />Ubicación</dt>
+            <dd>{{ i.ubicacion }}</dd>
+          </div>
+          <div>
+            <dt><dynadrill-icon name="calendar" [size]="14" />Fecha del incidente</dt>
+            <dd>{{ i.fechaIncidente }}</dd>
+          </div>
+        </dl>
+
+        <dynadrill-button variant="secondary" size="small" (clicked)="verDetalle(i.id)"
+          >Ver detalle</dynadrill-button
+        >
+      </dynadrill-card>
+    } @empty {
+      @if (loading()) {
+        <dynadrill-banner variant="info" message="Cargando investigaciones…" />
+      } @else if (cards().length === 0) {
+        <dynadrill-banner
+          variant="info"
+          message="Todavía no hay investigaciones registradas. Se abren desde un incidente o al cerrar una Emergencia Nivel 2/3."
+        />
+      } @else {
+        <dynadrill-banner
+          variant="info"
+          message="Ninguna investigación coincide con la búsqueda o filtro actual."
+        />
+      }
+    }
+  </div>
+} @else {
+  <app-qhse-registros-movil
+    [items]="itemsMovil()"
+    [loading]="loading()"
+    vacio="No hay investigaciones con ese filtro."
+  />
+}
+@if (!mostrandoTodo()) {
+  <dynadrill-button variant="secondary" (click)="mostrarMas()">Mostrar más</dynadrill-button>
+}

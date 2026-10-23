@@ -1,0 +1,94 @@
+<div class="bandas-page">
+  <app-page-header
+    eyebrow="QHSE · Derrames"
+    title="Bandas de volumen"
+    subtitle="Umbrales que deciden la notificación al MAE y la escalada a emergencia"
+  >
+    <div actions>
+      <dynadrill-button variant="secondary" (clicked)="volver()"
+        >← Volver a Derrames</dynadrill-button
+      >
+    </div>
+  </app-page-header>
+
+  <dynadrill-banner
+    variant="warning"
+    message="Los valores sembrados (menor, moderado y mayor) son un supuesto de la demo: están por confirmar con Dynadrill. Marque «Confirmado por Dynadrill» solo cuando los umbrales estén validados."
+  />
+
+  @if (cargando()) {
+    <p>Cargando bandas…</p>
+  }
+
+  @for (b of bandas(); track b.id) {
+    <section class="bandas-page__banda">
+      <h3>
+        {{ b.nombre }}
+        @if (b.porConfirmar) {
+          <dynadrill-tag label="Por confirmar con Dynadrill" variant="warning" />
+        } @else {
+          <dynadrill-tag label="Confirmada" variant="success" />
+        }
+        @if (!b.activo) {
+          <dynadrill-tag label="Inactiva" variant="neutral" />
+        }
+      </h3>
+
+      <dynadrill-input
+        label="Nombre"
+        [value]="borrador(b).nombre"
+        (valueChange)="cambiar(b, { nombre: $event })"
+      />
+      <div class="bandas-page__grid">
+        <dynadrill-input
+          label="Desde (barriles, incluido)"
+          type="number"
+          [value]="borrador(b).desde"
+          (valueChange)="cambiar(b, { desde: $event })"
+        />
+        <dynadrill-input
+          label="Hasta (barriles, excluido; vacío = sin tope)"
+          type="number"
+          [value]="borrador(b).hasta"
+          (valueChange)="cambiar(b, { hasta: $event })"
+        />
+      </div>
+      <div class="bandas-page__checks">
+        <dynadrill-checkbox
+          label="Exige notificar al MAE"
+          [checked]="borrador(b).exigeNotificacionMae"
+          (checkedChange)="cambiar(b, { exigeNotificacionMae: $event })"
+        />
+        <dynadrill-checkbox
+          label="Escala a Emergencia Mayor"
+          [checked]="borrador(b).escalaAEmergencia"
+          (checkedChange)="cambiar(b, { escalaAEmergencia: $event })"
+        />
+        <dynadrill-checkbox
+          label="Confirmado por Dynadrill"
+          [checked]="!borrador(b).porConfirmar"
+          (checkedChange)="cambiar(b, { porConfirmar: !$event })"
+        />
+        <dynadrill-checkbox
+          label="Activa"
+          [checked]="borrador(b).activo"
+          (checkedChange)="cambiar(b, { activo: $event })"
+        />
+      </div>
+
+      <div class="bandas-page__acciones">
+        <dynadrill-button
+          variant="secondary"
+          [disabled]="!hayCambios(b) || guardando() === b.id"
+          (clicked)="descartar(b)"
+          >Descartar</dynadrill-button
+        >
+        <dynadrill-button
+          [disabled]="!hayCambios(b) || !esValida(b) || guardando() === b.id"
+          (clicked)="guardar(b)"
+          >{{ guardando() === b.id ? 'Guardando…' : 'Guardar banda' }}</dynadrill-button
+        >
+      </div>
+    </section>
+  }
+</div>

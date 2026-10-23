@@ -1,0 +1,50 @@
+.bandas-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__banda {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #e5e4ea);
+    border-radius: var(--radius-md, 6px);
+
+    h3 {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      font-size: 15px;
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  &__checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  &__acciones {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border, #e5e4ea);
+  }
+
+  @media (max-width: 600px) {
+    &__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}

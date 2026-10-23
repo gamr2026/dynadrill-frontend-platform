@@ -1,0 +1,402 @@
+@if (loading()) {
+  <p class="desecho-detail-page__loading">Cargando…</p>
+} @else if (desecho(); as d) {
+  <dynadrill-screen-header
+    [eyebrow]="d.codigo"
+    [title]="d.descripcion"
+    [roleTag]="estadoLabels[d.estado.codigo]"
+  />
+
+  <dynadrill-button variant="secondary" size="small" (click)="back()"
+    >← Volver a Gestión de Desechos</dynadrill-button
+  >
+  <dynadrill-button variant="secondary" size="small" (click)="verPdf()"
+    >Ver PDF de la guía</dynadrill-button
+  >
+
+  <dynadrill-context-card [items]="contextItems()" layout="vertical" />
+
+  @if (d.estado.codigo !== 'dispuesto' && d.vencido) {
+    <p class="desecho-detail-page__alerta" role="alert">
+      Este desecho superó el límite de 12 meses de almacenamiento (AM 142) y aún no se dispone.
+    </p>
+  }
+
+  <section class="desecho-detail-page__section">
+    <h3>Ítems (DYN-SGI-RE-063)</h3>
+    @if (d.items.length > 0) {
+      <table class="desecho-detail-page__items-table">
+        <thead>
+          <tr>
+            <th>Descripción</th>
+            <th># de lote</th>
+            <th>Código</th>
+            <th>Cantidad (gal)</th>
+            <th>Bultos</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (i of d.items; track i.id) {
+            <tr>
+              <td>{{ i.descripcion }}</td>
+              <td>{{ i.numeroLote || '—' }}</td>
+              <td>{{ i.codigo }}</td>
+              <td>{{ i.cantidadGalones }}</td>
+              <td>{{ i.bultos }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <p class="desecho-detail-page__note">Sin ítems registrados.</p>
+    }
+  </section>
+
+  @if (!d.manifiesto) {
+    <section class="desecho-detail-page__section">
+      <h3>Manifiesto Único</h3>
+      @if (puedeGestionar()) {
+        <p class="desecho-detail-page__note">
+          Verifique que el gestor tenga licencia ambiental vigente (SUIA) antes de generar el
+          manifiesto.
+        </p>
+        <div class="desecho-detail-page__grid">
+          <dynadrill-input
+            label="N° de manifiesto"
+            [value]="manifiestoNumero()"
+            (valueChange)="manifiestoNumero.set($event)"
+          />
+          <dynadrill-input
+            label="Gestor"
+            [value]="gestorNombre()"
+            (valueChange)="gestorNombre.set($event)"
+          />
+          <dynadrill-input
+            label="Licencia SUIA del gestor"
+            [value]="gestorLicenciaSuia()"
+            (valueChange)="gestorLicenciaSuia.set($event)"
+          />
+        </div>
+
+        <p class="desecho-detail-page__note">
+          Cliente de la guía y transportista (opcional — DYN-SGI-RE-063). El transporte y las horas
+          se pueden completar después.
+        </p>
+        <div class="desecho-detail-page__grid">
+          <dynadrill-select
+            label="Cliente"
+            placeholder="Sin cliente"
+            [options]="clientes()"
+            [value]="clienteId()"
+            [searchable]="true"
+            (valueChange)="clienteId.set($any($event) ?? '')"
+          />
+          <dynadrill-input
+            label="Solicitado por"
+            [value]="solicitadoPor()"
+            (valueChange)="solicitadoPor.set($event)"
+          />
+          <dynadrill-input
+            label="Compañía transportista"
+            [value]="companiaTransportista()"
+            (valueChange)="companiaTransportista.set($event)"
+          />
+          <dynadrill-input
+            label="Conductor"
+            [value]="conductorNombre()"
+            (valueChange)="conductorNombre.set($event)"
+          />
+          <dynadrill-input
+            label="Cédula del conductor"
+            [value]="conductorCedula()"
+            (valueChange)="conductorCedula.set($event)"
+          />
+          <dynadrill-input
+            label="Vehículo"
+            [value]="vehiculo()"
+            (valueChange)="vehiculo.set($event)"
+          />
+          <dynadrill-input label="Placas" [value]="placas()" (valueChange)="placas.set($event)" />
+          <dynadrill-datetime-picker
+            label="Hora de salida"
+            mode="date"
+            [showTime]="true"
+            format="dd/MM/yyyy HH:mm"
+            [value]="horaSalida()!"
+            (valueChange)="horaSalida.set($event)"
+          />
+          <dynadrill-datetime-picker
+            label="Hora de llegada"
+            mode="date"
+            [showTime]="true"
+            format="dd/MM/yyyy HH:mm"
+            [value]="horaLlegada()!"
+            (valueChange)="horaLlegada.set($event)"
+          />
+        </div>
+        <dynadrill-button [disabled]="!puedeGenerarManifiesto()" (clicked)="generarManifiesto()">{{
+          enviando() === 'manifiesto' ? 'Generando…' : 'Generar manifiesto'
+        }}</dynadrill-button>
+      } @else {
+        <p class="desecho-detail-page__note">Todavía no se generó el manifiesto de este desecho.</p>
+      }
+    </section>
+  } @else if (d.manifiesto; as m) {
+    <section class="desecho-detail-page__section">
+      <h3>Manifiesto Único {{ m.numero }}</h3>
+      <p>Gestor: {{ m.gestorNombre }} — Licencia SUIA: {{ m.gestorLicenciaSuia }}</p>
+      <p class="desecho-detail-page__note">Generado el {{ fechaCorta(m.fecha) }}.</p>
+
+      @if (guiaEditable() && puedeGestionar()) {
+        @if (editandoGuia()) {
+          <div class="desecho-detail-page__grid">
+            <dynadrill-select
+              label="Cliente"
+              placeholder="Sin cambios"
+              [options]="clientes()"
+              [value]="clienteId()"
+              [searchable]="true"
+              (valueChange)="clienteId.set($any($event) ?? '')"
+            />
+            <dynadrill-input
+              label="Solicitado por"
+              [value]="solicitadoPor()"
+              (valueChange)="solicitadoPor.set($event)"
+            />
+            <dynadrill-input
+              label="Compañía transportista"
+              [value]="companiaTransportista()"
+              (valueChange)="companiaTransportista.set($event)"
+            />
+            <dynadrill-input
+              label="Conductor"
+              [value]="conductorNombre()"
+              (valueChange)="conductorNombre.set($event)"
+            />
+            <dynadrill-input
+              label="Cédula del conductor"
+              [value]="conductorCedula()"
+              (valueChange)="conductorCedula.set($event)"
+            />
+            <dynadrill-input
+              label="Vehículo"
+              [value]="vehiculo()"
+              (valueChange)="vehiculo.set($event)"
+            />
+            <dynadrill-input label="Placas" [value]="placas()" (valueChange)="placas.set($event)" />
+            <dynadrill-datetime-picker
+              label="Hora de salida"
+              mode="date"
+              [showTime]="true"
+              format="dd/MM/yyyy HH:mm"
+              [value]="horaSalida()!"
+              (valueChange)="horaSalida.set($event)"
+            />
+            <dynadrill-datetime-picker
+              label="Hora de llegada"
+              mode="date"
+              [showTime]="true"
+              format="dd/MM/yyyy HH:mm"
+              [value]="horaLlegada()!"
+              (valueChange)="horaLlegada.set($event)"
+            />
+          </div>
+          <div class="desecho-detail-page__acciones">
+            <dynadrill-button variant="secondary" size="small" (clicked)="editandoGuia.set(false)"
+              >Cancelar</dynadrill-button
+            >
+            <dynadrill-button
+              size="small"
+              [disabled]="enviando() !== null"
+              (clicked)="guardarGuia()"
+              >{{
+                enviando() === 'guia' ? 'Guardando…' : 'Guardar transporte y horas'
+              }}</dynadrill-button
+            >
+          </div>
+        } @else {
+          <dynadrill-button variant="secondary" size="small" (clicked)="editarGuia()"
+            >Completar transporte y horas</dynadrill-button
+          >
+        }
+      }
+      @if (m.horaSalida || m.horaLlegada) {
+        <p class="desecho-detail-page__note">
+          @if (m.horaSalida) {
+            Salida: {{ m.horaSalida | date: 'dd/MM/yyyy HH:mm' }}.
+          }
+          @if (m.horaLlegada) {
+            Llegada: {{ m.horaLlegada | date: 'dd/MM/yyyy HH:mm' }}.
+          }
+        </p>
+      }
+
+      <div class="desecho-detail-page__firmas">
+        @for (f of m.firmas; track f.rol) {
+          <div class="desecho-detail-page__firma">
+            <span>{{ etiquetaRol[f.rol] }}</span>
+            @if (f.firmadoAt) {
+              <dynadrill-tag [label]="textoFirma(f)" variant="success" />
+            } @else if (puedeGestionar() && d.estado.codigo === 'con_manifiesto') {
+              @if (firmando() === f.rol) {
+                <div class="desecho-detail-page__firmante">
+                  <dynadrill-input
+                    label="Nombre de quien firma"
+                    [value]="firmanteNombre()"
+                    (valueChange)="firmanteNombre.set($event)"
+                  />
+                  <dynadrill-input
+                    label="Cédula"
+                    [value]="firmanteCedula()"
+                    (valueChange)="firmanteCedula.set($event)"
+                  />
+                  <div class="desecho-detail-page__acciones">
+                    <dynadrill-button variant="secondary" size="small" (clicked)="cancelarFirma()"
+                      >Cancelar</dynadrill-button
+                    >
+                    <dynadrill-button
+                      size="small"
+                      [disabled]="!puedeConfirmarFirma()"
+                      (clicked)="confirmarFirma()"
+                      >{{
+                        enviando() === 'firma-' + f.rol ? 'Guardando…' : accionRol[f.rol]
+                      }}</dynadrill-button
+                    >
+                  </div>
+                </div>
+              } @else {
+                <dynadrill-button
+                  variant="secondary"
+                  size="small"
+                  [disabled]="enviando() !== null"
+                  (clicked)="iniciarFirma(f.rol)"
+                  >{{ accionRol[f.rol] }}</dynadrill-button
+                >
+              }
+            } @else {
+              <dynadrill-tag label="Pendiente" variant="neutral" />
+            }
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="desecho-detail-page__section">
+      <h3>Documentos firmados y certificado de disposición final</h3>
+      <p class="desecho-detail-page__note">
+        Plazo para el certificado de disposición final: {{ fechaCorta(m.certificadoVenceEl) }} (30
+        días desde el manifiesto).
+      </p>
+      @if (avisoPlazo(); as aviso) {
+        <dynadrill-tag [label]="aviso.texto" [variant]="aviso.tono" />
+      }
+
+      @for (doc of d.documentos; track doc.tipo) {
+        <div class="desecho-detail-page__documento">
+          <div class="desecho-detail-page__documento-info">
+            <strong>{{ etiquetaDocumento[doc.tipo] }}</strong>
+            <span class="desecho-detail-page__note">
+              {{ doc.referencia || 'Sin referencia' }}
+              @if (doc.emitidoEl) {
+                · Emitido el {{ fechaCorta(doc.emitidoEl) }}
+              }
+              · Cargado el {{ doc.cargadoAt | date: 'dd/MM/yyyy' }}
+            </span>
+          </div>
+          <div class="desecho-detail-page__documento-acciones">
+            <dynadrill-tag
+              [label]="lectura(doc).texto"
+              [variant]="lectura(doc).tono"
+              [uppercase]="false"
+            />
+            @if (puedeGestionar()) {
+              <dynadrill-button
+                variant="secondary"
+                size="small"
+                [disabled]="verificando() !== null"
+                (clicked)="volverALeer(doc)"
+                >{{
+                  verificando() === doc.tipo ? 'Leyendo…' : 'Volver a leer la firma'
+                }}</dynadrill-button
+              >
+            }
+            <dynadrill-button variant="secondary" size="small" (clicked)="verArchivo(doc)"
+              >Ver</dynadrill-button
+            >
+          </div>
+        </div>
+      }
+
+      @if (puedeSubirDocumentos()) {
+        @if (!manifiestoFirmado()) {
+          <div class="desecho-detail-page__certificado">
+            <p class="desecho-detail-page__note">
+              Manifiesto con las tres firmas (escaneado). Se lee la firma del documento; es solo un
+              indicador para revisar.
+            </p>
+            <dynadrill-upload-zone
+              [state]="manifiestoFirmadoArchivo() ? 'uploaded' : 'idle'"
+              [fileName]="manifiestoFirmadoArchivo()?.name ?? ''"
+              (fileSelected)="onManifiestoFirmado($event)"
+            />
+            <dynadrill-input
+              label="Referencia (opcional)"
+              [value]="manifiestoFirmadoReferencia()"
+              (valueChange)="manifiestoFirmadoReferencia.set($event)"
+            />
+            <dynadrill-button
+              variant="secondary"
+              [disabled]="!manifiestoFirmadoArchivo() || enviando() !== null"
+              (clicked)="cargarManifiestoFirmado()"
+              >{{
+                enviando() === 'manifiesto-firmado' ? 'Cargando…' : 'Cargar manifiesto firmado'
+              }}</dynadrill-button
+            >
+          </div>
+        }
+
+        <div class="desecho-detail-page__certificado">
+          <p class="desecho-detail-page__note">
+            Certificado de disposición final del gestor ambiental. Al registrarlo, el desecho queda
+            dispuesto.
+          </p>
+          <dynadrill-upload-zone
+            [state]="certificadoArchivo() ? 'uploaded' : 'idle'"
+            [fileName]="certificadoArchivo()?.name ?? ''"
+            (fileSelected)="onCertificado($event)"
+          />
+          <div class="desecho-detail-page__grid">
+            <dynadrill-datetime-picker
+              label="Fecha de emisión del certificado"
+              mode="date"
+              [value]="certificadoFecha()!"
+              (valueChange)="certificadoFecha.set($event)"
+            />
+            <dynadrill-input
+              label="Referencia (opcional)"
+              [value]="certificadoReferencia()"
+              (valueChange)="certificadoReferencia.set($event)"
+            />
+          </div>
+          <dynadrill-button
+            [disabled]="!puedeRegistrarCertificado()"
+            (clicked)="registrarCertificado()"
+            >{{
+              enviando() === 'certificado'
+                ? 'Registrando…'
+                : 'Registrar certificado de disposición final'
+            }}</dynadrill-button
+          >
+        </div>
+      } @else if (puedeGestionar() && d.estado.codigo === 'con_manifiesto') {
+        <p class="desecho-detail-page__note">
+          Los documentos se cargan cuando el manifiesto tiene las tres firmas.
+        </p>
+      }
+
+      @if (d.estado.codigo === 'dispuesto') {
+        <dynadrill-tag label="Dispuesto — certificado registrado" variant="success" />
+      }
+    </section>
+  }
+}

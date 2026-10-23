@@ -1,0 +1,131 @@
+@if (cargando()) {
+  <p class="derrame-detail-page__loading">Cargando evento…</p>
+} @else if (derrame(); as e) {
+  <dynadrill-screen-header
+    [eyebrow]="e.codigo"
+    title="Evento de derrame"
+    [subtitle]="e.descripcion"
+    [roleTag]="estadoLabels[e.estado]"
+  />
+
+  <dynadrill-button variant="secondary" size="small" (click)="volver()"
+    >← Volver a Derrames</dynadrill-button
+  >
+
+  @if (e.escalaAEmergencia) {
+    <dynadrill-banner
+      variant="critical"
+      message="Derrame MAYOR — según HSE-MASTER-001 esto debe escalar a Emergencia Mayor (HSE-TRIAGE-001)."
+    />
+    @if (e.emergencia; as em) {
+      <dynadrill-tag [label]="'Emergencia vinculada — ' + em.codigo" variant="error" />
+    } @else if (puedeEscalar()) {
+      <dynadrill-button variant="error" [disabled]="trabajando()" (click)="escalarAEmergencia()"
+        >🚨 Escalar a Emergencia Mayor</dynadrill-button
+      >
+    }
+  }
+
+  @if (e.banda.porConfirmar) {
+    <dynadrill-banner
+      variant="warning"
+      message="Los umbrales de volumen son un supuesto de la demo, por confirmar con Dynadrill."
+    />
+  }
+
+  <dynadrill-context-card [items]="contextItems()" />
+
+  <section class="derrame-detail-page__section">
+    <h3>1. Contención (primeros 5 minutos)</h3>
+    <dynadrill-checklist [items]="checklistItems()" (itemToggle)="alternarPaso($event)" />
+    @if (plazoTexto(); as plazo) {
+      <p class="derrame-detail-page__meta">{{ plazo }}</p>
+    }
+    @if (e.estado === 'activo' && puedeGestionar()) {
+      <dynadrill-button [disabled]="!contenible() || trabajando()" (click)="marcarContenido()"
+        >Marcar como contenido</dynadrill-button
+      >
+    }
+  </section>
+
+  @if (e.estado !== 'activo') {
+    <section class="derrame-detail-page__section">
+      <h3>Volumen real derramado (confirmado por QHSE)</h3>
+      @if (e.volumenRealBarriles !== null) {
+        <p class="derrame-detail-page__meta">
+          Confirmado por {{ e.volumenConfirmadoPor ?? '—' }} el
+          {{ e.volumenConfirmadoAt | date: 'dd/MM/yyyy HH:mm' }}
+          @if (e.bandaReal; as banda) {
+            · banda {{ banda.nombre }}
+          }
+        </p>
+      }
+      @if (e.estado === 'contenido' && puedeGestionar()) {
+        <dynadrill-input
+          label="Volumen (barriles)"
+          type="number"
+          [value]="volumenInput()"
+          (valueChange)="volumenInput.set($event)"
+        />
+        <dynadrill-button
+          variant="secondary"
+          [disabled]="trabajando() || leerVolumen() === null"
+          (click)="guardarVolumen()"
+        >
+          {{ trabajando() ? 'Guardando…' : 'Guardar volumen' }}
+        </dynadrill-button>
+      }
+    </section>
+  }
+
+  @if (e.requiereNotificacionMae) {
+    <section class="derrame-detail-page__section">
+      <h3>2. Notificación obligatoria a MAE</h3>
+      @if (e.notificacionMae; as n) {
+        <div class="derrame-detail-page__fila">
+          <dynadrill-tag label="Notificado a MAE" variant="success" />
+          <span class="derrame-detail-page__meta"
+            >{{ n.por ?? '—' }} · {{ n.at | date: 'dd/MM/yyyy HH:mm' }}
+            @if (n.referencia) {
+              · Referencia {{ n.referencia }}
+            }
+          </span>
+        </div>
+      } @else if (e.estado !== 'cerrado' && puedeGestionar()) {
+        <dynadrill-input
+          label="Referencia del oficio (opcional)"
+          [value]="referenciaMae()"
+          (valueChange)="referenciaMae.set($event)"
+        />
+        <dynadrill-button variant="error" [disabled]="trabajando()" (click)="notificarMae()"
+          >Notificar a MAE</dynadrill-button
+        >
+      } @else {
+        <dynadrill-tag label="Pendiente de notificar" variant="warning" />
+      }
+    </section>
+  }
+
+  @if (e.desecho || e.puedeGenerarDesecho) {
+    <section class="derrame-detail-page__section">
+      <h3>Suelo contaminado</h3>
+      @if (e.desecho; as d) {
+        <dynadrill-tag [label]="'Registro de desecho generado — ' + d.codigo" variant="success" />
+      } @else if (puedeGestionar()) {
+        <dynadrill-button variant="secondary" [disabled]="trabajando()" (click)="generarDesecho()">
+          Registrar desecho peligroso
+        </dynadrill-button>
+      }
+    </section>
+  }
+
+  @if (e.estado !== 'cerrado') {
+    @if (puedeGestionar()) {
+      <dynadrill-button [disabled]="!e.puedeCerrar || trabajando()" (click)="cerrar()"
+        >Cerrar evento</dynadrill-button
+      >
+    }
+  } @else {
+    <dynadrill-tag label="Evento cerrado" variant="success" />
+  }
+}

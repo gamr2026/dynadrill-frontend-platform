@@ -1,0 +1,53 @@
+<div class="emergencia-alert-dialog">
+  <dynadrill-banner
+    variant="critical"
+    message="EMERGENCIA — detenga el trabajo, evacúe a favor del viento y diríjase al Punto de Encuentro. Esto activa el cronómetro y la notificación en cascada."
+  />
+
+  @if (origenTexto(); as origen) {
+    <dynadrill-banner variant="info" [message]="origen" />
+  }
+
+  <dynadrill-select
+    label="Tipo de emergencia"
+    placeholder="Elija el tipo"
+    [options]="opcionesTipo()"
+    [value]="tipoId()"
+    (valueChange)="tipoId.set($any($event) ?? '')"
+  />
+  <dynadrill-textarea
+    label="Descripción de la situación"
+    [value]="descripcion()"
+    (valueChange)="descripcion.set($event)"
+    [rows]="3"
+  />
+  <dynadrill-input
+    label="Ubicación (opcional)"
+    [value]="ubicacion()"
+    (valueChange)="ubicacion.set($event)"
+  />
+
+  @if (servicioHeredado()) {
+    <dynadrill-input label="Servicio afectado" [value]="servicioTexto()" [disabled]="true" />
+  } @else if (!tieneOrigen && opcionesServicio().length > 1) {
+    <dynadrill-select
+      label="Servicio afectado (opcional)"
+      placeholder="Ligar la emergencia a un ticket en curso"
+      [options]="opcionesServicio()"
+      [value]="ticketId()"
+      [searchable]="true"
+      (valueChange)="ticketId.set($any($event) ?? '')"
+    />
+  }
+
+  <div class="emergencia-alert-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button
+      variant="error"
+      [disabled]="!puedeActivar() || enviando()"
+      (clicked)="activar()"
+    >
+      {{ enviando() ? 'Activando…' : '🚨 Activar Emergencia' }}
+    </dynadrill-button>
+  </div>
+</div>

@@ -1,0 +1,116 @@
+<div class="doc-hoja gd">
+  <app-doc-encabezado titulo="Guía de remisión de desechos" codigo="DYN-SGI-RE-063" version="10" />
+
+  <!-- Solicitud -->
+  <table class="gd__solicitud">
+    <tr>
+      <td class="gd__izq"><strong>SOLICITADO POR:</strong> {{ manifiesto()?.solicitadoPor }}</td>
+      <td class="gd__der">
+        <strong>HORA SALIDA:</strong> {{ fechaHora(manifiesto()?.horaSalida) }}
+      </td>
+    </tr>
+    <tr>
+      <td class="gd__izq">
+        <strong>CLIENTE:</strong> {{ manifiesto()?.cliente?.nombre }} &nbsp;&nbsp;
+        <strong>RUC:</strong> {{ manifiesto()?.cliente?.identificacion }}
+      </td>
+      <td class="gd__der"></td>
+    </tr>
+    <tr>
+      <td class="gd__izq"><strong>DESPACHADO POR:</strong> {{ despachadoPor() }}</td>
+      <td class="gd__der">
+        <strong>HORA LLEGADA:</strong> {{ fechaHora(manifiesto()?.horaLlegada) }}
+      </td>
+    </tr>
+  </table>
+
+  <!-- Origen y transportista -->
+  <div class="gd__origen-transp">
+    <div class="gd__origen">
+      <div class="gd__tit">LUGAR DE ORIGEN:</div>
+      <div><strong>CAMPO:</strong> {{ desecho().ubicacion }}</div>
+      <div><strong>POZO:</strong> {{ desecho().pozo?.nombre }}</div>
+      <div><strong>FECHA:</strong> {{ fecha(desecho().registradoAt) }}</div>
+    </div>
+    <div class="gd__transp">
+      <div class="gd__tit doc-centro">TRANSPORTISTA</div>
+      <div class="gd__transp-grid">
+        <div><strong>COMPAÑÍA:</strong> {{ manifiesto()?.transportista?.compania }}</div>
+        <div><strong>FIRMA:</strong></div>
+        <div><strong>CONDUCTOR:</strong> {{ manifiesto()?.transportista?.conductor }}</div>
+        <div>
+          <strong>CÉDULA IDENTIDAD:</strong> {{ manifiesto()?.transportista?.cedulaConductor }}
+        </div>
+        <div><strong>VEHICULO:</strong> {{ manifiesto()?.transportista?.vehiculo }}</div>
+        <div><strong>PLACAS:</strong> {{ manifiesto()?.transportista?.placas }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ítems -->
+  <table class="gd__items">
+    <colgroup>
+      <col class="gd__c-item" />
+      <col class="gd__c-desc" />
+      <col class="gd__c-lote" />
+      <col class="gd__c-cod" />
+      <col class="gd__c-cant" />
+      <col class="gd__c-bultos" />
+    </colgroup>
+    <thead>
+      <tr>
+        <th class="doc-centro">ITEM</th>
+        <th class="doc-centro">DESCRIPCIÓN</th>
+        <th class="doc-centro"># DE LOTE DEL ENVASE</th>
+        <th class="doc-centro">CODIGO DEL DESECHO</th>
+        <th class="doc-centro">CANTIDAD EN GLNS</th>
+        <th class="doc-centro">No. BULTOS / CONTENEDORES</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (it of filas(); track $index) {
+        <tr>
+          <td class="doc-centro">{{ $index + 1 }}</td>
+          <td>{{ it?.descripcion }}</td>
+          <td class="doc-centro">{{ it?.numeroLote }}</td>
+          <td class="doc-centro">{{ it?.codigo }}</td>
+          <td class="doc-centro">{{ it?.cantidadGalones }}</td>
+          <td class="doc-centro">{{ it?.bultos }}</td>
+        </tr>
+      }
+      <tr>
+        <td></td>
+        <td class="doc-centro doc-negrita">TOTAL DESECHOS GENERADOS</td>
+        <td colspan="4" class="gd__total">{{ total() }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Firmas: en blanco, se llenan a mano al despachar, transportar y recibir -->
+  <table class="gd__firmas">
+    <tr>
+      <td class="gd__f-etq"></td>
+      @for (f of firmantes; track f) {
+        <th class="doc-centro">{{ f }}</th>
+      }
+    </tr>
+    <tr>
+      <td class="gd__f-etq"><strong>Nombre</strong></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td class="gd__f-etq"><strong>Fecha</strong></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr class="gd__f-firma">
+      <td class="gd__f-etq"><strong>Firma</strong></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+  </table>
+</div>

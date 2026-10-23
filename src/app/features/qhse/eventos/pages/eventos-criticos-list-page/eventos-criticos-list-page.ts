@@ -22,13 +22,25 @@ import {
 import { PageHeader } from '../../../../../shared/components/page-header/page-header';
 import { KpiStat } from '../../../../../shared/components/kpi-stat/kpi-stat';
 import { injectNarrowViewport } from '../../../../../core/utils/narrow-viewport.util';
-import { QhseRegistrosMovil, type RegistroMovil } from '../../../shared/components/qhse-registros-movil';
+import {
+  QhseRegistrosMovil,
+  type RegistroMovil,
+} from '../../../shared/components/qhse-registros-movil';
 import { SWA_ESTADO_LABELS, SwaEvento } from '../../../swa/models/swa.model';
 import { SwaService } from '../../../swa/services/swa.service';
-import { DERRAME_ESTADO_LABELS, DERRAME_VOLUMEN_LABELS, DerrameEvento } from '../../../derrames/models/derrame.model';
-import { DerrameService } from '../../../derrames/services/derrame.service';
-import { EMERGENCIA_ESTADO_LABELS, EMERGENCIA_NIVEL_LABELS, EmergenciaEstado, EmergenciaEvento, reporteFlashVencido } from '../../../emergencias/models/emergencia.model';
-import { EmergenciaService } from '../../../emergencias/services/emergencia.service';
+import {
+  ESTADO_DERRAME_ETIQUETA,
+  type DerrameResumen,
+  type EstadoDerrame,
+} from '../../../derrames-plataforma/models/derrame';
+import { DerrameService } from '../../../derrames-plataforma/services/derrame.service';
+import {
+  ESTADO_EMERGENCIA_ETIQUETA,
+  NIVEL_EMERGENCIA_ETIQUETA,
+  type EmergenciaResumen,
+  type EstadoEmergencia,
+} from '../../../emergencias-plataforma/models/emergencia';
+import { EmergenciaService } from '../../../emergencias-plataforma/services/emergencia.service';
 import {
   accionesPendientes,
   INCIDENTE_RESULTADO_LABELS,
@@ -42,18 +54,33 @@ import { InvestigacionDialog } from '../../../investigaciones/components/investi
 
 type EventoTipo = 'swa' | 'derrames' | 'emergencias' | 'investigaciones';
 
-const TABS: DynadrillTab[] = [{ label: 'SWA' }, { label: 'Derrames' }, { label: 'Emergencias' }, { label: 'Investigaciones' }];
+const TABS: DynadrillTab[] = [
+  { label: 'SWA' },
+  { label: 'Derrames' },
+  { label: 'Emergencias' },
+  { label: 'Investigaciones' },
+];
 const TAB_TIPOS: EventoTipo[] = ['swa', 'derrames', 'emergencias', 'investigaciones'];
 
 /** Cuántas tarjetas se muestran de entrada por pestaña — "Mostrar más" suma otra tanda. */
 const PAGE_SIZE = 12;
 
 function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleString('es-EC', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return new Date(iso).toLocaleDateString('es-EC', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 }
 
 const SWA_ESTADO_TONE: Record<SwaEvento['estado'], DynadrillTagVariant & DynadrillCardAccent> = {
@@ -62,27 +89,33 @@ const SWA_ESTADO_TONE: Record<SwaEvento['estado'], DynadrillTagVariant & Dynadri
   cerrado: 'success',
 };
 
-const DERRAME_ESTADO_TONE: Record<DerrameEvento['estado'], DynadrillTagVariant & DynadrillCardAccent> = {
+const DERRAME_ESTADO_TONE: Record<EstadoDerrame, DynadrillTagVariant & DynadrillCardAccent> = {
   activo: 'error',
   contenido: 'warning',
   cerrado: 'success',
 };
 
-const EMERGENCIA_ESTADO_TONE: Record<EmergenciaEstado, DynadrillTagVariant & DynadrillCardAccent> = {
-  activa: 'error',
-  controlada: 'warning',
-  cerrada: 'success',
-};
+const EMERGENCIA_ESTADO_TONE: Record<EstadoEmergencia, DynadrillTagVariant & DynadrillCardAccent> =
+  {
+    activa: 'error',
+    controlada: 'warning',
+    cerrada: 'success',
+  };
 
 const DOS_HORAS_SEGUNDOS = 2 * 60 * 60;
 
 const TODOS_OPTION: DynadrillSelectOption = { label: 'Todos los estados', value: '' };
 
 /** Filtra por código/ubicación (búsqueda libre) y por estado exacto — misma regla para las 4 pestañas, ya que las 4 tarjetas comparten esos dos campos. */
-function filtrar<T extends { code: string; ubicacion: string; estadoLabel: string }>(cards: T[], query: string, estado: string): T[] {
+function filtrar<T extends { code: string; ubicacion: string; estadoLabel: string }>(
+  cards: T[],
+  query: string,
+  estado: string,
+): T[] {
   const q = query.trim().toLowerCase();
-  return cards.filter(c => {
-    const matchQuery = !q || c.code.toLowerCase().includes(q) || c.ubicacion.toLowerCase().includes(q);
+  return cards.filter((c) => {
+    const matchQuery =
+      !q || c.code.toLowerCase().includes(q) || c.ubicacion.toLowerCase().includes(q);
     const matchEstado = !estado || c.estadoLabel === estado;
     return matchQuery && matchEstado;
   });
@@ -126,7 +159,9 @@ function filtrar<T extends { code: string; ubicacion: string; estadoLabel: strin
     DynadrillButtonComponent,
     DynadrillBannerComponent,
     DynadrillInputComponent,
-    DynadrillSelectComponent, QhseRegistrosMovil],
+    DynadrillSelectComponent,
+    QhseRegistrosMovil,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './eventos-criticos-list-page.html',
   styleUrl: './eventos-criticos-list-page.scss',
@@ -152,8 +187,8 @@ export class EventosCriticosListPage {
   protected readonly visibleCount = signal(PAGE_SIZE);
 
   private readonly swaEventos = signal<SwaEvento[]>([]);
-  private readonly derrameEventos = signal<DerrameEvento[]>([]);
-  private readonly emergenciaEventos = signal<EmergenciaEvento[]>([]);
+  private readonly derrameEventos = signal<DerrameResumen[]>([]);
+  private readonly emergenciaEventos = signal<EmergenciaResumen[]>([]);
   private readonly investigaciones = signal<Investigacion[]>([]);
 
   // ── SWA ──
@@ -163,14 +198,26 @@ export class EventosCriticosListPage {
     const all = this.swaEventos();
     return [
       { label: 'Total eventos', value: all.length, tone: 'neutral' },
-      { label: 'Trabajo detenido', value: all.filter(e => e.estado === 'activo').length, tone: 'error' },
-      { label: 'En evaluación', value: all.filter(e => e.estado === 'evaluado').length, tone: 'warning' },
-      { label: 'Reconocidos "Héroe de Seguridad"', value: all.filter(e => e.heroeSeguridad).length, tone: 'success' },
+      {
+        label: 'Trabajo detenido',
+        value: all.filter((e) => e.estado === 'activo').length,
+        tone: 'error',
+      },
+      {
+        label: 'En evaluación',
+        value: all.filter((e) => e.estado === 'evaluado').length,
+        tone: 'warning',
+      },
+      {
+        label: 'Reconocidos "Héroe de Seguridad"',
+        value: all.filter((e) => e.heroeSeguridad).length,
+        tone: 'success',
+      },
     ];
   });
 
   protected readonly swaCards = computed(() =>
-    this.swaEventos().map(e => ({
+    this.swaEventos().map((e) => ({
       id: e.id,
       code: e.code,
       tipoPeligro: e.tipoPeligro,
@@ -188,22 +235,30 @@ export class EventosCriticosListPage {
     const all = this.derrameEventos();
     return [
       { label: 'Total eventos', value: all.length, tone: 'neutral' },
-      { label: 'Activos', value: all.filter(e => e.estado === 'activo').length, tone: 'error' },
-      { label: 'Mayores', value: all.filter(e => e.volumen === 'mayor').length, tone: 'warning' },
-      { label: 'Notificados a MAE', value: all.filter(e => e.notificadoMae).length, tone: 'info' },
+      { label: 'Activos', value: all.filter((e) => e.estado === 'activo').length, tone: 'error' },
+      {
+        label: 'Mayores',
+        value: all.filter((e) => e.banda.codigo === 'mayor').length,
+        tone: 'warning',
+      },
+      {
+        label: 'Notificados a MAE',
+        value: all.filter((e) => e.notificadoMae).length,
+        tone: 'info',
+      },
     ];
   });
 
   protected readonly derrameCards = computed(() =>
-    this.derrameEventos().map(e => ({
+    this.derrameEventos().map((e) => ({
       id: e.id,
-      code: e.code,
+      code: e.codigo,
       descripcion: e.descripcion,
-      ubicacion: e.ubicacionFisica || '—',
-      volumenLabel: DERRAME_VOLUMEN_LABELS[e.volumen],
-      esMayor: e.volumen === 'mayor',
+      ubicacion: e.ubicacion.nombre,
+      volumenLabel: e.banda.nombre,
+      esMayor: e.banda.codigo === 'mayor',
       activadoAt: formatDateTime(e.activadoAt),
-      estadoLabel: DERRAME_ESTADO_LABELS[e.estado],
+      estadoLabel: ESTADO_DERRAME_ETIQUETA[e.estado],
       accent: DERRAME_ESTADO_TONE[e.estado],
       notificadoMae: e.notificadoMae,
     })),
@@ -214,32 +269,44 @@ export class EventosCriticosListPage {
     const all = this.emergenciaEventos();
     return [
       { label: 'Total emergencias', value: all.length, tone: 'neutral' },
-      { label: 'Activas', value: all.filter(e => e.estado === 'activa').length, tone: 'error' },
-      { label: 'Nivel 3 (mayor)', value: all.filter(e => e.nivel === 3).length, tone: 'error' },
-      { label: 'Reporte Flash vencido', value: all.filter(e => reporteFlashVencido(e)).length, tone: 'warning' },
+      { label: 'Activas', value: all.filter((e) => e.estado === 'activa').length, tone: 'error' },
+      { label: 'Nivel 3 (mayor)', value: all.filter((e) => e.nivel === 3).length, tone: 'error' },
+      {
+        label: 'Reporte Flash vencido',
+        value: all.filter((e) => e.reporteFlashVencido).length,
+        tone: 'warning',
+      },
     ];
   });
 
   protected readonly emergenciaCards = computed(() =>
-    this.emergenciaEventos().map(e => {
-      const flashVencido = reporteFlashVencido(e);
-      const flashEmitido = !!e.reporteFlash.emitidoAt;
+    this.emergenciaEventos().map((e) => {
+      const flashVencido = e.reporteFlashVencido;
+      const flashEmitido = e.reporteFlashEmitido;
 
       const flashSegundosRestantes =
         !flashEmitido && !flashVencido
-          ? Math.max(0, DOS_HORAS_SEGUNDOS - Math.floor((Date.now() - new Date(e.activadoAt).getTime()) / 1000))
+          ? Math.max(
+              0,
+              DOS_HORAS_SEGUNDOS -
+                Math.floor((Date.now() - new Date(e.activadoAt).getTime()) / 1000),
+            )
           : null;
 
       return {
         id: e.id,
-        code: e.code,
-        tipo: e.tipo,
-        nivelLabel: e.nivel ? EMERGENCIA_NIVEL_LABELS[e.nivel] : 'Sin declarar',
+        code: e.codigo,
+        tipo: e.tipo.nombre,
+        nivelLabel: e.nivel ? NIVEL_EMERGENCIA_ETIQUETA[e.nivel] : 'Sin declarar',
         ubicacion: e.ubicacion || '—',
         activadoAt: formatDateTime(e.activadoAt),
-        estadoLabel: EMERGENCIA_ESTADO_LABELS[e.estado],
+        estadoLabel: ESTADO_EMERGENCIA_ETIQUETA[e.estado],
         accent: EMERGENCIA_ESTADO_TONE[e.estado],
-        flashLabel: flashEmitido ? 'Reporte Flash emitido' : flashVencido ? 'Reporte Flash vencido' : null,
+        flashLabel: flashEmitido
+          ? 'Reporte Flash emitido'
+          : flashVencido
+            ? 'Reporte Flash vencido'
+            : null,
         flashSegundosRestantes,
       };
     }),
@@ -250,28 +317,45 @@ export class EventosCriticosListPage {
     const all = this.investigaciones();
     return [
       { label: 'Total', value: all.length, tone: 'neutral' },
-      { label: 'Abiertas', value: all.filter(i => i.estado === 'abierta').length, tone: 'brand' },
-      { label: 'Plazo vencido', value: all.filter(i => plazoInicioVencido(i) || plazoFinalVencido(i)).length, tone: 'error' },
-      { label: 'Acciones pendientes', value: all.reduce((sum, i) => sum + accionesPendientes(i.acciones), 0), tone: 'warning' },
+      { label: 'Abiertas', value: all.filter((i) => i.estado === 'abierta').length, tone: 'brand' },
+      {
+        label: 'Plazo vencido',
+        value: all.filter((i) => plazoInicioVencido(i) || plazoFinalVencido(i)).length,
+        tone: 'error',
+      },
+      {
+        label: 'Acciones pendientes',
+        value: all.reduce((sum, i) => sum + accionesPendientes(i.acciones), 0),
+        tone: 'warning',
+      },
     ];
   });
 
   protected readonly investigacionCards = computed(() =>
-    this.investigaciones().map(i => {
+    this.investigaciones().map((i) => {
       const vencida = i.estado === 'abierta' && (plazoInicioVencido(i) || plazoFinalVencido(i));
-      const accent: DynadrillTagVariant & DynadrillCardAccent = i.estado === 'cerrada' ? 'success' : vencida ? 'error' : 'warning';
+      const accent: DynadrillTagVariant & DynadrillCardAccent =
+        i.estado === 'cerrada' ? 'success' : vencida ? 'error' : 'warning';
 
       const diasRestantes =
         i.estado === 'abierta' && !vencida
           ? Math.max(
               0,
               Math.ceil(
-                (new Date(i.fechaIncidente).getTime() + PLAZOS_POR_RESULTADO[i.resultado].finalDias * 86_400_000 - Date.now()) / 86_400_000,
+                (new Date(i.fechaIncidente).getTime() +
+                  PLAZOS_POR_RESULTADO[i.resultado].finalDias * 86_400_000 -
+                  Date.now()) /
+                  86_400_000,
               ),
             )
           : null;
 
-      const plazoLabel = i.estado === 'cerrada' ? 'Cerrada' : vencida ? 'Plazo vencido' : `${diasRestantes} días restantes`;
+      const plazoLabel =
+        i.estado === 'cerrada'
+          ? 'Cerrada'
+          : vencida
+            ? 'Plazo vencido'
+            : `${diasRestantes} días restantes`;
 
       return {
         id: i.id,
@@ -293,43 +377,60 @@ export class EventosCriticosListPage {
       this.activeTipo() === 'swa'
         ? Object.values(SWA_ESTADO_LABELS)
         : this.activeTipo() === 'derrames'
-          ? Object.values(DERRAME_ESTADO_LABELS)
+          ? Object.values(ESTADO_DERRAME_ETIQUETA)
           : this.activeTipo() === 'emergencias'
-            ? Object.values(EMERGENCIA_ESTADO_LABELS)
+            ? Object.values(ESTADO_EMERGENCIA_ETIQUETA)
             : ['Abierta', 'Cerrada'];
-    return [TODOS_OPTION, ...labels.map(l => ({ label: l, value: l }))];
+    return [TODOS_OPTION, ...labels.map((l) => ({ label: l, value: l }))];
   });
 
   // ── Tarjetas filtradas + paginadas por pestaña ──
   /** Tarjetas de la lista en móvil (Figma "M · Incidentes y Emergencias"): la pestaña activa como registros. */
   protected readonly itemsMovil = computed<RegistroMovil[]>(() => {
-    const tono = (t: string) => (t === 'error' ? ('error' as const) : t === 'warning' ? ('warning' as const) : ('success' as const));
+    const tono = (t: string) =>
+      t === 'error'
+        ? ('error' as const)
+        : t === 'warning'
+          ? ('warning' as const)
+          : ('success' as const);
     switch (this.activeTipo()) {
       case 'swa':
-        return this.swaVisible().map(c => ({
+        return this.swaVisible().map((c) => ({
           id: c.id,
           eyebrow: c.code,
           title: c.tipoPeligro,
           subtitle: `${c.ubicacion} · Activado por ${c.activadoPorNombre} · ${c.activadoAt}`,
           status: { text: c.estadoLabel, tone: c.accent },
-          fields: c.heroeSeguridad ? [{ label: 'Reconocimiento', value: 'Héroe de Seguridad', tone: 'success' as const }] : [],
-          actions: [{ icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(c.id) }],
+          fields: c.heroeSeguridad
+            ? [{ label: 'Reconocimiento', value: 'Héroe de Seguridad', tone: 'success' as const }]
+            : [],
+          actions: [
+            { icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(c.id) },
+          ],
         }));
       case 'derrames':
-        return this.derrameVisible().map(c => ({
+        return this.derrameVisible().map((c) => ({
           id: c.id,
           eyebrow: c.code,
           title: c.descripcion,
           subtitle: `${c.ubicacion} · ${c.activadoAt}`,
           status: { text: c.estadoLabel, tone: c.accent },
           fields: [
-            { label: 'Volumen', value: c.volumenLabel, tone: c.esMayor ? ('error' as const) : undefined },
-            ...(c.notificadoMae ? [{ label: 'MAE', value: 'Notificado', tone: 'success' as const }] : []),
+            {
+              label: 'Volumen',
+              value: c.volumenLabel,
+              tone: c.esMayor ? ('error' as const) : undefined,
+            },
+            ...(c.notificadoMae
+              ? [{ label: 'MAE', value: 'Notificado', tone: 'success' as const }]
+              : []),
           ],
-          actions: [{ icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(c.id) }],
+          actions: [
+            { icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(c.id) },
+          ],
         }));
       case 'emergencias':
-        return this.emergenciaVisible().map(e => ({
+        return this.emergenciaVisible().map((e) => ({
           id: e.id,
           eyebrow: e.code,
           title: e.tipo,
@@ -337,12 +438,22 @@ export class EventosCriticosListPage {
           status: { text: e.estadoLabel, tone: e.accent },
           fields: [
             { label: 'Nivel', value: e.nivelLabel },
-            ...(e.flashLabel ? [{ label: 'Reporte Flash', value: e.flashLabel, tone: tono(e.flashLabel.includes('vencido') ? 'error' : 'success') }] : []),
+            ...(e.flashLabel
+              ? [
+                  {
+                    label: 'Reporte Flash',
+                    value: e.flashLabel,
+                    tone: tono(e.flashLabel.includes('vencido') ? 'error' : 'success'),
+                  },
+                ]
+              : []),
           ],
-          actions: [{ icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(e.id) }],
+          actions: [
+            { icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(e.id) },
+          ],
         }));
       case 'investigaciones':
-        return this.investigacionVisible().map(i => ({
+        return this.investigacionVisible().map((i) => ({
           id: i.id,
           eyebrow: i.code,
           title: i.resultadoLabel,
@@ -350,31 +461,52 @@ export class EventosCriticosListPage {
           status: { text: i.estadoLabel, tone: 'neutral' as const },
           fields: [
             { label: 'Plazo', value: i.plazoLabel, tone: tono(i.accent) },
-            ...(i.accionesPendientes > 0 ? [{ label: 'Acciones pendientes', value: String(i.accionesPendientes) }] : []),
+            ...(i.accionesPendientes > 0
+              ? [{ label: 'Acciones pendientes', value: String(i.accionesPendientes) }]
+              : []),
           ],
-          actions: [{ icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(i.id) }],
+          actions: [
+            { icon: 'eye', label: 'Ver detalle', primary: true, run: () => this.viewDetail(i.id) },
+          ],
         }));
     }
   });
 
-  protected readonly swaVisible = computed(() => filtrar(this.swaCards(), this.searchText(), this.estadoFiltro()).slice(0, this.visibleCount()));
-  protected readonly swaFilteredTotal = computed(() => filtrar(this.swaCards(), this.searchText(), this.estadoFiltro()).length);
+  protected readonly swaVisible = computed(() =>
+    filtrar(this.swaCards(), this.searchText(), this.estadoFiltro()).slice(0, this.visibleCount()),
+  );
+  protected readonly swaFilteredTotal = computed(
+    () => filtrar(this.swaCards(), this.searchText(), this.estadoFiltro()).length,
+  );
 
   protected readonly derrameVisible = computed(() =>
-    filtrar(this.derrameCards(), this.searchText(), this.estadoFiltro()).slice(0, this.visibleCount()),
+    filtrar(this.derrameCards(), this.searchText(), this.estadoFiltro()).slice(
+      0,
+      this.visibleCount(),
+    ),
   );
-  protected readonly derrameFilteredTotal = computed(() => filtrar(this.derrameCards(), this.searchText(), this.estadoFiltro()).length);
+  protected readonly derrameFilteredTotal = computed(
+    () => filtrar(this.derrameCards(), this.searchText(), this.estadoFiltro()).length,
+  );
 
   protected readonly emergenciaVisible = computed(() =>
-    filtrar(this.emergenciaCards(), this.searchText(), this.estadoFiltro()).slice(0, this.visibleCount()),
+    filtrar(this.emergenciaCards(), this.searchText(), this.estadoFiltro()).slice(
+      0,
+      this.visibleCount(),
+    ),
   );
-  protected readonly emergenciaFilteredTotal = computed(() => filtrar(this.emergenciaCards(), this.searchText(), this.estadoFiltro()).length);
+  protected readonly emergenciaFilteredTotal = computed(
+    () => filtrar(this.emergenciaCards(), this.searchText(), this.estadoFiltro()).length,
+  );
 
   protected readonly investigacionVisible = computed(() =>
-    filtrar(this.investigacionCards(), this.searchText(), this.estadoFiltro()).slice(0, this.visibleCount()),
+    filtrar(this.investigacionCards(), this.searchText(), this.estadoFiltro()).slice(
+      0,
+      this.visibleCount(),
+    ),
   );
-  protected readonly investigacionFilteredTotal = computed(() =>
-    filtrar(this.investigacionCards(), this.searchText(), this.estadoFiltro()).length,
+  protected readonly investigacionFilteredTotal = computed(
+    () => filtrar(this.investigacionCards(), this.searchText(), this.estadoFiltro()).length,
   );
 
   protected readonly mostrandoTodo = computed(() => {
@@ -392,11 +524,11 @@ export class EventosCriticosListPage {
   constructor() {
     forkJoin({
       swa: this.swaService.list(),
-      derrames: this.derrameService.list(),
-      emergencias: this.emergenciaService.list(),
+      derrames: this.derrameService.listar(),
+      emergencias: this.emergenciaService.listar(),
       investigaciones: this.investigacionService.list(),
     }).subscribe({
-      next: r => {
+      next: (r) => {
         this.swaEventos.set(r.swa);
         this.derrameEventos.set(r.derrames);
         this.emergenciaEventos.set(r.emergencias);
@@ -429,10 +561,10 @@ export class EventosCriticosListPage {
   }
 
   protected mostrarMas(): void {
-    this.visibleCount.update(v => v + PAGE_SIZE);
+    this.visibleCount.update((v) => v + PAGE_SIZE);
   }
 
-  protected viewDetail(id: number): void {
+  protected viewDetail(id: number | string): void {
     this.router.navigate(['/dashboard/qhse', this.activeTipo(), id]);
   }
 
@@ -444,8 +576,12 @@ export class EventosCriticosListPage {
    * de alto potencial).
    */
   protected nuevaInvestigacion(): void {
-    const ref = this.dialogService.open<InvestigacionDialog>({ title: 'Nueva investigación', content: InvestigacionDialog, footer: false });
-    ref.afterClose.subscribe(inv => {
+    const ref = this.dialogService.open<InvestigacionDialog>({
+      title: 'Nueva investigación',
+      content: InvestigacionDialog,
+      footer: false,
+    });
+    ref.afterClose.subscribe((inv) => {
       if (inv) this.router.navigate(['/dashboard/qhse/investigaciones', inv.id]);
     });
   }

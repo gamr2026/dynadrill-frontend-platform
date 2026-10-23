@@ -1,0 +1,90 @@
+<div class="desecho-dialog">
+  <dynadrill-banner
+    variant="warning"
+    message="El suelo contaminado es un desecho peligroso. Usted elige la característica CRETIB, el contenedor y los galones; el derrame aporta la descripción y el sitio."
+  />
+
+  <dynadrill-text variant="caption">Características CRETIB</dynadrill-text>
+  <dynadrill-chip-group
+    mode="multiple"
+    [options]="cretibOpciones()"
+    [selected]="cretibElegidas()"
+    (selectedChange)="cretibElegidas.set($event)"
+  />
+
+  <dynadrill-select
+    label="Contenedor (código de color)"
+    placeholder="Elija el contenedor"
+    [options]="opcionesContenedor()"
+    [value]="contenedorId()"
+    (valueChange)="contenedorId.set($any($event) ?? '')"
+  />
+
+  <dynadrill-textarea
+    label="Nota adicional (opcional)"
+    [value]="nota()"
+    (valueChange)="nota.set($event)"
+    [rows]="2"
+  />
+
+  <dynadrill-text variant="caption"
+    >Ítems (DESCRIPCIÓN / # DE LOTE / CÓDIGO / CANTIDAD EN GLNS / BULTOS)</dynadrill-text
+  >
+  @for (item of items(); track item.clave) {
+    <div class="desecho-dialog__item-row">
+      <span
+        >{{ item.descripcion }} — {{ item.codigo }} — lote {{ item.numeroLote || '—' }} —
+        {{ item.cantidadGalones }} gal — {{ item.bultos }} bulto(s)</span
+      >
+      <dynadrill-button variant="secondary" size="small" (clicked)="quitarItem(item.clave)"
+        >Quitar</dynadrill-button
+      >
+    </div>
+  } @empty {
+    <dynadrill-text variant="caption">Todavía no hay ítems agregados.</dynadrill-text>
+  }
+
+  <div class="desecho-dialog__grid">
+    <dynadrill-input
+      label="Descripción del ítem"
+      [value]="itemDescripcion()"
+      (valueChange)="itemDescripcion.set($event)"
+    />
+    <dynadrill-input
+      label="Código del desecho"
+      [value]="itemCodigo()"
+      (valueChange)="itemCodigo.set($event)"
+    />
+    <dynadrill-input
+      label="# de lote del envase"
+      [value]="itemNumeroLote()"
+      (valueChange)="itemNumeroLote.set($event)"
+    />
+    <dynadrill-input
+      label="Cantidad en galones"
+      type="number"
+      [value]="itemCantidadGalones()"
+      (valueChange)="itemCantidadGalones.set($event)"
+    />
+    <dynadrill-input
+      label="Nº bultos/contenedores"
+      type="number"
+      [value]="itemBultos()"
+      (valueChange)="itemBultos.set($event)"
+    />
+  </div>
+  <dynadrill-button
+    variant="secondary"
+    size="small"
+    [disabled]="!puedeAgregarItem()"
+    (clicked)="agregarItem()"
+    >+ Agregar ítem</dynadrill-button
+  >
+
+  <div class="desecho-dialog__actions">
+    <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || enviando()" (clicked)="guardar()">{{
+      enviando() ? 'Generando…' : 'Registrar desecho peligroso'
+    }}</dynadrill-button>
+  </div>
+</div>

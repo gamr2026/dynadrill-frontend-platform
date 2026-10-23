@@ -96,6 +96,10 @@ export interface SwaDetalle {
   reanudadoPor: string | null;
   reanudadoAt: string | null;
   heroeSeguridad: boolean;
+  /** Emergencia a la que escaló (HSE-MASTER-001); nulo mientras no escale. */
+  emergencia: { id: string; codigo: string; estado: string } | null;
+  /** Una SWA que no esté cerrada y aún no tenga emergencia puede escalar. */
+  puedeEscalarAEmergencia: boolean;
   historial: {
     estadoAnterior: EstadoSwa | null;
     estadoNuevo: EstadoSwa;

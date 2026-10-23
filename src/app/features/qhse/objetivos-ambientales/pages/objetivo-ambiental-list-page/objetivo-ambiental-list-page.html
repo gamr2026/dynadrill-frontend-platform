@@ -3,7 +3,11 @@
   title="Objetivos Ambientales"
   subtitle="Objetivo → meta → indicador → plazo → plan de acción (revisión anual del SGA)"
 >
-  <div actions><dynadrill-button (clicked)="nuevoObjetivo()">+ Nuevo objetivo</dynadrill-button></div>
+  @if (puedeGestionar()) {
+    <div actions>
+      <dynadrill-button (clicked)="nuevoObjetivo()">+ Nuevo objetivo</dynadrill-button>
+    </div>
+  }
 </app-page-header>
 
 <div class="kpi-stat-row" role="list">
@@ -13,10 +17,19 @@
 </div>
 
 @if (isMobile()) {
-  <app-qhse-registros-movil [items]="itemsMovil()" [loading]="loading()" vacio="Todavía no hay objetivos ambientales." />
+  <app-qhse-registros-movil
+    [items]="itemsMovil()"
+    [loading]="loading()"
+    vacio="Todavía no hay objetivos ambientales."
+  />
 } @else {
   <ng-template #actionsTpl let-row>
-    <dynadrill-icon-button icon="eye" tooltip="Ver detalle" tooltipPlacement="top" (clicked)="verDetalle(row)" />
+    <dynadrill-icon-button
+      icon="eye"
+      tooltip="Ver detalle"
+      tooltipPlacement="top"
+      (clicked)="verDetalle(row)"
+    />
   </ng-template>
 
   <div class="table-scroll dyn-table-card">

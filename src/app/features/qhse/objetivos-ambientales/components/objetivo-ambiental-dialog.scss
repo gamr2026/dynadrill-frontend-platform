@@ -9,6 +9,20 @@
     gap: 12px;
   }
 
+  &__accion {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--border, #e4e2ec);
+    border-radius: 8px;
+  }
+
+  &__quitar {
+    display: flex;
+    justify-content: flex-end;
+  }
+
   &__actions {
     display: flex;
     justify-content: flex-end;

@@ -1,0 +1,1028 @@
+@if (loading()) {
+  <p class="investigacion-detail-page__loading">Cargando investigación…</p>
+} @else if (investigacion(); as i) {
+  <dynadrill-screen-header
+    [eyebrow]="i.codigo"
+    [title]="i.resultado.nombre"
+    [subtitle]="i.descripcionEvento"
+    [roleTag]="estadoEtiqueta[i.estado]"
+  />
+
+  <dynadrill-button variant="secondary" size="small" (click)="back()"
+    >← Volver a Investigaciones</dynadrill-button
+  >
+
+  @if (i.origenEmergenciaId) {
+    <dynadrill-banner
+      variant="info"
+      message="Activada automáticamente desde una emergencia de nivel 2 o 3."
+    />
+  }
+  @if (i.resultado.plazoSupuesto) {
+    <dynadrill-banner
+      variant="info"
+      message="Para este resultado el formato no define plazos propios: se usan los de «leve» hasta confirmarlos con Dynadrill."
+    />
+  }
+  @if (inicioVencido()) {
+    <dynadrill-banner
+      variant="critical"
+      message="Plazo de inicio de la investigación VENCIDO — asegure la escena y nombre al líder cuanto antes."
+    />
+  }
+  @if (finalVencido()) {
+    <dynadrill-banner variant="critical" message="Plazo del informe final VENCIDO." />
+  }
+
+  <dynadrill-context-card [items]="contextItems()" />
+
+  <!-- 1. Inicio, escena y equipo -->
+  <section class="investigacion-detail-page__section">
+    <h3>1. Escena y equipo investigador</h3>
+    @if (i.estado === 'abierta') {
+      <p class="investigacion-detail-page__note">
+        La investigación aún no se inicia: nombre al líder y registre cuándo se aseguró la escena.
+      </p>
+      @if (puedeGestionar()) {
+        <div class="investigacion-detail-page__inline-form">
+          <dynadrill-select
+            label="Líder de la investigación"
+            placeholder="Elija"
+            [options]="opcionesPersonas()"
+            [value]="liderId()"
+            [searchable]="true"
+            (valueChange)="liderId.set($any($event) ?? '')"
+          />
+          <dynadrill-datetime-picker
+            label="Escena asegurada (si no, ahora)"
+            placeholder="Ahora"
+            [value]="$any(escenaFecha())"
+            [showToday]="true"
+            (valueChange)="escenaFecha.set($event)"
+          />
+          <dynadrill-button
+            variant="secondary"
+            [disabled]="!puedeIniciar() || enviando()"
+            (click)="iniciar()"
+            >Iniciar investigación</dynadrill-button
+          >
+        </div>
+      }
+    } @else {
+      @if (i.escenaAseguradaAt) {
+        <dynadrill-tag
+          [label]="'Escena asegurada ' + (i.escenaAseguradaAt | date: 'short')"
+          variant="success"
+        />
+      }
+      @if (i.lider) {
+        <dynadrill-tag [label]="'Líder: ' + i.lider.nombre" variant="brand" />
+      }
+    }
+
+    <div class="investigacion-detail-page__list">
+      @for (m of i.equipo; track m.id; let k = $index) {
+        <span class="investigacion-detail-page__chip">
+          <dynadrill-tag [label]="m.nombre ?? '—'" variant="neutral" />
+          @if (editable()) {
+            <dynadrill-button
+              variant="secondary"
+              size="small"
+              [disabled]="enviando()"
+              (click)="quitarIntegrante(k)"
+              >Quitar</dynadrill-button
+            >
+          }
+        </span>
+      }
+      @if (!i.equipo.length) {
+        <p class="investigacion-detail-page__note">Sin integrantes registrados.</p>
+      }
+    </div>
+    @if (editable()) {
+      <div class="investigacion-detail-page__inline-form">
+        <dynadrill-select
+          label="Agregar integrante (cuenta del portal)"
+          placeholder="Elija"
+          [options]="opcionesPersonas()"
+          [value]="miembroPersonaId()"
+          [searchable]="true"
+          (valueChange)="miembroPersonaId.set($any($event) ?? '')"
+        />
+        <dynadrill-input
+          label="O persona externa (por ejemplo, del cliente)"
+          placeholder="Nombre"
+          [value]="miembroExterno()"
+          (valueChange)="miembroExterno.set($event)"
+        />
+        <dynadrill-button
+          variant="secondary"
+          [disabled]="!puedeAgregarMiembro() || enviando()"
+          (click)="agregarIntegrante()"
+          >Agregar</dynadrill-button
+        >
+      </div>
+    }
+  </section>
+
+  <!-- 2. Datos del trabajador involucrado -->
+  @if (involucraLesionado()) {
+    <section class="investigacion-detail-page__section">
+      <h3>2. Datos del trabajador involucrado</h3>
+      @if (!editable()) {
+        @if (i.trabajador) {
+          <dynadrill-context-card [items]="trabajadorItems()" layout="vertical" />
+        } @else {
+          <p class="investigacion-detail-page__note">No se registró al trabajador involucrado.</p>
+        }
+      } @else if (!mostrarTrabajador()) {
+        <dynadrill-button variant="secondary" size="small" (click)="mostrarTrabajador.set(true)"
+          >+ Registrar trabajador involucrado</dynadrill-button
+        >
+      } @else {
+        <div class="investigacion-detail-page__grid">
+          <dynadrill-select
+            label="Cuenta del portal (si la tiene)"
+            placeholder="Sin cuenta"
+            [options]="opcionesPersonas()"
+            [value]="trabajador().usuarioId"
+            [searchable]="true"
+            (valueChange)="setTrabajador('usuarioId', $any($event) ?? '')"
+          />
+          @if (!trabajadorConCuenta()) {
+            <dynadrill-input
+              label="Apellidos y nombres"
+              [value]="trabajador().apellidosNombres"
+              (valueChange)="setTrabajador('apellidosNombres', $event)"
+            />
+            <dynadrill-input
+              label="N° de cédula"
+              [value]="trabajador().cedula"
+              (valueChange)="setTrabajador('cedula', $event)"
+            />
+            <dynadrill-input
+              label="Cargo"
+              [value]="trabajador().cargo"
+              (valueChange)="setTrabajador('cargo', $event)"
+            />
+          }
+          <dynadrill-input
+            label="Dirección"
+            [value]="trabajador().direccion"
+            (valueChange)="setTrabajador('direccion', $event)"
+          />
+          <dynadrill-input
+            label="Teléfono"
+            [value]="trabajador().telefono"
+            (valueChange)="setTrabajador('telefono', $event)"
+          />
+          <dynadrill-select
+            label="Sexo"
+            placeholder="Elija"
+            [options]="sexoOptions"
+            [value]="trabajador().sexo"
+            (valueChange)="setTrabajador('sexo', $any($event) ?? '')"
+          />
+          <dynadrill-input
+            label="Tipo de vinculación"
+            [value]="trabajador().tipoVinculacion"
+            (valueChange)="setTrabajador('tipoVinculacion', $event)"
+          />
+          <dynadrill-input
+            label="Oficio que desempeñaba"
+            [value]="trabajador().oficioDesempenaba"
+            (valueChange)="setTrabajador('oficioDesempenaba', $event)"
+          />
+          <dynadrill-input
+            label="Jornada de trabajo habitual"
+            [value]="trabajador().jornadaHabitual"
+            (valueChange)="setTrabajador('jornadaHabitual', $event)"
+          />
+          <dynadrill-input
+            label="Tiempo de experiencia en el oficio (meses)"
+            [value]="trabajador().tiempoExperienciaMeses"
+            (valueChange)="setTrabajador('tiempoExperienciaMeses', $event)"
+          />
+        </div>
+        @if (trabajadorConCuenta()) {
+          <p class="investigacion-detail-page__note">
+            Con cuenta del portal, el nombre, la cédula y el cargo se toman de su perfil.
+          </p>
+        }
+        <dynadrill-button
+          variant="secondary"
+          size="small"
+          [disabled]="enviando()"
+          (click)="guardarTrabajador()"
+          >Guardar datos del trabajador</dynadrill-button
+        >
+      }
+    </section>
+  }
+
+  <!-- 3. Información sobre el incidente -->
+  <section class="investigacion-detail-page__section">
+    <h3>3. Información sobre el incidente o accidente</h3>
+    @if (!editable()) {
+      @if (i.incidente) {
+        <dynadrill-context-card [items]="incidenteItems()" layout="vertical" />
+      } @else {
+        <p class="investigacion-detail-page__note">No se registró la información del incidente.</p>
+      }
+    } @else {
+      <div class="investigacion-detail-page__grid">
+        <dynadrill-input
+          label="Empresa donde ocurrió"
+          [value]="incidente().empresaDondeOcurrio"
+          (valueChange)="setIncidente('empresaDondeOcurrio', $event)"
+        />
+        <dynadrill-input
+          label="Dirección donde ocurrió"
+          [value]="incidente().direccionOcurrencia"
+          (valueChange)="setIncidente('direccionOcurrencia', $event)"
+        />
+        <dynadrill-select
+          label="Jornada en que sucede"
+          placeholder="Elija"
+          [options]="jornadaOptions"
+          [value]="incidente().jornadaSuceso"
+          (valueChange)="setIncidente('jornadaSuceso', $any($event) ?? '')"
+        />
+        <dynadrill-select
+          label="Zona"
+          placeholder="Elija"
+          [options]="zonaOptions"
+          [value]="incidente().zona"
+          (valueChange)="setIncidente('zona', $any($event) ?? '')"
+        />
+        <dynadrill-input
+          label="Hora de inicio de la jornada laboral (HH:mm)"
+          [value]="incidente().horaInicioJornada"
+          (valueChange)="setIncidente('horaInicioJornada', $event)"
+        />
+        <dynadrill-input
+          label="Factor que originó el suceso"
+          [value]="incidente().factorQueOrigino"
+          (valueChange)="setIncidente('factorQueOrigino', $event)"
+        />
+        @if (involucraLesionado()) {
+          <dynadrill-input
+            label="Tiempo que tardó en recibir atención médica"
+            [value]="incidente().tiempoAtencionMedica"
+            (valueChange)="setIncidente('tiempoAtencionMedica', $event)"
+          />
+          <dynadrill-input
+            label="Centro médico donde recibió la atención"
+            [value]="incidente().centroMedico"
+            (valueChange)="setIncidente('centroMedico', $event)"
+          />
+          <dynadrill-input
+            label="Parte del cuerpo afectada"
+            [value]="incidente().parteCuerpoAfectada"
+            (valueChange)="setIncidente('parteCuerpoAfectada', $event)"
+          />
+          <dynadrill-input
+            label="Tipo de lesión sufrida"
+            [value]="incidente().tipoLesionSufrida"
+            (valueChange)="setIncidente('tipoLesionSufrida', $event)"
+          />
+          <dynadrill-input
+            label="Total días de incapacidad"
+            [value]="incidente().totalDiasIncapacidad"
+            (valueChange)="setIncidente('totalDiasIncapacidad', $event)"
+          />
+        }
+        <dynadrill-input
+          label="Daños materiales"
+          [value]="incidente().danosMateriales"
+          (valueChange)="setIncidente('danosMateriales', $event)"
+        />
+        <dynadrill-input
+          label="Total pérdidas económicas ($)"
+          [value]="incidente().totalPerdidasEconomicas"
+          (valueChange)="setIncidente('totalPerdidasEconomicas', $event)"
+        />
+        <dynadrill-input
+          label="Daños al medio ambiente"
+          [value]="incidente().danosMedioAmbiente"
+          (valueChange)="setIncidente('danosMedioAmbiente', $event)"
+        />
+      </div>
+
+      <div class="investigacion-detail-page__checks">
+        @if (involucraLesionado()) {
+          <dynadrill-checkbox
+            label="Causó muerte el accidente"
+            [checked]="incidente().causoMuerte"
+            (checkedChange)="setIncidente('causoMuerte', $event)"
+          />
+          <dynadrill-checkbox
+            label="Continúa incapacitado"
+            [checked]="incidente().continuaIncapacitado"
+            (checkedChange)="setIncidente('continuaIncapacitado', $event)"
+          />
+        }
+        <dynadrill-checkbox
+          label="El oficio ejecutado era propio de su cargo habitual"
+          [checked]="incidente().oficioEraPropioDelCargo"
+          (checkedChange)="setIncidente('oficioEraPropioDelCargo', $event)"
+        />
+        <dynadrill-checkbox
+          label="Se informó oportunamente del suceso"
+          [checked]="incidente().seInformoOportunamente"
+          (checkedChange)="setIncidente('seInformoOportunamente', $event)"
+        />
+        <dynadrill-checkbox
+          label="Han ocurrido sucesos similares previos"
+          [checked]="incidente().sucesosSimilaresPrevios"
+          (checkedChange)="setIncidente('sucesosSimilaresPrevios', $event)"
+        />
+      </div>
+      @if (involucraLesionado() && incidente().causoMuerte) {
+        <label class="investigacion-detail-page__fecha">
+          Fecha de la muerte
+          <input
+            type="date"
+            [value]="incidente().fechaMuerte"
+            (input)="setIncidente('fechaMuerte', $any($event.target).value)"
+          />
+        </label>
+      }
+      @if (incidente().sucesosSimilaresPrevios) {
+        <dynadrill-textarea
+          label="Detalle de sucesos similares"
+          [value]="incidente().sucesosSimilaresDetalle"
+          (valueChange)="setIncidente('sucesosSimilaresDetalle', $event)"
+          [rows]="2"
+        />
+      }
+
+      <dynadrill-button
+        variant="secondary"
+        size="small"
+        [disabled]="enviando()"
+        (click)="guardarIncidente()"
+        >Guardar información del incidente</dynadrill-button
+      >
+    }
+  </section>
+
+  <!-- 4. Evidencias, testimonios y testigos -->
+  <section class="investigacion-detail-page__section">
+    <h3>4. Evidencias, testimonios y testigos</h3>
+    @if (editable()) {
+      <dynadrill-textarea
+        label="Evidencias recopiladas"
+        [value]="evidencias()"
+        (valueChange)="evidencias.set($event)"
+        [rows]="3"
+      />
+      <dynadrill-textarea
+        label="Descripción detallada del lugar y cómo ocurrió el suceso"
+        [value]="testimonios()"
+        (valueChange)="testimonios.set($event)"
+        [rows]="3"
+      />
+      <dynadrill-button
+        variant="secondary"
+        size="small"
+        [disabled]="enviando()"
+        (click)="guardarEvidencias()"
+        >Guardar</dynadrill-button
+      >
+    } @else {
+      <p class="investigacion-detail-page__texto">
+        <strong>Evidencias recopiladas:</strong> {{ i.evidenciasRecopiladas || '—' }}
+      </p>
+      <p class="investigacion-detail-page__texto">
+        <strong>Descripción del lugar y de cómo ocurrió:</strong> {{ i.testimoniosResumen || '—' }}
+      </p>
+    }
+
+    <div class="investigacion-detail-page__list">
+      @for (t of i.testigos; track t.orden; let k = $index) {
+        <div class="investigacion-detail-page__testigo">
+          <strong>{{ t.nombresApellidos }}</strong>
+          <span class="investigacion-detail-page__note"
+            >{{ t.cedula || 'sin cédula' }} — {{ t.version }}</span
+          >
+          @if (editable()) {
+            <dynadrill-button
+              variant="secondary"
+              size="small"
+              [disabled]="enviando()"
+              (click)="quitarTestigo(k)"
+              >Quitar</dynadrill-button
+            >
+          }
+        </div>
+      }
+      @if (!i.testigos.length) {
+        <p class="investigacion-detail-page__note">Sin testigos registrados.</p>
+      }
+    </div>
+    @if (editable() && i.testigos.length < 3) {
+      <div class="investigacion-detail-page__inline-form">
+        <dynadrill-input
+          label="Testigo — nombres y apellidos"
+          [value]="nuevoTestigo().nombresApellidos"
+          (valueChange)="nuevoTestigo.set({ ...nuevoTestigo(), nombresApellidos: $event })"
+        />
+        <dynadrill-input
+          label="C.C."
+          [value]="nuevoTestigo().cedula"
+          (valueChange)="nuevoTestigo.set({ ...nuevoTestigo(), cedula: $event })"
+        />
+        <dynadrill-input
+          label="Versión"
+          [value]="nuevoTestigo().version"
+          (valueChange)="nuevoTestigo.set({ ...nuevoTestigo(), version: $event })"
+        />
+        <dynadrill-button
+          variant="secondary"
+          [disabled]="!puedeAgregarTestigo() || enviando()"
+          (click)="agregarTestigo()"
+          >+ Agregar testigo</dynadrill-button
+        >
+      </div>
+    }
+  </section>
+
+  <!-- 5. Entorno de trabajo -->
+  <section class="investigacion-detail-page__section">
+    <h3>5. Entorno de trabajo — factores de riesgo presentes en la estación de trabajo</h3>
+    <div class="investigacion-detail-page__list">
+      @for (f of i.entorno; track f.orden; let k = $index) {
+        <div class="investigacion-detail-page__factor">
+          <strong>{{ f.tipo }}</strong>
+          <span class="investigacion-detail-page__note"
+            >Fuente: {{ f.fuente }} · Existe control: {{ f.existeControl ? 'sí' : 'no' }} ·
+            Contribuyó al suceso: {{ f.contribuyoAlSuceso ? 'sí' : 'no' }}</span
+          >
+          @if (editable()) {
+            <dynadrill-button
+              variant="secondary"
+              size="small"
+              [disabled]="enviando()"
+              (click)="quitarFactor(k)"
+              >Quitar</dynadrill-button
+            >
+          }
+        </div>
+      }
+      @if (!i.entorno.length) {
+        <p class="investigacion-detail-page__note">Sin factores registrados.</p>
+      }
+    </div>
+    @if (editable()) {
+      <div class="investigacion-detail-page__inline-form">
+        <dynadrill-input
+          label="Tipo"
+          [value]="nuevoFactor().tipo"
+          (valueChange)="nuevoFactor.set({ ...nuevoFactor(), tipo: $event })"
+        />
+        <dynadrill-input
+          label="Fuente"
+          [value]="nuevoFactor().fuente"
+          (valueChange)="nuevoFactor.set({ ...nuevoFactor(), fuente: $event })"
+        />
+        <dynadrill-checkbox
+          label="Existía un control"
+          [checked]="nuevoFactor().existeControl"
+          (checkedChange)="nuevoFactor.set({ ...nuevoFactor(), existeControl: $event })"
+        />
+        <dynadrill-checkbox
+          label="Contribuyó al suceso"
+          [checked]="nuevoFactor().contribuyoAlSuceso"
+          (checkedChange)="nuevoFactor.set({ ...nuevoFactor(), contribuyoAlSuceso: $event })"
+        />
+        <dynadrill-button
+          variant="secondary"
+          [disabled]="!puedeAgregarFactor() || enviando()"
+          (click)="agregarFactor()"
+          >+ Agregar factor</dynadrill-button
+        >
+      </div>
+    }
+  </section>
+
+  <!-- 6. 5 Porqués -->
+  <section class="investigacion-detail-page__section">
+    <h3>6. Metodología 5 Porqués {{ porquesCompleto() ? '✓' : '(mínimo 5 niveles)' }}</h3>
+    @for (p of i.porques; track p.orden; let k = $index) {
+      <p class="investigacion-detail-page__porque">
+        {{ p.orden }}. <strong>{{ p.pregunta }}</strong> — {{ p.respuesta }}
+        @if (editable()) {
+          <dynadrill-button
+            variant="secondary"
+            size="small"
+            [disabled]="enviando()"
+            (click)="quitarPorque(k)"
+            >Quitar</dynadrill-button
+          >
+        }
+      </p>
+    }
+    @if (editable()) {
+      <div class="investigacion-detail-page__inline-form">
+        <dynadrill-input
+          label="¿Por qué...?"
+          [value]="nuevaPregunta()"
+          (valueChange)="nuevaPregunta.set($event)"
+        />
+        <dynadrill-input
+          label="Respuesta"
+          [value]="nuevaRespuesta()"
+          (valueChange)="nuevaRespuesta.set($event)"
+        />
+        <dynadrill-button
+          variant="secondary"
+          [disabled]="!puedeAgregarPorque() || enviando()"
+          (click)="agregarPorque()"
+          >+ Agregar nivel</dynadrill-button
+        >
+      </div>
+    }
+  </section>
+
+  <!-- 7. Ishikawa -->
+  <section class="investigacion-detail-page__section">
+    <h3>7. Diagrama de Ishikawa (espina de pescado)</h3>
+    @for (cat of categorias(); track cat.id) {
+      <div class="investigacion-detail-page__categoria">
+        <strong>{{ cat.nombre }}</strong>
+        @for (c of causasIshikawaDe(cat.id); track c.orden) {
+          <p class="investigacion-detail-page__porque">
+            {{ c.descripcion }}
+            @if (editable()) {
+              <dynadrill-button
+                variant="secondary"
+                size="small"
+                [disabled]="enviando()"
+                (click)="quitarIshikawa(c.orden)"
+                >Quitar</dynadrill-button
+              >
+            }
+          </p>
+        }
+        @if (editable()) {
+          <div class="investigacion-detail-page__inline-form">
+            <dynadrill-input
+              [label]="'Agregar causa en ' + cat.nombre"
+              [value]="nuevaIshikawa()[cat.id] ?? ''"
+              (valueChange)="setNuevaIshikawa(cat.id, $event)"
+            />
+            <dynadrill-button
+              variant="secondary"
+              [disabled]="enviando()"
+              (click)="agregarIshikawa(cat.id)"
+              >+ Agregar</dynadrill-button
+            >
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <!-- 8. Causas inmediatas, básicas y fuente de gestión -->
+  <section class="investigacion-detail-page__section">
+    <h3>8. Causas inmediatas, básicas y fuente de gestión</h3>
+    @for (tipo of tiposCausa; track tipo) {
+      <div class="investigacion-detail-page__categoria">
+        <strong>{{ tipoCausaEtiqueta[tipo] }}</strong>
+        @for (c of causasDeTipo(tipo); track c.orden) {
+          <p class="investigacion-detail-page__porque">
+            {{ c.descripcion }}
+            @if (editable()) {
+              <dynadrill-button
+                variant="secondary"
+                size="small"
+                [disabled]="enviando()"
+                (click)="quitarCausa(tipo, c.orden)"
+                >Quitar</dynadrill-button
+              >
+            }
+          </p>
+        }
+        @if (editable()) {
+          <div class="investigacion-detail-page__inline-form">
+            <dynadrill-input
+              [label]="'Agregar: ' + tipoCausaEtiqueta[tipo]"
+              [value]="nuevaCausa()[tipo] ?? ''"
+              (valueChange)="setNuevaCausa(tipo, $event)"
+            />
+            <dynadrill-button
+              variant="secondary"
+              [disabled]="enviando()"
+              (click)="agregarCausa(tipo)"
+              >+ Agregar</dynadrill-button
+            >
+          </div>
+        }
+      </div>
+    }
+    @if (editable()) {
+      <dynadrill-textarea
+        label="Lecciones aprendidas"
+        [value]="leccionesAprendidas()"
+        (valueChange)="leccionesAprendidas.set($event)"
+        [rows]="3"
+      />
+      <dynadrill-button
+        variant="secondary"
+        size="small"
+        [disabled]="enviando()"
+        (click)="guardarLecciones()"
+        >Guardar lecciones aprendidas</dynadrill-button
+      >
+    } @else {
+      <p class="investigacion-detail-page__texto">
+        <strong>Lecciones aprendidas:</strong> {{ i.leccionesAprendidas || '—' }}
+      </p>
+    }
+  </section>
+
+  <!-- 9. Medidas de intervención -->
+  <section class="investigacion-detail-page__section">
+    <h3>9. Medidas de intervención (correctivas y preventivas)</h3>
+    @for (a of i.acciones; track a.id) {
+      <div class="investigacion-detail-page__accion">
+        <div class="investigacion-detail-page__accion-head">
+          <strong>{{ a.orden }}. {{ a.descripcion }}</strong>
+          <span class="investigacion-detail-page__note"
+            >{{ tipoAccionEtiqueta[a.tipo] }} — {{ a.responsable.nombre }} — plazo
+            {{ a.plazo | date: 'dd/MM/yyyy' }}</span
+          >
+          <div class="investigacion-detail-page__list">
+            <dynadrill-tag
+              [label]="estadoAccionEtiqueta[a.estado]"
+              [variant]="
+                a.estado === 'verificada'
+                  ? 'success'
+                  : a.estado === 'cancelada'
+                    ? 'neutral'
+                    : a.estado === 'implementada'
+                      ? 'info'
+                      : 'warning'
+              "
+            />
+            @if (a.vencida) {
+              <dynadrill-tag label="Vencida" variant="error" />
+            }
+          </div>
+        </div>
+
+        <div class="investigacion-detail-page__checks investigacion-detail-page__checks--inline">
+          <span class="investigacion-detail-page__note">Control aplicado a:</span>
+          @for (nivel of a.controles; track nivel) {
+            <dynadrill-tag [label]="nivelEtiqueta[nivel]" variant="neutral" />
+          }
+          @if (!a.controles.length) {
+            <span class="investigacion-detail-page__note">sin indicar</span>
+          }
+        </div>
+
+        @if (a.estado === 'pendiente' && puedeGestionar()) {
+          <div class="investigacion-detail-page__inline-form">
+            <dynadrill-button
+              variant="secondary"
+              size="small"
+              [disabled]="enviando()"
+              (click)="implementarAccion(a)"
+              >Marcar implementada</dynadrill-button
+            >
+            @if (accionCancelando() !== a.id) {
+              <dynadrill-button
+                variant="secondary"
+                size="small"
+                [disabled]="enviando()"
+                (click)="pedirCancelacion(a)"
+                >Cancelar acción</dynadrill-button
+              >
+            }
+          </div>
+          @if (accionCancelando() === a.id) {
+            <div class="investigacion-detail-page__inline-form">
+              <dynadrill-input
+                label="Motivo de la cancelación"
+                [value]="motivoCancelacion()"
+                (valueChange)="motivoCancelacion.set($event)"
+              />
+              <dynadrill-button
+                variant="error"
+                size="small"
+                [disabled]="!motivoCancelacion().trim() || enviando()"
+                (click)="confirmarCancelacion(a)"
+                >Confirmar cancelación</dynadrill-button
+              >
+            </div>
+          }
+        }
+
+        @if (a.estado === 'implementada') {
+          @if (puedeGestionar()) {
+            <div class="investigacion-detail-page__inline-form">
+              <span class="investigacion-detail-page__note"
+                >Verificación de eficacia (el formato indica hacerla a los 3 meses{{
+                  a.verificableDesde
+                    ? ', desde el ' + (a.verificableDesde | date: 'dd/MM/yyyy')
+                    : ''
+                }}):</span
+              >
+              <dynadrill-input
+                label="Observación (obligatoria si no fue eficaz)"
+                [value]="observacionVerificacion()[a.id] ?? ''"
+                (valueChange)="setObservacionVerificacion(a.id, $event)"
+              />
+              <dynadrill-button
+                variant="success"
+                size="small"
+                [disabled]="enviando()"
+                (click)="verificarAccion(a, true)"
+                >Fue eficaz</dynadrill-button
+              >
+              <dynadrill-button
+                variant="error"
+                size="small"
+                [disabled]="enviando()"
+                (click)="verificarAccion(a, false)"
+                >No fue eficaz</dynadrill-button
+              >
+            </div>
+          } @else {
+            <p class="investigacion-detail-page__note">
+              Implementada: pendiente de verificar su eficacia.
+            </p>
+          }
+        }
+        @if (a.estado === 'verificada') {
+          <dynadrill-tag
+            [label]="
+              (a.fueEficaz ? 'Eficaz' : 'No eficaz') +
+              (a.verificacionObservacion ? ' — ' + a.verificacionObservacion : '')
+            "
+            [variant]="a.fueEficaz ? 'success' : 'error'"
+          />
+        }
+        @if (a.estado === 'cancelada') {
+          <dynadrill-tag [label]="'Cancelada — ' + a.cancelacionMotivo" variant="neutral" />
+        }
+      </div>
+    }
+    @if (!i.acciones.length) {
+      <p class="investigacion-detail-page__note">Sin acciones registradas.</p>
+    }
+    @if (puedeRegistrarAccion()) {
+      <div class="investigacion-detail-page__inline-form">
+        <dynadrill-input
+          label="Descripción"
+          [value]="nuevaAccionDescripcion()"
+          (valueChange)="nuevaAccionDescripcion.set($event)"
+        />
+        <dynadrill-select
+          label="Tipo"
+          [options]="tipoAccionOptions"
+          [value]="nuevaAccionTipo()"
+          (valueChange)="nuevaAccionTipo.set($any($event))"
+        />
+        <dynadrill-select
+          label="Responsable"
+          placeholder="Elija"
+          [options]="opcionesPersonas()"
+          [value]="nuevaAccionResponsable()"
+          [searchable]="true"
+          (valueChange)="nuevaAccionResponsable.set($any($event) ?? '')"
+        />
+        <dynadrill-datetime-picker
+          label="Plazo"
+          placeholder="Selecciona la fecha"
+          [value]="$any(nuevaAccionPlazo())"
+          [showToday]="true"
+          (valueChange)="nuevaAccionPlazo.set($event)"
+        />
+      </div>
+      <div class="investigacion-detail-page__checks investigacion-detail-page__checks--inline">
+        <span class="investigacion-detail-page__note">Control aplicado a:</span>
+        @for (nivel of nivelesControl; track nivel) {
+          <dynadrill-checkbox
+            [label]="nivelEtiqueta[nivel]"
+            [checked]="nuevaAccionControles().includes(nivel)"
+            (checkedChange)="alternarControl(nivel)"
+          />
+        }
+      </div>
+      <dynadrill-button
+        variant="secondary"
+        [disabled]="!puedeAgregarAccion() || enviando()"
+        (click)="agregarAccion()"
+        >+ Agregar acción</dynadrill-button
+      >
+    } @else if (puedeGestionar() && i.estado === 'abierta') {
+      <p class="investigacion-detail-page__note">
+        Las acciones se registran una vez iniciada la investigación.
+      </p>
+    }
+  </section>
+
+  <!-- 10. Notificación legal -->
+  <section class="investigacion-detail-page__section">
+    <h3>10. Notificación legal (Ministerio del Trabajo / IESS — plazo 24h)</h3>
+    @if (sugiereLegal() && !i.notificacionLegal.requerida) {
+      <dynadrill-banner
+        variant="warning"
+        message="La clasificación sugiere notificación obligatoria — confirme con el equipo legal si aplica."
+      />
+    }
+    @if (editable()) {
+      <dynadrill-checkbox
+        label="La notificación legal es obligatoria en este caso"
+        [checked]="i.notificacionLegal.requerida"
+        (checkedChange)="alternarNotificacionRequerida($event)"
+      />
+    } @else {
+      <p class="investigacion-detail-page__note">
+        {{
+          i.notificacionLegal.requerida
+            ? 'Notificación legal obligatoria.'
+            : 'Sin notificación legal obligatoria.'
+        }}
+      </p>
+    }
+    @if (i.notificacionLegal.requerida) {
+      <div class="investigacion-detail-page__inline-form">
+        @if (i.notificacionLegal.ministerioTrabajoNotificadoAt) {
+          <dynadrill-tag
+            [label]="
+              'Ministerio del Trabajo notificado ' +
+              (i.notificacionLegal.ministerioTrabajoNotificadoAt | date: 'short')
+            "
+            variant="success"
+          />
+        } @else if (editable()) {
+          <dynadrill-button
+            variant="secondary"
+            size="small"
+            [disabled]="enviando()"
+            (click)="marcarNotificadoMinisterio()"
+            >Notificar Min. Trabajo</dynadrill-button
+          >
+        }
+        @if (i.notificacionLegal.iessNotificadoAt) {
+          <dynadrill-tag
+            [label]="'IESS notificado ' + (i.notificacionLegal.iessNotificadoAt | date: 'short')"
+            variant="success"
+          />
+        } @else if (editable()) {
+          <dynadrill-button
+            variant="secondary"
+            size="small"
+            [disabled]="enviando()"
+            (click)="marcarNotificadoIess()"
+            >Marcar IESS notificado</dynadrill-button
+          >
+        }
+      </div>
+    }
+  </section>
+
+  <!-- 11. Vínculo con la matriz IPERC -->
+  <section class="investigacion-detail-page__section">
+    <h3>11. Retroalimentación a IPERC (HSE-MASTER-001)</h3>
+    @if (i.ipercActividad) {
+      <dynadrill-tag
+        [label]="'Actividad IPERC vinculada: ' + i.ipercActividad.nombre"
+        variant="info"
+      />
+    } @else if (editable()) {
+      <dynadrill-select
+        label="Vincular la actividad de la matriz IPERC afectada (opcional)"
+        placeholder="Elija"
+        [options]="opcionesIperc()"
+        [searchable]="true"
+        (valueChange)="seleccionarIperc($any($event) ?? '')"
+      />
+    } @else {
+      <p class="investigacion-detail-page__note">Sin actividad IPERC vinculada.</p>
+    }
+  </section>
+
+  <!-- 12. Conclusión -->
+  <section class="investigacion-detail-page__section">
+    <h3>12. Conclusión del evento</h3>
+    @if (i.conclusion) {
+      <dynadrill-tag
+        [label]="conclusionEtiqueta[i.conclusion]"
+        [variant]="i.conclusion === 'accidente' ? 'warning' : 'success'"
+      />
+    }
+    @if (editable()) {
+      <dynadrill-select
+        [label]="i.conclusion ? 'Cambiar la conclusión' : '¿Incidente o accidente?'"
+        placeholder="Elija"
+        [options]="conclusionOptions"
+        (valueChange)="seleccionarConclusion($any($event) ?? '')"
+      />
+    } @else if (!i.conclusion) {
+      <p class="investigacion-detail-page__note">Sin conclusión registrada.</p>
+    }
+  </section>
+
+  <!-- 13. Revisión y cierre -->
+  <section class="investigacion-detail-page__section">
+    <h3>13. Revisión y cierre del informe</h3>
+    @switch (i.estado) {
+      @case ('abierta') {
+        <p class="investigacion-detail-page__note">
+          Inicie la investigación (sección 1) para llenar el análisis y enviarla a revisión.
+        </p>
+      }
+      @case ('en_investigacion') {
+        @if (i.cierre.pendientesParaRevision.length) {
+          <p class="investigacion-detail-page__note">
+            Para enviarla a revisión del Gerente HSE falta:
+          </p>
+          <ul class="investigacion-detail-page__pendientes">
+            @for (p of i.cierre.pendientesParaRevision; track p) {
+              <li>{{ p }}</li>
+            }
+          </ul>
+        }
+        @if (puedeGestionar()) {
+          <dynadrill-button
+            variant="error"
+            [disabled]="i.cierre.pendientesParaRevision.length > 0 || enviando()"
+            (click)="enviarARevision()"
+            >Enviar a revisión del Gerente HSE</dynadrill-button
+          >
+        }
+      }
+      @case ('en_revision') {
+        <dynadrill-tag
+          [label]="
+            'En revisión desde ' +
+            (i.revisionEnviadaAt | date: 'short') +
+            (i.revisionEnviadaPor ? ' — enviada por ' + i.revisionEnviadaPor : '')
+          "
+          variant="info"
+        />
+        @if (i.cierre.pendientesParaCierre.length) {
+          <p class="investigacion-detail-page__note">Para cerrarla falta:</p>
+          <ul class="investigacion-detail-page__pendientes">
+            @for (p of i.cierre.pendientesParaCierre; track p) {
+              <li>{{ p }}</li>
+            }
+          </ul>
+        }
+        @if (puedeAprobar()) {
+          <dynadrill-button
+            variant="error"
+            [disabled]="i.cierre.pendientesParaCierre.length > 0 || enviando()"
+            (click)="cerrar()"
+            >Aprobar informe y cerrar investigación</dynadrill-button
+          >
+          <div class="investigacion-detail-page__inline-form">
+            <dynadrill-input
+              label="Observación para devolverla al equipo"
+              [value]="observacionDevolucion()"
+              (valueChange)="observacionDevolucion.set($event)"
+            />
+            <dynadrill-button
+              variant="secondary"
+              [disabled]="!observacionDevolucion().trim() || enviando()"
+              (click)="devolver()"
+              >Devolver con observación</dynadrill-button
+            >
+          </div>
+        } @else {
+          <p class="investigacion-detail-page__note">
+            El Gerente HSE revisa el informe: lo aprueba y la cierra, o la devuelve con sus
+            observaciones.
+          </p>
+        }
+      }
+      @case ('cerrada') {
+        <dynadrill-tag
+          [label]="'Cerrada por ' + i.cerradaPor + ' — ' + (i.cerradaAt | date: 'short')"
+          variant="success"
+        />
+        <p class="investigacion-detail-page__note">
+          El informe quedó congelado; el seguimiento de las acciones continúa.
+        </p>
+      }
+    }
+  </section>
+
+  <!-- Historial de estados -->
+  <section class="investigacion-detail-page__section">
+    <h3>Historial</h3>
+    @for (h of i.historial; track h.id) {
+      <p class="investigacion-detail-page__porque">
+        {{ h.at | date: 'short' }} — <strong>{{ estadoEtiqueta[h.estadoNuevo] }}</strong> ·
+        {{ h.actor }}
+        @if (h.observacion) {
+          · {{ h.observacion }}
+        }
+      </p>
+    }
+  </section>
+}

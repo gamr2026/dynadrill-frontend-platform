@@ -1,27 +1,43 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
-import { DocumentoLegal, LegalTipo } from '../models/documento-legal.model';
+import { Observable, switchMap } from 'rxjs';
 import { environment } from '@env';
+import { ArchivosService } from '../../../facturacion/pedidos-comercial/services/archivos.service';
+import {
+  MODULO_ARCHIVO_REQUISITO_LEGAL,
+  type RegistrarRevisionLegal,
+  type RequisitoLegalGrupo,
+  type RevisionLegal,
+} from '../models/documento-legal.model';
 
+/** Requisitos legales del contenedor `qhse`. La autoridad de las reglas (una vigente por tipo, vigencias) es el backend y la base de datos. */
 @Injectable({ providedIn: 'root' })
 export class DocumentoLegalService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = `${environment.apiUrl}/qhse/legal`;
+  private readonly archivos = inject(ArchivosService);
+  private readonly baseUrl = `${environment.apiUrl}/v2/qhse/legal`;
 
-  listar(): Observable<DocumentoLegal[]> {
-    return this.http.get<DocumentoLegal[]>(this.baseUrl);
+  /** Por cada tipo: su revisión vigente y su historial. */
+  listar(): Observable<RequisitoLegalGrupo[]> {
+    return this.http.get<RequisitoLegalGrupo[]>(this.baseUrl);
   }
 
-  subir(tipo: LegalTipo, archivo: File, revision?: string, fechaAprobacion?: string): Observable<DocumentoLegal> {
-    const form = new FormData();
-    form.append('file', archivo);
-    if (revision) form.append('revision', revision);
-    if (fechaAprobacion) form.append('fechaAprobacion', fechaAprobacion);
-    return this.http.post<DocumentoLegal>(`${this.baseUrl}/${tipo}`, form);
+  /** Sube el documento al servicio de archivos y registra la revisión nueva (la anterior del tipo queda reemplazada). */
+  registrarRevision(
+    datos: Omit<RegistrarRevisionLegal, 'archivoId'>,
+    archivo: File,
+  ): Observable<RevisionLegal> {
+    return this.archivos
+      .subir(archivo, MODULO_ARCHIVO_REQUISITO_LEGAL)
+      .pipe(
+        switchMap((a) =>
+          this.http.post<RevisionLegal>(this.baseUrl, { ...datos, archivoId: a.id }),
+        ),
+      );
   }
 
-  descargar(tipo: LegalTipo): Observable<Blob> {
-    return this.http.get(`${this.baseUrl}/${tipo}/archivo`, { responseType: 'blob' });
+  /** El contenido exige el token: se baja como blob por el servicio de archivos. */
+  descargar(archivoId: string): Observable<Blob> {
+    return this.archivos.contenido(archivoId);
   }
 }

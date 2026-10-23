@@ -2,4 +2,43 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+
+  &__bloque {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__lista {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13px;
+
+    li {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border, #e4e2ec);
+    }
+  }
+
+  &__autor {
+    color: var(--text-muted, #5c5870);
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__acciones {
+    display: flex;
+    justify-content: flex-end;
+  }
 }

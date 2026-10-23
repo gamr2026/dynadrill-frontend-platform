@@ -1,32 +1,91 @@
 <div class="objetivo-ambiental-dialog">
   <dynadrill-text variant="h2">Objetivo</dynadrill-text>
   <dynadrill-input label="Título" [value]="titulo()" (valueChange)="titulo.set($event)" />
-  <dynadrill-textarea label="Objetivo ambiental" [value]="objetivoAmbiental()" (valueChange)="objetivoAmbiental.set($event)" [rows]="3" />
+  <dynadrill-textarea
+    label="Objetivo ambiental"
+    [value]="objetivoAmbiental()"
+    (valueChange)="objetivoAmbiental.set($event)"
+    [rows]="3"
+  />
   <div class="objetivo-ambiental-dialog__grid">
     <dynadrill-input label="Meta" [value]="meta()" (valueChange)="meta.set($event)" />
-    <dynadrill-input label="Indicador" [value]="indicador()" (valueChange)="indicador.set($event)" />
-    <dynadrill-datetime-picker label="Plazo" placeholder="Selecciona la fecha" [value]="$any(plazo())" [showToday]="true" (valueChange)="plazo.set($event)" />
+    <dynadrill-input
+      label="Indicador"
+      [value]="indicador()"
+      (valueChange)="indicador.set($event)"
+    />
+    <dynadrill-datetime-picker
+      label="Plazo"
+      placeholder="Selecciona la fecha"
+      [value]="$any(plazo())"
+      [showToday]="true"
+      (valueChange)="plazo.set($event)"
+    />
   </div>
-  <dynadrill-textarea label="Beneficio empresarial" [value]="beneficioEmpresarial()" (valueChange)="beneficioEmpresarial.set($event)" [rows]="2" />
-  <div class="objetivo-ambiental-dialog__grid">
-    <dynadrill-input label="Resultado" [value]="resultado()" (valueChange)="resultado.set($event)" />
-    <dynadrill-input label="Evidencia" [value]="evidencia()" (valueChange)="evidencia.set($event)" />
-  </div>
+  <dynadrill-textarea
+    label="Beneficio empresarial"
+    [value]="beneficioEmpresarial()"
+    (valueChange)="beneficioEmpresarial.set($event)"
+    [rows]="2"
+  />
 
   <dynadrill-text variant="h2">Plan de acción</dynadrill-text>
-  <dynadrill-textarea label="Acción específica" [value]="accionEspecifica()" (valueChange)="accionEspecifica.set($event)" [rows]="2" />
-  <div class="objetivo-ambiental-dialog__grid">
-    <dynadrill-input label="Responsable" [value]="responsable()" (valueChange)="responsable.set($event)" />
-    <dynadrill-input label="Frecuencia" [value]="frecuencia()" (valueChange)="frecuencia.set($event)" />
-    <dynadrill-datetime-picker label="Periodo de evaluación" placeholder="Selecciona la fecha" [value]="$any(periodoEvaluacion())" [showToday]="true" (valueChange)="periodoEvaluacion.set($event)" />
-  </div>
-  <div class="objetivo-ambiental-dialog__grid">
-    <dynadrill-input label="Indicador del plan" [value]="indicadorPlan()" (valueChange)="indicadorPlan.set($event)" />
-    <dynadrill-input label="Evidencia del plan" [value]="evidenciaPlan()" (valueChange)="evidenciaPlan.set($event)" />
+  @for (a of acciones(); track $index; let i = $index) {
+    <div class="objetivo-ambiental-dialog__accion">
+      <dynadrill-textarea
+        label="Acción específica"
+        [value]="a.accionEspecifica"
+        (valueChange)="setAccion(i, { accionEspecifica: $event })"
+        [rows]="2"
+      />
+      <div class="objetivo-ambiental-dialog__grid">
+        <dynadrill-select
+          label="Responsable"
+          placeholder="Elija"
+          [options]="opcionesPersonas()"
+          [value]="a.responsableId ?? ''"
+          [searchable]="true"
+          (valueChange)="setAccion(i, { responsableId: $any($event) || undefined })"
+        />
+        <dynadrill-select
+          label="Frecuencia"
+          placeholder="Elija"
+          [options]="opcionesFrecuencias()"
+          [value]="a.frecuenciaId ?? ''"
+          (valueChange)="setAccion(i, { frecuenciaId: $any($event) || undefined })"
+        />
+      </div>
+      <div class="objetivo-ambiental-dialog__grid">
+        <dynadrill-input
+          label="Indicador del plan"
+          [value]="a.indicador ?? ''"
+          (valueChange)="setAccion(i, { indicador: $event })"
+        />
+        <dynadrill-input
+          label="Evidencia del plan"
+          [value]="a.evidenciaEsperada ?? ''"
+          (valueChange)="setAccion(i, { evidenciaEsperada: $event })"
+        />
+      </div>
+      @if (acciones().length > 1) {
+        <div class="objetivo-ambiental-dialog__quitar">
+          <dynadrill-button variant="secondary" size="small" (clicked)="quitarAccion(i)"
+            >Quitar esta acción</dynadrill-button
+          >
+        </div>
+      }
+    </div>
+  }
+  <div>
+    <dynadrill-button variant="secondary" size="small" (clicked)="agregarAccion()"
+      >+ Agregar otra acción</dynadrill-button
+    >
   </div>
 
   <div class="objetivo-ambiental-dialog__actions">
     <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
-    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">{{ submitting() ? 'Guardando…' : 'Registrar' }}</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">{{
+      submitting() ? 'Guardando…' : 'Registrar'
+    }}</dynadrill-button>
   </div>
 </div>

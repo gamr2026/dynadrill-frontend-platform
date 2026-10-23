@@ -1,0 +1,192 @@
+<div class="editor">
+  <app-page-header
+    eyebrow="Encuestas"
+    [title]="version()?.encuesta?.nombre ?? 'Encuesta'"
+    [subtitle]="version() ? 'Versión ' + version()?.numero + ' · ' + estadoTexto() : ''"
+  />
+
+  <div class="editor__barra">
+    <dynadrill-button variant="secondary" size="small" (clicked)="volver()"
+      >← Volver a Encuestas</dynadrill-button
+    >
+    @if (version(); as v) {
+      <dynadrill-tag
+        [label]="estadoTexto()"
+        [variant]="
+          v.estado === 'borrador' ? 'warning' : v.estado === 'publicada' ? 'success' : 'neutral'
+        "
+      />
+      @if (v.publicadaAt) {
+        <span class="editor__meta"
+          >Publicada el {{ v.publicadaAt | date: 'dd/MM/yyyy HH:mm' }}</span
+        >
+      }
+    }
+  </div>
+
+  <dynadrill-spinner mode="overlay" [spinning]="cargando() || ocupado()" tip="Cargando…">
+    @if (error(); as e) {
+      <div class="editor__error" role="alert">
+        <p>{{ e }}</p>
+      </div>
+    }
+
+    @if (version(); as v) {
+      @if (!editable()) {
+        <p class="editor__aviso" role="note">
+          Esta versión ya no se puede modificar. Para corregirla, vuelva a la lista y cree un
+          borrador a partir de la versión vigente.
+        </p>
+      }
+
+      <section class="editor__tarjeta" aria-labelledby="ed-datos">
+        <h2 id="ed-datos" class="editor__subtitulo">Datos de la encuesta</h2>
+        <dynadrill-input
+          label="Título"
+          [value]="titulo()"
+          [disabled]="!editable()"
+          (valueChange)="ponerTitulo($event)"
+        />
+        <dynadrill-textarea
+          label="Introducción (opcional)"
+          placeholder="Texto que el cliente lee antes de responder"
+          [rows]="3"
+          [value]="introduccion()"
+          [disabled]="!editable()"
+          (valueChange)="ponerIntroduccion($event)"
+        />
+      </section>
+
+      <section class="editor__tarjeta" aria-labelledby="ed-preguntas">
+        <header class="editor__cabecera">
+          <h2 id="ed-preguntas" class="editor__subtitulo">Preguntas ({{ preguntas().length }})</h2>
+          @if (editable()) {
+            <dynadrill-button variant="secondary" size="small" (clicked)="agregarPregunta()"
+              >Agregar pregunta</dynadrill-button
+            >
+          }
+        </header>
+
+        @if (preguntas().length === 0) {
+          <p class="editor__meta">Esta versión todavía no tiene preguntas.</p>
+        }
+
+        <ol class="editor__preguntas">
+          @for (p of preguntas(); track $index; let i = $index) {
+            <li class="editor__pregunta">
+              <div class="editor__pregunta-cab">
+                <strong>Pregunta {{ i + 1 }}</strong>
+                @if (editable()) {
+                  <span class="editor__pregunta-acciones">
+                    <dynadrill-button
+                      variant="secondary"
+                      size="small"
+                      [disabled]="i === 0"
+                      (clicked)="moverPregunta(i, -1)"
+                      >Subir</dynadrill-button
+                    >
+                    <dynadrill-button
+                      variant="secondary"
+                      size="small"
+                      [disabled]="i === preguntas().length - 1"
+                      (clicked)="moverPregunta(i, 1)"
+                      >Bajar</dynadrill-button
+                    >
+                    <dynadrill-button variant="secondary" size="small" (clicked)="quitarPregunta(i)"
+                      >Quitar</dynadrill-button
+                    >
+                  </span>
+                }
+              </div>
+
+              <dynadrill-textarea
+                label="Texto de la pregunta"
+                [rows]="2"
+                [value]="p.texto"
+                [disabled]="!editable()"
+                (valueChange)="ponerTexto(i, $event)"
+              />
+
+              <div class="editor__fila">
+                <dynadrill-select
+                  label="Tipo de respuesta"
+                  [options]="tipoOpciones"
+                  [value]="p.tipo"
+                  [disabled]="!editable()"
+                  (valueChange)="ponerTipo(i, $event)"
+                />
+                @if (p.tipo === 'escala') {
+                  <dynadrill-select
+                    label="Escala"
+                    placeholder="Elija la escala"
+                    [options]="escalaOpciones()"
+                    [value]="p.escalaId"
+                    [disabled]="!editable()"
+                    (valueChange)="ponerEscala(i, $event)"
+                  />
+                }
+                <dynadrill-checkbox
+                  label="Obligatoria"
+                  [checked]="p.obligatoria"
+                  [disabled]="!editable()"
+                  (checkedChange)="ponerObligatoria(i, $event)"
+                />
+              </div>
+
+              @if (llevaOpciones(p.tipo)) {
+                <fieldset class="editor__opciones">
+                  <legend>Opciones de respuesta</legend>
+                  @for (o of p.opciones; track $index; let k = $index) {
+                    <div class="editor__opcion">
+                      <dynadrill-input
+                        [label]="'Opción ' + (k + 1)"
+                        [value]="o"
+                        [disabled]="!editable()"
+                        (valueChange)="ponerOpcion(i, k, $event)"
+                      />
+                      @if (editable()) {
+                        <dynadrill-button
+                          variant="secondary"
+                          size="small"
+                          (clicked)="quitarOpcion(i, k)"
+                          >Quitar</dynadrill-button
+                        >
+                      }
+                    </div>
+                  }
+                  @if (editable()) {
+                    <div>
+                      <dynadrill-button
+                        variant="secondary"
+                        size="small"
+                        (clicked)="agregarOpcion(i)"
+                        >Agregar opción</dynadrill-button
+                      >
+                    </div>
+                  }
+                </fieldset>
+              }
+            </li>
+          }
+        </ol>
+      </section>
+
+      @if (editable()) {
+        @if (problema(); as p) {
+          <p class="editor__meta" role="status">{{ p }}</p>
+        }
+        <div class="editor__acciones">
+          <dynadrill-button
+            variant="secondary"
+            [disabled]="!sucio() || ocupado()"
+            (clicked)="guardar()"
+            >Guardar el borrador</dynadrill-button
+          >
+          <dynadrill-button [disabled]="!!problema() || ocupado()" (clicked)="publicar()"
+            >Publicar la encuesta</dynadrill-button
+          >
+        </div>
+      }
+    }
+  </dynadrill-spinner>
+</div>

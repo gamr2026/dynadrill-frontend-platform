@@ -1,0 +1,144 @@
+:host {
+  display: block;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 1.5rem;
+
+  @media (max-width: 840px) {
+    padding: 0;
+  }
+}
+
+.editor__barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.editor__tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface, #fff);
+}
+
+.editor__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.editor__subtitulo {
+  margin: 0;
+  color: var(--dynadrill-navy, #131529);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.editor__meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted, #5c5870);
+}
+
+.editor__aviso {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--surface-muted, #faf9fc);
+  border: 1px solid var(--border, #e5e4ea);
+  font-size: 14px;
+}
+
+.editor__error {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #fff1f0;
+  color: #a8071a;
+
+  p {
+    margin: 0;
+  }
+}
+
+.editor__preguntas {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.editor__pregunta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: 8px;
+}
+
+.editor__pregunta-cab {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.editor__pregunta-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.editor__fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+
+  @media (max-width: 840px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.editor__opciones {
+  margin: 0;
+  padding: 8px 12px 12px;
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  legend {
+    padding: 0 6px;
+    font-weight: 600;
+  }
+}
+
+.editor__opcion {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.editor__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}

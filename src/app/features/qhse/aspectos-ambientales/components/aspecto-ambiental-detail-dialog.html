@@ -1,7 +1,122 @@
 <div class="aspecto-ambiental-detail-dialog">
-  <dynadrill-tag [label]="clasificacionLabels[aspecto.clasificacion] + ' — nivel ' + nivel" [variant]="clasificacionTone" />
+  @if (aspecto(); as a) {
+    <div class="aspecto-ambiental-detail-dialog__etiquetas">
+      <dynadrill-tag [label]="clasificacionLabel()" [variant]="clasificacionTone()" />
+      @if (a.controlVencido) {
+        <dynadrill-tag label="Control vencido" variant="error" />
+      }
+      @if (a.estado === 'dado_de_baja') {
+        <dynadrill-tag label="Dado de baja" variant="neutral" />
+      }
+    </div>
 
-  <dynadrill-context-card [items]="identificacionItems()" layout="vertical" />
-  <dynadrill-context-card [items]="controlItems()" layout="vertical" />
-  <dynadrill-context-card [items]="seguimientoItems()" layout="vertical" />
+    <dynadrill-context-card [items]="identificacionItems()" layout="vertical" />
+    <dynadrill-context-card [items]="controlItems()" layout="vertical" />
+    <dynadrill-context-card [items]="seguimientoItems()" layout="vertical" />
+
+    @if (a.baja; as b) {
+      <section class="aspecto-ambiental-detail-dialog__bloque">
+        <dynadrill-text variant="h2">Baja</dynadrill-text>
+        <dynadrill-text variant="caption">{{ b.por }} · {{ b.at | date: 'short' }}</dynadrill-text>
+        <dynadrill-text variant="body">{{ b.motivo }}</dynadrill-text>
+      </section>
+    }
+
+    <section class="aspecto-ambiental-detail-dialog__bloque">
+      <dynadrill-text variant="h2">Registros de seguimiento</dynadrill-text>
+      @if (a.seguimiento.registros.length) {
+        <ul class="aspecto-ambiental-detail-dialog__lista">
+          @for (r of a.seguimiento.registros; track r.id) {
+            <li>
+              <strong>{{ r.eficaz ? 'Eficaces' : 'No eficaces' }}</strong> ·
+              {{ r.fecha | date: 'dd/MM/yyyy' }}
+              <span class="aspecto-ambiental-detail-dialog__autor">{{ r.registradoPor }}</span>
+              <span>{{ r.observacion }}</span>
+            </li>
+          }
+        </ul>
+      } @else {
+        <dynadrill-text variant="caption">Todavía no hay registros de seguimiento.</dynadrill-text>
+      }
+
+      @if (puedeGestionar()) {
+        <div class="aspecto-ambiental-detail-dialog__form">
+          <dynadrill-select
+            label="Eficacia de los controles"
+            placeholder="Elija"
+            [options]="opcionesEficaz"
+            [value]="eficaz()"
+            (valueChange)="eficaz.set($any($event) ?? '')"
+          />
+          <dynadrill-textarea
+            label="Observación"
+            [value]="observacion()"
+            (valueChange)="observacion.set($event)"
+            [rows]="2"
+          />
+          <div class="aspecto-ambiental-detail-dialog__acciones">
+            <dynadrill-button
+              size="small"
+              [disabled]="!puedeRegistrarSeguimiento() || enviando()"
+              (clicked)="registrarSeguimiento()"
+            >
+              Registrar seguimiento
+            </dynadrill-button>
+          </div>
+        </div>
+      }
+    </section>
+
+    @if (puedeGestionar()) {
+      <section class="aspecto-ambiental-detail-dialog__bloque">
+        <dynadrill-text variant="h2">Actualizar el control</dynadrill-text>
+        <div class="aspecto-ambiental-detail-dialog__form">
+          <dynadrill-select
+            label="Estado del control"
+            placeholder="Elija el nuevo estado"
+            [options]="opcionesControl"
+            [value]="nuevoEstadoControl()"
+            (valueChange)="nuevoEstadoControl.set($any($event) ?? '')"
+          />
+          <div class="aspecto-ambiental-detail-dialog__acciones">
+            <dynadrill-button
+              size="small"
+              [disabled]="!puedeActualizarControl() || enviando()"
+              (clicked)="actualizarControl()"
+            >
+              Actualizar estado
+            </dynadrill-button>
+          </div>
+        </div>
+      </section>
+
+      <section class="aspecto-ambiental-detail-dialog__bloque">
+        <dynadrill-text variant="h2">Dar de baja</dynadrill-text>
+        <dynadrill-text variant="caption"
+          >El aspecto no se borra: queda en la matriz como dado de baja y ya no admite
+          cambios.</dynadrill-text
+        >
+        <div class="aspecto-ambiental-detail-dialog__form">
+          <dynadrill-textarea
+            label="Motivo de la baja"
+            [value]="motivoBaja()"
+            (valueChange)="motivoBaja.set($event)"
+            [rows]="2"
+          />
+          <div class="aspecto-ambiental-detail-dialog__acciones">
+            <dynadrill-button
+              variant="secondary"
+              size="small"
+              [disabled]="!puedeDarDeBaja() || enviando()"
+              (clicked)="darDeBaja()"
+            >
+              Dar de baja
+            </dynadrill-button>
+          </div>
+        </div>
+      </section>
+    }
+  } @else {
+    <dynadrill-text variant="caption">Cargando…</dynadrill-text>
+  }
 </div>

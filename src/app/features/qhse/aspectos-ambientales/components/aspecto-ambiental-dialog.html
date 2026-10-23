@@ -1,58 +1,203 @@
 <div class="aspecto-ambiental-dialog">
   <dynadrill-text variant="h2">Identificación</dynadrill-text>
   <div class="aspecto-ambiental-dialog__grid">
-    <dynadrill-datetime-picker label="Fecha de registro" placeholder="Selecciona la fecha" [value]="$any(fecha())" [showToday]="true" (valueChange)="fecha.set($event)" />
-    <dynadrill-input label="Etapa del ciclo de vida" [value]="etapaCicloVida()" (valueChange)="etapaCicloVida.set($event)" />
-    <dynadrill-input label="Proceso / Área" [value]="proceso()" (valueChange)="proceso.set($event)" />
+    <dynadrill-datetime-picker
+      label="Fecha de registro"
+      placeholder="Selecciona la fecha"
+      [value]="$any(fecha())"
+      [showToday]="true"
+      (valueChange)="fecha.set($event)"
+    />
+    <dynadrill-select
+      label="Etapa del ciclo de vida"
+      placeholder="Elija"
+      [options]="opcionesEtapas()"
+      [value]="etapaId()"
+      [searchable]="true"
+      (valueChange)="etapaId.set($any($event) ?? '')"
+    />
+    <dynadrill-select
+      label="Proceso / Área"
+      placeholder="Elija"
+      [options]="opcionesProcesos()"
+      [value]="procesoId()"
+      [searchable]="true"
+      (valueChange)="procesoId.set($any($event) ?? '')"
+    />
   </div>
-  <dynadrill-textarea label="Actividad / Lugar / Fuente" [value]="actividad()" (valueChange)="actividad.set($event)" [rows]="2" />
+  <dynadrill-textarea
+    label="Actividad / Lugar / Fuente"
+    [value]="actividad()"
+    (valueChange)="actividad.set($event)"
+    [rows]="2"
+  />
   <div class="aspecto-ambiental-dialog__grid">
-    <dynadrill-input label="Producción del aspecto" [value]="produccionDelAspecto()" (valueChange)="produccionDelAspecto.set($event)" />
-    <dynadrill-input label="Riesgo de gestión (opcional)" [value]="riesgoGestion()" (valueChange)="riesgoGestion.set($event)" />
+    <dynadrill-input
+      label="Producción del aspecto"
+      [value]="produccionDelAspecto()"
+      (valueChange)="produccionDelAspecto.set($event)"
+    />
+    <dynadrill-input
+      label="Riesgo de gestión (opcional)"
+      [value]="riesgoGestion()"
+      (valueChange)="riesgoGestion.set($event)"
+    />
   </div>
   <div class="aspecto-ambiental-dialog__grid">
-    <dynadrill-input label="Aspecto ambiental" [value]="aspectoAmbiental()" (valueChange)="aspectoAmbiental.set($event)" />
-    <dynadrill-input label="Impacto ambiental" [value]="impactoAmbiental()" (valueChange)="impactoAmbiental.set($event)" />
+    <dynadrill-input
+      label="Aspecto ambiental"
+      [value]="aspecto()"
+      (valueChange)="aspecto.set($event)"
+    />
+    <dynadrill-input
+      label="Impacto ambiental"
+      [value]="impacto()"
+      (valueChange)="impacto.set($event)"
+    />
   </div>
   <div class="aspecto-ambiental-dialog__grid">
-    <dynadrill-input label="Factor ambiental" [value]="factorAmbiental()" (valueChange)="factorAmbiental.set($event)" />
-    <dynadrill-input label="Condiciones de operación" [value]="condicionesOperacion()" (valueChange)="condicionesOperacion.set($event)" />
-    <dynadrill-input label="Tipo de responsabilidad" [value]="tipoResponsabilidad()" (valueChange)="tipoResponsabilidad.set($event)" />
-    <dynadrill-input label="Tipo de impacto" [value]="tipoImpacto()" (valueChange)="tipoImpacto.set($event)" />
+    <dynadrill-select
+      label="Factor ambiental"
+      placeholder="Elija"
+      [options]="opcionesFactores()"
+      [value]="factorId()"
+      (valueChange)="factorId.set($any($event) ?? '')"
+    />
+    <dynadrill-select
+      label="Condiciones de operación"
+      placeholder="Elija"
+      [options]="condicionOptions"
+      [value]="condicionOperacion()"
+      (valueChange)="condicionOperacion.set($any($event) ?? '')"
+    />
+    <dynadrill-select
+      label="Tipo de responsabilidad"
+      placeholder="Elija"
+      [options]="responsabilidadOptions"
+      [value]="tipoResponsabilidad()"
+      (valueChange)="tipoResponsabilidad.set($any($event) ?? '')"
+    />
+    <dynadrill-select
+      label="Tipo de impacto"
+      placeholder="Elija"
+      [options]="impactoOptions"
+      [value]="tipoImpacto()"
+      (valueChange)="tipoImpacto.set($any($event) ?? '')"
+    />
   </div>
 
   <dynadrill-text variant="h2">Valoración del riesgo ambiental</dynadrill-text>
   <div class="aspecto-ambiental-dialog__grid">
-    <dynadrill-datetime-picker label="Fecha de valoración (opcional)" placeholder="Selecciona la fecha" [value]="$any(fechaValoracion())" [showToday]="true" (valueChange)="fechaValoracion.set($event)" />
-    <dynadrill-input label="Probabilidad (1-5)" type="number" [value]="probabilidad()" (valueChange)="probabilidad.set($event)" />
-    <dynadrill-input label="Consecuencia (1-5)" type="number" [value]="consecuencia()" (valueChange)="consecuencia.set($event)" />
-    <dynadrill-select label="Clasificación" [options]="clasificacionOptions" [value]="clasificacion()" (valueChange)="clasificacion.set($any($event))" />
+    <dynadrill-datetime-picker
+      label="Fecha de valoración (opcional)"
+      placeholder="Selecciona la fecha"
+      [value]="$any(fechaValoracion())"
+      [showToday]="true"
+      (valueChange)="fechaValoracion.set($event)"
+    />
+    <dynadrill-input
+      label="Probabilidad (1-5)"
+      type="number"
+      [value]="probabilidad()"
+      (valueChange)="probabilidad.set($event)"
+    />
+    <dynadrill-input
+      label="Consecuencia (1-5)"
+      type="number"
+      [value]="consecuencia()"
+      (valueChange)="consecuencia.set($event)"
+    />
+    <dynadrill-select
+      label="Clasificación"
+      [options]="clasificacionOptions"
+      [value]="clasificacion()"
+      (valueChange)="clasificacion.set($any($event))"
+    />
   </div>
-  <dynadrill-text variant="caption">Nivel de riesgo (probabilidad × consecuencia): {{ nivelRiesgoPreview() }}</dynadrill-text>
-  <dynadrill-input label="Significancia" [value]="significancia()" (valueChange)="significancia.set($event)" />
+  <dynadrill-text variant="caption"
+    >Nivel de riesgo (probabilidad × consecuencia): {{ nivelRiesgoPreview() }}</dynadrill-text
+  >
 
   <dynadrill-text variant="h2">Control del aspecto e impacto</dynadrill-text>
   <div class="aspecto-ambiental-dialog__grid">
     <dynadrill-input label="NCAR" [value]="ncar()" (valueChange)="ncar.set($event)" />
-    <dynadrill-input label="Responsable" [value]="responsable()" (valueChange)="responsable.set($event)" />
-    <dynadrill-input label="Presupuesto" [value]="presupuesto()" (valueChange)="presupuesto.set($event)" />
-    <dynadrill-input label="Plazo" [value]="plazo()" (valueChange)="plazo.set($event)" />
-    <dynadrill-input label="Estado" [value]="estadoControl()" (valueChange)="estadoControl.set($event)" />
+    <dynadrill-select
+      label="Responsable"
+      placeholder="Elija"
+      [options]="opcionesPersonas()"
+      [value]="responsableId()"
+      [searchable]="true"
+      (valueChange)="responsableId.set($any($event) ?? '')"
+    />
+    <dynadrill-input
+      label="Presupuesto"
+      [value]="presupuesto()"
+      (valueChange)="presupuesto.set($event)"
+    />
+    <dynadrill-datetime-picker
+      label="Plazo"
+      placeholder="Selecciona la fecha"
+      [value]="$any(plazo())"
+      [showToday]="true"
+      (valueChange)="plazo.set($event)"
+    />
+    <dynadrill-select
+      label="Estado"
+      [options]="estadoControlOptions"
+      [value]="estadoControl()"
+      (valueChange)="estadoControl.set($any($event))"
+    />
   </div>
-  <dynadrill-textarea label="Plan de acción existente" [value]="planAccionExistente()" (valueChange)="planAccionExistente.set($event)" [rows]="2" />
-  <dynadrill-textarea label="Plan de tratamiento" [value]="planTratamiento()" (valueChange)="planTratamiento.set($event)" [rows]="2" />
+  @if (presupuestoInvalido()) {
+    <dynadrill-text variant="caption"
+      >El presupuesto debe ser un número positivo con hasta dos decimales.</dynadrill-text
+    >
+  }
+  <dynadrill-textarea
+    label="Plan de acción existente"
+    [value]="planAccionExistente()"
+    (valueChange)="planAccionExistente.set($event)"
+    [rows]="2"
+  />
+  <dynadrill-textarea
+    label="Plan de tratamiento"
+    [value]="planTratamiento()"
+    (valueChange)="planTratamiento.set($event)"
+    [rows]="2"
+  />
 
   <dynadrill-text variant="h2">Seguimiento y monitoreo</dynadrill-text>
   <div class="aspecto-ambiental-dialog__grid">
-    <dynadrill-input label="Indicador / evidencia / reporte" [value]="seguimientoIndicador()" (valueChange)="seguimientoIndicador.set($event)" />
-    <dynadrill-input label="Responsable" [value]="seguimientoResponsable()" (valueChange)="seguimientoResponsable.set($event)" />
-    <dynadrill-input label="Frecuencia" [value]="seguimientoFrecuencia()" (valueChange)="seguimientoFrecuencia.set($event)" />
-    <dynadrill-input label="Estado" [value]="seguimientoEstado()" (valueChange)="seguimientoEstado.set($event)" />
+    <dynadrill-input
+      label="Indicador / evidencia / reporte"
+      [value]="seguimientoIndicador()"
+      (valueChange)="seguimientoIndicador.set($event)"
+    />
+    <dynadrill-select
+      label="Responsable"
+      placeholder="Elija"
+      [options]="opcionesPersonas()"
+      [value]="seguimientoResponsableId()"
+      [searchable]="true"
+      (valueChange)="seguimientoResponsableId.set($any($event) ?? '')"
+    />
+    <dynadrill-select
+      label="Frecuencia"
+      placeholder="Elija"
+      [options]="opcionesFrecuencias()"
+      [value]="seguimientoFrecuenciaId()"
+      (valueChange)="seguimientoFrecuenciaId.set($any($event) ?? '')"
+    />
   </div>
-  <dynadrill-textarea label="Eficacia de controles" [value]="eficaciaControles()" (valueChange)="eficaciaControles.set($event)" [rows]="2" />
+  <dynadrill-text variant="caption"
+    >Los registros de seguimiento (si los controles fueron eficaces) se agregan desde el detalle del
+    aspecto.</dynadrill-text
+  >
 
   <div class="aspecto-ambiental-dialog__actions">
     <dynadrill-button variant="secondary" (clicked)="cancelar()">Cancelar</dynadrill-button>
-    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">{{ submitting() ? 'Guardando…' : 'Registrar' }}</dynadrill-button>
+    <dynadrill-button [disabled]="!puedeGuardar() || submitting()" (clicked)="guardar()">{{
+      submitting() ? 'Guardando…' : 'Registrar'
+    }}</dynadrill-button>
   </div>
 </div>

@@ -7,6 +7,11 @@ export const routes: Routes = [
     loadChildren: () => import('./features/auth/auth.routes').then(m => m.authRoutes),
   },
   {
+    // Encuesta de satisfacción: el cliente la abre con el enlace de su correo, sin iniciar sesión.
+    path: 'encuesta/:token',
+    loadComponent: () => import('./features/encuestas/pages/encuesta-publica-page').then(m => m.EncuestaPublicaPage),
+  },
+  {
     path: 'cambiar-clave',
     canActivate: [sessionGuard],
     loadComponent: () => import('./features/auth/pages/change-password-page').then(m => m.ChangePasswordPage),
@@ -27,6 +32,14 @@ export const routes: Routes = [
       {
         path: 'roles-permisos',
         loadChildren: () => import('./features/roles-permisos/roles-permisos.routes').then(m => m.rolesPermisosRoutes),
+      },
+      {
+        path: 'encuestas',
+        loadChildren: () => import('./features/encuestas/encuestas.routes').then(m => m.encuestasRoutes),
+      },
+      {
+        path: 'auditoria',
+        loadChildren: () => import('./features/auditoria/auditoria.routes').then(m => m.auditoriaRoutes),
       },
       {
         path: 'dashboard/mantenimiento',

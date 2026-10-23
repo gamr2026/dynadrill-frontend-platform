@@ -240,6 +240,20 @@ const MODULOS_POR_PERMISO: NavModule[] = [
     link: '/roles-permisos',
     permission: 'identidad.roles.ver',
   },
+  {
+    key: 'auditoria',
+    label: 'Auditoría',
+    icon: 'clipboard',
+    link: '/auditoria',
+    permission: 'auditoria.eventos.ver',
+  },
+  {
+    key: 'encuestas',
+    label: 'Encuestas',
+    icon: 'clipboard',
+    link: '/encuestas',
+    permission: 'encuestas.administracion.gestionar',
+  },
 ];
 
 /**

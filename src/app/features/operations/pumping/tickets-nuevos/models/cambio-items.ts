@@ -17,6 +17,8 @@ export interface ItemCambio {
   codigo: string;
   descripcion: string;
   unidad: string;
+  /** Unidad del catálogo compartido (la de la lista de precios). */
+  unidadMedidaId: string;
   cantidad: number;
   descuentoPct: number | null;
   tipoLinea: TipoLineaItem;
@@ -28,6 +30,7 @@ export interface OpcionItem {
   codigo: string;
   descripcion: string;
   unidad: string;
+  unidadMedidaId: string;
   tipo: 'Material' | 'Servicio';
 }
 
@@ -62,7 +65,8 @@ export interface ProponerCambioEntrada {
     listaPreciosItemId: string;
     codigo: string;
     descripcion: string;
-    unidad: string;
+    /** La unidad viaja por id (catálogo compartido); el nombre es solo para mostrar. */
+    unidadMedidaId: string;
     cantidad: number;
     descuentoPct?: number;
     tipoLinea: TipoLineaItem;

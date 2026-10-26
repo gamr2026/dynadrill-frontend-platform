@@ -370,6 +370,7 @@ export class TicketCambioItemsDialog {
         codigo: o.codigo,
         descripcion: o.descripcion,
         unidad: o.unidad,
+        unidadMedidaId: o.unidadMedidaId,
         cantidad: 1,
         descuentoPct: null,
         tipoLinea: tipoDe(o),
@@ -400,12 +401,14 @@ export class TicketCambioItemsDialog {
           for (const f of r.items) {
             const k = lista.findIndex((i) => i.listaPreciosItemId === f.listaPreciosItemId);
             if (k >= 0) lista[k] = { ...lista[k], cantidad: f.cantidad };
-            else
+            // una fila agregada sin unidad no se puede proponer: el pedido exige la unidad de la lista
+            else if (f.unidadMedidaId)
               lista.push({
                 listaPreciosItemId: f.listaPreciosItemId,
                 codigo: f.codigo,
                 descripcion: f.descripcion,
                 unidad: f.unidad,
+                unidadMedidaId: f.unidadMedidaId,
                 cantidad: f.cantidad,
                 descuentoPct: null,
                 tipoLinea: 'herramienta',
@@ -430,7 +433,11 @@ export class TicketCambioItemsDialog {
     this.servicio
       .proponerCambioItems(this.data.ticketId, {
         motivo: this.motivo().trim(),
-        items: this.items().map((i) => ({ ...i, descuentoPct: i.descuentoPct ?? undefined })),
+        // la unidad viaja por id: el nombre es solo para mostrar
+        items: this.items().map(({ unidad: _unidad, ...i }) => ({
+          ...i,
+          descuentoPct: i.descuentoPct ?? undefined,
+        })),
       })
       .subscribe({
         next: (s) => {

@@ -493,7 +493,7 @@ export class TicketFcrReporteHerramientas {
         listaPreciosItemId: o.listaPreciosItemId,
         codigo: o.codigo,
         descripcion: o.descripcion,
-        unidad: o.unidad,
+        unidadMedidaId: o.unidadMedidaId,
       }),
       'No se pudo agregar el ítem.',
       () => {

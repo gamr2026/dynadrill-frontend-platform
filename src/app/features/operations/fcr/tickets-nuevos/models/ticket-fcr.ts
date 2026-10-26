@@ -637,6 +637,8 @@ export interface ItemReporte {
   codigo: string;
   descripcion: string;
   unidad: string;
+  /** Unidad del catálogo compartido; `null` si la fila se agregó sin unidad. */
+  unidadMedidaId: string | null;
   /** La unidad es de tiempo: sus celdas son marcas que valen 1; en las demás cada celda lleva su cantidad. */
   porDia: boolean;
   serie: string | null;
@@ -659,7 +661,8 @@ export interface AgregarItemReporteEntrada {
   listaPreciosItemId?: string;
   codigo: string;
   descripcion: string;
-  unidad?: string;
+  /** Unidad del catálogo compartido (la de la lista de precios). */
+  unidadMedidaId?: string;
   serie?: string;
 }
 
@@ -669,6 +672,7 @@ export interface OpcionItemLista {
   codigo: string;
   descripcion: string;
   unidad: string;
+  unidadMedidaId: string;
   tipo: 'Material' | 'Servicio';
 }
 

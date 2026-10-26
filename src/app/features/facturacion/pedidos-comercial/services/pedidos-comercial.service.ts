@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { EMPTY, Observable, expand, of, reduce } from 'rxjs';
 import { environment } from '@env';
 import type {
   AvanceDocumental,
@@ -17,6 +17,7 @@ import type {
   FilaPlantilla,
   FiltrosPedidos,
   PedidoDetalle,
+  PedidoResumen,
   PedidosPagina,
   PedidoCreadoDesdeAs2,
   ResultadoImportarLineas,
@@ -64,6 +65,15 @@ export class PedidosComercialService {
       limit: filtros.limit,
     });
     return this.http.get<PedidosPagina>(this.base, { params });
+  }
+
+  /** Todos los pedidos que cumplen los filtros, recorriendo las páginas de 100 (la lista filtra y ordena en pantalla). */
+  listarTodos(filtros: Omit<FiltrosPedidos, 'page' | 'limit'> = {}): Observable<PedidoResumen[]> {
+    const limit = 100;
+    return this.listar({ ...filtros, page: 1, limit }).pipe(
+      expand((r) => (r.page * limit < r.total ? this.listar({ ...filtros, page: r.page + 1, limit }) : EMPTY)),
+      reduce((todos, r) => todos.concat(r.items), [] as PedidoResumen[]),
+    );
   }
 
   /** Catálogo de estados (nombre, macro-estado y responsable) para etiquetas y filtros. */

@@ -116,6 +116,8 @@ export interface PedidoResumen {
   analistaFacturacionNombre: string | null;
   fechaInicioServicio: string | null;
   fechaFinServicio: string | null;
+  /** Suma de los netos de las líneas (descuento aplicado, sin impuestos). */
+  valorEstimado: number;
   as2Numero: string | null;
   as2Estado: string | null;
   as2SyncEstado: As2SyncEstado;

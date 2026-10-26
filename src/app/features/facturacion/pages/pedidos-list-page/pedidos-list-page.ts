@@ -142,7 +142,7 @@ export class PedidosListPage {
     ref.afterClose.subscribe((f: PedidosFiltros | undefined) => {
       if (!f) return;
       this.filtroLinea.set(f.linea);
-      this.filtroEstado.set(f.estado);
+      this.filtroEstado.set(f.estado as EstadoPedido | null);
       this.filtroOrigen.set(f.origen);
     });
   }

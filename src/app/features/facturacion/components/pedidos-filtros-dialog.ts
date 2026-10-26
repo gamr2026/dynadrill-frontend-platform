@@ -10,8 +10,13 @@ import { ESTADO_PEDIDO_LABELS, EstadoPedido, LINEA_SERVICIO_LABELS, LineaServici
 
 export interface PedidosFiltros {
   linea: LineaServicio | null;
-  estado: EstadoPedido | null;
+  estado: string | null;
   origen: 'as2' | 'portal' | null;
+}
+
+/** Datos del diálogo: los filtros vigentes y, si la lista los trae del catálogo del backend, los estados posibles. */
+export interface PedidosFiltrosData extends PedidosFiltros {
+  estados?: DynadrillSelectOption[];
 }
 
 const TODAS = 'Todas';
@@ -33,18 +38,18 @@ const ORIGEN_LABELS = { as2: 'AS2', portal: 'Portal' } as const;
 })
 export class PedidosFiltrosDialog {
   private readonly modalRef = inject(NzModalRef<PedidosFiltrosDialog, PedidosFiltros>);
-  private readonly inicial = inject<PedidosFiltros>(NZ_MODAL_DATA);
+  private readonly inicial = inject<PedidosFiltrosData>(NZ_MODAL_DATA);
 
   protected readonly linea = signal<LineaServicio | null>(this.inicial.linea);
-  protected readonly estado = signal<EstadoPedido | null>(this.inicial.estado);
+  protected readonly estado = signal<string | null>(this.inicial.estado);
   protected readonly origen = signal<'as2' | 'portal' | null>(this.inicial.origen);
 
   /** dynadrill-chip-group trabaja con textos: el label es el valor y se traduce a la clave al elegir. */
   protected readonly lineaChips = [TODAS, ...Object.values(LINEA_SERVICIO_LABELS)];
   protected readonly origenChips = [TODOS, ...Object.values(ORIGEN_LABELS)];
-  protected readonly estadoOptions: DynadrillSelectOption[] = (Object.entries(ESTADO_PEDIDO_LABELS) as [EstadoPedido, string][]).map(
-    ([value, label]) => ({ label, value }),
-  );
+  protected readonly estadoOptions: DynadrillSelectOption[] =
+    this.inicial.estados ??
+    (Object.entries(ESTADO_PEDIDO_LABELS) as [EstadoPedido, string][]).map(([value, label]) => ({ label, value }));
 
   protected readonly lineaSeleccionada = computed(() => [this.linea() ? LINEA_SERVICIO_LABELS[this.linea()!] : TODAS]);
   protected readonly origenSeleccionado = computed(() => [this.origen() ? ORIGEN_LABELS[this.origen()!] : TODOS]);

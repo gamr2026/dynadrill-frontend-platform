@@ -1,25 +1,17 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Observable, catchError, forkJoin, of } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 import { DynadrillIconComponent, DynadrillIconName, DynadrillScreenHeaderComponent, DynadrillSpinnerComponent } from '@digitec-it-projects/dynadrill-ui';
 import { NgxEchartsDirective } from 'ngx-echarts';
 import type { EChartsCoreOption } from 'echarts/core';
 import { AuthService } from '../../../core/services/auth.service';
-import { UnidadesService } from '../../maintenance/services/unidades.service';
-import { calcularAlertas } from '../../maintenance/models/unidad.model';
-import { InvestigacionService } from '../../qhse/investigaciones/services/investigacion.service';
-import { EmergenciaService } from '../../qhse/emergencias/services/emergencia.service';
-import { SwaService } from '../../qhse/swa/services/swa.service';
-import { DerrameService } from '../../qhse/derrames/services/derrame.service';
-import { InspeccionEquipoService } from '../../qhse/inspecciones/services/inspeccion-equipo.service';
-import { inspeccionEnCuarentena, inspeccionVencida } from '../../qhse/inspecciones/models/inspeccion-equipo.model';
-import { IpercService } from '../../qhse/iperc/services/iperc.service';
-import { ArticulosService } from '../../inventario/services/articulos.service';
-import { PumpingService } from '../../operations/pumping/services/pumping.service';
-import { FcrService } from '../../operations/fcr/services/fcr.service';
-import { PedidoService } from '../../facturacion/services/pedido.service';
+import { FlotaUnidadesService } from '../../flota/services/flota-unidades.service';
+import { PedidosComercialService } from '../../facturacion/pedidos-comercial/services/pedidos-comercial.service';
+import { TicketsPumpingService } from '../../operations/pumping/tickets-nuevos/services/tickets-pumping.service';
+import { TicketsFcrService } from '../../operations/fcr/tickets-nuevos/services/tickets-fcr.service';
 import { ESTADO_PEDIDO_LABELS, EstadoPedido } from '../../facturacion/models/pedido.model';
 import { UsersService, RolesService } from '../../users/services/users.service';
+import { TableroGeneralService } from '../tablero-general.service';
 
 type DashboardKpiTone = 'success' | 'error' | 'info' | 'brand';
 type DashboardChartTone = 'error' | 'warning' | 'info' | 'success';
@@ -167,17 +159,11 @@ const CARDS_POR_ROL: Record<string, string[]> = {
 })
 export class DashboardPage {
   private readonly auth = inject(AuthService);
-  private readonly unidadesService = inject(UnidadesService);
-  private readonly investigacionService = inject(InvestigacionService);
-  private readonly emergenciaService = inject(EmergenciaService);
-  private readonly swaService = inject(SwaService);
-  private readonly derrameService = inject(DerrameService);
-  private readonly inspeccionEquipoService = inject(InspeccionEquipoService);
-  private readonly ipercService = inject(IpercService);
-  private readonly articulosService = inject(ArticulosService);
-  private readonly pumpingService = inject(PumpingService);
-  private readonly fcrService = inject(FcrService);
-  private readonly pedidoService = inject(PedidoService);
+  private readonly flotaService = inject(FlotaUnidadesService);
+  private readonly tablero = inject(TableroGeneralService);
+  private readonly pumpingService = inject(TicketsPumpingService);
+  private readonly fcrService = inject(TicketsFcrService);
+  private readonly pedidosService = inject(PedidosComercialService);
   private readonly usersService = inject(UsersService);
   private readonly rolesService = inject(RolesService);
 
@@ -225,50 +211,43 @@ export class DashboardPage {
   }
 
   private cargar(): void {
+    const total = (estado?: string) =>
+      this.pedidosService.listar({ estado, page: 1, limit: 1 }).pipe(
+        map(r => r.total),
+        catchError(() => of(0)),
+      );
     forkJoin({
-      unidades: this.safe(this.unidadesService.list()),
-      investigaciones: this.safe(this.investigacionService.list()),
-      emergencias: this.safe(this.emergenciaService.list()),
-      swa: this.safe(this.swaService.list()),
-      derrames: this.safe(this.derrameService.list()),
-      inspecciones: this.safe(this.inspeccionEquipoService.list()),
-      iperc: this.safe(this.ipercService.list()),
-      articulos: this.safe(this.articulosService.list()),
-      pumpingTickets: this.safe(this.pumpingService.listTickets()),
-      fcrTickets: this.safe(this.fcrService.listTickets()),
-      pedidos: this.safe(this.pedidoService.list()),
+      alertas: this.safe(this.flotaService.alertas()),
+      qhse: this.tablero.qhse().pipe(catchError(() => of({ incidentesAbiertos: 0, inspeccionesPendientes: 0, ipercSinAprobar: 0 }))),
+      inventario: this.tablero.inventario().pipe(catchError(() => of({ activos: 0, agotados: 0, enRegla: 0 }))),
+      pumpingTickets: this.safe(this.pumpingService.listar()),
+      fcrTickets: this.safe(this.fcrService.listar()),
+      pedidosTotal: total(),
+      pedidosPorEstado: forkJoin(FACTURACION_ESTADOS_SEGMENT.map(({ estado }) => total(estado))),
       users: this.safe(this.usersService.list()),
       roles: this.safe(this.rolesService.list()),
     }).subscribe({
-      next: ({ unidades, investigaciones, emergencias, swa, derrames, inspecciones, iperc, articulos, pumpingTickets, fcrTickets, pedidos, users, roles }) => {
-        // ── Mantenimiento: alertas preventivas por unidad ──
-        const alertas = unidades.flatMap(u => calcularAlertas(u));
+      next: ({ alertas, qhse, inventario, pumpingTickets, fcrTickets, pedidosTotal, pedidosPorEstado, users, roles }) => {
+        // ── Mantenimiento: alertas preventivas de las unidades activas (las calcula Flota) ──
         const vencidas = alertas.filter(a => a.nivel === 'rojo').length;
         const proximas = alertas.filter(a => a.nivel === 'amarillo').length;
+        const unidadesConAlerta = new Set(alertas.filter(a => a.nivel !== 'verde').map(a => a.unidad.id)).size;
 
-        // ── QHSE: suma de los 4 tipos de evento en estado activo/abierto + inspecciones vencidas + IPERC sin aprobar ──
-        const incidentesAbiertos =
-          investigaciones.filter(i => i.estado === 'abierta').length +
-          emergencias.filter(e => e.estado === 'activa').length +
-          swa.filter(s => s.estado === 'activo').length +
-          derrames.filter(d => d.estado === 'activo').length;
-        const inspeccionesPendientes = inspecciones.filter(i => !inspeccionEnCuarentena(i) && inspeccionVencida(i)).length;
-        const ipercSinAprobar = iperc.filter(m => m.status !== 'aprobada').length;
+        // ── QHSE: eventos abiertos, inspecciones vencidas e IPERC por aprobar (los cuenta QHSE) ──
+        const { incidentesAbiertos, inspeccionesPendientes, ipercSinAprobar } = qhse;
 
-        // ── Inventario: sin campo de stock mínimo real — solo Agotados vs En regla ──
-        const activos = articulos.filter(a => a.activo);
-        const agotados = activos.filter(a => a.stockActual === 0).length;
-        const enRegla = activos.length - agotados;
+        // ── Inventario ──
+        const { activos, agotados, enRegla } = inventario;
 
-        // ── Operaciones: Pumping + FCR combinados por su `status` compartido ──
-        const tickets = [...pumpingTickets, ...fcrTickets];
-        const enRevision = tickets.filter(t => t.status === 'en_revision').length;
-        const enEjecucion = tickets.filter(t => t.status === 'en_ejecucion').length;
+        // ── Operaciones: Pumping + FCR por el macro-estado de su paso (los tickets terminados no cuentan) ──
+        const tickets = [...pumpingTickets, ...fcrTickets].filter(t => t.paso.macro !== 'aprobado');
+        const enRevision = tickets.filter(t => t.paso.macro === 'esperando_aprobacion').length;
+        const enEjecucion = tickets.filter(t => t.paso.macro === 'en_proceso').length;
 
-        // ── Facturación: solo los estados destacados (ver FACTURACION_ESTADOS_SEGMENT) que tengan al menos un pedido — un estado en 0 no aporta nada al desglose. ──
-        const segmentosFacturacion: DashboardChartSegment[] = FACTURACION_ESTADOS_SEGMENT.map(({ estado, tone }) => ({
+        // ── Facturación: solo los estados destacados (ver FACTURACION_ESTADOS_SEGMENT) que tengan al menos un pedido ──
+        const segmentosFacturacion: DashboardChartSegment[] = FACTURACION_ESTADOS_SEGMENT.map(({ estado, tone }, i) => ({
           label: ESTADO_PEDIDO_LABELS[estado],
-          value: pedidos.filter(p => p.estado === estado).length,
+          value: pedidosPorEstado[i],
           tone,
           link: '/dashboard/facturacion/reporteria',
           queryParams: { estado },
@@ -281,9 +260,9 @@ export class DashboardPage {
         const operadores = activosUsuarios.filter(u => (roleById.get(u.roleId) ?? '').startsWith('Operador')).length;
 
         this.allKpis.set([
-          { value: unidades.length, label: 'Unidades con alertas de mantenimiento', caption: `${vencidas} vencidas`, tone: vencidas > 0 ? 'error' : 'success', module: 'Mantenimiento' },
+          { value: unidadesConAlerta, label: 'Unidades con alertas de mantenimiento', caption: `${vencidas} vencidas`, tone: vencidas > 0 ? 'error' : 'success', module: 'Mantenimiento' },
           { value: incidentesAbiertos, label: 'Incidentes QHSE abiertos', caption: 'Requieren atención', tone: 'error', module: 'QHSE' },
-          { value: articulos.length, label: 'Artículos en inventario', caption: 'Activos', tone: 'brand', module: 'Inventario' },
+          { value: activos, label: 'Artículos en inventario', caption: 'Activos', tone: 'brand', module: 'Inventario' },
           { value: tickets.length, label: 'Tickets de operación activos', caption: 'Pumping + FCR', tone: 'info', module: 'Operaciones' },
         ]);
 
@@ -315,7 +294,7 @@ export class DashboardPage {
             title: 'Inventario',
             icon: 'box',
             viewAllLink: '/dashboard/inventario',
-            summaryLine: `${activos.length} artículos activos`,
+            summaryLine: `${activos} artículos activos`,
             segments: [
               { label: 'Agotados', value: agotados, tone: 'error' },
               { label: 'En regla', value: enRegla, tone: 'success' },
@@ -337,7 +316,7 @@ export class DashboardPage {
             icon: 'file-text',
             viewAllLink: '/dashboard/facturacion',
             accent: 'warning',
-            summaryLine: `${pedidos.length} pedidos`,
+            summaryLine: `${pedidosTotal} pedidos`,
             segments: segmentosFacturacion,
           },
           {

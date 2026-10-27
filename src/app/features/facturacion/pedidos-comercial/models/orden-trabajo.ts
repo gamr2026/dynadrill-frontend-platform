@@ -6,7 +6,6 @@ export const PERMISOS_ORDENES = {
   ver: 'comercial.ordenes_trabajo.ver',
   emitir: 'comercial.ordenes_trabajo.emitir',
   firmar: 'comercial.ordenes_trabajo.firmar',
-  cierre: 'comercial.cierre.gestionar',
 } as const;
 
 export const MODULO_ARCHIVO_ORDEN = 'orden_trabajo_documento';

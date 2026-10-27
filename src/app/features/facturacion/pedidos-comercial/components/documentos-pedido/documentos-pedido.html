@@ -7,7 +7,10 @@
     @for (d of documentos(); track d.id) {
       <li class="docs__item">
         <div class="docs__datos">
-          <strong>{{ d.nombre }}</strong>
+          <strong>{{ d.descripcion || d.nombre }}</strong>
+          @if (d.descripcion && d.descripcion !== d.nombre) {
+            <span class="docs__meta">{{ d.nombre }}</span>
+          }
           <span class="docs__meta"
             >{{ tamano(d.tamanoBytes) }} · {{ dia(d.createdAt) }} ·
             {{ d.subidoPor ?? 'Sin dato' }}</span
@@ -36,6 +39,13 @@
   </ul>
 
   @if (puedeEditar()) {
+    <dynadrill-input
+      label="Descripción del documento (opcional)"
+      placeholder="Qué es este documento; si la deja vacía se usa el nombre del archivo"
+      [value]="descripcionNueva()"
+      [disabled]="subiendo()"
+      (valueChange)="descripcionNueva.set($event)"
+    />
     <label class="docs__subir">
       <span>{{
         subiendo()

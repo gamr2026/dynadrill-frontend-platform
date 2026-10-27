@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '@env';
-import type { DespachoEstado, EmitirGuiaRequest, Guia, ItemGuia, LugarDespacho, RealizarDespachoRequest } from '../models/guia-comercial';
+import type { EmitirGuiaRequest, Guia, ItemGuia, LugarDespacho, SolicitarDespachoRequest } from '../models/guia-comercial';
 
 /** Guías de remisión y despacho a Bodega del contenedor `comercial`. */
 @Injectable({ providedIn: 'root' })
@@ -49,16 +49,11 @@ export class GuiasComercialService {
     return this.http.post<Guia>(`${this.base}/guias/${id}/verificar-firma-electronica`, {});
   }
 
-  despacho(pedidoId: string): Observable<DespachoEstado> {
-    return this.http.get<DespachoEstado>(`${this.base}/pedidos/${pedidoId}/despacho`);
-  }
-
-  solicitarDespacho(pedidoId: string): Observable<DespachoEstado> {
-    return this.http.post<DespachoEstado>(`${this.base}/pedidos/${pedidoId}/despacho/solicitar`, {});
-  }
-
-  /** Los archivos se suben antes a `/api/archivos` con `modulo = despacho_documento`. */
-  realizarDespacho(pedidoId: string, body: RealizarDespachoRequest): Observable<DespachoEstado> {
-    return this.http.post<DespachoEstado>(`${this.base}/pedidos/${pedidoId}/despacho/realizar`, body);
+  /**
+   * Pide el despacho a Bodega. El pedido pasa a «por despachar»; Bodega lo resuelve en Inventario
+   * (`GET /api/operaciones/inventario/despachos?pedidoId=` para ver cómo va) y el pedido vuelve a la prefactura.
+   */
+  solicitarDespacho(pedidoId: string, body: SolicitarDespachoRequest): Observable<unknown> {
+    return this.http.post<unknown>(`${this.base}/pedidos/${pedidoId}/despacho/solicitar`, body);
   }
 }

@@ -1,30 +1,66 @@
 <div class="gestionar-despacho">
-  <dynadrill-text variant="caption">Pedido {{ data.solicitud.pedidoCode }} — {{ data.solicitud.pedidoCliente }}</dynadrill-text>
+  @let d = despacho();
+  <dynadrill-text variant="caption">Pedido {{ d.pedidoCodigo ?? '—' }} — {{ d.cliente?.nombre ?? 'Sin cliente' }}</dynadrill-text>
 
   <dl class="gestionar-despacho__defs">
-    <div><dt>Bodega origen</dt><dd>{{ data.solicitud.bodegaOrigen }}</dd></div>
-    <div><dt>Fecha requerida</dt><dd>{{ data.solicitud.fechaRequerida | slice: 0 : 10 }}</dd></div>
-    <div><dt>Solicitado por</dt><dd>{{ data.solicitud.solicitadoPor }}</dd></div>
-    @if (data.solicitud.nota) {
-      <div><dt>Nota de Facturación</dt><dd>{{ data.solicitud.nota }}</dd></div>
+    <div><dt>Bodega origen</dt><dd>{{ d.bodega.nombre }}</dd></div>
+    <div><dt>Fecha requerida</dt><dd>{{ d.fechaRequerida | slice: 0 : 10 }}</dd></div>
+    <div><dt>Solicitado por</dt><dd>{{ d.solicitadoPor?.nombre ?? '—' }}</dd></div>
+    @if (d.nota) {
+      <div><dt>Nota de Facturación</dt><dd>{{ d.nota }}</dd></div>
     }
   </dl>
 
   <table class="gestionar-despacho__items">
-    <thead><tr><th>Código</th><th>Descripción</th><th>Tipo</th><th>Cantidad</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Código</th><th>Descripción</th><th>Tipo</th><th>Cantidad</th>
+        @if (esPendiente()) { <th>Salida de stock</th> }
+      </tr>
+    </thead>
     <tbody>
-      @for (item of data.solicitud.items; track item.codigo) {
+      @for (item of d.items; track item.orden) {
         <tr>
           <td>{{ item.codigo }}</td>
           <td>{{ item.descripcion }}</td>
           <td>{{ item.tipo === 'herramienta' ? 'Herramienta' : 'Material' }}</td>
-          <td>{{ item.cantidad }} {{ item.unidad }}</td>
+          <td>{{ formatear(item.cantidad) }} {{ item.unidad }}</td>
+          @if (esPendiente()) {
+            <td>
+              @if (item.articulo) {
+                <span class="gestionar-despacho__respaldado">Respaldado: {{ formatear(respaldado(item)) }}</span>
+                <dynadrill-input
+                  label="Cantidad"
+                  type="number"
+                  [value]="cantidadSugerida(item)"
+                  (valueChange)="cambiarCantidad(item, $event)"
+                />
+                <dynadrill-button
+                  variant="secondary"
+                  size="small"
+                  [disabled]="registrando() !== null"
+                  (clicked)="registrarSalida(item)"
+                >{{ registrando() === item.orden ? 'Registrando…' : 'Registrar salida' }}</dynadrill-button>
+              } @else {
+                <span class="gestionar-despacho__respaldado">Sin artículo en Inventario</span>
+              }
+            </td>
+          }
         </tr>
       }
     </tbody>
   </table>
 
-  @if (esPendiente) {
+  @if (movimientos().length) {
+    <dynadrill-text variant="caption" class="gestionar-despacho__section-title">Salidas de stock registradas</dynadrill-text>
+    <ul class="gestionar-despacho__salidas">
+      @for (m of movimientos(); track m.id) {
+        <li>{{ formatear(m.cantidad) }} · saldo {{ formatear(m.saldoResultante) }} · {{ m.responsable.nombre }}</li>
+      }
+    </ul>
+  }
+
+  @if (esPendiente()) {
     <div class="gestionar-despacho__despachar">
       <dynadrill-text variant="caption" class="gestionar-despacho__section-title">Despachar</dynadrill-text>
       <label class="gestionar-despacho__file">
@@ -45,15 +81,32 @@
 
     <div class="gestionar-despacho__rechazar">
       <dynadrill-text variant="caption" class="gestionar-despacho__section-title">Rechazar</dynadrill-text>
-      <dynadrill-textarea label="Motivo del rechazo" placeholder="Ej. sin stock, ítem incorrecto…" [rows]="2" [value]="motivoRechazo()" (valueChange)="motivoRechazo.set($event)" />
+      @if (movimientos().length) {
+        <dynadrill-text variant="caption">Con salidas de stock registradas ya no se puede rechazar: despache la solicitud.</dynadrill-text>
+      }
+      <dynadrill-textarea label="Motivo del rechazo" placeholder="Ej. sin stock, ítem incorrecto…" [rows]="2" [disabled]="movimientos().length > 0" [value]="motivoRechazo()" (valueChange)="motivoRechazo.set($event)" />
       <dynadrill-button variant="error" [disabled]="!puedeRechazar() || submitting()" (clicked)="rechazar()">
         {{ submitting() ? 'Guardando…' : 'Rechazar solicitud' }}
       </dynadrill-button>
     </div>
-  } @else if (data.solicitud.estado === 'despachado') {
-    <dynadrill-text variant="caption">Despachado por {{ data.solicitud.despachadoPor }} el {{ data.solicitud.despachadoAt | slice: 0 : 10 }}.</dynadrill-text>
+  } @else if (d.estado === 'realizado') {
+    <dynadrill-text variant="caption">Despachado por {{ d.realizadoPor?.nombre ?? '—' }} el {{ d.realizadoAt | slice: 0 : 10 }}.</dynadrill-text>
+    @if (d.referenciaAs2) {
+      <dynadrill-text variant="caption">Orden Salida Material de AS2: {{ d.referenciaAs2 }}</dynadrill-text>
+    }
+    @if (d.notaBodega) {
+      <dynadrill-text variant="caption">Nota de Bodega: {{ d.notaBodega }}</dynadrill-text>
+    }
+    <div class="gestionar-despacho__archivos">
+      @if (d.archivoRespaldoId; as a) {
+        <dynadrill-button variant="secondary" size="small" (clicked)="descargar(a, 'respaldo-despacho-' + d.numero)">Descargar respaldo</dynadrill-button>
+      }
+      @if (d.archivoMsdsId; as a) {
+        <dynadrill-button variant="secondary" size="small" (clicked)="descargar(a, 'msds-despacho-' + d.numero)">Descargar MSDS</dynadrill-button>
+      }
+    </div>
   } @else {
-    <dynadrill-text variant="caption">Rechazado por {{ data.solicitud.rechazadoPor }}: {{ data.solicitud.motivoRechazo }}</dynadrill-text>
+    <dynadrill-text variant="caption">Rechazado por {{ d.rechazadoPor?.nombre ?? '—' }}: {{ d.motivoRechazo }}</dynadrill-text>
   }
 
   <footer class="gestionar-despacho__actions">

@@ -204,14 +204,72 @@ export interface ParteArticulo {
   orden: number;
   /** Etiqueta del ítem tal como aparece en el documento de origen ("1", "21*", "A"). */
   item: string;
-  codigo: string;
+  /** Código de la parte en el catálogo del fabricante; nulo si el registro de origen no lo trae (puede repetirse en la herramienta). */
+  codigo: string | null;
   descripcion: string;
   cantidadEsperada: number;
 }
 
-export type ParteArticuloInput = Pick<ParteArticulo, 'item' | 'codigo' | 'descripcion'> & {
+export type ParteArticuloInput = Pick<ParteArticulo, 'item' | 'descripcion'> & {
+  codigo?: string | null;
   cantidadEsperada?: number;
 };
+
+// --- despachos a bodega (CM-5): los pide Comercial con la prefactura generada y los resuelve Bodega ---
+
+export type EstadoDespacho = 'solicitado' | 'realizado' | 'rechazado';
+export type TipoItemDespacho = 'material' | 'herramienta';
+
+export interface ItemDespacho {
+  orden: number;
+  codigo: string;
+  descripcion: string;
+  cantidad: number;
+  unidad: string;
+  tipo: TipoItemDespacho;
+  /** Artículo de Inventario con el mismo código, si existe: con él se registra la salida de stock. */
+  articulo: { id: string; codigo: string; nombre: string } | null;
+}
+
+export interface DespachoBodega {
+  id: string;
+  numero: number;
+  pedidoId: string;
+  pedidoCodigo: string | null;
+  cliente: { id: string; nombre: string | null } | null;
+  bodega: { id: string; nombre: string };
+  fechaRequerida: string;
+  nota: string | null;
+  estado: EstadoDespacho;
+  solicitadoAt: string;
+  solicitadoPor: { id: string; nombre: string } | null;
+  realizadoAt: string | null;
+  realizadoPor: { id: string; nombre: string } | null;
+  archivoRespaldoId: string | null;
+  archivoMsdsId: string | null;
+  referenciaAs2: string | null;
+  notaBodega: string | null;
+  rechazadoAt: string | null;
+  rechazadoPor: { id: string; nombre: string } | null;
+  motivoRechazo: string | null;
+  items: ItemDespacho[];
+  /** En el listado: cuántas salidas de stock respaldan el despacho. En el detalle: `movimientos` trae las salidas. */
+  movimientos?: number | MovimientoKardex[];
+}
+
+export interface RealizarDespachoInput {
+  archivoRespaldoId: string;
+  archivoMsdsId?: string;
+  referenciaAs2?: string;
+  notaBodega?: string;
+}
+
+export interface SalidaDespachoInput {
+  articuloId: string;
+  bodegaId: string;
+  cantidad: number;
+  observacion?: string;
+}
 
 /** Mensaje para quien usa la pantalla: el del servidor si lo trae (409, 400 con detalle), o el genérico. */
 export function mensajeErrorInventario(err: unknown, porDefecto: string): string {

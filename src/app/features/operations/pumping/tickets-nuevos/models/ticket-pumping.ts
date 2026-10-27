@@ -501,8 +501,8 @@ export interface ActividadDiaria {
 export interface ReporteDiario {
   fecha: string;
   estado: EstadoReporteDiario;
-  representanteCliente: string | null;
-  cargoRepresentante: string | null;
+  /** Company Man del cliente que firmó ese día (contacto de campo del catálogo); nace precargado con el del ticket. */
+  representante: { id: string; nombre: string } | null;
   tiempoProductivo: number | null;
   tiempoNoProductivo: number | null;
   observaciones: string | null;
@@ -515,8 +515,8 @@ export interface ReporteDiario {
 /** Cuerpo de `PUT /tickets/:id/reportes-diarios/:fecha` (el servidor reemplaza el día). */
 export interface ReporteDiarioEntrada {
   actividades: { horaInicio: string; horaFin: string; detalle: string; tablas: ActividadTabla[] }[];
-  representanteCliente?: string;
-  cargoRepresentante?: string;
+  /** Sin indicarlo, el servidor conserva el del día o, al crearlo, el del ticket; `null` lo deja vacío. */
+  representanteId?: string | null;
   tiempoProductivo?: number;
   tiempoNoProductivo?: number;
   observaciones?: string;

@@ -1277,6 +1277,7 @@ export class TicketPumpingDetailPage {
           pozo: t.pozo,
           campo: t.campo,
           bloque: t.bloque,
+          representanteId: t.representanteCampo?.id ?? null,
           representante: t.representanteCampo?.nombre ?? null,
           taladro: t.taladro,
           contrato: t.numeroContrato,

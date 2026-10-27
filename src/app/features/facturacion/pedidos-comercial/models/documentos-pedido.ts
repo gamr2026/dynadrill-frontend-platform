@@ -16,6 +16,8 @@ export interface DocumentoPedido {
   id: string;
   archivoId: string;
   nombre: string;
+  /** Qué es el documento, escrito por quien lo adjuntó (si no la escribió, el nombre del archivo). */
+  descripcion: string;
   mimeType: string;
   tamanoBytes: number;
   subidoPor: string | null;

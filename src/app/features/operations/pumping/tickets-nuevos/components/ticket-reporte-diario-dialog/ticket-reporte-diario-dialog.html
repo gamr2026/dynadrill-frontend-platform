@@ -42,18 +42,16 @@
       [value]="data.cabecera.contrato ?? ''"
       [disabled]="true"
     />
-    <dynadrill-input
-      label="Representante del Cliente"
-      [value]="representante()"
+    <dynadrill-select
+      label="Representante del Cliente (Company Man)"
+      placeholder="Seleccione quién firmó ese día"
+      [options]="representantes()"
+      [value]="representanteId()"
+      [searchable]="true"
       [disabled]="bloqueado()"
-      (valueChange)="representante.set($event)"
+      (valueChange)="representanteId.set($any($event))"
     />
-    <dynadrill-input
-      label="Cargo"
-      [value]="cargo()"
-      [disabled]="bloqueado()"
-      (valueChange)="cargo.set($event)"
-    />
+    <dynadrill-input label="Cargo" value="Representante de Campo" [disabled]="true" />
   </div>
   <div class="daily-report__form-grid">
     <dynadrill-input label="Pozo" [value]="data.cabecera.pozo ?? ''" [disabled]="true" />

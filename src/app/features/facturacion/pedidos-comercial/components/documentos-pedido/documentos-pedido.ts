@@ -5,6 +5,7 @@ import {
   DynadrillButtonComponent,
   DynadrillDialogService,
   DynadrillIconButtonComponent,
+  DynadrillInputComponent,
   DynadrillNotificationService,
 } from '@digitec-it-projects/dynadrill-ui';
 import { ArchivosService } from '../../services/archivos.service';
@@ -29,7 +30,12 @@ import {
  */
 @Component({
   selector: 'app-documentos-pedido',
-  imports: [DynadrillBannerComponent, DynadrillButtonComponent, DynadrillIconButtonComponent],
+  imports: [
+    DynadrillBannerComponent,
+    DynadrillButtonComponent,
+    DynadrillIconButtonComponent,
+    DynadrillInputComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './documentos-pedido.html',
   styleUrl: './documentos-pedido.scss',
@@ -52,6 +58,8 @@ export class DocumentosPedido {
   protected readonly subiendo = signal(false);
   protected readonly descargando = signal<string | null>(null);
   protected readonly errorSubida = signal<string | null>(null);
+  /** Descripción del próximo documento; si queda vacía, el servidor usa el nombre del archivo. */
+  protected readonly descripcionNueva = signal('');
 
   protected onArchivo(evento: Event): void {
     const entrada = evento.target as HTMLInputElement;
@@ -68,10 +76,15 @@ export class DocumentosPedido {
     // Secuencia: primero se sube al módulo de archivos y luego se adjunta al pedido.
     this.archivos
       .subir(archivo)
-      .pipe(switchMap((subido) => this.pedidos.adjuntarDocumento(this.pedidoId(), subido.id)))
+      .pipe(
+        switchMap((subido) =>
+          this.pedidos.adjuntarDocumento(this.pedidoId(), subido.id, this.descripcionNueva().trim()),
+        ),
+      )
       .subscribe({
         next: (p) => {
           this.subiendo.set(false);
+          this.descripcionNueva.set('');
           this.notify.success('Documento adjuntado', archivo.name);
           this.cambio.emit(p);
         },

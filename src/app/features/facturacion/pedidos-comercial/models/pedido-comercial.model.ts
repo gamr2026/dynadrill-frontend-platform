@@ -143,6 +143,8 @@ export interface ItemPedido {
   valorUnitario: number;
   descuentoPct: number | null;
   origenItem: string | null;
+  /** Qué es la línea; solo los materiales y las herramientas se pueden pedir a Bodega. */
+  tipoLinea?: 'servicio' | 'material' | 'herramienta' | 'movilizacion';
   listaPreciosItemId: string | null;
   bruto: number;
   descuento: number;

@@ -9,13 +9,16 @@ import {
   DynadrillIconButtonComponent,
   DynadrillInputComponent,
   DynadrillNotificationService,
+  DynadrillSelectComponent,
   DynadrillTextComponent,
   DynadrillTextareaComponent,
   DynadrillUploadZoneComponent,
   type DynadrillContextCardItem,
+  type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
 import type { ActividadTabla } from '../../../../../../shared/models/operativo-docs.model';
 import { limpiarTablas } from '../../../../../../shared/utils/actividad-tablas';
+import { CatalogosPlataformaService } from '../../../../../facturacion/pedidos-comercial/services/catalogos-plataforma.service';
 import { ArchivosService } from '../../../../../facturacion/pedidos-comercial/services/archivos.service';
 import { mensajeErrorArchivo } from '../../../../../facturacion/pedidos-comercial/models/documentos-pedido';
 import { ActividadTablasEditor } from '../../../components/actividad-tablas-editor';
@@ -46,7 +49,8 @@ export interface TicketReporteDiarioDialogData {
     taladro: string | null;
     contrato: string | null;
     supervisor: string | null;
-    /** Representante del cliente en campo (Company Man) según el pedido. */
+    /** Company Man del cliente en campo según el pedido: con él nace precargado el reporte de cada día. */
+    representanteId?: string | null;
     representante?: string | null;
   };
   /** Solo lectura: quien no es Operador del equipo, el ticket ya salió de la Ejecución operativa o Facturación corrigió el día. */
@@ -82,6 +86,7 @@ const MAX_MONITOREO_BYTES = 25 * 1024 * 1024;
     DynadrillContextCardComponent,
     DynadrillIconButtonComponent,
     DynadrillInputComponent,
+    DynadrillSelectComponent,
     DynadrillTextComponent,
     DynadrillTextareaComponent,
     DynadrillUploadZoneComponent,
@@ -112,8 +117,15 @@ export class TicketReporteDiarioDialog {
   ]);
 
   // El Company Man del pedido llega precargado; si el reporte ya lo tenía escrito, se respeta lo guardado.
-  protected readonly representante = signal(this.data.cabecera.representante ?? '');
-  protected readonly cargo = signal('Representante de Campo');
+  /** Company Man de ese día: un contacto de campo del catálogo (precargado con el del ticket). */
+  protected readonly representanteId = signal<string | null>(this.data.cabecera.representanteId ?? null);
+  protected readonly representantes = signal<DynadrillSelectOption[]>([]);
+  protected readonly representante = computed(
+    () =>
+      this.representantes().find((o) => o.value === this.representanteId())?.label ??
+      this.data.cabecera.representante ??
+      '',
+  );
   protected readonly actividades = signal<FilaActividad[]>([vacia()]);
   /** Lo que la persona escribió; mientras no escriba nada, el tiempo productivo es la suma de horas de las actividades. */
   private readonly productivoManual = signal<string | null>(null);
@@ -141,14 +153,18 @@ export class TicketReporteDiarioDialog {
     return validarReporteDiario(this.actividades());
   });
 
+  private readonly catalogos = inject(CatalogosPlataformaService);
+
   constructor() {
+    this.catalogos.personas('representante_campo').subscribe((p) =>
+      this.representantes.set(p.filter((x) => x.activo).map((x) => ({ label: x.nombre, value: x.id }))),
+    );
     this.cargarMonitoreo();
     if (this.data.nuevo) return;
     this.servicio.reporteDiario(this.data.ticketId, this.data.fecha).subscribe({
       next: (r) => {
         this.estado.set(r.estado);
-        if (r.representanteCliente) this.representante.set(r.representanteCliente);
-        if (r.cargoRepresentante) this.cargo.set(r.cargoRepresentante);
+        this.representanteId.set(r.representante?.id ?? null);
         this.productivoManual.set(r.tiempoProductivo === null ? null : String(r.tiempoProductivo));
         this.noProductivo.set(r.tiempoNoProductivo === null ? '' : String(r.tiempoNoProductivo));
         this.observaciones.set(r.observaciones ?? '');
@@ -270,8 +286,7 @@ export class TicketReporteDiarioDialog {
         detalle: a.detalle.trim(),
         tablas: limpiarTablas(a.tablas),
       })),
-      representanteCliente: this.representante().trim() || undefined,
-      cargoRepresentante: this.cargo().trim() || undefined,
+      representanteId: this.representanteId(),
       tiempoProductivo: numeroONulo(this.productivo()) ?? undefined,
       tiempoNoProductivo: numeroONulo(this.noProductivo()) ?? undefined,
       observaciones: this.tieneObservaciones()

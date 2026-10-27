@@ -193,8 +193,11 @@ export class PedidosComercialService {
   }
 
   /** Adjunta un archivo ya subido (lo debe haber subido la misma persona). Devuelve el detalle completo. */
-  adjuntarDocumento(id: string, archivoId: string): Observable<PedidoDetalle> {
-    return this.http.post<PedidoDetalle>(`${this.base}/${id}/documentos`, { archivoId });
+  adjuntarDocumento(id: string, archivoId: string, descripcion?: string): Observable<PedidoDetalle> {
+    return this.http.post<PedidoDetalle>(`${this.base}/${id}/documentos`, {
+      archivoId,
+      ...(descripcion ? { descripcion } : {}),
+    });
   }
 
   /** Quita el adjunto (y da de baja el archivo). `documentoId` es el id del adjunto. */

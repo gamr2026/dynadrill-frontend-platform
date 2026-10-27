@@ -4,6 +4,10 @@ import { Observable } from 'rxjs';
 import { environment } from '@env';
 import type {
   ActualizarArticuloInput,
+  DespachoBodega,
+  EstadoDespacho,
+  RealizarDespachoInput,
+  SalidaDespachoInput,
   ArticuloInventario,
   ArticuloInventarioDetalle,
   BodegaInventario,
@@ -142,5 +146,31 @@ export class InventarioPlataformaService {
 
   bodegas(): Observable<BodegaInventario[]> {
     return this.http.get<BodegaInventario[]>(`${this.base}/bodegas`);
+  }
+
+  // --- despachos a bodega ---
+  despachos(filtro: { estado?: EstadoDespacho; pedidoId?: string } = {}): Observable<DespachoBodega[]> {
+    let params = new HttpParams();
+    if (filtro.estado) params = params.set('estado', filtro.estado);
+    if (filtro.pedidoId) params = params.set('pedidoId', filtro.pedidoId);
+    return this.http.get<DespachoBodega[]>(`${this.base}/despachos`, { params });
+  }
+
+  despacho(id: string): Observable<DespachoBodega> {
+    return this.http.get<DespachoBodega>(`${this.base}/despachos/${id}`);
+  }
+
+  /** Salida de stock que respalda el despacho (mientras está pendiente). Devuelve el despacho con sus salidas. */
+  registrarSalidaDeDespacho(id: string, body: SalidaDespachoInput): Observable<DespachoBodega> {
+    return this.http.post<DespachoBodega>(`${this.base}/despachos/${id}/movimientos`, body);
+  }
+
+  /** Los archivos se suben antes a `/api/archivos` con `modulo = despacho_documento`. */
+  realizarDespacho(id: string, body: RealizarDespachoInput): Observable<DespachoBodega> {
+    return this.http.post<DespachoBodega>(`${this.base}/despachos/${id}/realizar`, body);
+  }
+
+  rechazarDespacho(id: string, body: { motivo: string; notaBodega?: string }): Observable<DespachoBodega> {
+    return this.http.post<DespachoBodega>(`${this.base}/despachos/${id}/rechazar`, body);
   }
 }

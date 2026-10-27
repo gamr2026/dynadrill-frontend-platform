@@ -14,32 +14,21 @@
       @if (puedeSolicitar()) {
         <dynadrill-button variant="secondary" [disabled]="ocupado()" (clicked)="solicitarDespacho()">Solicitar despacho a Bodega</dynadrill-button>
       }
-      @if (puedeRealizar()) {
-        <dynadrill-button variant="primary" [disabled]="ocupado()" (clicked)="realizarDespacho()">Registrar despacho realizado</dynadrill-button>
-      }
     </div>
 
-    @if (despacho(); as d) {
-      @if (d.solicitado) {
-        <p class="gs__meta" role="status">
-          Despacho solicitado el {{ dia(d.solicitado.at) }}{{ d.solicitado.por ? ' por ' + d.solicitado.por : '' }}.
-          @if (d.realizado) {
-            Realizado el {{ dia(d.realizado.at) }}{{ d.realizado.por ? ' por ' + d.realizado.por : '' }}.
-          } @else {
-            Pendiente de Bodega.
-          }
-        </p>
-        @if (d.realizado; as r) {
-          <p class="gs__meta">
-            @if (r.respaldo; as a) {
-              Respaldo: <a href="#" (click)="$event.preventDefault(); descargarDespacho(a)">{{ a.nombre }}</a>.
-            }
-            @if (r.msds; as a) {
-              Hoja MSDS: <a href="#" (click)="$event.preventDefault(); descargarDespacho(a)">{{ a.nombre }}</a>.
-            }
-          </p>
+    @for (d of despachos(); track d.id) {
+      <p class="gs__meta" role="status">
+        Despacho {{ d.numero }} · {{ estadoDespacho[d.estado] }} · {{ d.bodega.nombre }} · para el {{ d.fechaRequerida }}.
+        @if (d.estado === 'realizado') {
+          Despachado el {{ dia(d.realizadoAt!) }}{{ d.realizadoPor ? ' por ' + d.realizadoPor.nombre : '' }}.
         }
-      }
+        @if (d.estado === 'rechazado') {
+          Rechazado{{ d.rechazadoPor ? ' por ' + d.rechazadoPor.nombre : '' }}: {{ d.motivoRechazo }}
+        }
+        @if (d.estado === 'solicitado') {
+          Pendiente de Bodega.
+        }
+      </p>
     }
 
     @for (g of vigentes(); track g.id) {

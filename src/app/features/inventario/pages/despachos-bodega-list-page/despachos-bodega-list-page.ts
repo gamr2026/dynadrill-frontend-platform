@@ -12,29 +12,24 @@ import {
   type DynadrillKpiRowItem,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
-import { EstadoSolicitudDespacho, SolicitudDespachoBodega } from '../../../facturacion/models/solicitud-despacho-bodega.model';
-import { SolicitudesDespachoBodegaService } from '../../../facturacion/services/pedido.service';
 import { GestionarDespachoDialog, GestionarDespachoDialogData } from '../../components/gestionar-despacho-dialog';
 import { injectNarrowViewport } from '../../../../core/utils/narrow-viewport.util';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { RecordCard, type RecordCardData } from '../../../../shared/components/record-card/record-card';
+import { mensajeErrorInventario, type DespachoBodega, type EstadoDespacho } from '../../models/inventario-plataforma.model';
+import { InventarioPlataformaService } from '../../services/inventario-plataforma.service';
 
-const ESTADO_BADGE: Record<EstadoSolicitudDespacho, { text: string; tone: 'success' | 'warning' | 'error' }> = {
-  pendiente: { text: 'Pendiente', tone: 'warning' },
-  despachado: { text: 'Despachado', tone: 'success' },
+const ESTADO_BADGE: Record<EstadoDespacho, { text: string; tone: 'success' | 'warning' | 'error' }> = {
+  solicitado: { text: 'Pendiente', tone: 'warning' },
+  realizado: { text: 'Despachado', tone: 'success' },
   rechazado: { text: 'Rechazado', tone: 'error' },
 };
 
 /**
- * Bandeja de Bodega — correlación con "Orden Salida Material"/"Aprobar
- * Orden Salida Material" de AS2. Facturación pide el despacho desde el
- * detalle del Pedido (`solicitar-despacho-dialog.ts`); acá Bodega lo
- * resuelve (despacha adjuntando el respaldo, o rechaza con motivo).
- *
- * Solo depende de `SolicitudesDespachoBodegaService` — Bodega no tiene
- * acceso a `GET /facturacion/pedidos` (ese es terreno de Facturación/
- * Ventas), así que el backend ya embebe `pedidoCode`/`pedidoCliente` en
- * cada fila de la bandeja (ver `listarSolicitudesDespachoBandeja`).
+ * Bandeja de Bodega — correlación con "Orden Salida Material"/"Aprobar Orden Salida Material" de AS2. Facturación pide el despacho
+ * desde el detalle del pedido (con la prefactura generada); acá Bodega lo resuelve: respalda con salidas de stock, despacha
+ * adjuntando el documento de respaldo, o rechaza con motivo. Todo sale del contenedor de operaciones (`/api/operaciones/inventario/despachos`):
+ * la solicitud trae el código del pedido y el cliente, así que Bodega no necesita consultar pedidos.
  */
 @Component({
   selector: 'app-despachos-bodega-list-page',
@@ -53,7 +48,7 @@ const ESTADO_BADGE: Record<EstadoSolicitudDespacho, { text: string; tone: 'succe
   styleUrl: './despachos-bodega-list-page.scss',
 })
 export class DespachosBodegaListPage {
-  private readonly solicitudesService = inject(SolicitudesDespachoBodegaService);
+  private readonly inventario = inject(InventarioPlataformaService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly notify = inject(DynadrillNotificationService);
 
@@ -61,12 +56,12 @@ export class DespachosBodegaListPage {
   protected readonly isMobile = injectNarrowViewport();
 
   protected readonly loading = signal(true);
-  protected readonly solicitudes = signal<SolicitudDespachoBodega[]>([]);
-  protected readonly filtroEstado = signal<EstadoSolicitudDespacho | null>('pendiente');
+  protected readonly solicitudes = signal<DespachoBodega[]>([]);
+  protected readonly filtroEstado = signal<EstadoDespacho | null>('solicitado');
 
   protected readonly estadoOptions: DynadrillSelectOption[] = [
-    { label: 'Pendientes', value: 'pendiente' },
-    { label: 'Despachadas', value: 'despachado' },
+    { label: 'Pendientes', value: 'solicitado' },
+    { label: 'Despachadas', value: 'realizado' },
     { label: 'Rechazadas', value: 'rechazado' },
     { label: 'Todas', value: '' },
   ];
@@ -78,14 +73,14 @@ export class DespachosBodegaListPage {
 
   protected onEstadoChip(selected: string[]): void {
     const option = this.estadoOptions.find(o => o.label === selected[0]);
-    if (option) this.filtroEstado.set((option.value as EstadoSolicitudDespacho | '') || null);
+    if (option) this.filtroEstado.set((option.value as EstadoDespacho | '') || null);
   }
 
   protected readonly kpis = computed<DynadrillKpiRowItem[]>(() => {
     const all = this.solicitudes();
     return [
-      { label: 'Pendientes', value: all.filter(s => s.estado === 'pendiente').length, tone: 'warning' },
-      { label: 'Despachadas', value: all.filter(s => s.estado === 'despachado').length, tone: 'success' },
+      { label: 'Pendientes', value: all.filter(s => s.estado === 'solicitado').length, tone: 'warning' },
+      { label: 'Despachadas', value: all.filter(s => s.estado === 'realizado').length, tone: 'success' },
       { label: 'Rechazadas', value: all.filter(s => s.estado === 'rechazado').length, tone: 'error' },
     ];
   });
@@ -106,23 +101,23 @@ export class DespachosBodegaListPage {
       .map(s => ({
         id: s.id,
         numero: s.numero,
-        pedidoCode: s.pedidoCode ?? '—',
-        cliente: s.pedidoCliente ?? '—',
-        bodegaOrigen: s.bodegaOrigen,
+        pedidoCode: s.pedidoCodigo ?? '—',
+        cliente: s.cliente?.nombre ?? '—',
+        bodegaOrigen: s.bodega.nombre,
         fechaRequerida: s.fechaRequerida.slice(0, 10),
         estadoBadge: ESTADO_BADGE[s.estado],
       }));
   });
 
-  protected readonly cards = computed<(RecordCardData & { id: number })[]>(() => {
+  protected readonly cards = computed<(RecordCardData & { id: string })[]>(() => {
     const filtro = this.filtroEstado();
     return this.solicitudes()
       .filter(s => !filtro || s.estado === filtro)
       .map(s => ({
         id: s.id,
-        eyebrow: s.numero,
-        title: s.pedidoCliente ?? '—',
-        subtitle: `Pedido ${s.pedidoCode ?? '—'} • ${s.bodegaOrigen}`,
+        eyebrow: `Despacho ${s.numero}`,
+        title: s.cliente?.nombre ?? '—',
+        subtitle: `Pedido ${s.pedidoCodigo ?? '—'} • ${s.bodega.nombre}`,
         status: ESTADO_BADGE[s.estado],
         fields: [
           { label: 'Fecha requerida', value: s.fechaRequerida.slice(0, 10) },
@@ -140,14 +135,14 @@ export class DespachosBodegaListPage {
 
   private reload(): void {
     this.loading.set(true);
-    this.solicitudesService.listar().subscribe({
+    this.inventario.despachos().subscribe({
       next: solicitudes => {
         this.solicitudes.set(solicitudes);
         this.loading.set(false);
       },
-      error: () => {
+      error: err => {
         this.loading.set(false);
-        this.notify.error('Error', 'No se pudo cargar la bandeja de despachos.');
+        this.notify.error('Error', mensajeErrorInventario(err, 'No se pudo cargar la bandeja de despachos.'));
       },
     });
   }
@@ -158,9 +153,9 @@ export class DespachosBodegaListPage {
     const ref = this.dialog.open<GestionarDespachoDialog, GestionarDespachoDialogData>({
       title: `Solicitud de Despacho ${solicitud.numero}`,
       content: GestionarDespachoDialog,
-      data: { solicitud },
+      data: { despacho: solicitud },
       footer: false,
-      width: '640px',
+      width: '720px',
     });
     ref.afterClose.subscribe(actualizado => {
       if (actualizado) this.reload();

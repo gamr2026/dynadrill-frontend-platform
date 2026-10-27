@@ -12,7 +12,9 @@ import { AuthService } from '../../../../../core/services/auth.service';
 import { ArchivosService } from '../../services/archivos.service';
 import { GuiasComercialService } from '../../services/guias-comercial.service';
 import { GuiaHoja } from '../guia-hoja/guia-hoja';
-import { DespachoRealizarDialog, type DespachoRealizarDialogData } from '../despacho-realizar-dialog/despacho-realizar-dialog';
+import { SolicitarDespachoDialog, type SolicitarDespachoDialogData } from '../solicitar-despacho-dialog/solicitar-despacho-dialog';
+import type { DespachoBodega } from '../../../../inventario/models/inventario-plataforma.model';
+import { InventarioPlataformaService } from '../../../../inventario/services/inventario-plataforma.service';
 import { GuiaAccionDialog, type GuiaAccionDialogData } from '../guia-accion-dialog/guia-accion-dialog';
 import { GuiaEmitirDialog, type GuiaEmitirDialogData } from '../guia-emitir-dialog/guia-emitir-dialog';
 import { formatoDia, type PedidoDetalle } from '../../models/pedido-comercial.model';
@@ -22,12 +24,12 @@ import {
   ESTADO_FIRMA_ELECTRONICA,
   esPdfFirmado,
   validacionPendiente,
+  ESTADO_DESPACHO_LABELS,
   ESTADO_GUIA_LABELS,
   ORIGEN_ITEM_LABELS,
   PERMISOS_GUIAS,
   mensajeErrorGuia,
   type AccionGuia,
-  type DespachoEstado,
   type Guia,
 } from '../../models/guia-comercial';
 
@@ -44,6 +46,7 @@ import {
 })
 export class GuiasSeccion {
   private readonly servicio = inject(GuiasComercialService);
+  private readonly inventario = inject(InventarioPlataformaService);
   private readonly archivos = inject(ArchivosService);
   private readonly dialog = inject(DynadrillDialogService);
   private readonly documentoPdf = inject(DocumentoPdfService);
@@ -58,15 +61,14 @@ export class GuiasSeccion {
   protected readonly error = signal<string | null>(null);
   protected readonly errorAccion = signal<string | null>(null);
   protected readonly guias = signal<Guia[]>([]);
-  protected readonly despacho = signal<DespachoEstado | null>(null);
+  /** Las solicitudes de despacho del pedido (las lleva Inventario); solo las ve quien tiene permiso para ver despachos. */
+  protected readonly despachos = signal<DespachoBodega[]>([]);
+  protected readonly estadoDespacho = ESTADO_DESPACHO_LABELS;
 
   protected readonly puedeEmitir = computed(() => this.auth.can(PERMISOS_GUIAS.emitir));
   protected readonly puedeFirmar = computed(() => this.auth.can(PERMISOS_GUIAS.firmar));
   protected readonly puedeSolicitar = computed(
     () => this.auth.can(PERMISOS_GUIAS.solicitarDespacho) && this.pedido().estado === 'prefactura_generada',
-  );
-  protected readonly puedeRealizar = computed(
-    () => this.auth.can(PERMISOS_GUIAS.realizarDespacho) && this.pedido().estado === 'por_despachar_bodega',
   );
   protected readonly vigentes = computed(() => this.guias().filter(g => g.estado === 'emitida'));
   protected readonly anuladas = computed(() => this.guias().filter(g => g.estado === 'anulada'));
@@ -136,13 +138,18 @@ export class GuiasSeccion {
         this.intentos = 0;
         this.sinResultado.set(false);
         this.evaluarSondeo();
-        this.servicio.despacho(this.pedido().id).subscribe({
+        if (!this.auth.can(PERMISOS_GUIAS.verDespachos)) {
+          this.despachos.set([]);
+          this.cargando.set(false);
+          return;
+        }
+        this.inventario.despachos({ pedidoId: this.pedido().id }).subscribe({
           next: d => {
-            this.despacho.set(d);
+            this.despachos.set(d);
             this.cargando.set(false);
           },
           error: () => {
-            this.despacho.set(null);
+            this.despachos.set([]);
             this.cargando.set(false);
           },
         });
@@ -202,45 +209,21 @@ export class GuiasSeccion {
     });
   }
 
+  /** Facturación elige bodega, fecha, ítems y nota; Bodega lo resuelve en Inventario. */
   protected solicitarDespacho(): void {
-    this.llamarDespacho(this.servicio.solicitarDespacho(this.pedido().id), 'Despacho solicitado a Bodega');
-  }
-
-  /** Bodega adjunta el documento de respaldo (y la hoja MSDS si despachó químicos) al registrar el despacho. */
-  protected realizarDespacho(): void {
-    const ref = this.dialog.open<DespachoRealizarDialog, DespachoRealizarDialogData>({
-      title: 'Registrar despacho realizado',
-      content: DespachoRealizarDialog,
-      data: { pedidoId: this.pedido().id },
+    const p = this.pedido();
+    const ref = this.dialog.open<SolicitarDespachoDialog, SolicitarDespachoDialogData>({
+      title: 'Solicitar despacho a Bodega',
+      content: SolicitarDespachoDialog,
+      data: { pedidoId: p.id, pedidoCodigo: p.codigo ?? '—', items: p.items },
       footer: false,
-      width: '520px',
+      width: '820px',
     });
-    ref.afterClose.subscribe((d: DespachoEstado | undefined) => {
-      if (d) this.recargar();
-    });
-  }
-
-  protected descargarDespacho(a: { id: string; nombre: string }): void {
-    this.archivos.contenido(a.id).subscribe({
-      next: blob => this.archivos.guardarComo(blob, a.nombre),
-      error: () => this.notify.error('No se pudo descargar', 'No se pudo descargar el documento. Intente de nuevo.'),
-    });
-  }
-
-  private llamarDespacho(obs: ReturnType<GuiasComercialService['solicitarDespacho']>, titulo: string): void {
-    if (this.ocupado()) return;
-    this.ocupado.set(true);
-    this.errorAccion.set(null);
-    obs.subscribe({
-      next: () => {
-        this.ocupado.set(false);
-        this.notify.success(titulo);
+    ref.afterClose.subscribe((enviado: boolean | undefined) => {
+      if (enviado) {
+        this.notify.success('Despacho solicitado a Bodega');
         this.recargar();
-      },
-      error: err => {
-        this.ocupado.set(false);
-        this.errorAccion.set(mensajeErrorGuia(err, 'No se pudo completar la acción. Intente de nuevo.'));
-      },
+      }
     });
   }
 

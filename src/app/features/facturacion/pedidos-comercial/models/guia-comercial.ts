@@ -5,7 +5,7 @@ export const PERMISOS_GUIAS = {
   emitir: 'comercial.guias.emitir',
   firmar: 'comercial.guias.firmar',
   solicitarDespacho: 'comercial.despachos.solicitar',
-  realizarDespacho: 'inventario.despachos.gestionar',
+  verDespachos: 'inventario.despachos.ver',
   crearTransporte: 'catalogos.transporte.crear',
 } as const;
 
@@ -91,19 +91,13 @@ export interface LugarDespacho {
   nombre: string;
 }
 
-export interface DespachoEstado {
-  solicitado: { at: string; por: string | null } | null;
-  realizado: {
-    at: string;
-    por: string | null;
-    respaldo: { id: string; nombre: string } | null;
-    msds: { id: string; nombre: string } | null;
-  } | null;
-}
-
-export interface RealizarDespachoRequest {
-  archivoRespaldoId: string;
-  archivoMsdsId?: string;
+/** Lo que Facturación pide a Bodega (`POST /pedidos/:id/despacho/solicitar`); Bodega lo resuelve en Inventario. */
+export interface SolicitarDespachoRequest {
+  bodegaId: string;
+  /** AAAA-MM-DD, hoy o después. */
+  fechaRequerida: string;
+  nota?: string;
+  items: Array<{ pedidoItemId: string; cantidad: number }>;
 }
 
 export interface EmitirGuiaRequest {
@@ -121,6 +115,8 @@ export interface EmitirGuiaRequest {
   reemplazaAId?: string;
   items: Array<{ codigo?: string; descripcion: string; cantidad: number; unidad: string; serie?: string; origen: OrigenItemGuia }>;
 }
+
+export const ESTADO_DESPACHO_LABELS = { solicitado: 'Pendiente', realizado: 'Despachado', rechazado: 'Rechazado' } as const;
 
 export const ESTADO_GUIA_LABELS: Record<EstadoGuia, string> = { emitida: 'Emitida', anulada: 'Anulada' };
 export const ORIGEN_ITEM_LABELS: Record<OrigenItemGuia, string> = { herramienta: 'Herramienta', material: 'Material', manual: 'Agregado' };

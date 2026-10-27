@@ -15,6 +15,7 @@ import {
   type MotivoDialogData,
 } from '../../../../../shared/components/motivo-dialog/motivo-dialog';
 import { AuthService } from '../../../../../core/services/auth.service';
+import { useDetailChrome } from '../../../../../layout/page-chrome.service';
 import {
   PERMISO_FCR_VER,
   PASOS_FCR,
@@ -258,6 +259,8 @@ export class PedidoComercialDetailPage {
   /** Estados que nombran un hecho ya cumplido (firmado, generada, facturado): al llegar a ellos el paso sale completado, no «en curso». */
   private static readonly HECHOS = ['ticket_firmado', 'aot_generada', 'facturado'];
   private static readonly CAMINO = [
+    'abierto',
+    'en_operacion',
     'documentos_completos',
     'en_revision_prefacturacion',
     'prefactura_generada',
@@ -303,6 +306,29 @@ export class PedidoComercialDetailPage {
   });
 
   constructor() {
+    // Barra superior en móvil (Figma Nav/TopAppBar): el menú «⋮» ofrece las mismas acciones que la barra de botones de escritorio,
+    // que en móvil solo deja a la vista «Editar pedido».
+    useDetailChrome(
+      () => 'Pedido ' + (this.pedido()?.codigo ?? ''),
+      '/dashboard/facturacion/pedidos',
+      () => {
+        const p = this.pedido();
+        if (!p) return [];
+        return [
+          ...(this.puedeAbrir() ? [{ label: 'Abrir pedido', action: () => this.abrir() }] : []),
+          ...this.pasos().map((paso) => ({ label: paso.nombre, action: () => this.dar(paso) })),
+          ...(this.puedeEditar() ? [{ label: 'Editar pedido', action: () => this.editar() }] : []),
+          ...(this.puedeImportar() ? [{ label: 'Importar líneas de AS2', action: () => this.importarLineas() }] : []),
+          ...(this.pendienteDeAs2() && this.puedeEditar() ? [{ label: 'Vincular con AS2', action: () => this.buscarEnAs2() }] : []),
+          ...(this.puedeAsignar()
+            ? [{ label: p.responsables.analistaFacturacion.nombre ? 'Reasignar analista' : 'Asignar analista', action: () => this.asignarAnalista() }]
+            : []),
+          ...(this.pasoRechazar() ? [{ label: 'Rechazar pedido', action: () => this.rechazar() }] : []),
+          ...(this.puedeForzar() ? [{ label: 'Forzar estado', action: () => this.forzar() }] : []),
+          ...(this.pasoAnular() ? [{ label: 'Anular pedido', action: () => this.anular(), danger: true }] : []),
+        ];
+      },
+    );
     this.servicio
       .tiposOt()
       .subscribe({ next: (t) => this.tiposOt.set(t), error: () => this.tiposOt.set([]) });

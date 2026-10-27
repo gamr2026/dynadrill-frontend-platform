@@ -99,13 +99,33 @@
   &__subir {
     display: flex;
     flex-direction: column;
+    position: relative;
+    align-items: center;
+    justify-content: center;
     gap: 4px;
+    padding: 14px 16px;
+    border: 1px dashed var(--dynadrill-purple, #662e9b);
+    border-radius: 12px;
+    background: var(--surface-soft, #faf8fd);
+    text-align: center;
+    cursor: pointer;
     font-size: 13px;
-    color: var(--text-muted, #5c5870);
+    color: var(--dynadrill-purple, #662e9b);
+    font-weight: 600;
 
+    // El selector nativo queda encima, invisible: toda el área es clicable y se ve como la zona de carga del sistema de diseño.
     input {
-      font: inherit;
-      color: var(--text, #2c2b35);
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    &:hover,
+    &:focus-within {
+      background: var(--surface-tint, #f1eaf9);
     }
   }
 

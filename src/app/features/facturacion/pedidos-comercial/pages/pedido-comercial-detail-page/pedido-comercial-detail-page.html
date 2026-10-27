@@ -25,7 +25,7 @@
         }}</dynadrill-button>
       }
       @if (puedeEditar()) {
-        <dynadrill-button variant="secondary" (clicked)="editar()">Editar pedido</dynadrill-button>
+        <dynadrill-button class="pedido-detail__editar" variant="secondary" (clicked)="editar()">Editar pedido</dynadrill-button>
       }
       @if (puedeImportar()) {
         <dynadrill-button variant="secondary" (clicked)="importarLineas()"

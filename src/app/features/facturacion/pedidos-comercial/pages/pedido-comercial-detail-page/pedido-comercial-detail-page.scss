@@ -19,17 +19,23 @@
 
   &__toolbar {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
     gap: 10px;
+
+    dynadrill-button {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
 
     // Figma móvil: solo "Editar pedido", a ancho completo — Rechazar/Anular
     // viven en el "⋮" de la barra superior (ver useDetailChrome).
     @media (max-width: 840px) {
-      dynadrill-button:nth-child(n + 2) {
+      dynadrill-button:not(.pedido-detail__editar) {
         display: none;
       }
 
-      dynadrill-button:first-child {
+      dynadrill-button.pedido-detail__editar {
         flex: 1 1 100%;
 
         ::ng-deep .ant-btn {

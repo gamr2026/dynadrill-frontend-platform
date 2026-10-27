@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import { Observable } from 'rxjs';
-import { DynadrillButtonComponent, DynadrillInputComponent, DynadrillNotificationService, DynadrillSelectComponent, DynadrillTextComponent, DynadrillTextareaComponent, type DynadrillSelectOption } from '@digitec-it-projects/dynadrill-ui';
+import { DynadrillButtonComponent, DynadrillCheckboxComponent, DynadrillInputComponent, DynadrillNotificationService, DynadrillSelectComponent, DynadrillTextComponent, DynadrillTextareaComponent, type DynadrillSelectOption } from '@digitec-it-projects/dynadrill-ui';
 import { PrefacturasComercialService } from '../../services/prefacturas-comercial.service';
 import {
   DEVUELTO_A_LABELS,
@@ -10,23 +10,26 @@ import {
   validarMotivoRechazo,
   validarNumeroTicket,
   type DevueltoA,
+  type ItemPrefactura,
   type MedioEnvio,
   type Prefactura,
 } from '../../models/prefactura-comercial';
 
-export type TipoAccionPrefactura = 'ticket' | 'enviar' | 'firmada' | 'rechazar';
+export type TipoAccionPrefactura = 'ticket' | 'enviar' | 'firmada' | 'rechazar' | 'seguimiento';
 
 export interface PrefacturaAccionDialogData {
   tipo: TipoAccionPrefactura;
   prefacturaId: string;
   /** Número ya registrado (para mostrarlo al corregir). */
   ticketActual?: number | null;
+  /** Al rechazar: los ítems de la prefactura, para marcar los que el cliente observó. */
+  items?: ItemPrefactura[];
 }
 
 /** Diálogo único para las acciones con un dato: número de ticket, medio de envío, razón de retraso y rechazo. */
 @Component({
   selector: 'app-prefactura-accion-dialog',
-  imports: [DynadrillButtonComponent, DynadrillInputComponent, DynadrillSelectComponent, DynadrillTextComponent, DynadrillTextareaComponent],
+  imports: [DynadrillButtonComponent, DynadrillCheckboxComponent, DynadrillInputComponent, DynadrillSelectComponent, DynadrillTextComponent, DynadrillTextareaComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'app-dialog-sheet-mobile' },
   template: `
@@ -48,6 +51,23 @@ export interface PrefacturaAccionDialogData {
           <dynadrill-text variant="body">El pedido pasa a corrección. La prefactura rechazada se conserva y después se puede generar una versión nueva.</dynadrill-text>
           <dynadrill-select label="Se devuelve a" placeholder="Elija a quién" [options]="destinos" [value]="devueltoA()" (valueChange)="devueltoA.set($any($event))" />
           <dynadrill-textarea label="Motivo del rechazo" placeholder="Explique por qué se rechaza…" [rows]="3" [value]="texto()" (valueChange)="texto.set($event)" />
+          @if (data.items?.length) {
+            <dynadrill-text variant="caption">Marque los ítems que el cliente observó y escriba qué observó de cada uno (opcional).</dynadrill-text>
+            <div class="accion__items">
+              @for (i of data.items; track i.id) {
+                <div class="accion__item">
+                  <dynadrill-checkbox [label]="(i.codigo ?? 'Sin código') + ' · ' + i.descripcion" [checked]="i.id in observaciones()" (checkedChange)="marcar(i.id, $event)" />
+                  @if (i.id in observaciones()) {
+                    <dynadrill-input label="Observación" [value]="observaciones()[i.id]" (valueChange)="escribir(i.id, $event)" />
+                  }
+                </div>
+              }
+            </div>
+          }
+        }
+        @case ('seguimiento') {
+          <dynadrill-text variant="body">Anote qué se hizo para corregir la prefactura rechazada. Queda con su nombre y la fecha, y no se edita.</dynadrill-text>
+          <dynadrill-textarea label="Nota de seguimiento" placeholder="Qué se corrigió o qué falta…" [rows]="3" [value]="texto()" (valueChange)="texto.set($event)" />
         }
       }
       @if (error(); as e) {
@@ -61,6 +81,8 @@ export interface PrefacturaAccionDialogData {
   `,
   styles: `
     .accion { display: flex; flex-direction: column; gap: 14px; }
+    .accion__items { display: flex; flex-direction: column; gap: 10px; max-height: 260px; overflow-y: auto; }
+    .accion__item { display: flex; flex-direction: column; gap: 6px; }
     .accion__error { margin: 0; font-size: 13px; color: var(--error, #cf1322); }
     .accion__acciones { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #ecebf1; }
   `,
@@ -79,7 +101,21 @@ export class PrefacturaAccionDialog {
   protected readonly devueltoA = signal<DevueltoA | null>(null);
   protected readonly enviando = signal(false);
   protected readonly error = signal<string | null>(null);
-  protected readonly textoBoton = computed(() => ({ ticket: 'Registrar número', enviar: 'Enviar al cliente', firmada: 'Dar por firmada', rechazar: 'Registrar rechazo' })[this.data.tipo]);
+  protected readonly textoBoton = computed(() => ({ ticket: 'Registrar número', enviar: 'Enviar al cliente', firmada: 'Dar por firmada', rechazar: 'Registrar rechazo', seguimiento: 'Anotar seguimiento' })[this.data.tipo]);
+
+  /** Ítems observados: id del ítem → observación escrita (el ítem está marcado mientras tenga entrada). */
+  protected readonly observaciones = signal<Record<string, string>>({});
+
+  protected marcar(id: string, marcado: boolean): void {
+    this.observaciones.update(o => {
+      const { [id]: _quitado, ...resto } = o;
+      return marcado ? { ...resto, [id]: o[id] ?? '' } : resto;
+    });
+  }
+
+  protected escribir(id: string, texto: string): void {
+    this.observaciones.update(o => ({ ...o, [id]: texto }));
+  }
 
   protected confirmar(): void {
     if (this.enviando()) return;
@@ -105,10 +141,22 @@ export class PrefacturaAccionDialog {
         llamada = this.servicio.darPorFirmada(id, this.texto());
         titulo = 'Prefactura firmada';
         break;
+      case 'seguimiento':
+        if (!this.texto().trim()) return void this.error.set('Escriba la nota de seguimiento.');
+        llamada = this.servicio.anotarSeguimiento(id, this.texto());
+        titulo = 'Seguimiento anotado';
+        break;
       default: {
         const error = validarMotivoRechazo(this.texto(), this.devueltoA());
         if (error) return void this.error.set(error);
-        llamada = this.servicio.rechazar(id, this.texto(), this.devueltoA() as DevueltoA);
+        const observados = Object.entries(this.observaciones());
+        if (observados.some(([, o]) => !o.trim())) return void this.error.set('Escriba la observación de cada ítem marcado.');
+        llamada = this.servicio.rechazar(
+          id,
+          this.texto(),
+          this.devueltoA() as DevueltoA,
+          observados.map(([itemId, observacion]) => ({ itemId, observacion: observacion.trim() })),
+        );
         titulo = 'Rechazo registrado';
       }
     }

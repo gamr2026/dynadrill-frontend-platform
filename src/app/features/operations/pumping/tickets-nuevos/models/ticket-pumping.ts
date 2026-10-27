@@ -478,6 +478,48 @@ export const MODULO_ARCHIVO_MONITOREO = 'ticket_monitoreo_documento';
 export const PASO_REVISION_SALIDA = 'revision_reportes_salida';
 // ── Reporte Diario de Actividades (DYN-SGI-RE-047, el «Reporte Job») ──
 
+/** Cómo se aplicó un ítem un día del Reporte de Herramientas (el stand-by no se cobra y no se registra). */
+export type EstadoDiaHerramienta = 'operacion' | 'daily_charge' | 'venta';
+
+export const ESTADO_DIA_HERRAMIENTA_LABELS: Record<EstadoDiaHerramienta, string> = {
+  operacion: 'Operación',
+  daily_charge: 'Daily charge',
+  venta: 'Venta',
+};
+
+/** Lo que se ve en la celda de un día de un ítem por día: 1 si es operación; D o V si es daily charge o venta. */
+export const ESTADO_DIA_HERRAMIENTA_MARCA: Record<EstadoDiaHerramienta, string> = {
+  operacion: '1',
+  daily_charge: 'D',
+  venta: 'V',
+};
+
+export interface LineaReporteHerramientas {
+  id: string;
+  orden: number;
+  listaPreciosItemId: string | null;
+  codigo: string;
+  descripcion: string;
+  unidad: string;
+  unidadMedidaId: string;
+  tipoLinea: 'servicio' | 'material' | 'herramienta' | 'movilizacion';
+  /** El ítem se mide en días: se reporta con una marca por día. */
+  porDia: boolean;
+  /** Lo cotizado por Ventas: el tope de lo que se puede reportar. */
+  cotizado: number;
+  /** Lo reportado hasta ahora: la suma de sus días. */
+  cantidad: number;
+  dias: Array<{ fecha: string; estado: EstadoDiaHerramienta; cantidad: number }>;
+}
+
+/** Reporte de Herramientas de un ticket de Pumping: las líneas cotizadas del pedido repartidas por día. */
+export interface ReporteHerramientasPumping {
+  completadoAt: string | null;
+  fechaInicio: string | null;
+  fechaFin: string | null;
+  lineas: LineaReporteHerramientas[];
+}
+
 export type EstadoReporteDiario = 'borrador' | 'completado' | 'corregido';
 
 /** Un día del ticket en la lista: su estado y sus horas. */

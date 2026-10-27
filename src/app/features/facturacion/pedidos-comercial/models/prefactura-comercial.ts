@@ -35,6 +35,7 @@ export interface TasasPrefactura {
 }
 
 export interface ItemPrefactura {
+  id: string;
   orden: number;
   codigo: string | null;
   descripcion: string;
@@ -65,10 +66,30 @@ export interface FirmaPrefactura {
   nombreCoincide: boolean | null;
 }
 
+/** Un ítem de la prefactura que el cliente observó al rechazarla. */
+export interface ItemObservadoPrefactura {
+  itemId: string;
+  orden: number | null;
+  codigo: string | null;
+  descripcion: string | null;
+  observacion: string;
+}
+
 export interface RechazoPrefactura {
   at: string;
   motivo: string;
   devueltoA: DevueltoA;
+  /** La persona a quien se devuelve la corrección, si se indicó (el área va en `devueltoA`). */
+  devueltoAUsuario: { id: string; nombre: string | null } | null;
+  items: ItemObservadoPrefactura[];
+}
+
+/** Una nota del seguimiento de la corrección de una prefactura rechazada. */
+export interface SeguimientoPrefactura {
+  id: string;
+  nota: string;
+  at: string;
+  por: { id: string; nombre: string | null };
 }
 
 export interface Prefactura {
@@ -85,6 +106,7 @@ export interface Prefactura {
   razonRetraso: string | null;
   firmadaAt: string | null;
   rechazo: RechazoPrefactura | null;
+  seguimiento: SeguimientoPrefactura[];
   items: ItemPrefactura[];
   advertencias: string[];
   firmas: FirmaPrefactura[];

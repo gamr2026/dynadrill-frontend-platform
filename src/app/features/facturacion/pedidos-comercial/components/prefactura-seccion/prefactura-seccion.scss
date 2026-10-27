@@ -156,3 +156,28 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+.pf__rechazo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  border: 1px solid var(--border, #e5e4ea);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+
+  h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding-left: 18px;
+    font-size: 13px;
+  }
+}

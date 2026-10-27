@@ -54,9 +54,35 @@
             ' y devuelta a ' +
             devueltoA(p.rechazo.devueltoA) +
             ': ' +
-            p.rechazo.motivo
+            p.rechazo.motivo +
+            (p.rechazo.devueltoAUsuario?.nombre ? ' (a ' + p.rechazo.devueltoAUsuario?.nombre + ')' : '')
           "
         />
+        @if (p.rechazo.items.length) {
+          <section class="pf__rechazo" aria-label="Ítems observados por el cliente">
+            <h3>Ítems observados</h3>
+            <ul>
+              @for (o of p.rechazo.items; track o.itemId) {
+                <li>
+                  <strong>{{ o.codigo ?? 'Sin código' }}</strong> {{ o.descripcion }}: {{ o.observacion }}
+                </li>
+              }
+            </ul>
+          </section>
+        }
+        <section class="pf__rechazo" aria-label="Seguimiento de la corrección">
+          <h3>Seguimiento de la corrección</h3>
+          <ul>
+            @for (n of p.seguimiento; track n.id) {
+              <li>{{ dia(n.at) }} · {{ n.por.nombre ?? 'Alguien' }}: {{ n.nota }}</li>
+            } @empty {
+              <li class="pf__meta">Todavía no hay notas.</li>
+            }
+          </ul>
+          @if (puedeSeguimiento()) {
+            <dynadrill-button variant="secondary" size="small" (clicked)="anotarSeguimiento(p)">Anotar seguimiento</dynadrill-button>
+          }
+        </section>
       }
       @if (p.razonRetraso) {
         <dynadrill-banner

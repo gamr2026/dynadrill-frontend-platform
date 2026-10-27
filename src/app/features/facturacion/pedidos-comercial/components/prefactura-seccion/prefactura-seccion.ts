@@ -93,6 +93,8 @@ export class PrefacturaSeccion {
   protected readonly historial = computed(() =>
     this.versiones().filter((v) => v.id !== this.actual()?.id),
   );
+  /** Quien rechaza una prefactura también anota el seguimiento de su corrección. */
+  protected readonly puedeSeguimiento = computed(() => this.auth.can(PERMISOS_PREFACTURAS.rechazar));
   protected readonly vigente = computed(
     () => !!this.actual() && esVigente(this.actual() as Prefactura),
   );
@@ -241,11 +243,15 @@ export class PrefacturaSeccion {
     });
   }
 
+  protected anotarSeguimiento(p: Prefactura): void {
+    this.abrirAccion('seguimiento', 'Anotar seguimiento', p);
+  }
+
   private abrirAccion(tipo: TipoAccionPrefactura, titulo: string, p: Prefactura): void {
     const ref = this.dialog.open<PrefacturaAccionDialog, PrefacturaAccionDialogData>({
       title: titulo,
       content: PrefacturaAccionDialog,
-      data: { tipo, prefacturaId: p.id, ticketActual: p.ticketNumero },
+      data: { tipo, prefacturaId: p.id, ticketActual: p.ticketNumero, items: p.items },
       footer: false,
       width: '480px',
     });

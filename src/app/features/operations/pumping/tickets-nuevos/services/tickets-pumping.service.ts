@@ -14,7 +14,9 @@ import type {
   DocumentoDelTicket,
   FiltroTickets,
   QuimicoEntrada,
+  EstadoDiaHerramienta,
   ReporteDiario,
+  ReporteHerramientasPumping,
   ReporteDiarioDia,
   ReporteDiarioEntrada,
   QuimicosTicket,
@@ -146,6 +148,34 @@ export class TicketsPumpingService {
   completarReporteDiario(id: string, fecha: string): Observable<ReporteDiario> {
     return this.http.post<ReporteDiario>(
       `${this.base}/tickets/${id}/reportes-diarios/${fecha}/completar`,
+      {},
+    );
+  }
+
+  // ── Reporte de Herramientas (las líneas cotizadas del pedido, repartidas por día) ──
+
+  reporteHerramientas(id: string): Observable<ReporteHerramientasPumping> {
+    return this.http.get<ReporteHerramientasPumping>(`${this.base}/tickets/${id}/reporte-herramientas`);
+  }
+
+  /** Pone la celda de un día de una línea; con `estado = null` la quita. En las líneas que no son por día hay que indicar la cantidad. */
+  marcarDiaHerramienta(
+    id: string,
+    lineaId: string,
+    fecha: string,
+    estado: EstadoDiaHerramienta | null,
+    cantidad?: number,
+  ): Observable<ReporteHerramientasPumping> {
+    const url = `${this.base}/tickets/${id}/reporte-herramientas/lineas/${lineaId}/dias/${fecha}`;
+    return estado === null
+      ? this.http.delete<ReporteHerramientasPumping>(url)
+      : this.http.put<ReporteHerramientasPumping>(url, { estado, ...(cantidad ? { cantidad } : {}) });
+  }
+
+  /** «El reporte está completo»: se envía a Facturación como documento operativo. */
+  completarReporteHerramientas(id: string): Observable<ReporteHerramientasPumping> {
+    return this.http.post<ReporteHerramientasPumping>(
+      `${this.base}/tickets/${id}/reporte-herramientas/completar`,
       {},
     );
   }

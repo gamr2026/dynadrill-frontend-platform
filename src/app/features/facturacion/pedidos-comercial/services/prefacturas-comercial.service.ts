@@ -92,10 +92,26 @@ export class PrefacturasComercialService {
     return this.http.post<Prefactura>(`${this.base}/prefacturas/${id}/firmar`, cuerpo);
   }
 
-  rechazar(id: string, motivo: string, devueltoA: DevueltoA): Observable<Prefactura> {
+  rechazar(
+    id: string,
+    motivo: string,
+    devueltoA: DevueltoA,
+    /** Los ítems que el cliente observó, cada uno con su observación. */
+    items: Array<{ itemId: string; observacion: string }> = [],
+    devueltoAUsuarioId?: string,
+  ): Observable<Prefactura> {
     return this.http.post<Prefactura>(`${this.base}/prefacturas/${id}/rechazar`, {
       motivo: motivo.trim(),
       devueltoA,
+      ...(items.length ? { items } : {}),
+      ...(devueltoAUsuarioId ? { devueltoAUsuarioId } : {}),
+    });
+  }
+
+  /** Anota un avance de la corrección de una prefactura rechazada. */
+  anotarSeguimiento(id: string, nota: string): Observable<Prefactura> {
+    return this.http.post<Prefactura>(`${this.base}/prefacturas/${id}/seguimiento`, {
+      nota: nota.trim(),
     });
   }
 }

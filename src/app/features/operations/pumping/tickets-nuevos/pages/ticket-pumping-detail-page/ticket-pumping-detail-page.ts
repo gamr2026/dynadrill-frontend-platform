@@ -113,6 +113,10 @@ import {
   type TicketReporteDiarioDialogData,
 } from '../../components/ticket-reporte-diario-dialog/ticket-reporte-diario-dialog';
 import {
+  TicketReporteHerramientasDialog,
+  type TicketReporteHerramientasDialogData,
+} from '../../components/ticket-reporte-herramientas-dialog/ticket-reporte-herramientas-dialog';
+import {
   TicketReporteLlegadaDialog,
   type TicketReporteLlegadaDialogData,
 } from '../../components/ticket-reporte-llegada-dialog/ticket-reporte-llegada-dialog';
@@ -1290,6 +1294,23 @@ export class TicketPumpingDetailPage {
     ref.afterClose.subscribe(
       (hubo: boolean | undefined) => hubo && this.cargarReportesDiarios(t.id),
     );
+  }
+
+  /** Reporte de herramientas: las líneas cotizadas del pedido repartidas por día; lo arma el Operador del equipo en la Ejecución operativa. */
+  protected abrirReporteHerramientas(): void {
+    const t = this.ticket();
+    if (!t) return;
+    this.dialog.open<TicketReporteHerramientasDialog, TicketReporteHerramientasDialogData>({
+      title: 'Reporte de herramientas',
+      content: TicketReporteHerramientasDialog,
+      data: {
+        ticketId: t.id,
+        ticketCodigo: String(t.ticketNumero ?? t.pedidoCodigo),
+        soloLectura: !this.puedeLlenarReporteDiario(),
+      },
+      footer: false,
+      width: '980px',
+    });
   }
 
   private cargarQuimicos(id: string): void {

@@ -1339,6 +1339,24 @@
               </section>
             }
 
+            @if (muestraReporteDiario()) {
+              <section class="tpd__tarjeta" aria-label="Reporte de herramientas">
+                <h2>Reporte de herramientas</h2>
+                <p class="tpd__meta">
+                  Las líneas cotizadas del pedido, repartidas por día. El Operador del equipo lo arma
+                  en la Ejecución operativa y, al completarlo, se envía a Facturación.
+                </p>
+                <div class="tpd__acciones">
+                  <dynadrill-button
+                    variant="secondary"
+                    size="small"
+                    (clicked)="abrirReporteHerramientas()"
+                    >{{ puedeLlenarReporteDiario() ? 'Abrir y editar' : 'Ver' }}</dynadrill-button
+                  >
+                </div>
+              </section>
+            }
+
             @if (muestraCambios()) {
               <section
                 id="cambios-items"

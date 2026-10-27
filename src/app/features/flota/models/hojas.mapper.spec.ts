@@ -7,8 +7,8 @@ const inspeccion: InspeccionDetalle = {
   id: 'i-1',
   momento: 'salida',
   fecha: '2026-10-18T14:00:00.000Z',
-  puntoPartida: 'Base Coca',
-  destino: 'Pozo 1',
+  puntoPartida: { tipo: 'bodega', id: 'b-1', nombre: 'Base Coca' },
+  destino: { tipo: 'pozo', id: 'p-1', nombre: 'Pozo 1' },
   observaciones: null,
   km: 1200,
   unidad: {

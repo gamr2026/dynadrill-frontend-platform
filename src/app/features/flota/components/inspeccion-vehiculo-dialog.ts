@@ -15,6 +15,8 @@ import {
   type DynadrillTagVariant,
 } from '@digitec-it-projects/dynadrill-ui';
 import { AuthService } from '../../../core/services/auth.service';
+import { LugarSelectorComponent } from '../../../shared/components/lugar-selector/lugar-selector';
+import { textoDeLugar, type LugarSeleccion } from '../../../shared/models/lugar.model';
 import { DocumentoPdfService } from '../../../shared/documentos';
 import { InspeccionVehiculoHoja } from '../../../shared/documentos/formatos/inspeccion-vehiculo-hoja';
 import { hojaDeInspeccion } from '../models/hojas.mapper';
@@ -79,6 +81,7 @@ const RESULTADO_TEXTO: Record<ResultadoChecklist, string> = {
     DynadrillStepperComponent,
     DynadrillTagComponent,
     DynadrillTextareaComponent,
+    LugarSelectorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './inspeccion-vehiculo-dialog.html',
@@ -114,8 +117,9 @@ export class InspeccionVehiculoDialog {
   protected readonly unidadId = signal<string | null>(this.data.caso?.unidad.id ?? null);
   protected readonly conductorId = signal<string | null>(null);
   protected readonly fecha = signal<Date | null>(new Date());
-  protected readonly puntoPartida = signal('');
-  protected readonly destino = signal('');
+  protected readonly puntoPartida = signal<LugarSeleccion | null>(null);
+  protected readonly destino = signal<LugarSeleccion | null>(null);
+  protected readonly textoDeLugar = textoDeLugar;
   protected readonly km = signal('');
   protected readonly observaciones = signal('');
   protected readonly resultados = signal<Record<string, ResultadoChecklist>>({});
@@ -151,7 +155,7 @@ export class InspeccionVehiculoDialog {
   protected readonly motivoNoGuardar = computed(() => {
     if (!this.unidadId()) return 'Falta seleccionar la unidad (paso «Datos»).';
     if (!this.conductorId()) return 'Falta seleccionar el conductor (paso «Datos»).';
-    if (!this.puntoPartida().trim()) return 'Falta el punto de partida (paso «Datos»).';
+    if (!this.puntoPartida()) return 'Falta el punto de partida (paso «Datos»).';
     if (this.km().trim() === '' || Number.isNaN(Number(this.km())))
       return 'Falta el kilometraje del odómetro (paso «Datos»).';
     if (this.conductor() && !this.conductor()!.reuneCondiciones) {
@@ -229,7 +233,7 @@ export class InspeccionVehiculoDialog {
   protected siguiente(): void {
     if (
       this.paso() === 0 &&
-      (!this.unidadId() || !this.conductorId() || !this.puntoPartida().trim())
+      (!this.unidadId() || !this.conductorId() || !this.puntoPartida())
     ) {
       this.notify.error(
         'Falta información',
@@ -257,8 +261,8 @@ export class InspeccionVehiculoDialog {
         ...(this.data.caso ? { casoId: this.data.caso.id } : { unidadId: this.unidadId()! }),
         momento: this.momento,
         fecha: this.fecha()?.toISOString(),
-        puntoPartida: this.puntoPartida().trim(),
-        destino: this.destino().trim() || null,
+        puntoPartida: this.puntoPartida()!,
+        destino: this.destino(),
         conductorId: this.conductorId()!,
         km: Number(this.km()),
         observaciones: this.observaciones().trim() || null,

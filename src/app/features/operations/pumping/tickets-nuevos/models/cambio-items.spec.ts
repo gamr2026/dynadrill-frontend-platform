@@ -6,6 +6,7 @@ const item = (id: string, extra: Partial<ItemCambio> = {}): ItemCambio => ({
   codigo: `COD-${id}`,
   descripcion: `Ítem ${id}`,
   unidad: 'día',
+  unidadMedidaId: 'um-dia',
   cantidad: 2,
   descuentoPct: null,
   tipoLinea: 'servicio',

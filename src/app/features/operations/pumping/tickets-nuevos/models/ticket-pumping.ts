@@ -4,6 +4,8 @@ import type { ActividadTabla } from '../../../../../shared/models/operativo-docs
  * Tickets de Pumping del contenedor `operaciones` (`/api/operaciones/pumping/tickets`). El ticket nace cuando Ventas abre un
  * pedido de la línea Pumping y lo lleva el Jefe de Base, el Supervisor y el Operador por los pasos del servicio.
  */
+
+import type { LugarSeleccion, LugarVista } from '../../../../../shared/models/lugar.model';
 
 export const PERMISO_PUMPING_OPERAR = 'pumping.tickets.operar';
 /** Ver los documentos del ticket (monitoreo y mezcla química) sin poder operarlo: lo tiene Facturación. */
@@ -385,8 +387,9 @@ export interface ReporteUnidad {
   codigo: string;
   placa: string | null;
   operador: { usuarioId: string; nombre: string } | null;
-  origen: string | null;
-  destino: string | null;
+  /** Bodega o pozo del catálogo. */
+  origen: LugarVista | null;
+  destino: LugarVista | null;
   salida: {
     fecha: string | null;
     combustible: number | null;
@@ -422,8 +425,9 @@ export interface ReporteUnidad {
 export interface SalidaEntrada {
   fecha: string;
   combustible: number;
-  origen: string;
-  destino: string;
+  /** Una bodega o un pozo del catálogo. */
+  origen: LugarSeleccion;
+  destino: LugarSeleccion;
   hubodometros: { eje: string; punto: PuntoHubodometro; salida: number | null }[];
   llantas: { posicion: PosicionLlanta; salida: string | null }[];
   inspecciones: { itemId: string; resultado: ResultadoInspeccion }[];

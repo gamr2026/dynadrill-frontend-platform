@@ -25,6 +25,8 @@ import {
   type SalidaEntrada,
   type SeccionInspeccion,
 } from '../../models/ticket-pumping';
+import { LugarSelectorComponent } from '../../../../../../shared/components/lugar-selector/lugar-selector';
+import { aSeleccion, type LugarSeleccion, type LugarVista } from '../../../../../../shared/models/lugar.model';
 import { TicketsPumpingService } from '../../services/tickets-pumping.service';
 
 interface EjeForm {
@@ -48,7 +50,7 @@ const hoy = () => {
  */
 @Component({
   selector: 'app-ticket-reporte-unidad-form',
-  imports: [DynadrillButtonComponent, DynadrillInputComponent, DynadrillTagComponent],
+  imports: [DynadrillButtonComponent, DynadrillInputComponent, DynadrillTagComponent, LugarSelectorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="rf__titulo" aria-label="Reporte de Unidad — Salida">
@@ -87,16 +89,14 @@ const hoy = () => {
               [disabled]="bloqueado()"
               (input)="fecha.set($any($event.target).value)"
           /></label>
-          <dynadrill-input
+          <app-lugar-selector
             label="Origen"
-            placeholder="Ej. Base Coco"
             [value]="origen()"
             [disabled]="bloqueado()"
             (valueChange)="origen.set($event)"
           />
-          <dynadrill-input
+          <app-lugar-selector
             label="Destino"
-            placeholder="Ej. Pozo Beta-9"
             [value]="destino()"
             [disabled]="bloqueado()"
             (valueChange)="destino.set($event)"
@@ -443,8 +443,8 @@ export class TicketReporteUnidadForm {
   /** Solo lectura (quien no es el operador de la unidad, o el ticket ya salió del traslado). */
   readonly soloLectura = input(false);
   /** Origen y destino que se indicaron en la inspección del vehículo: precargan los del reporte mientras estén vacíos. */
-  readonly origenInicial = input('');
-  readonly destinoInicial = input('');
+  readonly origenInicial = input<LugarVista | null>(null);
+  readonly destinoInicial = input<LugarVista | null>(null);
 
   /** El reporte quedó firmado: la página recarga el ticket. */
   readonly firmado = output<void>();
@@ -460,8 +460,8 @@ export class TicketReporteUnidadForm {
 
   protected readonly fecha = signal(hoy());
   protected readonly combustible = signal('');
-  protected readonly origen = signal('');
-  protected readonly destino = signal('');
+  protected readonly origen = signal<LugarSeleccion | null>(null);
+  protected readonly destino = signal<LugarSeleccion | null>(null);
   protected readonly ejes = signal<EjeForm[]>([
     { eje: 'A', origen: '', destino: '' },
     { eje: 'B', origen: '', destino: '' },
@@ -472,7 +472,7 @@ export class TicketReporteUnidadForm {
   protected readonly problema = computed(() => {
     if (!this.fecha()) return 'Indique la fecha de salida.';
     if (numeroONulo(this.combustible()) === null) return 'Indique el combustible a la salida.';
-    if (!this.origen().trim() || !this.destino().trim()) return 'Indique el origen y el destino.';
+    if (!this.origen() || !this.destino()) return 'Indique el origen y el destino.';
     return null;
   });
 
@@ -486,8 +486,8 @@ export class TicketReporteUnidadForm {
       const o = this.origenInicial();
       const d = this.destinoInicial();
       untracked(() => {
-        if (o && !this.origen().trim() && !this.bloqueado()) this.origen.set(o);
-        if (d && !this.destino().trim() && !this.bloqueado()) this.destino.set(d);
+        if (o && !this.origen() && !this.bloqueado()) this.origen.set(aSeleccion(o));
+        if (d && !this.destino() && !this.bloqueado()) this.destino.set(aSeleccion(d));
       });
     });
     effect(() => {
@@ -498,8 +498,8 @@ export class TicketReporteUnidadForm {
           this.reporte.set(r);
           if (r.salida.fecha) this.fecha.set(r.salida.fecha);
           if (r.salida.combustible !== null) this.combustible.set(String(r.salida.combustible));
-          this.origen.set(r.origen ?? this.origenInicial());
-          this.destino.set(r.destino ?? this.destinoInicial());
+          this.origen.set(aSeleccion(r.origen ?? this.origenInicial()));
+          this.destino.set(aSeleccion(r.destino ?? this.destinoInicial()));
           if (r.hubodometros.length) {
             const letras = [...new Set(r.hubodometros.map((h) => h.eje))].sort();
             this.ejes.set(
@@ -576,8 +576,8 @@ export class TicketReporteUnidadForm {
     const cuerpo: SalidaEntrada = {
       fecha: this.fecha(),
       combustible: numeroONulo(this.combustible()) as number,
-      origen: this.origen().trim(),
-      destino: this.destino().trim(),
+      origen: this.origen()!,
+      destino: this.destino()!,
       hubodometros: this.ejes().flatMap((e) => [
         { eje: e.eje, punto: 'origen' as const, salida: numeroONulo(e.origen) },
         { eje: e.eje, punto: 'destino' as const, salida: numeroONulo(e.destino) },

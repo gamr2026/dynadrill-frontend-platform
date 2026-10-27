@@ -541,8 +541,8 @@
                 [campo]="t.campo ?? ''"
                 [bloque]="t.bloque ?? ''"
                 [soloLectura]="u.firmado || !t.puedeActuar"
-                [origenInicial]="inspeccionSalida()?.puntoPartida ?? ''"
-                [destinoInicial]="inspeccionSalida()?.destino ?? ''"
+                [origenInicial]="inspeccionSalida()?.puntoPartida ?? null"
+                [destinoInicial]="inspeccionSalida()?.destino ?? null"
                 (firmado)="alFirmarReporte()"
               />
             }

@@ -17,6 +17,8 @@ import {
   type SalidaEntrada,
   type SeccionInspeccion,
 } from '../../models/ticket-pumping';
+import { LugarSelectorComponent } from '../../../../../../shared/components/lugar-selector/lugar-selector';
+import { aSeleccion, type LugarSeleccion } from '../../../../../../shared/models/lugar.model';
 import { TicketsPumpingService } from '../../services/tickets-pumping.service';
 
 export interface TicketReporteUnidadDialogData {
@@ -48,6 +50,7 @@ const hoy = () => new Date().toISOString().slice(0, 10);
     DynadrillInputComponent,
     DynadrillTagComponent,
     DynadrillTextComponent,
+    LugarSelectorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'app-dialog-fullscreen-mobile' },
@@ -79,13 +82,13 @@ const hoy = () => new Date().toISOString().slice(0, 10);
             [disabled]="bloqueado()"
             (valueChange)="combustible.set($event)"
           />
-          <dynadrill-input
+          <app-lugar-selector
             label="Origen"
             [value]="origen()"
             [disabled]="bloqueado()"
             (valueChange)="origen.set($event)"
           />
-          <dynadrill-input
+          <app-lugar-selector
             label="Destino"
             [value]="destino()"
             [disabled]="bloqueado()"
@@ -331,8 +334,8 @@ export class TicketReporteUnidadDialog {
 
   protected readonly fecha = signal(hoy());
   protected readonly combustible = signal('');
-  protected readonly origen = signal('');
-  protected readonly destino = signal('');
+  protected readonly origen = signal<LugarSeleccion | null>(null);
+  protected readonly destino = signal<LugarSeleccion | null>(null);
   protected readonly ejes = signal<EjeForm[]>([
     { eje: 'A', origen: '', destino: '' },
     { eje: 'B', origen: '', destino: '' },
@@ -343,7 +346,7 @@ export class TicketReporteUnidadDialog {
   protected readonly problema = computed(() => {
     if (!this.fecha()) return 'Indique la fecha de salida.';
     if (numeroONulo(this.combustible()) === null) return 'Indique el combustible a la salida.';
-    if (!this.origen().trim() || !this.destino().trim()) return 'Indique el origen y el destino.';
+    if (!this.origen() || !this.destino()) return 'Indique el origen y el destino.';
     return null;
   });
 
@@ -353,8 +356,8 @@ export class TicketReporteUnidadDialog {
         this.reporte.set(r);
         if (r.salida.fecha) this.fecha.set(r.salida.fecha);
         if (r.salida.combustible !== null) this.combustible.set(String(r.salida.combustible));
-        this.origen.set(r.origen ?? '');
-        this.destino.set(r.destino ?? '');
+        this.origen.set(aSeleccion(r.origen));
+        this.destino.set(aSeleccion(r.destino));
         if (r.hubodometros.length) {
           const letras = [...new Set(r.hubodometros.map((h) => h.eje))].sort();
           this.ejes.set(
@@ -429,8 +432,8 @@ export class TicketReporteUnidadDialog {
     const cuerpo: SalidaEntrada = {
       fecha: this.fecha(),
       combustible: numeroONulo(this.combustible()) as number,
-      origen: this.origen().trim(),
-      destino: this.destino().trim(),
+      origen: this.origen()!,
+      destino: this.destino()!,
       hubodometros: this.ejes().flatMap((e) => [
         { eje: e.eje, punto: 'origen' as const, salida: numeroONulo(e.origen) },
         { eje: e.eje, punto: 'destino' as const, salida: numeroONulo(e.destino) },

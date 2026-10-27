@@ -20,11 +20,11 @@
       </div>
       <div>
         <dt>Punto de partida</dt>
-        <dd>{{ d.puntoPartida }}</dd>
+        <dd>{{ textoDeLugar(d.puntoPartida) }}</dd>
       </div>
       <div>
         <dt>Destino</dt>
-        <dd>{{ d.destino || '—' }}</dd>
+        <dd>{{ textoDeLugar(d.destino) }}</dd>
       </div>
       <div>
         <dt>Kilometraje</dt>
@@ -169,13 +169,13 @@
             [value]="km()"
             (valueChange)="km.set($event)"
           />
-          <dynadrill-input
+          <app-lugar-selector
             label="Punto de partida"
             [value]="puntoPartida()"
             (valueChange)="puntoPartida.set($event)"
           />
-          <dynadrill-input
-            label="Destino"
+          <app-lugar-selector
+            label="Destino (opcional)"
             [value]="destino()"
             (valueChange)="destino.set($event)"
           />

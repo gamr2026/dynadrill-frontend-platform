@@ -3,6 +3,8 @@
  * La autoridad de las reglas (documentos vigentes, Nota 1, estados) es el backend; aquí solo se describen las respuestas.
  */
 
+import type { LugarSeleccion, LugarVista } from '../../../shared/models/lugar.model';
+
 export type MomentoInspeccion = 'salida' | 'llegada';
 export type ResultadoChecklist = 'cumple' | 'no_cumple' | 'no_aplica';
 export type SeccionInspeccion = 'vehiculo' | 'equipo';
@@ -65,8 +67,9 @@ export interface InspeccionDetalle {
   id: string;
   momento: MomentoInspeccion;
   fecha: string;
-  puntoPartida: string;
-  destino: string | null;
+  /** Bodega o pozo del catálogo (el backend ya no guarda texto libre). */
+  puntoPartida: LugarVista | null;
+  destino: LugarVista | null;
   observaciones: string | null;
   km: number | null;
   unidad: {
@@ -115,8 +118,9 @@ export interface RegistrarInspeccionEntrada {
   unidadId?: string;
   momento?: MomentoInspeccion;
   fecha?: string;
-  puntoPartida: string;
-  destino?: string | null;
+  /** Una bodega o un pozo del catálogo. */
+  puntoPartida: LugarSeleccion;
+  destino?: LugarSeleccion | null;
   conductorId: string;
   km: number;
   observaciones?: string | null;

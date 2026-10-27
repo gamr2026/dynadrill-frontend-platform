@@ -126,11 +126,11 @@ export class ViajeSolicitudDialog {
   /** En el retorno el recorrido va al revés. */
   protected readonly origen = computed(() => {
     const i = this.inspeccionSalida();
-    return (this.tipo() === 'salida' ? i?.puntoPartida : i?.destino) || '—';
+    return ((this.tipo() === 'salida' ? i?.puntoPartida : i?.destino)?.nombre) || '—';
   });
   protected readonly destino = computed(() => {
     const i = this.inspeccionSalida();
-    return (this.tipo() === 'salida' ? i?.destino : i?.puntoPartida) || '—';
+    return ((this.tipo() === 'salida' ? i?.destino : i?.puntoPartida)?.nombre) || '—';
   });
 
   /** Cabecera móvil con la context-card: ticket y tipo de viaje agrupados. */

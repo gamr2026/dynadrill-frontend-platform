@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { catchError, forkJoin, of } from 'rxjs';
 import { DynadrillNotificationService, type DynadrillTagVariant } from '@digitec-it-projects/dynadrill-ui';
 import {
   DASHBOARD_KPI_DEFS,
@@ -12,26 +11,13 @@ import {
   kpiFueraDeMeta,
   SemaforoColor,
 } from '../../models/dashboard-kpi.model';
+import { DashboardIndicadoresService, type FasePtwTablero, type IndicadoresTablero } from '../../services/dashboard-indicadores.service';
 import { DashboardMetasService } from '../../services/dashboard-metas.service';
-import { PTW_FASE_LABELS, PTW_FASE_ORDER, PtwFase, PtwMatrix, ptwCerrado } from '../../../ptw/models/ptw.model';
-import { PtwService } from '../../../ptw/services/ptw.service';
-import { EntregaEpiService } from '../../../epi/services/entrega-epi.service';
-import { EntregaEpi, EpiEstado, EPI_ESTADO_LABELS } from '../../../epi/models/entrega-epi.model';
-import { InspeccionEquipoService } from '../../../inspecciones/services/inspeccion-equipo.service';
-import { inspeccionVencida } from '../../../inspecciones/models/inspeccion-equipo.model';
-import { DesechoService } from '../../../desechos/services/desecho.service';
-import { desechoTotalGalones } from '../../../desechos/models/desecho.model';
-import { DerrameService } from '../../../derrames/services/derrame.service';
-import { derrameRequiereNotificacionMae } from '../../../derrames/models/derrame.model';
-import { StopCardService } from '../../../stop/services/stop-card.service';
-import { SwaService } from '../../../swa/services/swa.service';
-import { InvestigacionService } from '../../../investigaciones/services/investigacion.service';
-import { sugiereNotificacionLegal } from '../../../investigaciones/models/investigacion.model';
+import { forkJoin } from 'rxjs';
+import { EPI_ESTADO_LABELS, type EpiEstado } from '../../../epi/models/entrega-epi.model';
 import { PageHeader } from '../../../../../shared/components/page-header/page-header';
 import { QhseChip } from '../../../shared/components/qhse-chip';
 import { QhseIcon } from '../../../shared/components/qhse-icon';
-import { UsersService } from '../../../../users/services/users.service';
-import { User } from '../../../../users/models/user.model';
 
 const CATEGORIAS: DashboardKpiCategoria[] = ['Seguridad', 'Operacional', 'Ambiental', 'Cultura Preventiva'];
 
@@ -47,10 +33,6 @@ const SEMAFORO_LABEL: Record<SemaforoColor, string> = {
   rojo: 'Rojo — acción urgente',
 };
 
-function daysBetween(a: Date, b: Date): number {
-  return Math.abs(a.getTime() - b.getTime()) / 86_400_000;
-}
-
 const EPI_TONE: Record<EpiEstado, DynadrillTagVariant> = {
   solicitado: 'warning',
   aprobado: 'brand',
@@ -58,21 +40,24 @@ const EPI_TONE: Record<EpiEstado, DynadrillTagVariant> = {
   rechazado: 'error',
 };
 
-/** Fases "abiertas" agrupadas de forma simple para el mini-resumen — el detalle fase por fase ya vive en la bandeja de PTW. */
-const PTW_FASE_TONE: Record<PtwFase, DynadrillTagVariant> = {
+/** Fases abiertas del PTW del backend nuevo; el detalle fase por fase vive en la bandeja de PTW. */
+const PTW_FASE_LABELS: Record<FasePtwTablero, string> = {
+  gabinete: 'Preparación en gabinete',
+  formalizacion: 'Formalización del recibimiento',
+  aprobacion: 'Aprobación del PTW',
+};
+const PTW_FASE_ORDER: FasePtwTablero[] = ['gabinete', 'formalizacion', 'aprobacion'];
+const PTW_FASE_TONE: Record<FasePtwTablero, DynadrillTagVariant> = {
   gabinete: 'neutral',
-  ingreso: 'info',
-  verificaciones: 'warning',
   formalizacion: 'warning',
-  ejecucion: 'info',
-  gestion_documental: 'info',
+  aprobacion: 'info',
 };
 
 /** A partir de cuántos días sin actualizarse un PTW abierto se considera "estancado" — no es un plazo legal, es un umbral de gestión para que alguien lo revise. */
 const PTW_DIAS_SIN_ACTIVIDAD_ALERTA = 3;
 
 interface AtencionItem {
-  id: number;
+  id: string;
   code: string;
   /** Descripción de la actividad — va debajo del código con ícono, no en la misma línea que el estado. */
   titulo: string;
@@ -92,15 +77,7 @@ interface AtencionItem {
   styleUrl: './qhse-dashboard-page.scss',
 })
 export class QhseDashboardPage {
-  private readonly ptwService = inject(PtwService);
-  private readonly epiService = inject(EntregaEpiService);
-  private readonly inspeccionService = inject(InspeccionEquipoService);
-  private readonly desechoService = inject(DesechoService);
-  private readonly derrameService = inject(DerrameService);
-  private readonly stopService = inject(StopCardService);
-  private readonly swaService = inject(SwaService);
-  private readonly investigacionService = inject(InvestigacionService);
-  private readonly usersService = inject(UsersService);
+  private readonly indicadoresService = inject(DashboardIndicadoresService);
   private readonly metasService = inject(DashboardMetasService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly router = inject(Router);
@@ -123,64 +100,59 @@ export class QhseDashboardPage {
   protected readonly ptwFaseLabels = PTW_FASE_LABELS;
   protected readonly ptwDiasSinActividadAlerta = PTW_DIAS_SIN_ACTIVIDAD_ALERTA;
   protected readonly epiEstadoLabels = EPI_ESTADO_LABELS;
-  private readonly entregasEpiRaw = signal<EntregaEpi[]>([]);
-  private readonly ptwRaw = signal<PtwMatrix[]>([]);
+  private readonly indicadores = signal<IndicadoresTablero | null>(null);
 
-  protected readonly entregasEpiTotal = computed(() => this.entregasEpiRaw().length);
+  protected readonly entregasEpiTotal = computed(() => this.indicadores()?.epi.total ?? 0);
 
-  protected readonly entregasEpiPorEstado = computed(() => {
-    const all = this.entregasEpiRaw();
-    return (['solicitado', 'aprobado', 'despachado', 'rechazado'] as const).map(estado => ({
-      estado,
-      label: EPI_ESTADO_LABELS[estado],
-      tone: EPI_TONE[estado],
-      count: all.filter(e => e.estado === estado).length,
-    }));
-  });
-
-  /** Entregas "solicitado" — lo que QHSE tiene pendiente de aprobar/rechazar hoy (Fase 5). */
-  protected readonly entregasEpiAtencion = computed<AtencionItem[]>(() =>
-    this.entregasEpiRaw()
-      .filter(e => e.estado === 'solicitado')
-      .map(e => ({ id: e.id, code: e.code, titulo: `${e.trabajadorNombre} — ${e.trabajadorCargo}`, estado: 'Solicitado', tone: 'warning' as DynadrillTagVariant })),
+  protected readonly entregasEpiPorEstado = computed(() =>
+    (this.indicadores()?.epi.porEstado ?? []).map(e => ({
+      estado: e.estado,
+      label: EPI_ESTADO_LABELS[e.estado as EpiEstado],
+      tone: EPI_TONE[e.estado as EpiEstado],
+      count: e.cantidad,
+    })),
   );
 
-  protected readonly ptwAbiertosTotal = computed(() => this.ptwRaw().filter(p => !ptwCerrado(p)).length);
+  /** Entregas «solicitado»: lo que QHSE tiene pendiente de aprobar o rechazar hoy. */
+  protected readonly entregasEpiAtencion = computed<AtencionItem[]>(() =>
+    (this.indicadores()?.epi.pendientes ?? []).map(e => ({
+      id: e.id,
+      code: e.codigo,
+      titulo: e.cargo ? `${e.trabajador} — ${e.cargo}` : e.trabajador,
+      estado: 'Solicitado',
+      tone: 'warning' as DynadrillTagVariant,
+    })),
+  );
 
-  protected readonly ptwPorFase = computed(() => {
-    const abiertos = this.ptwRaw().filter(p => !ptwCerrado(p));
-    return PTW_FASE_ORDER.map(fase => ({
+  protected readonly ptwAbiertosTotal = computed(() => this.indicadores()?.ptw.abiertos ?? 0);
+
+  protected readonly ptwPorFase = computed(() =>
+    PTW_FASE_ORDER.map(fase => ({
       fase,
       label: PTW_FASE_LABELS[fase],
       tone: PTW_FASE_TONE[fase],
-      count: abiertos.filter(p => p.fase === fase).length,
-    }));
-  });
+      count: this.indicadores()?.ptw.porFase.find(f => f.fase === fase)?.cantidad ?? 0,
+    })),
+  );
 
-  /** PTW abiertos sin ninguna actualización reciente — señal de gestión, no un plazo legal, para saber a cuáles hacerles seguimiento. */
-  protected readonly ptwAtencion = computed<AtencionItem[]>(() => {
-    const ahora = Date.now();
-    return this.ptwRaw()
-      .filter(p => !ptwCerrado(p))
-      .map(p => ({ p, dias: Math.floor((ahora - new Date(p.updatedAt).getTime()) / 86_400_000) }))
-      .filter(({ dias }) => dias >= PTW_DIAS_SIN_ACTIVIDAD_ALERTA)
-      .sort((a, b) => b.dias - a.dias)
-      .map(({ p, dias }) => ({
-        id: p.id,
-        code: p.code,
-        titulo: p.actividad,
-        estado: `${dias} días sin actividad`,
-        detalle: `Fase: ${PTW_FASE_LABELS[p.fase]}`,
-        tone: 'warning' as DynadrillTagVariant,
-      }));
-  });
+  /** PTW abiertos sin actividad reciente: señal de gestión (no un plazo legal) para saber a cuáles hacerles seguimiento. */
+  protected readonly ptwAtencion = computed<AtencionItem[]>(() =>
+    (this.indicadores()?.ptw.estancados ?? []).map(p => ({
+      id: p.id,
+      code: p.codigo,
+      titulo: p.pedido,
+      estado: `${p.diasSinActividad} días sin actividad`,
+      detalle: `Fase: ${PTW_FASE_LABELS[p.fase]}`,
+      tone: 'warning' as DynadrillTagVariant,
+    })),
+  );
 
   protected verEpi(): void {
     this.router.navigate(['/dashboard/qhse/epi']);
   }
 
-  protected verPtw(id: number): void {
-    this.router.navigate(['/dashboard/qhse/ptw', id]);
+  protected verPtw(_id: string): void {
+    this.router.navigate(['/dashboard/qhse/ptw']);
   }
 
   protected defsPorCategoria(categoria: DashboardKpiCategoria): DashboardKpiDef[] {
@@ -236,107 +208,19 @@ export class QhseDashboardPage {
   protected readonly semaforo = computed<SemaforoColor>(() => evaluarSemaforo(this.indicadoresFueraDeMeta(), this.incumplimientoLegal()));
 
   constructor() {
-    forkJoin({
-      entregasEpi: this.epiService.list(),
-      ptw: this.ptwService.list(),
-      inspecciones: this.inspeccionService.list(),
-      desechos: this.desechoService.list(),
-      derrames: this.derrameService.list(),
-      stop: this.stopService.list(),
-      swa: this.swaService.list(),
-      investigaciones: this.investigacionService.list(),
-      // GET /api/users es solo Superadmin — para el resto del staff HSE el 403
-      // no debe tumbar todo el dashboard (métricas y metas). El KPI "STOP per
-      // cápita" queda "No disponible" cuando no hay headcount.
-      usuarios: this.usersService.list().pipe(catchError(() => of<User[]>([]))),
-      metas: this.metasService.get(),
-    }).subscribe({
-      next: ({ entregasEpi, ptw, inspecciones, desechos, derrames, stop, swa, investigaciones, usuarios, metas }) => {
-        const ahora = new Date();
-        const detalleLegal: string[] = [];
-
-        // ── Seguridad ──
-        const eventosLti = investigaciones.filter(i => i.resultado === 'fatal' || i.resultado === 'grave' || i.resultado === 'leve');
-        const ultimoLti = eventosLti.reduce<Date | null>((max, i) => {
-          const fecha = new Date(i.fechaIncidente);
-          return !max || fecha > max ? fecha : max;
-        }, null);
-        const diasSinLti = ultimoLti ? Math.floor(daysBetween(ahora, ultimoLti)) : null;
-
-        const nearMiss = investigaciones.filter(i => i.resultado === 'near_miss').length;
-        const incidentes = investigaciones.length - nearMiss;
-        const ratioNearMiss = incidentes > 0 ? Math.round((nearMiss / incidentes) * 10) / 10 : null;
-
-        // ── Operacional ──
-        const ptwCerradosPct = ptw.length > 0 ? Math.round((ptw.filter(ptwCerrado).length / ptw.length) * 100) : null;
-
-        const inspeccionesVigentesPct =
-          inspecciones.length > 0 ? Math.round((inspecciones.filter(i => !inspeccionVencida(i)).length / inspecciones.length) * 100) : null;
-
-        const cerrados = ptw.filter(ptwCerrado);
-        const ptwTiempoPromDias =
-          cerrados.length > 0
-            ? Math.round((cerrados.reduce((sum, p) => sum + daysBetween(new Date(p.createdAt), new Date(p.updatedAt)), 0) / cerrados.length) * 10) / 10
-            : null;
-
-        // ── Ambiental ──
-        const mesActual = ahora.getMonth();
-        const anioActual = ahora.getFullYear();
-        const desechosPeligrososKgMes = desechos
-          .filter(d => d.clasificacion === 'peligroso')
-          .filter(d => {
-            const f = new Date(d.createdAt);
-            return f.getMonth() === mesActual && f.getFullYear() === anioActual;
-          })
-          .reduce((sum, d) => sum + desechoTotalGalones(d.items), 0);
-
-        const totalKg = desechos.reduce((sum, d) => sum + desechoTotalGalones(d.items), 0);
-        const azulKg = desechos.filter(d => d.contenedorColor === 'azul').reduce((sum, d) => sum + desechoTotalGalones(d.items), 0);
-        const reciclajePct = totalKg > 0 ? Math.round((azulKg / totalKg) * 100) : null;
-
-        const hace90Dias = new Date(ahora.getTime() - 90 * 86_400_000);
-        const derramesTrimestre = derrames.filter(d => new Date(d.activadoAt) >= hace90Dias).length;
-        const derramesVolumenBarrilesYear = derrames
-          .filter(d => new Date(d.activadoAt).getFullYear() === anioActual)
-          .reduce((sum, d) => sum + (d.volumenBarriles ?? 0), 0);
-
-        // ── Cultura Preventiva ──
-        const swaEventos = swa.length;
-        const usuariosActivos = usuarios.filter(u => u.status).length;
-        const stopPerCapita = usuariosActivos > 0 ? Math.round((stop.length / usuariosActivos) * 100) / 100 : null;
-
-        // ── Incumplimiento legal (para el semáforo) ──
-        derrames
-          .filter(d => d.estado !== 'cerrado' && derrameRequiereNotificacionMae(d) && !d.notificadoMae)
-          .forEach(d => detalleLegal.push(`Derrame ${d.code}: notificación al MAE pendiente.`));
-
-        investigaciones
-          .filter(i => i.estado === 'abierta' && sugiereNotificacionLegal(i.resultado))
-          .filter(i => !i.notificacionLegal.ministerioTrabajoNotificadoAt && !i.notificacionLegal.iessNotificadoAt)
-          .filter(i => daysBetween(ahora, new Date(i.fechaIncidente)) * 24 > 24)
-          .forEach(i => detalleLegal.push(`Investigación ${i.code}: notificación a Ministerio del Trabajo / IESS vencida (24h).`));
-
-        this.valores.set({
-          dias_sin_lti: diasSinLti,
-          ratio_near_miss: ratioNearMiss,
-          ptw_cerrados_pct: ptwCerradosPct,
-          inspecciones_vigentes_pct: inspeccionesVigentesPct,
-          ptw_tiempo_prom_dias: ptwTiempoPromDias,
-          desechos_peligrosos_kg_mes: desechosPeligrososKgMes,
-          reciclaje_pct: reciclajePct,
-          derrames_trimestre: derramesTrimestre,
-          derrames_volumen_barriles_year: derramesVolumenBarrilesYear,
-          swa_eventos: swaEventos,
-          stop_per_capita: stopPerCapita,
-        });
-        this.incumplimientoLegal.set(detalleLegal.length > 0);
-        this.incumplimientoDetalle.set(detalleLegal);
+    forkJoin({ datos: this.indicadoresService.obtener(), metas: this.metasService.get() }).subscribe({
+      next: ({ datos, metas }) => {
+        this.indicadores.set(datos);
+        this.valores.set(datos.valores);
+        this.incumplimientoLegal.set(datos.incumplimientoLegal.length > 0);
+        this.incumplimientoDetalle.set(datos.incumplimientoLegal);
         this.metas.set(metas);
-        this.entregasEpiRaw.set(entregasEpi);
-        this.ptwRaw.set(ptw);
         this.loading.set(false);
       },
-      error: () => this.loading.set(false),
+      error: () => {
+        this.loading.set(false);
+        this.notify.error('Error', 'No se pudo cargar el tablero HSE.');
+      },
     });
   }
 

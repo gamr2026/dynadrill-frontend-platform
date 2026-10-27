@@ -31,6 +31,16 @@ export class ListasPreciosComercialService {
     return this.http.get<ListaPreciosResumen>(`${this.base}/${listaId}`);
   }
 
+  /** Alta de la cabecera de una lista (cliente, contrato y vigencia); los ítems llegan con la carga de datos reales. */
+  crear(datos: {
+    clienteId: string;
+    numeroContrato: string;
+    vigenteDesde: string;
+    activa?: boolean;
+  }): Observable<ListaPreciosResumen> {
+    return this.http.post<ListaPreciosResumen>(this.base, datos);
+  }
+
   /** Ítems elegibles para un pedido del cliente (listas activas; un código solo una vez). */
   itemsDeCliente(
     clienteId: string,

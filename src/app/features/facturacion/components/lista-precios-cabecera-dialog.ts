@@ -9,9 +9,10 @@ import {
   DynadrillTextComponent,
   type DynadrillSelectOption,
 } from '@digitec-it-projects/dynadrill-ui';
-import { ListaPrecios } from '../models/lista-precios.model';
-import { ListaPreciosService } from '../services/pedido.service';
-import { CatalogosService, type ClienteCatalogo } from '../../../shared/index';
+import { mensajeDeError, type ListaPreciosResumen } from '../pedidos-comercial/models/pedido-comercial.model';
+import type { ClientePlataforma } from '../pedidos-comercial/models/catalogos-plataforma.model';
+import { CatalogosPlataformaService } from '../pedidos-comercial/services/catalogos-plataforma.service';
+import { ListasPreciosComercialService } from '../pedidos-comercial/services/listas-precios-comercial.service';
 
 export interface ListaPreciosCabeceraDialogData {}
 
@@ -31,10 +32,10 @@ export interface ListaPreciosCabeceraDialogData {}
   host: { class: 'app-dialog-sheet-mobile' },
 })
 export class ListaPreciosCabeceraDialog {
-  private readonly listaService = inject(ListaPreciosService);
-  private readonly catalogosService = inject(CatalogosService);
+  private readonly listaService = inject(ListasPreciosComercialService);
+  private readonly catalogosService = inject(CatalogosPlataformaService);
   private readonly notify = inject(DynadrillNotificationService);
-  private readonly modalRef = inject(NzModalRef<ListaPreciosCabeceraDialog, ListaPrecios | undefined>);
+  private readonly modalRef = inject(NzModalRef<ListaPreciosCabeceraDialog, ListaPreciosResumen | undefined>);
   protected readonly data = inject<ListaPreciosCabeceraDialogData>(NZ_MODAL_DATA);
 
   /**
@@ -43,14 +44,12 @@ export class ListaPreciosCabeceraDialog {
    * prefactura del pedido de ese cliente no encontraba esta lista (bug $0
    * reportado). Mismo patrón que `nuevo-pedido-dialog.ts`.
    */
-  private readonly clientesCatalogo = signal<ClienteCatalogo[]>([]);
+  private readonly clientesCatalogo = signal<ClientePlataforma[]>([]);
   protected readonly clienteOptions = computed<DynadrillSelectOption[]>(() =>
-    this.clientesCatalogo().map(c => ({ label: c.nombreComercial, value: c.nombreComercial })),
-  );
-  protected readonly clienteId = computed(
-    () => this.clientesCatalogo().find(c => c.nombreComercial === this.cliente())?.id ?? null,
+    this.clientesCatalogo().map(c => ({ label: c.nombreComercial, value: c.id })),
   );
 
+  /** Id del cliente elegido en el catálogo. */
   protected readonly cliente = signal('');
   protected readonly numeroContrato = signal('');
   protected readonly vigenteDesde = signal<Date | null>(new Date());
@@ -79,21 +78,20 @@ export class ListaPreciosCabeceraDialog {
     this.submitting.set(true);
 
     const payload = {
-      cliente: this.cliente().trim(),
-      clienteId: this.clienteId() ?? undefined,
+      clienteId: this.cliente(),
       numeroContrato: this.numeroContrato().trim(),
       vigenteDesde: this.vigenteDesde()!.toISOString().slice(0, 10),
       activa: this.activa(),
     };
 
-    this.listaService.create({ ...payload, items: [] }).subscribe({
+    this.listaService.crear(payload).subscribe({
       next: lista => {
-        this.notify.success('Lista creada', `${lista.cliente} — ${lista.numeroContrato}`);
+        this.notify.success('Lista creada', `${lista.clienteNombre} — ${lista.numeroContrato}`);
         this.modalRef.close(lista);
       },
-      error: () => {
+      error: err => {
         this.submitting.set(false);
-        this.notify.error('Error', 'No se pudo guardar la lista de precios.');
+        this.notify.error('Error', mensajeDeError(err, 'No se pudo guardar la lista de precios.'));
       },
     });
   }

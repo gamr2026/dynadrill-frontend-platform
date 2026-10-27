@@ -7,6 +7,44 @@
     @include f.card;
   }
 
+  &__toolbar {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  // Figma "Button" primario: mín. 48px, radio 12; a ancho completo en móvil.
+  &__new {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 24px;
+    border: 0;
+    border-radius: var(--radius-md, 12px);
+    background: var(--dynadrill-purple, #662e9b);
+    box-shadow: 0 4px 6px rgba(19, 21, 41, 0.08);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--dynadrill-white, #fff);
+    cursor: pointer;
+
+    @media (min-width: 841px) {
+      width: auto;
+    }
+
+    &:hover {
+      background: var(--dynadrill-purple-hover, #55267f);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--dynadrill-purple, #662e9b);
+      outline-offset: 2px;
+    }
+  }
+
   &__grid {
     display: grid;
     grid-template-columns: 1fr;

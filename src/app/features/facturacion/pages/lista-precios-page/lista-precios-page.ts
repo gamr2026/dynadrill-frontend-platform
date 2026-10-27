@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
+  DynadrillDialogService,
   DynadrillNotificationService,
   DynadrillScreenHeaderComponent,
   DynadrillSpinnerComponent,
@@ -11,6 +12,7 @@ import {
   mensajeDeError,
   type ListaPreciosResumen,
 } from '../../pedidos-comercial/models/pedido-comercial.model';
+import { ListaPreciosCabeceraDialog } from '../../components/lista-precios-cabecera-dialog';
 import { ListasPreciosComercialService } from '../../pedidos-comercial/services/listas-precios-comercial.service';
 import { KpiStat, KpiStatTone } from '../../../../shared/components/kpi-stat/kpi-stat';
 
@@ -34,6 +36,7 @@ export class ListaPreciosPage {
   private readonly servicio = inject(ListasPreciosComercialService);
   private readonly notify = inject(DynadrillNotificationService);
   private readonly router = inject(Router);
+  private readonly dialog = inject(DynadrillDialogService);
 
   protected readonly loading = signal(true);
   protected readonly listas = signal<ListaPreciosResumen[]>([]);
@@ -80,6 +83,19 @@ export class ListaPreciosPage {
         this.loading.set(false);
         this.notify.error('Error', mensajeDeError(err, 'No se pudo cargar las listas de precios.'));
       },
+    });
+  }
+
+  protected nuevaLista(): void {
+    const ref = this.dialog.open<ListaPreciosCabeceraDialog>({
+      title: 'Nueva lista de precios',
+      content: ListaPreciosCabeceraDialog,
+      data: {},
+      footer: false,
+      width: '640px',
+    });
+    ref.afterClose.subscribe((lista) => {
+      if (lista) this.router.navigate(['/dashboard/facturacion/lista-precios', (lista as ListaPreciosResumen).id]);
     });
   }
 

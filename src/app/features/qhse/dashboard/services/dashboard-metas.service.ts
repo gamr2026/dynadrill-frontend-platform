@@ -7,7 +7,7 @@ import { environment } from '@env';
 @Injectable({ providedIn: 'root' })
 export class DashboardMetasService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = `${environment.apiUrl}/qhse/dashboard-metas`;
+  private readonly baseUrl = `${environment.apiUrl}/v2/qhse/dashboard-metas`;
 
   get(): Observable<DashboardMetas> {
     return this.http.get<DashboardMetas>(this.baseUrl);
